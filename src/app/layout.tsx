@@ -13,8 +13,49 @@ const beVietnamPro = Be_Vietnam_Pro({
 });
 
 export const metadata: Metadata = {
-  title: "CÀY THUÊ LOL - Dịch vụ cày thuê Liên Minh Huyền Thoại chuyên nghiệp số 1 Việt Nam",
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://caythuelol.com"),
+  title: {
+    default: "CÀY THUÊ LOL - Dịch vụ cày thuê Liên Minh Huyền Thoại chuyên nghiệp số 1 Việt Nam",
+    template: "%s | CÀY THUÊ LOL",
+  },
   description: "Hệ thống cày thuê Liên Minh Huyền Thoại chuyên nghiệp số 1 Việt Nam. An toàn, bảo mật, và nhanh chóng với đội ngũ Thách Đấu.",
+  keywords: ["cày thuê lol", "cày thuê liên minh", "boost rank lol", "leo rank thần tốc", "cày thuê uy tín", "dịch vụ cày thuê", "lol boosting"],
+  authors: [{ name: "CAYTHUELOL Team" }],
+  creator: "CAYTHUELOL",
+  openGraph: {
+    title: "CÀY THUÊ LOL - Dịch vụ cày thuê Liên Minh Huyền Thoại chuyên nghiệp số 1 Việt Nam",
+    description: "Hệ thống cày thuê Liên Minh Huyền Thoại chuyên nghiệp số 1 Việt Nam. An toàn, bảo mật, và nhanh chóng với đội ngũ Thách Đấu.",
+    url: "/",
+    siteName: "CÀY THUÊ LOL",
+    images: [
+      {
+        url: "/og-image.png", // Bạn cần thêm file ảnh này vào thư mục public
+        width: 1200,
+        height: 630,
+        alt: "CÀY THUÊ LOL Banner",
+      },
+    ],
+    locale: "vi_VN",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "CÀY THUÊ LOL - Dịch vụ cày thuê Liên Minh Huyền Thoại chuyên nghiệp số 1 Việt Nam",
+    description: "Hệ thống cày thuê Liên Minh Huyền Thoại chuyên nghiệp số 1 Việt Nam. An toàn, bảo mật, và nhanh chóng với đội ngũ Thách Đấu.",
+    images: ["/og-image.png"],
+    creator: "@caythuelol",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
+  },
 };
 
 export default function RootLayout({

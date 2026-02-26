@@ -26,7 +26,7 @@ function LanguageSwitcher({
   className?: string;
 }) {
   return (
-    <div className={`flex items-center gap-3 ${className}`}>
+    <div className={`flex items-center gap-3 ${className}`} suppressHydrationWarning>
       {(['vi', 'kr', 'jp', 'en'] as Language[]).map((lang) => (
         <button
           key={lang}
@@ -91,6 +91,7 @@ export default function Navbar() {
   }) => (
     <Link
       href={href}
+      suppressHydrationWarning
       className={`relative group transition ${
         pathname === href
           ? 'text-white'
@@ -111,6 +112,7 @@ export default function Navbar() {
   return (
     <>
     <header
+      suppressHydrationWarning
       className={`fixed top-0 left-0 right-0 z-50 backdrop-blur-xl transition-all duration-300 ${
         isScrolled || isMobileMenuOpen
           ? 'h-16 bg-zinc-650 shadow-lg'
@@ -118,12 +120,12 @@ export default function Navbar() {
       }`}
     >
       {/* Gradient Border */}
-      <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-blue-500/40 to-transparent" />
+      <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-blue-500/40 to-transparent" suppressHydrationWarning />
 
-      <div className="container mx-auto flex h-full items-center justify-between px-6">
+      <div className="container mx-auto flex h-full items-center justify-between px-6" suppressHydrationWarning>
         {/* Logo */}
-        <Link href="/" className="flex items-center gap-3 group">
-          <div className="relative h-9 w-9 overflow-hidden group-hover:ring-blue-500/50 transition">
+        <Link href="/" className="flex items-center gap-3 group" suppressHydrationWarning>
+          <div className="relative h-9 w-9 overflow-hidden group-hover:ring-blue-500/50 transition" suppressHydrationWarning>
             <Image src="/logo-ver3.png" alt="Logo" fill className="object-cover" />
           </div>
           <span className="text-lg font-bold tracking-tight text-white">
@@ -132,11 +134,11 @@ export default function Navbar() {
         </Link>
 
         {/* Desktop */}
-        <nav className="hidden md:flex items-center gap-8 text-sm font-medium">
+        <nav className="hidden md:flex items-center gap-8 text-sm font-medium" suppressHydrationWarning>
           <NavLink href="/services" label={t('services')} />
           <NavLink href="/boosters" label={t('boosters')} />
           <NavLink href="/blog" label={t('blog')} />
-          <div className="h-5 w-px bg-white/10" />
+          <div className="h-5 w-px bg-white/10" suppressHydrationWarning />
 
           <LanguageSwitcher
             language={language}
@@ -144,7 +146,7 @@ export default function Navbar() {
           />
 
           {user ? (
-            <div className="relative ml-4">
+            <div className="relative ml-4" suppressHydrationWarning>
               <button
                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                 className="flex items-center gap-3 rounded-full border border-white/10 bg-zinc-900 px-3 py-1.5 hover:border-blue-500/40 transition"
@@ -181,6 +183,7 @@ export default function Navbar() {
 
               {/* Dropdown */}
               <div
+                suppressHydrationWarning
                 className={`absolute right-0 mt-3 w-64 rounded-xl border border-white/10 bg-zinc-900 shadow-2xl transition-all duration-200 ${
                   isDropdownOpen
                     ? 'opacity-100 translate-y-0'
@@ -228,6 +231,7 @@ export default function Navbar() {
             <>
               <Link
                 href="/login"
+                suppressHydrationWarning
                 className="text-zinc-400 hover:text-white transition"
               >
                 {t('login')}
@@ -235,6 +239,7 @@ export default function Navbar() {
 
               <Link
                 href="/dashboard"
+                suppressHydrationWarning
                 className="rounded-lg bg-blue-600 px-5 py-2 text-white font-semibold shadow-lg shadow-blue-500/20 hover:bg-blue-500 transition"
               >
                 {t('rentNow')}
@@ -245,6 +250,7 @@ export default function Navbar() {
 
         {/* Mobile Button */}
         <button
+          suppressHydrationWarning
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
           className="md:hidden text-zinc-400 hover:text-white"
         >
@@ -259,6 +265,7 @@ export default function Navbar() {
 
       {/* Mobile Menu Overlay */}
       <div 
+        suppressHydrationWarning
         className={`fixed inset-0 z-[55] bg-black/60 backdrop-blur-sm transition-opacity duration-300 md:hidden ${
           isMobileMenuOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
         }`}
@@ -267,12 +274,13 @@ export default function Navbar() {
 
       {/* Mobile Menu Panel */}
       <div 
+        suppressHydrationWarning
         className={`fixed inset-y-0 right-0 z-[60] flex flex-col w-3/4 max-w-xs transform border-l border-white/10 bg-zinc-750/80 backdrop-blur-md shadow-2xl transition-transform duration-300 ease-in-out md:hidden ${
           isMobileMenuOpen ? 'translate-x-0' : 'translate-x-full'
         }`}
       >
-        <div className="flex items-center justify-between border-b border-white/10 p-4">
-          <div className="relative h-10 w-10">
+        <div className="flex items-center justify-between border-b border-white/10 p-4" suppressHydrationWarning>
+          <div className="relative h-10 w-10" suppressHydrationWarning>
               <Image src="/logo-ver3.png" alt="Logo" fill className="object-contain" />
           </div>
           <span className="text-2xl font-bold text-white tracking-tighter">CAYTHUE<span className="text-blue-500">LOL</span></span>
@@ -280,7 +288,7 @@ export default function Navbar() {
             <X className="h-6 w-6" />
           </button>
         </div>
-        <nav className="flex-1 flex flex-col overflow-y-auto p-6 text-base font-medium">
+        <nav className="flex-1 flex flex-col overflow-y-auto p-6 text-base font-medium" suppressHydrationWarning>
           {user ? (
             <div className="flex flex-col h-full">
               {/* User Info */}
@@ -304,9 +312,9 @@ export default function Navbar() {
 
               {/* Navigation Links */}
               <div className="flex-grow space-y-2">
-                <Link href="/dashboard" onClick={closeMobileMenu} className="flex items-center gap-4 px-4 py-3 rounded-lg hover:bg-white/5 transition-colors"><LayoutDashboard className="h-5 w-5 text-zinc-400" />{t('dashboard')}</Link>
-                <Link href="/dashboard/wallet" onClick={closeMobileMenu} className="flex items-center gap-4 px-4 py-3 rounded-lg hover:bg-white/5 transition-colors"><Wallet className="h-5 w-5 text-zinc-400" />{t('wallet')}</Link>
-                <Link href="/dashboard/orders" onClick={closeMobileMenu} className="flex items-center gap-4 px-4 py-3 rounded-lg hover:bg-white/5 transition-colors"><FileText className="h-5 w-5 text-zinc-400" />{t('orders')}</Link>
+                <Link href="/dashboard" onClick={closeMobileMenu} suppressHydrationWarning className="flex items-center gap-4 px-4 py-3 rounded-lg hover:bg-white/5 transition-colors"><LayoutDashboard className="h-5 w-5 text-zinc-400" />{t('dashboard')}</Link>
+                <Link href="/dashboard/wallet" onClick={closeMobileMenu} suppressHydrationWarning className="flex items-center gap-4 px-4 py-3 rounded-lg hover:bg-white/5 transition-colors"><Wallet className="h-5 w-5 text-zinc-400" />{t('wallet')}</Link>
+                <Link href="/dashboard/orders" onClick={closeMobileMenu} suppressHydrationWarning className="flex items-center gap-4 px-4 py-3 rounded-lg hover:bg-white/5 transition-colors"><FileText className="h-5 w-5 text-zinc-400" />{t('orders')}</Link>
               </div>
 
               {/* Actions */}
@@ -321,17 +329,17 @@ export default function Navbar() {
           ) : (
             <div className="flex flex-col h-full">
               <div className="flex-grow space-y-2">
-                <Link href="/services" onClick={closeMobileMenu} className="block px-4 py-3 rounded-lg hover:bg-white/5 transition-colors">{t('services')}</Link>
-                <Link href="/boosters" onClick={closeMobileMenu} className="block px-4 py-3 rounded-lg hover:bg-white/5 transition-colors">{t('boosters')}</Link>
-                <Link href="/blog" onClick={closeMobileMenu} className="block px-4 py-3 rounded-lg hover:bg-white/5 transition-colors">{t('blog')}</Link>
+                <Link href="/services" onClick={closeMobileMenu} suppressHydrationWarning className="block px-4 py-3 rounded-lg hover:bg-white/5 transition-colors">{t('services')}</Link>
+                <Link href="/boosters" onClick={closeMobileMenu} suppressHydrationWarning className="block px-4 py-3 rounded-lg hover:bg-white/5 transition-colors">{t('boosters')}</Link>
+                <Link href="/blog" onClick={closeMobileMenu} suppressHydrationWarning className="block px-4 py-3 rounded-lg hover:bg-white/5 transition-colors">{t('blog')}</Link>
               </div>
               
               <div className="space-y-3">
                 <div className="flex gap-3">
-                  <Link href="/login" onClick={closeMobileMenu} className="flex-1 text-center rounded-lg border border-zinc-700 bg-zinc-800/50 px-6 py-3 font-semibold transition-colors hover:bg-zinc-700">{t('login')}</Link>
-                  <Link href="/register" onClick={closeMobileMenu} className="flex-1 text-center rounded-lg border border-zinc-700 bg-zinc-800/50 px-6 py-3 font-semibold transition-colors hover:bg-zinc-700">{t('registerNow')}</Link>
+                  <Link href="/login" onClick={closeMobileMenu} suppressHydrationWarning className="flex-1 text-center rounded-lg border border-zinc-700 bg-zinc-800/50 px-6 py-3 font-semibold transition-colors hover:bg-zinc-700">{t('login')}</Link>
+                  <Link href="/register" onClick={closeMobileMenu} suppressHydrationWarning className="flex-1 text-center rounded-lg border border-zinc-700 bg-zinc-800/50 px-6 py-3 font-semibold transition-colors hover:bg-zinc-700">{t('registerNow')}</Link>
                 </div>
-                <Link href="/dashboard" onClick={closeMobileMenu} className="block text-center rounded-lg bg-blue-600 px-6 py-3 text-white font-semibold">{t('rentNow')}</Link>
+                <Link href="/dashboard" onClick={closeMobileMenu} suppressHydrationWarning className="block text-center rounded-lg bg-blue-600 px-6 py-3 text-white font-semibold">{t('rentNow')}</Link>
               </div>
             </div>
           )}
