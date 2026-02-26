@@ -109,16 +109,13 @@ export default function DashboardPage() {
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-blue-600 to-purple-600 p-8 shadow-lg">
         <div className="absolute right-0 top-0 -mt-10 -mr-10 h-64 w-64 rounded-full bg-white/10 blur-3xl" />
         <div className="relative z-10">
-          <h1 className="text-3xl font-bold text-white">Xin chào, {user?.username}! 👋</h1>
-          <p className="mt-2 text-blue-100">Chào mừng bạn quay trở lại. Bạn đang có <span className="font-bold text-white">{stats[1].value}</span> đơn hàng đang xử lý.</p>
+          <h1 className="text-3xl font-bold text-white">{t('hello')}, {user?.username}! 👋</h1>
           <p className="mt-2 text-blue-100">{t('welcomeDash')} <span className="font-bold text-white">{stats[1].value}</span> {t('ordersProcessing')}</p>
           <div className="mt-6 flex gap-3">
              <button className="rounded-lg bg-white px-5 py-2.5 text-sm font-bold text-blue-600 shadow-lg transition-transform hover:scale-105 hover:bg-blue-50">
-               + Tạo đơn mới
                + {t('createOrder')}
              </button>
              <button className="rounded-lg bg-blue-700/50 px-5 py-2.5 text-sm font-bold text-white backdrop-blur-sm transition-colors hover:bg-blue-700">
-               Nạp tiền ngay
                {t('depositNow')}
              </button>
           </div>
@@ -148,10 +145,8 @@ export default function DashboardPage() {
       {/* Recent Orders */}
       <div className="rounded-xl border border-white/5 bg-zinc-900/50 backdrop-blur-sm">
         <div className="flex items-center justify-between border-b border-white/5 p-6">
-          <h3 className="text-lg font-bold text-white">Đơn hàng gần đây</h3>
           <h3 className="text-lg font-bold text-white">{t('recentOrders')}</h3>
           <button className="flex items-center gap-1 text-sm font-medium text-blue-400 hover:text-blue-300">
-            Xem tất cả <ArrowUpRight className="h-4 w-4" />
             {t('viewAll')} <ArrowUpRight className="h-4 w-4" />
           </button>
         </div>
@@ -162,8 +157,6 @@ export default function DashboardPage() {
               <div className="mb-4 rounded-full bg-zinc-800 p-4">
                 <Gamepad2 className="h-8 w-8 text-zinc-500" />
               </div>
-              <h3 className="text-lg font-medium text-white">Chưa có đơn hàng nào</h3>
-              <p className="mt-1 text-sm text-zinc-500">Hãy tạo đơn hàng đầu tiên để bắt đầu leo rank!</p>
               <h3 className="text-lg font-medium text-white">{t('noOrders')}</h3>
               <p className="mt-1 text-sm text-zinc-500">{t('startRank')}</p>
             </div>
