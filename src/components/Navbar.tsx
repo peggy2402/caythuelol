@@ -56,14 +56,20 @@ export default function Navbar() {
 
   useEffect(() => {
     const userData = localStorage.getItem('user');
-    if (userData) setUser(JSON.parse(userData));
+    if (userData) {
+      try {
+        setUser(JSON.parse(userData));
+      } catch (e) {
+        console.error("Failed to parse user data", e);
+      }
+    }
   }, []);
 
   useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 10);
     };
-    window.addEventListener('scroll', handleScroll);
+    window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
@@ -130,7 +136,6 @@ export default function Navbar() {
           <NavLink href="/services" label={t('services')} />
           <NavLink href="/boosters" label={t('boosters')} />
           <NavLink href="/blog" label={t('blog')} />
-
           <div className="h-5 w-px bg-white/10" />
 
           <LanguageSwitcher
@@ -147,12 +152,10 @@ export default function Navbar() {
                 <div className="relative h-8 w-8 rounded-full overflow-hidden bg-gradient-to-br from-blue-500 to-purple-600 p-[1px]">
                   <div className="h-full w-full bg-zinc-950 rounded-full flex items-center justify-center">
                     {user.profile?.avatar ? (
-                      <Image
+                      <img
                         src={user.profile.avatar}
                         alt="Avatar"
-                        width={32}
-                        height={32}
-                        className="rounded-full"
+                        className="rounded-full h-8 w-8 object-cover"
                       />
                     ) : (
                       <User className="h-4 w-4 text-white" />
@@ -285,7 +288,7 @@ export default function Navbar() {
                 <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full bg-gradient-to-br from-blue-500 to-purple-600 p-0.5">
                    <div className="h-full w-full rounded-full bg-zinc-900 flex items-center justify-center">
                       {user.profile?.avatar ? (
-                        <Image src={user.profile.avatar} alt="Avatar" width={48} height={48} className="rounded-full" />
+                        <img src={user.profile.avatar} alt="Avatar" className="rounded-full h-12 w-12 object-cover" />
                       ) : (
                         <User className="h-6 w-6 text-white" />
                       )}

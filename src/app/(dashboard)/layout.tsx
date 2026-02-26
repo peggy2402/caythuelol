@@ -34,7 +34,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { href: '/dashboard', label: t('dashboard'), icon: LayoutDashboard },
     { href: '/dashboard/orders', label: t('orders'), icon: Gamepad2 },
     { href: '/dashboard/wallet', label: t('wallet'), icon: Wallet },
-    { href: '/dashboard/profile', label: t('profile'), icon: User },
+    { href: '/profile', label: t('profile'), icon: User },
   ];
 
   return (

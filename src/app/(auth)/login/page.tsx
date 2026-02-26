@@ -4,12 +4,13 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { 
+import {
   Mail, 
   Lock, 
   Eye, 
   EyeOff, 
   ArrowRight, 
+  User,
   Loader2, 
   ShieldCheck, 
   Trophy, 
@@ -21,7 +22,7 @@ import { useLanguage } from '../../../lib/i18n';
 export default function LoginPage() {
   const { t } = useLanguage();
   const router = useRouter();
-  const [formData, setFormData] = useState({ email: '', password: '' });
+  const [formData, setFormData] = useState({ identifier: '', password: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -157,18 +158,19 @@ export default function LoginPage() {
             <div className="space-y-4">
               {/* Email Input */}
               <div className="space-y-2">
-                <label className="text-sm font-medium text-zinc-700 ml-1">{t('email')}</label>
+                <label htmlFor="identifier" className="text-sm font-medium text-zinc-700 ml-1">{t('loginIdentifierLabel')}</label>
                 <div className="relative group">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Mail className="h-5 w-5 text-zinc-500 group-focus-within:text-blue-500 transition-colors" />
+                    <User className="h-5 w-5 text-zinc-500 group-focus-within:text-blue-500 transition-colors" />
                   </div>
                   <input
-                    type="email"
-                    name="email"
+                    type="text"
+                    id="identifier"
+                    name="identifier"
                     required
                     className="block w-full pl-10 pr-3 py-3 bg-zinc-50 border border-zinc-200 rounded-xl text-zinc-900 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all"
-                    placeholder="name@example.com"
-                    value={formData.email}
+                    placeholder={t('loginIdentifierLabel')}
+                    value={formData.identifier}
                     onChange={handleChange}
                   />
                 </div>

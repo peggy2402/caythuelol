@@ -6,67 +6,60 @@ import jwt from 'jsonwebtoken';
 
 export async function POST(req: Request) {
   try {
-    // 1. Kết nối Database
     await dbConnect();
 
-    // 2. Lấy dữ liệu từ request body
-    const { email, password } = await req.json();
+    const { identifier, password } = await req.json();
 
-    // 3. Validate dữ liệu đầu vào
-    if (!email || !password) {
-      return NextResponse.json(
-        { error: 'Vui lòng nhập đầy đủ email và mật khẩu' },
-        { status: 400 }
-      );
+    if (!identifier || !password) {
+      return NextResponse.json({ message: 'Identifier and password are required' }, { status: 400 });
     }
 
-    // 4. Tìm user theo email
-    // Sử dụng select('+password_hash') nếu field này bị ẩn mặc định trong schema (tùy cấu hình)
-    // Ở schema hiện tại không ẩn, nên findOne là đủ.
-    const user = await User.findOne({ email });
+    // Find user by email or username (case-insensitive)
+    const user = await User.findOne({
+      $or: [
+        { email: new RegExp(`^${identifier}$`, 'i') },
+        { username: new RegExp(`^${identifier}$`, 'i') }
+      ]
+    }).select('+password_hash'); // Explicitly include password_hash if it's excluded by default
 
-    if (!user) {
-      return NextResponse.json(
-        { error: 'Email hoặc mật khẩu không chính xác' },
-        { status: 401 }
-      );
+    if (!user || !user.password_hash) {
+      return NextResponse.json({ message: 'Invalid credentials' }, { status: 401 });
     }
 
-    // 5. So sánh mật khẩu
     const isMatch = await bcrypt.compare(password, user.password_hash);
+
     if (!isMatch) {
-      return NextResponse.json(
-        { error: 'Email hoặc mật khẩu không chính xác' },
-        { status: 401 }
-      );
+      return NextResponse.json({ message: 'Invalid credentials' }, { status: 401 });
     }
 
-    // 6. Tạo JWT Token
-    const jwtSecret = process.env.JWT_SECRET;
-    if (!jwtSecret) {
-      console.error('Missing JWT_SECRET in environment variables');
-      return NextResponse.json(
-        { error: 'Lỗi cấu hình server' },
-        { status: 500 }
-      );
-    }
+    // Create JWT Payload
+    const payload = {
+      id: user._id,
+      username: user.username,
+      role: user.role,
+    };
 
+    // Sign token
     const token = jwt.sign(
-      {
-        userId: user._id,
-        role: user.role,
-        username: user.username,
-      },
-      jwtSecret,
-      { expiresIn: '7d' } // Token có hiệu lực 7 ngày
+      payload,
+      process.env.JWT_SECRET!,
+      { expiresIn: '7d' } // Token expires in 7 days
     );
+    
+    // Prepare user object to return to client (without sensitive data)
+    const userResponse = {
+        _id: user._id,
+        username: user.username,
+        email: user.email,
+        role: user.role,
+        wallet_balance: user.wallet_balance,
+        profile: user.profile,
+    };
 
-    // 7. Trả về response thành công (không trả về password_hash)
-    const { password_hash, ...userInfo } = user.toObject();
+    return NextResponse.json({ success: true, token, user: userResponse });
 
-    return NextResponse.json({ success: true, token, user: userInfo });
-  } catch (error: any) {
-    console.error('Login Error:', error);
-    return NextResponse.json({ error: 'Lỗi server nội bộ' }, { status: 500 });
+  } catch (error) {
+    console.error('Login API error:', error);
+    return NextResponse.json({ message: 'An internal server error occurred' }, { status: 500 });
   }
 }
