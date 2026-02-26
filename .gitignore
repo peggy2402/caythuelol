@@ -27,14 +27,13 @@ yarn-error.log*
 .pnp.*
 # testing
 /coverage
-
 # next.js
 /.next/
 /out/
 
 # production
 /build
-
+google_client_id.json
 # misc
 .DS_Store
 *.pem
