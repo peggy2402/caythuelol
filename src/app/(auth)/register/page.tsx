@@ -17,8 +17,10 @@ import {
   Zap,
   AlertCircle
 } from 'lucide-react';
+import { useLanguage } from '../../../lib/i18n';
 
 export default function RegisterPage() {
+  const { t } = useLanguage();
   const router = useRouter();
   const [formData, setFormData] = useState({
     username: '',
@@ -79,7 +81,7 @@ export default function RegisterPage() {
         <div className="relative z-10">
           <Link href="/" className="flex items-center gap-3 mb-12">
              <div className="relative h-10 w-10">
-                <Image src="/logo.png" alt="Logo" fill className="object-contain" />
+                <Image src="/logo-ver3.png" alt="Logo" fill className="object-contain" />
              </div>
              <span className="text-2xl font-bold tracking-tighter">
                CAYTHUE<span className="text-blue-500">LOL</span>
@@ -88,23 +90,22 @@ export default function RegisterPage() {
 
           <div className="space-y-6 max-w-lg">
             <h1 className="text-5xl font-extrabold leading-tight">
-              Leo Rank <br />
+              {t('heroTitle1')} <br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500">
-                Thần Tốc & An Toàn
+                {t('heroTitle2')}
               </span>
             </h1>
             <p className="text-lg text-zinc-400">
-              Hệ thống cày thuê Liên Minh Huyền Thoại chuyên nghiệp số 1 Việt Nam.
-              Đội ngũ Thách Đấu sẵn sàng hỗ trợ bạn 24/7.
+              {t('introService')}
             </p>
           </div>
         </div>
 
         <div className="relative z-10 grid gap-4">
           {[
-            { icon: ShieldCheck, text: "Bảo mật tài khoản tuyệt đối 100%" },
-            { icon: Trophy, text: "Đội ngũ Booster Thách Đấu/Cao Thủ" },
-            { icon: Zap, text: "Hoàn tiền ngay nếu không đạt yêu cầu" },
+            { icon: ShieldCheck, text: t('shieldCheck') },
+            { icon: Trophy, text: t('teamBooster') },
+            { icon: Zap, text: t('zap') },
           ].map((item, idx) => (
             <div key={idx} className="flex items-center gap-4 p-4 rounded-xl bg-white/5 border border-white/10 backdrop-blur-sm">
               <div className="p-2 rounded-lg bg-blue-500/20 text-blue-400">
@@ -139,8 +140,8 @@ export default function RegisterPage() {
           </div>
 
           <div className="text-center lg:text-left">
-            <h2 className="text-3xl font-bold text-zinc-900">Đăng ký</h2>
-            <p className="mt-2 text-zinc-500">Tạo tài khoản mới để bắt đầu</p>
+            <h2 className="text-3xl font-bold text-zinc-900">{t('registerTitle')}</h2>
+            <p className="mt-2 text-zinc-500">{t('registerDesc')}</p>
           </div>
 
           {error && (
@@ -154,7 +155,7 @@ export default function RegisterPage() {
             <div className="space-y-4">
               {/* Username Input */}
               <div className="space-y-2">
-                <label className="text-sm font-medium text-zinc-700 ml-1">Tên đăng nhập</label>
+                <label className="text-sm font-medium text-zinc-700 ml-1">{t('username')}</label>
                 <div className="relative group">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <User className="h-5 w-5 text-zinc-500 group-focus-within:text-blue-500 transition-colors" />
@@ -173,7 +174,7 @@ export default function RegisterPage() {
 
               {/* Email Input */}
               <div className="space-y-2">
-                <label className="text-sm font-medium text-zinc-700 ml-1">Email</label>
+                <label className="text-sm font-medium text-zinc-700 ml-1">{t('email')}</label>
                 <div className="relative group">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <Mail className="h-5 w-5 text-zinc-500 group-focus-within:text-blue-500 transition-colors" />
@@ -192,7 +193,7 @@ export default function RegisterPage() {
 
               {/* Password Input */}
               <div className="space-y-2">
-                <label className="text-sm font-medium text-zinc-700 ml-1">Mật khẩu</label>
+                <label className="text-sm font-medium text-zinc-700 ml-1">{t('password')}</label>
                 <div className="relative group">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <Lock className="h-5 w-5 text-zinc-500 group-focus-within:text-blue-500 transition-colors" />
@@ -218,7 +219,7 @@ export default function RegisterPage() {
 
               {/* Role Select */}
               <div className="space-y-2">
-                <label className="text-sm font-medium text-zinc-700 ml-1">Bạn là?</label>
+                <label className="text-sm font-medium text-zinc-700 ml-1">{t('role')}</label>
                 <div className="relative">
                   <select
                     name="role"
@@ -226,8 +227,8 @@ export default function RegisterPage() {
                     onChange={handleChange}
                     className="block w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl text-zinc-900 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all appearance-none"
                   >
-                    <option value="CUSTOMER">Người thuê (Customer)</option>
-                    <option value="BOOSTER">Người cày (Booster)</option>
+                    <option value="CUSTOMER">{t('roleCustomer')}</option>
+                    <option value="BOOSTER">{t('roleBooster')}</option>
                   </select>
                   <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
                     <svg className="w-4 h-4 text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
@@ -248,7 +249,7 @@ export default function RegisterPage() {
                 </>
               ) : (
                 <>
-                  Đăng Ký
+                  {t('registerBtn')}
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </>
               )}
@@ -260,7 +261,7 @@ export default function RegisterPage() {
               <div className="w-full border-t border-zinc-200"></div>
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-white text-zinc-500">Hoặc đăng ký với</span>
+              <span className="px-2 bg-white text-zinc-500">{t('orContinue')}</span>
             </div>
           </div>
 
@@ -291,9 +292,9 @@ export default function RegisterPage() {
           </button>
 
           <p className="text-center text-sm text-zinc-500">
-            Đã có tài khoản?{' '}
+            {t('hasAccount')}{' '}
             <Link href="/login" className="font-bold text-blue-600 hover:text-blue-500 transition-colors">
-              Đăng nhập
+              {t('loginBtn')}
             </Link>
           </p>
         </div>

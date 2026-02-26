@@ -14,11 +14,13 @@ import {
   Bell,
   X
 } from 'lucide-react';
+import { useLanguage } from '../../lib/i18n';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [user, setUser] = useState<any>(null);
   const pathname = usePathname();
+  const { t } = useLanguage();
 
   useEffect(() => {
     const userData = localStorage.getItem('user');
@@ -28,10 +30,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }, []);
 
   const navItems = [
-    { href: '/dashboard', label: 'Tổng quan', icon: LayoutDashboard },
-    { href: '/dashboard/orders', label: 'Đơn hàng', icon: Gamepad2 },
-    { href: '/dashboard/wallet', label: 'Ví tiền', icon: Wallet },
-    { href: '/dashboard/profile', label: 'Hồ sơ', icon: User },
+    { href: '/dashboard', label: t('dashboard'), icon: LayoutDashboard },
+    { href: '/dashboard/orders', label: t('orders'), icon: Gamepad2 },
+    { href: '/dashboard/wallet', label: t('wallet'), icon: Wallet },
+    { href: '/dashboard/profile', label: t('profile'), icon: User },
   ];
 
   return (
@@ -90,7 +92,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-red-400 transition-colors hover:bg-red-500/10"
           >
             <LogOut className="h-5 w-5" />
-            Đăng xuất
+            {t('logout')}
           </button>
         </div>
       </aside>
@@ -108,7 +110,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
           <div className="hidden md:block">
             <h2 className="text-sm font-medium text-zinc-400">
-              Dashboard &gt; <span className="text-white">Tổng quan</span>
+              Dashboard &gt; <span className="text-white">{t('dashboard')}</span>
             </h2>
           </div>
 

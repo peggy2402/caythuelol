@@ -13,10 +13,12 @@ import {
   ChevronDown,
   FileText
 } from 'lucide-react';
+import { useLanguage, Language } from '../lib/i18n';
 
 export default function Navbar() {
   const [user, setUser] = useState<any>(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const { t, language, setLanguage } = useLanguage();
 
   useEffect(() => {
     // Kiểm tra localStorage khi component mount (chỉ chạy ở client)
@@ -48,10 +50,23 @@ export default function Navbar() {
 
         {/* Desktop Nav */}
         <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-zinc-400">
-          <Link href="/services" className="hover:text-white transition-colors">Dịch vụ</Link>
-          <Link href="/boosters" className="hover:text-white transition-colors">Booster</Link>
-          <Link href="/blog" className="hover:text-white transition-colors">Tin tức</Link>
+          <Link href="/services" className="hover:text-white transition-colors">{t('services')}</Link>
+          <Link href="/boosters" className="hover:text-white transition-colors">{t('boosters')}</Link>
+          <Link href="/blog" className="hover:text-white transition-colors">{t('blog')}</Link>
           
+          {/* Language Switcher */}
+          <div className="flex items-center gap-2 border-l border-white/10 pl-6">
+            {(['vi', 'kr', 'jp', 'en'] as Language[]).map((lang) => (
+              <button
+                key={lang}
+                onClick={() => setLanguage(lang)}
+                className={`text-xs font-bold uppercase transition-colors ${language === lang ? 'text-blue-500' : 'text-zinc-600 hover:text-zinc-400'}`}
+              >
+                {lang}
+              </button>
+            ))}
+          </div>
+
           {user ? (
             <div className="relative ml-4">
               <button 
@@ -86,19 +101,19 @@ export default function Navbar() {
                   
                   <div className="space-y-1">
                     <Link href="/dashboard" className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-zinc-300 hover:bg-white/5 hover:text-white transition-colors">
-                      <LayoutDashboard className="h-4 w-4" /> Dashboard
+                      <LayoutDashboard className="h-4 w-4" /> {t('dashboard')}
                     </Link>
                     <Link href="/dashboard/profile" className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-zinc-300 hover:bg-white/5 hover:text-white transition-colors">
-                      <User className="h-4 w-4" /> Hồ sơ
+                      <User className="h-4 w-4" /> {t('profile')}
                     </Link>
                     <Link href="/dashboard/wallet" className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-zinc-300 hover:bg-white/5 hover:text-white transition-colors">
-                      <Wallet className="h-4 w-4" /> Nạp tiền
+                      <Wallet className="h-4 w-4" /> {t('wallet')}
                     </Link>
                     <Link href="/dashboard/orders" className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-zinc-300 hover:bg-white/5 hover:text-white transition-colors">
-                      <FileText className="h-4 w-4" /> Đơn hàng
+                      <FileText className="h-4 w-4" /> {t('orders')}
                     </Link>
                     <Link href="/dashboard/orders" className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-zinc-300 hover:bg-white/5 hover:text-white transition-colors">
-                      <History className="h-4 w-4" /> Lịch sử đặt hàng
+                      <History className="h-4 w-4" /> {t('history')}
                     </Link>
                   </div>
 
@@ -107,7 +122,7 @@ export default function Navbar() {
                       onClick={handleLogout}
                       className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-red-400 hover:bg-red-500/10 transition-colors"
                     >
-                      <LogOut className="h-4 w-4" /> Đăng xuất
+                      <LogOut className="h-4 w-4" /> {t('logout')}
                     </button>
                   </div>
                 </div>
@@ -115,12 +130,12 @@ export default function Navbar() {
             </div>
           ) : (
             <>
-              <Link href="/login" className="hover:text-white transition-colors">Đăng nhập</Link>
+              <Link href="/login" className="hover:text-white transition-colors">{t('login')}</Link>
               <Link
                 href="/dashboard"
                 className="rounded-lg bg-blue-600 px-6 py-2.5 text-white font-semibold shadow-lg shadow-blue-500/20 transition-all hover:bg-blue-500 hover:shadow-blue-500/40 hover:-translate-y-0.5"
               >
-                Thuê Ngay
+                {t('rentNow')}
               </Link>
             </>
           )}

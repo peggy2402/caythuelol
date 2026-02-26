@@ -16,8 +16,10 @@ import {
   Zap,
   AlertCircle
 } from 'lucide-react';
+import { useLanguage } from '../../../lib/i18n';
 
 export default function LoginPage() {
+  const { t } = useLanguage();
   const router = useRouter();
   const [formData, setFormData] = useState({ email: '', password: '' });
   const [error, setError] = useState('');
@@ -90,23 +92,22 @@ export default function LoginPage() {
 
           <div className="space-y-6 max-w-lg">
             <h1 className="text-5xl font-extrabold leading-tight">
-              Leo Rank <br />
+              {t('heroTitle1')} <br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-500">
-                Thần Tốc & An Toàn
+                {t('heroTitle2')}
               </span>
             </h1>
             <p className="text-lg text-zinc-400">
-              Hệ thống cày thuê Liên Minh Huyền Thoại chuyên nghiệp số 1 Việt Nam. 
-              Đội ngũ Thách Đấu sẵn sàng hỗ trợ bạn 24/7.
+              {t('introService')}
             </p>
           </div>
         </div>
 
         <div className="relative z-10 grid gap-4">
           {[
-            { icon: ShieldCheck, text: "Bảo mật tài khoản tuyệt đối 100%" },
-            { icon: Trophy, text: "Đội ngũ Booster Thách Đấu/Cao Thủ" },
-            { icon: Zap, text: "Hoàn tiền ngay nếu không đạt yêu cầu" },
+            { icon: ShieldCheck, text: t('shieldCheck') },
+            { icon: Trophy, text: t('teamBooster') },
+            { icon: Zap, text: t('zap') },
           ].map((item, idx) => (
             <div key={idx} className="flex items-center gap-4 p-4 rounded-xl bg-white/5 border border-white/10 backdrop-blur-sm">
               <div className="p-2 rounded-lg bg-blue-500/20 text-blue-400">
@@ -141,8 +142,8 @@ export default function LoginPage() {
           </div>
 
           <div className="text-center lg:text-left">
-            <h2 className="text-3xl font-bold text-zinc-900">Đăng nhập</h2>
-            <p className="mt-2 text-zinc-500">Chào mừng bạn quay trở lại!</p>
+            <h2 className="text-3xl font-bold text-zinc-900">{t('login')}</h2>
+            <p className="mt-2 text-zinc-500">{t('welcomeBack')}</p>
           </div>
 
           {error && (
@@ -156,7 +157,7 @@ export default function LoginPage() {
             <div className="space-y-4">
               {/* Email Input */}
               <div className="space-y-2">
-                <label className="text-sm font-medium text-zinc-700 ml-1">Email</label>
+                <label className="text-sm font-medium text-zinc-700 ml-1">{t('email')}</label>
                 <div className="relative group">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <Mail className="h-5 w-5 text-zinc-500 group-focus-within:text-blue-500 transition-colors" />
@@ -176,9 +177,9 @@ export default function LoginPage() {
               {/* Password Input */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between ml-1">
-                  <label className="text-sm font-medium text-zinc-700">Mật khẩu</label>
+                  <label className="text-sm font-medium text-zinc-700">{t('password')}</label>
                   <Link href="/forgot-password" className="text-sm font-medium text-blue-600 hover:text-blue-500 transition-colors">
-                    Quên mật khẩu?
+                    {t('forgotPassword')}
                   </Link>
                 </div>
                 <div className="relative group">
@@ -213,7 +214,7 @@ export default function LoginPage() {
                 className="h-4 w-4 rounded border-zinc-300 bg-zinc-100 text-blue-600 focus:ring-blue-500/50 focus:ring-offset-0"
               />
               <label htmlFor="remember-me" className="ml-2 block text-sm text-zinc-600">
-                Ghi nhớ đăng nhập
+                {t('rememberMe')}
               </label>
             </div>
 
@@ -229,7 +230,7 @@ export default function LoginPage() {
                 </>
               ) : (
                 <>
-                  Đăng Nhập
+                  {t('loginBtn')}
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </>
               )}
@@ -241,7 +242,7 @@ export default function LoginPage() {
               <div className="w-full border-t border-zinc-200"></div>
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-white text-zinc-500">Hoặc tiếp tục với</span>
+              <span className="px-2 bg-white text-zinc-500">{t('orContinue')}</span>
             </div>
           </div>
 
@@ -272,9 +273,9 @@ export default function LoginPage() {
           </button>
 
           <p className="text-center text-sm text-zinc-500">
-            Chưa có tài khoản?{' '}
+            {t('noAccount')}{' '}
             <Link href="/register" className="font-bold text-blue-600 hover:text-blue-500 transition-colors">
-              Đăng ký ngay
+              {t('registerNow')}
             </Link>
           </p>
         </div>

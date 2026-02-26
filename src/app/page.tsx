@@ -1,9 +1,13 @@
+'use client';
+
 import Link from "next/link";
 import Image from "next/image";
 import { Shield, Zap, Trophy, Star, CheckCircle, ArrowRight, Users, Clock, Target, ChevronRight, CreditCard, TrendingUp } from "lucide-react";
 import Navbar from "@/components/Navbar";
+import { useLanguage } from "@/lib/i18n";
 
 export default function Home() {
+  const { t } = useLanguage();
   return (
     <div className="min-h-screen bg-[#050505] text-zinc-100 font-sans selection:bg-blue-500/30 overflow-x-hidden">
       <Navbar />
@@ -28,21 +32,20 @@ export default function Home() {
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
                 </span>
-                <span className="tracking-wide uppercase text-xs">Dịch vụ Cày Thuê Uy Tín #1 Việt Nam</span>
+                <span className="tracking-wide uppercase text-xs">{t('heroBadge')}</span>
               </div>
 
               {/* Headline */}
               <h1 className="text-5xl md:text-7xl lg:text-8xl font-black tracking-tighter text-white mb-8 leading-[1.1]">
-                LEO RANK <br className="hidden md:block" />
+                {t('heroTitle1')} <br className="hidden md:block" />
                 <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-cyan-400 bg-clip-text text-transparent bg-[length:200%_auto] animate-gradient">
-                  THẦN TỐC & AN TOÀN
+                  {t('heroTitle2')}
                 </span>
               </h1>
 
               {/* Subheadline */}
               <p className="text-lg md:text-xl text-zinc-400 mb-12 max-w-2xl leading-relaxed font-medium">
-                Đội ngũ <span className="text-white font-bold">Thách Đấu</span> chuyên nghiệp sẵn sàng hỗ trợ bạn đạt được mức rank mong muốn. 
-                Bảo mật tuyệt đối, giá cả hợp lý, hỗ trợ 24/7.
+                {t('heroDesc')}
               </p>
 
               {/* CTA Buttons */}
@@ -51,7 +54,7 @@ export default function Home() {
                   href="/dashboard"
                   className="group relative flex h-14 w-full sm:w-auto items-center justify-center gap-3 overflow-hidden rounded-xl bg-blue-600 px-8 text-lg font-bold text-white shadow-[0_0_20px_rgba(37,99,235,0.3)] transition-all hover:bg-blue-500 hover:scale-105 hover:shadow-[0_0_40px_rgba(37,99,235,0.5)]"
                 >
-                  <span className="relative z-10">Bắt đầu ngay</span>
+                  <span className="relative z-10">{t('startNow')}</span>
                   <ArrowRight className="relative z-10 h-5 w-5 transition-transform group-hover:translate-x-1" />
                   <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/20 to-transparent transition-transform duration-500 skew-x-12" />
                 </Link>
@@ -60,7 +63,7 @@ export default function Home() {
                   href="/services"
                   className="group flex h-14 w-full sm:w-auto items-center justify-center gap-2 rounded-xl border border-zinc-700 bg-zinc-900/50 px-8 text-lg font-bold text-zinc-300 transition-all hover:bg-zinc-800 hover:text-white hover:border-zinc-500 backdrop-blur-sm"
                 >
-                  <span>Xem bảng giá</span>
+                  <span>{t('viewPricing')}</span>
                   <ChevronRight className="h-4 w-4 text-zinc-500 group-hover:text-white transition-colors" />
                 </Link>
               </div>
@@ -73,10 +76,10 @@ export default function Home() {
           <div className="container mx-auto px-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-12">
               {[
-                { label: "Đơn hoàn thành", value: "15,000+", icon: CheckCircle, color: "text-green-400", glow: "group-hover:shadow-green-500/20" },
-                { label: "Booster", value: "500+", icon: Users, color: "text-yellow-400", glow: "group-hover:shadow-yellow-500/20" },
-                { label: "Khách hàng", value: "12,000+", icon: Shield, color: "text-blue-400", glow: "group-hover:shadow-blue-500/20" },
-                { label: "Đánh giá", value: "4.9/5", icon: Star, color: "text-purple-400", glow: "group-hover:shadow-purple-500/20" },
+                { label: t('statsCompleted'), value: "15,000+", icon: CheckCircle, color: "text-green-400", glow: "group-hover:shadow-green-500/20" },
+                { label: t('statsBooster'), value: "500+", icon: Users, color: "text-yellow-400", glow: "group-hover:shadow-yellow-500/20" },
+                { label: t('statsCustomer'), value: "12,000+", icon: Shield, color: "text-blue-400", glow: "group-hover:shadow-blue-500/20" },
+                { label: t('statsRating'), value: "4.9/5", icon: Star, color: "text-purple-400", glow: "group-hover:shadow-purple-500/20" },
               ].map((stat, idx) => (
                 <div key={idx} className={`group flex flex-col items-center justify-center p-6 rounded-2xl bg-zinc-900/40 border border-white/5 transition-all duration-300 hover:-translate-y-2 hover:bg-zinc-800/60 hover:border-white/10 ${stat.glow} hover:shadow-xl`}>
                   <div className={`mb-4 p-3 rounded-xl bg-zinc-950 border border-white/10 ${stat.color} shadow-lg`}>
@@ -95,29 +98,29 @@ export default function Home() {
           <div className="container mx-auto px-6 relative z-10">
             <div className="text-center mb-20">
               <h2 className="text-4xl md:text-6xl font-black text-white mb-6 tracking-tight">
-                TẠI SAO CHỌN <span className="text-blue-500">CHÚNG TÔI?</span>
+                {t('whyChoose')} <span className="text-blue-500">{t('whyChooseUs')}</span>
               </h2>
               <p className="text-zinc-400 max-w-2xl mx-auto text-lg">
-                Cam kết mang lại trải nghiệm dịch vụ tốt nhất với đội ngũ chuyên nghiệp và hệ thống hiện đại.
+                {t('whyDesc')}
               </p>
             </div>
 
             <div className="grid md:grid-cols-3 gap-8">
               {[
                 {
-                  title: "Bảo Mật Tuyệt Đối",
+                  title: t('secSecurity'),
                   desc: "Thông tin tài khoản được mã hóa 2 lớp. Cam kết không sử dụng tool/hack, đảm bảo an toàn 100% cho tài khoản của bạn.",
                   icon: Shield,
                   gradient: "from-blue-500 to-cyan-500"
                 },
                 {
-                  title: "Tốc Độ Thần Tốc",
+                  title: t('secSpeed'),
                   desc: "Đội ngũ Booster hoạt động 24/7. Đơn hàng được xử lý ngay lập tức sau khi thanh toán. Hoàn thành đúng hạn cam kết.",
                   icon: Zap,
                   gradient: "from-yellow-500 to-orange-500"
                 },
                 {
-                  title: "Giá Cả Hợp Lý",
+                  title: t('secPrice'),
                   desc: "Hệ thống tính giá tự động minh bạch, cạnh tranh nhất thị trường. Nhiều ưu đãi hấp dẫn cho khách hàng thân thiết.",
                   icon: Trophy,
                   gradient: "from-purple-500 to-pink-500"
@@ -148,8 +151,8 @@ export default function Home() {
           
           <div className="container mx-auto px-6 relative z-10">
             <div className="text-center mb-20">
-              <h2 className="text-4xl md:text-6xl font-black text-white mb-6 tracking-tight">QUY TRÌNH ĐƠN GIẢN</h2>
-              <p className="text-zinc-400 text-lg">Chỉ với 3 bước để bắt đầu hành trình leo rank</p>
+              <h2 className="text-4xl md:text-6xl font-black text-white mb-6 tracking-tight">{t('processTitle')}</h2>
+              <p className="text-zinc-400 text-lg">{t('processDesc')}</p>
             </div>
 
             <div className="grid md:grid-cols-3 gap-12 relative">
@@ -157,9 +160,9 @@ export default function Home() {
               <div className="hidden md:block absolute top-16 left-[16%] right-[16%] h-0.5 bg-gradient-to-r from-blue-600/0 via-blue-600/30 to-blue-600/0" />
 
               {[
-                { step: "01", title: "Chọn Dịch Vụ", desc: "Lựa chọn loại dịch vụ, mức rank mong muốn và các tùy chọn đi kèm.", icon: Target },
-                { step: "02", title: "Thanh Toán", desc: "Thanh toán an toàn qua QR Code, Momo hoặc Thẻ ngân hàng.", icon: CreditCard },
-                { step: "03", title: "Leo Rank", desc: "Theo dõi tiến độ trực tiếp và chat với Booster qua hệ thống.", icon: TrendingUp }
+                { step: "01", title: t('step1'), desc: "Lựa chọn loại dịch vụ, mức rank mong muốn và các tùy chọn đi kèm.", icon: Target },
+                { step: "02", title: t('step2'), desc: "Thanh toán an toàn qua QR Code, Momo hoặc Thẻ ngân hàng.", icon: CreditCard },
+                { step: "03", title: t('step3'), desc: "Theo dõi tiến độ trực tiếp và chat với Booster qua hệ thống.", icon: TrendingUp }
               ].map((item, idx) => (
                 <div key={idx} className="relative flex flex-col items-center text-center group">
                   <div className="w-32 h-32 rounded-full bg-zinc-950 border-4 border-zinc-800 flex items-center justify-center mb-8 z-10 shadow-[0_0_30px_rgba(0,0,0,0.5)] group-hover:border-blue-500/50 group-hover:shadow-[0_0_30px_rgba(59,130,246,0.3)] transition-all duration-500">
@@ -176,7 +179,7 @@ export default function Home() {
         {/* Reviews */}
         <section className="py-32 relative">
           <div className="container mx-auto px-6">
-            <h2 className="text-4xl md:text-6xl font-black text-white mb-16 text-center tracking-tight">KHÁCH HÀNG NÓI GÌ?</h2>
+            <h2 className="text-4xl md:text-6xl font-black text-white mb-16 text-center tracking-tight">{t('reviewsTitle')}</h2>
             <div className="grid md:grid-cols-3 gap-8">
               {[
                 { name: "Minh Hoàng", rank: "Kim Cương I", comment: "Dịch vụ quá tốt, booster đánh nhiệt tình, win streak 10 trận liền. Sẽ ủng hộ tiếp!", avatar: "M" },
@@ -216,8 +219,7 @@ export default function Home() {
                 <span className="text-2xl font-bold text-white tracking-tighter">CAYTHUE<span className="text-blue-500">LOL</span></span>
               </div>
               <p className="text-zinc-500 text-sm leading-relaxed mb-6">
-                Hệ thống cày thuê Liên Minh Huyền Thoại chuyên nghiệp, uy tín hàng đầu Việt Nam.
-                Nâng tầm đẳng cấp game thủ.
+                {t("footerDesc")}
               </p>
               <div className="flex gap-4">
                 {/* Social Icons placeholders */}
@@ -228,35 +230,40 @@ export default function Home() {
             </div>
 
             <div>
-              <h4 className="text-white font-bold mb-6 uppercase tracking-wider text-sm">Dịch vụ</h4>
+              <h4 className="text-white font-bold mb-6 uppercase tracking-wider text-sm">{t("services")}</h4>
               <ul className="space-y-4 text-sm text-zinc-400">
-                <li><Link href="#" className="hover:text-blue-400 transition-colors hover:underline decoration-blue-500/50 underline-offset-4">Cày Rank</Link></li>
-                <li><Link href="#" className="hover:text-blue-400 transition-colors hover:underline decoration-blue-500/50 underline-offset-4">Cày Thuê Placement</Link></li>
-                <li><Link href="#" className="hover:text-blue-400 transition-colors hover:underline decoration-blue-500/50 underline-offset-4">Cày Thông Thạo</Link></li>
-                <li><Link href="#" className="hover:text-blue-400 transition-colors hover:underline decoration-blue-500/50 underline-offset-4">Coaching 1-1</Link></li>
+                <li><Link href="#" className="hover:text-blue-400 transition-colors hover:underline decoration-blue-500/50 underline-offset-4">{t("serviceList.boostRank")}</Link></li>
+                <li><Link href="#" className="hover:text-blue-400 transition-colors hover:underline decoration-blue-500/50 underline-offset-4">{t("serviceList.placement")}</Link></li>
+                <li><Link href="#" className="hover:text-blue-400 transition-colors hover:underline decoration-blue-500/50 underline-offset-4">{t("serviceList.mastery")}</Link></li>
+                <li><Link href="#" className="hover:text-blue-400 transition-colors hover:underline decoration-blue-500/50 underline-offset-4">{t("serviceList.coaching")}</Link></li>
               </ul>
             </div>
 
             <div>
-              <h4 className="text-white font-bold mb-6 uppercase tracking-wider text-sm">Hỗ trợ</h4>
+              <h4 className="text-white font-bold mb-6 uppercase tracking-wider text-sm">{t("support")}</h4>
               <ul className="space-y-4 text-sm text-zinc-400">
-                <li><Link href="#" className="hover:text-blue-400 transition-colors hover:underline decoration-blue-500/50 underline-offset-4">Trung tâm trợ giúp</Link></li>
-                <li><Link href="#" className="hover:text-blue-400 transition-colors hover:underline decoration-blue-500/50 underline-offset-4">Điều khoản dịch vụ</Link></li>
-                <li><Link href="#" className="hover:text-blue-400 transition-colors hover:underline decoration-blue-500/50 underline-offset-4">Chính sách bảo mật</Link></li>
-                <li><Link href="#" className="hover:text-blue-400 transition-colors hover:underline decoration-blue-500/50 underline-offset-4">Liên hệ</Link></li>
+                <li><Link href="#" className="hover:text-blue-400 transition-colors hover:underline decoration-blue-500/50 underline-offset-4">{t("supportList.helpCenter")}</Link></li>
+                <li><Link href="#" className="hover:text-blue-400 transition-colors hover:underline decoration-blue-500/50 underline-offset-4">{t("supportList.terms")}</Link></li>
+                <li><Link href="#" className="hover:text-blue-400 transition-colors hover:underline decoration-blue-500/50 underline-offset-4">{t("supportList.privacy")}</Link></li>
+                <li><Link href="#" className="hover:text-blue-400 transition-colors hover:underline decoration-blue-500/50 underline-offset-4">{t("supportList.contact")}</Link></li>
               </ul>
             </div>
 
             <div>
-              <h4 className="text-white font-bold mb-6 uppercase tracking-wider text-sm">Liên hệ</h4>
+              <h4 className="text-white font-bold mb-6 uppercase tracking-wider text-sm">{t("contact")}</h4>
               <ul className="space-y-4 text-sm text-zinc-400">
                 <li className="flex items-center gap-3">
                   <span className="w-8 h-8 rounded-full bg-zinc-900 flex items-center justify-center text-blue-500"><Users size={16}/></span>
-                  support@caythuelol.vn
+                  support@caythuelol.com
                 </li>
                 <li className="flex items-center gap-3">
                   <span className="w-8 h-8 rounded-full bg-zinc-900 flex items-center justify-center text-blue-500"><Zap size={16}/></span>
-                  0988.888.888
+                  0862.587.229
+                </li>
+                {/* Thời gian hoạt động */}
+                <li className="flex items-center gap-3">
+                  <span className="w-8 h-8 rounded-full bg-zinc-900 flex items-center justify-center text-blue-500"><Clock size={16}/></span>
+                  {t("contactHours")}
                 </li>
               </ul>
             </div>

@@ -1,6 +1,6 @@
 Project: LOL Boosting Platform
 Date started: 2026-02-25
-Last updated: 2026-02-26
+Last updated: 2026-02-27
 
 Purpose:
 
@@ -26,6 +26,23 @@ Change log & decisions:
   - Created UI pages for `/login` and `/register` with form handling.
   - Built the basic Dashboard layout (`/dashboard`) with a sidebar and a main content area.
   - Successfully implemented the login flow: User logs in -> receives JWT -> gets redirected to `/dashboard`.
+
+3. 2026-02-27 — UI Redesign, I18n & Google Auth
+
+- **UI/UX Overhaul:**
+  - Refactored Homepage (`page.tsx`) with "Esports/Cinematic" style using TailwindCSS 4.
+  - Switched font to **Be Vietnam Pro** for better Vietnamese typography.
+  - Implemented **Internationalization (i18n)** system (Context API) supporting VI, EN, KR, JP.
+  - Updated all main pages (Home, Login, Register, Dashboard) to use dynamic translations.
+
+- **Authentication:**
+  - Integrated **Google OAuth** login flow (`/api/auth/google`).
+  - Added `google-callback` page to handle JWT storage from social login.
+
+- **Infrastructure & Fixes:**
+  - Updated `next.config.ts` to allow Google Avatar images and ignore ESLint during build.
+  - Fixed `mongoose` version issues and created `Transaction` model.
+  - Addressed hydration mismatch warnings and Next.js security updates.
 
 ================================================================================
 
@@ -58,8 +75,7 @@ caythuelol/
 └── ...config files
 ```
 
-================================================================================ 2. DATABASE SCHEMA (MONGODB)
-================================================================================
+# ================================================================================ 2. DATABASE SCHEMA (MONGODB)
 
 ### A. Users Collection
 
@@ -130,8 +146,7 @@ caythuelol/
 - `members`: [{ `user_id`: ObjectId, `split_percent`: number }]
 - `name`: string
 
-================================================================================ 3. PRICING LOGIC & FORMULAS
-================================================================================
+# ================================================================================ 3. PRICING LOGIC & FORMULAS
 
 **Base Formula:**
 `Final Price = (Base Service Price + Extra Options) * Multipliers`
@@ -157,8 +172,7 @@ caythuelol/
 - Specific Champs: Total \* 1.3
 - Streaming: Total + 349,000 VND (Flat fee)
 
-================================================================================ 4. FINANCIAL FLOW (ESCROW MODEL)
-================================================================================
+# ================================================================================ 4. FINANCIAL FLOW (ESCROW MODEL)
 
 **Scenario: Customer orders a boost for 500,000 VND.**
 
@@ -191,8 +205,7 @@ caythuelol/
    - Admin approves.
    - Transaction 4: `WITHDRAWAL` -400k from Booster Wallet.
 
-================================================================================ 5. API DESIGN (CORE ROUTES)
-================================================================================
+# ================================================================================ 5. API DESIGN (CORE ROUTES)
 
 - `POST /api/auth/register`: Role selection required.
 - `POST /api/orders/calculate`: Public endpoint to get price quote.
@@ -202,8 +215,7 @@ caythuelol/
 - `POST /api/wallet/deposit`: Generate QR code.
 - `POST /api/wallet/withdraw`: Request payout.
 
-================================================================================ 6. SECURITY & DEPLOYMENT
-================================================================================
+# ================================================================================ 6. SECURITY & DEPLOYMENT
 
 **Security:**
 
@@ -229,17 +241,15 @@ caythuelol/
 - Frontend connects to this Socket server.
 - Next.js API sends webhooks/HTTP requests to Socket server to broadcast events ("New Order", "Message").
 
-================================================================================ 7. EXPANSION IDEAS
-================================================================================
+# ================================================================================ 7. EXPANSION IDEAS
 
 - **Loyalty Program:** Points per 1000 VND spent. Redeem for discount coupons.
 - **Affiliate:** Customer invites friend -> gets 5% of friend's first order.
 - **Coaching:** New service type where Booster watches stream and guides.
 
-================================================================================ 8. NEXT STEPS (Kế hoạch tiếp theo)
-================================================================================
+# ================================================================================ 8. NEXT STEPS (Kế hoạch tiếp theo)
 
-- **API - Get Orders:** Xây dựng endpoint `GET /api/orders` để lấy danh sách đơn hàng của người dùng đã đăng nhập (dựa vào JWT).
-- **Dashboard - Display Orders:** Cập nhật trang Dashboard (`/dashboard/page.tsx`) để gọi API trên và hiển thị danh sách đơn hàng.
-- **Middleware - RBAC:** Viết middleware để kiểm tra JWT và phân quyền truy cập cho các API route.
-- **Wallet Page:** Xây dựng giao diện trang Nạp tiền (`/dashboard/wallet/page.tsx`) với các mệnh giá và QR code giả lập.
+- **Services Page:** Xây dựng trang Dịch vụ (`/services`) hiển thị bảng giá chi tiết và bộ lọc.
+- **Booster Page:** Xây dựng trang danh sách Booster (`/boosters`).
+- **Wallet Page:** Hoàn thiện trang Ví tiền (`/dashboard/wallet`) với chức năng nạp tiền (mô phỏng) và lịch sử giao dịch.
+- **Profile Page:** Xây dựng trang Hồ sơ cá nhân (`/dashboard/profile`) cho phép cập nhật thông tin và đổi mật khẩu.
