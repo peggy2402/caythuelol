@@ -18,6 +18,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { useLanguage } from '../../../lib/i18n';
+import { toast } from 'sonner';
 
 export default function RegisterPage() {
   const { t } = useLanguage();
@@ -58,10 +59,12 @@ export default function RegisterPage() {
         throw new Error(data.error || 'Đăng ký thất bại');
       }
 
+      toast.success('Đăng ký thành công! Vui lòng đăng nhập.');
       // Chuyển hướng sang login sau khi đăng ký thành công
       router.push('/login');
     } catch (err: any) {
       setError(err.message);
+      toast.error(err.message);
     } finally {
       setLoading(false);
     }

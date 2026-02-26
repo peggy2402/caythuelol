@@ -37,6 +37,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { href: '/profile', label: t('profile'), icon: User },
   ];
 
+  const activeNavItem = navItems.find(item => pathname.startsWith(item.href));
+
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 font-sans selection:bg-blue-500/30">
       {/* Mobile Sidebar Overlay */}
@@ -113,7 +115,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
           <div className="hidden md:block">
             <h2 className="text-sm font-medium text-zinc-400">
-              Dashboard &gt; <span className="text-white">{t('dashboard')}</span>
+              Dashboard &gt; <span className="text-white">{activeNavItem?.label || t('dashboard')}</span>
             </h2>
           </div>
 

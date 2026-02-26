@@ -3,6 +3,7 @@ import { Be_Vietnam_Pro } from "next/font/google";
 import "./globals.css";
 import LanguageProvider from "@/components/LanguageProvider";
 import CookieConsent from "@/components/CookieConsent";
+import { Toaster } from "sonner";
 
 const beVietnamPro = Be_Vietnam_Pro({
   subsets: ["latin", "vietnamese"],
@@ -30,6 +31,7 @@ export default function RootLayout({
         <LanguageProvider>
           {children}
           <CookieConsent />
+          <Toaster position="top-center" richColors theme="dark" />
         </LanguageProvider>
       </body>
     </html>

@@ -18,6 +18,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { useLanguage } from '../../../lib/i18n';
+import { toast } from 'sonner';
 
 export default function LoginPage() {
   const { t } = useLanguage();
@@ -60,11 +61,13 @@ export default function LoginPage() {
         localStorage.setItem('user', JSON.stringify(data.user));
       }
 
+      toast.success(t('welcomeBack'));
       // Chuyển hướng về dashboard
       router.push('/dashboard');
       router.refresh();
     } catch (err: any) {
       setError(err.message);
+      toast.error(err.message);
     } finally {
       setLoading(false);
     }
