@@ -3,137 +3,236 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { 
-  Menu, 
-  User, 
-  Wallet, 
-  History, 
-  LogOut, 
-  LayoutDashboard, 
+import {
+  Menu,
+  User,
+  Wallet,
+  LogOut,
+  LayoutDashboard,
+  FileText,
   ChevronDown,
-  FileText
+  X
 } from 'lucide-react';
 import { useLanguage, Language } from '../lib/i18n';
+import { useRouter, usePathname } from 'next/navigation';
+
+function LanguageSwitcher({
+  language,
+  setLanguage,
+  className = ''
+}: {
+  language: Language;
+  setLanguage: (lang: Language) => void;
+  className?: string;
+}) {
+  return (
+    <div className={`flex items-center gap-3 ${className}`}>
+      {(['vi', 'kr', 'jp', 'en'] as Language[]).map((lang) => (
+        <button
+          key={lang}
+          onClick={() => setLanguage(lang)}
+          className={`text-xs font-bold uppercase transition ${
+            language === lang
+              ? 'text-blue-500'
+              : 'text-zinc-500 hover:text-white'
+          }`}
+        >
+          {lang}
+        </button>
+      ))}
+    </div>
+  );
+}
 
 export default function Navbar() {
   const [user, setUser] = useState<any>(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
+
   const { t, language, setLanguage } = useLanguage();
+  const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
-    // Kiểm tra localStorage khi component mount (chỉ chạy ở client)
     const userData = localStorage.getItem('user');
-    if (userData) {
-      setUser(JSON.parse(userData));
-    }
+    if (userData) setUser(JSON.parse(userData));
+  }, []);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 10);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     setUser(null);
-    window.location.reload(); // Reload để reset trạng thái
+    router.push('/');
   };
 
+  const closeMobileMenu = () => setIsMobileMenuOpen(false);
+
+  const NavLink = ({
+    href,
+    label
+  }: {
+    href: string;
+    label: string;
+  }) => (
+    <Link
+      href={href}
+      className={`relative group transition ${
+        pathname === href
+          ? 'text-white'
+          : 'text-zinc-400 hover:text-white'
+      }`}
+    >
+      <span>
+        {label}
+        <span
+          className={`absolute left-0 -bottom-1 h-[2px] bg-blue-500 transition-all ${
+            pathname === href ? 'w-full' : 'w-0 group-hover:w-full'
+          }`}
+        />
+      </span>
+    </Link>
+  );
+
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 border-b border-white/5 bg-zinc-950/80 backdrop-blur-md transition-all">
-      <div className="container mx-auto flex h-20 items-center justify-between px-6">
+    <>
+    <header
+      className={`fixed top-0 left-0 right-0 z-50 backdrop-blur-xl transition-all duration-300 ${
+        isScrolled || isMobileMenuOpen
+          ? 'h-16 bg-zinc-950 shadow-lg'
+          : 'h-20 bg-zinc-950/80'
+      }`}
+    >
+      {/* Gradient Border */}
+      <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-blue-500/40 to-transparent" />
+
+      <div className="container mx-auto flex h-full items-center justify-between px-6">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-3 group">
-          <div className="relative h-10 w-10 overflow-hidden rounded-lg transition-transform group-hover:scale-105">
-            <Image src="/logo.png" alt="CTL Logo" fill className="object-cover" />
+          <div className="relative h-9 w-9 overflow-hidden group-hover:ring-blue-500/50 transition">
+            <Image src="/logo-ver3.png" alt="Logo" fill className="object-cover" />
           </div>
-          <span className="text-xl font-bold tracking-tighter text-white group-hover:text-blue-400 transition-colors">
+          <span className="text-lg font-bold tracking-tight text-white">
             CAYTHUE<span className="text-blue-500">LOL</span>
           </span>
         </Link>
 
-        {/* Desktop Nav */}
-        <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-zinc-400">
-          <Link href="/services" className="hover:text-white transition-colors">{t('services')}</Link>
-          <Link href="/boosters" className="hover:text-white transition-colors">{t('boosters')}</Link>
-          <Link href="/blog" className="hover:text-white transition-colors">{t('blog')}</Link>
-          
-          {/* Language Switcher */}
-          <div className="flex items-center gap-2 border-l border-white/10 pl-6">
-            {(['vi', 'kr', 'jp', 'en'] as Language[]).map((lang) => (
-              <button
-                key={lang}
-                onClick={() => setLanguage(lang)}
-                className={`text-xs font-bold uppercase transition-colors ${language === lang ? 'text-blue-500' : 'text-zinc-600 hover:text-zinc-400'}`}
-              >
-                {lang}
-              </button>
-            ))}
-          </div>
+        {/* Desktop */}
+        <nav className="hidden md:flex items-center gap-8 text-sm font-medium">
+          <NavLink href="/services" label={t('services')} />
+          <NavLink href="/boosters" label={t('boosters')} />
+          <NavLink href="/blog" label={t('blog')} />
+
+          <div className="h-5 w-px bg-white/10" />
+
+          <LanguageSwitcher
+            language={language}
+            setLanguage={setLanguage}
+          />
 
           {user ? (
             <div className="relative ml-4">
-              <button 
+              <button
                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                className="flex items-center gap-3 rounded-full border border-white/10 bg-zinc-900/50 py-1.5 pl-2 pr-4 transition-colors hover:bg-zinc-800 hover:border-blue-500/30"
+                className="flex items-center gap-3 rounded-full border border-white/10 bg-zinc-900 px-3 py-1.5 hover:border-blue-500/40 transition"
               >
-                <div className="relative h-8 w-8 overflow-hidden rounded-full bg-gradient-to-br from-blue-500 to-purple-600 p-[1px]">
-                   <div className="h-full w-full rounded-full bg-zinc-950 flex items-center justify-center">
-                      {user.profile?.avatar ? (
-                        <Image src={user.profile.avatar} alt="Avatar" width={32} height={32} className="rounded-full" />
-                      ) : (
-                        <User className="h-4 w-4 text-white" />
-                      )}
-                   </div>
-                </div>
-                <div className="text-left">
-                  <div className="text-xs font-bold text-white leading-none mb-1">{user.username}</div>
-                  <div className="text-[10px] font-medium text-blue-400 leading-none">
-                    {user.wallet_balance?.toLocaleString('vi-VN')} đ
+                <div className="relative h-8 w-8 rounded-full overflow-hidden bg-gradient-to-br from-blue-500 to-purple-600 p-[1px]">
+                  <div className="h-full w-full bg-zinc-950 rounded-full flex items-center justify-center">
+                    {user.profile?.avatar ? (
+                      <Image
+                        src={user.profile.avatar}
+                        alt="Avatar"
+                        width={32}
+                        height={32}
+                        className="rounded-full"
+                      />
+                    ) : (
+                      <User className="h-4 w-4 text-white" />
+                    )}
                   </div>
                 </div>
-                <ChevronDown className={`h-4 w-4 text-zinc-500 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
+
+                <div className="text-left">
+                  <div className="text-xs font-semibold text-white">
+                    {user.username}
+                  </div>
+                  <div className="text-[11px] font-medium text-emerald-400">
+                    {user.wallet_balance?.toLocaleString('vi-VN')}đ
+                  </div>
+                </div>
+
+                <ChevronDown
+                  className={`h-4 w-4 text-zinc-500 transition ${
+                    isDropdownOpen ? 'rotate-180' : ''
+                  }`}
+                />
               </button>
 
-              {/* Dropdown Menu */}
-              {isDropdownOpen && (
-                <div className="absolute right-0 top-full mt-2 w-64 rounded-xl border border-white/10 bg-zinc-900 p-2 shadow-xl shadow-black/50 backdrop-blur-xl animate-in fade-in zoom-in-95 duration-200">
-                  <div className="px-3 py-2 border-b border-white/5 mb-1">
-                    <p className="text-xs text-zinc-500 uppercase font-bold tracking-wider">Vai trò</p>
-                    <p className="text-sm font-medium text-blue-400">{user.role}</p>
-                  </div>
-                  
-                  <div className="space-y-1">
-                    <Link href="/dashboard" className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-zinc-300 hover:bg-white/5 hover:text-white transition-colors">
-                      <LayoutDashboard className="h-4 w-4" /> {t('dashboard')}
-                    </Link>
-                    <Link href="/dashboard/profile" className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-zinc-300 hover:bg-white/5 hover:text-white transition-colors">
-                      <User className="h-4 w-4" /> {t('profile')}
-                    </Link>
-                    <Link href="/dashboard/wallet" className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-zinc-300 hover:bg-white/5 hover:text-white transition-colors">
-                      <Wallet className="h-4 w-4" /> {t('wallet')}
-                    </Link>
-                    <Link href="/dashboard/orders" className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-zinc-300 hover:bg-white/5 hover:text-white transition-colors">
-                      <FileText className="h-4 w-4" /> {t('orders')}
-                    </Link>
-                    <Link href="/dashboard/orders" className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm text-zinc-300 hover:bg-white/5 hover:text-white transition-colors">
-                      <History className="h-4 w-4" /> {t('history')}
-                    </Link>
-                  </div>
+              {/* Dropdown */}
+              <div
+                className={`absolute right-0 mt-3 w-64 rounded-xl border border-white/10 bg-zinc-900 shadow-2xl transition-all duration-200 ${
+                  isDropdownOpen
+                    ? 'opacity-100 translate-y-0'
+                    : 'opacity-0 -translate-y-2 pointer-events-none'
+                }`}
+              >
+                <div className="p-2 space-y-1 text-sm">
+                  <Link
+                    href="/dashboard"
+                    className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/5"
+                  >
+                    <LayoutDashboard className="h-4 w-4" />
+                    {t('dashboard')}
+                  </Link>
 
-                  <div className="mt-1 border-t border-white/5 pt-1">
-                    <button 
-                      onClick={handleLogout}
-                      className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-red-400 hover:bg-red-500/10 transition-colors"
-                    >
-                      <LogOut className="h-4 w-4" /> {t('logout')}
-                    </button>
-                  </div>
+                  <Link
+                    href="/dashboard/wallet"
+                    className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/5"
+                  >
+                    <Wallet className="h-4 w-4" />
+                    {t('wallet')}
+                  </Link>
+
+                  <Link
+                    href="/dashboard/orders"
+                    className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/5"
+                  >
+                    <FileText className="h-4 w-4" />
+                    {t('orders')}
+                  </Link>
+
+                  <div className="border-t border-white/10 my-1" />
+
+                  <button
+                    onClick={handleLogout}
+                    className="flex w-full items-center gap-3 px-3 py-2 rounded-lg text-red-400 hover:bg-red-500/10"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    {t('logout')}
+                  </button>
                 </div>
-              )}
+              </div>
             </div>
           ) : (
             <>
-              <Link href="/login" className="hover:text-white transition-colors">{t('login')}</Link>
+              <Link
+                href="/login"
+                className="text-zinc-400 hover:text-white transition"
+              >
+                {t('login')}
+              </Link>
+
               <Link
                 href="/dashboard"
-                className="rounded-lg bg-blue-600 px-6 py-2.5 text-white font-semibold shadow-lg shadow-blue-500/20 transition-all hover:bg-blue-500 hover:shadow-blue-500/40 hover:-translate-y-0.5"
+                className="rounded-lg bg-blue-600 px-5 py-2 text-white font-semibold shadow-lg shadow-blue-500/20 hover:bg-blue-500 transition"
               >
                 {t('rentNow')}
               </Link>
@@ -141,14 +240,108 @@ export default function Navbar() {
           )}
         </nav>
 
-        {/* Mobile Menu Button */}
-        <button className="md:hidden p-2 text-zinc-400 hover:text-white">
-          <Menu className="h-6 w-6" />
+        {/* Mobile Button */}
+        <button
+          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          className="md:hidden text-zinc-400 hover:text-white"
+        >
+          {isMobileMenuOpen ? (
+            <X className="h-6 w-6" />
+          ) : (
+            <Menu className="h-6 w-6" />
+          )}
         </button>
       </div>
-      
-      {/* Overlay click to close dropdown */}
-      {isDropdownOpen && <div className="fixed inset-0 z-[-1]" onClick={() => setIsDropdownOpen(false)} />}
     </header>
+
+      {/* Mobile Menu Overlay */}
+      <div 
+        className={`fixed inset-0 z-[55] bg-black/60 backdrop-blur-sm transition-opacity duration-300 md:hidden ${
+          isMobileMenuOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        }`}
+        onClick={closeMobileMenu}
+      />
+
+      {/* Mobile Menu Panel */}
+      <div 
+        className={`fixed inset-y-0 right-0 z-[60] flex flex-col w-3/4 max-w-xs transform border-l border-white/10 bg-zinc-950/80 backdrop-blur-md shadow-2xl transition-transform duration-300 ease-in-out md:hidden ${
+          isMobileMenuOpen ? 'translate-x-0' : 'translate-x-full'
+        }`}
+      >
+        <div className="flex items-center justify-between border-b border-white/10 p-4">
+          <div className="relative h-10 w-10">
+              <Image src="/logo-ver3.png" alt="Logo" fill className="object-contain" />
+          </div>
+          <span className="text-2xl font-bold text-white tracking-tighter">CAYTHUE<span className="text-blue-500">LOL</span></span>
+          <button onClick={closeMobileMenu} className="rounded-lg p-2 text-zinc-400 hover:bg-white/10 hover:text-white">
+            <X className="h-6 w-6" />
+          </button>
+        </div>
+        <nav className="flex-1 flex flex-col overflow-y-auto p-6 text-base font-medium">
+          {user ? (
+            <div className="flex flex-col h-full">
+              {/* User Info */}
+              <div className="flex items-center gap-4 border-b border-white/10 pb-6 mb-6">
+                <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full bg-gradient-to-br from-blue-500 to-purple-600 p-0.5">
+                   <div className="h-full w-full rounded-full bg-zinc-900 flex items-center justify-center">
+                      {user.profile?.avatar ? (
+                        <Image src={user.profile.avatar} alt="Avatar" width={48} height={48} className="rounded-full" />
+                      ) : (
+                        <User className="h-6 w-6 text-white" />
+                      )}
+                   </div>
+                </div>
+                <div>
+                  <div className="text-base font-bold text-white leading-tight">{user.username}</div>
+                  <div className="text-sm font-medium text-emerald-400">
+                    {user.wallet_balance?.toLocaleString('vi-VN')} đ
+                  </div>
+                </div>
+              </div>
+
+              {/* Navigation Links */}
+              <div className="flex-grow space-y-2">
+                <Link href="/dashboard" onClick={closeMobileMenu} className="flex items-center gap-4 px-4 py-3 rounded-lg hover:bg-white/5 transition-colors"><LayoutDashboard className="h-5 w-5 text-zinc-400" />{t('dashboard')}</Link>
+                <Link href="/dashboard/wallet" onClick={closeMobileMenu} className="flex items-center gap-4 px-4 py-3 rounded-lg hover:bg-white/5 transition-colors"><Wallet className="h-5 w-5 text-zinc-400" />{t('wallet')}</Link>
+                <Link href="/dashboard/orders" onClick={closeMobileMenu} className="flex items-center gap-4 px-4 py-3 rounded-lg hover:bg-white/5 transition-colors"><FileText className="h-5 w-5 text-zinc-400" />{t('orders')}</Link>
+              </div>
+
+              {/* Actions */}
+              <div className="mt-6 pt-6 border-t border-white/10 space-y-3">
+                <Link href="/dashboard" onClick={closeMobileMenu} className="block w-full text-center rounded-lg bg-blue-600 px-6 py-3 text-white font-semibold">{t('rentNow')}</Link>
+                <Link href="/dashboard/wallet" onClick={closeMobileMenu} className="block w-full text-center rounded-lg bg-emerald-600/20 border border-emerald-500/30 px-6 py-3 text-emerald-400 font-semibold">{t('depositNow')}</Link>
+                <button onClick={() => { handleLogout(); closeMobileMenu(); }} className="flex w-full items-center justify-center gap-3 rounded-lg py-3 text-red-400 hover:bg-red-500/10 transition-colors">
+                  <LogOut className="h-5 w-5" /> {t('logout')}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-col h-full">
+              <div className="flex-grow space-y-2">
+                <Link href="/services" onClick={closeMobileMenu} className="block px-4 py-3 rounded-lg hover:bg-white/5 transition-colors">{t('services')}</Link>
+                <Link href="/boosters" onClick={closeMobileMenu} className="block px-4 py-3 rounded-lg hover:bg-white/5 transition-colors">{t('boosters')}</Link>
+                <Link href="/blog" onClick={closeMobileMenu} className="block px-4 py-3 rounded-lg hover:bg-white/5 transition-colors">{t('blog')}</Link>
+              </div>
+              
+              <div className="space-y-3">
+                <div className="flex gap-3">
+                  <Link href="/login" onClick={closeMobileMenu} className="flex-1 text-center rounded-lg border border-zinc-700 bg-zinc-800/50 px-6 py-3 font-semibold transition-colors hover:bg-zinc-700">{t('login')}</Link>
+                  <Link href="/register" onClick={closeMobileMenu} className="flex-1 text-center rounded-lg border border-zinc-700 bg-zinc-800/50 px-6 py-3 font-semibold transition-colors hover:bg-zinc-700">{t('registerNow')}</Link>
+                </div>
+                <Link href="/dashboard" onClick={closeMobileMenu} className="block text-center rounded-lg bg-blue-600 px-6 py-3 text-white font-semibold">{t('rentNow')}</Link>
+              </div>
+            </div>
+          )}
+          
+          <div className="mt-8 flex items-center justify-center pt-8 border-t border-white/10">
+            <LanguageSwitcher
+              language={language}
+              setLanguage={setLanguage}
+              className="justify-center"
+            />
+          </div>
+        </nav>
+      </div>
+    </>
   );
 }

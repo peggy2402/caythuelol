@@ -18,9 +18,10 @@ import { useLanguage } from '../../lib/i18n';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isLangMenuOpen, setIsLangMenuOpen] = useState(false);
   const [user, setUser] = useState<any>(null);
   const pathname = usePathname();
-  const { t } = useLanguage();
+  const { t, language, setLanguage } = useLanguage();
 
   useEffect(() => {
     const userData = localStorage.getItem('user');
@@ -52,14 +53,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
-        <div className="flex h-20 items-center gap-3 px-6 border-b border-white/5">
-           <div className="relative h-8 w-8 overflow-hidden rounded-lg">
-              <Image src="/logo-ver3.png" alt="Logo" fill className="object-cover" />
-           </div>
-           <span className="text-lg font-bold tracking-tight text-white">
-             CAYTHUE<span className="text-blue-500">LOL</span>
-           </span>
-        </div>
+        <Link href="/">
+          <div className="flex h-20 items-center gap-3 px-6 border-b border-white/5">
+            <div className="relative h-8 w-8 overflow-hidden rounded-lg">
+                <Image src="/logo-ver3.png" alt="Logo" fill className="object-cover" />
+            </div>
+            <span className="text-lg font-bold tracking-tight text-white">
+              CAYTHUE<span className="text-blue-500">LOL</span>
+            </span>
+          </div>
+        </Link>
         
         <nav className="flex-1 space-y-1 p-4">
           {navItems.map((item) => {
@@ -115,6 +118,46 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
 
           <div className="flex items-center gap-4">
+            {/* Language Switcher Icon */}
+            <div className="relative">
+              <button
+                onClick={() => setIsLangMenuOpen(!isLangMenuOpen)}
+                className="flex items-center justify-center rounded-lg p-2 transition-colors hover:bg-white/5"
+              >
+                <Image 
+                  src="/language.svg" 
+                  alt="Change Language" 
+                  width={24} 
+                  height={24} 
+                  className="invert opacity-70 hover:opacity-100 transition-opacity"
+                />
+              </button>
+
+              {isLangMenuOpen && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setIsLangMenuOpen(false)} />
+                  <div className="absolute right-0 top-full mt-2 z-50 w-32 rounded-xl border border-white/10 bg-zinc-900 p-1 shadow-xl animate-in fade-in zoom-in-95 duration-200">
+                    {(['vi', 'en', 'kr', 'jp'] as const).map((lang) => (
+                      <button
+                        key={lang}
+                        onClick={() => {
+                          setLanguage(lang);
+                          setIsLangMenuOpen(false);
+                        }}
+                        className={`flex w-full items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                          language === lang
+                            ? 'bg-blue-600/10 text-blue-400'
+                            : 'text-zinc-400 hover:bg-white/5 hover:text-white'
+                        }`}
+                      >
+                        {lang === 'vi' ? 'Tiếng Việt' : lang === 'en' ? 'English' : lang === 'kr' ? '한국어' : '日本語'}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+
             <button className="relative rounded-full p-2 text-zinc-400 transition-colors hover:bg-white/5 hover:text-white">
               <Bell className="h-5 w-5" />
               <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-red-500 ring-2 ring-zinc-950" />

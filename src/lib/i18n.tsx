@@ -124,6 +124,9 @@ const dictionaries = {
     teamBooster: "Đội ngũ Booster Thách Đấu/Cao Thủ",
     zap: "Hoàn tiền ngay nếu không đạt yêu cầu",
     contactHours: "Thời gian hoạt động 8:00 - 22:00",
+    cookieTitle: 'Chúng tôi sử dụng Cookies',
+    cookieDesc: 'Trang web này sử dụng cookie để cải thiện trải nghiệm của bạn. Bằng cách tiếp tục, bạn đồng ý với chính sách của chúng tôi.',
+    cookieAccept: 'Đã hiểu',
   },
 
   en: {
@@ -222,6 +225,9 @@ const dictionaries = {
     teamBooster: "Challenger / Grandmaster booster team",
     zap: "Instant refund if requirements are not met",
     contactHours: "Business Hours 8:00 - 22:00",
+    cookieTitle: 'We Use Cookies',
+    cookieDesc: 'This website uses cookies to improve your experience. By continuing, you agree to our policy.',
+    cookieAccept: 'Accept',
   },
 
   kr: {
@@ -319,6 +325,9 @@ const dictionaries = {
     teamBooster: "챌린저 / 그랜드마스터 부스터 팀",
     zap: "요구 사항을 충족하지 못할 경우 즉시 환불",
     contactHours: "영업 시간 8:00 - 22:00",
+    cookieTitle: '쿠키 사용 안내',
+    cookieDesc: '이 웹사이트는 사용자 경험을 개선하기 위해 쿠키를 사용합니다. 계속 사용하면 당사의 정책에 동의하는 것입니다.',
+    cookieAccept: '동의합니다',
   },
 
   jp: {
@@ -417,6 +426,9 @@ const dictionaries = {
     teamBooster: "チャレンジャー／グランドマスターブースターチーム",
     zap: "条件を満たさない場合は即時返金",
     contactHours: "営業時間 8:00 - 22:00",
+    cookieTitle: 'クッキーの使用について',
+    cookieDesc: 'このウェブサイトでは、お客様の体験を向上させるためにクッキーを使用しています。続行することにより、当社のポリシーに同意したことになります。',
+    cookieAccept: '同意する',
   },
   
 } as const;
