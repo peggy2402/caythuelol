@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 
-export default function GoogleCallbackPage() {
+function GoogleCallbackContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -16,11 +16,11 @@ export default function GoogleCallbackPage() {
       try {
         const user = JSON.parse(decodeURIComponent(userStr));
         
-        // Lưu vào localStorage giống như login thường
-        localStorage.setItem('token', token);
-        localStorage.setItem('user', JSON.stringify(user));
+        if (typeof window !== 'undefined') {
+            localStorage.setItem('token', token);
+            localStorage.setItem('user', JSON.stringify(user));
+        }
 
-        // Chuyển hướng vào dashboard
         router.push('/dashboard');
         router.refresh();
       } catch (e) {
@@ -37,5 +37,18 @@ export default function GoogleCallbackPage() {
       <Loader2 className="h-10 w-10 animate-spin text-blue-500 mb-4" />
       <p className="text-zinc-400">Đang xử lý đăng nhập Google...</p>
     </div>
+  );
+}
+
+export default function GoogleCallbackPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex flex-col items-center justify-center bg-zinc-950 text-white">
+        <Loader2 className="h-10 w-10 animate-spin text-blue-500 mb-4" />
+        <p className="text-zinc-400">Đang tải...</p>
+      </div>
+    }>
+      <GoogleCallbackContent />
+    </Suspense>
   );
 }
