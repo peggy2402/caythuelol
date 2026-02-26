@@ -10,6 +10,7 @@ import {
   Eye, 
   EyeOff, 
   ArrowRight, 
+  ArrowLeft,
   User,
   Loader2, 
   ShieldCheck, 
@@ -78,13 +79,13 @@ export default function LoginPage() {
       {/* Left Side - Branding (Hidden on Mobile) */}
       <div className="hidden lg:flex w-1/2 relative flex-col justify-between p-12 bg-zinc-900 overflow-hidden text-white">
         {/* Background Effects */}
-        <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-10"></div>
+        <div className="absolute inset-0 bg-[url('/noise.png')] opacity-10"></div>
         <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-blue-600/20 via-purple-900/20 to-zinc-950 z-0"></div>
         <div className="absolute -top-24 -left-24 w-96 h-96 bg-blue-500/30 rounded-full blur-3xl"></div>
         <div className="absolute bottom-0 right-0 w-96 h-96 bg-purple-500/20 rounded-full blur-3xl"></div>
 
         {/* Content */}
-        <div className="relative z-10">
+        <div className="relative z-10 animate-in slide-in-from-left-8 fade-in duration-700">
           <Link href="/" className="flex items-center gap-3 mb-12">
              <div className="relative h-10 w-10">
                 <Image src="/logo-ver3.png" alt="Logo" fill className="object-contain" />
@@ -107,7 +108,7 @@ export default function LoginPage() {
           </div>
         </div>
 
-        <div className="relative z-10 grid gap-4">
+        <div className="relative z-10 grid gap-4 animate-in slide-in-from-left-8 fade-in duration-700 delay-150">
           {[
             { icon: ShieldCheck, text: t('shieldCheck') },
             { icon: Trophy, text: t('teamBooster') },
@@ -130,9 +131,17 @@ export default function LoginPage() {
       {/* Right Side - Login Form */}
       <div className="w-full lg:w-1/2 flex items-center justify-center p-6 relative">
         {/* Mobile Background Glow */}
+        <Link 
+          href="/" 
+          className="absolute top-6 left-6 z-20 flex items-center gap-2 text-zinc-500 hover:text-zinc-900 transition-colors"
+        >
+          <ArrowLeft className="w-5 h-5" />
+          <span className="font-medium text-sm">{t('backToHome')}</span>
+        </Link>
+
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full max-w-lg bg-blue-500/5 blur-3xl lg:hidden"></div>
 
-        <div className="w-full max-w-md space-y-8 relative z-10">
+        <div className="w-full max-w-md space-y-8 relative z-10 animate-in slide-in-from-right-8 fade-in duration-700">
           {/* Mobile Logo */}
           <div className="lg:hidden text-center mb-8">
             <Link href="/" className="inline-flex items-center gap-2">

@@ -113,8 +113,8 @@ export default function Navbar() {
     <header
       className={`fixed top-0 left-0 right-0 z-50 backdrop-blur-xl transition-all duration-300 ${
         isScrolled || isMobileMenuOpen
-          ? 'h-16 bg-zinc-950 shadow-lg'
-          : 'h-20 bg-zinc-950/80'
+          ? 'h-16 bg-zinc-650 shadow-lg'
+          : 'h-20 bg-zinc-650/80'
       }`}
     >
       {/* Gradient Border */}
@@ -267,7 +267,7 @@ export default function Navbar() {
 
       {/* Mobile Menu Panel */}
       <div 
-        className={`fixed inset-y-0 right-0 z-[60] flex flex-col w-3/4 max-w-xs transform border-l border-white/10 bg-zinc-950/80 backdrop-blur-md shadow-2xl transition-transform duration-300 ease-in-out md:hidden ${
+        className={`fixed inset-y-0 right-0 z-[60] flex flex-col w-3/4 max-w-xs transform border-l border-white/10 bg-zinc-750/80 backdrop-blur-md shadow-2xl transition-transform duration-300 ease-in-out md:hidden ${
           isMobileMenuOpen ? 'translate-x-0' : 'translate-x-full'
         }`}
       >

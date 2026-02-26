@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Link from "next/link";
 import Image from "next/image";
 import { Shield, Zap, Trophy, Star, CheckCircle, ArrowRight, Users, Clock, Target, ChevronRight, CreditCard, TrendingUp } from "lucide-react";
@@ -8,8 +9,18 @@ import { useLanguage } from "@/lib/i18n";
 
 export default function Home() {
   const { t } = useLanguage();
+  const [scrollY, setScrollY] = useState(0);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrollY(window.scrollY);
+    };
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
   return (
-    <div className="min-h-screen bg-[#050505] text-zinc-100 font-sans selection:bg-blue-500/30 overflow-x-hidden">
+    <div className="min-h-screen bg-[#050505] text-zinc-100 font-sans selection:bg-blue-500/30 overflow-x-hidden" suppressHydrationWarning>
       <Navbar />
 
       <main className="relative">
@@ -19,12 +30,12 @@ export default function Home() {
         {/* Hero Section */}
         <section className="relative pt-32 pb-20 md:pt-48 md:pb-40 overflow-hidden">
           {/* Dynamic Background Glows */}
-          <div className="absolute top-[-10%] left-1/2 -translate-x-1/2 w-[80vw] h-[500px] bg-blue-600/20 blur-[120px] rounded-full pointer-events-none mix-blend-screen animate-pulse-slow" />
-          <div className="absolute top-[20%] right-[-10%] w-[600px] h-[600px] bg-purple-600/10 blur-[100px] rounded-full pointer-events-none mix-blend-screen" />
-          <div className="absolute bottom-[-10%] left-[-10%] w-[600px] h-[600px] bg-cyan-600/10 blur-[100px] rounded-full pointer-events-none mix-blend-screen" />
+          <div className="absolute top-[-10%] left-1/2 -translate-x-1/2 w-[80vw] h-[500px] bg-blue-600/20 blur-[120px] rounded-full pointer-events-none mix-blend-screen animate-pulse-slow" style={{ transform: `translateY(${scrollY * 0.5}px)` }} />
+          <div className="absolute top-[20%] right-[-10%] w-[600px] h-[600px] bg-purple-600/10 blur-[100px] rounded-full pointer-events-none mix-blend-screen" style={{ transform: `translateY(${scrollY * 0.3}px)` }} />
+          <div className="absolute bottom-[-10%] left-[-10%] w-[600px] h-[600px] bg-cyan-600/10 blur-[100px] rounded-full pointer-events-none mix-blend-screen" style={{ transform: `translateY(${scrollY * 0.2}px)` }} />
 
           <div className="container mx-auto px-6 relative z-10">
-            <div className="flex flex-col items-center text-center max-w-5xl mx-auto">
+            <div className="flex flex-col items-center text-center max-w-5xl mx-auto" style={{ transform: `translateY(${scrollY * 0.1}px)` }}>
               
               {/* Badge */}
               <div className="inline-flex items-center gap-2 rounded-full border border-blue-500/30 bg-blue-500/5 px-4 py-1.5 text-sm font-semibold text-blue-400 mb-8 backdrop-blur-md shadow-[0_0_15px_rgba(59,130,246,0.2)] hover:shadow-[0_0_25px_rgba(59,130,246,0.4)] transition-all duration-300 cursor-default">
@@ -36,7 +47,7 @@ export default function Home() {
               </div>
 
               {/* Headline */}
-              <h1 className="text-5xl md:text-7xl lg:text-8xl font-black tracking-tighter text-white mb-8 leading-[1.1]">
+              <h1 className="text-5xl md:text-7xl lg:text-8xl font-black tracking-tighter text-white mb-8 leading-[1.1] animate-in fade-in slide-in-from-bottom-8 duration-700">
                 {t('heroTitle1')} <br className="hidden md:block" />
                 <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-cyan-400 bg-clip-text text-transparent bg-[length:200%_auto] animate-gradient">
                   {t('heroTitle2')}
@@ -44,14 +55,15 @@ export default function Home() {
               </h1>
 
               {/* Subheadline */}
-              <p className="text-lg md:text-xl text-zinc-400 mb-12 max-w-2xl leading-relaxed font-medium">
+              <p className="text-lg md:text-xl text-zinc-400 mb-12 max-w-2xl leading-relaxed font-medium animate-in fade-in slide-in-from-bottom-8 duration-700 delay-150">
                 {t('heroDesc')}
               </p>
 
               {/* CTA Buttons */}
-              <div className="flex flex-col sm:flex-row items-center gap-5 w-full sm:w-auto">
+              <div className="flex flex-col sm:flex-row items-center gap-5 w-full sm:w-auto animate-in fade-in slide-in-from-bottom-8 duration-700 delay-300">
                 <Link
                   href="/dashboard"
+                  suppressHydrationWarning
                   className="group relative flex h-14 w-full sm:w-auto items-center justify-center gap-3 overflow-hidden rounded-xl bg-blue-600 px-8 text-lg font-bold text-white shadow-[0_0_20px_rgba(37,99,235,0.3)] transition-all hover:bg-blue-500 hover:scale-105 hover:shadow-[0_0_40px_rgba(37,99,235,0.5)]"
                 >
                   <span className="relative z-10">{t('startNow')}</span>
@@ -61,6 +73,7 @@ export default function Home() {
                 
                 <Link
                   href="/services"
+                  suppressHydrationWarning
                   className="group flex h-14 w-full sm:w-auto items-center justify-center gap-2 rounded-xl border border-zinc-700 bg-zinc-900/50 px-8 text-lg font-bold text-zinc-300 transition-all hover:bg-zinc-800 hover:text-white hover:border-zinc-500 backdrop-blur-sm"
                 >
                   <span>{t('viewPricing')}</span>
@@ -72,7 +85,7 @@ export default function Home() {
         </section>
 
         {/* Stats Section - Floating Cards */}
-        <section className="py-12 border-y border-white/5 bg-white/[0.02] backdrop-blur-sm relative z-20">
+        <section className="py-12 border-y border-white/5 bg-white/[0.02] backdrop-blur-sm relative z-20 animate-in fade-in slide-in-from-bottom-12 duration-1000 delay-500">
           <div className="container mx-auto px-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-12">
               {[
@@ -147,7 +160,7 @@ export default function Home() {
 
         {/* Process Steps */}
         <section className="py-32 bg-zinc-900/30 border-y border-white/5 relative overflow-hidden">
-          <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-[0.05]" />
+          <div className="absolute inset-0 bg-white/[0.02] backdrop-blur-sm opacity-[0.05]" />
           
           <div className="container mx-auto px-6 relative z-10">
             <div className="text-center mb-20">
