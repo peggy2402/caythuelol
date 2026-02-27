@@ -230,6 +230,10 @@ const dictionaries = {
     emailRequired: 'Vui lòng nhập email mới',
     emailAlreadyExists: 'Email này đã được sử dụng bởi tài khoản khác',
     usernameTaken: 'Tên đăng nhập đã tồn tại',
+    deleteAccountConfirmTitle: 'Xác nhận xóa tài khoản?',
+    deleteAccountConfirmDesc: 'Hành động này không thể hoàn tác. Toàn bộ dữ liệu, lịch sử đơn hàng và số dư ví của bạn sẽ bị xóa vĩnh viễn.',
+    deleteBtn: 'Xóa vĩnh viễn',
+    cancelBtn: 'Hủy bỏ',
   },
 
   en: {
@@ -433,6 +437,10 @@ const dictionaries = {
     emailRequired: 'Please enter new email',
     emailAlreadyExists: 'Email is already in use',
     usernameTaken: 'Username is already taken',
+    deleteAccountConfirmTitle: 'Confirm account deletion?',
+    deleteAccountConfirmDesc: 'This action cannot be undone. All your data, order history, and wallet balance will be permanently deleted.',
+    deleteBtn: 'Delete permanently',
+    cancelBtn: 'Cancel',
   },
 
   kr: {
@@ -635,6 +643,10 @@ const dictionaries = {
     emailRequired: '새 이메일을 입력해주세요',
     emailAlreadyExists: '이미 사용 중인 이메일입니다',
     usernameTaken: '이미 사용 중인 사용자 이름입니다',
+    deleteAccountConfirmTitle: '계정 삭제 확인?',
+    deleteAccountConfirmDesc: '이 작업은 되돌릴 수 없습니다. 모든 데이터, 주문 내역 및 지갑 잔액이 영구적으로 삭제됩니다.',
+    deleteBtn: '영구 삭제',
+    cancelBtn: '취소',
   },
 
   jp: {
@@ -838,6 +850,10 @@ const dictionaries = {
     emailRequired: '新しいメールアドレスを入力してください',
     emailAlreadyExists: 'このメールアドレスは既に使用されています',
     usernameTaken: 'このユーザー名は既に使用されています',
+    deleteAccountConfirmTitle: 'アカウント削除の確認',
+    deleteAccountConfirmDesc: 'この操作は元に戻せません。すべてのデータ、注文履歴、ウォレット残高が完全に削除されます。',
+    deleteBtn: '完全に削除',
+    cancelBtn: 'キャンセル',
   },
   
 } as const;

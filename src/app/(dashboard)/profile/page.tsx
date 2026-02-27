@@ -2,6 +2,7 @@
 
 import { useState, useEffect, ReactNode } from 'react';
 import { useLanguage } from '@/lib/i18n';
+import { useRouter } from 'next/navigation';
 import { User, Key, Trash2, Save, Camera, X, Loader2, Sparkles } from 'lucide-react';
 import Image from 'next/image';
 import { toast } from 'sonner';
@@ -172,10 +173,38 @@ const OtpModal = ({
     );
 };
 
+// Delete Account Modal Component
+const DeleteAccountModal = ({ isOpen, onClose, onConfirm, loading }: { isOpen: boolean, onClose: () => void, onConfirm: () => void, loading: boolean }) => {
+    const { t } = useLanguage();
+    if (!isOpen) return null;
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-in fade-in duration-300">
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={onClose}></div>
+            <div className="bg-zinc-900/90 border border-red-500/30 rounded-2xl p-8 w-full max-w-md relative shadow-2xl ring-1 ring-red-500/10 transform transition-all scale-100 animate-in zoom-in-95 duration-300">
+                <h3 className="text-2xl font-bold text-white mb-2 tracking-tight">{t('deleteAccountConfirmTitle')}</h3>
+                <p className="text-zinc-400 text-sm leading-relaxed mb-6">
+                    {t('deleteAccountConfirmDesc')}
+                </p>
+                <div className="flex gap-3">
+                    <button onClick={onClose} disabled={loading} className="flex-1 bg-zinc-800 hover:bg-zinc-700 text-white font-bold py-3 rounded-xl transition-all">
+                        {t('cancelBtn')}
+                    </button>
+                    <button onClick={onConfirm} disabled={loading} className="flex-1 bg-red-600 hover:bg-red-500 text-white font-bold py-3 rounded-xl transition-all flex items-center justify-center gap-2">
+                        {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : t('deleteBtn')}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 export default function ProfilePage() {
   const { t } = useLanguage();
+  const router = useRouter();
   const [user, setUser] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   // Form states
   const [username, setUsername] = useState('');
@@ -187,6 +216,7 @@ export default function ProfilePage() {
   const [newPassword, setNewPassword] = useState('');
   const [confirmNewPassword, setConfirmNewPassword] = useState('');
   const [isOtpModalOpen, setIsOtpModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [otpExpiry, setOtpExpiry] = useState<number | null>(null);
 
   useEffect(() => {
@@ -306,6 +336,25 @@ export default function ProfilePage() {
       }
   };
 
+  const handleDeleteAccount = async () => {
+    setDeleteLoading(true);
+    try {
+        const res = await fetch('/api/user/delete', {
+            method: 'DELETE',
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(t(data.error as any) || t('deleteAccountToastError'));
+
+        toast.success(t('deleteAccountToastSuccess'));
+        localStorage.removeItem('user');
+        localStorage.removeItem('token');
+        router.push('/');
+    } catch (error: any) {
+        toast.error(error.message);
+        setDeleteLoading(false);
+    }
+  };
+
   if (loading) {
     // A simple skeleton loader
     return (
@@ -332,6 +381,7 @@ export default function ProfilePage() {
         onVerify={handleVerifyEmailOtp} 
         onResend={handleResendOtp}
       />
+      <DeleteAccountModal isOpen={isDeleteModalOpen} onClose={() => setIsDeleteModalOpen(false)} onConfirm={handleDeleteAccount} loading={deleteLoading} />
 
       <h1 className="text-2xl font-bold text-white">{t('profileSettings')}</h1>
 
@@ -428,7 +478,7 @@ export default function ProfilePage() {
 
       {/* Danger Zone */}
       <DangerZoneCard title={t('dangerZone')} description={t('dangerZoneDesc')}>
-        <button className="flex items-center gap-2 rounded-lg bg-red-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-red-500 transition-colors shadow-lg shadow-red-500/20">
+        <button onClick={() => setIsDeleteModalOpen(true)} className="flex items-center gap-2 rounded-lg bg-red-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-red-500 transition-colors shadow-lg shadow-red-500/20">
           <Trash2 className="h-4 w-4" />
           {t('deleteAccount')}
         </button>
