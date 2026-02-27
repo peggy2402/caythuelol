@@ -122,19 +122,19 @@ export default function Home() {
               {[
                 {
                   title: t('secSecurity'),
-                  desc: "Thông tin tài khoản được mã hóa 2 lớp. Cam kết không sử dụng tool/hack, đảm bảo an toàn 100% cho tài khoản của bạn.",
+                  desc: t('descSecurity'),
                   icon: Shield,
                   gradient: "from-blue-500 to-cyan-500"
                 },
                 {
                   title: t('secSpeed'),
-                  desc: "Đội ngũ Booster hoạt động 24/7. Đơn hàng được xử lý ngay lập tức sau khi thanh toán. Hoàn thành đúng hạn cam kết.",
+                  desc: t('descSpeed'),
                   icon: Zap,
                   gradient: "from-yellow-500 to-orange-500"
                 },
                 {
                   title: t('secPrice'),
-                  desc: "Hệ thống tính giá tự động minh bạch, cạnh tranh nhất thị trường. Nhiều ưu đãi hấp dẫn cho khách hàng thân thiết.",
+                  desc: t('descPriceGood'),
                   icon: Trophy,
                   gradient: "from-purple-500 to-pink-500"
                 }
@@ -173,9 +173,9 @@ export default function Home() {
               <div className="hidden md:block absolute top-16 left-[16%] right-[16%] h-0.5 bg-gradient-to-r from-blue-600/0 via-blue-600/30 to-blue-600/0" />
 
               {[
-                { step: "01", title: t('step1'), desc: "Lựa chọn loại dịch vụ, mức rank mong muốn và các tùy chọn đi kèm.", icon: Target },
-                { step: "02", title: t('step2'), desc: "Thanh toán an toàn qua QR Code, Momo hoặc Thẻ ngân hàng.", icon: CreditCard },
-                { step: "03", title: t('step3'), desc: "Theo dõi tiến độ trực tiếp và chat với Booster qua hệ thống.", icon: TrendingUp }
+                { step: "01", title: t('step1'), desc: t('step1Desc'), icon: Target },
+                { step: "02", title: t('step2'), desc: t('step2Desc'), icon: CreditCard },
+                { step: "03", title: t('step3'), desc: t('step3Desc'), icon: TrendingUp }
               ].map((item, idx) => (
                 <div key={idx} className="relative flex flex-col items-center text-center group">
                   <div className="w-32 h-32 rounded-full bg-zinc-950 border-4 border-zinc-800 flex items-center justify-center mb-8 z-10 shadow-[0_0_30px_rgba(0,0,0,0.5)] group-hover:border-blue-500/50 group-hover:shadow-[0_0_30px_rgba(59,130,246,0.3)] transition-all duration-500">

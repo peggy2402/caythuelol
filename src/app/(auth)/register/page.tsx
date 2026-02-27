@@ -52,7 +52,7 @@ export default function RegisterPage() {
     // Validate Phone Number (VN)
     const phoneRegex = /(84|0[3|5|7|8|9])+([0-9]{8})\b/;
     if (!phoneRegex.test(formData.phoneNumber)) {
-      setError('Số điện thoại không hợp lệ (VD: 0912345678)');
+      setError(t('invalidPhoneNumber'));
       setLoading(false);
       return;
     }
@@ -67,10 +67,10 @@ export default function RegisterPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.error || 'Đăng ký thất bại');
+        throw new Error(data.error || t('registerToastError'));
       }
 
-      toast.success('Đăng ký thành công! Vui lòng kiểm tra email.');
+      toast.success(t('registerToastSuccess'));
       // Chuyển hướng sang trang OTP (Server sẽ tự đọc cookie để biết email)
       router.push('/verify-otp');
     } catch (err: any) {
@@ -286,7 +286,7 @@ export default function RegisterPage() {
               {loading ? (
                 <>
                   <Loader2 className="animate-spin -ml-1 mr-2 h-5 w-5" />
-                  Đang xử lý...
+                  {t('inProcess')}
                 </>
               ) : (
                 <>
