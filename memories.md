@@ -55,6 +55,22 @@ Change log & decisions:
 - **Schema Changes:** Add `phoneNumber`, `isEmailVerified` to User. Create `VerificationCode` collection (TTL index).
 - **Flow:** Register -> Unverified User -> Send OTP -> Verify -> Active.
 
+6. 2026-02-27 — Google Auth Polish, Forgot Password & UI Refinements
+
+- **Google Auth:**
+  - Fixed `isEmailVerified` logic (auto-true for Google users).
+  - Added `platform` field to User schema to track login origin ('EMAIL' vs 'GOOGLE').
+  - Fixed middleware redirection issues for Google logins.
+- **Forgot Password:**
+  - Implemented full flow: Request OTP -> Verify -> Reset Password.
+  - Created APIs: `/api/auth/forgot-password` and `/api/auth/reset-password`.
+  - Created UI: `/forgot-password` with multi-step form.
+- **UI/UX:**
+  - Redesigned `/verify-otp` page (Modern 2-column layout).
+  - Added Password Strength indicator to Register page.
+  - Fixed "Race Condition" in OTP verification redirect logic.
+  - Fixed build errors (Suspense boundary for `useSearchParams`, duplicate route groups).
+
 ================================================================================
 
 1. # PROJECT STRUCTURE

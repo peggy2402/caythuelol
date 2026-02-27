@@ -2,66 +2,51 @@ import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import User from '@/models/User';
 import VerificationCode from '@/models/VerificationCode';
-import bcrypt from 'bcryptjs';
+import { sendVerificationEmail } from '@/lib/email';
 
 export async function POST(req: Request) {
   try {
     await dbConnect();
-    const { email, otp, newPassword } = await req.json();
+    const { email } = await req.json();
 
-    if (!email || !otp || !newPassword) {
-      return NextResponse.json({ error: 'Vui lòng nhập đầy đủ thông tin' }, { status: 400 });
+    if (!email) {
+      return NextResponse.json({ error: 'Vui lòng nhập email' }, { status: 400 });
     }
 
-    if (newPassword.length < 6) {
-      return NextResponse.json({ error: 'Mật khẩu phải có ít nhất 6 ký tự' }, { status: 400 });
+    // 1. Kiểm tra User
+    const user = await User.findOne({ email });
+    if (!user) {
+      return NextResponse.json({ error: 'Email chưa được đăng ký' }, { status: 404 });
     }
 
-    // 1. Tìm mã OTP trong DB
-    const record = await VerificationCode.findOne({
-      email,
-      type: 'PASSWORD_RESET', // Chỉ tìm loại này
-    });
-
-    if (!record) {
-      return NextResponse.json({ error: 'verifyOtpInvalid' }, { status: 400 });
-    }
-
-    // 2. Kiểm tra số lần thử
-    if (record.attempts >= 3) {
-      await VerificationCode.deleteOne({ _id: record._id });
-      return NextResponse.json({ error: 'verifyOtpTooManyAttempts' }, { status: 429 });
-    }
-
-    // 3. So sánh OTP
-    if (record.code !== otp) {
-      record.attempts += 1;
-      await record.save();
+    // Kiểm tra platform (nếu là Google/Facebook thì không cho reset pass kiểu này)
+    if (user.platform === 'GOOGLE' || user.platform === 'FACEBOOK') {
       return NextResponse.json({ 
-        error: 'otpIncorrect',
-        data: { attemptsLeft: 3 - record.attempts }
+        error: `Tài khoản này được đăng ký bằng ${user.platform}. Vui lòng đăng nhập bằng ${user.platform}.` 
       }, { status: 400 });
     }
 
-    // 4. OTP đúng -> Đổi mật khẩu User
-    const user = await User.findOne({ email });
-    if (!user) {
-      return NextResponse.json({ error: 'userNotFound' }, { status: 404 });
-    }
+    // 2. Xóa OTP cũ (nếu có)
+    await VerificationCode.deleteMany({ email, type: 'PASSWORD_RESET' });
 
-    const salt = await bcrypt.genSalt(10);
-    const passwordHash = await bcrypt.hash(newPassword, salt);
+    // 3. Tạo OTP mới
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = new Date(Date.now() + 60 * 1000); // 60s
 
-    user.password_hash = passwordHash;
-    await user.save();
+    await VerificationCode.create({
+      email,
+      code: otp,
+      type: 'PASSWORD_RESET', // Quan trọng: Loại OTP khác
+      expiresAt,
+    });
 
-    // 5. Xóa OTP
-    await VerificationCode.deleteOne({ _id: record._id });
+    // 4. Gửi Email
+    await sendVerificationEmail(email, otp);
 
-    return NextResponse.json({ success: true, message: 'Đổi mật khẩu thành công' }, { status: 200 });
+    return NextResponse.json({ success: true, message: 'Mã xác thực đã được gửi đến email.' }, { status: 200 });
 
   } catch (error) {
-    console.error('Reset Password Error:', error);
+    console.error('Forgot Password Error:', error);
     return NextResponse.json({ error: 'Lỗi server nội bộ' }, { status: 500 });
   }
 }
