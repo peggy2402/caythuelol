@@ -174,23 +174,41 @@ const OtpModal = ({
 };
 
 // Delete Account Modal Component
-const DeleteAccountModal = ({ isOpen, onClose, onConfirm, loading }: { isOpen: boolean, onClose: () => void, onConfirm: () => void, loading: boolean }) => {
+const DeleteAccountModal = ({ user, isOpen, onClose, onConfirm, loading }: { user: UserData | null, isOpen: boolean, onClose: () => void, onConfirm: () => void, loading: boolean }) => {
     const { t } = useLanguage();
+    const [confirmationText, setConfirmationText] = useState('');
+
     if (!isOpen) return null;
+
+    const requiredText = `delete ${user?.username}`;
+    const isConfirmed = confirmationText === requiredText;
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-in fade-in duration-300">
             <div className="absolute inset-0 bg-black/60 backdrop-blur-md" onClick={onClose}></div>
             <div className="bg-zinc-900/90 border border-red-500/30 rounded-2xl p-8 w-full max-w-md relative shadow-2xl ring-1 ring-red-500/10 transform transition-all scale-100 animate-in zoom-in-95 duration-300">
                 <h3 className="text-2xl font-bold text-white mb-2 tracking-tight">{t('deleteAccountConfirmTitle')}</h3>
-                <p className="text-zinc-400 text-sm leading-relaxed mb-6">
+                <p className="text-zinc-400 text-sm leading-relaxed mb-4">
                     {t('deleteAccountConfirmDesc')}
                 </p>
+                <p className="text-sm text-zinc-400 mb-4">
+                    Để xác nhận, vui lòng nhập <code className="bg-zinc-800 text-red-400 font-mono px-2 py-1 rounded">{requiredText}</code> vào ô bên dưới.
+                </p>
+                <input
+                    type="text"
+                    value={confirmationText}
+                    onChange={(e) => setConfirmationText(e.target.value)}
+                    className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-2.5 text-white focus:border-red-500 focus:ring-red-500 transition-colors mb-6"
+                />
                 <div className="flex gap-3">
                     <button onClick={onClose} disabled={loading} className="flex-1 bg-zinc-800 hover:bg-zinc-700 text-white font-bold py-3 rounded-xl transition-all">
                         {t('cancelBtn')}
                     </button>
-                    <button onClick={onConfirm} disabled={loading} className="flex-1 bg-red-600 hover:bg-red-500 text-white font-bold py-3 rounded-xl transition-all flex items-center justify-center gap-2">
+                    <button 
+                        onClick={onConfirm} 
+                        disabled={!isConfirmed || loading} 
+                        className="flex-1 bg-red-600 hover:bg-red-500 text-white font-bold py-3 rounded-xl transition-all flex items-center justify-center gap-2 disabled:bg-red-900/50 disabled:text-zinc-500 disabled:cursor-not-allowed"
+                    >
                         {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : t('deleteBtn')}
                     </button>
                 </div>
@@ -381,7 +399,7 @@ export default function ProfilePage() {
         onVerify={handleVerifyEmailOtp} 
         onResend={handleResendOtp}
       />
-      <DeleteAccountModal isOpen={isDeleteModalOpen} onClose={() => setIsDeleteModalOpen(false)} onConfirm={handleDeleteAccount} loading={deleteLoading} />
+      <DeleteAccountModal user={user} isOpen={isDeleteModalOpen} onClose={() => setIsDeleteModalOpen(false)} onConfirm={handleDeleteAccount} loading={deleteLoading} />
 
       <h1 className="text-2xl font-bold text-white">{t('profileSettings')}</h1>
 
