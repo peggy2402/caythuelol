@@ -206,10 +206,11 @@ export default function ProfilePage() {
         try {
             data = text ? JSON.parse(text) : {};
         } catch (e) {
-            throw new Error('Invalid server response');
+            throw new Error(`Lỗi phản hồi từ server (${res.status})`);
         }
 
-        if (!res.ok) throw new Error(data.error || 'Failed to resend code');
+        if (!res.ok) throw new Error(data.error || `Gửi mã thất bại (Lỗi ${res.status})`);
+        
         toast.success(t('emailChangeOtpSent'));
     } catch (error: any) {
         toast.error(error.message);
