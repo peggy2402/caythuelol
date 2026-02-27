@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -9,7 +9,8 @@ import {
   ArrowLeft,
   Loader2,
   KeyRound,
-  CheckCircle2
+  CheckCircle2,
+  Sparkles
 } from 'lucide-react';
 import { useLanguage } from '../../../lib/i18n';
 import { toast } from 'sonner';
@@ -31,6 +32,37 @@ export default function ForgotPasswordPage() {
   const [otp, setOtp] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [countdown, setCountdown] = useState(60);
+  const [canResend, setCanResend] = useState(false);
+
+  // Countdown logic
+  useEffect(() => {
+    if (step !== 2) return;
+
+    const STORAGE_KEY = 'forgot_password_resend_at';
+    const savedTime = localStorage.getItem(STORAGE_KEY);
+    const now = Date.now();
+
+    if (savedTime) {
+      const remaining = Math.ceil((parseInt(savedTime) - now) / 1000);
+      if (remaining > 0) {
+        setCountdown(remaining);
+        setCanResend(false);
+      } else {
+        setCountdown(0);
+        setCanResend(true);
+      }
+    }
+  }, [step]);
+
+  useEffect(() => {
+    if (step === 2 && countdown > 0) {
+      const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
+      return () => clearTimeout(timer);
+    } else if (step === 2 && countdown <= 0) {
+      setCanResend(true);
+    }
+  }, [countdown, step]);
 
   // Handle Step 1: Send OTP
   const handleSendOtp = async (e: React.FormEvent) => {
@@ -56,7 +88,46 @@ export default function ForgotPasswordPage() {
       }
 
       toast.success(t('otpSentSuccess'));
+      // Set timer in localStorage for the first time
+      const nextTime = Date.now() + 60 * 1000;
+      localStorage.setItem('forgot_password_resend_at', nextTime.toString());
+
       setStep(2);
+    } catch (error: any) {
+      toast.error(error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResendOtp = async () => {
+    if (!canResend || loading) return;
+
+    setLoading(true);
+    try {
+      // We can reuse the same API endpoint
+      const res = await fetch('/api/auth/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        let errorMessage = t(data.error as any) || t('sendOtpFailed');
+        if (data.error === 'socialAccountResetError' && data.data?.platform) {
+          errorMessage = errorMessage.replace('{platform}', data.data.platform);
+        }
+        throw new Error(errorMessage);
+      }
+
+      toast.success(t('resendSuccess')); // Use a more specific message
+      
+      // Reset timer
+      const nextTime = Date.now() + 60 * 1000;
+      localStorage.setItem('forgot_password_resend_at', nextTime.toString());
+      setCountdown(60);
+      setCanResend(false);
     } catch (error: any) {
       toast.error(error.message);
     } finally {
@@ -219,6 +290,26 @@ export default function ForgotPasswordPage() {
                   t('resetPasswordBtn')
                 )}
               </button>
+
+              <div className="text-center lg:text-left text-sm pt-2">
+                <p className="text-zinc-500 mb-2">{t('didntReceive')}</p>
+                {canResend ? (
+                  <button 
+                    type="button"
+                    onClick={handleResendOtp} 
+                    className="text-blue-600 font-bold hover:text-blue-500 hover:underline transition-colors flex items-center gap-2 mx-auto lg:mx-0"
+                    disabled={loading}
+                  >
+                    <Sparkles className="w-4 h-4" />
+                    {t('resendCode')}
+                  </button>
+                ) : (
+                  <span className="text-zinc-400 font-medium flex items-center justify-center lg:justify-start gap-2">
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                    {t('resendIn')} {countdown}s
+                  </span>
+                )}
+              </div>
             </form>
           )}
         </div>
