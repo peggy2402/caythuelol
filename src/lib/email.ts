@@ -1,7 +1,7 @@
 import { Resend } from 'resend';
 
 // Sử dụng fallback 're_123' để tránh lỗi build khi chưa có biến môi trường (Resend yêu cầu key không rỗng khi khởi tạo)
-const resend = new Resend(process.env.RESEND_API_KEY);
+const resend = new Resend(process.env.RESEND_API_KEY || 're_123');
 
 export async function sendVerificationEmail(email: string, otp: string) {
   try {
