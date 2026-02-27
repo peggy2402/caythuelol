@@ -58,7 +58,7 @@ export async function POST(req: Request) {
 
     // 5. Tạo và gửi OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString(); // 6 số ngẫu nhiên
-    const expiresAt = new Date(Date.now() + 60 * 1000); // Hết hạn sau 60s
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // Hết hạn sau 5 phút
 
     await VerificationCode.create({
       email,

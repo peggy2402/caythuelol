@@ -33,7 +33,7 @@ export async function POST(req: Request) {
 
     // 3. Tạo OTP mới
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    const expiresAt = new Date(Date.now() + 60 * 1000); // 60s
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 phút
 
     await VerificationCode.create({
       email,
