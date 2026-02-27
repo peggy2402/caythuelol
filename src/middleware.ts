@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { jwtVerify } from 'jose';
-
+import crypto from 'crypto';
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -27,11 +27,10 @@ export async function middleware(request: NextRequest) {
     }
 
     try {
-      const cypto = await import('crypto');
-      const secret = new TextEncoder().encode(
-        process.env.JWT_SECRET || cypto.randomBytes(512).toString('hex')
-      );
-      
+      const secret = new TextEncoder().encode(process.env.JWT_SECRET);
+      if(!secret) {
+        throw new Error('JWT_SECRET is not defined');
+      }
       const { payload } = await jwtVerify(token, secret);
 
       // 3. Check isEmailVerified

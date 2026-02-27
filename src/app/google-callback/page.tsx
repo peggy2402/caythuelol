@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 
-export default function GoogleCallbackPage() {
+function GoogleCallbackContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -40,5 +40,17 @@ export default function GoogleCallbackPage() {
     <div className="min-h-screen flex items-center justify-center bg-white">
       <Loader2 className="w-10 h-10 animate-spin text-blue-600" />
     </div>
+  );
+}
+
+export default function GoogleCallbackPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <Loader2 className="w-10 h-10 animate-spin text-blue-600" />
+      </div>
+    }>
+      <GoogleCallbackContent />
+    </Suspense>
   );
 }
