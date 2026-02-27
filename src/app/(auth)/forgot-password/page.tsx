@@ -46,7 +46,14 @@ export default function ForgotPasswordPage() {
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || t('sendOtpFailed'));
+      if (!res.ok) {
+        let errorMessage = t(data.error as any) || t('sendOtpFailed');
+        // Xử lý lỗi đặc biệt cho tài khoản mạng xã hội (cần thay thế {platform})
+        if (data.error === 'socialAccountResetError' && data.data?.platform) {
+          errorMessage = errorMessage.replace('{platform}', data.data.platform);
+        }
+        throw new Error(errorMessage);
+      }
 
       toast.success(t('otpSentSuccess'));
       setStep(2);
