@@ -200,8 +200,16 @@ export default function ProfilePage() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ newEmail: email }),
         });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error);
+        
+        const text = await res.text();
+        let data;
+        try {
+            data = text ? JSON.parse(text) : {};
+        } catch (e) {
+            throw new Error('Invalid server response');
+        }
+
+        if (!res.ok) throw new Error(data.error || 'Failed to resend code');
         toast.success(t('emailChangeOtpSent'));
     } catch (error: any) {
         toast.error(error.message);
@@ -231,8 +239,16 @@ export default function ProfilePage() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ username, avatar: avatarUrl }),
         });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error);
+        
+        const text = await res.text();
+        let data;
+        try {
+            data = text ? JSON.parse(text) : {};
+        } catch (e) {
+            throw new Error('Invalid server response');
+        }
+
+        if (!res.ok) throw new Error(data.error || t('profileUpdateFailed'));
 
         toast.success(t('profileUpdateSuccess'));
         // Update local storage
@@ -251,8 +267,16 @@ export default function ProfilePage() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ newEmail: email, otp }),
         });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error);
+        
+        const text = await res.text();
+        let data;
+        try {
+            data = text ? JSON.parse(text) : {};
+        } catch (e) {
+            throw new Error('Invalid server response');
+        }
+
+        if (!res.ok) throw new Error(data.error || 'Verification failed');
 
         toast.success(t('emailChangeSuccess'));
         setIsOtpModalOpen(false);
@@ -277,8 +301,16 @@ export default function ProfilePage() {
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ currentPassword, newPassword }),
           });
-          const data = await res.json();
-          if (!res.ok) throw new Error(data.error);
+          
+          const text = await res.text();
+          let data;
+          try {
+              data = text ? JSON.parse(text) : {};
+          } catch (e) {
+              throw new Error('Invalid server response');
+          }
+
+          if (!res.ok) throw new Error(data.error || t('passwordChangeFailed'));
           toast.success(t('passwordChangeSuccess'));
           setCurrentPassword(''); setNewPassword(''); setConfirmNewPassword('');
       } catch (error: any) {
