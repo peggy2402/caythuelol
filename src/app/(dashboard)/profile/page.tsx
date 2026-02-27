@@ -2,8 +2,14 @@
 
 import { useState, useEffect, ReactNode } from 'react';
 import { useLanguage } from '@/lib/i18n';
-import { User, Key, Trash2, Save, Camera } from 'lucide-react';
+import { User, Key, Trash2, Save, Camera, X, Loader2, Sparkles } from 'lucide-react';
 import Image from 'next/image';
+import { toast } from 'sonner';
+import {
+    InputOTP,
+    InputOTPGroup,
+    InputOTPSlot,
+} from '@/components/ui/input-otp';
 
 // Define a User interface based on the provided data
 interface UserProfile {
@@ -14,6 +20,7 @@ interface UserData {
   _id: string;
   username: string;
   email: string;
+  platform?: string;
   role: string;
   wallet_balance: number;
   profile: UserProfile;
@@ -43,6 +50,120 @@ const DangerZoneCard = ({ title, description, children }: { title: string, descr
     </div>
 );
 
+// OTP Modal Component
+const OtpModal = ({ 
+  email, 
+  isOpen, 
+  onClose, 
+  onVerify, 
+  onResend 
+}: { 
+  email: string, 
+  isOpen: boolean, 
+  onClose: () => void, 
+  onVerify: (otp: string) => Promise<void>, 
+  onResend: () => Promise<void> 
+}) => {
+    const { t } = useLanguage();
+    const [otp, setOtp] = useState('');
+    const [countdown, setCountdown] = useState(60);
+    const [canResend, setCanResend] = useState(false);
+    const [loading, setLoading] = useState(false);
+
+    useEffect(() => {
+        if (isOpen) {
+            setCountdown(60);
+            setCanResend(false);
+            setOtp('');
+        }
+    }, [isOpen]);
+
+    useEffect(() => {
+        if (countdown > 0 && isOpen) {
+            const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
+            return () => clearTimeout(timer);
+        } else if (countdown === 0) {
+            setCanResend(true);
+        }
+    }, [countdown, isOpen]);
+
+    const handleVerifyClick = async () => {
+        if (otp.length < 6) return;
+        setLoading(true);
+        await onVerify(otp);
+        setLoading(false);
+    }
+
+    const handleResendClick = async () => {
+        setLoading(true);
+        await onResend();
+        setCountdown(60);
+        setCanResend(false);
+        setLoading(false);
+    }
+
+    if (!isOpen) return null;
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+            <div className="bg-zinc-900 border border-white/10 rounded-xl p-6 w-full max-w-md relative shadow-2xl">
+                <button onClick={onClose} className="absolute top-4 right-4 text-zinc-400 hover:text-white transition-colors">
+                    <X className="w-5 h-5" />
+                </button>
+                
+                <div className="text-center mb-6">
+                    <h3 className="text-xl font-bold text-white mb-2">{t('verifyEmailChange')}</h3>
+                    <p className="text-zinc-400 text-sm">
+                        {t('enterOtpForEmail')} <br/>
+                        <span className="text-blue-400 font-semibold text-base">{email}</span>
+                    </p>
+                </div>
+                
+                <div className="flex justify-center mb-8">
+                    <InputOTP maxLength={6} value={otp} onChange={setOtp}>
+                        <InputOTPGroup className="gap-2">
+                            {[0, 1, 2, 3, 4, 5].map((i) => (
+                                <InputOTPSlot 
+                                    key={i} 
+                                    index={i} 
+                                    className="w-10 h-12 border-zinc-700 bg-zinc-800/50 text-white text-lg font-bold focus:border-blue-500 focus:ring-blue-500/20 transition-all" 
+                                />
+                            ))}
+                        </InputOTPGroup>
+                    </InputOTP>
+                </div>
+
+                <div className="space-y-4">
+                    <button 
+                        onClick={handleVerifyClick} 
+                        disabled={otp.length < 6 || loading} 
+                        className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
+                    >
+                        {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : t('verifyBtn')}
+                    </button>
+
+                    <div className="text-center text-sm">
+                        {canResend ? (
+                            <button 
+                                onClick={handleResendClick} 
+                                disabled={loading}
+                                className="text-blue-400 hover:text-blue-300 font-medium transition-colors flex items-center justify-center gap-2 mx-auto"
+                            >
+                                <Sparkles className="w-4 h-4" />
+                                {t('resendCode')}
+                            </button>
+                        ) : (
+                            <span className="text-zinc-500 flex items-center justify-center gap-2">
+                                <Loader2 className="w-3 h-3 animate-spin" />
+                                {t('resendIn')} {countdown}s
+                            </span>
+                        )}
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
 
 export default function ProfilePage() {
   const { t } = useLanguage();
@@ -53,6 +174,12 @@ export default function ProfilePage() {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [avatarUrl, setAvatarUrl] = useState('');
+
+  // Password states
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmNewPassword, setConfirmNewPassword] = useState('');
+  const [isOtpModalOpen, setIsOtpModalOpen] = useState(false);
 
   useEffect(() => {
     const userDataString = localStorage.getItem('user');
@@ -65,6 +192,99 @@ export default function ProfilePage() {
     }
     setLoading(false);
   }, []);
+
+  const handleResendOtp = async () => {
+    try {
+        const res = await fetch('/api/auth/change-email/request', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ newEmail: email }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error);
+        toast.success(t('emailChangeOtpSent'));
+    } catch (error: any) {
+        toast.error(error.message);
+        throw error; // Re-throw to handle loading state in modal
+    }
+  };
+
+  const handleSaveChanges = async () => {
+    if (!user) return;
+    
+    // 1. Check if email changed
+    if (email !== user.email) {
+        try {
+            await handleResendOtp();
+            setIsOtpModalOpen(true);
+            return; // Stop here, wait for OTP
+        } catch (error: any) {
+            // Error handled in handleResendOtp
+            return;
+        }
+    }
+
+    // 2. Update basic info if email didn't change
+    try {
+        const res = await fetch('/api/user/profile', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, avatar: avatarUrl }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error);
+
+        toast.success(t('profileUpdateSuccess'));
+        // Update local storage
+        const updatedUser = { ...user, ...data.user };
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+        setUser(updatedUser);
+    } catch (error: any) {
+        toast.error(error.message || t('profileUpdateFailed'));
+    }
+  };
+
+  const handleVerifyEmailOtp = async (otp: string) => {
+    try {
+        const res = await fetch('/api/auth/change-email/verify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ newEmail: email, otp }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error);
+
+        toast.success(t('emailChangeSuccess'));
+        setIsOtpModalOpen(false);
+        
+        // Update local storage with new user data (including new email)
+        const updatedUser = { ...user, ...data.user };
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+        setUser(updatedUser as UserData);
+    } catch (error: any) {
+        toast.error(error.message);
+    }
+  };
+
+  const handleChangePassword = async () => {
+      if (newPassword !== confirmNewPassword) {
+          toast.error('Mật khẩu xác nhận không khớp');
+          return;
+      }
+      try {
+          const res = await fetch('/api/auth/change-password', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ currentPassword, newPassword }),
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error);
+          toast.success(t('passwordChangeSuccess'));
+          setCurrentPassword(''); setNewPassword(''); setConfirmNewPassword('');
+      } catch (error: any) {
+          toast.error(error.message || t('passwordChangeFailed'));
+      }
+  };
 
   if (loading) {
     // A simple skeleton loader
@@ -84,6 +304,14 @@ export default function ProfilePage() {
 
   return (
     <div className="space-y-8 animate-fade-in">
+      <OtpModal 
+        email={email} 
+        isOpen={isOtpModalOpen} 
+        onClose={() => setIsOtpModalOpen(false)} 
+        onVerify={handleVerifyEmailOtp} 
+        onResend={handleResendOtp}
+      />
+
       <h1 className="text-2xl font-bold text-white">{t('profileSettings')}</h1>
 
       {/* Profile Details Card */}
@@ -93,7 +321,7 @@ export default function ProfilePage() {
           <div className="flex-shrink-0">
             <div className="relative group w-32 h-32">
               <img
-                src={avatarUrl || `/default-avatar.png`}
+                src={avatarUrl || `https://ui-avatars.com/api/?name=${username}&background=050505&color=fff`}
                 alt="Avatar"
                 className="rounded-full ring-2 ring-white/10 object-cover w-32 h-32"
               />
@@ -138,7 +366,7 @@ export default function ProfilePage() {
               </div>
             </div>
             <div className="pt-2 flex justify-end">
-              <button className="flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-blue-500 transition-colors shadow-lg shadow-blue-500/20">
+              <button onClick={handleSaveChanges} className="flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-blue-500 transition-colors shadow-lg shadow-blue-500/20">
                 <Save className="h-4 w-4" />
                 {t('saveChanges')}
               </button>
@@ -148,28 +376,34 @@ export default function ProfilePage() {
       </SettingsCard>
 
       {/* Change Password Card */}
-      <SettingsCard title={t('changePassword')} description={t('changePasswordDesc')}>
-        <div className="max-w-lg space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-zinc-400 mb-2">{t('currentPassword')}</label>
-            <input type="password" placeholder="••••••••" className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-2.5 text-white focus:border-blue-500 focus:ring-blue-500 transition-colors" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-zinc-400 mb-2">{t('newPassword')}</label>
-            <input type="password" placeholder="••••••••" className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-2.5 text-white focus:border-blue-500 focus:ring-blue-500 transition-colors" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-zinc-400 mb-2">{t('confirmNewPassword')}</label>
-            <input type="password" placeholder="••••••••" className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-2.5 text-white focus:border-blue-500 focus:ring-blue-500 transition-colors" />
-          </div>
-          <div className="pt-2 flex justify-end">
-            <button className="flex items-center gap-2 rounded-lg bg-zinc-700 px-5 py-2.5 text-sm font-bold text-white hover:bg-zinc-600 transition-colors">
-              <Key className="h-4 w-4" />
-              {t('updatePassword')}
-            </button>
-          </div>
+      {user.platform !== 'GOOGLE' && user.platform !== 'FACEBOOK' ? (
+        <SettingsCard title={t('changePassword')} description={t('changePasswordDesc')}>
+            <div className="max-w-lg space-y-4">
+            <div>
+                <label className="block text-sm font-medium text-zinc-400 mb-2">{t('currentPassword')}</label>
+                <input type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} placeholder="••••••••" className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-2.5 text-white focus:border-blue-500 focus:ring-blue-500 transition-colors" />
+            </div>
+            <div>
+                <label className="block text-sm font-medium text-zinc-400 mb-2">{t('newPassword')}</label>
+                <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="••••••••" className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-2.5 text-white focus:border-blue-500 focus:ring-blue-500 transition-colors" />
+            </div>
+            <div>
+                <label className="block text-sm font-medium text-zinc-400 mb-2">{t('confirmNewPassword')}</label>
+                <input type="password" value={confirmNewPassword} onChange={(e) => setConfirmNewPassword(e.target.value)} placeholder="••••••••" className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-2.5 text-white focus:border-blue-500 focus:ring-blue-500 transition-colors" />
+            </div>
+            <div className="pt-2 flex justify-end">
+                <button onClick={handleChangePassword} className="flex items-center gap-2 rounded-lg bg-zinc-700 px-5 py-2.5 text-sm font-bold text-white hover:bg-zinc-600 transition-colors">
+                <Key className="h-4 w-4" />
+                {t('updatePassword')}
+                </button>
+            </div>
+            </div>
+        </SettingsCard>
+      ) : (
+        <div className="rounded-xl border border-blue-500/30 bg-blue-900/10 p-6">
+            <p className="text-blue-400 text-sm">Bạn đang đăng nhập bằng {user.platform}. Vui lòng quản lý mật khẩu tại nhà cung cấp dịch vụ.</p>
         </div>
-      </SettingsCard>
+      )}
 
       {/* Danger Zone */}
       <DangerZoneCard title={t('dangerZone')} description={t('dangerZoneDesc')}>
