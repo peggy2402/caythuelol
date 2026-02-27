@@ -7,6 +7,7 @@ import Image from 'next/image';
 import {
   User,
   Mail,
+  Phone,
   Lock,
   Eye,
   EyeOff,
@@ -27,6 +28,7 @@ export default function RegisterPage() {
   const [formData, setFormData] = useState({
     username: '',
     email: '',
+    phoneNumber: '',
     password: '',
     role: 'CUSTOMER', // Default role
   });
@@ -47,6 +49,14 @@ export default function RegisterPage() {
     setError('');
     setLoading(true);
 
+    // Validate Phone Number (VN)
+    const phoneRegex = /(84|0[3|5|7|8|9])+([0-9]{8})\b/;
+    if (!phoneRegex.test(formData.phoneNumber)) {
+      setError('Số điện thoại không hợp lệ (VD: 0912345678)');
+      setLoading(false);
+      return;
+    }
+
     try {
       const res = await fetch('/api/auth/register', {
         method: 'POST',
@@ -60,9 +70,9 @@ export default function RegisterPage() {
         throw new Error(data.error || 'Đăng ký thất bại');
       }
 
-      toast.success('Đăng ký thành công! Vui lòng đăng nhập.');
-      // Chuyển hướng sang login sau khi đăng ký thành công
-      router.push('/login');
+      toast.success('Đăng ký thành công! Vui lòng kiểm tra email.');
+      // Chuyển hướng sang trang OTP (Server sẽ tự đọc cookie để biết email)
+      router.push('/verify-otp');
     } catch (err: any) {
       setError(err.message);
       toast.error(err.message);
@@ -198,6 +208,25 @@ export default function RegisterPage() {
                     className="block w-full pl-10 pr-3 py-3 bg-zinc-50 border border-zinc-200 rounded-xl text-zinc-900 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all"
                     placeholder="name@example.com"
                     value={formData.email}
+                    onChange={handleChange}
+                  />
+                </div>
+              </div>
+
+              {/* Phone Input */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-zinc-700 ml-1">Số điện thoại</label>
+                <div className="relative group">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Phone className="h-5 w-5 text-zinc-500 group-focus-within:text-blue-500 transition-colors" />
+                  </div>
+                  <input
+                    type="tel"
+                    name="phoneNumber"
+                    required
+                    className="block w-full pl-10 pr-3 py-3 bg-zinc-50 border border-zinc-200 rounded-xl text-zinc-900 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all"
+                    placeholder="0912345678"
+                    value={formData.phoneNumber}
                     onChange={handleChange}
                   />
                 </div>

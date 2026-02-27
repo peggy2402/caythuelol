@@ -1,4 +1,4 @@
-import mongoose, { Schema, Document, Model } from 'mongoose';
+import mongoose, { Schema, Document } from 'mongoose';
 
 export enum UserRole {
   ADMIN = 'ADMIN',
@@ -11,53 +11,38 @@ export interface IUser extends Document {
   email: string;
   password_hash: string;
   role: UserRole;
+  phoneNumber?: string;
+  isEmailVerified: boolean;
   wallet_balance: number;
   pending_balance: number;
   profile: {
     avatar?: string;
     discord_id?: string;
-    bank_info?: {
-      bank_name: string;
-      account_number: string;
-      account_holder: string;
-    };
   };
-  booster_info?: {
-    ranks: string[];
-    services: string[];
-    team_id?: mongoose.Types.ObjectId;
-    rating: number;
-  };
-  created_at: Date;
-  updated_at: Date;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
-const UserSchema = new Schema<IUser>(
+const UserSchema: Schema = new Schema(
   {
     username: { type: String, required: true, unique: true },
     email: { type: String, required: true, unique: true },
     password_hash: { type: String, required: true },
-    role: { type: String, enum: Object.values(UserRole), default: UserRole.CUSTOMER },
+    role: {
+      type: String,
+      enum: Object.values(UserRole),
+      default: UserRole.CUSTOMER,
+    },
+    phoneNumber: { type: String },
+    isEmailVerified: { type: Boolean, default: false },
     wallet_balance: { type: Number, default: 0 },
     pending_balance: { type: Number, default: 0 },
     profile: {
-      avatar: String,
-      discord_id: String,
-      bank_info: {
-        bank_name: String,
-        account_number: String,
-        account_holder: String,
-      },
-    },
-    booster_info: {
-      ranks: [String],
-      services: [String],
-      team_id: { type: Schema.Types.ObjectId, ref: 'Team' },
-      rating: { type: Number, default: 0 },
+      avatar: { type: String, default: '' },
+      discord_id: { type: String },
     },
   },
   { timestamps: true }
 );
 
-const User: Model<IUser> = mongoose.models.User || mongoose.model<IUser>('User', UserSchema);
-export default User;
+export default mongoose.models.User || mongoose.model<IUser>('User', UserSchema);

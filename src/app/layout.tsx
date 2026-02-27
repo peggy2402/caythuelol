@@ -13,7 +13,7 @@ const beVietnamPro = Be_Vietnam_Pro({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://caythuelol.com"),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://www.zentramart.site"),
   title: {
     default: "CÀY THUÊ LOL - Dịch vụ cày thuê Liên Minh Huyền Thoại chuyên nghiệp số 1 Việt Nam",
     template: "%s | CÀY THUÊ LOL",

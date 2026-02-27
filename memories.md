@@ -5,6 +5,7 @@ Last updated: 2026-02-27
 Purpose:
 
 - Ghi lại toàn bộ các quyết định kiến trúc, schema, API, công thức giá, luồng tiền, và các bước triển khai.
+- Được cập nhật liên tục bởi AI Assistant để theo dõi tiến độ dự án.
 
 Change log & decisions:
 
@@ -43,6 +44,16 @@ Change log & decisions:
   - Updated `next.config.ts` to allow Google Avatar images and ignore ESLint during build.
   - Fixed `mongoose` version issues and created `Transaction` model.
   - Addressed hydration mismatch warnings and Next.js security updates.
+
+4. 2026-02-27 — Documentation Automation
+
+- **Workflow:** Established protocol for AI Assistant to automatically log progress and architectural decisions into `memories.md` after each development cycle.
+
+5. 2026-02-27 — Email Verification Strategy (OTP)
+
+- **Decision:** Implement mandatory Email Verification using 6-digit OTP.
+- **Schema Changes:** Add `phoneNumber`, `isEmailVerified` to User. Create `VerificationCode` collection (TTL index).
+- **Flow:** Register -> Unverified User -> Send OTP -> Verify -> Active.
 
 ================================================================================
 
@@ -84,6 +95,8 @@ caythuelol/
 - `email`: string (unique)
 - `password_hash`: string
 - `role`: enum ['ADMIN', 'BOOSTER', 'CUSTOMER']
+- `phoneNumber`: string (optional)
+- `isEmailVerified`: boolean (default: false)
 - `wallet_balance`: number (Available funds)
 - `pending_balance`: number (Locked funds - for Boosters)
 - `profile`: {
@@ -145,6 +158,14 @@ caythuelol/
 - `leader_id`: ObjectId
 - `members`: [{ `user_id`: ObjectId, `split_percent`: number }]
 - `name`: string
+
+### E. VerificationCodes Collection (New)
+
+- `email`: string (index)
+- `code`: string (6 digits)
+- `expiresAt`: Date (TTL Index)
+- `attempts`: number (default 0)
+- `type`: enum ['EMAIL_VERIFICATION', 'PASSWORD_RESET']
 
 # ================================================================================ 3. PRICING LOGIC & FORMULAS
 

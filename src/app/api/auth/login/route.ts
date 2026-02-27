@@ -34,9 +34,11 @@ export async function POST(req: Request) {
 
     // Create JWT Payload
     const payload = {
-      id: user._id,
+      userId: user._id,
       username: user.username,
+      email: user.email, // Thêm email vào payload để Middleware sử dụng
       role: user.role,
+      isEmailVerified: user.isEmailVerified, // Quan trọng: Thêm trạng thái xác thực
     };
 
     // Sign token
@@ -52,11 +54,25 @@ export async function POST(req: Request) {
         username: user.username,
         email: user.email,
         role: user.role,
+        isEmailVerified: user.isEmailVerified, // Trả về cho frontend
         wallet_balance: user.wallet_balance,
         profile: user.profile,
     };
+    
+    const response = NextResponse.json(
+      { success: true, message: 'Đăng nhập thành công', token, user: userResponse },
+      { status: 200 }
+    );
 
-    return NextResponse.json({ success: true, token, user: userResponse });
+    // Set Cookie để Middleware hoạt động
+    response.cookies.set('token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: 60 * 60 * 24 * 7, // 7 ngày
+      path: '/',
+    });
+
+    return response;
 
   } catch (error) {
     console.error('Login API error:', error);

@@ -67,8 +67,9 @@ export async function GET(req: Request) {
       await user.save();
     }
 
+    const cypto = await import('crypto');
     // 4. Tạo JWT Token (Giống logic login thường)
-    const JWT_SECRET = process.env.JWT_SECRET || 'default_secret_key_change_me';
+    const JWT_SECRET = process.env.JWT_SECRET || cypto.randomBytes(512).toString('hex');
     const token = jwt.sign(
       { userId: user._id, role: user.role, username: user.username },
       JWT_SECRET,
