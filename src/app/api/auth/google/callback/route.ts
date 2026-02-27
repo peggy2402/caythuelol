@@ -59,6 +59,7 @@ export async function GET(req: Request) {
         email: googleUser.email,
         password_hash: passwordHash,
         role: UserRole.CUSTOMER,
+        isEmailVerified: true, // Google users are automatically verified
         wallet_balance: 0,
         profile: {
           avatar: googleUser.picture,
@@ -66,12 +67,25 @@ export async function GET(req: Request) {
       });
       await user.save();
     }
+    
+    // Nếu user đã tồn tại nhưng chưa verify (trường hợp đăng ký thường trước đó nhưng chưa nhập OTP)
+    // Khi login bằng Google thì coi như đã verify luôn
+    if (!user.isEmailVerified) {
+      user.isEmailVerified = true;
+      await user.save();
+    }
 
     const cypto = await import('crypto');
     // 4. Tạo JWT Token (Giống logic login thường)
     const JWT_SECRET = process.env.JWT_SECRET || cypto.randomBytes(512).toString('hex');
     const token = jwt.sign(
-      { userId: user._id, role: user.role, username: user.username },
+      { 
+        userId: user._id, 
+        role: user.role, 
+        username: user.username,
+        email: user.email,
+        isEmailVerified: true // Quan trọng: Token phải có flag này để qua Middleware
+      },
       JWT_SECRET,
       { expiresIn: '7d' }
     );
