@@ -235,6 +235,9 @@ const dictionaries = {
     deleteBtn: 'Xóa vĩnh viễn',
     cancelBtn: 'Hủy bỏ',
     userNotFoundPleaseLoginAgain: 'Tài khoản chưa được đăng nhập. Vui lòng đăng nhập lại.',
+    emailIsRequired: 'Vui lòng nhập email.',
+    socialAccountResetError: 'Tài khoản này được đăng ký qua {platform}. Vui lòng đăng nhập bằng phương thức tương ứng.',
+    accountAlreadyVerified: 'Tài khoản này đã được xác thực.',
   },
 
   en: {
@@ -443,6 +446,9 @@ const dictionaries = {
     deleteBtn: 'Delete permanently',
     cancelBtn: 'Cancel',
     userNotFoundPleaseLoginAgain: 'User not logged in. Please log in again.',
+    emailIsRequired: 'Email is required.',
+    socialAccountResetError: 'This account is registered via {platform}. Please log in using the corresponding method.',
+    accountAlreadyVerified: 'This account is already verified.',
   },
 
   kr: {
@@ -650,6 +656,9 @@ const dictionaries = {
     deleteBtn: '영구 삭제',
     cancelBtn: '취소',
     userNotFoundPleaseLoginAgain: '사용자가 로그인되지 않았습니다. 다시 로그인해주세요.',
+    emailIsRequired: '이메일은 필수입니다.',
+    socialAccountResetError: '이 계정은 {platform}을 통해 등록되었습니다. 해당 방법으로 로그인해주세요.',
+    accountAlreadyVerified: '이 계정은 이미 인증되었습니다.',
   },
 
   jp: {
@@ -858,6 +867,9 @@ const dictionaries = {
     deleteBtn: '完全に削除',
     cancelBtn: 'キャンセル',
     userNotFoundPleaseLoginAgain: 'ユーザーがログインされていません。再度ログインしてください。',
+    emailIsRequired: 'メールアドレスは必須です。',
+    socialAccountResetError: 'このアカウントは{platform}で登録されています。対応する方法でログインしてください。',
+    accountAlreadyVerified: 'このアカウントは既に認証されています。',
   },
   
 } as const;

@@ -10,17 +10,17 @@ export async function POST(req: Request) {
     const { email } = await req.json();
 
     if (!email) {
-      return NextResponse.json({ error: 'Vui lòng nhập email' }, { status: 400 });
+      return NextResponse.json({ error: 'emailIsRequired' }, { status: 400 });
     }
 
     // 1. Kiểm tra User
     const user = await User.findOne({ email });
     if (!user) {
-      return NextResponse.json({ error: 'Email chưa được đăng ký' }, { status: 404 });
+      return NextResponse.json({ error: 'userNotFound' }, { status: 404 });
     }
 
     if (user.isEmailVerified) {
-      return NextResponse.json({ error: 'Tài khoản này đã được xác thực rồi' }, { status: 400 });
+      return NextResponse.json({ error: 'accountAlreadyVerified' }, { status: 400 });
     }
 
     // 2. Rate Limit đơn giản (Kiểm tra xem có OTP nào vừa tạo trong 60s không)
@@ -45,13 +45,13 @@ export async function POST(req: Request) {
     await sendVerificationEmail(email, otp);
 
     const response = NextResponse.json(
-      { success: true, message: 'Đã gửi lại mã OTP' },
+      { success: true, message: 'resendSuccess' },
       { status: 200 }
     );
     
     return response;
   } catch (error) {
     console.error('Resend OTP Error:', error);
-    return NextResponse.json({ error: 'Lỗi server nội bộ' }, { status: 500 });
+    return NextResponse.json({ error: 'serverError' }, { status: 500 });
   }
 }
