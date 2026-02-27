@@ -13,7 +13,6 @@ export interface IUser extends Document {
   role: UserRole;
   phoneNumber?: string;
   isEmailVerified: boolean;
-  platform: 'EMAIL' | 'GOOGLE' | 'FACEBOOK';
   wallet_balance: number;
   pending_balance: number;
   profile: {
