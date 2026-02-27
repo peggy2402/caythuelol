@@ -34,10 +34,7 @@ export async function POST(req: Request) {
     });
 
     // Gửi Email
-    const emailSent = await sendVerificationEmail(newEmail, otp);
-    if (!emailSent) {
-      return NextResponse.json({ error: 'Gửi mã xác thực thất bại. Vui lòng thử lại sau.' }, { status: 500 });
-    }
+    await sendVerificationEmail(newEmail, otp);
 
     return NextResponse.json({ success: true });
 
