@@ -43,6 +43,13 @@ export default function LoginPage() {
     setError('');
     setLoading(true);
 
+    // Basic validation
+    if (!formData.identifier || !formData.password) {
+      setError(t('loginInvalidInput'));
+      setLoading(false);
+      return;
+    }
+
     try {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
@@ -53,7 +60,7 @@ export default function LoginPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.error || 'Đăng nhập thất bại');
+        throw new Error(data.error || t('loginToastError'));
       }
 
       // Lưu token vào localStorage

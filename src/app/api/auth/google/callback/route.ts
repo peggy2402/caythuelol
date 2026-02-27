@@ -88,7 +88,17 @@ export async function GET(req: Request) {
       profile: user.profile
     }));
     
-    return NextResponse.redirect(`${appUrl}/google-callback?token=${token}&user=${userString}`);
+    const response = NextResponse.redirect(`${appUrl}/google-callback?token=${token}&user=${userString}`);
+
+    // Set Cookie token ngay tại đây để Middleware nhận diện được ngay lập tức
+    response.cookies.set('token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: 60 * 60 * 24 * 7, // 7 ngày
+      path: '/',
+    });
+
+    return response;
 
   } catch (error) {
     console.error('Google Auth Error:', error);

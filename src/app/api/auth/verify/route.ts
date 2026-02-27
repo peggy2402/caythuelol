@@ -3,7 +3,6 @@ import dbConnect from '@/lib/db';
 import User from '@/models/User';
 import VerificationCode from '@/models/VerificationCode';
 import jwt from 'jsonwebtoken';
-
 export async function POST(req: Request) {
   try {
     await dbConnect();
@@ -18,10 +17,9 @@ export async function POST(req: Request) {
       email,
       type: 'EMAIL_VERIFICATION',
     });
-
     if (!record) {
       return NextResponse.json(
-        { error: 'Mã OTP không tồn tại hoặc đã hết hạn' },
+        { error: 'verifyOtpInvalid' },
         { status: 400 }
       );
     }
@@ -30,7 +28,7 @@ export async function POST(req: Request) {
     if (record.attempts >= 3) {
       await VerificationCode.deleteOne({ _id: record._id });
       return NextResponse.json(
-        { error: 'Bạn đã nhập sai quá nhiều lần. Vui lòng yêu cầu mã mới.' },
+        { error: 'verifyOtpTooManyAttempts' },
         { status: 429 }
       );
     }
@@ -41,7 +39,10 @@ export async function POST(req: Request) {
       record.attempts += 1;
       await record.save();
       return NextResponse.json(
-        { error: `Mã OTP không chính xác. Còn lại ${3 - record.attempts} lần thử.` },
+        { 
+          error: 'otpIncorrect', // Key cho thông báo chính
+          data: { attemptsLeft: 3 - record.attempts } // Dữ liệu động
+        },
         { status: 400 }
       );
     }
@@ -49,7 +50,7 @@ export async function POST(req: Request) {
     // 4. OTP đúng -> Xác thực User
     const user = await User.findOne({ email });
     if (!user) {
-      return NextResponse.json({ error: 'User không tồn tại' }, { status: 404 });
+      return NextResponse.json({ error: 'userNotFound' }, { status: 404 });
     }
 
     user.isEmailVerified = true;
@@ -73,7 +74,7 @@ export async function POST(req: Request) {
     );
 
     const response = NextResponse.json(
-        { success: true, message: 'Xác thực thành công', token, user: {
+        { success: true, message: 'verifySuccess', token, user: {
             ...user.toObject(),
             password_hash: undefined, // Không trả về hash
         } },

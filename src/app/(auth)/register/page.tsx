@@ -35,13 +35,34 @@ export default function RegisterPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [passwordStrength, setPasswordStrength] = useState({ level: 0, text: '', color: '' });
 
   const handleGoogleLogin = () => {
     window.location.href = '/api/auth/google';
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setFormData({ ...formData, [name]: value });
+
+    if (name === 'password') {
+      let level = 0;
+      let text = '';
+      let color = '';
+
+      const hasNumber = /\d/.test(value);
+      const hasLetter = /[a-zA-Z]/.test(value);
+      const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(value);
+
+      if (value.length >= 8 && hasNumber && hasLetter && hasSpecialChar) {
+        level = 3; text = t('passwordStrong'); color = 'bg-green-500';
+      } else if (value.length >= 6 && hasNumber && hasLetter) {
+        level = 2; text = t('passwordMedium'); color = 'bg-yellow-500';
+      } else if (value.length > 0) {
+        level = 1; text = t('passwordWeak'); color = 'bg-red-500';
+      }
+      setPasswordStrength({ level, text, color });
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -49,10 +70,31 @@ export default function RegisterPage() {
     setError('');
     setLoading(true);
 
+    // Validate Username
+    if (formData.username.length < 3) {
+      setError(t('usernameTooShort'));
+      setLoading(false);
+      return;
+    }
+    // Regex: Chỉ cho phép chữ cái, số và dấu gạch dưới
+    const usernameRegex = /^[a-zA-Z0-9_]+$/;
+    if (!usernameRegex.test(formData.username)) {
+      setError(t('usernameInvalid'));
+      setLoading(false);
+      return;
+    }
+
     // Validate Phone Number (VN)
     const phoneRegex = /(84|0[3|5|7|8|9])+([0-9]{8})\b/;
     if (!phoneRegex.test(formData.phoneNumber)) {
       setError(t('invalidPhoneNumber'));
+      setLoading(false);
+      return;
+    }
+
+    // Validate Password
+    if (formData.password.length < 6) {
+      setError(t('passwordTooShort'));
       setLoading(false);
       return;
     }
@@ -71,6 +113,11 @@ export default function RegisterPage() {
       }
 
       toast.success(t('registerToastSuccess'));
+      
+      // Xóa mốc thời gian cũ trong localStorage để trang OTP bắt đầu đếm ngược lại 60s
+      // vì API register vừa gửi mail mới.
+      localStorage.removeItem('otp_resend_available_at');
+
       // Chuyển hướng sang trang OTP (Server sẽ tự đọc cookie để biết email)
       router.push('/verify-otp');
     } catch (err: any) {
@@ -256,6 +303,27 @@ export default function RegisterPage() {
                     {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                   </button>
                 </div>
+                {/* Password Strength Indicator */}
+                {formData.password && (
+                    <div className="pt-1 space-y-1">
+                        <div className="flex justify-between items-center text-xs">
+                            <span className="font-medium text-zinc-500">{t('passwordStrength')}</span>
+                            <span className={`font-bold ${
+                                passwordStrength.level === 1 ? 'text-red-500' :
+                                passwordStrength.level === 2 ? 'text-yellow-500' :
+                                passwordStrength.level === 3 ? 'text-green-500' : 'text-zinc-500'
+                            }`}>
+                                {passwordStrength.text}
+                            </span>
+                        </div>
+                        <div className="w-full bg-zinc-200 rounded-full h-1.5">
+                            <div
+                                className={`h-1.5 rounded-full transition-all duration-300 ${passwordStrength.color}`}
+                                style={{ width: `${(passwordStrength.level / 3) * 100}%` }}
+                            ></div>
+                        </div>
+                    </div>
+                )}
               </div>
 
               {/* Role Select */}

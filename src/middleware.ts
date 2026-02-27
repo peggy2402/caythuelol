@@ -37,10 +37,23 @@ export async function middleware(request: NextRequest) {
       // 3. Check isEmailVerified
       if (!payload.isEmailVerified) {
         // Nếu chưa verify -> Redirect về trang OTP
-        // Lấy email từ payload token (đã thêm ở bước 1)
+        // Lấy email từ payload token
         const email = payload.email as string;
-        const verifyUrl = new URL(`/verify-otp?email=${encodeURIComponent(email)}`, request.url);
-        return NextResponse.redirect(verifyUrl);
+
+        // Tạo URL redirect đến trang verify-otp (không cần query param)
+        const verifyUrl = new URL('/verify-otp', request.url);
+        const response = NextResponse.redirect(verifyUrl);
+
+        // Set cookie tạm thời để trang verify-otp biết email cần xác thực
+        // Cookie này sẽ được xóa sau khi xác thực thành công
+        response.cookies.set('verification_email', email, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          maxAge: 60 * 10, // 10 phút
+          path: '/',
+        });
+
+        return response;
       }
 
       // Token hợp lệ và đã verify -> Cho qua

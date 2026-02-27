@@ -15,6 +15,20 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Vui lòng nhập đầy đủ thông tin' }, { status: 400 });
     }
 
+    // Validate Username format
+    if (username.length < 3 || username.length > 20) {
+      return NextResponse.json({ error: 'Tên đăng nhập phải từ 3 đến 20 ký tự' }, { status: 400 });
+    }
+    const usernameRegex = /^[a-zA-Z0-9_]+$/;
+    if (!usernameRegex.test(username)) {
+      return NextResponse.json({ error: 'Tên đăng nhập chỉ được chứa chữ cái, số và dấu gạch dưới' }, { status: 400 });
+    }
+
+    // Validate Password length
+    if (password.length < 6) {
+      return NextResponse.json({ error: 'Mật khẩu phải có ít nhất 6 ký tự' }, { status: 400 });
+    }
+
     // 2. Kiểm tra user đã tồn tại chưa
     const existingUser = await User.findOne({ $or: [{ email }, { username }] });
     if (existingUser) {

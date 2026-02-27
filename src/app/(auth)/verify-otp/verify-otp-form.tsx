@@ -34,6 +34,30 @@ export default function VerifyOtpForm({ email }: VerifyOtpFormProps) {
   const [countdown, setCountdown] = useState(60); // 60 giây đếm ngược
   const [canResend, setCanResend] = useState(false);
 
+  // Logic khôi phục thời gian đếm ngược khi reload trang
+  useEffect(() => {
+    const STORAGE_KEY = 'otp_resend_available_at';
+    const savedTime = localStorage.getItem(STORAGE_KEY);
+    const now = Date.now();
+
+    if (savedTime) {
+      const remaining = Math.ceil((parseInt(savedTime) - now) / 1000);
+      if (remaining > 0) {
+        setCountdown(remaining);
+        setCanResend(false);
+      } else {
+        setCountdown(0);
+        setCanResend(true);
+      }
+    } else {
+      // Nếu chưa có (lần đầu vào), thiết lập mốc thời gian mới (60s)
+      const nextTime = now + 60 * 1000;
+      localStorage.setItem(STORAGE_KEY, nextTime.toString());
+      setCountdown(60);
+      setCanResend(false);
+    }
+  }, []);
+
   useEffect(() => {
     if (countdown > 0) {
       const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
@@ -60,7 +84,14 @@ export default function VerifyOtpForm({ email }: VerifyOtpFormProps) {
       const data = await res.json();
 
       if (!res.ok) {
-        toast.error(data.error || t('verifyFailed'));
+        let errorMessage = t(data.error as any) || t('verifyFailed');
+        // Xử lý thông báo lỗi có số lần thử còn lại
+        if (data.error === 'otpIncorrect' && data.data?.attemptsLeft > 0) {
+          // Lưu ý: Cách ghép chuỗi này là giải pháp cho i18n đơn giản hiện tại.
+          // Ví dụ: "Bạn còn 2 lần thử."
+          errorMessage = `${t('otpIncorrect')} ${t('remainingAttempts')} ${data.data.attemptsLeft} ${t('attemptsLeft')}`;
+        }
+        toast.error(errorMessage);
         return;
       }
 
@@ -85,13 +116,18 @@ export default function VerifyOtpForm({ email }: VerifyOtpFormProps) {
       });
       
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
+      if (!res.ok) throw new Error(data.error || 'resendFailed');
 
       toast.success(t('resendSuccess'));
+      
+      // Cập nhật lại mốc thời gian trong localStorage khi gửi lại
+      const nextTime = Date.now() + 60 * 1000;
+      localStorage.setItem('otp_resend_available_at', nextTime.toString());
+      
       setCountdown(60);
       setCanResend(false);
-    } catch (error) {
-      toast.error(t('resendFailed'));
+    } catch (error: any) {
+      toast.error(t(error.message as any) || t('resendFailed'));
     } finally {
       setIsLoading(false);
     }
