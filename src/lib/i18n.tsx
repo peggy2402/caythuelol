@@ -217,6 +217,14 @@ const dictionaries = {
     secureInfoDesc: 'Mật khẩu mới của bạn sẽ được mã hóa an toàn.',
     authOwnerTitle: 'Xác thực chính chủ',
     authOwnerDesc: 'Mã OTP chỉ được gửi đến email đã đăng ký của bạn.',
+    passwordChangeSuccess: 'Đổi mật khẩu thành công!',
+    passwordChangeFailed: 'Đổi mật khẩu thất bại',
+    profileUpdateSuccess: 'Cập nhật hồ sơ thành công!',
+    profileUpdateFailed: 'Cập nhật hồ sơ thất bại',
+    emailChangeOtpSent: 'Mã xác thực đã được gửi đến email mới!',
+    emailChangeSuccess: 'Thay đổi email thành công!',
+    verifyEmailChange: 'Xác thực thay đổi Email',
+    enterOtpForEmail: 'Nhập mã OTP đã được gửi đến',
   },
 
   en: {
@@ -407,6 +415,14 @@ const dictionaries = {
     secureInfoDesc: 'Your new password will be securely encrypted.',
     authOwnerTitle: 'Owner verification',
     authOwnerDesc: 'OTP code is only sent to your registered email.',
+    passwordChangeSuccess: 'Password changed successfully!',
+    passwordChangeFailed: 'Failed to change password',
+    profileUpdateSuccess: 'Profile updated successfully!',
+    profileUpdateFailed: 'Failed to update profile',
+    emailChangeOtpSent: 'Verification code sent to new email!',
+    emailChangeSuccess: 'Email changed successfully!',
+    verifyEmailChange: 'Verify Email Change',
+    enterOtpForEmail: 'Enter the OTP sent to',
   },
 
   kr: {
@@ -596,6 +612,14 @@ const dictionaries = {
     secureInfoDesc: '새 비밀번호는 안전하게 암호화됩니다.',
     authOwnerTitle: '본인 인증',
     authOwnerDesc: 'OTP 코드는 등록된 이메일로만 전송됩니다.',
+    passwordChangeSuccess: '비밀번호가 성공적으로 변경되었습니다!',
+    passwordChangeFailed: '비밀번호 변경 실패',
+    profileUpdateSuccess: '프로필이 성공적으로 업데이트되었습니다!',
+    profileUpdateFailed: '프로필 업데이트 실패',
+    emailChangeOtpSent: '새 이메일로 인증 코드가 전송되었습니다!',
+    emailChangeSuccess: '이메일이 성공적으로 변경되었습니다!',
+    verifyEmailChange: '이메일 변경 인증',
+    enterOtpForEmail: '다음 주소로 전송된 OTP를 입력하세요:',
   },
 
   jp: {
@@ -786,6 +810,14 @@ const dictionaries = {
     secureInfoDesc: '新しいパスワードは安全に暗号化されます。',
     authOwnerTitle: '本人確認',
     authOwnerDesc: 'OTPコードは登録されたメールアドレスにのみ送信されます。',
+    passwordChangeSuccess: 'パスワードが正常に変更されました！',
+    passwordChangeFailed: 'パスワードの変更に失敗しました',
+    profileUpdateSuccess: 'プロフィールが正常に更新されました！',
+    profileUpdateFailed: 'プロフィールの更新に失敗しました',
+    emailChangeOtpSent: '新しいメールアドレスに認証コードが送信されました！',
+    emailChangeSuccess: 'メールアドレスが正常に変更されました！',
+    verifyEmailChange: 'メールアドレス変更の確認',
+    enterOtpForEmail: '送信されたOTPを入力してください:',
   },
   
 } as const;

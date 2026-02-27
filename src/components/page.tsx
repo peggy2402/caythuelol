@@ -2,8 +2,14 @@
 
 import { useState, useEffect, ReactNode } from 'react';
 import { useLanguage } from '@/lib/i18n';
-import { User, Key, Trash2, Save, Camera } from 'lucide-react';
+import { User, Key, Trash2, Save, Camera, X, Loader2 } from 'lucide-react';
 import Image from 'next/image';
+import { toast } from 'sonner';
+import {
+    InputOTP,
+    InputOTPGroup,
+    InputOTPSlot,
+} from '@/components/ui/input-otp';
 
 // Define a User interface based on the provided data
 interface UserProfile {
@@ -14,6 +20,7 @@ interface UserData {
   _id: string;
   username: string;
   email: string;
+  platform?: string;
   role: string;
   wallet_balance: number;
   profile: UserProfile;
@@ -43,6 +50,37 @@ const DangerZoneCard = ({ title, description, children }: { title: string, descr
     </div>
 );
 
+// OTP Modal Component
+const OtpModal = ({ email, isOpen, onClose, onVerify }: { email: string, isOpen: boolean, onClose: () => void, onVerify: (otp: string) => void }) => {
+    const { t } = useLanguage();
+    const [otp, setOtp] = useState('');
+
+    if (!isOpen) return null;
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+            <div className="bg-zinc-900 border border-white/10 rounded-xl p-6 w-full max-w-md relative animate-in fade-in zoom-in-95">
+                <button onClick={onClose} className="absolute top-4 right-4 text-zinc-400 hover:text-white">
+                    <X className="w-5 h-5" />
+                </button>
+                <h3 className="text-xl font-bold text-white mb-2">{t('verifyEmailChange')}</h3>
+                <p className="text-zinc-400 text-sm mb-6">{t('enterOtpForEmail')} <span className="text-blue-400 font-semibold">{email}</span></p>
+                
+                <div className="flex justify-center mb-6">
+                    <InputOTP maxLength={6} value={otp} onChange={setOtp}>
+                        <InputOTPGroup>
+                            {[0, 1, 2, 3, 4, 5].map((i) => <InputOTPSlot key={i} index={i} className="border-zinc-700 text-white" />)}
+                        </InputOTPGroup>
+                    </InputOTP>
+                </div>
+
+                <button onClick={() => onVerify(otp)} disabled={otp.length < 6} className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-lg disabled:opacity-50 transition-colors">
+                    {t('verifyBtn')}
+                </button>
+            </div>
+        </div>
+    );
+};
 
 export default function ProfilePage() {
   const { t } = useLanguage();
@@ -53,6 +91,12 @@ export default function ProfilePage() {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [avatarUrl, setAvatarUrl] = useState('');
+
+  // Password states
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmNewPassword, setConfirmNewPassword] = useState('');
+  const [isOtpModalOpen, setIsOtpModalOpen] = useState(false);
 
   useEffect(() => {
     const userDataString = localStorage.getItem('user');
@@ -65,6 +109,91 @@ export default function ProfilePage() {
     }
     setLoading(false);
   }, []);
+
+  const handleSaveChanges = async () => {
+    if (!user) return;
+    
+    // 1. Check if email changed
+    if (email !== user.email) {
+        try {
+            const res = await fetch('/api/auth/change-email/request', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ newEmail: email }),
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error);
+            
+            toast.success(t('emailChangeOtpSent'));
+            setIsOtpModalOpen(true);
+            return; // Stop here, wait for OTP
+        } catch (error: any) {
+            toast.error(error.message);
+            return;
+        }
+    }
+
+    // 2. Update basic info if email didn't change
+    try {
+        const res = await fetch('/api/user/profile', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, avatar: avatarUrl }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error);
+
+        toast.success(t('profileUpdateSuccess'));
+        // Update local storage
+        const updatedUser = { ...user, ...data.user };
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+        setUser(updatedUser);
+    } catch (error: any) {
+        toast.error(error.message || t('profileUpdateFailed'));
+    }
+  };
+
+  const handleVerifyEmailOtp = async (otp: string) => {
+    try {
+        const res = await fetch('/api/auth/change-email/verify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ newEmail: email, otp }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error);
+
+        toast.success(t('emailChangeSuccess'));
+        setIsOtpModalOpen(false);
+        
+        // Update local storage with new user data (including new email)
+        const updatedUser = { ...user, ...data.user };
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+        setUser(updatedUser as UserData);
+    } catch (error: any) {
+        toast.error(error.message);
+    }
+  };
+
+  const handleChangePassword = async () => {
+      if (newPassword !== confirmNewPassword) {
+          toast.error('Mật khẩu xác nhận không khớp');
+          return;
+      }
+      try {
+          const res = await fetch('/api/auth/change-password', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ currentPassword, newPassword }),
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error);
+          toast.success(t('passwordChangeSuccess'));
+          setCurrentPassword(''); setNewPassword(''); setConfirmNewPassword('');
+      } catch (error: any) {
+          toast.error(error.message || t('passwordChangeFailed'));
+      }
+  };
 
   if (loading) {
     // A simple skeleton loader
@@ -84,6 +213,8 @@ export default function ProfilePage() {
 
   return (
     <div className="space-y-8 animate-fade-in">
+      <OtpModal email={email} isOpen={isOtpModalOpen} onClose={() => setIsOtpModalOpen(false)} onVerify={handleVerifyEmailOtp} />
+      
       <h1 className="text-2xl font-bold text-white">{t('profileSettings')}</h1>
 
       {/* Profile Details Card */}
@@ -138,7 +269,7 @@ export default function ProfilePage() {
               </div>
             </div>
             <div className="pt-2 flex justify-end">
-              <button className="flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-blue-500 transition-colors shadow-lg shadow-blue-500/20">
+              <button onClick={handleSaveChanges} className="flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-blue-500 transition-colors shadow-lg shadow-blue-500/20">
                 <Save className="h-4 w-4" />
                 {t('saveChanges')}
               </button>
@@ -148,28 +279,34 @@ export default function ProfilePage() {
       </SettingsCard>
 
       {/* Change Password Card */}
-      <SettingsCard title={t('changePassword')} description={t('changePasswordDesc')}>
-        <div className="max-w-lg space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-zinc-400 mb-2">{t('currentPassword')}</label>
-            <input type="password" placeholder="••••••••" className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-2.5 text-white focus:border-blue-500 focus:ring-blue-500 transition-colors" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-zinc-400 mb-2">{t('newPassword')}</label>
-            <input type="password" placeholder="••••••••" className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-2.5 text-white focus:border-blue-500 focus:ring-blue-500 transition-colors" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-zinc-400 mb-2">{t('confirmNewPassword')}</label>
-            <input type="password" placeholder="••••••••" className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-2.5 text-white focus:border-blue-500 focus:ring-blue-500 transition-colors" />
-          </div>
-          <div className="pt-2 flex justify-end">
-            <button className="flex items-center gap-2 rounded-lg bg-zinc-700 px-5 py-2.5 text-sm font-bold text-white hover:bg-zinc-600 transition-colors">
-              <Key className="h-4 w-4" />
-              {t('updatePassword')}
-            </button>
-          </div>
+      {user.platform !== 'GOOGLE' && user.platform !== 'FACEBOOK' ? (
+        <SettingsCard title={t('changePassword')} description={t('changePasswordDesc')}>
+            <div className="max-w-lg space-y-4">
+            <div>
+                <label className="block text-sm font-medium text-zinc-400 mb-2">{t('currentPassword')}</label>
+                <input type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} placeholder="••••••••" className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-2.5 text-white focus:border-blue-500 focus:ring-blue-500 transition-colors" />
+            </div>
+            <div>
+                <label className="block text-sm font-medium text-zinc-400 mb-2">{t('newPassword')}</label>
+                <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="••••••••" className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-2.5 text-white focus:border-blue-500 focus:ring-blue-500 transition-colors" />
+            </div>
+            <div>
+                <label className="block text-sm font-medium text-zinc-400 mb-2">{t('confirmNewPassword')}</label>
+                <input type="password" value={confirmNewPassword} onChange={(e) => setConfirmNewPassword(e.target.value)} placeholder="••••••••" className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-2.5 text-white focus:border-blue-500 focus:ring-blue-500 transition-colors" />
+            </div>
+            <div className="pt-2 flex justify-end">
+                <button onClick={handleChangePassword} className="flex items-center gap-2 rounded-lg bg-zinc-700 px-5 py-2.5 text-sm font-bold text-white hover:bg-zinc-600 transition-colors">
+                <Key className="h-4 w-4" />
+                {t('updatePassword')}
+                </button>
+            </div>
+            </div>
+        </SettingsCard>
+      ) : (
+        <div className="rounded-xl border border-blue-500/30 bg-blue-900/10 p-6">
+            <p className="text-blue-400 text-sm">Bạn đang đăng nhập bằng {user.platform}. Vui lòng quản lý mật khẩu tại nhà cung cấp dịch vụ.</p>
         </div>
-      </SettingsCard>
+      )}
 
       {/* Danger Zone */}
       <DangerZoneCard title={t('dangerZone')} description={t('dangerZoneDesc')}>
