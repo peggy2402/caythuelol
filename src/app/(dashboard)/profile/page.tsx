@@ -54,29 +54,38 @@ const DangerZoneCard = ({ title, description, children }: { title: string, descr
 const OtpModal = ({ 
   email, 
   isOpen, 
+  otpExpiry,
   onClose, 
   onVerify, 
   onResend 
 }: { 
   email: string, 
   isOpen: boolean, 
+  otpExpiry: number | null,
   onClose: () => void, 
   onVerify: (otp: string) => Promise<void>, 
   onResend: () => Promise<void> 
 }) => {
     const { t } = useLanguage();
     const [otp, setOtp] = useState('');
-    const [countdown, setCountdown] = useState(60);
+    const [countdown, setCountdown] = useState(0);
     const [canResend, setCanResend] = useState(false);
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
-        if (isOpen) {
-            setCountdown(60);
-            setCanResend(false);
-            setOtp('');
+        if (isOpen && otpExpiry) {
+            const now = Date.now();
+            const remaining = Math.ceil((otpExpiry - now) / 1000);
+            
+            if (remaining > 0) {
+                setCountdown(remaining);
+                setCanResend(false);
+            } else {
+                setCountdown(0);
+                setCanResend(true);
+            }
         }
-    }, [isOpen]);
+    }, [isOpen, otpExpiry]);
 
     useEffect(() => {
         if (countdown > 0 && isOpen) {
@@ -97,8 +106,6 @@ const OtpModal = ({
     const handleResendClick = async () => {
         setLoading(true);
         await onResend();
-        setCountdown(60);
-        setCanResend(false);
         setLoading(false);
     }
 
@@ -180,6 +187,7 @@ export default function ProfilePage() {
   const [newPassword, setNewPassword] = useState('');
   const [confirmNewPassword, setConfirmNewPassword] = useState('');
   const [isOtpModalOpen, setIsOtpModalOpen] = useState(false);
+  const [otpExpiry, setOtpExpiry] = useState<number | null>(null);
 
   useEffect(() => {
     const userDataString = localStorage.getItem('user');
@@ -200,18 +208,12 @@ export default function ProfilePage() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ newEmail: email }),
         });
-        
-        const text = await res.text();
-        let data;
-        try {
-            data = text ? JSON.parse(text) : {};
-        } catch (e) {
-            throw new Error(`Lỗi phản hồi từ server (${res.status})`);
-        }
-
-        if (!res.ok) throw new Error(data.error || `Gửi mã thất bại (Lỗi ${res.status})`);
-        
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error);
         toast.success(t('emailChangeOtpSent'));
+        
+        // Set expiry time (60s from now)
+        setOtpExpiry(Date.now() + 60 * 1000);
     } catch (error: any) {
         toast.error(error.message);
         throw error; // Re-throw to handle loading state in modal
@@ -224,8 +226,16 @@ export default function ProfilePage() {
     // 1. Check if email changed
     if (email !== user.email) {
         try {
-            await handleResendOtp();
-            setIsOtpModalOpen(true);
+            // Check if there is an active OTP session
+            const now = Date.now();
+            if (otpExpiry && otpExpiry > now) {
+                // OTP still valid, just open modal
+                setIsOtpModalOpen(true);
+            } else {
+                // OTP expired or not sent yet, send new one
+                await handleResendOtp();
+                setIsOtpModalOpen(true);
+            }
             return; // Stop here, wait for OTP
         } catch (error: any) {
             // Error handled in handleResendOtp
@@ -240,16 +250,8 @@ export default function ProfilePage() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ username, avatar: avatarUrl }),
         });
-        
-        const text = await res.text();
-        let data;
-        try {
-            data = text ? JSON.parse(text) : {};
-        } catch (e) {
-            throw new Error('Invalid server response');
-        }
-
-        if (!res.ok) throw new Error(data.error || t('profileUpdateFailed'));
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error);
 
         toast.success(t('profileUpdateSuccess'));
         // Update local storage
@@ -268,19 +270,12 @@ export default function ProfilePage() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ newEmail: email, otp }),
         });
-        
-        const text = await res.text();
-        let data;
-        try {
-            data = text ? JSON.parse(text) : {};
-        } catch (e) {
-            throw new Error('Invalid server response');
-        }
-
-        if (!res.ok) throw new Error(data.error || 'Verification failed');
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error);
 
         toast.success(t('emailChangeSuccess'));
         setIsOtpModalOpen(false);
+        setOtpExpiry(null); // Clear expiry on success
         
         // Update local storage with new user data (including new email)
         const updatedUser = { ...user, ...data.user };
@@ -302,16 +297,8 @@ export default function ProfilePage() {
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ currentPassword, newPassword }),
           });
-          
-          const text = await res.text();
-          let data;
-          try {
-              data = text ? JSON.parse(text) : {};
-          } catch (e) {
-              throw new Error('Invalid server response');
-          }
-
-          if (!res.ok) throw new Error(data.error || t('passwordChangeFailed'));
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error);
           toast.success(t('passwordChangeSuccess'));
           setCurrentPassword(''); setNewPassword(''); setConfirmNewPassword('');
       } catch (error: any) {
@@ -340,6 +327,7 @@ export default function ProfilePage() {
       <OtpModal 
         email={email} 
         isOpen={isOtpModalOpen} 
+        otpExpiry={otpExpiry}
         onClose={() => setIsOtpModalOpen(false)} 
         onVerify={handleVerifyEmailOtp} 
         onResend={handleResendOtp}

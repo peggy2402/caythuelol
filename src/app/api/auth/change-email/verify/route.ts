@@ -13,7 +13,7 @@ export async function POST(req: Request) {
     // Lấy user hiện tại
     const cookieStore = await cookies();
     const token = cookieStore.get('token')?.value;
-    if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!token) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
 
     const secret = new TextEncoder().encode(process.env.JWT_SECRET);
     const { payload } = await jwtVerify(token, secret);
@@ -45,7 +45,7 @@ export async function POST(req: Request) {
 
     // OTP đúng -> Cập nhật Email cho User
     const user = await User.findById(userId);
-    if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    if (!user) return NextResponse.json({ error: 'userNotFound' }, { status: 404 });
 
     user.email = newEmail;
     // Nếu đổi từ Google sang Email khác, có thể cân nhắc đổi platform thành EMAIL hoặc giữ nguyên
@@ -58,6 +58,6 @@ export async function POST(req: Request) {
 
   } catch (error) {
     console.error('Verify Change Email Error:', error);
-    return NextResponse.json({ error: 'Lỗi server nội bộ' }, { status: 500 });
+    return NextResponse.json({ error: 'serverError' }, { status: 500 });
   }
 }

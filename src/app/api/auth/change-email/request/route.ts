@@ -10,13 +10,13 @@ export async function POST(req: Request) {
     const { newEmail } = await req.json();
 
     if (!newEmail) {
-      return NextResponse.json({ error: 'Vui lòng nhập email mới' }, { status: 400 });
+      return NextResponse.json({ error: 'emailRequired' }, { status: 400 });
     }
 
     // Kiểm tra xem email mới đã tồn tại chưa
     const existingUser = await User.findOne({ email: newEmail });
     if (existingUser) {
-      return NextResponse.json({ error: 'Email này đã được sử dụng bởi tài khoản khác' }, { status: 400 });
+      return NextResponse.json({ error: 'emailAlreadyExists' }, { status: 400 });
     }
 
     // Xóa OTP cũ
@@ -40,6 +40,6 @@ export async function POST(req: Request) {
 
   } catch (error) {
     console.error('Request Change Email Error:', error);
-    return NextResponse.json({ error: 'Lỗi server nội bộ' }, { status: 500 });
+    return NextResponse.json({ error: 'serverError' }, { status: 500 });
   }
 }

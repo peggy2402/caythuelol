@@ -225,6 +225,11 @@ const dictionaries = {
     emailChangeSuccess: 'Thay đổi email thành công!',
     verifyEmailChange: 'Xác thực thay đổi Email',
     enterOtpForEmail: 'Nhập mã OTP đã được gửi đến',
+    unauthorized: 'Bạn chưa đăng nhập',
+    serverError: 'Lỗi server nội bộ',
+    emailRequired: 'Vui lòng nhập email mới',
+    emailAlreadyExists: 'Email này đã được sử dụng bởi tài khoản khác',
+    usernameTaken: 'Tên đăng nhập đã tồn tại',
   },
 
   en: {
@@ -423,6 +428,11 @@ const dictionaries = {
     emailChangeSuccess: 'Email changed successfully!',
     verifyEmailChange: 'Verify Email Change',
     enterOtpForEmail: 'Enter the OTP sent to',
+    unauthorized: 'Unauthorized',
+    serverError: 'Internal server error',
+    emailRequired: 'Please enter new email',
+    emailAlreadyExists: 'Email is already in use',
+    usernameTaken: 'Username is already taken',
   },
 
   kr: {
@@ -620,6 +630,11 @@ const dictionaries = {
     emailChangeSuccess: '이메일이 성공적으로 변경되었습니다!',
     verifyEmailChange: '이메일 변경 인증',
     enterOtpForEmail: '다음 주소로 전송된 OTP를 입력하세요:',
+    unauthorized: '로그인이 필요합니다',
+    serverError: '내부 서버 오류',
+    emailRequired: '새 이메일을 입력해주세요',
+    emailAlreadyExists: '이미 사용 중인 이메일입니다',
+    usernameTaken: '이미 사용 중인 사용자 이름입니다',
   },
 
   jp: {
@@ -818,6 +833,11 @@ const dictionaries = {
     emailChangeSuccess: 'メールアドレスが正常に変更されました！',
     verifyEmailChange: 'メールアドレス変更の確認',
     enterOtpForEmail: '送信されたOTPを入力してください:',
+    unauthorized: 'ログインが必要です',
+    serverError: '内部サーバーエラー',
+    emailRequired: '新しいメールアドレスを入力してください',
+    emailAlreadyExists: 'このメールアドレスは既に使用されています',
+    usernameTaken: 'このユーザー名は既に使用されています',
   },
   
 } as const;
