@@ -71,6 +71,18 @@ Change log & decisions:
   - Fixed "Race Condition" in OTP verification redirect logic.
   - Fixed build errors (Suspense boundary for `useSearchParams`, duplicate route groups).
 
+7. 2026-02-27 — Profile Management & Security Features
+
+- **Profile Page:**
+  - Implemented **Change Email** flow with OTP verification (Modal UI).
+  - Implemented **Change Password** (restricted for Google/Social accounts).
+  - Implemented **Delete Account** with safety confirmation (requires typing "delete {username}").
+  - Added APIs: `/api/user/profile`, `/api/auth/change-email/*`, `/api/user/delete`.
+- **Security & UX:**
+  - Standardized API error responses to return i18n keys instead of raw strings.
+  - Improved OTP Modal logic (persistent countdown handling).
+  - Fixed various edge cases in authentication flows.
+
 ================================================================================
 
 1. # PROJECT STRUCTURE

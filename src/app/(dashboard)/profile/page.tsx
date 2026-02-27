@@ -386,7 +386,7 @@ export default function ProfilePage() {
   }
 
   if (!user) {
-    return <div>User not found. Please log in again.</div>;
+    return <center><div>{t('userNotFoundPleaseLoginAgain')}</div></center>;
   }
 
   return (

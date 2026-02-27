@@ -234,6 +234,7 @@ const dictionaries = {
     deleteAccountConfirmDesc: 'Hành động này không thể hoàn tác. Toàn bộ dữ liệu, lịch sử đơn hàng và số dư ví của bạn sẽ bị xóa vĩnh viễn.',
     deleteBtn: 'Xóa vĩnh viễn',
     cancelBtn: 'Hủy bỏ',
+    userNotFoundPleaseLoginAgain: 'Tài khoản chưa được đăng nhập. Vui lòng đăng nhập lại.',
   },
 
   en: {
@@ -441,6 +442,7 @@ const dictionaries = {
     deleteAccountConfirmDesc: 'This action cannot be undone. All your data, order history, and wallet balance will be permanently deleted.',
     deleteBtn: 'Delete permanently',
     cancelBtn: 'Cancel',
+    userNotFoundPleaseLoginAgain: 'User not logged in. Please log in again.',
   },
 
   kr: {
@@ -647,6 +649,7 @@ const dictionaries = {
     deleteAccountConfirmDesc: '이 작업은 되돌릴 수 없습니다. 모든 데이터, 주문 내역 및 지갑 잔액이 영구적으로 삭제됩니다.',
     deleteBtn: '영구 삭제',
     cancelBtn: '취소',
+    userNotFoundPleaseLoginAgain: '사용자가 로그인되지 않았습니다. 다시 로그인해주세요.',
   },
 
   jp: {
@@ -854,6 +857,7 @@ const dictionaries = {
     deleteAccountConfirmDesc: 'この操作は元に戻せません。すべてのデータ、注文履歴、ウォレット残高が完全に削除されます。',
     deleteBtn: '完全に削除',
     cancelBtn: 'キャンセル',
+    userNotFoundPleaseLoginAgain: 'ユーザーがログインされていません。再度ログインしてください。',
   },
   
 } as const;
