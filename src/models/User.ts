@@ -13,6 +13,7 @@ export interface IUser extends Document {
   role: UserRole;
   phoneNumber?: string;
   isEmailVerified: boolean;
+  platform: 'EMAIL' | 'GOOGLE' | 'FACEBOOK';
   wallet_balance: number;
   pending_balance: number;
   profile: {
@@ -35,6 +36,11 @@ const UserSchema: Schema = new Schema(
     },
     phoneNumber: { type: String },
     isEmailVerified: { type: Boolean, default: false },
+    platform: {
+      type: String,
+      enum: ['EMAIL', 'GOOGLE', 'FACEBOOK'],
+      default: 'EMAIL',
+    },
     wallet_balance: { type: Number, default: 0 },
     pending_balance: { type: Number, default: 0 },
     profile: {

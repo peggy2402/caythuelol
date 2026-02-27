@@ -47,6 +47,7 @@ export async function POST(req: Request) {
       role: role || 'CUSTOMER',
       phoneNumber: phoneNumber || '',
       isEmailVerified: false, // Mặc định chưa xác thực
+      platform: 'EMAIL',
       wallet_balance: 0,
       pending_balance: 0,
       profile: {

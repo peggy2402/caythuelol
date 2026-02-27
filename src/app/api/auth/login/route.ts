@@ -55,6 +55,7 @@ export async function POST(req: Request) {
         email: user.email,
         role: user.role,
         isEmailVerified: user.isEmailVerified, // Trả về cho frontend
+        platform: user.platform,
         wallet_balance: user.wallet_balance,
         profile: user.profile,
     };

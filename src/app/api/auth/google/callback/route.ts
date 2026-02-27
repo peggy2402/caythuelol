@@ -59,6 +59,7 @@ export async function GET(req: Request) {
         email: googleUser.email,
         password_hash: passwordHash,
         role: UserRole.CUSTOMER,
+        platform: 'GOOGLE',
         isEmailVerified: true, // Google users are automatically verified
         wallet_balance: 0,
         profile: {
