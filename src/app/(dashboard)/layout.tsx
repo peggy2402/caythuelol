@@ -12,6 +12,7 @@ import {
   LogOut,
   Menu,
   Bell,
+  Briefcase,
   X
 } from 'lucide-react';
 import { useLanguage } from '../../lib/i18n';
@@ -30,12 +31,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }
   }, []);
 
-  const navItems = [
+  let navItems = [
     { href: '/dashboard', label: t('dashboard'), icon: LayoutDashboard },
-    { href: '/dashboard/orders', label: t('orders'), icon: Gamepad2 },
-    { href: '/dashboard/wallet', label: t('wallet'), icon: Wallet },
+    { href: '/orders', label: t('orders'), icon: Gamepad2 },
+    { href: 'wallet', label: t('wallet'), icon: Wallet },
     { href: '/profile', label: t('profile'), icon: User },
   ];
+
+  // Nếu là Booster, thêm menu Job Market
+  if (user?.role === 'BOOSTER') {
+    // Chèn vào vị trí thứ 2 (sau Dashboard)
+    navItems.splice(1, 0, { href: '/jobs', label: t('jobMarket'), icon: Briefcase });
+  }
 
   const activeNavItem = navItems.find(item => pathname.startsWith(item.href));
 

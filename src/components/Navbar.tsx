@@ -200,7 +200,7 @@ export default function Navbar() {
                   </Link>
 
                   <Link
-                    href="/dashboard/wallet"
+                    href="/wallet"
                     className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/5"
                   >
                     <Wallet className="h-4 w-4" />
@@ -208,7 +208,7 @@ export default function Navbar() {
                   </Link>
 
                   <Link
-                    href="/dashboard/orders"
+                    href="/orders"
                     className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/5"
                   >
                     <FileText className="h-4 w-4" />
@@ -313,14 +313,14 @@ export default function Navbar() {
               {/* Navigation Links */}
               <div className="flex-grow space-y-2">
                 <Link href="/dashboard" onClick={closeMobileMenu} suppressHydrationWarning className="flex items-center gap-4 px-4 py-3 rounded-lg hover:bg-white/5 transition-colors"><LayoutDashboard className="h-5 w-5 text-zinc-400" />{t('dashboard')}</Link>
-                <Link href="/dashboard/wallet" onClick={closeMobileMenu} suppressHydrationWarning className="flex items-center gap-4 px-4 py-3 rounded-lg hover:bg-white/5 transition-colors"><Wallet className="h-5 w-5 text-zinc-400" />{t('wallet')}</Link>
-                <Link href="/dashboard/orders" onClick={closeMobileMenu} suppressHydrationWarning className="flex items-center gap-4 px-4 py-3 rounded-lg hover:bg-white/5 transition-colors"><FileText className="h-5 w-5 text-zinc-400" />{t('orders')}</Link>
+                <Link href="/wallet" onClick={closeMobileMenu} suppressHydrationWarning className="flex items-center gap-4 px-4 py-3 rounded-lg hover:bg-white/5 transition-colors"><Wallet className="h-5 w-5 text-zinc-400" />{t('wallet')}</Link>
+                <Link href="/orders" onClick={closeMobileMenu} suppressHydrationWarning className="flex items-center gap-4 px-4 py-3 rounded-lg hover:bg-white/5 transition-colors"><FileText className="h-5 w-5 text-zinc-400" />{t('orders')}</Link>
               </div>
 
               {/* Actions */}
               <div className="mt-6 pt-6 border-t border-white/10 space-y-3">
                 <Link href="/dashboard" onClick={closeMobileMenu} className="block w-full text-center rounded-lg bg-blue-600 px-6 py-3 text-white font-semibold">{t('rentNow')}</Link>
-                <Link href="/dashboard/wallet" onClick={closeMobileMenu} className="block w-full text-center rounded-lg bg-emerald-600/20 border border-emerald-500/30 px-6 py-3 text-emerald-400 font-semibold">{t('depositNow')}</Link>
+                <Link href="/wallet" onClick={closeMobileMenu} className="block w-full text-center rounded-lg bg-emerald-600/20 border border-emerald-500/30 px-6 py-3 text-emerald-400 font-semibold">{t('depositNow')}</Link>
                 <button onClick={() => { handleLogout(); closeMobileMenu(); }} className="flex w-full items-center justify-center gap-3 rounded-lg py-3 text-red-400 hover:bg-red-500/10 transition-colors">
                   <LogOut className="h-5 w-5" /> {t('logout')}
                 </button>

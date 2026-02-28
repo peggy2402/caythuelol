@@ -19,6 +19,13 @@ export interface IUser extends Document {
     avatar?: string;
     discord_id?: string;
   };
+  booster_info?: {
+    ranks: string[];
+    services: string[];
+    rating: number;
+    completed_orders: number;
+    bio: string;
+  };
   createdAt: Date;
   updatedAt: Date;
 }
@@ -45,6 +52,13 @@ const UserSchema: Schema = new Schema(
     profile: {
       avatar: { type: String, default: '' },
       discord_id: { type: String },
+    },
+    booster_info: {
+      ranks: { type: [String], default: [] },
+      services: { type: [String], default: [] },
+      rating: { type: Number, default: 5.0 },
+      completed_orders: { type: Number, default: 0 },
+      bio: { type: String, default: '' },
     },
   },
   { timestamps: true }

@@ -301,4 +301,4 @@ caythuelol/
 - **Services Page:** Xây dựng trang Dịch vụ (`/services`) hiển thị bảng giá chi tiết và bộ lọc.
 - **Booster Page:** Xây dựng trang danh sách Booster (`/boosters`).
 - **Wallet Page:** Hoàn thiện trang Ví tiền (`/dashboard/wallet`) với chức năng nạp tiền (mô phỏng) và lịch sử giao dịch.
-- **Profile Page:** Xây dựng trang Hồ sơ cá nhân (`/dashboard/profile`) cho phép cập nhật thông tin và đổi mật khẩu.
+- **Profile Page:** Xây dựng trang Hồ sơ cá nhân (`profile`) cho phép cập nhật thông tin và đổi mật khẩu.
