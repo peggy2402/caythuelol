@@ -29,6 +29,11 @@ export interface IOrder extends Document {
     desired_rank?: string;
     current_lp?: number;
     lp_gain?: number;
+    queue_type?: string;
+    current_level?: number;
+    current_mastery?: number;
+    desired_mastery?: number;
+    previous_rank?: string;
     server: string;
     account_username: string; // Encrypted
     account_password: string; // Encrypted
@@ -36,6 +41,7 @@ export interface IOrder extends Document {
   options: {
     flash_boost: boolean;
     specific_champs: string[];
+    schedule?: string;
     streaming: boolean;
     duo_queue: boolean;
     priority_lane?: string;
@@ -73,6 +79,11 @@ const OrderSchema = new Schema<IOrder>(
       desired_rank: String,
       current_lp: Number,
       lp_gain: Number,
+      queue_type: String,
+      current_level: Number,
+      current_mastery: Number,
+      desired_mastery: Number,
+      previous_rank: String,
       server: { type: String, required: true },
       account_username: { type: String, required: true }, // Should be encrypted in service layer
       account_password: { type: String, required: true }, // Should be encrypted in service layer
@@ -80,6 +91,7 @@ const OrderSchema = new Schema<IOrder>(
     options: {
       flash_boost: { type: Boolean, default: false },
       specific_champs: [{ type: String }],
+      schedule: String,
       streaming: { type: Boolean, default: false },
       duo_queue: { type: Boolean, default: false },
       priority_lane: String,

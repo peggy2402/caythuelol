@@ -299,6 +299,23 @@ const dictionaries = {
     svcLeveling: 'Cày Level 30',
     svcNetWins: 'Cày Điểm (Rank)',
     svcPlacements: 'Phân Hạng Đầu Mùa',
+
+    // Service Explanations
+    descRankBoost: 'Dịch vụ tăng rank từ rank hiện tại lên rank mong muốn. Đội ngũ Booster sẽ cày trực tiếp trên tài khoản của bạn.',
+    descPromotion: 'Cày thắng chuỗi thăng hạng để lên bậc mới (Ví dụ: Sắt I lên Đồng IV). Chỉ áp dụng cho bậc I của các Rank.',
+    descMastery: 'Tăng cấp thông thạo tướng. Giúp bạn mở khóa biểu cảm và khẳng định kỹ năng với vị tướng yêu thích.',
+    descLeveling: 'Cày cấp độ tài khoản lên Level 30 để mở khóa chế độ Xếp hạng.',
+    descNetWins: 'Cày số lượng điểm cộng (LP) cụ thể. Nếu lên rank trong quá trình cày, điểm sẽ được reset và cộng dồn.',
+    descPlacements: 'Đá 5 trận phân hạng đầu mùa giải để định vị Rank khởi điểm tốt nhất.',
+
+    // New Inputs
+    queueType: 'Loại xếp hạng',
+    queueSolo: 'Đơn / Đôi',
+    queueFlex: 'Linh hoạt',
+    schedule: 'Đặt lịch cày',
+    schedulePlaceholder: 'Ví dụ: 8h - 14h hàng ngày',
+    currentPoints: 'Điểm hiện tại',
+    desiredPoints: 'Điểm mong muốn',
     
     // Service Inputs
     servicesCurrentRank: 'Rank hiện tại',
@@ -603,6 +620,23 @@ const dictionaries = {
     svcNetWins: 'Rank Net Wins',
     svcPlacements: 'Placement Matches',
 
+    // Service Explanations
+    descRankBoost: 'Service to increase rank from current to desired. Boosters play directly on your account.',
+    descPromotion: 'Win promotion series to reach new tier (e.g., Iron I to Bronze IV). Only for Division I.',
+    descMastery: 'Increase champion mastery level. Unlock emotes and show off your skill.',
+    descLeveling: 'Level up account to Level 30 to unlock Ranked mode.',
+    descNetWins: 'Farm specific amount of LP. If promoted, points reset and accumulate.',
+    descPlacements: 'Play 5 placement matches at season start for best starting rank.',
+
+    // New Inputs
+    queueType: 'Queue Type',
+    queueSolo: 'Solo / Duo',
+    queueFlex: 'Flex',
+    schedule: 'Schedule',
+    schedulePlaceholder: 'E.g., 8 AM - 2 PM daily',
+    currentPoints: 'Current Points',
+    desiredPoints: 'Desired Points',
+
     // Service Inputs
     servicesCurrentRank: 'Current Rank',
     servicesDesiredRank: 'Desired Rank',
@@ -904,6 +938,23 @@ const dictionaries = {
     svcLeveling: '레벨 30 육성',
     svcNetWins: '랭크 승수 채우기',
     svcPlacements: '배치고사',
+
+    // Service Explanations
+    descRankBoost: '현재 랭크에서 원하는 랭크로 상승시키는 서비스입니다.',
+    descPromotion: '승급전을 승리하여 새로운 티어로 올라갑니다 (예: 아이언 I -> 브론즈 IV).',
+    descMastery: '챔피언 숙련도를 올립니다.',
+    descLeveling: '랭크 게임 잠금 해제를 위해 레벨 30까지 육성합니다.',
+    descNetWins: '특정 LP를 획득합니다.',
+    descPlacements: '시즌 시작 시 배치고사 5경기를 진행합니다.',
+
+    // New Inputs
+    queueType: '큐 타입',
+    queueSolo: '솔로 / 듀오',
+    queueFlex: '자유 랭크',
+    schedule: '일정 설정',
+    schedulePlaceholder: '예: 매일 오전 8시 - 오후 2시',
+    currentPoints: '현재 포인트',
+    desiredPoints: '목표 포인트',
 
     // Service Inputs
     servicesCurrentRank: '현재 랭크',
@@ -1207,6 +1258,23 @@ const dictionaries = {
     svcLeveling: 'レベル30育成',
     svcNetWins: 'ランク勝利数',
     svcPlacements: 'プレースメント',
+
+    // Service Explanations
+    descRankBoost: '現在のランクから希望のランクまで上げるサービスです。',
+    descPromotion: '昇格戦に勝利して新しいティアに上がります（例：アイアンIからブロンズIV）。',
+    descMastery: 'チャンピオンの熟練度を上げます。',
+    descLeveling: 'ランク戦を解除するためにレベル30まで上げます。',
+    descNetWins: '特定のLPを獲得します。',
+    descPlacements: 'シーズン開始時のプレースメント5試合をプレイします。',
+
+    // New Inputs
+    queueType: 'キュータイプ',
+    queueSolo: 'ソロ / デュオ',
+    queueFlex: 'フレックス',
+    schedule: 'スケジュール設定',
+    schedulePlaceholder: '例：毎日 8:00 - 14:00',
+    currentPoints: '現在のポイント',
+    desiredPoints: '希望のポイント',
 
     // Service Inputs
     servicesCurrentRank: '現在のランク',

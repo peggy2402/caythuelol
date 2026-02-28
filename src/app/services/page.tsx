@@ -45,6 +45,7 @@ const RANKS = ['Iron', 'Bronze', 'Silver', 'Gold', 'Platinum', 'Emerald', 'Diamo
 const DIVISIONS = ['IV', 'III', 'II', 'I'];
 const SERVERS = ['VN', 'KR', 'JP', 'EUW', 'NA'];
 const ACCOUNT_TYPES = ['Riot', 'Facebook', 'Google', 'Apple', 'Xbox', 'PlayStation'];
+const PROMOTION_RANKS = ['Iron', 'Bronze', 'Silver', 'Gold', 'Platinum', 'Emerald', 'Diamond'];
 
 // Base Prices (Example)
 const RANK_BASE_PRICES: Record<string, number> = {

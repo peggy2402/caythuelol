@@ -83,6 +83,27 @@ Change log & decisions:
   - Improved OTP Modal logic (persistent countdown handling).
   - Fixed various edge cases in authentication flows.
 
+8. 2026-02-28 — Services, Wallet & Mobile Optimization
+
+- **Services Page (`/services`):**
+  - **Architecture:** Shifted to a "Booster First" booking flow (Select Booster -> Configure Service -> Pay).
+  - **Mobile UI:** Implemented horizontal scrolling (carousel) for Boosters and Service Tabs to optimize for mobile screens.
+  - **Features:** Added advanced filtering for Boosters (Rating, Orders), dynamic service configuration forms (Rank, Mastery, Placements, etc.), and integrated "Champion Select" modal.
+  - **SEO:** Added JSON-LD Structured Data, `sitemap.ts`, and `robots.ts`.
+
+- **Wallet System:**
+  - **Backend:** Created `Transaction` model and `/api/wallet` endpoints (Deposit, History). Added a Mock Payment Confirm API for testing.
+  - **Frontend:** Built `/dashboard/wallet` with real-time balance updates and transaction history table.
+
+- **Boosters Page (`/boosters`):**
+  - Redesigned with "Dark Premium" theme (Glassmorphism, Neon effects).
+  - Added top navigation with User Info and Language Switcher.
+
+- **Refactoring & Fixes:**
+  - **ChampionModal:** Fixed mobile UX (added "Apply Filters" button) and z-index issues.
+  - **I18n:** Expanded dictionary significantly to cover all service types and descriptions. Fixed `getNestedValue` crash.
+  - **Hydration:** Fixed `bis_skin_checked` hydration mismatch caused by browser extensions.
+
 ================================================================================
 
 1. # PROJECT STRUCTURE
@@ -298,7 +319,6 @@ caythuelol/
 
 # ================================================================================ 8. NEXT STEPS (Kế hoạch tiếp theo)
 
-- **Services Page:** Xây dựng trang Dịch vụ (`/services`) hiển thị bảng giá chi tiết và bộ lọc.
-- **Booster Page:** Xây dựng trang danh sách Booster (`/boosters`).
-- **Wallet Page:** Hoàn thiện trang Ví tiền (`/dashboard/wallet`) với chức năng nạp tiền (mô phỏng) và lịch sử giao dịch.
-- **Profile Page:** Xây dựng trang Hồ sơ cá nhân (`profile`) cho phép cập nhật thông tin và đổi mật khẩu.
+- **Admin Dashboard:** Xây dựng trang quản trị (`/admin`) để duyệt rút tiền, quản lý đơn hàng và người dùng.
+- **Booster Dashboard:** Hoàn thiện khu vực làm việc cho Booster (Nhận đơn, Cập nhật tiến độ, Chat với khách).
+- **Realtime Chat:** Tối ưu hóa hệ thống chat trong đơn hàng (Polling hoặc chuyển sang Socket.io nếu cần).
