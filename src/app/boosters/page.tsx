@@ -197,7 +197,7 @@ export default function BoostersPage() {
                     </div>
 
                     <Link 
-                      href={`/orders/create?booster=${booster._id}`} 
+                      href={`/services?booster=${booster._id}`} 
                       className="flex items-center justify-center gap-2 w-full py-3 bg-white text-black font-bold rounded-xl hover:bg-blue-500 hover:text-white transition-all shadow-lg shadow-white/10 hover:shadow-blue-500/30 group/btn"
                     >
                       {t('hireBooster')}

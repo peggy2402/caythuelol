@@ -28,6 +28,10 @@ interface Booster {
     bio: string;
     services?: string[]; // List of supported services
   };
+  booster_config?: {
+    services: { type: string; enabled: boolean; price: number; modifier: number }[];
+    options: { key: string; enabled: boolean; price: number; modifier: number }[];
+  };
 }
 
 interface Champion {
@@ -561,16 +565,94 @@ function ServicesContent() {
 
                     {/* Service Details Form */}
                     <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-zinc-900/60 backdrop-blur-xl p-6 shadow-xl">
-                        {/* ... (Giữ nguyên logic render form inputs từ code cũ, chỉ thay đổi vị trí) ... */}
-                        {/* Ví dụ cho RANK_BOOST */}
                         {activeTab === 'RANK_BOOST' && (
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 {renderRankSelector(t('servicesCurrentRank'), currentRank, setCurrentRank, currentDiv, setCurrentDiv)}
                                 {renderRankSelector(t('servicesDesiredRank'), desiredRank, setDesiredRank, desiredDiv, setDesiredDiv)}
-                                {/* ... LP inputs ... */}
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold uppercase text-zinc-500 tracking-wider">{t('currentLP')}</label>
+                                    <div className="relative">
+                                        <select value={currentLP} onChange={e => setCurrentLP(e.target.value)} className="w-full appearance-none bg-zinc-900/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-blue-500/50 outline-none transition-all font-medium">
+                                            {['0-20', '21-40', '41-60', '61-80', '81-100'].map(v => <option key={v} value={v} className="bg-zinc-900">{v}</option>)}
+                                        </select>
+                                        <ChevronRight className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 rotate-90 text-zinc-500 pointer-events-none" />
+                                    </div>
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold uppercase text-zinc-500 tracking-wider">{t('lpGain')}</label>
+                                    <div className="relative">
+                                        <select value={lpGain} onChange={e => setLpGain(e.target.value)} className="w-full appearance-none bg-zinc-900/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-blue-500/50 outline-none transition-all font-medium">
+                                            <option value="+15" className="bg-zinc-900">+15 trở xuống (Bad MMR)</option>
+                                            <option value="+18" className="bg-zinc-900">+16 đến +19 (Normal)</option>
+                                            <option value="+20" className="bg-zinc-900">+20 trở lên (Good MMR)</option>
+                                        </select>
+                                        <ChevronRight className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 rotate-90 text-zinc-500 pointer-events-none" />
+                                    </div>
+                                </div>
                             </div>
                         )}
-                        {/* ... Các tab khác tương tự ... */}
+                        
+                        {activeTab === 'PROMOTION' && (
+                            <div className="space-y-6">
+                                {renderRankSelector(t('servicesCurrentRank'), currentRank, setCurrentRank, currentDiv, setCurrentDiv)}
+                                <div className="p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-xl flex gap-3">
+                                    <TrendingUp className="w-5 h-5 text-yellow-500 shrink-0" />
+                                    <p className="text-sm text-yellow-200">
+                                        Dịch vụ này giúp bạn vượt qua chuỗi thăng hạng (BO3/BO5) để lên bậc tiếp theo.
+                                        <br/>Ví dụ: Từ Bạc I lên Vàng IV.
+                                    </p>
+                                </div>
+                            </div>
+                        )}
+
+                        {activeTab === 'LEVELING' && (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold uppercase text-zinc-500 tracking-wider">{t('currentLevel')}</label>
+                                    <input type="number" min="1" max="29" value={currentLevel} onChange={e => setCurrentLevel(Number(e.target.value))} className="w-full bg-zinc-900/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-blue-500/50 outline-none transition-all font-medium" />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold uppercase text-zinc-500 tracking-wider">{t('desiredLevel')}</label>
+                                    <input type="number" min="30" value={desiredLevel} onChange={e => setDesiredLevel(Number(e.target.value))} className="w-full bg-zinc-900/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-blue-500/50 outline-none transition-all font-medium" />
+                                </div>
+                            </div>
+                        )}
+
+                        {activeTab === 'NET_WINS' && (
+                            <div className="space-y-6">
+                                {renderRankSelector(t('servicesCurrentRank'), currentRank, setCurrentRank, currentDiv, setCurrentDiv)}
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold uppercase text-zinc-500 tracking-wider">{t('numGames')} (Số trận thắng)</label>
+                                    <div className="flex items-center gap-4">
+                                        <input type="range" min="1" max="10" value={numGames} onChange={e => setNumGames(Number(e.target.value))} className="w-full h-2 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-blue-500" />
+                                        <div className="w-12 h-10 flex items-center justify-center bg-zinc-800 rounded border border-white/10 font-bold">{numGames}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {activeTab === 'PLACEMENTS' && (
+                            <div className="space-y-6">
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold uppercase text-zinc-500 tracking-wider">{t('prevRank')}</label>
+                                    <div className="relative">
+                                        <select value={prevRank} onChange={e => setPrevRank(e.target.value)} className="w-full appearance-none bg-zinc-900/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-blue-500/50 outline-none transition-all font-medium">
+                                            {RANKS.map(r => <option key={r} value={r} className="bg-zinc-900">{r}</option>)}
+                                        </select>
+                                        <ChevronRight className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 rotate-90 text-zinc-500 pointer-events-none" />
+                                    </div>
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold uppercase text-zinc-500 tracking-wider">{t('numGames')} (Số trận)</label>
+                                    <div className="flex gap-2">
+                                        {[1,2,3,4,5].map(n => (
+                                            <button key={n} onClick={() => setNumGames(n)} className={`flex-1 py-3 rounded-xl border font-bold transition-all ${numGames === n ? 'bg-blue-600 border-blue-500 text-white' : 'bg-zinc-900/50 border-white/10 text-zinc-500'}`}>{n}</button>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
                         {activeTab === 'MASTERY' && (
                             <div className="space-y-6">
                                 <div className="space-y-2">
@@ -666,7 +748,7 @@ function ServicesContent() {
                         >
                             {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : (
                                 <>
-                                    Thanh toán ngay
+                                    Thuê ngay
                                     <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                                 </>
                             )}

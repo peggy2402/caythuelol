@@ -13,7 +13,8 @@ import {
   Menu,
   Bell,
   Briefcase,
-  X
+  X,
+  Settings2
 } from 'lucide-react';
 import { useLanguage } from '../../lib/i18n';
 
@@ -34,7 +35,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   let navItems = [
     { href: '/dashboard', label: t('dashboard'), icon: LayoutDashboard },
     { href: '/orders', label: t('orders'), icon: Gamepad2 },
-    { href: 'wallet', label: t('wallet'), icon: Wallet },
+    { href: '/wallet', label: t('wallet'), icon: Wallet },
     { href: '/profile', label: t('profile'), icon: User },
   ];
 
@@ -42,6 +43,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   if (user?.role === 'BOOSTER') {
     // Chèn vào vị trí thứ 2 (sau Dashboard)
     navItems.splice(1, 0, { href: '/jobs', label: t('jobMarket'), icon: Briefcase });
+    navItems.splice(2, 0, { href: '/booster/services', label: t('manageServices'), icon: Settings2 });
   }
 
   const activeNavItem = navItems.find(item => pathname.startsWith(item.href));

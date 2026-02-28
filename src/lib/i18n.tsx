@@ -282,6 +282,13 @@ const dictionaries = {
     myActiveJobs: 'Đơn đang làm',
     acceptJob: 'Nhận đơn',
     acceptJobConfirm: 'Bạn có chắc chắn muốn nhận đơn này?',
+    
+    // Booster Services Management
+    manageServices: 'Quản lý dịch vụ',
+    manageServicesDesc: 'Cấu hình các dịch vụ bạn cung cấp và đơn giá.',
+    serviceName: 'Tên dịch vụ',
+    basePrice: 'Giá cơ bản (VNĐ)',
+    priceModifier: 'Điều chỉnh giá (%)',
 
     // Order Details & Chat
     orderDetails: 'Chi tiết đơn hàng',
@@ -603,6 +610,13 @@ const dictionaries = {
     acceptJob: 'Accept Job',
     acceptJobConfirm: 'Are you sure you want to accept this job?',
 
+    // Booster Services Management
+    manageServices: 'Manage Services',
+    manageServicesDesc: 'Configure your offered services and pricing.',
+    serviceName: 'Service Name',
+    basePrice: 'Base Price (VND)',
+    priceModifier: 'Price Modifier (%)',
+
     // Order Details & Chat
     orderDetails: 'Order Details',
     chatTitle: 'Chat with Booster',
@@ -921,6 +935,13 @@ const dictionaries = {
     myActiveJobs: '내 활성 일자리',
     acceptJob: '일자리 수락',
     acceptJobConfirm: '이 일자리를 수락하시겠습니까?',
+
+    // Booster Services Management
+    manageServices: '서비스 관리',
+    manageServicesDesc: '제공하는 서비스 및 가격을 구성하십시오.',
+    serviceName: '서비스 이름',
+    basePrice: '기본 가격 (VND)',
+    priceModifier: '가격 조정 (%)',
 
     // Order Details & Chat
     orderDetails: '주문 상세',
@@ -1241,6 +1262,13 @@ const dictionaries = {
     myActiveJobs: '私のアクティブなジョブ',
     acceptJob: 'ジョブを受け入れる',
     acceptJobConfirm: 'このジョブを受け入れてもよろしいですか？',
+
+    // Booster Services Management
+    manageServices: 'サービス管理',
+    manageServicesDesc: '提供するサービスと価格を設定します。',
+    serviceName: 'サービス名',
+    basePrice: '基本価格 (VND)',
+    priceModifier: '価格調整 (%)',
 
     // Order Details & Chat
     orderDetails: '注文詳細',
