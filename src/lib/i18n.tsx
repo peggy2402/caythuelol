@@ -1261,6 +1261,7 @@ type I18nTranslationKey = NestedKeyOf<I18nDictionary>;
 ======================================================= */
 
 function getNestedValue(obj: any, path: string): string | undefined {
+  if (!path) return undefined;
   return path.split('.').reduce((acc, part) => acc?.[part], obj);
 }
 

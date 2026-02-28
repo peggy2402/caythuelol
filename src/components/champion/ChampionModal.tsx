@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { X, Search, SlidersHorizontal, Loader2, AlertCircle } from 'lucide-react';
+import { X, Search, SlidersHorizontal, Loader2, AlertCircle, Check } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n';
 import ChampionCard from './ChampionCard';
 import ChampionFilters, { FilterState } from './ChampionFilters';
@@ -36,19 +36,12 @@ export default function ChampionModal({ isOpen, onClose, champions, onSelect, se
     }
   }, [isOpen, selectedId, champions]);
 
-  // Filter Logic
+  // Filter Logic (Giữ nguyên logic cũ)
   const filteredChampions = useMemo(() => {
     return champions.filter(champ => {
-      // 1. Search
       if (search && !champ.name.toLowerCase().includes(search.toLowerCase())) return false;
-
-      // 2. Roles
-      if (filters.roles.length > 0) {
-        const hasRole = filters.roles.some(r => champ.tags.includes(r));
-        if (!hasRole) return false;
-      }
-
-      // 3. Difficulty
+      if (filters.roles.length > 0 && !filters.roles.some(r => champ.tags.includes(r))) return false;
+      
       if (filters.difficulty.length > 0) {
         const diff = champ.info.difficulty;
         const isEasy = filters.difficulty.includes('Easy') && diff <= 3;
@@ -57,7 +50,6 @@ export default function ChampionModal({ isOpen, onClose, champions, onSelect, se
         if (!isEasy && !isMedium && !isHard) return false;
       }
 
-      // 4. Attack Type
       if (filters.attackType.length > 0) {
         const isAD = filters.attackType.includes('AD') && champ.info.attack >= 6;
         const isAP = filters.attackType.includes('AP') && champ.info.magic >= 6;
@@ -65,7 +57,6 @@ export default function ChampionModal({ isOpen, onClose, champions, onSelect, se
         if (!isAD && !isAP && !isHybrid) return false;
       }
 
-      // 5. Resource
       if (filters.resource.length > 0) {
         const pType = champ.partype || '';
         const isMana = filters.resource.includes('Mana') && pType.includes('Mana');
@@ -89,13 +80,11 @@ export default function ChampionModal({ isOpen, onClose, champions, onSelect, se
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6">
-      {/* Backdrop */}
       <div 
         className="absolute inset-0 bg-black/80 backdrop-blur-md animate-in fade-in duration-200"
         onClick={onClose}
       />
 
-      {/* Modal Content */}
       <div className="relative w-full max-w-5xl h-[85vh] bg-zinc-950 border border-white/10 rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-300">
         
         {/* Header */}
@@ -120,7 +109,7 @@ export default function ChampionModal({ isOpen, onClose, champions, onSelect, se
             
             <button 
               onClick={() => setShowMobileFilters(!showMobileFilters)}
-              className={`md:hidden p-2.5 rounded-lg border ${showMobileFilters ? 'bg-blue-600 border-blue-500 text-white' : 'bg-zinc-900 border-zinc-800 text-zinc-400'}`}
+              className={`md:hidden p-2.5 rounded-lg border transition-colors ${showMobileFilters ? 'bg-blue-600 border-blue-500 text-white' : 'bg-zinc-900 border-zinc-800 text-zinc-400'}`}
             >
               <SlidersHorizontal className="w-4 h-4" />
             </button>
@@ -132,9 +121,9 @@ export default function ChampionModal({ isOpen, onClose, champions, onSelect, se
         </div>
 
         {/* Body */}
-        <div className="flex flex-1 overflow-hidden">
+        <div className="flex flex-1 overflow-hidden relative">
           {/* Sidebar Filters (Desktop) */}
-          <div className="hidden md:block w-64 border-r border-white/10 bg-zinc-900/30 p-5 overflow-y-auto">
+          <div className="hidden md:block w-64 border-r border-white/10 bg-zinc-900/30 p-5 overflow-y-auto custom-scrollbar">
             <ChampionFilters 
               filters={filters} 
               setFilters={setFilters} 
@@ -142,19 +131,38 @@ export default function ChampionModal({ isOpen, onClose, champions, onSelect, se
             />
           </div>
 
-          {/* Mobile Filters Overlay */}
+          {/* Mobile Filters Overlay (FIXED UX) */}
           {showMobileFilters && (
-            <div className="absolute inset-0 z-20 bg-zinc-950 md:hidden p-5 overflow-y-auto animate-in slide-in-from-left-10">
-              <ChampionFilters 
-                filters={filters} 
-                setFilters={setFilters} 
-                onReset={() => setFilters({ roles: [], difficulty: [], attackType: [], resource: [] })} 
-              />
+            <div className="absolute inset-0 z-20 bg-zinc-950 md:hidden flex flex-col animate-in slide-in-from-bottom-10">
+              <div className="flex-1 overflow-y-auto p-5">
+                <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-bold text-white">Bộ lọc</h3>
+                    <button onClick={() => setShowMobileFilters(false)} className="p-2 text-zinc-400">
+                        <X className="w-5 h-5" />
+                    </button>
+                </div>
+                <ChampionFilters 
+                  filters={filters} 
+                  setFilters={setFilters} 
+                  onReset={() => setFilters({ roles: [], difficulty: [], attackType: [], resource: [] })} 
+                />
+              </div>
+              {/* Nút Xác nhận Mobile */}
+              <div className="p-4 border-t border-white/10 bg-zinc-900">
+                <button 
+                    onClick={() => setShowMobileFilters(false)}
+                    className="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl flex items-center justify-center gap-2"
+                >
+                    <Check className="w-4 h-4" />
+                    Áp dụng bộ lọc
+                </button>
+              </div>
             </div>
           )}
 
           {/* Grid */}
           <div className="flex-1 overflow-y-auto p-5 bg-zinc-950 custom-scrollbar">
+            {/* ... (Giữ nguyên phần Grid hiển thị tướng) ... */}
             {champions.length === 0 ? (
               <div className="h-full flex items-center justify-center">
                 <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
