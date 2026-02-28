@@ -1,6 +1,6 @@
 Project: LOL Boosting Platform
 Date started: 2026-02-25
-Last updated: 2026-02-27
+Last updated: 2026-02-28
 
 Purpose:
 
@@ -103,6 +103,21 @@ Change log & decisions:
   - **ChampionModal:** Fixed mobile UX (added "Apply Filters" button) and z-index issues.
   - **I18n:** Expanded dictionary significantly to cover all service types and descriptions. Fixed `getNestedValue` crash.
   - **Hydration:** Fixed `bis_skin_checked` hydration mismatch caused by browser extensions.
+
+9. 2026-02-28 — Booster Service Config & Advanced Order Flow (14:13)
+
+- **Booster Dashboard:**
+  - Implemented **Service Management** (`/dashboard/booster/services`): Allows boosters to enable/disable services and set price modifiers/base prices.
+  - Backend API: `/api/boosters/services` (GET/POST) to store `booster_config` in User document.
+  - Sidebar: Added "Manage Services" link for Booster role.
+
+- **Service Booking Flow:**
+  - **Unified Flow:** Redirected "Hire" button on Boosters page to `/services?booster={id}`.
+  - **Dynamic Pricing:** Updated `/services` to calculate price based on selected Booster's specific configuration (if available) or fall back to system defaults.
+  - **UI/UX:**
+    - Added detailed forms for all service types: Promotion, Leveling, Net Wins, Placements.
+    - Renamed payment button to "Thuê ngay".
+    - Fixed API route paths to ensure consistency (`boosters` vs `booster`).
 
 ================================================================================
 
