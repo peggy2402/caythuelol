@@ -25,7 +25,8 @@ export async function POST(req: Request) {
     // Kiểm tra API Key trong Header nếu bạn đã cấu hình trong SePay Dashboard
     const apiKey = req.headers.get('Authorization');
     const SEPAY_API_KEY = process.env.SEPAY_API_KEY;
-    if (SEPAY_API_KEY && apiKey !== `Bearer ${SEPAY_API_KEY}`) {
+    // SePay gửi header theo định dạng: "Apikey <API_KEY>"
+    if (SEPAY_API_KEY && apiKey !== `Apikey ${SEPAY_API_KEY}`) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
