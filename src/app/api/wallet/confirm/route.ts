@@ -33,7 +33,7 @@ export async function POST(req: Request) {
 
     // 2. Tìm User
     // Fallback: Kiểm tra cả user_id (schema mới) và userId (schema cũ nếu có) để tránh lỗi
-    const userId = transaction.user_id || (transaction as any).userId;
+    const userId = transaction.userId;
 
     if (!userId) {
       return NextResponse.json({ error: 'Transaction data invalid: missing user_id' }, { status: 500 });
@@ -50,7 +50,7 @@ export async function POST(req: Request) {
 
     // 4. Cập nhật trạng thái giao dịch
     transaction.status = TransactionStatus.SUCCESS;
-    transaction.balance_after = user.wallet_balance; // Cập nhật số dư chính xác sau khi cộng
+    transaction.balanceAfter = user.wallet_balance; // Cập nhật số dư chính xác sau khi cộng
     await transaction.save();
 
     return NextResponse.json({
