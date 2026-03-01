@@ -18,7 +18,8 @@ import {
   Settings,
   Briefcase,
   ListTodo,
-  Zap
+  Zap,
+  Trophy
 } from 'lucide-react';
 import { useLanguage, Language } from '../lib/i18n';
 import { useRouter, usePathname } from 'next/navigation';
@@ -151,6 +152,11 @@ export default function Navbar() {
           <NavLink href="/services" label={t('services')} />
           <NavLink href="/boosters" label={t('boosters')} />
           <NavLink href="/blogs" label={t('blog')} />
+          {user?.role === 'CUSTOMER' && (
+            <Link href="/boosters/apply" className="text-yellow-500 hover:text-yellow-400 transition">
+              {t('becomeBooster')}
+            </Link>
+          )}
           <div className="h-5 w-px bg-white/10" suppressHydrationWarning />
 
           <LanguageSwitcher
@@ -344,6 +350,7 @@ export default function Navbar() {
                   <>
                     <Link href="/orders" onClick={closeMobileMenu} className="flex items-center gap-4 px-4 py-3 rounded-lg hover:bg-white/5 transition-colors"><FileText className="h-5 w-5 text-zinc-400" />{t('orders')}</Link>
                     <Link href="/wallet" onClick={closeMobileMenu} className="flex items-center gap-4 px-4 py-3 rounded-lg hover:bg-white/5 transition-colors"><Wallet className="h-5 w-5 text-zinc-400" />{t('wallet')}</Link>
+                    <Link href="/boosters/apply" onClick={closeMobileMenu} className="flex items-center gap-4 px-4 py-3 rounded-lg hover:bg-white/5 transition-colors text-yellow-500"><Trophy className="h-5 w-5" />{t('becomeBooster')}</Link>
                   </>
                 )}
 
