@@ -2,17 +2,16 @@
 
 import { useState, useEffect, Suspense, useRef, useMemo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import Link from 'next/link';
-import Image from 'next/image';
 import { useLanguage } from '@/lib/i18n';
 import { 
   Trophy, TrendingUp, Medal, Zap, Target, Swords,
   CheckCircle2, AlertCircle, Loader2, Search,
-  ShieldCheck, Clock, Star, ChevronRight, Flame, Wallet, ChevronLeft,
-  Video, Users, Map, User, ArrowLeft, Lock, LogIn, MousePointerClick
+  ShieldCheck, Clock, Star, ChevronRight, Flame, ChevronLeft,
+  Video, Users, Map, User, Lock, LogIn, MousePointerClick
 } from 'lucide-react';
 import { toast } from 'sonner';
 import ChampionModal from '@/components/champion/ChampionModal';
+import Navbar from '@/components/Navbar';
 
 // --- TYPES ---
 type ServiceType = 'RANK_BOOST' | 'PROMOTION' | 'MASTERY' | 'LEVELING' | 'NET_WINS' | 'PLACEMENTS';
@@ -123,7 +122,6 @@ function ServicesContent() {
   
   // UI State
   const [isChampModalOpen, setIsChampModalOpen] = useState(false);
-  const [isLangMenuOpen, setIsLangMenuOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   // Form State
@@ -365,6 +363,7 @@ function ServicesContent() {
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white pt-24 pb-32 px-4 relative overflow-hidden selection:bg-blue-500/30 font-sans" suppressHydrationWarning>
+      <Navbar />
       {/* JSON-LD for SEO */}
       <script
         type="application/ld+json"
@@ -401,53 +400,6 @@ function ServicesContent() {
         onSelect={setSelectedChamp}
         selectedId={selectedChamp?.id}
       />
-
-      {/* Top Navigation */}
-      <div className="absolute top-6 left-6 z-50">
-        <Link href="/" className="flex items-center gap-2 rounded-full bg-zinc-900/50 border border-white/10 px-4 py-2 text-sm font-medium text-zinc-400 hover:text-white hover:bg-zinc-800 transition-all backdrop-blur-md group">
-          <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-          {t('backToHome')}
-        </Link>
-      </div>
-
-      <div className="absolute top-6 right-6 z-50 flex items-center gap-4">
-        {user && (
-          <div className="hidden sm:flex items-center gap-3 rounded-full bg-zinc-900/50 border border-white/10 pl-2 pr-4 py-1.5 backdrop-blur-md hover:bg-zinc-900/80 transition-colors">
-            <div className="relative h-8 w-8 rounded-full overflow-hidden bg-gradient-to-br from-blue-500 to-purple-600 p-[1px]">
-              <div className="h-full w-full bg-zinc-950 rounded-full flex items-center justify-center overflow-hidden">
-                {user.profile?.avatar ? (
-                  <img src={user.profile.avatar} alt="Avatar" className="h-full w-full object-cover" />
-                ) : (
-                  <User className="h-4 w-4 text-white" />
-                )}
-              </div>
-            </div>
-            <div className="text-left">
-              <div className="text-xs font-bold text-white leading-none mb-1">{user.username}</div>
-              <div className="text-[10px] font-medium text-emerald-400 flex items-center gap-1">
-                <Wallet className="w-3 h-3" />
-                {user.wallet_balance?.toLocaleString('vi-VN')} đ
-              </div>
-            </div>
-          </div>
-        )}
-        {/* Language Switcher (Simplified for brevity) */}
-        <div className="relative">
-            <button onClick={() => setIsLangMenuOpen(!isLangMenuOpen)} className="flex items-center justify-center w-10 h-10 rounded-full bg-zinc-900/50 border border-white/10 backdrop-blur-md hover:bg-zinc-800 transition-all">
-                <Image src="/language.svg" alt="Language" width={20} height={20} className="invert opacity-80 hover:opacity-100 transition-opacity" />
-            </button>
-            {isLangMenuOpen && (
-                <>
-                    <div className="fixed inset-0 z-40" onClick={() => setIsLangMenuOpen(false)} />
-                    <div className="absolute right-0 top-full mt-2 z-50 w-36 rounded-xl border border-white/10 bg-zinc-900 p-1 shadow-xl">
-                        {(['vi', 'en', 'kr', 'jp'] as const).map((lang) => (
-                            <button key={lang} onClick={() => { setLanguage(lang); setIsLangMenuOpen(false); }} className="flex w-full items-center rounded-lg px-3 py-2 text-sm font-medium text-zinc-400 hover:bg-white/5 hover:text-white">{lang.toUpperCase()}</button>
-                        ))}
-                    </div>
-                </>
-            )}
-        </div>
-      </div>
 
       <div className="max-w-7xl mx-auto relative z-10">
         

@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { useLanguage } from '@/lib/i18n';
-import { Star, Trophy, Swords, User as UserIcon, Loader2, ArrowLeft, Wallet, ShieldCheck, ChevronRight, Globe } from 'lucide-react';
+import { Star, Trophy, User as UserIcon, Loader2, ShieldCheck, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
+import Navbar from '@/components/Navbar';
 
 interface Booster {
   _id: string;
@@ -20,11 +21,9 @@ interface Booster {
 }
 
 export default function BoostersPage() {
-  const { t, language, setLanguage } = useLanguage();
+  const { t } = useLanguage();
   const [boosters, setBoosters] = useState<Booster[]>([]);
   const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState<any>(null);
-  const [isLangMenuOpen, setIsLangMenuOpen] = useState(false);
 
   useEffect(() => {
     const fetchBoosters = async () => {
@@ -44,92 +43,14 @@ export default function BoostersPage() {
     fetchBoosters();
   }, []);
 
-  // --- FETCH USER ---
-  useEffect(() => {
-    const userData = localStorage.getItem('user');
-    if (userData) {
-      try {
-        setUser(JSON.parse(userData));
-      } catch (e) {
-        console.error("Failed to parse user data", e);
-      }
-    }
-  }, []);
-
   return (
     <div className="min-h-screen bg-zinc-950 text-white pt-24 pb-32 px-4 relative overflow-hidden selection:bg-blue-500/30 font-sans" suppressHydrationWarning>
+      <Navbar />
       
       {/* Background Effects */}
       <div className="fixed inset-0 bg-[url('/noise.png')] bg-center [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))] opacity-10 pointer-events-none" suppressHydrationWarning />
       <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[500px] bg-blue-600/20 blur-[120px] rounded-full pointer-events-none" />
       <div className="fixed bottom-0 right-0 w-[800px] h-[400px] bg-purple-600/10 blur-[100px] rounded-full pointer-events-none" />
-
-      {/* Top Navigation */}
-      <div className="absolute top-6 left-6 z-50">
-        <Link href="/" className="flex items-center gap-2 rounded-full bg-zinc-900/50 border border-white/10 px-4 py-2 text-sm font-medium text-zinc-400 hover:text-white hover:bg-zinc-800 transition-all backdrop-blur-md group">
-          <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-          {t('backToHome')}
-        </Link>
-      </div>
-
-      <div className="absolute top-6 right-6 z-50 flex items-center gap-4">
-        <Link 
-          href="/boosters/apply"
-          className="hidden sm:flex items-center gap-2 rounded-full bg-yellow-500/10 border border-yellow-500/20 px-4 py-2 text-sm font-bold text-yellow-500 hover:bg-yellow-500 hover:text-black transition-all backdrop-blur-md"
-        >
-          <Trophy className="w-4 h-4" />
-          {t('becomeBooster')}
-        </Link>
-
-        {/* User Info (If Logged In) */}
-        {user && (
-          <div className="hidden sm:flex items-center gap-3 rounded-full bg-zinc-900/50 border border-white/10 pl-2 pr-4 py-1.5 backdrop-blur-md hover:bg-zinc-900/80 transition-colors">
-            <div className="relative h-8 w-8 rounded-full overflow-hidden bg-gradient-to-br from-blue-500 to-purple-600 p-[1px]">
-              <div className="h-full w-full bg-zinc-950 rounded-full flex items-center justify-center overflow-hidden">
-                {user.profile?.avatar ? (
-                  <img src={user.profile.avatar} alt="Avatar" className="h-full w-full object-cover" />
-                ) : (
-                  <UserIcon className="h-4 w-4 text-white" />
-                )}
-              </div>
-            </div>
-            <div className="text-left">
-              <div className="text-xs font-bold text-white leading-none mb-1">{user.username}</div>
-              <div className="text-[10px] font-medium text-emerald-400 flex items-center gap-1">
-                <Wallet className="w-3 h-3" />
-                {user.wallet_balance?.toLocaleString('vi-VN')} đ
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Language Switcher */}
-        <div className="relative">
-          <button
-            onClick={() => setIsLangMenuOpen(!isLangMenuOpen)}
-            className="flex items-center justify-center w-10 h-10 rounded-full bg-zinc-900/50 border border-white/10 backdrop-blur-md hover:bg-zinc-800 transition-all text-zinc-400 hover:text-white"
-          >
-            <Globe className="w-5 h-5" />
-          </button>
-
-          {isLangMenuOpen && (
-            <>
-              <div className="fixed inset-0 z-40" onClick={() => setIsLangMenuOpen(false)} />
-              <div className="absolute right-0 top-full mt-2 z-50 w-36 rounded-xl border border-white/10 bg-zinc-900 p-1 shadow-xl animate-in fade-in zoom-in-95 duration-200">
-                {(['vi', 'en', 'kr', 'jp'] as const).map((lang) => (
-                  <button
-                    key={lang}
-                    onClick={() => { setLanguage(lang); setIsLangMenuOpen(false); }}
-                    className={`flex w-full items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors ${language === lang ? 'bg-blue-600/10 text-blue-400' : 'text-zinc-400 hover:bg-white/5 hover:text-white'}`}
-                  >
-                    {lang === 'vi' ? 'Tiếng Việt' : lang === 'en' ? 'English' : lang === 'kr' ? '한국어' : '日本語'}
-                  </button>
-                ))}
-              </div>
-            </>
-          )}
-        </div>
-      </div>
 
       <div className="max-w-7xl mx-auto relative z-10">
         {/* Header */}

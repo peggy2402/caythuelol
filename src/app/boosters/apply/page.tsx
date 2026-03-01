@@ -17,6 +17,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { toast } from 'sonner';
+import Navbar from '@/components/Navbar';
+import { useLanguage } from '@/lib/i18n';
 
 // --- Zod Schema cho Frontend ---
 const formSchema = z.object({
@@ -36,23 +38,8 @@ const formSchema = z.object({
 
 type FormData = z.infer<typeof formSchema>;
 
-// --- Constants ---
-const STEPS = [
-  { id: 1, title: "Thông tin cá nhân", icon: "👤" },
-  { id: 2, title: "Hồ sơ Game & Cọc", icon: "🎮" },
-  { id: 3, title: "Cam kết & Ký tên", icon: "✍️" },
-];
-
-const COMMITMENTS = [
-  { id: 'tool', title: "Không Tool/Hack", desc: "Tuyệt đối không sử dụng phần mềm thứ 3 can thiệp vào game." },
-  { id: 'security', title: "Bảo mật tài khoản", desc: "Không thay đổi thông tin (Email, Pass) của khách hàng." },
-  { id: 'private', title: "Riêng tư", desc: "Không liên hệ riêng, không giao dịch ngoài hệ thống." },
-  { id: 'stream', title: "Quy định Stream", desc: "Chỉ Stream khi khách hàng cho phép." },
-  { id: 'penalty', title: "Chế tài xử phạt", desc: "3 tố cáo hợp lệ/tháng sẽ bị khóa tài khoản vĩnh viễn." },
-  { id: 'deposit', title: "Quy định cọc", desc: "Tiền cọc sẽ bị mất nếu vi phạm quy định nghiêm trọng." },
-];
-
 export default function BoosterApplyPage() {
+  const { t } = useLanguage();
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -66,6 +53,22 @@ export default function BoosterApplyPage() {
 
   const fullName = watch('fullName');
   const signature = watch('agreementSigned_name');
+
+  // --- Constants with i18n ---
+  const STEPS = [
+    { id: 1, title: t('step1Info'), icon: "👤" },
+    { id: 2, title: t('step2Game'), icon: "🎮" },
+    { id: 3, title: t('step3Commit'), icon: "✍️" },
+  ];
+
+  const COMMITMENTS = [
+    { id: 'tool', title: t('commitTool'), desc: t('commitToolDesc') },
+    { id: 'security', title: t('commitSecurity'), desc: t('commitSecurityDesc') },
+    { id: 'private', title: t('commitPrivate'), desc: t('commitPrivateDesc') },
+    { id: 'stream', title: t('commitStream'), desc: t('commitStreamDesc') },
+    { id: 'penalty', title: t('commitPenalty'), desc: t('commitPenaltyDesc') },
+    { id: 'deposit', title: t('commitDeposit'), desc: t('commitDepositDesc') },
+  ];
 
   // --- Handlers ---
   const nextStep = async () => {
@@ -89,7 +92,7 @@ export default function BoosterApplyPage() {
   const onSubmit = async (data: FormData) => {
     setIsSubmitting(true);
     try {
-      const res = await fetch('/api/booster/apply', {
+      const res = await fetch('/api/boosters/apply', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
@@ -129,13 +132,13 @@ export default function BoosterApplyPage() {
             transition={{ duration: 0.6 }}
           >
             <span className="inline-block rounded-full bg-yellow-500/10 px-4 py-1.5 text-sm font-semibold text-yellow-400 border border-yellow-500/20 mb-4">
-              BECOME A LEGEND
+              {t('boosterApplySubtitle')}
             </span>
             <h1 className="text-4xl md:text-6xl font-bold tracking-tight text-white mb-4">
-              Trở thành <span className="text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-orange-500">Booster Chuyên Nghiệp</span>
+              {t('boosterApplyTitle')}
             </h1>
-            <p className="text-slate-400 max-w-2xl mx-auto text-lg">
-              Gia nhập hệ thống cày thuê uy tín số 1. Thu nhập hấp dẫn, thanh toán minh bạch, bảo vệ quyền lợi tuyệt đối.
+            <p className="text-zinc-400 max-w-2xl mx-auto text-lg">
+              {t('boosterApplyDesc')}
             </p>
           </motion.div>
         </div>
@@ -145,22 +148,22 @@ export default function BoosterApplyPage() {
         {/* Stepper */}
         <div className="mb-12">
           <div className="flex justify-between items-center relative">
-            <div className="absolute left-0 top-1/2 -translate-y-1/2 w-full h-1 bg-slate-800 -z-10"></div>
+            <div className="absolute left-0 top-1/2 -translate-y-1/2 w-full h-1 bg-zinc-800 -z-10"></div>
             <div className="absolute left-0 top-1/2 -translate-y-1/2 h-1 bg-yellow-500 transition-all duration-500 -z-10" style={{ width: `${((step - 1) / 2) * 100}%` }}></div>
             
             {STEPS.map((s) => (
-              <div key={s.id} className="flex flex-col items-center gap-2 bg-slate-950 px-2">
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all duration-300 ${step >= s.id ? 'border-yellow-500 bg-yellow-500/10 text-yellow-500' : 'border-slate-700 bg-slate-900 text-slate-500'}`}>
+              <div key={s.id} className="flex flex-col items-center gap-2 bg-zinc-950 px-2">
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all duration-300 ${step >= s.id ? 'border-yellow-500 bg-yellow-500/10 text-yellow-500' : 'border-zinc-800 bg-zinc-900 text-zinc-500'}`}>
                   {step > s.id ? <CheckCircle2 size={20} /> : <span>{s.id}</span>}
                 </div>
-                <span className={`text-sm font-medium ${step >= s.id ? 'text-slate-200' : 'text-slate-600'}`}>{s.title}</span>
+                <span className={`text-sm font-medium ${step >= s.id ? 'text-white' : 'text-zinc-500'}`}>{s.title}</span>
               </div>
             ))}
           </div>
         </div>
 
         {/* Form Content */}
-        <Card className="border-slate-800 bg-slate-900/50 backdrop-blur-sm shadow-2xl">
+        <Card className="border-zinc-800 bg-zinc-900/50 backdrop-blur-sm shadow-2xl">
           <CardContent className="p-6 md:p-10">
             <form onSubmit={(e) => e.preventDefault()}>
               <AnimatePresence mode="wait">
@@ -176,23 +179,23 @@ export default function BoosterApplyPage() {
                   >
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="space-y-2">
-                        <Label>Họ và tên thật</Label>
-                        <Input {...register('fullName')} placeholder="Nguyễn Văn A" className="bg-slate-950 border-slate-800 focus:border-yellow-500" />
+                        <Label className="text-zinc-400">{t('fullName')}</Label>
+                        <Input {...register('fullName')} placeholder="Nguyễn Văn A" className="bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-yellow-500 focus:ring-yellow-500/20" />
                         {errors.fullName && <p className="text-red-500 text-xs">{errors.fullName.message}</p>}
                       </div>
                       <div className="space-y-2">
-                        <Label>Số điện thoại</Label>
-                        <Input {...register('phoneNumber')} placeholder="0912..." className="bg-slate-950 border-slate-800 focus:border-yellow-500" />
+                        <Label className="text-zinc-400">{t('phoneNumber')}</Label>
+                        <Input {...register('phoneNumber')} placeholder="0912..." className="bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-yellow-500 focus:ring-yellow-500/20" />
                         {errors.phoneNumber && <p className="text-red-500 text-xs">{errors.phoneNumber.message}</p>}
                       </div>
                       <div className="space-y-2">
-                        <Label>Link Facebook chính chủ</Label>
-                        <Input {...register('facebookUrl')} placeholder="https://facebook.com/..." className="bg-slate-950 border-slate-800 focus:border-yellow-500" />
+                        <Label className="text-zinc-400">{t('facebookUrl')}</Label>
+                        <Input {...register('facebookUrl')} placeholder="https://facebook.com/..." className="bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-yellow-500 focus:ring-yellow-500/20" />
                         {errors.facebookUrl && <p className="text-red-500 text-xs">{errors.facebookUrl.message}</p>}
                       </div>
                       <div className="space-y-2">
-                        <Label>Discord Tag</Label>
-                        <Input {...register('discordTag')} placeholder="username#1234" className="bg-slate-950 border-slate-800 focus:border-yellow-500" />
+                        <Label className="text-zinc-400">{t('discordTag')}</Label>
+                        <Input {...register('discordTag')} placeholder="username#1234" className="bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-yellow-500 focus:ring-yellow-500/20" />
                         {errors.discordTag && <p className="text-red-500 text-xs">{errors.discordTag.message}</p>}
                       </div>
                     </div>
@@ -211,30 +214,30 @@ export default function BoosterApplyPage() {
                     {/* Game Info */}
                     <div className="space-y-4">
                       <h3 className="text-lg font-semibold text-yellow-500 flex items-center gap-2">
-                        <span className="w-1 h-6 bg-yellow-500 rounded-full"></span> Thông tin Rank
+                        <span className="w-1 h-6 bg-yellow-500 rounded-full"></span> {t('servicesCurrentRank')}
                       </h3>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-2">
-                          <Label>Rank hiện tại</Label>
-                          <Input {...register('currentRank')} placeholder="VD: Cao Thủ 200LP" className="bg-slate-950 border-slate-800" />
+                          <Label className="text-zinc-400">{t('servicesCurrentRank')}</Label>
+                          <Input {...register('currentRank')} placeholder="VD: Cao Thủ 200LP" className="bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-yellow-500 focus:ring-yellow-500/20" />
                           {errors.currentRank && <p className="text-red-500 text-xs">{errors.currentRank.message}</p>}
                         </div>
                         <div className="space-y-2">
-                          <Label>Rank cao nhất (Peak)</Label>
-                          <Input {...register('highestRank')} placeholder="VD: Thách Đấu 500LP" className="bg-slate-950 border-slate-800" />
+                          <Label className="text-zinc-400">{t('highestRank')}</Label>
+                          <Input {...register('highestRank')} placeholder="VD: Thách Đấu 500LP" className="bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-yellow-500 focus:ring-yellow-500/20" />
                           {errors.highestRank && <p className="text-red-500 text-xs">{errors.highestRank.message}</p>}
                         </div>
                         <div className="space-y-2 md:col-span-2">
-                          <Label>Link OP.GG</Label>
-                          <Input {...register('opggLink')} placeholder="https://www.op.gg/summoners/vn/..." className="bg-slate-950 border-slate-800" />
+                          <Label className="text-zinc-400">{t('opggLink')}</Label>
+                          <Input {...register('opggLink')} placeholder="https://www.op.gg/summoners/vn/..." className="bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-yellow-500 focus:ring-yellow-500/20" />
                           {errors.opggLink && <p className="text-red-500 text-xs">{errors.opggLink.message}</p>}
-                        </div>
+                        </div> 
                         <div className="space-y-2 md:col-span-2">
-                          <Label>Link ảnh bằng chứng (Rank + Ngày giờ)</Label>
+                          <Label className="text-zinc-400">{t('rankProof')}</Label>
                           {/* Note: Thực tế sẽ dùng component Upload Cloudinary ở đây */}
                           <div className="flex gap-2">
-                            <Input {...register('rankImageUrl')} placeholder="https://i.imgur.com/..." className="bg-slate-950 border-slate-800" />
-                            <Button type="button" variant="outline" className="border-slate-700"><Upload size={16} /></Button>
+                            <Input {...register('rankImageUrl')} placeholder="https://i.imgur.com/..." className="bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-yellow-500 focus:ring-yellow-500/20" />
+                            <Button type="button" variant="outline" className="border-zinc-700 bg-zinc-900 text-zinc-400 hover:text-white hover:bg-zinc-800"><Upload size={16} /></Button>
                           </div>
                           <p className="text-xs text-slate-500">Vui lòng upload ảnh chụp màn hình client game có hiển thị rank và ngày giờ hệ thống.</p>
                           {errors.rankImageUrl && <p className="text-red-500 text-xs">{errors.rankImageUrl.message}</p>}
@@ -242,23 +245,17 @@ export default function BoosterApplyPage() {
                       </div>
                     </div>
 
-                    <div className="h-px bg-slate-800" />
+                    <div className="h-px bg-zinc-800" />
 
                     {/* Deposit Info */}
                     <div className="bg-indigo-950/30 border border-indigo-500/30 rounded-lg p-4">
                       <div className="flex items-start gap-3">
                         <ShieldAlert className="text-indigo-400 shrink-0 mt-1" />
                         <div>
-                          <h4 className="font-semibold text-indigo-300">Thông tin cọc: 200.000 VNĐ</h4>
-                          <p className="text-sm text-slate-400 mt-1">
-                            Để đảm bảo uy tín, Booster cần cọc 200k. Số tiền này sẽ được hoàn lại 100% khi bạn nghỉ làm (nếu không vi phạm).
+                          <h4 className="font-semibold text-indigo-300">{t('depositInfoTitle')}</h4>
+                          <p className="text-sm text-zinc-400 mt-1">
+                            {t('depositInfoDesc')}
                           </p>
-                          <div className="mt-3 p-3 bg-slate-950 rounded border border-slate-800 text-sm font-mono text-slate-300">
-                            <p>Ngân hàng: MB Bank</p>
-                            <p>STK: 0000 1111 9999</p>
-                            <p>Chủ TK: ADMIN CAYTHUELOL</p>
-                            <p>Nội dung: COC {fullName || "TEN_BOOSTER"}</p>
-                          </div>
                         </div>
                       </div>
                     </div>
@@ -266,22 +263,22 @@ export default function BoosterApplyPage() {
                     {/* Booster Bank Info */}
                     <div className="space-y-4">
                       <h3 className="text-lg font-semibold text-yellow-500 flex items-center gap-2">
-                        <span className="w-1 h-6 bg-yellow-500 rounded-full"></span> Tài khoản nhận tiền của bạn
+                        <span className="w-1 h-6 bg-yellow-500 rounded-full"></span> {t('bankName')}
                       </h3>
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div className="space-y-2">
-                          <Label>Ngân hàng</Label>
-                          <Input {...register('bankName')} placeholder="MB, VCB..." className="bg-slate-950 border-slate-800" />
+                          <Label className="text-zinc-400">{t('bankName')}</Label>
+                          <Input {...register('bankName')} className="bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-yellow-500 focus:ring-yellow-500/20" />
                           {errors.bankName && <p className="text-red-500 text-xs">{errors.bankName.message}</p>}
                         </div>
                         <div className="space-y-2">
-                          <Label>Số tài khoản</Label>
-                          <Input {...register('bankAccountNumber')} className="bg-slate-950 border-slate-800" />
+                          <Label className="text-zinc-400">{t('bankAccountNum')}</Label>
+                          <Input {...register('bankAccountNumber')} className="bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-yellow-500 focus:ring-yellow-500/20" />
                           {errors.bankAccountNumber && <p className="text-red-500 text-xs">{errors.bankAccountNumber.message}</p>}
                         </div>
                         <div className="space-y-2">
-                          <Label>Chủ tài khoản</Label>
-                          <Input {...register('bankAccountName')} className="bg-slate-950 border-slate-800" />
+                          <Label className="text-zinc-400">{t('bankAccountName')}</Label>
+                          <Input {...register('bankAccountName')} className="bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-yellow-500 focus:ring-yellow-500/20" />
                           {errors.bankAccountName && <p className="text-red-500 text-xs">{errors.bankAccountName.message}</p>}
                         </div>
                       </div>
@@ -302,12 +299,12 @@ export default function BoosterApplyPage() {
                       {COMMITMENTS.map((item) => (
                         <div 
                           key={item.id} 
-                          className={`p-4 rounded-lg border transition-all duration-200 ${agreements[item.id] ? 'bg-green-950/20 border-green-500/50' : 'bg-slate-950 border-slate-800'}`}
+                          className={`p-4 rounded-lg border transition-all duration-200 ${agreements[item.id] ? 'bg-green-950/20 border-green-500/50' : 'bg-zinc-900 border-zinc-800'}`}
                         >
                           <div className="flex justify-between items-start gap-4">
                             <div>
-                              <h4 className={`font-semibold ${agreements[item.id] ? 'text-green-400' : 'text-slate-200'}`}>{item.title}</h4>
-                              <p className="text-sm text-slate-500 mt-1">{item.desc}</p>
+                              <h4 className={`font-semibold ${agreements[item.id] ? 'text-green-400' : 'text-zinc-200'}`}>{item.title}</h4>
+                              <p className="text-sm text-zinc-500 mt-1">{item.desc}</p>
                             </div>
                             <Switch 
                               checked={!!agreements[item.id]}
@@ -319,16 +316,16 @@ export default function BoosterApplyPage() {
                       ))}
                     </div>
 
-                    <div className="bg-slate-950 p-6 rounded-xl border border-slate-800 space-y-4">
-                      <Label className="text-slate-300">Xác nhận chữ ký số</Label>
-                      <p className="text-sm text-slate-500">Vui lòng nhập chính xác họ tên của bạn <strong>({fullName})</strong> để xác nhận đồng ý với toàn bộ điều khoản trên.</p>
+                    <div className="bg-zinc-950 p-6 rounded-xl border border-zinc-800 space-y-4">
+                      <Label className="text-zinc-300">{t('digitalSignature')}</Label>
+                      <p className="text-sm text-zinc-500">{t('signatureDesc').replace('{name}', fullName || '...')}</p>
                       
                       <Input 
                         {...register('agreementSigned_name')}
-                        placeholder="Nhập họ tên đầy đủ..." 
-                        className={`bg-slate-900 border-slate-700 h-12 text-lg ${
+                        placeholder={t('fullName')} 
+                        className={`bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500 h-12 text-lg ${
                           signature && !isSignatureValid ? 'border-red-500 focus:ring-red-500' : 
-                          isSignatureValid ? 'border-green-500 focus:ring-green-500' : ''
+                          isSignatureValid ? 'border-green-500 focus:ring-green-500' : 'focus:border-yellow-500 focus:ring-yellow-500/20'
                         }`}
                       />
                       {signature && !isSignatureValid && (
@@ -344,14 +341,14 @@ export default function BoosterApplyPage() {
               {/* Navigation Buttons */}
               <div className="flex justify-between mt-10 pt-6 border-t border-slate-800">
                 {step > 1 ? (
-                  <Button type="button" variant="outline" onClick={prevStep} className="border-slate-700 hover:bg-slate-800 text-slate-300">
-                    <ChevronLeft className="mr-2 h-4 w-4" /> Quay lại
+                  <Button type="button" variant="outline" onClick={prevStep} className="border-zinc-700 hover:bg-zinc-800 text-zinc-300">
+                    <ChevronLeft className="mr-2 h-4 w-4" /> {t('backToHome')}
                   </Button>
                 ) : <div></div>}
 
                 {step < 3 ? (
                   <Button type="button" onClick={nextStep} className="bg-yellow-500 hover:bg-yellow-600 text-black font-bold">
-                    Tiếp tục <ChevronRight className="ml-2 h-4 w-4" />
+                    {t('nextStep')} <ChevronRight className="ml-2 h-4 w-4" />
                   </Button>
                 ) : (
                   <Button 
@@ -360,7 +357,7 @@ export default function BoosterApplyPage() {
                     disabled={!allAgreementsChecked || !isSignatureValid}
                     className={`font-bold min-w-[150px] ${(!allAgreementsChecked || !isSignatureValid) ? 'bg-slate-700 text-slate-400' : 'bg-green-600 hover:bg-green-700 text-white'}`}
                   >
-                    Gửi Đăng Ký
+                    {t('submitApp')}
                   </Button>
                 )}
               </div>
@@ -371,25 +368,19 @@ export default function BoosterApplyPage() {
 
       {/* Confirmation Modal */}
       <Dialog open={showConfirmModal} onOpenChange={setShowConfirmModal}>
-        <DialogContent className="bg-slate-900 border-slate-800 text-slate-100 sm:max-w-[425px]">
+        <DialogContent className="bg-zinc-900 border-zinc-800 text-white sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle className="text-xl text-yellow-500 flex items-center gap-2">
-              <AlertTriangle /> Xác nhận đăng ký
+              <AlertTriangle /> {t('confirmAppTitle')}
             </DialogTitle>
-            <DialogDescription className="text-slate-400 pt-2">
-              Bằng việc nhấn xác nhận, bạn đồng ý rằng:
-              <ul className="list-disc list-inside mt-2 space-y-1 text-slate-300">
-                <li>Mọi thông tin khai báo là sự thật.</li>
-                <li>Sẵn sàng test kỹ năng khi được yêu cầu.</li>
-                <li>Chấp nhận khóa tài khoản nếu vi phạm quy định.</li>
-              </ul>
+            <DialogDescription className="text-zinc-400 pt-2">
+              {t('confirmAppDesc')}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="mt-4">
-            <Button variant="ghost" onClick={() => setShowConfirmModal(false)} className="text-slate-400 hover:text-white">Hủy</Button>
+            <Button variant="ghost" onClick={() => setShowConfirmModal(false)} className="text-zinc-400 hover:text-white hover:bg-zinc-800">{t('cancelBtn')}</Button>
             <Button onClick={handleSubmit(onSubmit)} disabled={isSubmitting} className="bg-yellow-500 hover:bg-yellow-600 text-black font-bold">
-              {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-              Xác nhận & Gửi
+              {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null} {t('confirmSend')}
             </Button>
           </DialogFooter>
         </DialogContent>
