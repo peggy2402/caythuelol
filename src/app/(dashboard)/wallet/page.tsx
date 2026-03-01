@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useLanguage } from '@/lib/i18n';
 import { toast } from 'sonner';
-import { Wallet, ArrowUpRight, ArrowDownLeft, History, CreditCard, Loader2 } from 'lucide-react';
+import { Wallet, ArrowUpRight, ArrowDownLeft, History, CreditCard, Loader2, QrCode, Copy, Check, X } from 'lucide-react';
 
 interface Transaction {
   _id: string;
@@ -14,6 +14,14 @@ interface Transaction {
   createdAt: string;
 }
 
+interface PaymentInfo {
+  bankId: string;
+  accountNo: string;
+  accountName: string;
+  content: string;
+  amount: number;
+}
+
 export default function WalletPage() {
   const { t } = useLanguage();
   const [balance, setBalance] = useState(0);
@@ -21,6 +29,9 @@ export default function WalletPage() {
   const [loading, setLoading] = useState(true);
   const [depositAmount, setDepositAmount] = useState('');
   const [isDepositing, setIsDepositing] = useState(false);
+  
+  // State cho QR Code
+  const [pendingTx, setPendingTx] = useState<{ qrUrl: string, info: PaymentInfo } | null>(null);
 
   // Fetch data
   const fetchWalletData = async () => {
@@ -65,11 +76,15 @@ export default function WalletPage() {
       if (!res.ok) throw new Error(data.error);
 
       toast.success(t('depositSuccess'));
-      setDepositAmount('');
       
-      // 2. Mock Payment (Tự động confirm để test)
-      // Trong thực tế, bước này sẽ là redirect user sang cổng thanh toán hoặc hiển thị QR
-      await mockPaymentConfirm(data.transaction._id);
+      // Hiển thị QR Code
+      setPendingTx({
+        qrUrl: data.qrUrl,
+        info: data.paymentInfo
+      });
+      
+      // Refresh list để hiện transaction PENDING
+      fetchWalletData();
 
     } catch (error: any) {
       toast.error(error.message || t('serverError'));
@@ -78,28 +93,9 @@ export default function WalletPage() {
     }
   };
 
-  // Hàm giả lập thanh toán thành công (Chỉ dùng cho Dev/Demo)
-  const mockPaymentConfirm = async (transactionId: string) => {
-    try {
-      toast.loading('Đang xử lý thanh toán (Giả lập)...');
-      const res = await fetch('/api/wallet/confirm', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ transactionId }),
-      });
-      
-      if (res.ok) {
-        toast.dismiss();
-        toast.success('Nạp tiền thành công!');
-        fetchWalletData(); // Reload data
-      } else {
-        toast.dismiss();
-        toast.error('Lỗi xử lý thanh toán');
-      }
-    } catch (error) {
-      toast.dismiss();
-      console.error(error);
-    }
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast.success('Đã sao chép!');
   };
 
   const formatCurrency = (amount: number) => {
@@ -153,34 +149,93 @@ export default function WalletPage() {
             <CreditCard className="w-5 h-5 text-red-500" />
             {t('deposit')}
           </h3>
-          <form onSubmit={handleDeposit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-zinc-400 mb-1.5">
-                {t('enterAmount')}
-              </label>
-              <div className="relative">
-                <input
-                  type="number"
-                  value={depositAmount}
-                  onChange={(e) => setDepositAmount(e.target.value)}
-                  placeholder="50000"
-                  className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-red-500 transition-colors"
-                  min="10000"
-                />
-                <span className="absolute right-4 top-3 text-zinc-500 font-medium">VND</span>
+          
+          {!pendingTx ? (
+            <form onSubmit={handleDeposit} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-zinc-400 mb-1.5">
+                  {t('enterAmount')}
+                </label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    value={depositAmount}
+                    onChange={(e) => setDepositAmount(e.target.value)}
+                    placeholder="50000"
+                    className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-red-500 transition-colors"
+                    min="10000"
+                  />
+                  <span className="absolute right-4 top-3 text-zinc-500 font-medium">VND</span>
+                </div>
+                <p className="text-xs text-zinc-500 mt-1">{t('minDeposit')}</p>
               </div>
-              <p className="text-xs text-zinc-500 mt-1">{t('minDeposit')}</p>
+              
+              <button
+                type="submit"
+                disabled={isDepositing}
+                className="w-full bg-white text-black hover:bg-zinc-200 font-bold py-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center gap-2"
+              >
+                {isDepositing && <Loader2 className="w-4 h-4 animate-spin" />}
+                {t('confirmDeposit')}
+              </button>
+            </form>
+          ) : (
+            <div className="space-y-4 animate-fade-in">
+              <div className="bg-white p-4 rounded-xl flex justify-center">
+                <img src={pendingTx.qrUrl} alt="VietQR" className="w-full max-w-[200px] object-contain" />
+              </div>
+              
+              <div className="space-y-3 text-sm">
+                <div className="flex justify-between items-center p-3 bg-zinc-950 rounded-lg border border-zinc-800">
+                  <span className="text-zinc-400">Ngân hàng</span>
+                  <span className="font-bold text-white">MB Bank</span>
+                </div>
+                <div className="flex justify-between items-center p-3 bg-zinc-950 rounded-lg border border-zinc-800">
+                  <span className="text-zinc-400">Số tài khoản</span>
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-white">{pendingTx.info.accountNo}</span>
+                    <Copy onClick={() => copyToClipboard(pendingTx.info.accountNo)} className="w-4 h-4 text-zinc-500 cursor-pointer hover:text-white" />
+                  </div>
+                </div>
+                <div className="flex justify-between items-center p-3 bg-zinc-950 rounded-lg border border-zinc-800">
+                  <span className="text-zinc-400">Nội dung</span>
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-yellow-500">{pendingTx.info.content}</span>
+                    <Copy onClick={() => copyToClipboard(pendingTx.info.content)} className="w-4 h-4 text-zinc-500 cursor-pointer hover:text-white" />
+                  </div>
+                </div>
+                <div className="flex justify-between items-center p-3 bg-zinc-950 rounded-lg border border-zinc-800">
+                  <span className="text-zinc-400">Số tiền</span>
+                  <span className="font-bold text-green-500">{formatCurrency(pendingTx.info.amount)}</span>
+                </div>
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button 
+                  onClick={() => {
+                    setPendingTx(null);
+                    setDepositAmount('');
+                  }}
+                  className="flex-1 bg-zinc-800 hover:bg-zinc-700 text-white py-2.5 rounded-lg font-medium transition-colors"
+                >
+                  Hủy bỏ
+                </button>
+                <button 
+                  onClick={() => {
+                    toast.success('Đã gửi xác nhận! Vui lòng chờ Admin duyệt.');
+                    setPendingTx(null);
+                    setDepositAmount('');
+                  }}
+                  className="flex-1 bg-blue-600 hover:bg-blue-500 text-white py-2.5 rounded-lg font-bold transition-colors"
+                >
+                  Đã chuyển khoản
+                </button>
+              </div>
+              <p className="text-xs text-center text-zinc-500">
+                Hệ thống sẽ tự động cộng tiền sau 1-5 phút khi nhận được chuyển khoản.
+              </p>
             </div>
-            
-            <button
-              type="submit"
-              disabled={isDepositing}
-              className="w-full bg-white text-black hover:bg-zinc-200 font-bold py-3 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center gap-2"
-            >
-              {isDepositing && <Loader2 className="w-4 h-4 animate-spin" />}
-              {t('confirmDeposit')}
-            </button>
-          </form>
+          )}
         </div>
       </div>
 

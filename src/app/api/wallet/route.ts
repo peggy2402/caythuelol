@@ -5,6 +5,11 @@ import Transaction, { TransactionType, TransactionStatus } from '@/models/Transa
 import { jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
 
+// Cấu hình Ngân hàng (Nên đưa vào biến môi trường)
+const BANK_ID = 'MB'; // MBBank
+const ACCOUNT_NO = '0000716679906'; // Số tài khoản nhận tiền
+const ACCOUNT_NAME = 'TRAN VAN CHIEN'; // Tên chủ tài khoản
+
 // Helper để lấy User ID từ token
 async function getUserId() {
   const cookieStore = await cookies();
@@ -78,23 +83,27 @@ export async function POST(req: Request) {
       amount,
       balance_after: user.wallet_balance, 
       status: TransactionStatus.PENDING,
-      description: `Nạp tiền vào ví #${Date.now().toString().slice(-6)}`,
+      description: `Nạp tiền ${amount.toLocaleString('vi-VN')}đ`,
     });
 
-    // Trong thực tế, ở đây bạn sẽ trả về URL thanh toán (Momo/VNPay)
-    // Hoặc thông tin chuyển khoản ngân hàng (QR Code)
+    // Tạo nội dung chuyển khoản: NAP <USERNAME> <TRANS_ID_SHORT>
+    // Ví dụ: NAP CHIEN123 A1B2C3
+    const transferContent = `NAP ${user.username.toUpperCase().replace(/\s/g, '')} ${transaction._id.toString().slice(-6).toUpperCase()}`;
+    
+    // Tạo link VietQR
+    // Format: https://img.vietqr.io/image/<BANK_ID>-<ACCOUNT_NO>-<TEMPLATE>.png?amount=<AMOUNT>&addInfo=<CONTENT>
+    const qrUrl = `https://img.vietqr.io/image/${BANK_ID}-${ACCOUNT_NO}-compact2.png?amount=${amount}&addInfo=${encodeURIComponent(transferContent)}&accountName=${encodeURIComponent(ACCOUNT_NAME)}`;
 
     return NextResponse.json({
       success: true,
       transaction,
-      message: 'Tạo yêu cầu nạp tiền thành công',
-      // Trả về thông tin giả lập để hiển thị QR (Demo)
+      qrUrl,
       paymentInfo: {
-        bankName: 'MB Bank',
-        accountNumber: '9999999999',
-        accountName: 'CAYTHUELOL SYSTEM',
-        content: `NAP ${user.username} ${transaction._id}`,
-        amount: amount
+        bankId: BANK_ID,
+        accountNo: ACCOUNT_NO,
+        accountName: ACCOUNT_NAME,
+        content: transferContent,
+        amount
       }
     });
 
