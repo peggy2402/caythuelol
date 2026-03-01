@@ -17,6 +17,7 @@ import {
   Settings2
 } from 'lucide-react';
 import { useLanguage } from '../../lib/i18n';
+import Sidebar from '@/components/Sidebar';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -58,58 +59,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         />
       )}
 
-      {/* Sidebar */}
-      <aside
-        className={`fixed inset-y-0 left-0 z-50 w-64 transform border-r border-white/5 bg-zinc-900/80 backdrop-blur-xl transition-transform duration-300 ease-in-out md:translate-x-0 ${
-          isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
-        }`}
-      >
-        <Link href="/">
-          <div className="flex h-20 items-center gap-3 px-6 border-b border-white/5">
-            <div className="relative h-8 w-8 overflow-hidden rounded-lg">
-                <Image src="/logo-ver3.png" alt="Logo" fill className="object-cover" />
-            </div>
-            <span className="text-lg font-bold tracking-tight text-white">
-              CAYTHUE<span className="text-blue-500">LOL</span>
-            </span>
-          </div>
-        </Link>
-        
-        <nav className="flex-1 space-y-1 p-4">
-          {navItems.map((item) => {
-            const isActive = pathname === item.href;
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={() => setIsSidebarOpen(false)}
-                className={`group flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200 ${
-                  isActive
-                    ? 'bg-blue-600/10 text-blue-400 shadow-[0_0_20px_rgba(37,99,235,0.1)] ring-1 ring-blue-500/20'
-                    : 'text-zinc-400 hover:bg-white/5 hover:text-white'
-                }`}
-              >
-                <item.icon className={`h-5 w-5 ${isActive ? 'text-blue-400' : 'text-zinc-500 group-hover:text-white'}`} />
-                {item.label}
-              </Link>
-            );
-          })}
-        </nav>
+      {/* Desktop Sidebar */}
+      <Sidebar className="hidden md:flex" />
 
-        <div className="border-t border-white/5 p-4">
-          <button
-            onClick={() => {
-                localStorage.removeItem('token');
-                localStorage.removeItem('user');
-                window.location.href = '/';
-            }}
-            className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium text-red-400 transition-colors hover:bg-red-500/10"
-          >
-            <LogOut className="h-5 w-5" />
-            {t('logout')}
-          </button>
-        </div>
-      </aside>
+      {/* Mobile Sidebar */}
+      <Sidebar 
+        className={`md:hidden ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`} 
+        onLinkClick={() => setIsSidebarOpen(false)} 
+      />
 
       {/* Main Content */}
       <div className="flex min-h-screen flex-col md:pl-64">

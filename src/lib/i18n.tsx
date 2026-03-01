@@ -354,6 +354,25 @@ const dictionaries = {
     filterResource: 'Tài nguyên',
     resetFilters: 'Đặt lại bộ lọc',
     confirmSelection: 'Xác nhận chọn',
+
+    // Blog Page
+    blogPageTitle: 'Tin tức & Cẩm nang',
+    blogPageDesc: 'Cập nhật meta, hướng dẫn leo rank và thông báo mới nhất từ hệ thống.',
+    readMore: 'Đọc tiếp',
+    latestNews: 'Mới nhất',
+    catAll: 'Tất cả',
+    catMeta: 'Meta & Guide',
+    catEsports: 'Esports',
+    catSystem: 'Hệ thống',
+    publishedAt: 'Đăng ngày',
+
+    // Admin Sidebar
+    admin: 'Quản trị',
+    manageBoosters: 'Quản lý Boosters',
+    manageCustomers: 'Quản lý Khách hàng',
+    manageOrders: 'Quản lý Đơn hàng',
+    manageBlogs: 'Quản lý Bài viết',
+    systemSettings: 'Cấu hình hệ thống',
   },
 
   en: {
@@ -681,6 +700,25 @@ const dictionaries = {
     filterResource: 'Resource',
     resetFilters: 'Reset Filters',
     confirmSelection: 'Confirm Selection',
+
+    // Blog Page
+    blogPageTitle: 'News & Guides',
+    blogPageDesc: 'Update meta, ranking guides and latest announcements from the system.',
+    readMore: 'Read More',
+    latestNews: 'Latest',
+    catAll: 'All',
+    catMeta: 'Meta & Guide',
+    catEsports: 'Esports',
+    catSystem: 'System',
+    publishedAt: 'Published at',
+
+    // Admin Sidebar
+    admin: 'Admin',
+    manageBoosters: 'Manage Boosters',
+    manageCustomers: 'Manage Customers',
+    manageOrders: 'Manage Orders',
+    manageBlogs: 'Manage Blogs',
+    systemSettings: 'System Settings',
   },
 
   kr: {
@@ -1007,6 +1045,25 @@ const dictionaries = {
     filterResource: '자원',
     resetFilters: '필터 초기화',
     confirmSelection: '선택 확인',
+
+    // Blog Page
+    blogPageTitle: '뉴스 & 가이드',
+    blogPageDesc: '메타 업데이트, 랭크 가이드 및 시스템의 최신 공지사항.',
+    readMore: '더 읽기',
+    latestNews: '최신',
+    catAll: '모두',
+    catMeta: '메타 & 가이드',
+    catEsports: 'e스포츠',
+    catSystem: '시스템',
+    publishedAt: '게시일',
+
+    // Admin Sidebar
+    admin: '관리자',
+    manageBoosters: '부스터 관리',
+    manageCustomers: '고객 관리',
+    manageOrders: '주문 관리',
+    manageBlogs: '블로그 관리',
+    systemSettings: '시스템 설정',
   },
 
   jp: {
@@ -1334,6 +1391,25 @@ const dictionaries = {
     filterResource: 'リソース',
     resetFilters: 'フィルターをリセット',
     confirmSelection: '選択を確認',
+
+    // Blog Page
+    blogPageTitle: 'ニュース & ガイド',
+    blogPageDesc: 'メタの更新、ランクガイド、およびシステムからの最新のお知らせ。',
+    readMore: '続きを読む',
+    latestNews: '最新',
+    catAll: 'すべて',
+    catMeta: 'メタ & ガイド',
+    catEsports: 'eスポーツ',
+    catSystem: 'システム',
+    publishedAt: '公開日',
+
+    // Admin Sidebar
+    admin: '管理者',
+    manageBoosters: 'ブースター管理',
+    manageCustomers: '顧客管理',
+    manageOrders: '注文管理',
+    manageBlogs: 'ブログ管理',
+    systemSettings: 'システム設定',
   },
   
 } as const;

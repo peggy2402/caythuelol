@@ -2,9 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useLanguage } from '@/lib/i18n';
-import { Star, Trophy, Swords, User as UserIcon, Loader2, ArrowLeft, Wallet, ShieldCheck, ChevronRight } from 'lucide-react';
+import { Star, Trophy, Swords, User as UserIcon, Loader2, ArrowLeft, Wallet, ShieldCheck, ChevronRight, Globe } from 'lucide-react';
 import Link from 'next/link';
-import Image from 'next/image';
 
 interface Booster {
   _id: string;
@@ -33,7 +32,7 @@ export default function BoostersPage() {
         const res = await fetch('/api/boosters');
         const data = await res.json();
         if (res.ok) {
-          setBoosters(data.boosters);
+          setBoosters(data.boosters || []);
         }
       } catch (error) {
         console.error('Failed to fetch boosters', error);
@@ -74,6 +73,14 @@ export default function BoostersPage() {
       </div>
 
       <div className="absolute top-6 right-6 z-50 flex items-center gap-4">
+        <Link 
+          href="/boosters/apply"
+          className="hidden sm:flex items-center gap-2 rounded-full bg-yellow-500/10 border border-yellow-500/20 px-4 py-2 text-sm font-bold text-yellow-500 hover:bg-yellow-500 hover:text-black transition-all backdrop-blur-md"
+        >
+          <Trophy className="w-4 h-4" />
+          Trở thành Booster
+        </Link>
+
         {/* User Info (If Logged In) */}
         {user && (
           <div className="hidden sm:flex items-center gap-3 rounded-full bg-zinc-900/50 border border-white/10 pl-2 pr-4 py-1.5 backdrop-blur-md hover:bg-zinc-900/80 transition-colors">
@@ -100,15 +107,9 @@ export default function BoostersPage() {
         <div className="relative">
           <button
             onClick={() => setIsLangMenuOpen(!isLangMenuOpen)}
-            className="flex items-center justify-center w-10 h-10 rounded-full bg-zinc-900/50 border border-white/10 backdrop-blur-md hover:bg-zinc-800 transition-all"
+            className="flex items-center justify-center w-10 h-10 rounded-full bg-zinc-900/50 border border-white/10 backdrop-blur-md hover:bg-zinc-800 transition-all text-zinc-400 hover:text-white"
           >
-            <Image 
-              src="/language.svg" 
-              alt="Language" 
-              width={20} 
-              height={20} 
-              className="invert opacity-80 hover:opacity-100 transition-opacity"
-            />
+            <Globe className="w-5 h-5" />
           </button>
 
           {isLangMenuOpen && (

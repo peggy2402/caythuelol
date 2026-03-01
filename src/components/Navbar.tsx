@@ -11,7 +11,14 @@ import {
   LayoutDashboard,
   FileText,
   ChevronDown,
-  X
+  X,
+  ShieldAlert,
+  Users,
+  Newspaper,
+  Settings,
+  Briefcase,
+  ListTodo,
+  Zap
 } from 'lucide-react';
 import { useLanguage, Language } from '../lib/i18n';
 import { useRouter, usePathname } from 'next/navigation';
@@ -137,7 +144,7 @@ export default function Navbar() {
         <nav className="hidden md:flex items-center gap-8 text-sm font-medium" suppressHydrationWarning>
           <NavLink href="/services" label={t('services')} />
           <NavLink href="/boosters" label={t('boosters')} />
-          <NavLink href="/blog" label={t('blog')} />
+          <NavLink href="/blogs" label={t('blog')} />
           <div className="h-5 w-px bg-white/10" suppressHydrationWarning />
 
           <LanguageSwitcher
@@ -214,6 +221,17 @@ export default function Navbar() {
                     <FileText className="h-4 w-4" />
                     {t('orders')}
                   </Link>
+
+                  {/* Admin Link - Chỉ hiện khi role là ADMIN */}
+                  {user.role === 'ADMIN' && (
+                    <Link
+                      href="/admin/boosters"
+                      className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/5 text-yellow-500"
+                    >
+                      <ShieldAlert className="h-4 w-4" />
+                      Duyệt Đơn Booster
+                    </Link>
+                  )}
 
                   <div className="border-t border-white/10 my-1" />
 
@@ -312,9 +330,37 @@ export default function Navbar() {
 
               {/* Navigation Links */}
               <div className="flex-grow space-y-2">
-                <Link href="/dashboard" onClick={closeMobileMenu} suppressHydrationWarning className="flex items-center gap-4 px-4 py-3 rounded-lg hover:bg-white/5 transition-colors"><LayoutDashboard className="h-5 w-5 text-zinc-400" />{t('dashboard')}</Link>
-                <Link href="/wallet" onClick={closeMobileMenu} suppressHydrationWarning className="flex items-center gap-4 px-4 py-3 rounded-lg hover:bg-white/5 transition-colors"><Wallet className="h-5 w-5 text-zinc-400" />{t('wallet')}</Link>
-                <Link href="/orders" onClick={closeMobileMenu} suppressHydrationWarning className="flex items-center gap-4 px-4 py-3 rounded-lg hover:bg-white/5 transition-colors"><FileText className="h-5 w-5 text-zinc-400" />{t('orders')}</Link>
+                {/* Common Links */}
+                <Link href="/dashboard" onClick={closeMobileMenu} className="flex items-center gap-4 px-4 py-3 rounded-lg hover:bg-white/5 transition-colors"><LayoutDashboard className="h-5 w-5 text-zinc-400" />{t('dashboard')}</Link>
+                
+                {/* Customer Links */}
+                {user.role === 'CUSTOMER' && (
+                  <>
+                    <Link href="/orders" onClick={closeMobileMenu} className="flex items-center gap-4 px-4 py-3 rounded-lg hover:bg-white/5 transition-colors"><FileText className="h-5 w-5 text-zinc-400" />{t('orders')}</Link>
+                    <Link href="/wallet" onClick={closeMobileMenu} className="flex items-center gap-4 px-4 py-3 rounded-lg hover:bg-white/5 transition-colors"><Wallet className="h-5 w-5 text-zinc-400" />{t('wallet')}</Link>
+                  </>
+                )}
+
+                {/* Booster Links */}
+                {user.role === 'BOOSTER' && (
+                  <>
+                    <Link href="/booster/jobs" onClick={closeMobileMenu} className="flex items-center gap-4 px-4 py-3 rounded-lg hover:bg-white/5 transition-colors"><Briefcase className="h-5 w-5 text-zinc-400" />{t('jobMarket')}</Link>
+                    <Link href="/booster/my-orders" onClick={closeMobileMenu} className="flex items-center gap-4 px-4 py-3 rounded-lg hover:bg-white/5 transition-colors"><ListTodo className="h-5 w-5 text-zinc-400" />{t('myActiveJobs')}</Link>
+                    <Link href="/booster/services" onClick={closeMobileMenu} className="flex items-center gap-4 px-4 py-3 rounded-lg hover:bg-white/5 transition-colors"><Zap className="h-5 w-5 text-zinc-400" />{t('manageServices')}</Link>
+                    <Link href="/wallet" onClick={closeMobileMenu} className="flex items-center gap-4 px-4 py-3 rounded-lg hover:bg-white/5 transition-colors"><Wallet className="h-5 w-5 text-zinc-400" />{t('wallet')}</Link>
+                  </>
+                )}
+
+                {/* Admin Links */}
+                {user.role === 'ADMIN' && (
+                  <>
+                    <Link href="/admin/boosters" onClick={closeMobileMenu} className="flex items-center gap-4 px-4 py-3 rounded-lg hover:bg-white/5 transition-colors text-yellow-500"><ShieldAlert className="h-5 w-5" />{t('manageBoosters')}</Link>
+                    <Link href="/admin/users" onClick={closeMobileMenu} className="flex items-center gap-4 px-4 py-3 rounded-lg hover:bg-white/5 transition-colors"><Users className="h-5 w-5 text-zinc-400" />{t('manageCustomers')}</Link>
+                    <Link href="/admin/orders" onClick={closeMobileMenu} className="flex items-center gap-4 px-4 py-3 rounded-lg hover:bg-white/5 transition-colors"><FileText className="h-5 w-5 text-zinc-400" />{t('manageOrders')}</Link>
+                    <Link href="/admin/blogs" onClick={closeMobileMenu} className="flex items-center gap-4 px-4 py-3 rounded-lg hover:bg-white/5 transition-colors"><Newspaper className="h-5 w-5 text-zinc-400" />{t('manageBlogs')}</Link>
+                    <Link href="/admin/settings" onClick={closeMobileMenu} className="flex items-center gap-4 px-4 py-3 rounded-lg hover:bg-white/5 transition-colors"><Settings className="h-5 w-5 text-zinc-400" />{t('systemSettings')}</Link>
+                  </>
+                )}
               </div>
 
               {/* Actions */}
@@ -331,7 +377,7 @@ export default function Navbar() {
               <div className="flex-grow space-y-2">
                 <Link href="/services" onClick={closeMobileMenu} suppressHydrationWarning className="block px-4 py-3 rounded-lg hover:bg-white/5 transition-colors">{t('services')}</Link>
                 <Link href="/boosters" onClick={closeMobileMenu} suppressHydrationWarning className="block px-4 py-3 rounded-lg hover:bg-white/5 transition-colors">{t('boosters')}</Link>
-                <Link href="/blog" onClick={closeMobileMenu} suppressHydrationWarning className="block px-4 py-3 rounded-lg hover:bg-white/5 transition-colors">{t('blog')}</Link>
+                <Link href="/blogs" onClick={closeMobileMenu} suppressHydrationWarning className="block px-4 py-3 rounded-lg hover:bg-white/5 transition-colors">{t('blog')}</Link>
               </div>
               
               <div className="space-y-3">

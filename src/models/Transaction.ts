@@ -1,45 +1,36 @@
-import mongoose, { Schema, Document, Model } from 'mongoose';
+import mongoose, { Schema, Model, models } from "mongoose";
 
-export enum TransactionType {
-  DEPOSIT = 'DEPOSIT',
-  WITHDRAWAL = 'WITHDRAWAL',
-  PAYMENT_HOLD = 'PAYMENT_HOLD',
-  PAYMENT_RELEASE = 'PAYMENT_RELEASE',
-  REFUND = 'REFUND',
-  COMMISSION = 'COMMISSION',
-}
-
-export enum TransactionStatus {
-  PENDING = 'PENDING',
-  SUCCESS = 'SUCCESS',
-  FAILED = 'FAILED',
-}
-
-export interface ITransaction extends Document {
-  user_id: mongoose.Types.ObjectId;
-  order_id?: mongoose.Types.ObjectId;
-  type: TransactionType;
+export interface ITransaction {
+  userId: mongoose.Types.ObjectId;
+  orderId?: mongoose.Types.ObjectId;
+  type: 'DEPOSIT' | 'WITHDRAWAL' | 'PAYMENT_HOLD' | 'PAYMENT_RELEASE' | 'REFUND' | 'COMMISSION';
   amount: number;
-  balance_after: number;
-  status: TransactionStatus;
-  description?: string;
-  created_at: Date;
+  balanceAfter: number;
+  description: string;
+  status: 'PENDING' | 'SUCCESS' | 'FAILED';
+  createdAt: Date;
 }
 
 const TransactionSchema = new Schema<ITransaction>(
   {
-    user_id: { type: Schema.Types.ObjectId, ref: 'User', required: true },
-    order_id: { type: Schema.Types.ObjectId, ref: 'Order' },
-    type: { type: String, enum: Object.values(TransactionType), required: true },
+    userId: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    orderId: { type: Schema.Types.ObjectId, ref: "Order" },
+    type: { 
+      type: String, 
+      enum: ['DEPOSIT', 'WITHDRAWAL', 'PAYMENT_HOLD', 'PAYMENT_RELEASE', 'REFUND', 'COMMISSION'], 
+      required: true 
+    },
     amount: { type: Number, required: true },
-    balance_after: { type: Number, required: true },
-    status: { type: String, enum: Object.values(TransactionStatus), default: TransactionStatus.PENDING },
-    description: String,
+    balanceAfter: { type: Number, required: true },
+    description: { type: String, default: "" },
+    status: { 
+      type: String, 
+      enum: ['PENDING', 'SUCCESS', 'FAILED'], 
+      default: 'SUCCESS' 
+    },
   },
-  { timestamps: { createdAt: true, updatedAt: false } }
+  { timestamps: true }
 );
 
-const Transaction: Model<ITransaction> =
-  mongoose.models.Transaction || mongoose.model<ITransaction>('Transaction', TransactionSchema);
-
+const Transaction: Model<ITransaction> = models.Transaction || mongoose.model("Transaction", TransactionSchema);
 export default Transaction;

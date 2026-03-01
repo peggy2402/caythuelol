@@ -34,14 +34,14 @@ export async function GET() {
     // 2. Lấy đơn chưa ai nhận (PAID)
     const availableOrders = await Order.find({
       status: OrderStatus.PAID,
-      booster_id: { $exists: false } // Hoặc null
-    }).sort({ created_at: -1 });
+      boosterId: { $exists: false } // Hoặc null
+    }).sort({ createdAt: -1 });
 
     // 3. Lấy đơn Booster đang làm
     const myOrders = await Order.find({
-      booster_id: boosterId,
+      boosterId: boosterId,
       status: { $in: [OrderStatus.APPROVED, OrderStatus.IN_PROGRESS] }
-    }).sort({ updated_at: -1 });
+    }).sort({ updatedAt: -1 });
 
     return NextResponse.json({ availableOrders, myOrders });
   } catch (error) {
@@ -70,12 +70,12 @@ export async function POST(req: Request) {
     }
 
     // 2. Kiểm tra trạng thái (Phải là PAID và chưa có Booster)
-    if (order.status !== OrderStatus.PAID || order.booster_id) {
+    if (order.status !== OrderStatus.PAID || order.boosterId) {
       return NextResponse.json({ error: 'Order is no longer available' }, { status: 400 });
     }
 
     // 3. Cập nhật đơn hàng
-    order.booster_id = boosterId as any;
+    order.boosterId = boosterId as any;
     order.status = OrderStatus.APPROVED; // Chuyển sang đã duyệt/đã nhận
     await order.save();
 
