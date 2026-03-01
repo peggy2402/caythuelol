@@ -16,7 +16,8 @@ import {
   Wallet, 
   UserCircle,
   Newspaper,
-  LogOut
+  LogOut,
+  Home
 } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n';
 
@@ -65,15 +66,18 @@ export default function Sidebar({ className = '', onLinkClick }: SidebarProps) {
     <aside className={`w-64 bg-zinc-900/80 backdrop-blur-xl border-r border-white/5 h-screen fixed top-0 left-0 flex flex-col overflow-y-auto transition-transform duration-300 z-50 ${className}`}>
       {/* Logo Area */}
       <div className="flex h-20 items-center gap-3 px-6 border-b border-white/5 shrink-0">
-        <div className="relative h-8 w-8 overflow-hidden rounded-lg">
-          <Image src="/logo-ver3.png" alt="Logo" fill className="object-cover" />
-        </div>
-        <span className="text-lg font-bold tracking-tight text-white">
-          CAYTHUE<span className="text-blue-500">LOL</span>
-        </span>
+        <Link href="/" className="flex items-center gap-3" suppressHydrationWarning>
+            <div className="relative h-8 w-8 overflow-hidden rounded-lg">
+            <Image src="/logo-ver3.png" alt="Logo" fill className="object-cover" />
+            </div>
+            <span className="text-lg font-bold tracking-tight text-white">
+            CAYTHUE<span className="text-blue-500">LOL</span>
+            </span>
+        </Link>
       </div>
 
       <div className="space-y-1 p-4 flex-1">
+        <NavItem href="/" icon={Home} label={t('backToHome')} />
         
         {/* --- CUSTOMER MENU --- */}
         {user.role === 'CUSTOMER' && (
@@ -89,7 +93,7 @@ export default function Sidebar({ className = '', onLinkClick }: SidebarProps) {
         {/* --- BOOSTER MENU --- */}
         {user.role === 'BOOSTER' && (
           <>
-            <div className="px-4 py-2 text-xs font-bold text-zinc-500 uppercase tracking-wider mb-1">Booster Zone</div>
+            <div className="px-4 py-2 text-xs font-bold text-zinc-500 uppercase tracking-wider mb-1">{t('boosterZone')}</div>
             <NavItem href="/booster/dashboard" icon={LayoutDashboard} label={t('dashboard')} />
             <NavItem href="/booster/jobs" icon={Briefcase} label={t('jobMarket')} />
             <NavItem href="/booster/my-orders" icon={ListTodo} label={t('myActiveJobs')} />
@@ -114,6 +118,20 @@ export default function Sidebar({ className = '', onLinkClick }: SidebarProps) {
             <NavItem href="/admin/settings" icon={Settings} label={t('systemSettings')} />
           </>
         )}
+      </div>
+
+      <div className="p-4 border-t border-white/5 space-y-1">
+        <button
+          onClick={() => {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            window.location.href = '/';
+          }}
+          className="flex w-full items-center gap-3 px-4 py-3 rounded-xl text-red-400 hover:bg-red-500/10 transition-all duration-200 group"
+        >
+          <LogOut className="w-5 h-5" />
+          <span className="font-medium">{t('logout')}</span>
+        </button>
       </div>
     </aside>
   );

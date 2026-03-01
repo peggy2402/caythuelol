@@ -78,7 +78,7 @@ export default function BoostersPage() {
           className="hidden sm:flex items-center gap-2 rounded-full bg-yellow-500/10 border border-yellow-500/20 px-4 py-2 text-sm font-bold text-yellow-500 hover:bg-yellow-500 hover:text-black transition-all backdrop-blur-md"
         >
           <Trophy className="w-4 h-4" />
-          Trở thành Booster
+          {t('becomeBooster')}
         </Link>
 
         {/* User Info (If Logged In) */}

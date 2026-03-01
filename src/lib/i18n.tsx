@@ -37,6 +37,7 @@ const dictionaries = {
     backToHome: 'Trang chủ',
     rentNow: 'Thuê Ngay',
     dashboard: 'Tổng quan',
+    boosterZone: 'Khu vực Booster',
     orders: 'Đơn hàng',
     wallet: 'Ví tiền',
     profile: 'Hồ sơ',
@@ -261,6 +262,8 @@ const dictionaries = {
     hireBooster: 'Thuê Ngay',
     completedOrders: 'Đơn hoàn thành',
     rating: 'Đánh giá',
+    noBoosters: 'Hiện chưa có Booster nào. Vui lòng quay lại sau.',
+    becomeBooster: 'Đăng ký Trở thành Booster',
 
     // Create Order
     createOrderTitle: 'Đặt đơn cày thuê',
@@ -383,6 +386,7 @@ const dictionaries = {
     backToHome: 'Back to Home',
     rentNow: 'Rent Now',
     dashboard: 'Dashboard',
+    boosterZone: 'Booster Zone',
     orders: 'Orders',
     wallet: 'Wallet',
     profile: 'Profile',
@@ -607,6 +611,8 @@ const dictionaries = {
     hireBooster: 'Hire Now',
     completedOrders: 'Orders Completed',
     rating: 'Rating',
+    noBoosters: 'No boosters available at the moment. Please check back later.',
+    becomeBooster: 'Register to Become a Booster',
 
     // Create Order
     createOrderTitle: 'Create Order',
@@ -729,6 +735,7 @@ const dictionaries = {
     backToHome: '홈으로',
     rentNow: '지금 대여',
     dashboard: '대시보드',
+    boosterZone: '부스터 존',
     orders: '주문',
     wallet: '지갑',
     profile: '프로필',
@@ -952,6 +959,8 @@ const dictionaries = {
     hireBooster: '지금 고용',
     completedOrders: '완료된 주문',
     rating: '평가',
+    noBoosters: '현재 이용 가능한 부스터가 없습니다. 나중에 다시 확인해주세요.',
+    becomeBooster: '부스터가 되려면 등록하세요',
 
     // Create Order
     createOrderTitle: '주문 생성',
@@ -1074,6 +1083,7 @@ const dictionaries = {
     backToHome: 'ホームに戻る',
     rentNow: '今すぐレンタル',
     dashboard: 'ダッシュボード',
+    boosterZone: 'ブースタゾーン',
     orders: '注文',
     wallet: 'ウォレット',
     profile: 'プロフィール',
@@ -1298,7 +1308,9 @@ const dictionaries = {
     hireBooster: '今すぐ雇う',
     completedOrders: '完了した注文',
     rating: '評価',
-
+    noBoosters: '現在利用可能なブースターはいません。後でもう一度確認してください。',
+    becomeBooster: 'ブースターになるには登録してください',
+    
     // Create Order
     createOrderTitle: '注文作成',
     selectService: 'サービス選択',

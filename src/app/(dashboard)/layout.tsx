@@ -33,21 +33,29 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }
   }, []);
 
-  let navItems = [
-    { href: '/dashboard', label: t('dashboard'), icon: LayoutDashboard },
-    { href: '/orders', label: t('orders'), icon: Gamepad2 },
-    { href: '/wallet', label: t('wallet'), icon: Wallet },
-    { href: '/profile', label: t('profile'), icon: User },
+  // Danh sách tất cả các trang để hiển thị tiêu đề (Breadcrumb)
+  const allNavItems = [
+    // Common
+    { href: '/dashboard', label: t('dashboard') },
+    { href: '/orders', label: t('orders') },
+    { href: '/wallet', label: t('wallet') },
+    { href: '/profile', label: t('profile') },
+    
+    // Booster Routes
+    { href: '/booster/jobs', label: t('jobMarket') },
+    { href: '/booster/my-orders', label: t('myActiveJobs') },
+    { href: '/booster/services', label: t('manageServices') },
+
+    // Admin Routes
+    { href: '/admin/boosters', label: t('manageBoosters') },
+    { href: '/admin/users', label: t('manageCustomers') },
+    { href: '/admin/orders', label: t('manageOrders') },
+    { href: '/admin/blogs', label: t('manageBlogs') },
+    { href: '/admin/settings', label: t('systemSettings') },
   ];
 
-  // Nếu là Booster, thêm menu Job Market
-  if (user?.role === 'BOOSTER') {
-    // Chèn vào vị trí thứ 2 (sau Dashboard)
-    navItems.splice(1, 0, { href: '/jobs', label: t('jobMarket'), icon: Briefcase });
-    navItems.splice(2, 0, { href: '/booster/services', label: t('manageServices'), icon: Settings2 });
-  }
-
-  const activeNavItem = navItems.find(item => pathname.startsWith(item.href));
+  // Tìm item khớp với URL hiện tại (ưu tiên khớp chính xác hoặc khớp phần đầu)
+  const activeNavItem = allNavItems.find(item => pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href)));
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 font-sans selection:bg-blue-500/30">
