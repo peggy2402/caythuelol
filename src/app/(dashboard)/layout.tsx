@@ -52,6 +52,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { href: '/admin/boosters', label: t('manageBoosters') },
     { href: '/admin/users', label: t('manageCustomers') },
     { href: '/admin/orders', label: t('manageOrders') },
+    { href: '/admin/transactions', label: t('manageTransactions') },
     { href: '/admin/blogs', label: t('manageBlogs') },
     { href: '/admin/settings', label: t('systemSettings') },
   ];

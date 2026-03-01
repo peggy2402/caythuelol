@@ -1,4 +1,3 @@
-// src/app/api/webhooks/sepay/route.ts
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import User from '@/models/User';
@@ -42,16 +41,20 @@ export async function POST(req: Request) {
     // Ví dụ: "NAP CHIEN123" hoặc "NAP CHIEN123 8A2B9C"
     const content = data.transferContent.toUpperCase();
     
-    // Regex để tìm Username sau chữ NAP
-    // Tìm từ bắt đầu bằng NAP, có thể có hoặc không có khoảng trắng (\s*), sau đó là Username (A-Z, 0-9, _, -, .)
-    const match = content.match(/NAP\s*([A-Z0-9_\-\.]+)/);
+    // Regex mới: Tìm NAP + Username + Code (Optional)
+    // Ví dụ: NAP CHIEN123 B60357
+    // Group 1: Username
+    // Group 2: Transaction Code (6 ký tự cuối) - Có thể có hoặc không
+    const match = content.match(/NAP\s+([A-Z0-9_\-\.]+)(?:\s+([A-Z0-9]+))?/);
     
     if (!match) {
-      console.log('Webhook: Cannot parse username from content', content);
-      return NextResponse.json({ success: true, message: 'Cannot parse content' });
+      console.log('Webhook: Cannot parse content (Wrong syntax)', content);
+      // Trả về success true để SePay không gửi lại nữa, nhưng không xử lý giao dịch (để Admin duyệt tay)
+      return NextResponse.json({ success: true, message: 'Syntax error, waiting for manual review' });
     }
 
     const username = match[1];
+    const txCode = match[2]; // Mã giao dịch ngắn (nếu khách có nhập)
 
     // 3. Tìm User
     const user = await User.findOne({ 
@@ -59,19 +62,42 @@ export async function POST(req: Request) {
     });
 
     if (!user) {
-      console.log('Webhook: User not found', username);
-      return NextResponse.json({ success: true, message: 'User not found' });
+      console.log('Webhook: User not found', username); 
+      return NextResponse.json({ success: true, message: 'User not found, waiting for manual review' });
     }
 
     // 4. Xử lý Giao dịch
     // Tìm giao dịch PENDING gần nhất của User có số tiền khớp (để update)
     // Hoặc tạo giao dịch mới nếu không tìm thấy (User chuyển khoản mà không tạo lệnh trên web)
-    let transaction = await Transaction.findOne({
+    
+    // Query tìm kiếm
+    const query: any = {
       userId: user._id,
       status: TransactionStatus.PENDING,
       amount: data.transferAmount,
       type: TransactionType.DEPOSIT
-    }).sort({ createdAt: -1 });
+    };
+
+    // Nếu khách nhập đúng cả mã Code (6 ký tự cuối ID), ta tìm chính xác giao dịch đó luôn cho an toàn tuyệt đối
+    if (txCode && txCode.length >= 4) {
+        // Tìm các giao dịch mà _id kết thúc bằng txCode
+        // Lưu ý: MongoDB ObjectId là hex, nhưng ở đây ta so sánh chuỗi
+        // Cách đơn giản nhất là lấy list pending ra và filter trong code JS
+    }
+
+    let transaction = await Transaction.findOne(query).sort({ createdAt: -1 });
+
+    // Kiểm tra thêm mã Code nếu có (Double check)
+    if (transaction && txCode) {
+        const txIdString = transaction._id.toString().toUpperCase();
+        if (!txIdString.endsWith(txCode)) {
+            console.log('Webhook: Code mismatch', txCode, txIdString);
+            // Nếu mã không khớp, có thể là giao dịch khác hoặc khách nhập bừa.
+            // Ta vẫn có thể duyệt nếu số tiền khớp, hoặc bỏ qua để Admin duyệt.
+            // Ở đây ta chọn cách an toàn: Nếu có Code mà Code sai -> Để Admin duyệt.
+            return NextResponse.json({ success: true, message: 'Transaction code mismatch, waiting for manual review' });
+        }
+    }
 
     if (transaction) {
       // Case A: Update giao dịch PENDING có sẵn
@@ -96,8 +122,11 @@ export async function POST(req: Request) {
     await transaction.save();
 
     // 6. Bắn thông báo Realtime (Socket.io)
+    // URL này phải là URL của Socket Server trên Railway
+    const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001';
+    
     try {
-      await fetch(`${process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001'}/trigger-payment`, {
+      const socketRes = await fetch(`${socketUrl}/trigger-payment`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -106,6 +135,12 @@ export async function POST(req: Request) {
           message: `Nạp thành công ${data.transferAmount.toLocaleString('vi-VN')}đ`
         })
       });
+      
+      if (!socketRes.ok) {
+        console.error('Socket trigger failed with status:', socketRes.status);
+      } else {
+        console.log('Socket trigger sent successfully to:', socketUrl);
+      }
     } catch (err) {
       console.error('Socket trigger failed', err);
     }

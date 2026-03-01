@@ -375,6 +375,7 @@ const dictionaries = {
     manageCustomers: 'Quản lý Khách hàng',
     manageOrders: 'Quản lý Đơn hàng',
     manageBlogs: 'Quản lý Bài viết',
+    manageTransactions: 'Quản lý Giao dịch',
     systemSettings: 'Cấu hình hệ thống',
 
     // Booster Apply
@@ -766,6 +767,7 @@ const dictionaries = {
     manageCustomers: 'Manage Customers',
     manageOrders: 'Manage Orders',
     manageBlogs: 'Manage Blogs',
+    manageTransactions: 'Manage Transactions',
     systemSettings: 'System Settings',
 
     // Booster Apply
@@ -1156,6 +1158,7 @@ const dictionaries = {
     manageCustomers: '고객 관리',
     manageOrders: '주문 관리',
     manageBlogs: '블로그 관리',
+    manageTransactions: '거래 관리',
     systemSettings: '시스템 설정',
 
     // Booster Apply
@@ -1547,6 +1550,7 @@ const dictionaries = {
     manageCustomers: '顧客管理',
     manageOrders: '注文管理',
     manageBlogs: 'ブログ管理',
+    manageTransactions: '取引管理',
     systemSettings: 'システム設定',
 
     // Booster Apply

@@ -39,7 +39,7 @@ export async function GET() {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    const transactions = await Transaction.find({ user_id: userId })
+    const transactions = await Transaction.find({ userId })
       .sort({ createdAt: -1 })
       .limit(20);
 
@@ -47,6 +47,11 @@ export async function GET() {
       balance: user.wallet_balance,
       pending: user.pending_balance,
       transactions,
+      bankInfo: {
+        bankId: BANK_ID,
+        accountNo: ACCOUNT_NO,
+        accountName: ACCOUNT_NAME
+      }
     });
   } catch (error) {
     console.error('Wallet GET Error:', error);
@@ -74,20 +79,30 @@ export async function POST(req: Request) {
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
+    // Anti-spam: Kiểm tra xem user có quá nhiều đơn đang treo không
+    const pendingCount = await Transaction.countDocuments({
+      userId,
+      status: TransactionStatus.PENDING,
+      type: TransactionType.DEPOSIT
+    });
 
+    if (pendingCount >= 3) {
+      return NextResponse.json({ error: 'Bạn có quá nhiều yêu cầu đang chờ xử lý. Vui lòng hoàn tất hoặc hủy bớt đơn cũ.' }, { status: 400 });
+    }
+    
     // Tạo giao dịch PENDING
     // Lưu ý: balance_after ở đây tạm thời là balance hiện tại vì chưa cộng tiền thật
     const transaction = await Transaction.create({
-      user_id: userId,
+      userId,
       type: TransactionType.DEPOSIT,
       amount,
-      balance_after: user.wallet_balance, 
+      balanceAfter: user.wallet_balance, 
       status: TransactionStatus.PENDING,
       description: `Nạp tiền ${amount.toLocaleString('vi-VN')}đ`,
     });
 
-    // Tạo nội dung chuyển khoản: NAP <USERNAME> <TRANS_ID_SHORT>
-    // Ví dụ: NAP CHIEN123 A1B2C3
+    // Tạo nội dung chuyển khoản: NAP <USERNAME> <CODE>
+    // Ví dụ: NAP TRANANHKIENHP B60357
     const transferContent = `NAP ${user.username.toUpperCase().replace(/\s/g, '')} ${transaction._id.toString().slice(-6).toUpperCase()}`;
     
     // Tạo link VietQR
