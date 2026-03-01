@@ -45,7 +45,7 @@ export async function POST(req: Request) {
     // Ví dụ: NAP CHIEN123 B60357
     // Group 1: Username
     // Group 2: Transaction Code (6 ký tự cuối) - Có thể có hoặc không
-    const match = content.match(/NAP\s+([A-Z0-9_\-\.]+)(?:\s+([A-Z0-9]+))?/);
+    const match = content.match(/NAP\s*([A-Z0-9_\-\.]+)(?:\s+([A-Z0-9]+))?/);
     
     if (!match) {
       console.log('Webhook: Cannot parse content (Wrong syntax)', content);
