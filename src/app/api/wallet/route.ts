@@ -6,9 +6,10 @@ import { jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
 
 // Cấu hình Ngân hàng (Nên đưa vào biến môi trường)
-const BANK_ID = 'MB'; // MBBank
-const ACCOUNT_NO = '0000716679906'; // Số tài khoản nhận tiền
-const ACCOUNT_NAME = 'TRAN VAN CHIEN'; // Tên chủ tài khoản
+// Fallback nếu không có biến môi trường thì dùng MB cá nhân
+const BANK_ID = process.env.BANK_ID || 'MB';
+const ACCOUNT_NO = process.env.BANK_ACCOUNT_NO; // Bỏ fallback cứng để bắt buộc check env hoặc xử lý lỗi nếu thiếu
+const ACCOUNT_NAME = process.env.BANK_ACCOUNT_NAME || 'SEPAY';
 
 // Helper để lấy User ID từ token
 async function getUserId() {
@@ -43,6 +44,11 @@ export async function GET() {
       .sort({ createdAt: -1 })
       .limit(20);
 
+    // Nếu chưa cấu hình ngân hàng thì trả về lỗi hoặc thông báo
+    if (!ACCOUNT_NO) {
+        return NextResponse.json({ error: 'Server Payment Configuration Missing' }, { status: 500 });
+    }
+
     return NextResponse.json({
       balance: user.wallet_balance,
       pending: user.pending_balance,
@@ -73,6 +79,10 @@ export async function POST(req: Request) {
     // Validate số tiền
     if (!amount || amount < 10000) {
       return NextResponse.json({ error: 'Số tiền nạp tối thiểu là 10,000 VNĐ' }, { status: 400 });
+    }
+
+    if (!ACCOUNT_NO) {
+      return NextResponse.json({ error: 'Hệ thống chưa cấu hình tài khoản nhận tiền' }, { status: 500 });
     }
 
     const user = await User.findById(userId);
