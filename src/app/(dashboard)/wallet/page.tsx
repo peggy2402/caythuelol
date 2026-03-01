@@ -107,7 +107,7 @@ export default function WalletPage() {
     }
 
     if (!bankConfig || !currentUser) {
-      toast.error("Đang tải thông tin ngân hàng...");
+      toast.error(t('loadingBankInfo'));
       return;
     }
 

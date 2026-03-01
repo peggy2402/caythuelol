@@ -364,3 +364,21 @@ caythuelol/
   - Sửa lỗi Next.js 15: `params` trong API Route phải được `await`.
   - Sửa lỗi bất đồng bộ tên trường trong Model (camelCase vs snake_case).
   - Dọn dẹp các file API bị đặt sai vị trí hoặc trùng lặp.
+
+11. 2026-03-01 — Wallet Realtime, SePay Integration & UI Polish (Late Night)
+
+- **Wallet System (Realtime & Automation):**
+  - **Architecture:** Triển khai `Socket.io` server riêng (`socket-server/server.js`) để xử lý thông báo realtime, khắc phục hạn chế của Vercel Serverless.
+  - **SePay Webhook:** Xây dựng `/api/webhooks/sepay` để tự động xử lý giao dịch nạp tiền. Logic thông minh: Parse nội dung `NAP + USERNAME + CODE`, tự động khớp đơn PENDING hoặc tạo đơn mới nếu khách chuyển khoản trực tiếp.
+  - **Deposit Flow:** Tối ưu luồng nạp tiền: "Hiển thị QR (Client-side)" -> "Khách xác nhận đã chuyển" -> "Tạo Transaction PENDING". Giúp giảm rác trong DB.
+  - **Anti-Spam:** Giới hạn tối đa 3 đơn nạp tiền PENDING/người dùng. Thêm tính năng cho phép khách tự "Hủy đơn" đang treo.
+  - **Admin Transactions:** Xây dựng trang `/admin/transactions` để Admin duyệt đơn thủ công (Manual Approve) trong trường hợp Webhook gặp sự cố.
+
+- **Booster Application (`/boosters/apply`):**
+  - **VietQR Integration:** Tích hợp API `api.vietqr.io` cho phép chọn ngân hàng từ Dropdown có tìm kiếm, hiển thị Logo và Mã ngân hàng chuyên nghiệp.
+  - **UI Polish:** Nâng cấp Stepper với hiệu ứng Gradient, Pulse animation và tối ưu hiển thị trên Mobile (ẩn text bước không active).
+
+- **Refactoring & Fixes:**
+  - **Schema Consistency:** Đồng bộ hóa tên trường `userId` (thay vì `user_id`) và `balanceAfter` (thay vì `balance_after`) trong toàn bộ code Transaction.
+  - **API Routes:** Sửa đường dẫn `/api/booster/jobs` thành `/api/boosters/jobs` cho đúng chuẩn RESTful.
+  - **Socket Client:** Tạo `src/lib/socket.ts` singleton để quản lý kết nối Socket ở Frontend.

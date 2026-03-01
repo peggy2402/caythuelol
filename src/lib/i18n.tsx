@@ -254,6 +254,7 @@ const dictionaries = {
     minDeposit: 'Tối thiểu 10,000 VNĐ',
     confirmDeposit: 'Xác nhận nạp',
     depositSuccess: 'Tạo yêu cầu nạp tiền thành công!',
+    loadingBankInfo: 'Đang tải thông tin ngân hàng...',
     mockPaymentBtn: 'Giả lập thanh toán (Dev)',
 
     // Booster Page
@@ -646,6 +647,7 @@ const dictionaries = {
     minDeposit: 'Minimum 10,000 VND',
     confirmDeposit: 'Confirm Deposit',
     depositSuccess: 'Deposit request created successfully!',
+    loadingBankInfo: 'Loading bank info...',
     mockPaymentBtn: 'Simulate Payment (Dev)',
 
     // Booster Page
@@ -1037,6 +1039,7 @@ const dictionaries = {
     minDeposit: '최소 10,000 VND',
     confirmDeposit: '입금 확인',
     depositSuccess: '입금 요청이 성공적으로 생성되었습니다!',
+    loadingBankInfo: '은행 정보 로딩 중...',
     mockPaymentBtn: '결제 시뮬레이션 (Dev)',
 
     // Booster Page
@@ -1429,6 +1432,7 @@ const dictionaries = {
     minDeposit: '最低 10,000 VND',
     confirmDeposit: '入金確認',
     depositSuccess: '入金リクエストが正常に作成されました！',
+    loadingBankInfo: '銀行情報を読み込み中...',
     mockPaymentBtn: '支払いシミュレーション (Dev)',
 
     // Booster Page
