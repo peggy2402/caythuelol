@@ -29,6 +29,7 @@ export default function BoostersPage() {
     const fetchBoosters = async () => {
       try {
         const res = await fetch('/api/boosters');
+        if (!res.ok) throw new Error('Failed to fetch');
         const data = await res.json();
         if (res.ok) {
           setBoosters(data.boosters || []);

@@ -161,7 +161,10 @@ function ServicesContent() {
 
     // Fetch Boosters
     fetch('/api/boosters')
-      .then(res => res.json())
+      .then(res => {
+        if (!res.ok) throw new Error('Failed to fetch boosters');
+        return res.json();
+      })
       .then(data => setBoosters(data.boosters || []))
       .catch(err => console.error(err));
 

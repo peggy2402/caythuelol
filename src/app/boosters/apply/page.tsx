@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { Loader2, CheckCircle2, ShieldAlert, Upload, ChevronRight, ChevronLeft, AlertTriangle } from 'lucide-react';
+import { Loader2, CheckCircle2, ShieldAlert, Upload, ChevronRight, ChevronLeft, AlertTriangle, Trophy, ChevronsUpDown, Check, Search } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 // UI Components (Giả sử bạn đã cài Shadcn)
@@ -38,6 +38,14 @@ const formSchema = z.object({
 
 type FormData = z.infer<typeof formSchema>;
 
+interface Bank {
+  id: number;
+  name: string;
+  code: string;
+  shortName: string;
+  logo: string;
+}
+
 export default function BoosterApplyPage() {
   const { t } = useLanguage();
   const [step, setStep] = useState(1);
@@ -46,13 +54,27 @@ export default function BoosterApplyPage() {
   const [agreements, setAgreements] = useState<Record<string, boolean>>({});
   const router = useRouter();
 
-  const { register, handleSubmit, watch, trigger, formState: { errors } } = useForm<FormData>({
+  // Bank State
+  const [banks, setBanks] = useState<Bank[]>([]);
+  const [isBankOpen, setIsBankOpen] = useState(false);
+  const [bankSearch, setBankSearch] = useState('');
+
+  const { register, handleSubmit, watch, trigger, setValue, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(formSchema),
     mode: 'onChange'
   });
 
   const fullName = watch('fullName');
   const signature = watch('agreementSigned_name');
+  const selectedBankName = watch('bankName');
+
+  // Fetch Banks
+  React.useEffect(() => {
+    fetch('https://api.vietqr.io/v2/banks')
+      .then(res => res.json())
+      .then(data => setBanks(data.data || []))
+      .catch(err => console.error("Failed to fetch banks", err));
+  }, []);
 
   // --- Constants with i18n ---
   const STEPS = [
@@ -121,49 +143,94 @@ export default function BoosterApplyPage() {
   // --- Render Components ---
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 font-sans selection:bg-yellow-500/30">
-      {/* Hero Section */}
-      <div className="relative overflow-hidden bg-gradient-to-b from-indigo-900/20 to-slate-950 py-20 text-center">
-        <div className="absolute inset-0 bg-[url('/noise.png')] opacity-10"></div>
-        <div className="container relative z-10 mx-auto px-4">
+    <div className="min-h-screen bg-zinc-950 text-white font-sans selection:bg-blue-500/30 relative overflow-hidden">
+      <Navbar />
+      
+      {/* Background Effects */}
+      <div className="fixed inset-0 bg-[url('/noise.png')] bg-center [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))] opacity-10 pointer-events-none" />
+      <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[500px] bg-blue-600/20 blur-[120px] rounded-full pointer-events-none" />
+      <div className="fixed bottom-0 right-0 w-[800px] h-[400px] bg-purple-600/10 blur-[100px] rounded-full pointer-events-none" />
+
+      <div className="relative z-10 pt-28 pb-20 container mx-auto px-4 max-w-4xl">
+        {/* Header */}
+        <div className="text-center mb-16">
           <motion.div 
             initial={{ opacity: 0, y: 20 }} 
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
           >
-            <span className="inline-block rounded-full bg-yellow-500/10 px-4 py-1.5 text-sm font-semibold text-yellow-400 border border-yellow-500/20 mb-4">
-              {t('boosterApplySubtitle')}
+            <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-bold uppercase tracking-wider mb-6">
+              <Trophy className="w-3 h-3" /> {t('boosterApplySubtitle') || 'Join the Elite'}
             </span>
-            <h1 className="text-4xl md:text-6xl font-bold tracking-tight text-white mb-4">
+            <h1 className="text-4xl md:text-6xl font-black tracking-tight text-white mb-6">
               {t('boosterApplyTitle')}
             </h1>
-            <p className="text-zinc-400 max-w-2xl mx-auto text-lg">
+            <p className="text-zinc-400 max-w-2xl mx-auto text-lg leading-relaxed">
               {t('boosterApplyDesc')}
             </p>
           </motion.div>
         </div>
-      </div>
 
-      <div className="container mx-auto px-4 py-10 max-w-4xl">
         {/* Stepper */}
         <div className="mb-12">
-          <div className="flex justify-between items-center relative">
-            <div className="absolute left-0 top-1/2 -translate-y-1/2 w-full h-1 bg-zinc-800 -z-10"></div>
-            <div className="absolute left-0 top-1/2 -translate-y-1/2 h-1 bg-yellow-500 transition-all duration-500 -z-10" style={{ width: `${((step - 1) / 2) * 100}%` }}></div>
-            
-            {STEPS.map((s) => (
-              <div key={s.id} className="flex flex-col items-center gap-2 bg-zinc-950 px-2">
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all duration-300 ${step >= s.id ? 'border-yellow-500 bg-yellow-500/10 text-yellow-500' : 'border-zinc-800 bg-zinc-900 text-zinc-500'}`}>
-                  {step > s.id ? <CheckCircle2 size={20} /> : <span>{s.id}</span>}
-                </div>
-                <span className={`text-sm font-medium ${step >= s.id ? 'text-white' : 'text-zinc-500'}`}>{s.title}</span>
-              </div>
-            ))}
+          <div className="relative">
+            {/* Progress Bar Background */}
+            <div className="absolute top-6 left-0 w-full h-1 bg-zinc-800 rounded-full -z-10 -translate-y-1/2">
+              <div 
+                className="h-full bg-gradient-to-r from-blue-600 to-purple-500 rounded-full transition-all duration-700 ease-out shadow-[0_0_10px_rgba(59,130,246,0.5)]"
+                style={{ width: `${((step - 1) / (STEPS.length - 1)) * 100}%` }}
+              />
+            </div>
+
+            <div className="flex justify-between items-center w-full">
+              {STEPS.map((s) => {
+                const isActive = step >= s.id;
+                const isCurrent = step === s.id;
+                
+                return (
+                  <div key={s.id} className="flex flex-col items-center gap-3 relative group">
+                    {/* Circle */}
+                    <div 
+                      className={`w-12 h-12 rounded-full flex items-center justify-center border-2 transition-all duration-500 z-10 relative
+                        ${isActive 
+                          ? 'bg-zinc-900 border-blue-500 text-blue-400 shadow-[0_0_20px_rgba(59,130,246,0.3)]' 
+                          : 'bg-zinc-950 border-zinc-800 text-zinc-600'
+                        }
+                      `}
+                    >
+                      {step > s.id ? (
+                        <CheckCircle2 className="w-6 h-6 text-blue-500" />
+                      ) : (
+                        <span className={`text-lg font-bold ${isActive ? 'text-blue-400' : 'text-zinc-600'}`}>{s.id}</span>
+                      )}
+                      
+                      {/* Active Pulse Ring */}
+                      {isCurrent && (
+                        <span className="absolute inset-0 rounded-full border border-blue-500/50 animate-ping opacity-75" />
+                      )}
+                    </div>
+
+                    {/* Label */}
+                    <span className={`hidden md:block text-xs font-bold uppercase tracking-wider transition-colors duration-300 ${isActive ? 'text-white' : 'text-zinc-600'}`}>
+                      {s.title}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Mobile Step Label - Chỉ hiện tên bước đang active trên mobile để tránh dính chữ */}
+            <div className="md:hidden text-center mt-6">
+              <span className="text-sm font-bold text-blue-400 uppercase tracking-wider">
+                {STEPS[step - 1]?.title}
+              </span>
+            </div>
           </div>
         </div>
 
         {/* Form Content */}
-        <Card className="border-zinc-800 bg-zinc-900/50 backdrop-blur-sm shadow-2xl">
+        <Card className="border-white/10 bg-zinc-900/60 backdrop-blur-xl shadow-2xl relative overflow-hidden">
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 via-purple-500 to-blue-500 opacity-50" />
           <CardContent className="p-6 md:p-10">
             <form onSubmit={(e) => e.preventDefault()}>
               <AnimatePresence mode="wait">
@@ -180,22 +247,22 @@ export default function BoosterApplyPage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="space-y-2">
                         <Label className="text-zinc-400">{t('fullName')}</Label>
-                        <Input {...register('fullName')} placeholder="Nguyễn Văn A" className="bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-yellow-500 focus:ring-yellow-500/20" />
+                        <Input {...register('fullName')} placeholder="Nguyễn Văn A" className="bg-zinc-950/50 border-white/10 text-white placeholder:text-zinc-600 focus:border-blue-500 focus:ring-blue-500/20" />
                         {errors.fullName && <p className="text-red-500 text-xs">{errors.fullName.message}</p>}
                       </div>
                       <div className="space-y-2">
                         <Label className="text-zinc-400">{t('phoneNumber')}</Label>
-                        <Input {...register('phoneNumber')} placeholder="0912..." className="bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-yellow-500 focus:ring-yellow-500/20" />
+                        <Input {...register('phoneNumber')} placeholder="0912..." className="bg-zinc-950/50 border-white/10 text-white placeholder:text-zinc-600 focus:border-blue-500 focus:ring-blue-500/20" />
                         {errors.phoneNumber && <p className="text-red-500 text-xs">{errors.phoneNumber.message}</p>}
                       </div>
                       <div className="space-y-2">
                         <Label className="text-zinc-400">{t('facebookUrl')}</Label>
-                        <Input {...register('facebookUrl')} placeholder="https://facebook.com/..." className="bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-yellow-500 focus:ring-yellow-500/20" />
+                        <Input {...register('facebookUrl')} placeholder="https://facebook.com/..." className="bg-zinc-950/50 border-white/10 text-white placeholder:text-zinc-600 focus:border-blue-500 focus:ring-blue-500/20" />
                         {errors.facebookUrl && <p className="text-red-500 text-xs">{errors.facebookUrl.message}</p>}
                       </div>
                       <div className="space-y-2">
                         <Label className="text-zinc-400">{t('discordTag')}</Label>
-                        <Input {...register('discordTag')} placeholder="username#1234" className="bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-yellow-500 focus:ring-yellow-500/20" />
+                        <Input {...register('discordTag')} placeholder="username#1234" className="bg-zinc-950/50 border-white/10 text-white placeholder:text-zinc-600 focus:border-blue-500 focus:ring-blue-500/20" />
                         {errors.discordTag && <p className="text-red-500 text-xs">{errors.discordTag.message}</p>}
                       </div>
                     </div>
@@ -213,31 +280,31 @@ export default function BoosterApplyPage() {
                   >
                     {/* Game Info */}
                     <div className="space-y-4">
-                      <h3 className="text-lg font-semibold text-yellow-500 flex items-center gap-2">
-                        <span className="w-1 h-6 bg-yellow-500 rounded-full"></span> {t('servicesCurrentRank')}
+                      <h3 className="text-lg font-semibold text-blue-400 flex items-center gap-2">
+                        <span className="w-1 h-6 bg-blue-500 rounded-full"></span> {t('servicesCurrentRank')}
                       </h3>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-2">
                           <Label className="text-zinc-400">{t('servicesCurrentRank')}</Label>
-                          <Input {...register('currentRank')} placeholder="VD: Cao Thủ 200LP" className="bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-yellow-500 focus:ring-yellow-500/20" />
+                          <Input {...register('currentRank')} placeholder="VD: Cao Thủ 200LP" className="bg-zinc-950/50 border-white/10 text-white placeholder:text-zinc-600 focus:border-blue-500 focus:ring-blue-500/20" />
                           {errors.currentRank && <p className="text-red-500 text-xs">{errors.currentRank.message}</p>}
                         </div>
                         <div className="space-y-2">
                           <Label className="text-zinc-400">{t('highestRank')}</Label>
-                          <Input {...register('highestRank')} placeholder="VD: Thách Đấu 500LP" className="bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-yellow-500 focus:ring-yellow-500/20" />
+                          <Input {...register('highestRank')} placeholder="VD: Thách Đấu 500LP" className="bg-zinc-950/50 border-white/10 text-white placeholder:text-zinc-600 focus:border-blue-500 focus:ring-blue-500/20" />
                           {errors.highestRank && <p className="text-red-500 text-xs">{errors.highestRank.message}</p>}
                         </div>
                         <div className="space-y-2 md:col-span-2">
                           <Label className="text-zinc-400">{t('opggLink')}</Label>
-                          <Input {...register('opggLink')} placeholder="https://www.op.gg/summoners/vn/..." className="bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-yellow-500 focus:ring-yellow-500/20" />
+                          <Input {...register('opggLink')} placeholder="https://www.op.gg/summoners/vn/..." className="bg-zinc-950/50 border-white/10 text-white placeholder:text-zinc-600 focus:border-blue-500 focus:ring-blue-500/20" />
                           {errors.opggLink && <p className="text-red-500 text-xs">{errors.opggLink.message}</p>}
                         </div> 
                         <div className="space-y-2 md:col-span-2">
                           <Label className="text-zinc-400">{t('rankProof')}</Label>
                           {/* Note: Thực tế sẽ dùng component Upload Cloudinary ở đây */}
                           <div className="flex gap-2">
-                            <Input {...register('rankImageUrl')} placeholder="https://i.imgur.com/..." className="bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-yellow-500 focus:ring-yellow-500/20" />
-                            <Button type="button" variant="outline" className="border-zinc-700 bg-zinc-900 text-zinc-400 hover:text-white hover:bg-zinc-800"><Upload size={16} /></Button>
+                            <Input {...register('rankImageUrl')} placeholder="https://i.imgur.com/..." className="bg-zinc-950/50 border-white/10 text-white placeholder:text-zinc-600 focus:border-blue-500 focus:ring-blue-500/20" />
+                            <Button type="button" variant="outline" className="border-white/10 bg-zinc-800 text-zinc-400 hover:text-white hover:bg-zinc-700"><Upload size={16} /></Button>
                           </div>
                           <p className="text-xs text-slate-500">Vui lòng upload ảnh chụp màn hình client game có hiển thị rank và ngày giờ hệ thống.</p>
                           {errors.rankImageUrl && <p className="text-red-500 text-xs">{errors.rankImageUrl.message}</p>}
@@ -245,14 +312,14 @@ export default function BoosterApplyPage() {
                       </div>
                     </div>
 
-                    <div className="h-px bg-zinc-800" />
+                    <div className="h-px bg-white/10" />
 
                     {/* Deposit Info */}
-                    <div className="bg-indigo-950/30 border border-indigo-500/30 rounded-lg p-4">
+                    <div className="bg-blue-900/10 border border-blue-500/20 rounded-lg p-4">
                       <div className="flex items-start gap-3">
-                        <ShieldAlert className="text-indigo-400 shrink-0 mt-1" />
+                        <ShieldAlert className="text-blue-400 shrink-0 mt-1" />
                         <div>
-                          <h4 className="font-semibold text-indigo-300">{t('depositInfoTitle')}</h4>
+                          <h4 className="font-semibold text-blue-300">{t('depositInfoTitle')}</h4>
                           <p className="text-sm text-zinc-400 mt-1">
                             {t('depositInfoDesc')}
                           </p>
@@ -262,23 +329,93 @@ export default function BoosterApplyPage() {
 
                     {/* Booster Bank Info */}
                     <div className="space-y-4">
-                      <h3 className="text-lg font-semibold text-yellow-500 flex items-center gap-2">
-                        <span className="w-1 h-6 bg-yellow-500 rounded-full"></span> {t('bankName')}
+                      <h3 className="text-lg font-semibold text-blue-400 flex items-center gap-2">
+                        <span className="w-1 h-6 bg-blue-500 rounded-full"></span> {t('bankName')}
                       </h3>
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div className="space-y-2">
                           <Label className="text-zinc-400">{t('bankName')}</Label>
-                          <Input {...register('bankName')} className="bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-yellow-500 focus:ring-yellow-500/20" />
+                          
+                          {/* Custom Bank Selector */}
+                          <div className="relative">
+                            <div 
+                              onClick={() => setIsBankOpen(!isBankOpen)}
+                              className="flex items-center justify-between w-full rounded-md border border-white/10 bg-zinc-950/50 px-3 py-2 text-sm ring-offset-background placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:ring-offset-2 cursor-pointer h-10"
+                            >
+                              {selectedBankName ? (
+                                <div className="flex items-center gap-2">
+                                  {banks.find(b => b.shortName === selectedBankName)?.logo && (
+                                    <img src={banks.find(b => b.shortName === selectedBankName)?.logo} alt="Bank Logo" className="w-6 h-6 object-contain bg-white rounded-full p-0.5" />
+                                  )}
+                                  <span className="text-white font-medium truncate">{selectedBankName}</span>
+                                </div>
+                              ) : (
+                                <span className="text-zinc-600">Chọn ngân hàng...</span>
+                              )}
+                              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                            </div>
+
+                            {/* Dropdown Panel */}
+                            {isBankOpen && (
+                              <>
+                                <div className="fixed inset-0 z-40" onClick={() => setIsBankOpen(false)} />
+                                <div className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-md border border-white/10 bg-zinc-900 py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
+                                  <div className="sticky top-0 z-10 bg-zinc-900 p-2 border-b border-white/10">
+                                    <div className="relative">
+                                      <Search className="absolute left-2 top-2.5 h-4 w-4 text-zinc-500" />
+                                      <input 
+                                        className="w-full bg-zinc-800 text-white rounded-md py-2 pl-8 pr-4 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+                                        placeholder="Tìm kiếm ngân hàng..."
+                                        value={bankSearch}
+                                        onChange={(e) => setBankSearch(e.target.value)}
+                                        autoFocus
+                                      />
+                                    </div>
+                                  </div>
+                                  {banks.filter(b => b.shortName.toLowerCase().includes(bankSearch.toLowerCase()) || b.name.toLowerCase().includes(bankSearch.toLowerCase()) || b.code.toLowerCase().includes(bankSearch.toLowerCase())).map((bank) => (
+                                    <div
+                                      key={bank.id}
+                                      className="relative flex cursor-pointer select-none items-center py-2 pl-3 pr-9 hover:bg-blue-600/20 hover:text-blue-400 text-zinc-300"
+                                      onClick={() => {
+                                        setValue('bankName', bank.shortName, { shouldValidate: true });
+                                        setIsBankOpen(false);
+                                      }}
+                                    >
+                                      <div className="flex items-center gap-3">
+                                        <img src={bank.logo} alt={bank.code} className="h-8 w-8 object-contain bg-white rounded-md p-0.5" />
+                                        <div className="flex flex-col">
+                                          <div className="flex items-center gap-2">
+                                            <span className="font-bold text-white">{bank.shortName}</span>
+                                            <span className="text-[10px] text-zinc-400 font-normal bg-zinc-800 px-1.5 py-0.5 rounded border border-white/5">{bank.code}</span>
+                                          </div>
+                                          <span className="text-xs text-zinc-500 truncate max-w-[180px]">{bank.name}</span>
+                                        </div>
+                                      </div>
+                                      {selectedBankName === bank.shortName && (
+                                        <span className="absolute inset-y-0 right-0 flex items-center pr-4 text-blue-500">
+                                          <Check className="h-4 w-4" />
+                                        </span>
+                                      )}
+                                    </div>
+                                  ))}
+                                  {banks.length === 0 && <div className="p-4 text-center text-zinc-500">Đang tải danh sách...</div>}
+                                </div>
+                              </>
+                            )}
+                          </div>
+                          {/* Hidden input to register with hook form */}
+                          <input type="hidden" {...register('bankName')} />
+                          
                           {errors.bankName && <p className="text-red-500 text-xs">{errors.bankName.message}</p>}
                         </div>
                         <div className="space-y-2">
                           <Label className="text-zinc-400">{t('bankAccountNum')}</Label>
-                          <Input {...register('bankAccountNumber')} className="bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-yellow-500 focus:ring-yellow-500/20" />
+                          <Input {...register('bankAccountNumber')} className="bg-zinc-950/50 border-white/10 text-white placeholder:text-zinc-600 focus:border-blue-500 focus:ring-blue-500/20" />
                           {errors.bankAccountNumber && <p className="text-red-500 text-xs">{errors.bankAccountNumber.message}</p>}
                         </div>
                         <div className="space-y-2">
                           <Label className="text-zinc-400">{t('bankAccountName')}</Label>
-                          <Input {...register('bankAccountName')} className="bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500 focus:border-yellow-500 focus:ring-yellow-500/20" />
+                          <Input {...register('bankAccountName')} className="bg-zinc-950/50 border-white/10 text-white placeholder:text-zinc-600 focus:border-blue-500 focus:ring-blue-500/20" />
                           {errors.bankAccountName && <p className="text-red-500 text-xs">{errors.bankAccountName.message}</p>}
                         </div>
                       </div>
@@ -299,7 +436,7 @@ export default function BoosterApplyPage() {
                       {COMMITMENTS.map((item) => (
                         <div 
                           key={item.id} 
-                          className={`p-4 rounded-lg border transition-all duration-200 ${agreements[item.id] ? 'bg-green-950/20 border-green-500/50' : 'bg-zinc-900 border-zinc-800'}`}
+                          className={`p-4 rounded-lg border transition-all duration-200 ${agreements[item.id] ? 'bg-green-950/20 border-green-500/50' : 'bg-zinc-950/50 border-white/10'}`}
                         >
                           <div className="flex justify-between items-start gap-4">
                             <div>
@@ -316,16 +453,16 @@ export default function BoosterApplyPage() {
                       ))}
                     </div>
 
-                    <div className="bg-zinc-950 p-6 rounded-xl border border-zinc-800 space-y-4">
+                    <div className="bg-zinc-950/50 p-6 rounded-xl border border-white/10 space-y-4">
                       <Label className="text-zinc-300">{t('digitalSignature')}</Label>
                       <p className="text-sm text-zinc-500">{t('signatureDesc').replace('{name}', fullName || '...')}</p>
                       
                       <Input 
                         {...register('agreementSigned_name')}
                         placeholder={t('fullName')} 
-                        className={`bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-500 h-12 text-lg ${
+                        className={`bg-zinc-900 border-white/10 text-white placeholder:text-zinc-600 h-12 text-lg ${
                           signature && !isSignatureValid ? 'border-red-500 focus:ring-red-500' : 
-                          isSignatureValid ? 'border-green-500 focus:ring-green-500' : 'focus:border-yellow-500 focus:ring-yellow-500/20'
+                          isSignatureValid ? 'border-green-500 focus:ring-green-500' : 'focus:border-blue-500 focus:ring-blue-500/20'
                         }`}
                       />
                       {signature && !isSignatureValid && (
@@ -339,15 +476,15 @@ export default function BoosterApplyPage() {
               </AnimatePresence>
 
               {/* Navigation Buttons */}
-              <div className="flex justify-between mt-10 pt-6 border-t border-slate-800">
+              <div className="flex justify-between mt-10 pt-6 border-t border-white/10">
                 {step > 1 ? (
-                  <Button type="button" variant="outline" onClick={prevStep} className="border-zinc-700 hover:bg-zinc-800 text-zinc-300">
-                    <ChevronLeft className="mr-2 h-4 w-4" /> {t('backToHome')}
+                  <Button type="button" variant="outline" onClick={prevStep} className="border-white/10 bg-zinc-800/50 hover:bg-zinc-700 hover:text-white text-white font-bold shadow-lg shadow-black/20 backdrop-blur-sm transition-all">
+                    <ChevronLeft className="mr-2 h-4 w-4" /> {t('prevStep')}
                   </Button>
                 ) : <div></div>}
 
                 {step < 3 ? (
-                  <Button type="button" onClick={nextStep} className="bg-yellow-500 hover:bg-yellow-600 text-black font-bold">
+                  <Button type="button" onClick={nextStep} className="bg-blue-600 hover:bg-blue-500 text-white font-bold shadow-lg shadow-blue-500/20">
                     {t('nextStep')} <ChevronRight className="ml-2 h-4 w-4" />
                   </Button>
                 ) : (
@@ -368,9 +505,9 @@ export default function BoosterApplyPage() {
 
       {/* Confirmation Modal */}
       <Dialog open={showConfirmModal} onOpenChange={setShowConfirmModal}>
-        <DialogContent className="bg-zinc-900 border-zinc-800 text-white sm:max-w-[425px]">
+        <DialogContent className="bg-zinc-900 border-white/10 text-white sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle className="text-xl text-yellow-500 flex items-center gap-2">
+            <DialogTitle className="text-xl text-blue-400 flex items-center gap-2">
               <AlertTriangle /> {t('confirmAppTitle')}
             </DialogTitle>
             <DialogDescription className="text-zinc-400 pt-2">
@@ -379,7 +516,7 @@ export default function BoosterApplyPage() {
           </DialogHeader>
           <DialogFooter className="mt-4">
             <Button variant="ghost" onClick={() => setShowConfirmModal(false)} className="text-zinc-400 hover:text-white hover:bg-zinc-800">{t('cancelBtn')}</Button>
-            <Button onClick={handleSubmit(onSubmit)} disabled={isSubmitting} className="bg-yellow-500 hover:bg-yellow-600 text-black font-bold">
+            <Button onClick={handleSubmit(onSubmit)} disabled={isSubmitting} className="bg-blue-600 hover:bg-blue-500 text-white font-bold">
               {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null} {t('confirmSend')}
             </Button>
           </DialogFooter>

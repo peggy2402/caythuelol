@@ -29,11 +29,11 @@ export default function BoosterJobsPage() {
 
   const fetchJobs = async () => {
     try {
-      const res = await fetch('/api/booster/jobs');
+      const res = await fetch('/api/boosters/jobs');
       const data = await res.json();
       if (res.ok) {
-        setAvailableOrders(data.availableOrders);
-        setMyOrders(data.myOrders);
+        setAvailableOrders(data.availableOrders || []);
+        setMyOrders(data.myOrders || []);
       }
     } catch (error) {
       console.error(error);
@@ -51,7 +51,7 @@ export default function BoosterJobsPage() {
 
     setProcessingId(orderId);
     try {
-      const res = await fetch('/api/booster/jobs', {
+      const res = await fetch('/api/boosters/jobs', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ orderId }),
