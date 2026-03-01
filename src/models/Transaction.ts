@@ -1,13 +1,28 @@
 import mongoose, { Schema, Model, models } from "mongoose";
 
+export enum TransactionType {
+  DEPOSIT = 'DEPOSIT',
+  WITHDRAWAL = 'WITHDRAWAL',
+  PAYMENT_HOLD = 'PAYMENT_HOLD',
+  PAYMENT_RELEASE = 'PAYMENT_RELEASE',
+  REFUND = 'REFUND',
+  COMMISSION = 'COMMISSION'
+}
+
+export enum TransactionStatus {
+  PENDING = 'PENDING',
+  SUCCESS = 'SUCCESS',
+  FAILED = 'FAILED'
+}
+
 export interface ITransaction {
   userId: mongoose.Types.ObjectId;
   orderId?: mongoose.Types.ObjectId;
-  type: 'DEPOSIT' | 'WITHDRAWAL' | 'PAYMENT_HOLD' | 'PAYMENT_RELEASE' | 'REFUND' | 'COMMISSION';
+  type: TransactionType;
   amount: number;
   balanceAfter: number;
   description: string;
-  status: 'PENDING' | 'SUCCESS' | 'FAILED';
+  status: TransactionStatus;
   createdAt: Date;
 }
 
@@ -17,7 +32,7 @@ const TransactionSchema = new Schema<ITransaction>(
     orderId: { type: Schema.Types.ObjectId, ref: "Order" },
     type: { 
       type: String, 
-      enum: ['DEPOSIT', 'WITHDRAWAL', 'PAYMENT_HOLD', 'PAYMENT_RELEASE', 'REFUND', 'COMMISSION'], 
+      enum: Object.values(TransactionType), 
       required: true 
     },
     amount: { type: Number, required: true },
@@ -25,8 +40,8 @@ const TransactionSchema = new Schema<ITransaction>(
     description: { type: String, default: "" },
     status: { 
       type: String, 
-      enum: ['PENDING', 'SUCCESS', 'FAILED'], 
-      default: 'SUCCESS' 
+      enum: Object.values(TransactionStatus), 
+      default: TransactionStatus.SUCCESS 
     },
   },
   { timestamps: true }
