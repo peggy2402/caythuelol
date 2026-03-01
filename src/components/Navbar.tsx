@@ -89,6 +89,12 @@ export default function Navbar() {
 
   const closeMobileMenu = () => setIsMobileMenuOpen(false);
 
+  const dashboardHref = user?.role === 'ADMIN' 
+    ? '/admin/dashboard' 
+    : user?.role === 'BOOSTER' 
+      ? '/booster/dashboard' 
+      : '/dashboard';
+
   const NavLink = ({
     href,
     label
@@ -199,7 +205,7 @@ export default function Navbar() {
               >
                 <div className="p-2 space-y-1 text-sm">
                   <Link
-                    href="/dashboard"
+                    href={dashboardHref}
                     className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/5"
                   >
                     <LayoutDashboard className="h-4 w-4" />
@@ -331,7 +337,7 @@ export default function Navbar() {
               {/* Navigation Links */}
               <div className="flex-grow space-y-2">
                 {/* Common Links */}
-                <Link href="/dashboard" onClick={closeMobileMenu} className="flex items-center gap-4 px-4 py-3 rounded-lg hover:bg-white/5 transition-colors"><LayoutDashboard className="h-5 w-5 text-zinc-400" />{t('dashboard')}</Link>
+                <Link href={dashboardHref} onClick={closeMobileMenu} className="flex items-center gap-4 px-4 py-3 rounded-lg hover:bg-white/5 transition-colors"><LayoutDashboard className="h-5 w-5 text-zinc-400" />{t('dashboard')}</Link>
                 
                 {/* Customer Links */}
                 {user.role === 'CUSTOMER' && (

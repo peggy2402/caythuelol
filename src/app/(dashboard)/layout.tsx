@@ -37,6 +37,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const allNavItems = [
     // Common
     { href: '/dashboard', label: t('dashboard') },
+    { href: '/admin/dashboard', label: t('dashboard') },
+    { href: '/booster/dashboard', label: t('dashboard') },
     { href: '/orders', label: t('orders') },
     { href: '/wallet', label: t('wallet') },
     { href: '/profile', label: t('profile') },

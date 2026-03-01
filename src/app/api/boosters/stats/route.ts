@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
+import { auth } from "@/lib/auth"; 
 import dbConnect from "@/lib/db";
 import Order, { OrderStatus } from "@/models/Order";
 import Transaction, { TransactionType, TransactionStatus } from "@/models/Transaction";
@@ -7,8 +7,10 @@ import mongoose from "mongoose";
 
 export async function GET(req: Request) {
   try {
+    console.log("API /api/boosters/stats called"); // Debug log
     const session = await auth();
     if (!session || session.user.role !== 'BOOSTER') {
+      console.log("Unauthorized access to stats");
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
