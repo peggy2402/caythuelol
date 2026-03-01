@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useLanguage } from '@/lib/i18n';
 import { toast } from 'sonner';
 import { socket } from '@/lib/socket';
-import { Wallet, ArrowUpRight, ArrowDownLeft, History, CreditCard, Loader2, QrCode, Copy, Check, X } from 'lucide-react';
+import { Wallet, ArrowUpRight, ArrowDownLeft, History, CreditCard, Loader2, QrCode, Copy, Check, X, RefreshCw } from 'lucide-react';
 
 interface Transaction {
   _id: string;
@@ -284,11 +284,13 @@ export default function WalletPage() {
                     <Copy onClick={() => copyToClipboard(pendingTx.info.accountNo)} className="w-4 h-4 text-zinc-500 cursor-pointer hover:text-white" />
                   </div>
                 </div>
-                <div className="flex justify-between items-center p-3 bg-zinc-950 rounded-lg border border-zinc-800">
-                  <span className="text-zinc-400">Nội dung</span>
+                <div className="flex justify-between items-center p-3 bg-blue-900/20 rounded-lg border border-blue-500/30">
+                  <span className="text-blue-200 font-medium">Nội dung CK</span>
                   <div className="flex items-center gap-2">
-                    <span className="font-bold text-yellow-500">{pendingTx.info.content}</span>
-                    <Copy onClick={() => copyToClipboard(pendingTx.info.content)} className="w-4 h-4 text-zinc-500 cursor-pointer hover:text-white" />
+                    <span className="font-mono font-bold text-xl text-blue-400 tracking-wide select-all">
+                      {pendingTx.info.content}
+                    </span>
+                    <Copy onClick={() => copyToClipboard(pendingTx.info.content)} className="w-5 h-5 text-blue-500 cursor-pointer hover:text-white" />
                   </div>
                 </div>
                 <div className="flex justify-between items-center p-3 bg-zinc-950 rounded-lg border border-zinc-800">
@@ -296,6 +298,10 @@ export default function WalletPage() {
                   <span className="font-bold text-green-500">{formatCurrency(pendingTx.info.amount)}</span>
                 </div>
               </div>
+              
+              <p className="text-xs text-red-400 text-center italic">
+                *Lưu ý: Vui lòng nhập chính xác nội dung chuyển khoản để tiền được cộng tự động.
+              </p>
 
               <div className="flex gap-3 pt-2">
                 <button 
@@ -315,9 +321,15 @@ export default function WalletPage() {
                   {isDepositing ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : 'Đã chuyển khoản'}
                 </button>
               </div>
-              <p className="text-xs text-center text-zinc-500">
-                Hệ thống sẽ tự động cộng tiền sau 1-5 phút khi nhận được chuyển khoản.
-              </p>
+              
+              <div className="text-center">
+                <button 
+                  onClick={fetchWalletData}
+                  className="text-xs text-zinc-500 hover:text-white flex items-center justify-center gap-1 mx-auto transition-colors"
+                >
+                  <RefreshCw className="w-3 h-3" /> Đã chuyển nhưng chưa thấy tiền? Bấm để kiểm tra lại.
+                </button>
+              </div>
             </div>
           )}
         </div>

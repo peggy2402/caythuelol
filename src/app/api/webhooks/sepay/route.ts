@@ -18,6 +18,8 @@ interface SePayWebhookData {
 }
 
 export async function POST(req: Request) {
+  console.log('🔹 [SePay Webhook] Received request');
+
   try {
     await dbConnect();
 
@@ -25,8 +27,10 @@ export async function POST(req: Request) {
     // Kiểm tra API Key trong Header nếu bạn đã cấu hình trong SePay Dashboard
     const apiKey = req.headers.get('Authorization');
     const SEPAY_API_KEY = process.env.SEPAY_API_KEY;
+    
     // SePay gửi header theo định dạng: "Apikey <API_KEY>"
     if (SEPAY_API_KEY && apiKey !== `Apikey ${SEPAY_API_KEY}`) {
+      console.error('🔴 [SePay Webhook] Unauthorized');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -34,8 +38,21 @@ export async function POST(req: Request) {
 
     // Chỉ xử lý giao dịch nhận tiền (transferType = 'in')
     if (data.transferType !== 'in') {
+      console.log('🔸 [SePay Webhook] Ignored outgoing transaction');
       return NextResponse.json({ success: true, message: 'Ignored outgoing transaction' });
     }
+
+    // --- IDEMPOTENCY CHECK ---
+    // Kiểm tra xem giao dịch SePay này đã được xử lý chưa
+    const existingTransaction = await Transaction.findOne({
+      description: { $regex: `SePay #${data.id}`, $options: 'i' }
+    });
+
+    if (existingTransaction) {
+      console.log('🟡 [SePay Webhook] Transaction already processed:', data.id);
+      return NextResponse.json({ success: true, message: 'Transaction already processed', id: existingTransaction._id });
+    }
+    // -------------------------
 
     // 2. Phân tích nội dung chuyển khoản (transferContent)
     // Format mong đợi: "NAP <USERNAME>" hoặc "NAP <USERNAME> <CODE>"
@@ -49,7 +66,7 @@ export async function POST(req: Request) {
     const match = content.match(/NAP\s*([A-Z0-9_\-\.]+)(?:\s+([A-Z0-9]+))?/);
     
     if (!match) {
-      console.log('Webhook: Cannot parse content (Wrong syntax)', content);
+      console.error('🔴 [SePay Webhook] Cannot parse content (Wrong syntax):', content);
       // Trả về success true để SePay không gửi lại nữa, nhưng không xử lý giao dịch (để Admin duyệt tay)
       return NextResponse.json({ success: true, message: 'Syntax error, waiting for manual review' });
     }
@@ -63,7 +80,7 @@ export async function POST(req: Request) {
     });
 
     if (!user) {
-      console.log('Webhook: User not found', username); 
+      console.error('🔴 [SePay Webhook] User not found:', username); 
       return NextResponse.json({ success: true, message: 'User not found, waiting for manual review' });
     }
 
@@ -79,71 +96,71 @@ export async function POST(req: Request) {
       type: TransactionType.DEPOSIT
     };
 
-    // Nếu khách nhập đúng cả mã Code (6 ký tự cuối ID), ta tìm chính xác giao dịch đó luôn cho an toàn tuyệt đối
-    if (txCode && txCode.length >= 4) {
-        // Tìm các giao dịch mà _id kết thúc bằng txCode
-        // Lưu ý: MongoDB ObjectId là hex, nhưng ở đây ta so sánh chuỗi
-        // Cách đơn giản nhất là lấy list pending ra và filter trong code JS
-    }
-
     let transaction = await Transaction.findOne(query).sort({ createdAt: -1 });
 
     // Kiểm tra thêm mã Code nếu có (Double check)
     if (transaction && txCode) {
         const txIdString = transaction._id.toString().toUpperCase();
         if (!txIdString.endsWith(txCode)) {
-            console.log('Webhook: Code mismatch', txCode, txIdString);
+            console.warn('🟡 [SePay Webhook] Code mismatch', txCode, txIdString);
             // Nếu mã không khớp, có thể là giao dịch khác hoặc khách nhập bừa.
-            // Ta vẫn có thể duyệt nếu số tiền khớp, hoặc bỏ qua để Admin duyệt.
-            // Ở đây ta chọn cách an toàn: Nếu có Code mà Code sai -> Để Admin duyệt.
-            return NextResponse.json({ success: true, message: 'Transaction code mismatch, waiting for manual review' });
+            // Thay vì return lỗi, ta set transaction = null để hệ thống tự tạo giao dịch mới (Auto Deposit)
+            // Điều này giúp khách vẫn nhận được tiền dù nhập sai mã đơn, nhưng đúng cú pháp nạp
+            transaction = null;
         }
     }
+
+    // --- ATOMIC UPDATE ---
+    // Sử dụng $inc để cộng tiền an toàn, tránh Race Condition
+    const updatedUser = await User.findByIdAndUpdate(
+      user._id,
+      { $inc: { wallet_balance: data.transferAmount } },
+      { new: true }
+    );
+    // ---------------------
+
+    console.log(`✅ [SePay Webhook] Updated balance for ${user.username}: +${data.transferAmount}`);
 
     if (transaction) {
       // Case A: Update giao dịch PENDING có sẵn
       transaction.status = TransactionStatus.SUCCESS;
       transaction.description = `${transaction.description} - SePay #${data.id}`;
+      transaction.balanceAfter = updatedUser.wallet_balance;
+      await transaction.save();
     } else {
       // Case B: Tạo giao dịch mới (Auto Deposit)
-      transaction = new Transaction({
+      transaction = await Transaction.create({
         userId: user._id,
         type: TransactionType.DEPOSIT,
         amount: data.transferAmount,
         status: TransactionStatus.SUCCESS,
+        balanceAfter: updatedUser.wallet_balance,
         description: `Nạp tiền tự động (SePay #${data.id})`,
       });
     }
 
-    // 5. Cộng tiền
-    user.wallet_balance += data.transferAmount;
-    transaction.balanceAfter = user.wallet_balance;
-
-    await user.save();
-    await transaction.save();
-
     // 6. Bắn thông báo Realtime (Socket.io)
     // URL này phải là URL của Socket Server trên Railway
-    const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001';
+    const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL;
     
-    try {
-      const socketRes = await fetch(`${socketUrl}/trigger-payment`, {
+    if (socketUrl) {
+      // Không await fetch để tránh block response trả về SePay
+      console.log(`🔹 [SePay Webhook] Triggering socket at: ${socketUrl}/trigger-payment`);
+      fetch(`${socketUrl}/trigger-payment`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           userId: user._id.toString(),
-          balance: user.wallet_balance,
+          balance: updatedUser.wallet_balance,
           message: `Nạp thành công ${data.transferAmount.toLocaleString('vi-VN')}đ`
         })
-      });
-      
-      if (!socketRes.ok) {
-        console.error('Socket trigger failed with status:', socketRes.status);
-      } else {
-        console.log('Socket trigger sent successfully to:', socketUrl);
-      }
-    } catch (err) {
-      console.error('Socket trigger failed', err);
+      })
+      .then(res => {
+        if (!res.ok) console.error('🔴 [SePay Webhook] Socket trigger failed status:', res.status);
+      })
+      .catch(err => console.error('🔴 [SePay Webhook] Socket trigger error:', err));
+    } else {
+      console.warn('🟡 [SePay Webhook] NEXT_PUBLIC_SOCKET_URL is missing');
     }
 
     return NextResponse.json({ 
@@ -154,7 +171,7 @@ export async function POST(req: Request) {
     });
 
   } catch (error) {
-    console.error('SePay Webhook Error:', error);
+    console.error('🔴 [SePay Webhook] Internal Error:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
