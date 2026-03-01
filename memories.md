@@ -337,3 +337,30 @@ caythuelol/
 - **Admin Dashboard:** Xây dựng trang quản trị (`/admin`) để duyệt rút tiền, quản lý đơn hàng và người dùng.
 - **Booster Dashboard:** Hoàn thiện khu vực làm việc cho Booster (Nhận đơn, Cập nhật tiến độ, Chat với khách).
 - **Realtime Chat:** Tối ưu hóa hệ thống chat trong đơn hàng (Polling hoặc chuyển sang Socket.io nếu cần).
+
+10. 2026-03-01 — Admin & Booster Dashboards, UI Polish
+
+- **Admin Dashboard (`/admin/boosters`):**
+  - Hợp nhất "Duyệt đơn đăng ký" và "Danh sách Booster" vào một trang quản lý duy nhất với Tabs.
+  - Tích hợp tính năng tìm kiếm, phân trang và cập nhật trạng thái (Duyệt/Từ chối).
+  - Refactor API: `/api/admin/boosters` (GET đa năng) và `/api/admin/boosters/[id]` (PATCH).
+
+- **Booster Dashboard (`/booster/dashboard`):**
+  - Xây dựng Dashboard riêng hiển thị thống kê: Tổng thu nhập, Đơn hoàn thành, Đơn đang chạy.
+  - Tạo API `/api/boosters/stats` để tổng hợp dữ liệu từ Transaction và Order.
+
+- **Booster Application (`/boosters/apply`):**
+  - Redesign giao diện theo phong cách "Dark Gaming Premium".
+  - Khắc phục lỗi hiển thị input (chữ đen trên nền đen).
+  - Tối ưu Responsive: Navbar trên Desktop, nút "Back to Home" trên Mobile.
+  - Tích hợp đa ngôn ngữ (i18n).
+
+- **Navigation & Layout:**
+  - Cập nhật `Sidebar`: Thêm nút "Trang chủ" và "Đăng xuất".
+  - Cập nhật `Navbar`: Điều hướng thông minh dựa trên Role (Admin/Booster/Customer) khi bấm vào Dashboard.
+  - Đồng bộ hóa `Navbar` trên các trang public (`/services`, `/boosters`).
+
+- **Fixes & Refactoring:**
+  - Sửa lỗi Next.js 15: `params` trong API Route phải được `await`.
+  - Sửa lỗi bất đồng bộ tên trường trong Model (camelCase vs snake_case).
+  - Dọn dẹp các file API bị đặt sai vị trí hoặc trùng lặp.

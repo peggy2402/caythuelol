@@ -71,8 +71,7 @@ export default function LoginPage() {
 
       toast.success(t('welcomeBack'));
       // Chuyển hướng về dashboard
-      router.push('/dashboard');
-      router.refresh();
+      window.location.href = '/services';
     } catch (err: any) {
       setError(err.message);
       toast.error(err.message);
