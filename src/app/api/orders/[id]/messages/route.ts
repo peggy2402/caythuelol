@@ -35,8 +35,8 @@ export async function GET(
     if (!order) return NextResponse.json({ error: 'Order not found' }, { status: 404 });
 
     const userId = user.userId as string;
-    const isCustomer = order.customer_id.toString() === userId;
-    const isBooster = order.booster_id?.toString() === userId;
+    const isCustomer = order.customerId.toString() === userId;
+    const isBooster = order.boosterId?.toString() === userId;
     const isAdmin = user.role === 'ADMIN';
 
     if (!isCustomer && !isBooster && !isAdmin) {
@@ -77,8 +77,8 @@ export async function POST(
     if (!order) return NextResponse.json({ error: 'Order not found' }, { status: 404 });
 
     const userId = user.userId as string;
-    const isCustomer = order.customer_id.toString() === userId;
-    const isBooster = order.booster_id?.toString() === userId;
+    const isCustomer = order.customerId.toString() === userId;
+    const isBooster = order.boosterId?.toString() === userId;
     const isAdmin = user.role === 'ADMIN';
 
     if (!isCustomer && !isBooster && !isAdmin) {
