@@ -114,8 +114,9 @@ export default function WalletPage() {
     // Tạo nội dung chuyển khoản: NAP<USERNAME> (Viết liền, không dấu cách để khớp SePay)
     const transferContent = `NAP${currentUser.username.toUpperCase().replace(/\s/g, '')}`;
     
-    // Tạo link VietQR Client-side
-    const qrUrl = `https://img.vietqr.io/image/${bankConfig.bankId}-${bankConfig.accountNo}-compact2.png?amount=${amount}&addInfo=${encodeURIComponent(transferContent)}&accountName=${encodeURIComponent(bankConfig.accountName)}`;
+    // Tạo link SePay QR Client-side
+    // Format: https://qr.sepay.vn/img?acc=SO_TAI_KHOAN&bank=NGAN_HANG&amount=SO_TIEN&des=NOI_DUNG
+    const qrUrl = `https://qr.sepay.vn/img?acc=${encodeURIComponent(bankConfig.accountNo)}&bank=${encodeURIComponent(bankConfig.bankId)}&amount=${amount}&des=${encodeURIComponent(transferContent)}`;
 
     setPendingTx({
       qrUrl,
