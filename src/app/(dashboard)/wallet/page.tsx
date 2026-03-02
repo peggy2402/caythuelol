@@ -111,8 +111,8 @@ export default function WalletPage() {
       return;
     }
 
-    // Tạo nội dung chuyển khoản: NAP<USERNAME> (Viết liền, không dấu cách để khớp SePay)
-    const transferContent = `NAP${currentUser.username.toUpperCase().replace(/\s/g, '')}`;
+    // Tạo nội dung chuyển khoản: ZT<USERNAME> (Viết liền, không dấu cách để khớp SePay)
+    const transferContent = `ZT${currentUser.username.toUpperCase().replace(/\s/g, '')}`;
     
     // Tạo link SePay QR Client-side
     // Format: https://qr.sepay.vn/img?acc=SO_TAI_KHOAN&bank=NGAN_HANG&amount=SO_TIEN&des=NOI_DUNG

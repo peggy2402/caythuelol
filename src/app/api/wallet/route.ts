@@ -111,9 +111,9 @@ export async function POST(req: Request) {
       description: `Nạp tiền ${amount.toLocaleString('vi-VN')}đ`,
     });
 
-    // Tạo nội dung chuyển khoản: NAP<USERNAME>
-    // Ví dụ: NAPTRANANHKIENHP (Bỏ dấu cách và mã code để đảm bảo chuẩn Alphanumeric của SePay)
-    const transferContent = `NAP${user.username.toUpperCase().replace(/\s/g, '')}`;
+    // Tạo nội dung chuyển khoản: ZT<USERNAME>
+    // Ví dụ: ZTTRANANHKIENHP (Thử đổi sang ZT theo mẫu mặc định)
+    const transferContent = `ZT${user.username.toUpperCase().replace(/\s/g, '')}`;
     
     // Tạo link SePay QR
     // Format: https://qr.sepay.vn/img?acc=SO_TAI_KHOAN&bank=NGAN_HANG&amount=SO_TIEN&des=NOI_DUNG

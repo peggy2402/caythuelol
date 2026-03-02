@@ -56,22 +56,22 @@ export async function POST(req: Request) {
     // -------------------------
 
     // 2. Phân tích nội dung chuyển khoản (transferContent)
-    // Format mong đợi: "NAP <USERNAME>" hoặc "NAP <USERNAME> <CODE>"
-    // Ví dụ: "NAP CHIEN123" hoặc "NAP CHIEN123 8A2B9C"
+    // Format mong đợi: "ZT <USERNAME>" hoặc "ZT <USERNAME> <CODE>"
+    // Ví dụ: "ZT CHIEN123" hoặc "ZT CHIEN123 8A2B9C"
     const content = data.transferContent; // Giữ nguyên case để log cho chuẩn
     console.log('🔍 [SePay Analysis] Content:', content);
     
-    // Regex mới: Tìm NAP + Username + Code (Optional)
-    // Cải tiến: Hỗ trợ cả NAPUSERNAME (dính liền) và NAP USERNAME (có cách)
-    // 1. /i : Không phân biệt hoa thường (nap = NAP)
-    // 2. \s* : Chấp nhận dính liền hoặc cách (NAPCHIEN = NAP CHIEN)
+    // Regex mới: Tìm ZT + Username + Code (Optional)
+    // Cải tiến: Hỗ trợ cả ZTUSERNAME (dính liền) và ZT USERNAME (có cách)
+    // 1. /i : Không phân biệt hoa thường (zt = ZT)
+    // 2. \s* : Chấp nhận dính liền hoặc cách (ZTCHIEN = ZT CHIEN)
     // 3. ([a-zA-Z0-9_\-\.]+) : Username chấp nhận chữ, số, gạch dưới, gạch ngang, chấm
-    const regex = /NAP\s*([a-zA-Z0-9_\-\.]+)(?:\s+([a-zA-Z0-9]+))?/i;
+    const regex = /ZT\s*([a-zA-Z0-9_\-\.]+)(?:\s+([a-zA-Z0-9]+))?/i;
     const match = content.match(regex);
     
     if (!match) {
       console.error('🔴 [SePay Webhook] Regex Failed. Content:', content);
-      console.error('🔴 [SePay Webhook] Expected format: NAP <USERNAME> [CODE]');
+      console.error('🔴 [SePay Webhook] Expected format: ZT <USERNAME> [CODE]');
       // Trả về success true để SePay không gửi lại nữa, nhưng không xử lý giao dịch (để Admin duyệt tay)
       return NextResponse.json({ success: true, message: 'Syntax error, waiting for manual review' });
     }
