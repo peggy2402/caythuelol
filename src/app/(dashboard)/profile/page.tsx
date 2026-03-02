@@ -42,8 +42,8 @@ interface UserData {
 }
 
 // Reusable Card component for this page
-const SettingsCard = ({ title, description, children }: { title: string, description: string, children: ReactNode }) => (
-  <div className="rounded-xl border border-white/5 bg-zinc-900/50 backdrop-blur-sm">
+const SettingsCard = ({ title, description, children, className }: { title: string, description: string, children: ReactNode, className?: string }) => (
+  <div className={`rounded-xl border border-white/5 bg-zinc-900/50 backdrop-blur-sm ${className || ''}`}>
     <div className="p-6 border-b border-white/5">
       <h2 className="text-lg font-bold text-white">{title}</h2>
       <p className="text-sm text-zinc-400 mt-1">{description}</p>
@@ -530,7 +530,7 @@ export default function ProfilePage() {
       </SettingsCard>
 
       {/* Bank Info Card */}
-      <SettingsCard title="Thông tin ngân hàng" description="Cập nhật tài khoản ngân hàng để nhận tiền rút">
+      <SettingsCard title="Thông tin ngân hàng" description="Cập nhật tài khoản ngân hàng để nhận tiền rút" className="relative z-20">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-zinc-400 mb-2">Ngân hàng</label>
