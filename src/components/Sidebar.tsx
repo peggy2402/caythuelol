@@ -118,6 +118,7 @@ export default function Sidebar({ className = '', onLinkClick }: SidebarProps) {
             <NavItem href="/admin/orders" icon={FileText} label={t('manageOrders')} />
             <NavItem href="/admin/blogs" icon={Newspaper} label={t('manageBlogs')} />
             <NavItem href="/admin/settings" icon={Settings} label={t('systemSettings')} />
+            <NavItem href="/admin/audit-logs" icon={ListTodo} label={t('auditLogs')} />
           </>
         )}
       </div>

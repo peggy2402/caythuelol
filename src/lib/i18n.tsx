@@ -378,6 +378,7 @@ const dictionaries = {
     manageBlogs: 'Quản lý Bài viết',
     manageTransactions: 'Quản lý Giao dịch',
     systemSettings: 'Cấu hình hệ thống',
+    auditLogs: 'Nhật ký hoạt động',
 
     // Booster Apply
     boosterApplyTitle: "Trở thành Booster Chuyên Nghiệp",
@@ -771,6 +772,7 @@ const dictionaries = {
     manageBlogs: 'Manage Blogs',
     manageTransactions: 'Manage Transactions',
     systemSettings: 'System Settings',
+    auditLogs: 'Audit Logs',
 
     // Booster Apply
     boosterApplyTitle: "Become a Professional Booster",
@@ -1163,6 +1165,7 @@ const dictionaries = {
     manageBlogs: '블로그 관리',
     manageTransactions: '거래 관리',
     systemSettings: '시스템 설정',
+    auditLogs: '감사 로그',
 
     // Booster Apply
     boosterApplyTitle: "전문 부스터 되기",
@@ -1556,7 +1559,8 @@ const dictionaries = {
     manageBlogs: 'ブログ管理',
     manageTransactions: '取引管理',
     systemSettings: 'システム設定',
-
+    auditLogs: '監査ログ',
+    
     // Booster Apply
     boosterApplyTitle: "プロのブースターになる",
     boosterApplySubtitle: "伝説になろう",
