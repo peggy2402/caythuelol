@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { toast } from 'sonner';
-import { Save, Info, Globe, Zap, Video, Users, Clock, Crosshair, ArrowRight, CheckCircle2, Loader2, FileText, Copy, Upload, Download } from 'lucide-react';
+import { Save, Info, Globe, Zap, Video, Users, Clock, Crosshair, ArrowRight, CheckCircle2, Loader2, FileText, Copy, Upload, Download, Calculator } from 'lucide-react';
 
 interface DBRank {
   _id: string;
@@ -61,6 +61,12 @@ export default function BoosterServicesPage() {
   const [showConfigTools, setShowConfigTools] = useState(false);
   const [importJson, setImportJson] = useState('');
   const [bulkImportText, setBulkImportText] = useState('');
+  
+  // Calculator State
+  const [calcFrom, setCalcFrom] = useState('');
+  const [calcTo, setCalcTo] = useState('');
+  const [calcPrice, setCalcPrice] = useState(0);
+  const [calcError, setCalcError] = useState<string | null>(null);
   
   // Default Settings
   const [settings, setSettings] = useState<ServiceSettings>({
@@ -133,6 +139,60 @@ export default function BoosterServicesPage() {
   useEffect(() => {
     fetchData();
   }, []);
+
+  // Flatten ranks for the calculator
+  const flatTiers = useMemo(() => {
+    const list: { key: string; label: string }[] = [];
+    if (Array.isArray(ranks)) {
+      ranks.forEach(rank => {
+        if (Array.isArray(rank.tiers)) {
+          rank.tiers.forEach(tier => {
+            list.push({
+              key: tier ? `${rank.name}_${tier}` : rank.name,
+              label: tier ? `${rank.name} ${tier}` : rank.name,
+            });
+          });
+        }
+      });
+    }
+    return list;
+  }, [ranks]);
+
+  // Calculate price effect
+  useEffect(() => {
+    setCalcError(null);
+    if (!calcFrom || !calcTo || !flatTiers.length) {
+      setCalcPrice(0);
+      return;
+    }
+
+    const fromIndex = flatTiers.findIndex(t => t.key === calcFrom);
+    const toIndex = flatTiers.findIndex(t => t.key === calcTo);
+
+    if (fromIndex === -1 || toIndex === -1 || fromIndex >= toIndex) {
+      setCalcPrice(0);
+      return;
+    }
+
+    let total = 0;
+    let missingCount = 0;
+
+    for (let i = fromIndex; i < toIndex; i++) {
+      const stepKey = flatTiers[i].key;
+      const price = settings.rankPrices[stepKey];
+      if (!price || price <= 0) {
+        missingCount++;
+      }
+      total += (price || 0);
+    }
+
+    if (missingCount > 0) {
+      setCalcPrice(0);
+      setCalcError(`Chưa nhập giá ${missingCount} bậc`);
+    } else {
+      setCalcPrice(total);
+    }
+  }, [calcFrom, calcTo, settings.rankPrices, flatTiers]);
 
   // Helper: Kiểm tra logic giá (Giá sau >= Giá trước)
   const validatePrices = () => {
@@ -561,9 +621,25 @@ export default function BoosterServicesPage() {
           <Info className="w-5 h-5 text-blue-500 mt-1" />
           <div>
             <h2 className="text-xl font-bold text-white">Điểm cộng mỗi ván (LP Gain)</h2>
-            <p className="text-sm text-zinc-400 mt-1">
-              *Ghi chú: điền số phần trăm để tăng/giảm giá. Ví dụ: Khách nhận ít LP (High MMR) -&gt; Tăng giá (+30%).
-            </p>
+            <div className="text-sm text-zinc-400 mt-2 space-y-3">
+              <div className="bg-zinc-950/50 p-3 rounded-lg border border-zinc-800/50 text-xs leading-relaxed">
+                <p className="mb-2">
+                  <span className="text-blue-400 font-bold">LP (League Points) là gì?</span><br/>
+                  Là điểm số xếp hạng nhận được sau mỗi trận thắng. Đạt 100 LP sẽ được vào chuỗi thăng hạng.
+                </p>
+                <div>
+                  <span className="text-purple-400 font-bold">MMR (Matchmaking Rating) là gì?</span><br/>
+                  Là điểm số ẩn đánh giá trình độ thực tế.
+                  <ul className="list-disc list-inside mt-1 text-zinc-500">
+                    <li><strong>MMR Cao (Smurf):</strong> Cộng nhiều LP (+25~30). Cày nhanh → <span className="text-green-500">Nên giảm giá</span>.</li>
+                    <li><strong>MMR Thấp (Hell Elo):</strong> Cộng ít LP (+10~15). Cày rất khó → <span className="text-red-500">Nên tăng giá</span>.</li>
+                  </ul>
+                </div>
+              </div>
+              <p className="text-xs italic">
+                *Ghi chú: Điền số phần trăm để tăng/giảm giá tiền cho từng trường hợp LP.
+              </p>
+            </div>
           </div>
         </div>
 
@@ -598,10 +674,27 @@ export default function BoosterServicesPage() {
         <div className="mb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
             <h2 className="text-xl font-bold text-white">Bảng giá leo Rank (Theo bậc)</h2>
-            <p className="text-sm text-zinc-400 mt-1">
-              Nhập giá tiền để cày <strong>TỪ</strong> bậc hiện tại <strong>LÊN</strong> bậc kế tiếp. <br/>
-              Hệ thống sẽ <strong>tự động cộng dồn</strong> giá của các bậc trung gian đối với các đơn hàng leo nhiều bậc (Ví dụ: Iron IV -&gt; Challenger).
-            </p>
+            <div className="mt-3 bg-blue-900/20 border border-blue-500/30 rounded-xl p-4 text-sm space-y-3">
+              <p className="text-blue-100">
+                <span className="text-yellow-400 font-bold text-lg mr-2">⚠️ LƯU Ý QUAN TRỌNG:</span>
+                Chỉ nhập giá cho <span className="font-bold text-white border-b border-white">1 BẬC DUY NHẤT</span>.
+              </p>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                <div className="bg-zinc-950/50 p-3 rounded-lg border border-zinc-800">
+                  <span className="text-green-400 font-bold block mb-1">✅ ĐÚNG (Hệ thống tự cộng dồn):</span>
+                  Nhập giá: <span className="text-white">Vàng I ➜ Bạch Kim IV</span>
+                </div>
+                <div className="bg-zinc-950/50 p-3 rounded-lg border border-zinc-800">
+                  <span className="text-red-400 font-bold block mb-1">❌ SAI (Đừng làm thế này):</span>
+                  Nhập giá: <span className="text-zinc-500 line-through">Sắt IV ➜ Thách Đấu</span>
+                </div>
+              </div>
+
+              <p className="text-xs text-zinc-400 italic">
+                *Ví dụ: Khách đặt từ <strong>Sắt IV</strong> lên <strong>Bạc IV</strong>. Hệ thống sẽ tự động lấy giá của từng bậc nhỏ cộng lại với nhau. Bạn không cần phải tính toán thủ công.
+              </p>
+            </div>
           </div>
           <button
             onClick={() => setShowBulkImport(!showBulkImport)}
@@ -610,6 +703,62 @@ export default function BoosterServicesPage() {
             <FileText className="w-4 h-4" />
             Nhập nhanh
           </button>
+        </div>
+
+        {/* Calculator Preview Section */}
+        <div className="mb-8 bg-zinc-950 border border-zinc-800 rounded-xl p-5">
+            <h3 className="text-white font-bold flex items-center gap-2 mb-4">
+                <Calculator className="w-5 h-5 text-blue-500" />
+                Xem trước giá (Preview Calculator)
+            </h3>
+            <div className="flex flex-col md:flex-row items-center gap-4">
+                <div className="flex-1 w-full">
+                    <label className="text-xs text-zinc-500 mb-1 block">Từ Rank</label>
+                    <select 
+                        value={calcFrom}
+                        onChange={(e) => {
+                            setCalcFrom(e.target.value);
+                            setCalcTo(''); // Reset đích đến khi thay đổi điểm xuất phát
+                        }}
+                        className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white outline-none focus:border-blue-500"
+                    >
+                        <option value="">Chọn Rank bắt đầu</option>
+                        {flatTiers.map((t) => (
+                            <option key={t.key} value={t.key}>{t.label}</option>
+                        ))}
+                    </select>
+                </div>
+                <ArrowRight className="w-5 h-5 text-zinc-600 hidden md:block mt-5" />
+                <div className="flex-1 w-full">
+                    <label className="text-xs text-zinc-500 mb-1 block">Đến Rank</label>
+                    <select 
+                        value={calcTo}
+                        onChange={(e) => setCalcTo(e.target.value)}
+                        className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white outline-none focus:border-blue-500"
+                    >
+                        <option value="">Chọn Rank mục tiêu</option>
+                        {flatTiers.map((t, index) => {
+                            // Logic: Chỉ hiển thị các rank đứng SAU rank bắt đầu
+                            const startIdx = flatTiers.findIndex(item => item.key === calcFrom);
+                            if (startIdx !== -1 && index <= startIdx) return null;
+                            
+                            return <option key={t.key} value={t.key}>{t.label}</option>
+                        })}
+                    </select>
+                </div>
+                <div className="flex-1 w-full bg-blue-900/20 border border-blue-500/30 rounded-lg p-2 flex flex-col items-center justify-center mt-4 md:mt-0">
+                    <span className="text-xs text-blue-200">Tổng tiền dự kiến</span>
+                    {calcError ? (
+                      <span className="text-sm font-bold text-red-400 animate-pulse text-center">
+                        {calcError}
+                      </span>
+                    ) : (
+                      <span className="text-xl font-bold text-blue-400">
+                          {calcPrice.toLocaleString('vi-VN')} đ
+                      </span>
+                    )}
+                </div>
+            </div>
         </div>
 
         {showBulkImport && (
