@@ -1,6 +1,6 @@
 Project: LOL Boosting Platform
 Date started: 2026-02-25
-Last updated: 2026-02-28
+Last updated: 2026-03-02
 
 Purpose:
 
@@ -382,3 +382,32 @@ caythuelol/
   - **Schema Consistency:** Đồng bộ hóa tên trường `userId` (thay vì `user_id`) và `balanceAfter` (thay vì `balance_after`) trong toàn bộ code Transaction.
   - **API Routes:** Sửa đường dẫn `/api/booster/jobs` thành `/api/boosters/jobs` cho đúng chuẩn RESTful.
   - **Socket Client:** Tạo `src/lib/socket.ts` singleton để quản lý kết nối Socket ở Frontend.
+
+12. 2026-03-02 — Advanced Wallet, Dynamic Pricing & Deployment Fixes
+
+- **Wallet & Realtime Polish:**
+  - **UX:** Thêm hiệu ứng âm thanh "Ting Ting" và pháo hoa (Confetti) khi nạp tiền thành công.
+  - **Realtime:** Fix lỗi Socket.io không cập nhật số dư ngay lập tức (do `useEffect` dependencies).
+  - **Withdrawal:** Triển khai tính năng Rút tiền: Modal nhập số tiền, kiểm tra thông tin ngân hàng, tạo Transaction `WITHDRAWAL`.
+  - **Pagination:** Thêm phân trang cho Lịch sử giao dịch (Wallet) và Quản lý giao dịch (Admin).
+
+- **Booster Service Configuration (Dynamic Pricing):**
+  - **Architecture:** Chuyển từ Hardcoded Ranks sang Database-driven (`Rank` và `Game` models).
+  - **Feature:** Xây dựng `/booster/services` cho phép Booster tự cấu hình:
+    - Giá tiền theo từng Rank/Division.
+    - Hệ số điều chỉnh theo điểm cộng LP (High/Medium/Low MMR).
+    - Hệ số điều chỉnh theo chế độ chơi (Solo/Flex).
+  - **Pricing Engine:** Nâng cấp `src/lib/pricing.ts` để tính giá đơn hàng dựa trên cấu hình riêng của Booster được chọn.
+  - **Fix:** Xử lý triệt để lỗi không lưu được `service_settings` (kiểu Mixed) bằng cách dùng `User.collection.updateOne`.
+
+- **Admin & Profile Enhancements:**
+  - **Audit Logs:** Tạo hệ thống ghi nhật ký thay đổi thông tin nhạy cảm (Bank Info, Password).
+  - **Admin Transactions:** Bổ sung bộ lọc nâng cao (Trạng thái, Loại GD, Tìm kiếm) và tính năng "Từ chối giao dịch".
+  - **Profile:** Tích hợp VietQR API để chọn ngân hàng chuyên nghiệp. Thêm validate Username (chặn khoảng trắng).
+
+- **Deployment & Infrastructure:**
+  - **Vercel Fixes:**
+    - Loại bỏ module `crypto` (Node.js) khỏi Client Components (`i18n.tsx`) gây lỗi build 500.
+    - Fix lỗi "Internal Server Error" do không `await` các request `fetch` (Socket trigger) trong Serverless Functions.
+    - Xóa log `MONGODB_URI` để bảo mật.
+    - Fix lỗi cache build `MODULE_NOT_FOUND`.
