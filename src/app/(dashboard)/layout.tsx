@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { useLanguage } from '../../lib/i18n';
 import Sidebar from '@/components/Sidebar';
+import { socket } from '@/lib/socket';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -29,7 +30,24 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   useEffect(() => {
     const userData = localStorage.getItem('user');
     if (userData) {
-      setUser(JSON.parse(userData));
+      const parsedUser = JSON.parse(userData);
+      setUser(parsedUser);
+
+      // Socket: Lắng nghe thay đổi số dư toàn cục để cập nhật Header
+      if (!socket.connected) socket.connect();
+      socket.emit('join_user_room', parsedUser._id);
+
+      const handleWalletUpdate = (data: { balance: number }) => {
+        setUser((prev: any) => ({ ...prev, wallet_balance: data.balance }));
+        
+        // Cập nhật localStorage để đồng bộ dữ liệu mới nhất
+        const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+        currentUser.wallet_balance = data.balance;
+        localStorage.setItem('user', JSON.stringify(currentUser));
+      };
+
+      socket.on('wallet_update', handleWalletUpdate);
+      return () => { socket.off('wallet_update', handleWalletUpdate); };
     }
   }, []);
 
