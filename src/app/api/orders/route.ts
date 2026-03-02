@@ -32,6 +32,7 @@ export async function GET(req: Request) {
     }
 
     const orders = await Order.find(query)
+      .populate('customer_id', 'username profile.avatar')
       .populate('booster_id', 'username profile.avatar') // Lấy thông tin Booster nếu có
       .sort({ created_at: -1 });
 
