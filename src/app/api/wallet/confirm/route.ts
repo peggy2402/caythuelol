@@ -56,18 +56,33 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    // 4. Cộng tiền vào ví User
-    user.wallet_balance += transaction.amount;
-    await user.save();
+    // 4. Cộng tiền vào ví User (Atomic Update để an toàn)
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      { $inc: { wallet_balance: transaction.amount } },
+      { new: true }
+    );
 
     // 5. Cập nhật trạng thái giao dịch
     transaction.status = TransactionStatus.SUCCESS;
-    transaction.balanceAfter = user.wallet_balance; // Cập nhật số dư chính xác sau khi cộng
+    transaction.balanceAfter = updatedUser.wallet_balance; // Cập nhật số dư chính xác sau khi cộng
     await transaction.save();
+
+    // 6. Bắn thông báo Realtime (Socket.io)
+    const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 'https://caythuelol-server-production.up.railway.app';
+    fetch(`${socketUrl}/trigger-payment`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        userId: updatedUser._id.toString(),
+        balance: updatedUser.wallet_balance,
+        message: `Giao dịch ${transaction.amount.toLocaleString('vi-VN')}đ đã được duyệt`
+      })
+    }).catch(err => console.error('Socket trigger failed', err));
 
     return NextResponse.json({
       success: true,
-      newBalance: user.wallet_balance,
+      newBalance: updatedUser.wallet_balance,
       message: 'Giao dịch đã được duyệt thành công'
     });
 
