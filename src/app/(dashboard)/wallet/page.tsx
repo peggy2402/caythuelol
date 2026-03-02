@@ -642,7 +642,7 @@ export default function WalletPage() {
       {isWithdrawModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
           <div className="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-md shadow-2xl animate-in zoom-in-95 duration-200">
-            <div className="p-4 border-b border-zinc-800 flex justify-between items-center bg-zinc-950">
+            <div className="p-4 border-b border-zinc-800 flex justify-between items-center bg-transparent">
               <h3 className="text-lg font-bold text-white flex items-center gap-2">
                 <ArrowDownLeft className="w-5 h-5 text-blue-500" />
                 {t('withdraw')}
