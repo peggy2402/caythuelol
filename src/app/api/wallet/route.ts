@@ -35,7 +35,7 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const user = await User.findById(userId).select('wallet_balance pending_balance');
+    const user = await User.findById(userId).select('wallet_balance pending_balance profile.bank_info');
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
@@ -67,6 +67,7 @@ export async function GET(req: Request) {
         page,
         totalPages: Math.ceil(total / limit)
       },
+      userBankInfo: user.profile?.bank_info || null,
       bankInfo: {
         bankId: BANK_ID,
         accountNo: ACCOUNT_NO,
