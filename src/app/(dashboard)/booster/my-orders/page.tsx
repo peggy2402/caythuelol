@@ -70,11 +70,11 @@ export default function BoosterOrdersPage() {
             <button
               key={option.id}
               onClick={() => setStatusFilter(option.id)}
-              className={`px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-all ${
+                className={`relative px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-all duration-200 ${
                 statusFilter === option.id
-                  ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/25'
-                  : 'bg-zinc-900 border border-zinc-800 text-zinc-400 hover:bg-zinc-800 hover:text-white'
-              }`}
+                    ? 'bg-blue-600 text-white shadow-lg before:absolute before:inset-0 before:rounded-full before:bg-blue-500/30 before:blur-xl before:-z-10'
+                    : 'bg-zinc-900 border border-zinc-800 text-zinc-400 hover:bg-zinc-800 hover:text-white'
+                }`}
             >
               {option.label}
             </button>
@@ -88,7 +88,7 @@ export default function BoosterOrdersPage() {
                 placeholder="Tìm kiếm đơn hàng..." 
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="bg-zinc-900 border border-zinc-800 text-white text-sm rounded-xl pl-10 pr-4 py-2 focus:outline-none focus:border-blue-500 w-full md:w-64"
+                className="bg-zinc-900 border border-zinc-800 text-white text-sm rounded-full pl-10 pr-4 py-2 focus:outline-none focus:border-blue-500 w-full md:w-64"
             />
         </div>
       </div>
