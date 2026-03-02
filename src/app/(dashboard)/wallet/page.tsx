@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useLanguage } from '@/lib/i18n';
 import { toast } from 'sonner';
 import { socket } from '@/lib/socket';
@@ -26,6 +27,7 @@ interface PaymentInfo {
 
 export default function WalletPage() {
   const { t } = useLanguage();
+  const router = useRouter();
   const [balance, setBalance] = useState(0);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
@@ -33,11 +35,16 @@ export default function WalletPage() {
   const [isDepositing, setIsDepositing] = useState(false);
   const [bankConfig, setBankConfig] = useState<any>(null);
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const [userBankInfo, setUserBankInfo] = useState<any>(null);
+  
+  // Modal States
   const [isDepositModalOpen, setIsDepositModalOpen] = useState(false);
+  const [isWithdrawModalOpen, setIsWithdrawModalOpen] = useState(false);
   const [isWaitingForPayment, setIsWaitingForPayment] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [isFailed, setIsFailed] = useState(false);
   const [failReason, setFailReason] = useState('');
+  const [withdrawAmount, setWithdrawAmount] = useState('');
   
   // State cho QR Code
   const [pendingTx, setPendingTx] = useState<{ qrUrl: string, info: PaymentInfo } | null>(null);
@@ -57,6 +64,7 @@ export default function WalletPage() {
         setBalance(data.balance);
         setTransactions(data.transactions);
         setBankConfig(data.bankInfo);
+        setUserBankInfo(data.userBankInfo);
         if (data.pagination) {
           setTotalPages(data.pagination.totalPages);
           setCurrentPage(data.pagination.page);
@@ -264,6 +272,46 @@ export default function WalletPage() {
     }
   };
 
+  // Xử lý click nút Rút tiền
+  const handleWithdrawClick = () => {
+    if (!userBankInfo || !userBankInfo.accountNumber) {
+      toast.error('Vui lòng cập nhật thông tin ngân hàng trước khi rút tiền');
+      router.push('/profile'); // Chuyển hướng sang trang Profile
+      return;
+    }
+    setIsWithdrawModalOpen(true);
+  };
+
+  // Xử lý xác nhận Rút tiền
+  const handleConfirmWithdraw = async () => {
+    const amount = parseInt(withdrawAmount.replace(/,/g, ''));
+    if (isNaN(amount) || amount < 50000) {
+      toast.error('Số tiền rút tối thiểu là 50,000 VNĐ');
+      return;
+    }
+    if (amount > balance) {
+      toast.error('Số dư không đủ');
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/wallet/withdraw', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        toast.success('Yêu cầu rút tiền thành công. Vui lòng chờ duyệt.');
+        setIsWithdrawModalOpen(false);
+        setWithdrawAmount('');
+        fetchWalletData(1);
+      } else {
+        toast.error(data.error || 'Lỗi rút tiền');
+      }
+    } catch (e) { toast.error('Lỗi kết nối'); }
+  };
+
   // Xóa đoạn if (loading) return ... cũ để tránh layout shift
   // Thay vào đó ta dùng loading state để làm mờ bảng hoặc hiện skeleton
 
@@ -295,7 +343,10 @@ export default function WalletPage() {
                 <ArrowUpRight className="w-4 h-4" />
                 {t('deposit')}
               </button>
-              <button className="flex items-center gap-2 bg-zinc-800 hover:bg-zinc-700 text-white px-6 py-2.5 rounded-lg font-medium transition-colors">
+              <button 
+                onClick={handleWithdrawClick}
+                className="flex items-center gap-2 bg-zinc-800 hover:bg-zinc-700 text-white px-6 py-2.5 rounded-lg font-medium transition-colors"
+              >
                 <ArrowDownLeft className="w-4 h-4" />
                 {t('withdraw')}
               </button>
@@ -353,11 +404,12 @@ export default function WalletPage() {
                       </span>
                     </td>
                     <td className="px-6 py-4 text-right">
-                      {tx.status === 'PENDING' && tx.type === 'DEPOSIT' && (
+                      {/* Tạm ẩn nút Hủy đơn theo yêu cầu */}
+                      {/* {tx.status === 'PENDING' && tx.type === 'DEPOSIT' && (
                         <button onClick={() => handleCancelTransaction(tx._id)} className="text-xs text-red-400 hover:text-red-300 hover:underline font-medium">
                           Hủy đơn
                         </button>
-                      )}
+                      )} */}
                     </td>
                   </tr>
                 ))
@@ -581,6 +633,57 @@ export default function WalletPage() {
                   </div>
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Withdraw Modal */}
+      {isWithdrawModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-md shadow-2xl animate-in zoom-in-95 duration-200">
+            <div className="p-4 border-b border-zinc-800 flex justify-between items-center bg-zinc-950">
+              <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                <ArrowDownLeft className="w-5 h-5 text-blue-500" />
+                {t('withdraw')}
+              </h3>
+              <button onClick={() => setIsWithdrawModalOpen(false)} className="text-zinc-400 hover:text-white">
+                <XCircle className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="p-6 space-y-5">
+              <div className="bg-zinc-950 p-3 rounded-lg border border-zinc-800 text-sm">
+                <div className="text-zinc-400 mb-1">Nhận tiền qua:</div>
+                <div className="font-bold text-white">{userBankInfo?.bankName} - {userBankInfo?.accountNumber}</div>
+                <div className="text-zinc-500 uppercase">{userBankInfo?.accountHolder}</div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-zinc-400 mb-2">Số tiền muốn rút</label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    value={withdrawAmount}
+                    onChange={(e) => setWithdrawAmount(e.target.value)}
+                    placeholder="50000"
+                    className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-white text-lg font-bold focus:outline-none focus:border-blue-500 transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  />
+                  <button 
+                    onClick={() => setWithdrawAmount(balance.toString())}
+                    className="absolute right-3 top-2.5 text-xs bg-zinc-800 hover:bg-zinc-700 text-blue-400 px-2 py-1.5 rounded transition-colors"
+                  >
+                    Rút hết
+                  </button>
+                </div>
+                <p className="text-xs text-zinc-500 mt-2">Số dư khả dụng: {formatCurrency(balance)}</p>
+              </div>
+
+              <button
+                onClick={handleConfirmWithdraw}
+                className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3.5 rounded-xl transition-colors shadow-lg shadow-blue-600/20"
+              >
+                Xác nhận rút tiền
+              </button>
             </div>
           </div>
         </div>

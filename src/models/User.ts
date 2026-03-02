@@ -18,6 +18,11 @@ export interface IUser extends Document {
   profile: {
     avatar?: string;
     discord_id?: string;
+    bank_info?: {
+      bankName: string;
+      accountNumber: string;
+      accountHolder: string;
+    };
   };
   booster_info?: {
     ranks: string[];
@@ -52,6 +57,11 @@ const UserSchema: Schema = new Schema(
     profile: {
       avatar: { type: String, default: '' },
       discord_id: { type: String },
+      bank_info: {
+        bankName: { type: String },
+        accountNumber: { type: String },
+        accountHolder: { type: String },
+      }
     },
     booster_info: {
       ranks: { type: [String], default: [] },
