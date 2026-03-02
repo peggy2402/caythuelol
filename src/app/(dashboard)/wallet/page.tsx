@@ -62,17 +62,16 @@ export default function WalletPage() {
     }
   }, []);
 
-  // Socket.io Integration: Lắng nghe sự kiện nạp tiền thành công
+  // Socket.io Integration: Fix triệt để vấn đề cập nhật
   useEffect(() => {
-    const userStr = localStorage.getItem('user');
-    if (userStr) {
-      const user = JSON.parse(userStr);
-      
+    if (currentUser && currentUser._id) {
       // 1. Kết nối và Join Room theo User ID
       if (!socket.connected) {
         socket.connect();
       }
-      socket.emit('join_user_room', user._id);
+      
+      console.log('🔌 Socket joining room:', currentUser._id);
+      socket.emit('join_user_room', currentUser._id);
 
       // 2. Xử lý khi nhận được thông báo từ Server
       const handleWalletUpdate = async (data: { balance: number, message: string }) => {
@@ -82,10 +81,12 @@ export default function WalletPage() {
           icon: <Check className="w-5 h-5 text-green-500" />,
         });
         
-        // Cập nhật UI ngay lập tức
+        // Cập nhật UI ngay lập tức (Force Update)
         setBalance(data.balance);
         setPendingTx(null); // Ẩn mã QR
         setDepositAmount('');
+        
+        // Gọi fetch lại dữ liệu để đảm bảo đồng bộ với DB
         await fetchWalletData(); // Tải lại lịch sử giao dịch
       };
 
@@ -95,7 +96,7 @@ export default function WalletPage() {
         socket.off('wallet_update', handleWalletUpdate);
       };
     }
-  }, []);
+  }, [currentUser]); // Chạy lại khi currentUser thay đổi (load xong từ localStorage)
 
   // Bước 1: Hiển thị QR Code (Chưa tạo giao dịch DB)
   const handleShowQR = (e: React.FormEvent) => {

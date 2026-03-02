@@ -165,6 +165,11 @@ export async function POST(req: Request) {
     );
     // ---------------------
 
+    // Safety Check: Đảm bảo update thành công trước khi dùng updatedUser
+    if (!updatedUser) {
+      throw new Error('Failed to update user balance (User might be deleted)');
+    }
+
     console.log(`✅ [SePay Webhook] Updated balance for ${user.username}: +${data.transferAmount}`);
 
     if (transaction) {
@@ -172,6 +177,7 @@ export async function POST(req: Request) {
       transaction.status = TransactionStatus.SUCCESS;
       transaction.description = `${transaction.description} - SePay #${data.id}`;
       transaction.balanceAfter = updatedUser.wallet_balance;
+      transaction.metadata = data; // Lưu trữ toàn bộ dữ liệu gốc từ SePay để sau này có thể tra cứu hoặc debug
       await transaction.save();
     } else {
       // Case B: Tạo giao dịch mới (Auto Deposit)
@@ -181,6 +187,7 @@ export async function POST(req: Request) {
         amount: data.transferAmount,
         status: TransactionStatus.SUCCESS,
         balanceAfter: updatedUser.wallet_balance,
+        metadata: data,
         description: `Nạp tiền tự động (SePay #${data.id})`,
       });
     }
@@ -199,6 +206,7 @@ export async function POST(req: Request) {
         body: JSON.stringify({
           userId: user._id.toString(),
           balance: updatedUser.wallet_balance,
+          metadata: data,
           message: `Nạp thành công ${data.transferAmount.toLocaleString('vi-VN')}đ`
         })
       })

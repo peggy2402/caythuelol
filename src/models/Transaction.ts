@@ -22,6 +22,7 @@ export interface ITransaction {
   amount: number;
   balanceAfter: number;
   description: string;
+  metadata: Record<string, any>; // Lưu trữ dữ liệu bổ sung từ SePay/Payment Gateway
   status: TransactionStatus;
   createdAt: Date;
 }
@@ -38,6 +39,10 @@ const TransactionSchema = new Schema<ITransaction>(
     amount: { type: Number, required: true },
     balanceAfter: { type: Number, required: true },
     description: { type: String, default: "" },
+    metadata: {
+        type: Object, // Lưu toàn bộ JSON từ SePay/Payment Gateway
+        default: {}
+    },
     status: { 
       type: String, 
       enum: Object.values(TransactionStatus), 
