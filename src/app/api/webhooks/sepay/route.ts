@@ -62,7 +62,7 @@ export async function POST(req: Request) {
     console.log('🔍 [SePay Analysis] Content:', content);
     
     // Regex mới: Tìm NAP + Username + Code (Optional)
-    // Cải tiến:
+    // Cải tiến: Hỗ trợ cả NAPUSERNAME (dính liền) và NAP USERNAME (có cách)
     // 1. /i : Không phân biệt hoa thường (nap = NAP)
     // 2. \s* : Chấp nhận dính liền hoặc cách (NAPCHIEN = NAP CHIEN)
     // 3. ([a-zA-Z0-9_\-\.]+) : Username chấp nhận chữ, số, gạch dưới, gạch ngang, chấm
