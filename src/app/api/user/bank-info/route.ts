@@ -4,6 +4,7 @@ import User from '@/models/User';
 import AuditLog from '@/models/AuditLog';
 import { jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
+import mongoose from 'mongoose';
 
 export async function POST(req: Request) {
   try {
@@ -14,7 +15,7 @@ export async function POST(req: Request) {
 
     const secret = new TextEncoder().encode(process.env.JWT_SECRET);
     const { payload } = await jwtVerify(token, secret);
-    const userId = payload.userId;
+    const userId = payload.userId as string;
 
     const { bankName, accountNumber, accountHolder } = await req.json();
 
@@ -22,17 +23,19 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Vui lòng nhập đầy đủ thông tin' }, { status: 400 });
     }
 
-    // Lấy user cũ để so sánh hoặc lưu log (nếu cần)
-    // Ở đây ta dùng findByIdAndUpdate để lấy bản ghi TRƯỚC khi update (mặc định)
-    const oldUser = await User.findByIdAndUpdate(userId, {
-      $set: {
-        'profile.bank_info': {
-          bankName,
-          accountNumber,
-          accountHolder: accountHolder.toUpperCase()
-        }
+    // 1. Lấy dữ liệu cũ để ghi log
+    const oldUser = await User.findById(userId).lean();
+    if (!oldUser) return NextResponse.json({ error: 'User not found' }, { status: 404 });
+
+    // 2. Update trực tiếp bằng MongoDB Driver để đảm bảo nhất quán
+    await User.collection.updateOne(
+      { _id: new mongoose.Types.ObjectId(userId) },
+      { 
+        $set: { 
+          'profile.bank_info': { bankName, accountNumber, accountHolder: accountHolder.toUpperCase() } 
+        } 
       }
-    });
+    );
 
     // Ghi Audit Log
     await AuditLog.create({
@@ -40,7 +43,8 @@ export async function POST(req: Request) {
       targetId: userId,
       action: 'UPDATE_BANK_INFO',
       description: `Cập nhật thông tin ngân hàng: ${bankName} - ${accountNumber}`,
-      metadata: { old: oldUser?.profile?.bank_info, new: { bankName, accountNumber, accountHolder } },
+      // @ts-ignore
+      metadata: { old: oldUser.profile?.bank_info, new: { bankName, accountNumber, accountHolder } },
       ipAddress: req.headers.get('x-forwarded-for') || 'unknown'
     });
 
