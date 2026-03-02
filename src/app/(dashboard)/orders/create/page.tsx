@@ -239,7 +239,7 @@ function CreateOrderContent() {
       }
 
       toast.success(t('orderSuccess'));
-      router.push('/dashboard/orders');
+      router.push('/orders');
 
     } catch (error: any) {
       toast.error(error.message || t('serverError'));

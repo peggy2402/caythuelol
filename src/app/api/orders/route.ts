@@ -5,6 +5,42 @@ import User from '@/models/User';
 import Transaction, { TransactionType, TransactionStatus } from '@/models/Transaction';
 import { calculatePrice } from '@/lib/pricing';
 import mongoose from 'mongoose';
+import { jwtVerify } from 'jose';
+import { cookies } from 'next/headers';
+
+export async function GET(req: Request) {
+  try {
+    await dbConnect();
+    const cookieStore = await cookies();
+    const token = cookieStore.get('token')?.value;
+
+    if (!token) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const secret = new TextEncoder().encode(process.env.JWT_SECRET);
+    const { payload } = await jwtVerify(token, secret);
+    const userId = payload.userId;
+    const role = payload.role;
+
+    // Mặc định lấy đơn của Customer
+    let query: any = { customer_id: userId };
+
+    // Nếu là Booster thì lấy đơn Booster nhận (Logic mở rộng sau này)
+    if (role === 'BOOSTER') {
+      query = { booster_id: userId };
+    }
+
+    const orders = await Order.find(query)
+      .populate('booster_id', 'username profile.avatar') // Lấy thông tin Booster nếu có
+      .sort({ created_at: -1 });
+
+    return NextResponse.json({ orders });
+  } catch (error) {
+    console.error('Get Orders Error:', error);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+  }
+}
 
 export async function POST(req: Request) {
   await dbConnect();
