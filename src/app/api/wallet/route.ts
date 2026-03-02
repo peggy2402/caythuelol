@@ -27,7 +27,7 @@ async function getUserId() {
 }
 
 // GET: Lấy thông tin ví và lịch sử giao dịch
-export async function GET() {
+export async function GET(req: Request) {
   try {
     await dbConnect();
     const userId = await getUserId();
@@ -40,9 +40,17 @@ export async function GET() {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
+    // Phân trang
+    const { searchParams } = new URL(req.url);
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = parseInt(searchParams.get('limit') || '10');
+    const skip = (page - 1) * limit;
+
+    const total = await Transaction.countDocuments({ userId });
     const transactions = await Transaction.find({ userId })
       .sort({ createdAt: -1 })
-      .limit(20);
+      .skip(skip)
+      .limit(limit);
 
     // Nếu chưa cấu hình ngân hàng thì trả về lỗi hoặc thông báo
     if (!ACCOUNT_NO) {
@@ -53,6 +61,11 @@ export async function GET() {
       balance: user.wallet_balance,
       pending: user.pending_balance,
       transactions,
+      pagination: {
+        total,
+        page,
+        totalPages: Math.ceil(total / limit)
+      },
       bankInfo: {
         bankId: BANK_ID,
         accountNo: ACCOUNT_NO,

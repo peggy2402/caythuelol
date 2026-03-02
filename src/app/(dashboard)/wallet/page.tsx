@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react';
 import { useLanguage } from '@/lib/i18n';
 import { toast } from 'sonner';
 import { socket } from '@/lib/socket';
-import { Wallet, ArrowUpRight, ArrowDownLeft, History, CreditCard, Loader2, QrCode, Copy, Check, X, RefreshCw, XCircle, CheckCircle2, ShieldCheck } from 'lucide-react';
+import confetti from 'canvas-confetti';
+import { Wallet, ArrowUpRight, ArrowDownLeft, History, CreditCard, Loader2, QrCode, Copy, Check, X, RefreshCw, XCircle, CheckCircle2, ShieldCheck, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface Transaction {
   _id: string;
@@ -35,19 +36,30 @@ export default function WalletPage() {
   const [isDepositModalOpen, setIsDepositModalOpen] = useState(false);
   const [isWaitingForPayment, setIsWaitingForPayment] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [isFailed, setIsFailed] = useState(false);
+  const [failReason, setFailReason] = useState('');
   
   // State cho QR Code
   const [pendingTx, setPendingTx] = useState<{ qrUrl: string, info: PaymentInfo } | null>(null);
 
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+
   // Fetch data
-  const fetchWalletData = async () => {
+  const fetchWalletData = async (page = 1) => {
+    setLoading(true);
     try {
-      const res = await fetch('/api/wallet');
+      const res = await fetch(`/api/wallet?page=${page}&limit=10`);
       const data = await res.json();
       if (res.ok) {
         setBalance(data.balance);
         setTransactions(data.transactions);
         setBankConfig(data.bankInfo);
+        if (data.pagination) {
+          setTotalPages(data.pagination.totalPages);
+          setCurrentPage(data.pagination.page);
+        }
       }
     } catch (error) {
       console.error('Failed to fetch wallet:', error);
@@ -77,9 +89,20 @@ export default function WalletPage() {
       socket.emit('join_user_room', currentUser._id);
 
       // 2. Xử lý khi nhận được thông báo từ Server
-      const handleWalletUpdate = async (data: { balance: number, message: string }) => {
+      const handleWalletUpdate = async (data: { balance: number, message: string, type?: string }) => {
         console.log('Socket received:', data); // Debug log
         
+        // Xử lý trường hợp bị TỪ CHỐI
+        if (data.type === 'REJECT') {
+          if (isDepositModalOpen) {
+            setIsWaitingForPayment(false);
+            setIsFailed(true);
+            setFailReason(data.message);
+            await fetchWalletData(currentPage);
+          }
+          return;
+        }
+
         // Cập nhật UI ngay lập tức (Force Update)
         setBalance(data.balance);
         
@@ -95,16 +118,42 @@ export default function WalletPage() {
             await audio.play();
           } catch (e) { console.error("Sound play error:", e); }
 
+          // Hiệu ứng pháo hoa (Confetti)
+          // Bắn liên tục trong 3 giây
+          const duration = 3000;
+          const end = Date.now() + duration;
+
+          (function frame() {
+            confetti({
+              particleCount: 5,
+              angle: 60,
+              spread: 55,
+              origin: { x: 0 },
+              colors: ['#22c55e', '#3b82f6', '#eab308', '#ef4444']
+            });
+            confetti({
+              particleCount: 5,
+              angle: 120,
+              spread: 55,
+              origin: { x: 1 },
+              colors: ['#22c55e', '#3b82f6', '#eab308', '#ef4444']
+            });
+
+            if (Date.now() < end) {
+              requestAnimationFrame(frame);
+            }
+          }());
+
           // Tự động đóng sau 3 giây
           setTimeout(async () => {
             setIsDepositModalOpen(false);
             setIsSuccess(false);
             setPendingTx(null);
             setDepositAmount('');
-            await fetchWalletData(); // Tải lại lịch sử (Lúc này đã là SUCCESS)
+            await fetchWalletData(1); // Tải lại lịch sử (Lúc này đã là SUCCESS)
           }, 3000);
         } else {
-          await fetchWalletData();
+          await fetchWalletData(currentPage);
         }
 
         // Gọi fetch lại dữ liệu để đảm bảo đồng bộ với DB
@@ -205,7 +254,7 @@ export default function WalletPage() {
       });
       if(res.ok) {
         toast.success('Đã hủy yêu cầu nạp tiền');
-        fetchWalletData();
+        fetchWalletData(currentPage);
       } else {
         toast.error('Không thể hủy giao dịch này');
       }
@@ -321,6 +370,29 @@ export default function WalletPage() {
             </tbody>
           </table>
         </div>
+
+        {/* Pagination Controls */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-center gap-4 p-4 border-t border-zinc-800">
+            <button
+              onClick={() => fetchWalletData(currentPage - 1)}
+              disabled={currentPage === 1}
+              className="p-2 rounded-lg hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              <ChevronLeft className="w-5 h-5 text-zinc-400" />
+            </button>
+            <span className="text-sm text-zinc-400">
+              Trang <span className="text-white font-medium">{currentPage}</span> / {totalPages}
+            </span>
+            <button
+              onClick={() => fetchWalletData(currentPage + 1)}
+              disabled={currentPage === totalPages}
+              className="p-2 rounded-lg hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              <ChevronRight className="w-5 h-5 text-zinc-400" />
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Deposit Modal */}
@@ -339,6 +411,7 @@ export default function WalletPage() {
                   setDepositAmount('');
                   setIsWaitingForPayment(false);
                   setIsSuccess(false);
+                  setIsFailed(false);
                 }}
                 className="text-zinc-400 hover:text-white transition-colors"
               >
@@ -358,6 +431,26 @@ export default function WalletPage() {
                   <div className="text-3xl font-bold text-green-500 mt-2">
                     +{formatCurrency(pendingTx?.info.amount || 0)}
                   </div>
+                </div>
+              ) : isFailed ? (
+                // Màn hình THẤT BẠI / TỪ CHỐI
+                <div className="flex flex-col items-center justify-center py-8 space-y-4 animate-in zoom-in duration-300">
+                  <div className="w-20 h-20 bg-red-500/20 rounded-full flex items-center justify-center mb-2">
+                    <AlertCircle className="w-12 h-12 text-red-500" />
+                  </div>
+                  <h3 className="text-2xl font-bold text-white text-center">Giao dịch thất bại</h3>
+                  <p className="text-zinc-400 text-center px-4">{failReason || 'Giao dịch đã bị từ chối.'}</p>
+                  
+                  <button 
+                    onClick={() => {
+                      setIsFailed(false);
+                      setIsWaitingForPayment(false);
+                      // Giữ lại form để khách nhập lại hoặc thử lại
+                    }}
+                    className="mt-4 bg-zinc-800 hover:bg-zinc-700 text-white px-6 py-2 rounded-lg font-medium transition-colors"
+                  >
+                    Thử lại
+                  </button>
                 </div>
               ) : isWaitingForPayment ? (
                 // Màn hình CHỜ XỬ LÝ (Sau khi bấm Đã chuyển khoản)
@@ -387,7 +480,7 @@ export default function WalletPage() {
                         value={depositAmount}
                         onChange={(e) => setDepositAmount(e.target.value)}
                         placeholder="50000"
-                        className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-white text-lg font-bold focus:outline-none focus:border-red-500 transition-colors"
+                        className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-white text-lg font-bold focus:outline-none focus:border-red-500 transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                         min="10000"
                         autoFocus
                       />
@@ -461,7 +554,7 @@ export default function WalletPage() {
                   
                   <div className="text-center">
                     <button 
-                      onClick={fetchWalletData}
+                      onClick={() => fetchWalletData(currentPage)}
                       className="text-xs text-zinc-500 hover:text-white flex items-center justify-center gap-1 mx-auto transition-colors"
                     >
                       <RefreshCw className="w-3 h-3" /> Đã chuyển nhưng chưa thấy tiền?

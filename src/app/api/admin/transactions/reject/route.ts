@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import Transaction, { TransactionStatus } from '@/models/Transaction';
+import User from '@/models/User';
 import { cookies } from 'next/headers';
 import { jwtVerify } from 'jose';
 
@@ -42,6 +43,22 @@ export async function POST(req: Request) {
     transaction.status = TransactionStatus.FAILED;
     transaction.description = `${transaction.description} - Từ chối bởi Admin: ${reason || 'Không có lý do'}`;
     await transaction.save();
+
+    // Bắn thông báo Realtime (Socket.io) để Frontend User biết là bị từ chối
+    const user = await User.findById(transaction.userId);
+    if (user) {
+      const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 'https://caythuelol-server-production.up.railway.app';
+      fetch(`${socketUrl}/trigger-payment`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user._id.toString(),
+          balance: user.wallet_balance, // Số dư không đổi
+          message: `Giao dịch bị từ chối: ${reason || 'Thông tin không khớp'}`,
+          type: 'REJECT' // Flag quan trọng để Frontend nhận biết
+        })
+      }).catch(err => console.error('Socket trigger failed', err));
+    }
 
     return NextResponse.json({ success: true, message: 'Đã từ chối giao dịch' });
 
