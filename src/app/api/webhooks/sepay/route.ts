@@ -12,7 +12,8 @@ interface SePayWebhookData {
   subAccount: string | null;
   transferType: 'in' | 'out';
   transferAmount: number;
-  transferContent: string;
+  transferContent?: string; // SePay có thể gửi field này
+  content?: string;         // Hoặc field này (thực tế log của bạn là field này)
   referenceCode: string;
   description: string;
 }
@@ -58,7 +59,8 @@ export async function POST(req: Request) {
     // 2. Phân tích nội dung chuyển khoản (transferContent)
     // Format mong đợi: "ZT <USERNAME>" hoặc "ZT <USERNAME> <CODE>"
     // Ví dụ: "ZT CHIEN123" hoặc "ZT CHIEN123 8A2B9C"
-    const content = data.transferContent; // Giữ nguyên case để log cho chuẩn
+    // FIX: Lấy data.content nếu data.transferContent không có
+    const content = data.content || data.transferContent || ""; 
     console.log('🔍 [SePay Analysis] Content:', content);
     
     // Regex mới: Tìm ZT + Username + Code (Optional)
@@ -66,6 +68,7 @@ export async function POST(req: Request) {
     // 1. /i : Không phân biệt hoa thường (zt = ZT)
     // 2. \s* : Chấp nhận dính liền hoặc cách (ZTCHIEN = ZT CHIEN)
     // 3. ([a-zA-Z0-9_\-\.]+) : Username chấp nhận chữ, số, gạch dưới, gạch ngang, chấm
+    // 4. (?:\s+([a-zA-Z0-9]+))? : Mã code (Optional). Thêm \b để tránh bắt nhầm chữ Trace dính phía sau nếu không phải code
     const regex = /ZT\s*([a-zA-Z0-9_\-\.]+)(?:\s+([a-zA-Z0-9]+))?/i;
     const match = content.match(regex);
     
@@ -139,7 +142,12 @@ export async function POST(req: Request) {
     // Kiểm tra thêm mã Code nếu có (Double check)
     if (transaction && txCode) {
         const txIdString = transaction._id.toString().toUpperCase();
-        if (!txIdString.endsWith(txCode)) {
+        // FIX: SePay hay gửi kèm "Trace ..." phía sau, regex có thể bắt nhầm chữ "Trace" hoặc số Trace làm code.
+        // Nếu txCode bắt được là "Trace" hoặc quá dài/ngắn không giống 6 ký tự cuối của ID, ta nên bỏ qua check này để tránh tạo đơn mới oan.
+        // Mã transaction ID hex thường là a-f 0-9.
+        
+        // Chỉ check khớp mã nếu mã đó thực sự giống 1 phần của ID (ít nhất 4 ký tự cuối)
+        if (txCode.length >= 4 && !txIdString.endsWith(txCode)) {
             console.warn(`🟡 [SePay Webhook] Code mismatch. Received: ${txCode}, Expected suffix of: ${txIdString}`);
             // Nếu mã không khớp, có thể là giao dịch khác hoặc khách nhập bừa.
             // Thay vì return lỗi, ta set transaction = null để hệ thống tự tạo giao dịch mới (Auto Deposit)
