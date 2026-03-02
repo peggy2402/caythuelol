@@ -75,7 +75,8 @@ export default function WalletPage() {
       socket.emit('join_user_room', user._id);
 
       // 2. Xử lý khi nhận được thông báo từ Server
-      const handleWalletUpdate = (data: { balance: number, message: string }) => {
+      const handleWalletUpdate = async (data: { balance: number, message: string }) => {
+        console.log('Socket received:', data); // Debug log
         toast.success('Nạp tiền thành công!', {
           description: data.message,
           icon: <Check className="w-5 h-5 text-green-500" />,
@@ -85,7 +86,7 @@ export default function WalletPage() {
         setBalance(data.balance);
         setPendingTx(null); // Ẩn mã QR
         setDepositAmount('');
-        fetchWalletData(); // Tải lại lịch sử giao dịch để thấy record mới nhất
+        await fetchWalletData(); // Tải lại lịch sử giao dịch
       };
 
       socket.on('wallet_update', handleWalletUpdate);
