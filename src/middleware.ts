@@ -14,7 +14,7 @@ export async function middleware(request: NextRequest) {
     }
 
     try {
-      const secret = new TextEncoder().encode(process.env.JWT_SECRET);
+      const secret = new TextEncoder().encode(process.env.JWT_SECRET || 'default_secret_fallback');
       if(!secret) {
         throw new Error('JWT_SECRET is not defined');
       }

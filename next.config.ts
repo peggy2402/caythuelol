@@ -26,6 +26,8 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  // Ensure we don't have any experimental flags that might cause cache issues
+  reactStrictMode: true,
   eslint: {
     ignoreDuringBuilds: true,
   },
