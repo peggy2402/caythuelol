@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useLanguage } from '@/lib/i18n';
 import { toast } from 'sonner';
 import { socket } from '@/lib/socket';
-import { Wallet, ArrowUpRight, ArrowDownLeft, History, CreditCard, Loader2, QrCode, Copy, Check, X, RefreshCw, XCircle } from 'lucide-react';
+import { Wallet, ArrowUpRight, ArrowDownLeft, History, CreditCard, Loader2, QrCode, Copy, Check, X, RefreshCw, XCircle, CheckCircle2, ShieldCheck } from 'lucide-react';
 
 interface Transaction {
   _id: string;
@@ -33,6 +33,8 @@ export default function WalletPage() {
   const [bankConfig, setBankConfig] = useState<any>(null);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [isDepositModalOpen, setIsDepositModalOpen] = useState(false);
+  const [isWaitingForPayment, setIsWaitingForPayment] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
   
   // State cho QR Code
   const [pendingTx, setPendingTx] = useState<{ qrUrl: string, info: PaymentInfo } | null>(null);
@@ -71,25 +73,41 @@ export default function WalletPage() {
         socket.connect();
       }
       
-      console.log('🔌 Socket joining room:', currentUser._id);
+      // console.log('🔌 Socket joining room:', currentUser._id);
       socket.emit('join_user_room', currentUser._id);
 
       // 2. Xử lý khi nhận được thông báo từ Server
       const handleWalletUpdate = async (data: { balance: number, message: string }) => {
         console.log('Socket received:', data); // Debug log
-        toast.success('Nạp tiền thành công!', {
-          description: data.message,
-          icon: <Check className="w-5 h-5 text-green-500" />,
-        });
         
         // Cập nhật UI ngay lập tức (Force Update)
         setBalance(data.balance);
-        setPendingTx(null); // Ẩn mã QR
-        setDepositAmount('');
-        setIsDepositModalOpen(false); // Đóng modal nạp tiền nếu đang mở
         
+        if (isDepositModalOpen) {
+          // Nếu đang mở modal nạp tiền -> Chuyển sang trạng thái thành công
+          setIsWaitingForPayment(false);
+          setIsSuccess(true);
+
+          // Phát âm thanh (Ưu tiên phát ở đây vì có tương tác người dùng)
+          try {
+            const audio = new Audio('/sounds/coins.mp3');
+            audio.volume = 1.0;
+            await audio.play();
+          } catch (e) { console.error("Sound play error:", e); }
+
+          // Tự động đóng sau 3 giây
+          setTimeout(async () => {
+            setIsDepositModalOpen(false);
+            setIsSuccess(false);
+            setPendingTx(null);
+            setDepositAmount('');
+            await fetchWalletData(); // Tải lại lịch sử (Lúc này đã là SUCCESS)
+          }, 3000);
+        } else {
+          await fetchWalletData();
+        }
+
         // Gọi fetch lại dữ liệu để đảm bảo đồng bộ với DB
-        await fetchWalletData(); // Tải lại lịch sử giao dịch
       };
 
       socket.on('wallet_update', handleWalletUpdate);
@@ -98,7 +116,7 @@ export default function WalletPage() {
         socket.off('wallet_update', handleWalletUpdate);
       };
     }
-  }, [currentUser]); // Chạy lại khi currentUser thay đổi (load xong từ localStorage)
+  }, [currentUser, isDepositModalOpen]); // Thêm dependency để socket closure cập nhật state mới nhất
 
   // Bước 1: Hiển thị QR Code (Chưa tạo giao dịch DB)
   const handleShowQR = (e: React.FormEvent) => {
@@ -155,15 +173,10 @@ export default function WalletPage() {
 
       if (!res.ok) throw new Error(data.error);
 
-      toast.success('Đã gửi xác nhận! Vui lòng chờ hệ thống xử lý.');
+      // KHÔNG ĐÓNG MODAL -> Chuyển sang trạng thái chờ
+      setIsWaitingForPayment(true);
       
-      // Reset UI
-      setPendingTx(null);
-      setDepositAmount('');
-      setIsDepositModalOpen(false);
-      
-      // Refresh list để hiện transaction PENDING vừa tạo
-      fetchWalletData();
+      // Có thể fetch lại data để background list hiện PENDING (tùy chọn)
 
     } catch (error: any) {
       toast.error(error.message || t('serverError'));
@@ -324,6 +337,8 @@ export default function WalletPage() {
                   setIsDepositModalOpen(false);
                   setPendingTx(null);
                   setDepositAmount('');
+                  setIsWaitingForPayment(false);
+                  setIsSuccess(false);
                 }}
                 className="text-zinc-400 hover:text-white transition-colors"
               >
@@ -332,7 +347,35 @@ export default function WalletPage() {
             </div>
 
             <div className="p-6">
-              {!pendingTx ? (
+              {isSuccess ? (
+                // Màn hình THÀNH CÔNG
+                <div className="flex flex-col items-center justify-center py-8 space-y-4 animate-in zoom-in duration-300">
+                  <div className="w-20 h-20 bg-green-500/20 rounded-full flex items-center justify-center mb-2">
+                    <CheckCircle2 className="w-12 h-12 text-green-500" />
+                  </div>
+                  <h3 className="text-2xl font-bold text-white text-center">Nạp tiền thành công!</h3>
+                  <p className="text-zinc-400 text-center">Số dư của bạn đã được cập nhật.</p>
+                  <div className="text-3xl font-bold text-green-500 mt-2">
+                    +{formatCurrency(pendingTx?.info.amount || 0)}
+                  </div>
+                </div>
+              ) : isWaitingForPayment ? (
+                // Màn hình CHỜ XỬ LÝ (Sau khi bấm Đã chuyển khoản)
+                <div className="flex flex-col items-center justify-center py-8 space-y-6 animate-in fade-in duration-300">
+                  <div className="relative">
+                    <div className="w-20 h-20 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin"></div>
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <ShieldCheck className="w-8 h-8 text-blue-500" />
+                    </div>
+                  </div>
+                  <div className="text-center space-y-2">
+                    <h3 className="text-xl font-bold text-white">Đang kiểm tra giao dịch...</h3>
+                    <p className="text-sm text-zinc-400 max-w-[250px] mx-auto">
+                      Hệ thống đang xác nhận khoản tiền của bạn. Vui lòng không tắt trình duyệt.
+                    </p>
+                  </div>
+                </div>
+              ) : !pendingTx ? (
                 <form onSubmit={handleShowQR} className="space-y-5">
                   <div>
                     <label className="block text-sm font-medium text-zinc-400 mb-2">

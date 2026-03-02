@@ -97,7 +97,7 @@ export async function POST(req: Request) {
     });
 
     if (pendingCount >= 3) {
-      return NextResponse.json({ error: 'Bạn có quá nhiều yêu cầu đang chờ xử lý. Vui lòng hoàn tất hoặc hủy bớt đơn cũ.' }, { status: 400 });
+      return NextResponse.json({ error: 'Bạn chưa thực hiện thanh toán. Vui lòng thanh toán trước' }, { status: 400 });
     }
     
     // Tạo giao dịch PENDING

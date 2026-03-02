@@ -36,9 +36,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       // Socket: Lắng nghe thay đổi số dư toàn cục để cập nhật Header
       if (!socket.connected) socket.connect();
       socket.emit('join_user_room', parsedUser._id);
-      console.log('🔌 Layout Socket joining room:', parsedUser._id);
+      // console.log('🔌 Layout Socket joining room:', parsedUser._id);
 
       const handleWalletUpdate = (data: { balance: number }) => {
+        // Hiệu ứng âm thanh tiền về (ting ting)
+        // Chỉ phát ở Layout nếu KHÔNG PHẢI trang Wallet (vì trang Wallet đã tự xử lý phát âm thanh rồi)
+        if (pathname !== '/wallet') {
+          try {
+            const audio = new Audio('/sounds/coins.mp3');
+            audio.volume = 0.8;
+            audio.play().catch((err) => console.log('Audio play failed:', err));
+          } catch (e) {}
+        }
+
         setUser((prev: any) => ({ ...prev, wallet_balance: data.balance }));
         
         // Cập nhật localStorage để đồng bộ dữ liệu mới nhất
