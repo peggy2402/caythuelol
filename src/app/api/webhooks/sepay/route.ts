@@ -20,7 +20,6 @@ interface SePayWebhookData {
 export async function POST(req: Request) {
   // Log raw headers để debug
   const apiKey = req.headers.get('Authorization');
-  console.log('🔹 [SePay Webhook] Incoming Request. Auth Header:', apiKey ? '***HIDDEN***' : 'MISSING');
 
   try {
     await dbConnect();
@@ -36,7 +35,7 @@ export async function POST(req: Request) {
     }
 
     const data: SePayWebhookData = await req.json();
-    console.log('🔹 [SePay Webhook] Body:', JSON.stringify(data));
+    console.log('🔥🔥🔥 [SePay RAW DATA]:', JSON.stringify(data, null, 2)); // Log to rõ ràng để debug
 
     // Chỉ xử lý giao dịch nhận tiền (transferType = 'in')
     if (data.transferType !== 'in') {
@@ -51,7 +50,7 @@ export async function POST(req: Request) {
     });
 
     if (existingTransaction) {
-      console.log('🟡 [SePay Webhook] Transaction already processed:', data.id);
+      console.log(`🟡 [SePay Webhook] Skipped. SePay ID ${data.id} already exists in DB Transaction: ${existingTransaction._id}`);
       return NextResponse.json({ success: true, message: 'Transaction already processed', id: existingTransaction._id });
     }
     // -------------------------
@@ -59,16 +58,20 @@ export async function POST(req: Request) {
     // 2. Phân tích nội dung chuyển khoản (transferContent)
     // Format mong đợi: "NAP <USERNAME>" hoặc "NAP <USERNAME> <CODE>"
     // Ví dụ: "NAP CHIEN123" hoặc "NAP CHIEN123 8A2B9C"
-    const content = data.transferContent.toUpperCase();
+    const content = data.transferContent; // Giữ nguyên case để log cho chuẩn
+    console.log('🔍 [SePay Analysis] Content:', content);
     
     // Regex mới: Tìm NAP + Username + Code (Optional)
-    // Ví dụ: NAP CHIEN123 B60357
-    // Group 1: Username
-    // Group 2: Transaction Code (6 ký tự cuối) - Có thể có hoặc không
-    const match = content.match(/NAP\s*([A-Z0-9_\-\.]+)(?:\s+([A-Z0-9]+))?/);
+    // Cải tiến:
+    // 1. /i : Không phân biệt hoa thường (nap = NAP)
+    // 2. \s* : Chấp nhận dính liền hoặc cách (NAPCHIEN = NAP CHIEN)
+    // 3. ([a-zA-Z0-9_\-\.]+) : Username chấp nhận chữ, số, gạch dưới, gạch ngang, chấm
+    const regex = /NAP\s*([a-zA-Z0-9_\-\.]+)(?:\s+([a-zA-Z0-9]+))?/i;
+    const match = content.match(regex);
     
     if (!match) {
-      console.error('🔴 [SePay Webhook] Syntax Error. Content:', content);
+      console.error('🔴 [SePay Webhook] Regex Failed. Content:', content);
+      console.error('🔴 [SePay Webhook] Expected format: NAP <USERNAME> [CODE]');
       // Trả về success true để SePay không gửi lại nữa, nhưng không xử lý giao dịch (để Admin duyệt tay)
       return NextResponse.json({ success: true, message: 'Syntax error, waiting for manual review' });
     }
@@ -76,13 +79,15 @@ export async function POST(req: Request) {
     const username = match[1];
     const txCode = match[2]; // Mã giao dịch ngắn (nếu khách có nhập)
 
+    console.log(`🔍 [SePay Analysis] Parsed Username: "${username}", Code: "${txCode || 'N/A'}"`);
+
     // 3. Tìm User
     const user = await User.findOne({ 
       username: new RegExp(`^${username}$`, 'i') 
     });
 
     if (!user) {
-      console.error('🔴 [SePay Webhook] User not found in DB:', username); 
+      console.error(`🔴 [SePay Webhook] User NOT FOUND in DB. Searched for: "${username}"`); 
       return NextResponse.json({ success: true, message: 'User not found, waiting for manual review' });
     }
 
