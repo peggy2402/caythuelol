@@ -2,8 +2,8 @@ import { cookies } from "next/headers";
 import { jwtVerify, SignJWT } from "jose";
 import dbConnect from "@/lib/db";
 import User from "@/models/User";
-const cypto = require("crypto");
-const JWT_SECRET = process.env.JWT_SECRET || cypto.randomBytes(32).toString("hex"); // Fallback nếu chưa có env, nhưng nên đặt trong .env để ổn định
+import crypto from "crypto";
+const JWT_SECRET = process.env.JWT_SECRET || crypto.randomBytes(32).toString("hex"); // Fallback nếu chưa có env, nhưng nên đặt trong .env để ổn định
 const key = new TextEncoder().encode(JWT_SECRET);
 
 export interface SessionUser {

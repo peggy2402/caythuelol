@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import User from '@/models/User';
 import Transaction, { TransactionStatus } from '@/models/Transaction';
-import { jwtVerify } from 'jose';
+import { verifyToken } from '@/lib/auth';
 import { cookies } from 'next/headers';
 
 // API này dùng để duyệt giao dịch (Admin Approve hoặc Webhook từ Casso/Sepay)
@@ -18,10 +18,9 @@ export async function POST(req: Request) {
     
     // Logic check Admin đơn giản (để bạn có thể test bằng cách login acc Admin)
     if (token) {
-       const secret = new TextEncoder().encode(process.env.JWT_SECRET);
-       const { payload } = await jwtVerify(token, secret);
+       const payload = await verifyToken(token);
        // @ts-ignore
-       if (payload.role !== 'ADMIN') {
+       if (payload && payload.role !== 'ADMIN') {
           // return NextResponse.json({ error: 'Forbidden: Admin only' }, { status: 403 });
           // Tạm thời comment để bạn test luồng "Real" dễ dàng hơn nếu chưa có acc Admin
        }
