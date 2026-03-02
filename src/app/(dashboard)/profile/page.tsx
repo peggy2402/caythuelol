@@ -3,7 +3,7 @@
 import { useState, useEffect, ReactNode } from 'react';
 import { useLanguage } from '@/lib/i18n';
 import { useRouter } from 'next/navigation';
-import { User, Key, Trash2, Save, Camera, X, Loader2, Sparkles } from 'lucide-react';
+import { User, Key, Trash2, Save, Camera, X, Loader2, Sparkles, ChevronsUpDown, Check, Search } from 'lucide-react';
 import Image from 'next/image';
 import { toast } from 'sonner';
 import {
@@ -15,6 +15,19 @@ import {
 // Define a User interface based on the provided data
 interface UserProfile {
   avatar?: string;
+  bank_info?: {
+    bankName: string;
+    accountNumber: string;
+    accountHolder: string;
+  };
+}
+
+interface Bank {
+  id: number;
+  name: string;
+  code: string;
+  shortName: string;
+  logo: string;
 }
 
 interface UserData {
@@ -228,6 +241,16 @@ export default function ProfilePage() {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [avatarUrl, setAvatarUrl] = useState('');
+  
+  // Bank Info states
+  const [bankName, setBankName] = useState('');
+  const [accountNumber, setAccountNumber] = useState('');
+  const [accountHolder, setAccountHolder] = useState('');
+
+  // Bank Selector States
+  const [banks, setBanks] = useState<Bank[]>([]);
+  const [isBankOpen, setIsBankOpen] = useState(false);
+  const [bankSearch, setBankSearch] = useState('');
 
   // Password states
   const [currentPassword, setCurrentPassword] = useState('');
@@ -245,8 +268,22 @@ export default function ProfilePage() {
       setUsername(parsedUser.username);
       setEmail(parsedUser.email);
       setAvatarUrl(parsedUser.profile.avatar || '');
+      
+      if (parsedUser.profile.bank_info) {
+        setBankName(parsedUser.profile.bank_info.bankName || '');
+        setAccountNumber(parsedUser.profile.bank_info.accountNumber || '');
+        setAccountHolder(parsedUser.profile.bank_info.accountHolder || '');
+      }
     }
     setLoading(false);
+  }, []);
+
+  // Fetch Banks from VietQR
+  useEffect(() => {
+    fetch('https://api.vietqr.io/v2/banks')
+      .then(res => res.json())
+      .then(data => setBanks(data.data || []))
+      .catch(err => console.error("Failed to fetch banks", err));
   }, []);
 
   const handleResendOtp = async () => {
@@ -331,6 +368,34 @@ export default function ProfilePage() {
         setUser(updatedUser as UserData);
     } catch (error: any) {
         toast.error(error.message);
+    }
+  };
+
+  const handleSaveBankInfo = async () => {
+    try {
+      const res = await fetch('/api/user/bank-info', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bankName, accountNumber, accountHolder }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+
+      toast.success('Cập nhật thông tin ngân hàng thành công');
+      
+      if (user) {
+        const updatedUser = {
+          ...user,
+          profile: {
+            ...user.profile,
+            bank_info: { bankName, accountNumber, accountHolder: accountHolder.toUpperCase() }
+          }
+        };
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+        setUser(updatedUser);
+      }
+    } catch (error: any) {
+      toast.error(error.message || 'Lỗi cập nhật ngân hàng');
     }
   };
 
@@ -461,6 +526,109 @@ export default function ProfilePage() {
               </button>
             </div>
           </div>
+        </div>
+      </SettingsCard>
+
+      {/* Bank Info Card */}
+      <SettingsCard title="Thông tin ngân hàng" description="Cập nhật tài khoản ngân hàng để nhận tiền rút">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-zinc-400 mb-2">Ngân hàng</label>
+            
+            {/* Custom Bank Selector */}
+            <div className="relative">
+              <div 
+                onClick={() => setIsBankOpen(!isBankOpen)}
+                className="flex items-center justify-between w-full rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 cursor-pointer h-[46px]"
+              >
+                {bankName ? (
+                  <div className="flex items-center gap-2">
+                    {banks.find(b => b.shortName === bankName)?.logo && (
+                      <img src={banks.find(b => b.shortName === bankName)?.logo} alt="Bank Logo" className="w-6 h-6 object-contain bg-white rounded-full p-0.5" />
+                    )}
+                    <span className="text-white font-medium truncate">{bankName}</span>
+                  </div>
+                ) : (
+                  <span className="text-zinc-500">Chọn ngân hàng...</span>
+                )}
+                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+              </div>
+
+              {/* Dropdown Panel */}
+              {isBankOpen && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setIsBankOpen(false)} />
+                  <div className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-md border border-zinc-700 bg-zinc-900 py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
+                    <div className="sticky top-0 z-10 bg-zinc-900 p-2 border-b border-zinc-700">
+                      <div className="relative">
+                        <Search className="absolute left-2 top-2.5 h-4 w-4 text-zinc-500" />
+                        <input 
+                          className="w-full bg-zinc-800 text-white rounded-md py-2 pl-8 pr-4 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 border border-zinc-700"
+                          placeholder="Tìm kiếm ngân hàng..."
+                          value={bankSearch}
+                          onChange={(e) => setBankSearch(e.target.value)}
+                          autoFocus
+                        />
+                      </div>
+                    </div>
+                    {banks.filter(b => b.shortName.toLowerCase().includes(bankSearch.toLowerCase()) || b.name.toLowerCase().includes(bankSearch.toLowerCase()) || b.code.toLowerCase().includes(bankSearch.toLowerCase())).map((bank) => (
+                      <div
+                        key={bank.id}
+                        className="relative flex cursor-pointer select-none items-center py-2 pl-3 pr-9 hover:bg-blue-600/20 hover:text-blue-400 text-zinc-300"
+                        onClick={() => {
+                          setBankName(bank.shortName);
+                          setIsBankOpen(false);
+                        }}
+                      >
+                        <div className="flex items-center gap-3">
+                          <img src={bank.logo} alt={bank.code} className="h-8 w-8 object-contain bg-white rounded-md p-0.5" />
+                          <div className="flex flex-col">
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold text-white">{bank.shortName}</span>
+                              <span className="text-[10px] text-zinc-400 font-normal bg-zinc-800 px-1.5 py-0.5 rounded border border-zinc-700">{bank.code}</span>
+                            </div>
+                            <span className="text-xs text-zinc-500 truncate max-w-[250px]">{bank.name}</span>
+                          </div>
+                        </div>
+                        {bankName === bank.shortName && (
+                          <span className="absolute inset-y-0 right-0 flex items-center pr-4 text-blue-500">
+                            <Check className="h-4 w-4" />
+                          </span>
+                        )}
+                      </div>
+                    ))}
+                    {banks.length === 0 && <div className="p-4 text-center text-zinc-500">Đang tải danh sách...</div>}
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-zinc-400 mb-2">Số tài khoản</label>
+            <input
+              type="text"
+              value={accountNumber}
+              onChange={(e) => setAccountNumber(e.target.value)}
+              placeholder="0123456789"
+              className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-2.5 text-white focus:border-blue-500 focus:ring-blue-500 transition-colors"
+            />
+          </div>
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium text-zinc-400 mb-2">Tên chủ tài khoản (Không dấu)</label>
+            <input
+              type="text"
+              value={accountHolder}
+              onChange={(e) => setAccountHolder(e.target.value.toUpperCase())}
+              placeholder="NGUYEN VAN A"
+              className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-2.5 text-white focus:border-blue-500 focus:ring-blue-500 transition-colors uppercase"
+            />
+          </div>
+        </div>
+        <div className="pt-4 flex justify-end">
+          <button onClick={handleSaveBankInfo} className="flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-blue-500 transition-colors shadow-lg shadow-blue-500/20">
+            <Save className="h-4 w-4" />
+            Lưu thông tin
+          </button>
         </div>
       </SettingsCard>
 
