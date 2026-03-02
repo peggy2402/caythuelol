@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { toast } from 'sonner';
-import { Save, Info, Globe, Zap, Video, Users, Clock, Crosshair, ArrowRight, CheckCircle2, Loader2, FileText, Copy, Upload, Download, Calculator } from 'lucide-react';
+import { Save, Info, Globe, Zap, Video, Users, Clock, Crosshair, ArrowRight, CheckCircle2, Loader2, FileText, Copy, Upload, Download, Calculator, TrendingUp, RotateCcw, Trash2, AlertTriangle, X, ArrowDown, Coins } from 'lucide-react';
 
 interface DBRank {
   _id: string;
@@ -61,12 +61,17 @@ export default function BoosterServicesPage() {
   const [showConfigTools, setShowConfigTools] = useState(false);
   const [importJson, setImportJson] = useState('');
   const [bulkImportText, setBulkImportText] = useState('');
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
   
   // Calculator State
   const [calcFrom, setCalcFrom] = useState('');
   const [calcTo, setCalcTo] = useState('');
   const [calcPrice, setCalcPrice] = useState(0);
   const [calcError, setCalcError] = useState<string | null>(null);
+
+  // Fee Calculator Tool State
+  const [toolGross, setToolGross] = useState('');
+  const [toolNet, setToolNet] = useState('');
   
   // Default Settings
   const [settings, setSettings] = useState<ServiceSettings>({
@@ -358,6 +363,40 @@ export default function BoosterServicesPage() {
     const configString = JSON.stringify(settings, null, 2);
     navigator.clipboard.writeText(configString);
     toast.success('Đã sao chép mã cấu hình vào bộ nhớ tạm!');
+  };
+
+  // Tính năng: Tăng giá toàn bộ 10%
+  const handleIncreasePrices = () => {
+    const newPrices = { ...settings.rankPrices };
+    let count = 0;
+    for (const key in newPrices) {
+      const currentPrice = newPrices[key];
+      if (currentPrice > 0) {
+        // Tăng 10%, làm tròn lên đến hàng nghìn (VD: 51234 -> 57000)
+        const increased = currentPrice * 1.1;
+        newPrices[key] = Math.ceil(increased / 1000) * 1000;
+        count++;
+      }
+    }
+    setSettings(prev => ({ ...prev, rankPrices: newPrices }));
+    toast.success(`Đã tăng giá 10% cho ${count} mục rank`);
+  };
+
+  // Tính năng: Xóa toàn bộ giá (Reset về rỗng)
+  const handleClearPrices = () => {
+    setShowClearConfirm(true);
+  };
+
+  const confirmClearPrices = () => {
+    setSettings(prev => ({ ...prev, rankPrices: {} }));
+    toast.success('Đã xóa toàn bộ giá');
+    setShowClearConfirm(false);
+  };
+
+  // Tính năng: Hủy thay đổi (Reload từ DB)
+  const handleDiscardChanges = async () => {
+    await fetchData();
+    toast.info('Đã khôi phục cấu hình gốc từ hệ thống');
   };
 
   const handleImportConfig = () => {
@@ -694,11 +733,36 @@ export default function BoosterServicesPage() {
               <p className="text-xs text-zinc-400 italic">
                 *Ví dụ: Khách đặt từ <strong>Sắt IV</strong> lên <strong>Bạc IV</strong>. Hệ thống sẽ tự động lấy giá của từng bậc nhỏ cộng lại với nhau. Bạn không cần phải tính toán thủ công.
               </p>
+
+              {/* Quick Actions Toolbar */}
+              <div className="flex flex-wrap gap-2 pt-2 border-t border-blue-500/30">
+                <button
+                  onClick={handleIncreasePrices}
+                  className="flex items-center gap-1.5 bg-green-600/20 hover:bg-green-600/30 text-green-400 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors border border-green-600/30"
+                >
+                  <TrendingUp className="w-3.5 h-3.5" />
+                  Tăng giá 10%
+                </button>
+                <button
+                  onClick={handleClearPrices}
+                  className="flex items-center gap-1.5 bg-red-600/20 hover:bg-red-600/30 text-red-400 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors border border-red-600/30"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  Xóa toàn bộ giá
+                </button>
+                <button
+                  onClick={handleDiscardChanges}
+                  className="flex items-center gap-1.5 bg-zinc-700/50 hover:bg-zinc-700 text-zinc-300 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors border border-zinc-600"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  Hủy thay đổi
+                </button>
+              </div>
             </div>
           </div>
           <button
             onClick={() => setShowBulkImport(!showBulkImport)}
-            className="flex items-center gap-2 text-sm bg-zinc-800 hover:bg-zinc-700 text-white px-4 py-2 rounded-lg transition-colors"
+            className="flex items-center gap-2 text-sm bg-zinc-800 hover:bg-zinc-700 text-white px-4 py-2 rounded-lg transition-colors h-fit"
           >
             <FileText className="w-4 h-4" />
             Nhập nhanh
@@ -710,7 +774,53 @@ export default function BoosterServicesPage() {
             <h3 className="text-white font-bold flex items-center gap-2 mb-4">
                 <Calculator className="w-5 h-5 text-blue-500" />
                 Xem trước giá (Preview Calculator)
+
             </h3>
+            <p className="text-sm md:text-base mt-4 text-left font-medium">
+              <span className="text-red-400 font-semibold">
+                ⚠ Lưu ý quan trọng:
+              </span>{" "}
+              <span className="text-zinc-300">
+                Bạn cần điều chỉnh giá phù hợp và
+              </span>{" "}
+              <span className="text-yellow-400 font-bold">
+                Tips cho ADMIN 5%
+              </span>{" "}
+              <span className="text-zinc-300">
+                (Phí sàn hệ thống).
+              </span>
+
+              <br />
+
+              <span className="text-xs text-zinc-500 italic">
+                Vui lòng tính toán trước khi nhập giá để tránh bị lỗ.
+              </span>
+
+              <br />
+              <br />
+
+              <span className="text-zinc-300">
+                Ví dụ:
+              </span>{" "}
+              <span className="text-cyan-400 font-semibold">
+                IRON IV → IRON III
+              </span>{" "}
+              ={" "}
+              <span className="text-white font-semibold">
+                50.000 VNĐ
+              </span>
+              <br />
+              <span className="text-zinc-400">
+                Thực nhận sẽ là{" "}
+              </span>
+              <span className="text-green-400 font-bold">
+                47.500 VNĐ
+              </span>{" "}
+              <span className="text-red-400 font-semibold">
+                (-5%)
+              </span>
+            </p>
+            <br />
             <div className="flex flex-col md:flex-row items-center gap-4">
                 <div className="flex-1 w-full">
                     <label className="text-xs text-zinc-500 mb-1 block">Từ Rank</label>
@@ -746,7 +856,7 @@ export default function BoosterServicesPage() {
                         })}
                     </select>
                 </div>
-                <div className="flex-1 w-full bg-blue-900/20 border border-blue-500/30 rounded-lg p-2 flex flex-col items-center justify-center mt-4 md:mt-0">
+                <div className="flex-1 w-full bg-blue-900/20 border border-blue-500/30 rounded-lg p-3 flex flex-col items-center justify-center mt-4 md:mt-0">
                     <span className="text-xs text-blue-200">Tổng tiền dự kiến</span>
                     {calcError ? (
                       <span className="text-sm font-bold text-red-400 animate-pulse text-center">
@@ -758,7 +868,100 @@ export default function BoosterServicesPage() {
                       </span>
                     )}
                 </div>
+                {/* Net Earnings Preview */}
+                <div className="flex-1 w-full bg-green-900/20 border border-green-500/30 rounded-lg p-3 flex flex-col items-center justify-center mt-2 md:mt-0">
+                    <span className="text-xs text-green-200 flex items-center gap-1">
+                      <Coins className="w-3 h-3" /> Thực nhận (-5%)
+                    </span>
+                    <span className="text-xl font-bold text-green-400">
+                        {(calcPrice * 0.95).toLocaleString('vi-VN')} đ
+                    </span>
+                </div>
             </div>
+        </div>
+
+        {/* Fee Calculator Tool */}
+        <div className="mb-8 bg-zinc-950 border border-zinc-800 rounded-xl p-5">
+          <h3 className="text-white font-bold flex items-center gap-2 mb-4">
+            <Coins className="w-5 h-5 text-yellow-500" />
+            Công cụ tính phí sàn (5%)
+          </h3>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Gross to Net */}
+            <div className="bg-zinc-900/50 p-4 rounded-xl border border-zinc-800">
+              <label className="text-sm font-medium text-zinc-400 mb-2 block">
+                Nhập giá gốc (Khách trả)
+              </label>
+              <div className="relative mb-3">
+                <input 
+                  type="text"
+                  value={toolGross}
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/[^0-9]/g, '');
+                    setToolGross(val ? Number(val).toLocaleString('vi-VN') : '');
+                  }}
+                  placeholder="Ví dụ: 100.000"
+                  className="w-full bg-zinc-950 border border-zinc-700 rounded-lg px-3 py-2 text-white outline-none focus:border-blue-500"
+                />
+                <span className="absolute right-3 top-2 text-zinc-500 text-sm">VNĐ</span>
+              </div>
+              
+              {toolGross && (
+                <div className="space-y-1 text-sm animate-in fade-in slide-in-from-top-1">
+                  <div className="flex justify-between">
+                    <span className="text-zinc-500">Phí sàn (5%):</span>
+                    <span className="text-red-400 font-bold">
+                      -{Math.ceil(parseInt(toolGross.replace(/\./g, '')) * 0.05).toLocaleString('vi-VN')} đ
+                    </span>
+                  </div>
+                  <div className="flex justify-between border-t border-zinc-800 pt-2 mt-2">
+                    <span className="text-zinc-300">Thực nhận:</span>
+                    <span className="text-green-400 font-bold text-lg">
+                      {Math.floor(parseInt(toolGross.replace(/\./g, '')) * 0.95).toLocaleString('vi-VN')} đ
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Net to Gross */}
+            <div className="bg-zinc-900/50 p-4 rounded-xl border border-zinc-800">
+              <label className="text-sm font-medium text-zinc-400 mb-2 block">
+                Muốn thực nhận (VNĐ) khi rút thực tế về ví
+              </label>
+              <div className="relative mb-3">
+                <input 
+                  type="text"
+                  value={toolNet}
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/[^0-9]/g, '');
+                    setToolNet(val ? Number(val).toLocaleString('vi-VN') : '');
+                  }}
+                  placeholder="Ví dụ: 95.000"
+                  className="w-full bg-zinc-950 border border-zinc-700 rounded-lg px-3 py-2 text-white outline-none focus:border-blue-500"
+                />
+                <span className="absolute right-3 top-2 text-zinc-500 text-sm">VNĐ</span>
+              </div>
+
+              {toolNet && (
+                <div className="space-y-1 text-sm animate-in fade-in slide-in-from-top-1">
+                   <div className="flex justify-between">
+                    <span className="text-zinc-500">Phí sàn dự kiến:</span>
+                    <span className="text-red-400 font-bold">
+                      {(Math.ceil(parseInt(toolNet.replace(/\./g, '')) / 0.95) - parseInt(toolNet.replace(/\./g, ''))).toLocaleString('vi-VN')} đ
+                    </span>
+                  </div>
+                  <div className="flex justify-between border-t border-zinc-800 pt-2 mt-2">
+                    <span className="text-zinc-300">Bạn cần nhập:</span>
+                    <span className="text-yellow-400 font-bold text-lg">
+                      {Math.ceil(parseInt(toolNet.replace(/\./g, '')) / 0.95).toLocaleString('vi-VN')} đ
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
 
         {showBulkImport && (
@@ -832,35 +1035,55 @@ export default function BoosterServicesPage() {
                 const isInvalid = currentPrice > 0 && prevPrice > 0 && currentPrice < prevPrice;
 
                 return (
-                  <div key={key} className="flex flex-col md:flex-row items-center gap-4 bg-zinc-950 p-4 rounded-xl border border-zinc-800 hover:border-zinc-700 transition-colors">
-                    {/* From */}
-                    <div className="flex items-center gap-3 w-full md:w-1/3">
-                      <img src={rank.imageUrl} alt={rank.name} className="w-10 h-10 object-contain" />
-                      <span className="font-bold text-zinc-300">{currentTierName}</span>
+                  <div key={key} className="flex flex-col md:flex-row items-stretch md:items-center gap-3 md:gap-4 bg-zinc-950 p-3 md:p-4 rounded-xl border border-zinc-800 hover:border-zinc-700 transition-colors group">
+                    {/* Mobile Header: Icon + Name + Arrow to Next */}
+                    <div className="flex items-center justify-between w-full md:w-1/3">
+                      <div className="flex items-center gap-3">
+                        <img src={rank.imageUrl} alt={rank.name} className="w-8 h-8 md:w-10 md:h-10 object-contain" />
+                        <span className="font-bold text-zinc-200 text-sm md:text-base">{currentTierName}</span>
+                      </div>
+                      
+                      {/* Mobile Only: Small Arrow + Next Rank */}
+                      <div className="flex md:hidden items-center text-zinc-500 text-xs gap-1 bg-zinc-900 px-2 py-1 rounded border border-zinc-800">
+                        <ArrowRight className="w-3 h-3" />
+                        <span>{nextTierName}</span>
+                      </div>
                     </div>
 
-                    {/* Arrow */}
+                    {/* Desktop Arrow */}
                     <div className="hidden md:flex justify-center w-10">
                       <ArrowRight className="w-6 h-6 text-zinc-600" />
                     </div>
 
-                    {/* To */}
+                    {/* Desktop To */}
                     <div className="flex items-center gap-3 w-full md:w-1/3 md:pl-8">
                       <span className="font-bold text-white">{nextTierName}</span>
                     </div>
 
                     {/* Price Input */}
-                    <div className="w-full md:w-1/3 relative">
+                    <div className="w-full md:w-1/3 relative mt-1 md:mt-0">
                       <input
                         type="text"
                         placeholder="Nhập giá tiền..."
                         value={currentPrice ? currentPrice.toLocaleString('en-US') : ''}
                         onChange={(e) => updateRankPrice(rank.name, tier, e.target.value)}
-                        className={`w-full bg-zinc-900 border rounded-lg px-4 py-3 text-right font-bold outline-none transition-colors ${
+                        className={`w-full bg-zinc-900 border rounded-lg pl-12 pr-10 py-3 text-right font-bold outline-none transition-colors ${
                           isInvalid ? 'border-red-500 text-red-500 focus:border-red-600' : 'border-zinc-700 text-green-400 focus:border-green-500'
                         }`}
                       />
                       <span className="absolute left-3 top-3.5 text-zinc-500 text-sm">VNĐ</span>
+                      
+                      {/* Copy from Previous Button */}
+                      {prevPrice > 0 && (
+                        <button
+                          onClick={() => updateRankPrice(rank.name, tier, prevPrice.toString())}
+                          className="absolute right-3 top-3.5 text-zinc-600 hover:text-blue-400 transition-colors"
+                          title={`Copy giá từ bậc trước (${prevPrice.toLocaleString()} đ)`}
+                        >
+                          <ArrowDown className="w-4 h-4" />
+                        </button>
+                      )}
+
                       {isInvalid && <p className="absolute right-0 -bottom-6 text-xs text-red-500">Thấp hơn bậc trước yêu cầu nhập &gt;= ({prevPrice.toLocaleString()})</p>}
                     </div>
                   </div>
@@ -870,6 +1093,37 @@ export default function BoosterServicesPage() {
           ))}
         </div>
       </section>
+
+      {/* Clear Prices Confirmation Modal */}
+      {showClearConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-md shadow-2xl animate-in zoom-in-95 duration-200 overflow-hidden">
+            <div className="p-6 text-center">
+              <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                <AlertTriangle className="w-8 h-8 text-red-500" />
+              </div>
+              <h3 className="text-xl font-bold text-white mb-2">Xác nhận xóa bảng giá?</h3>
+              <p className="text-zinc-400 text-sm mb-6">
+                Bạn có chắc muốn xóa toàn bộ bảng giá hiện tại để nhập lại từ đầu? Hành động này không thể hoàn tác nếu bạn bấm Lưu.
+              </p>
+              <div className="flex gap-3">
+                <button 
+                  onClick={() => setShowClearConfirm(false)}
+                  className="flex-1 bg-zinc-800 hover:bg-zinc-700 text-white py-3 rounded-xl font-medium transition-colors"
+                >
+                  Hủy bỏ
+                </button>
+                <button 
+                  onClick={confirmClearPrices}
+                  className="flex-1 bg-red-600 hover:bg-red-500 text-white py-3 rounded-xl font-bold transition-colors"
+                >
+                  Xóa tất cả
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
