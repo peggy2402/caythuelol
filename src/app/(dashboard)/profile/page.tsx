@@ -236,6 +236,8 @@ export default function ProfilePage() {
   const [user, setUser] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [isSavingBank, setIsSavingBank] = useState(false);
 
   // Form states
   const [username, setUsername] = useState('');
@@ -307,6 +309,7 @@ export default function ProfilePage() {
 
   const handleSaveChanges = async () => {
     if (!user) return;
+    setIsSavingProfile(true);
     
     // 1. Check if email changed
     if (email !== user.email) {
@@ -321,9 +324,11 @@ export default function ProfilePage() {
                 await handleResendOtp();
                 setIsOtpModalOpen(true);
             }
+            setIsSavingProfile(false);
             return; // Stop here, wait for OTP
         } catch (error: any) {
             // Error handled in handleResendOtp
+            setIsSavingProfile(false);
             return;
         }
     }
@@ -345,6 +350,8 @@ export default function ProfilePage() {
         setUser(updatedUser);
     } catch (error: any) {
         toast.error(error.message || t('profileUpdateFailed'));
+    } finally {
+        setIsSavingProfile(false);
     }
   };
 
@@ -372,6 +379,7 @@ export default function ProfilePage() {
   };
 
   const handleSaveBankInfo = async () => {
+    setIsSavingBank(true);
     try {
       const res = await fetch('/api/user/bank-info', {
         method: 'POST',
@@ -396,6 +404,8 @@ export default function ProfilePage() {
       }
     } catch (error: any) {
       toast.error(error.message || 'Lỗi cập nhật ngân hàng');
+    } finally {
+      setIsSavingBank(false);
     }
   };
 
@@ -520,8 +530,8 @@ export default function ProfilePage() {
               </div>
             </div>
             <div className="pt-2 flex justify-end">
-              <button onClick={handleSaveChanges} className="flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-blue-500 transition-colors shadow-lg shadow-blue-500/20">
-                <Save className="h-4 w-4" />
+              <button onClick={handleSaveChanges} disabled={isSavingProfile} className="flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-blue-500 transition-colors shadow-lg shadow-blue-500/20 disabled:opacity-50 disabled:cursor-not-allowed">
+                {isSavingProfile ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                 {t('saveChanges')}
               </button>
             </div>
@@ -625,8 +635,8 @@ export default function ProfilePage() {
           </div>
         </div>
         <div className="pt-4 flex justify-end">
-          <button onClick={handleSaveBankInfo} className="flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-blue-500 transition-colors shadow-lg shadow-blue-500/20">
-            <Save className="h-4 w-4" />
+          <button onClick={handleSaveBankInfo} disabled={isSavingBank} className="flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-blue-500 transition-colors shadow-lg shadow-blue-500/20 disabled:opacity-50 disabled:cursor-not-allowed">
+            {isSavingBank ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
             Lưu thông tin
           </button>
         </div>
