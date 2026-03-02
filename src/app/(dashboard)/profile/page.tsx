@@ -238,6 +238,7 @@ export default function ProfilePage() {
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [isSavingBank, setIsSavingBank] = useState(false);
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
 
   // Form states
   const [username, setUsername] = useState('');
@@ -302,13 +303,20 @@ export default function ProfilePage() {
         // Set expiry time (60s from now)
         setOtpExpiry(Date.now() + 60 * 1000);
     } catch (error: any) {
-        toast.error(error.message);
+        toast.error(t(error.message as any));
         throw error; // Re-throw to handle loading state in modal
     }
   };
 
   const handleSaveChanges = async () => {
     if (!user) return;
+
+    // Validate Username format (Chặn khoảng trắng và ký tự đặc biệt ngay lập tức)
+    if (!/^[a-zA-Z0-9_\-\.]+$/.test(username)) {
+      toast.error('Username không được chứa khoảng trắng hoặc ký tự đặc biệt');
+      return;
+    }
+
     setIsSavingProfile(true);
     
     // 1. Check if email changed
@@ -348,8 +356,9 @@ export default function ProfilePage() {
         const updatedUser = { ...user, ...data.user };
         localStorage.setItem('user', JSON.stringify(updatedUser));
         setUser(updatedUser);
+        window.dispatchEvent(new Event('user-updated')); // Báo cho Layout cập nhật
     } catch (error: any) {
-        toast.error(error.message || t('profileUpdateFailed'));
+        toast.error(t(error.message as any) || t('profileUpdateFailed'));
     } finally {
         setIsSavingProfile(false);
     }
@@ -373,8 +382,9 @@ export default function ProfilePage() {
         const updatedUser = { ...user, ...data.user };
         localStorage.setItem('user', JSON.stringify(updatedUser));
         setUser(updatedUser as UserData);
+        window.dispatchEvent(new Event('user-updated')); // Báo cho Layout cập nhật
     } catch (error: any) {
-        toast.error(error.message);
+        toast.error(t(error.message as any));
     }
   };
 
@@ -401,9 +411,10 @@ export default function ProfilePage() {
         };
         localStorage.setItem('user', JSON.stringify(updatedUser));
         setUser(updatedUser);
+        window.dispatchEvent(new Event('user-updated')); // Báo cho Layout cập nhật
       }
     } catch (error: any) {
-      toast.error(error.message || 'Lỗi cập nhật ngân hàng');
+      toast.error(t(error.message as any) || 'Lỗi cập nhật ngân hàng');
     } finally {
       setIsSavingBank(false);
     }
@@ -414,6 +425,7 @@ export default function ProfilePage() {
           toast.error('Mật khẩu xác nhận không khớp');
           return;
       }
+      setIsChangingPassword(true);
       try {
           const res = await fetch('/api/auth/change-password', {
               method: 'POST',
@@ -425,7 +437,9 @@ export default function ProfilePage() {
           toast.success(t('passwordChangeSuccess'));
           setCurrentPassword(''); setNewPassword(''); setConfirmNewPassword('');
       } catch (error: any) {
-          toast.error(error.message || t('passwordChangeFailed'));
+          toast.error(t(error.message as any) || t('passwordChangeFailed'));
+      } finally {
+          setIsChangingPassword(false);
       }
   };
 
@@ -659,8 +673,8 @@ export default function ProfilePage() {
                 <input type="password" value={confirmNewPassword} onChange={(e) => setConfirmNewPassword(e.target.value)} placeholder="••••••••" className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-2.5 text-white focus:border-blue-500 focus:ring-blue-500 transition-colors" />
             </div>
             <div className="pt-2 flex justify-end">
-                <button onClick={handleChangePassword} className="flex items-center gap-2 rounded-lg bg-zinc-700 px-5 py-2.5 text-sm font-bold text-white hover:bg-zinc-600 transition-colors">
-                <Key className="h-4 w-4" />
+                <button onClick={handleChangePassword} disabled={isChangingPassword} className="flex items-center gap-2 rounded-lg bg-zinc-700 px-5 py-2.5 text-sm font-bold text-white hover:bg-zinc-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                {isChangingPassword ? <Loader2 className="h-4 w-4 animate-spin" /> : <Key className="h-4 w-4" />}
                 {t('updatePassword')}
                 </button>
             </div>

@@ -55,7 +55,8 @@ export async function POST(req: Request) {
     console.log('🔍 [SePay Analysis] Content:', content);
     
     // Regex: Tìm ZT + Username + Code (Optional)
-    const regex = /ZT\s*([a-zA-Z0-9_\-\.]+)(?:\s+([a-zA-Z0-9]+))?/i;
+    // Cập nhật: Cho phép khoảng trắng trong username ([\s]) và dùng non-greedy (+?) để không ăn vào phần Code
+    const regex = /ZT\s*([a-zA-Z0-9_\-\.\s]+?)(?:\s+([a-zA-Z0-9]+))?$/i;
     const match = content.match(regex);
     
     if (!match) {
@@ -63,7 +64,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: true, message: 'Syntax error, waiting for manual review' });
     }
 
-    const username = match[1];
+    const username = match[1].trim(); // Xóa khoảng trắng thừa đầu cuối nếu có
     let txCode: string | undefined = match[2]; // Mã giao dịch ngắn (nếu có)
 
     // --- FIX QUAN TRỌNG: Lọc bỏ mã rác (Trace, số lạ) ---
@@ -94,7 +95,7 @@ export async function POST(req: Request) {
             if (tx.userId && tx.userId.username) {
                 // @ts-ignore
                 const dbUsernameClean = tx.userId.username.toUpperCase().replace(/\s/g, '');
-                const webhookUsernameClean = username.toUpperCase();
+                const webhookUsernameClean = username.toUpperCase().replace(/\s/g, ''); // Clean cả username từ webhook
                 if (dbUsernameClean === webhookUsernameClean) {
                     // @ts-ignore
                     user = tx.userId;

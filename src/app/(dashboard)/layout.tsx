@@ -28,6 +28,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const { t, language, setLanguage } = useLanguage();
 
   useEffect(() => {
+    const updateUserData = () => {
+      const userData = localStorage.getItem('user');
+      if (userData) {
+        setUser(JSON.parse(userData));
+      }
+    };
+
     const userData = localStorage.getItem('user');
     if (userData) {
       const parsedUser = JSON.parse(userData);
@@ -58,7 +65,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       };
 
       socket.on('wallet_update', handleWalletUpdate);
-      return () => { socket.off('wallet_update', handleWalletUpdate); };
+      window.addEventListener('user-updated', updateUserData);
+
+      return () => { 
+        socket.off('wallet_update', handleWalletUpdate);
+        window.removeEventListener('user-updated', updateUserData);
+      };
     }
   }, []);
 

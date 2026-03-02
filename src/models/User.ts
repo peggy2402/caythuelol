@@ -37,7 +37,14 @@ export interface IUser extends Document {
 
 const UserSchema: Schema = new Schema(
   {
-    username: { type: String, required: true, unique: true },
+    username: { 
+      type: String, 
+      required: true, 
+      unique: true,
+      trim: true, // Tự động xóa khoảng trắng đầu/cuối
+      // Chỉ cho phép chữ, số, gạch dưới, gạch ngang, chấm. Không cho phép khoảng trắng.
+      match: [/^[a-zA-Z0-9_\-\.]+$/, 'Username không được chứa khoảng trắng hoặc ký tự đặc biệt']
+    },
     email: { type: String, required: true, unique: true },
     password_hash: { type: String, required: true },
     role: {
