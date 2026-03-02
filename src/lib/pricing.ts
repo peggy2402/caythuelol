@@ -4,6 +4,7 @@
  * so Admin can update prices without redeploying code.
  */
 
+// Fallback order if DB fetch fails or for static logic
 export const LOL_RANKS_ORDER = [
   "IRON_IV", "IRON_III", "IRON_II", "IRON_I",
   "BRONZE_IV", "BRONZE_III", "BRONZE_II", "BRONZE_I",
@@ -12,7 +13,7 @@ export const LOL_RANKS_ORDER = [
   "PLATINUM_IV", "PLATINUM_III", "PLATINUM_II", "PLATINUM_I",
   "EMERALD_IV", "EMERALD_III", "EMERALD_II", "EMERALD_I",
   "DIAMOND_IV", "DIAMOND_III", "DIAMOND_II", "DIAMOND_I",
-  "MASTER_NA", "GRANDMASTER_NA", "CHALLENGER_NA"
+  "MASTER_NA", "GRANDMASTER_NA", "CHALLENGER_NA" // _NA suffix for null division
 ];
 
 const RANK_PRICES: Record<string, number> = {

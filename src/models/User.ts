@@ -77,8 +77,8 @@ const UserSchema: Schema = new Schema(
       completed_orders: { type: Number, default: 0 },
       bio: { type: String, default: '' },
       service_settings: { 
-        type: Schema.Types.Mixed, 
-        default: {} 
+        type: mongoose.Schema.Types.Mixed, 
+        default: {}
       },
     },
   },

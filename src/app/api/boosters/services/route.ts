@@ -1,20 +1,22 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import User from '@/models/User';
-import { jwtVerify } from 'jose';
+import Rank from '@/models/Rank';
+import { verifyToken } from '@/lib/auth';
 import { cookies } from 'next/headers';
+import mongoose from 'mongoose';
 
 async function getBoosterId() {
   const cookieStore = await cookies();
   const token = cookieStore.get('token')?.value;
   if (!token) return null;
-  try {
-    const secret = new TextEncoder().encode(process.env.JWT_SECRET);
-    const { payload } = await jwtVerify(token, secret);
-    // @ts-ignore
-    if (payload.role !== 'BOOSTER') return null;
-    return payload.userId as string;
-  } catch { return null; }
+
+  const payload = await verifyToken(token);
+  if (!payload) return null;
+  // @ts-ignore
+  if (payload.role !== 'BOOSTER') return null;
+  // @ts-ignore
+  return (payload.userId || payload.id) as string;
 }
 
 export async function GET(req: Request) {
@@ -23,9 +25,25 @@ export async function GET(req: Request) {
     const userId = await getBoosterId();
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const user = await User.findById(userId).select('booster_info.service_settings');
-    return NextResponse.json(user?.booster_info?.service_settings || {});
+    // Dùng .lean() để lấy dữ liệu thô, tránh bị Mongoose Schema cache làm ẩn field mới
+    const user = await User.findById(userId).select('booster_info').lean();
+    if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    
+    // Kiểm tra xem Model Rank có hoạt động không
+    if (!Rank) {
+      throw new Error("Rank model is not initialized correctly");
+    }
+
+    // Lấy danh sách Rank từ DB, sắp xếp theo order
+    const ranks = await Rank.find({ gameCode: 'LOL' }).sort({ order: 1 }).lean();
+
+    return NextResponse.json({
+      // @ts-ignore
+      settings: user.booster_info?.service_settings || {},
+      ranks: ranks
+    });
   } catch (error) {
+    console.error('🔴 Booster Services GET Error:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
@@ -38,22 +56,22 @@ export async function POST(req: Request) {
 
     const body = await req.json();
     
-    // Validate body structure if needed
-    
-    const user = await User.findById(userId);
-    if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    console.log('Updating service settings for', userId);
 
-    // Ensure booster_info exists
-    if (!user.booster_info) {
-      user.booster_info = {};
+    // FIX TRIỆT ĐỂ: Dùng trực tiếp MongoDB Driver (User.collection) để update
+    // Bỏ qua hoàn toàn Mongoose Schema Validation để đảm bảo dữ liệu được ghi
+    const result = await User.collection.updateOne(
+      { _id: new mongoose.Types.ObjectId(userId) },
+      { $set: { 'booster_info.service_settings': body } }
+    );
+
+    if (result.matchedCount === 0) {
+        return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
-
-    user.booster_info.service_settings = body;
-    user.markModified('booster_info'); // Important for Mixed types to be detected as changed
-    await user.save();
-
+    
     return NextResponse.json({ success: true });
   } catch (error) {
+    console.error('🔴 Booster Services POST Error:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

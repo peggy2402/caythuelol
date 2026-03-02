@@ -5,49 +5,13 @@ import { useLanguage } from '@/lib/i18n';
 import { toast } from 'sonner';
 import { Loader2, Save, Settings2, Trophy, Zap, Swords, ChevronDown, ChevronUp } from 'lucide-react';
 
-// --- CONSTANTS ---
-const LOL_RANKS = [
-  { gameCode: "LOL", tier: "IRON", division: "IV", order: 1 },
-  { gameCode: "LOL", tier: "IRON", division: "III", order: 2 },
-  { gameCode: "LOL", tier: "IRON", division: "II", order: 3 },
-  { gameCode: "LOL", tier: "IRON", division: "I", order: 4 },
-  { gameCode: "LOL", tier: "BRONZE", division: "IV", order: 5 },
-  { gameCode: "LOL", tier: "BRONZE", division: "III", order: 6 },
-  { gameCode: "LOL", tier: "BRONZE", division: "II", order: 7 },
-  { gameCode: "LOL", tier: "BRONZE", division: "I", order: 8 },
-  { gameCode: "LOL", tier: "SILVER", division: "IV", order: 9 },
-  { gameCode: "LOL", tier: "SILVER", division: "III", order: 10 },
-  { gameCode: "LOL", tier: "SILVER", division: "II", order: 11 },
-  { gameCode: "LOL", tier: "SILVER", division: "I", order: 12 },
-  { gameCode: "LOL", tier: "GOLD", division: "IV", order: 13 },
-  { gameCode: "LOL", tier: "GOLD", division: "III", order: 14 },
-  { gameCode: "LOL", tier: "GOLD", division: "II", order: 15 },
-  { gameCode: "LOL", tier: "GOLD", division: "I", order: 16 },
-  { gameCode: "LOL", tier: "PLATINUM", division: "IV", order: 17 },
-  { gameCode: "LOL", tier: "PLATINUM", division: "III", order: 18 },
-  { gameCode: "LOL", tier: "PLATINUM", division: "II", order: 19 },
-  { gameCode: "LOL", tier: "PLATINUM", division: "I", order: 20 },
-  { gameCode: "LOL", tier: "EMERALD", division: "IV", order: 21 },
-  { gameCode: "LOL", tier: "EMERALD", division: "III", order: 22 },
-  { gameCode: "LOL", tier: "EMERALD", division: "II", order: 23 },
-  { gameCode: "LOL", tier: "EMERALD", division: "I", order: 24 },
-  { gameCode: "LOL", tier: "DIAMOND", division: "IV", order: 25 },
-  { gameCode: "LOL", tier: "DIAMOND", division: "III", order: 26 },
-  { gameCode: "LOL", tier: "DIAMOND", division: "II", order: 27 },
-  { gameCode: "LOL", tier: "DIAMOND", division: "I", order: 28 },
-  { gameCode: "LOL", tier: "MASTER", division: null, order: 29 },
-  { gameCode: "LOL", tier: "GRANDMASTER", division: null, order: 30 },
-  { gameCode: "LOL", tier: "CHALLENGER", division: null, order: 31 }
-];
-
-// Group ranks by Tier for UI
-const GROUPED_RANKS = LOL_RANKS.reduce((acc, rank) => {
-  if (!acc[rank.tier]) acc[rank.tier] = [];
-  acc[rank.tier].push(rank);
-  return acc;
-}, {} as Record<string, typeof LOL_RANKS>);
-
-const TIERS_ORDER = ['IRON', 'BRONZE', 'SILVER', 'GOLD', 'PLATINUM', 'EMERALD', 'DIAMOND', 'MASTER', 'GRANDMASTER', 'CHALLENGER'];
+interface RankData {
+  _id: string;
+  gameCode: string;
+  tier: string;
+  division: string | null;
+  order: number;
+}
 
 export default function BoosterServicesPage() {
   const { t } = useLanguage();
@@ -67,30 +31,47 @@ export default function BoosterServicesPage() {
     TFT: 0
   });
 
+  // Dynamic Data from DB
+  const [ranks, setRanks] = useState<RankData[]>([]);
+  const [tiersOrder, setTiersOrder] = useState<string[]>([]);
+
   // UI State
   const [expandedTiers, setExpandedTiers] = useState<Record<string, boolean>>({
     'IRON': true, 'BRONZE': true, 'SILVER': true, 'GOLD': true // Default expand low elo
   });
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const res = await fetch('/api/boosters/services');
-        if (!res.ok) throw new Error('Failed to fetch settings');
-        const data = await res.json();
-        
-        if (data) {
-          if (data.rankPrices) setRankPrices(data.rankPrices);
-          if (data.lpModifiers) setLpModifiers(data.lpModifiers);
-          if (data.queueModifiers) setQueueModifiers(data.queueModifiers);
-        }
-      } catch (error) {
-        console.error(error);
-        toast.error('Failed to load settings');
-      } finally {
-        setLoading(false);
+  const fetchData = async () => {
+    try {
+      const res = await fetch('/api/boosters/services');
+      if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.error || 'Failed to fetch settings');
       }
-    };
+      const data = await res.json();
+      
+      // Set Ranks from DB
+      if (data.ranks) {
+        setRanks(data.ranks);
+        const uniqueTiers = Array.from(new Set(data.ranks.map((r: RankData) => r.tier)));
+        setTiersOrder(uniqueTiers as string[]);
+      }
+
+      // Set Settings from User Config
+      const settings = data.settings || {};
+      if (settings) {
+        if (settings.rankPrices) setRankPrices(settings.rankPrices);
+        if (settings.lpModifiers) setLpModifiers(settings.lpModifiers);
+        if (settings.queueModifiers) setQueueModifiers(settings.queueModifiers);
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error('Failed to load settings');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchData();
   }, []);
 
@@ -109,6 +90,8 @@ export default function BoosterServicesPage() {
       
       if (res.ok) {
         toast.success('Cập nhật thành công!');
+        // Reload data to confirm save
+        fetchData();
       } else {
         toast.error('Cập nhật thất bại');
       }
@@ -126,6 +109,11 @@ export default function BoosterServicesPage() {
 
   const toggleTier = (tier: string) => {
     setExpandedTiers(prev => ({ ...prev, [tier]: !prev[tier] }));
+  };
+
+  // Group ranks helper
+  const getRanksByTier = (tier: string) => {
+    return ranks.filter(r => r.tier === tier).sort((a, b) => a.order - b.order);
   };
 
   if (loading) return <div className="flex justify-center py-20"><Loader2 className="animate-spin text-blue-500" /></div>;
@@ -155,8 +143,8 @@ export default function BoosterServicesPage() {
         </div>
 
         <div className="grid gap-4">
-          {TIERS_ORDER.map((tier) => {
-            const ranksInTier = GROUPED_RANKS[tier];
+          {tiersOrder.map((tier) => {
+            const ranksInTier = getRanksByTier(tier);
             if (!ranksInTier) return null;
             const isExpanded = expandedTiers[tier];
 
@@ -188,9 +176,9 @@ export default function BoosterServicesPage() {
                 {isExpanded && (
                   <div className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 animate-in slide-in-from-top-2">
                     {ranksInTier.map((rank) => {
-                      const key = `${rank.tier}_${rank.division || 'I'}`; // Use I for Master+ just for key consistency if needed, or handle null
+                      // Key format: TIER_DIVISION (e.g., IRON_IV) or TIER_NA (e.g., MASTER_NA)
                       const displayKey = rank.division ? `${rank.tier} ${rank.division}` : rank.tier;
-                      const configKey = `${rank.tier}_${rank.division || 'NA'}`;
+                      const configKey = `${rank.tier}_${rank.division || 'NA'}`; // Consistent key format
 
                       return (
                         <div key={configKey} className="space-y-1.5">
