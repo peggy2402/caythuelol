@@ -1,24 +1,11 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { jwtVerify } from 'jose';
-import crypto from 'crypto';
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // 1. Chỉ áp dụng cho các route trong /dashboard
   if (pathname.startsWith('/dashboard')) {
-    
-    // 2. Lấy token từ Header hoặc Cookie
-    // Giả sử client gửi token qua Header: Authorization: Bearer <token>
-    // Hoặc nếu bạn lưu trong cookie (khuyên dùng cho Next.js): request.cookies.get('token')
-    
-    // Ở đây tôi demo lấy từ Header cho API, nhưng với Page Router thường dùng Cookie.
-    // Để đơn giản cho flow hiện tại (thường lưu localStorage), ta sẽ check Header.
-    // Tuy nhiên, Middleware hoạt động tốt nhất với Cookie.
-    
-    // GIẢ ĐỊNH: Bạn đã chuyển sang dùng Cookie để lưu token.
-    // Nếu dùng localStorage, Middleware KHÔNG THỂ đọc được token (vì localStorage ở client).
-    // => BẮT BUỘC PHẢI DÙNG COOKIE nếu muốn bảo vệ bằng Middleware.
     
     const token = request.cookies.get('token')?.value;
 
