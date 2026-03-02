@@ -39,6 +39,11 @@ export async function GET(req: Request) {
     if (status && status !== 'ALL') query.status = status;
     if (type && type !== 'ALL') query.type = type;
 
+    // Pagination params
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = parseInt(searchParams.get('limit') || '10');
+    const skip = (page - 1) * limit;
+
     // Nếu có search, ta cần tìm user trước hoặc tìm trong description/metadata
     if (search) {
         // Tìm user có username chứa từ khóa
@@ -52,14 +57,26 @@ export async function GET(req: Request) {
         ];
     }
 
+    // Count total documents for pagination
+    const total = await Transaction.countDocuments(query);
+
     // 3. Fetch Transactions
     // Lấy tất cả giao dịch, populate thông tin user để hiển thị tên/email
     const transactions = await Transaction.find(query)
       .populate('userId', 'username email profile.avatar')
       .sort({ createdAt: -1 })
-      .limit(100);
+      .skip(skip)
+      .limit(limit)
+      .lean(); // Tăng tốc độ query
 
-    return NextResponse.json({ transactions });
+    return NextResponse.json({
+      transactions,
+      pagination: {
+        total,
+        page,
+        totalPages: Math.ceil(total / limit)
+      }
+    });
   } catch (error) {
     console.error('Admin Transactions Error:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });

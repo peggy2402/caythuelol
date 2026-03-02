@@ -45,12 +45,13 @@ export default function WalletPage() {
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [limit, setLimit] = useState(10); // Mặc định 10 dòng
 
   // Fetch data
-  const fetchWalletData = async (page = 1) => {
+  const fetchWalletData = async (page = 1, currentLimit = limit) => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/wallet?page=${page}&limit=10`);
+      const res = await fetch(`/api/wallet?page=${page}&limit=${currentLimit}`);
       const data = await res.json();
       if (res.ok) {
         setBalance(data.balance);
@@ -69,7 +70,7 @@ export default function WalletPage() {
   };
 
   useEffect(() => {
-    fetchWalletData();
+    fetchWalletData(1, limit);
     // Lấy thông tin user để tạo nội dung chuyển khoản
     const userStr = localStorage.getItem('user');
     if (userStr) {
@@ -153,7 +154,7 @@ export default function WalletPage() {
             await fetchWalletData(1); // Tải lại lịch sử (Lúc này đã là SUCCESS)
           }, 3000);
         } else {
-          await fetchWalletData(currentPage);
+          await fetchWalletData(currentPage, limit);
         }
 
         // Gọi fetch lại dữ liệu để đảm bảo đồng bộ với DB
@@ -263,13 +264,8 @@ export default function WalletPage() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="w-8 h-8 animate-spin text-red-500" />
-      </div>
-    );
-  }
+  // Xóa đoạn if (loading) return ... cũ để tránh layout shift
+  // Thay vào đó ta dùng loading state để làm mờ bảng hoặc hiện skeleton
 
   return (
     <div className="space-y-8">
@@ -318,7 +314,7 @@ export default function WalletPage() {
           </h3>
         </div>
         
-        <div className="overflow-x-auto">
+        <div className={`overflow-x-auto transition-opacity duration-200 ${loading ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
           <table className="w-full text-left text-sm">
             <thead className="bg-zinc-950 text-zinc-400 uppercase text-xs">
               <tr>
@@ -330,7 +326,12 @@ export default function WalletPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-800">
-              {transactions.length > 0 ? (
+              {loading && transactions.length === 0 ? (
+                 // Skeleton Loading khi chưa có dữ liệu lần đầu
+                 [...Array(5)].map((_, i) => (
+                    <tr key={i} className="animate-pulse"><td colSpan={5} className="px-6 py-4"><div className="h-4 bg-zinc-800 rounded w-full"></div></td></tr>
+                 ))
+              ) : transactions.length > 0 ? (
                 transactions.map((tx) => (
                   <tr key={tx._id} className="hover:bg-zinc-800/50 transition-colors">
                     <td className="px-6 py-4 text-zinc-400">
@@ -372,8 +373,25 @@ export default function WalletPage() {
         </div>
 
         {/* Pagination Controls */}
-        {totalPages > 1 && (
-          <div className="flex items-center justify-center gap-4 p-4 border-t border-zinc-800">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 border-t border-zinc-800 bg-zinc-900/50">
+          <div className="flex items-center gap-2 text-sm text-zinc-400">
+            <span>Hiển thị</span>
+            <select 
+              value={limit} 
+              onChange={(e) => {
+                const newLimit = Number(e.target.value);
+                setLimit(newLimit);
+                fetchWalletData(1, newLimit); // Reset về trang 1 khi đổi limit
+              }}
+              className="bg-zinc-950 border border-zinc-800 rounded-lg px-2 py-1 focus:outline-none focus:border-zinc-700"
+            >
+              {[5, 10, 20, 30, 50, 100].map(n => <option key={n} value={n}>{n}</option>)}
+            </select>
+            <span>dòng / trang</span>
+          </div>
+
+          {totalPages > 1 && (
+          <div className="flex items-center gap-2">
             <button
               onClick={() => fetchWalletData(currentPage - 1)}
               disabled={currentPage === 1}
@@ -392,7 +410,8 @@ export default function WalletPage() {
               <ChevronRight className="w-5 h-5 text-zinc-400" />
             </button>
           </div>
-        )}
+          )}
+        </div>
       </div>
 
       {/* Deposit Modal */}
@@ -554,7 +573,7 @@ export default function WalletPage() {
                   
                   <div className="text-center">
                     <button 
-                      onClick={() => fetchWalletData(currentPage)}
+                      onClick={() => fetchWalletData(currentPage, limit)}
                       className="text-xs text-zinc-500 hover:text-white flex items-center justify-center gap-1 mx-auto transition-colors"
                     >
                       <RefreshCw className="w-3 h-3" /> Đã chuyển nhưng chưa thấy tiền?

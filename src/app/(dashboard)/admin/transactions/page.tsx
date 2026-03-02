@@ -11,7 +11,9 @@ import {
   Clock, 
   MoreHorizontal,
   Loader2,
-  Copy
+  Copy,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 
 interface Transaction {
@@ -42,11 +44,18 @@ export default function AdminTransactionsPage() {
   // Modal Detail
   const [selectedTx, setSelectedTx] = useState<Transaction | null>(null);
 
-  const fetchTransactions = async () => {
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [limit, setLimit] = useState(10);
+
+  const fetchTransactions = async (page = 1, currentLimit = limit) => {
     setLoading(true);
     try {
       // Build Query String
       const params = new URLSearchParams();
+      params.append('page', page.toString());
+      params.append('limit', currentLimit.toString());
       if (search) params.append('search', search);
       if (statusFilter !== 'ALL') params.append('status', statusFilter);
       if (typeFilter !== 'ALL') params.append('type', typeFilter);
@@ -56,6 +65,10 @@ export default function AdminTransactionsPage() {
 
       if (res.ok) {
         setTransactions(data.transactions);
+        if (data.pagination) {
+          setTotalPages(data.pagination.totalPages);
+          setCurrentPage(data.pagination.page);
+        }
       } else {
         toast.error(data.error || 'Lỗi tải danh sách giao dịch');
       }
@@ -70,7 +83,7 @@ export default function AdminTransactionsPage() {
   // Debounce search
   useEffect(() => {
     const timer = setTimeout(() => {
-      fetchTransactions();
+      fetchTransactions(1, limit); // Reset về trang 1 khi filter thay đổi
     }, 500);
     return () => clearTimeout(timer);
   }, [search, statusFilter, typeFilter]);
@@ -89,7 +102,7 @@ export default function AdminTransactionsPage() {
       
       if (res.ok) {
         toast.success('Đã từ chối giao dịch');
-        fetchTransactions();
+        fetchTransactions(currentPage, limit);
         setSelectedTx(null);
       } else {
         toast.error(data.error);
@@ -110,7 +123,7 @@ export default function AdminTransactionsPage() {
           <h1 className="text-2xl font-bold text-white">Quản lý Giao dịch</h1>
           <p className="text-zinc-400 text-sm">Xem và kiểm soát dòng tiền hệ thống</p>
         </div>
-        <button onClick={() => fetchTransactions()} className="p-2 bg-zinc-800 rounded-lg hover:bg-zinc-700 transition-colors">
+        <button onClick={() => fetchTransactions(currentPage, limit)} className="p-2 bg-zinc-800 rounded-lg hover:bg-zinc-700 transition-colors">
           <Clock className="w-5 h-5 text-zinc-400" />
         </button>
       </div>
@@ -153,7 +166,7 @@ export default function AdminTransactionsPage() {
 
       {/* Table */}
       <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
-        <div className="overflow-x-auto">
+        <div className={`overflow-x-auto transition-opacity duration-200 ${loading ? 'opacity-60 pointer-events-none' : 'opacity-100'}`}>
           <table className="w-full text-left text-sm">
             <thead className="bg-zinc-950 text-zinc-400 uppercase text-xs">
               <tr>
@@ -166,8 +179,10 @@ export default function AdminTransactionsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-800">
-              {loading ? (
-                <tr><td colSpan={6} className="p-8 text-center"><Loader2 className="w-6 h-6 animate-spin mx-auto text-blue-500"/></td></tr>
+              {loading && transactions.length === 0 ? (
+                [...Array(5)].map((_, i) => (
+                  <tr key={i} className="animate-pulse"><td colSpan={6} className="px-6 py-4"><div className="h-4 bg-zinc-800 rounded w-full"></div></td></tr>
+                ))
               ) : transactions.length === 0 ? (
                 <tr><td colSpan={6} className="p-8 text-center text-zinc-500">Không tìm thấy giao dịch nào</td></tr>
               ) : (
@@ -217,6 +232,47 @@ export default function AdminTransactionsPage() {
             </tbody>
           </table>
         </div>
+      </div>
+
+      {/* Pagination Controls */}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 border-t border-zinc-800 bg-zinc-900/50">
+        <div className="flex items-center gap-2 text-sm text-zinc-400">
+            <span>Hiển thị</span>
+            <select 
+              value={limit} 
+              onChange={(e) => {
+                const newLimit = Number(e.target.value);
+                setLimit(newLimit);
+                fetchTransactions(1, newLimit);
+              }}
+              className="bg-zinc-950 border border-zinc-800 rounded-lg px-2 py-1 focus:outline-none focus:border-zinc-700"
+            >
+              {[5, 10, 20, 30, 50, 100].map(n => <option key={n} value={n}>{n}</option>)}
+            </select>
+            <span>dòng / trang</span>
+        </div>
+
+        {totalPages > 1 && (
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => fetchTransactions(currentPage - 1)}
+            disabled={currentPage === 1}
+            className="p-2 rounded-lg hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            <ChevronLeft className="w-5 h-5 text-zinc-400" />
+          </button>
+          <span className="text-sm text-zinc-400">
+            Trang <span className="text-white font-medium">{currentPage}</span> / {totalPages}
+          </span>
+          <button
+            onClick={() => fetchTransactions(currentPage + 1)}
+            disabled={currentPage === totalPages}
+            className="p-2 rounded-lg hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            <ChevronRight className="w-5 h-5 text-zinc-400" />
+          </button>
+        </div>
+        )}
       </div>
 
       {/* Detail Modal */}

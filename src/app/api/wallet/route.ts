@@ -50,7 +50,8 @@ export async function GET(req: Request) {
     const transactions = await Transaction.find({ userId })
       .sort({ createdAt: -1 })
       .skip(skip)
-      .limit(limit);
+      .limit(limit)
+      .lean(); // Tăng tốc độ query bằng cách trả về Plain JSON
 
     // Nếu chưa cấu hình ngân hàng thì trả về lỗi hoặc thông báo
     if (!ACCOUNT_NO) {
