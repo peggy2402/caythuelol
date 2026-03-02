@@ -69,7 +69,7 @@ export async function POST(req: Request) {
 
     // 6. Bắn thông báo Realtime (Socket.io)
     const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 'https://caythuelol-server-production.up.railway.app';
-    fetch(`${socketUrl}/trigger-payment`, {
+    await fetch(`${socketUrl}/trigger-payment`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
