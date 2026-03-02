@@ -76,6 +76,10 @@ const UserSchema: Schema = new Schema(
       rating: { type: Number, default: 5.0 },
       completed_orders: { type: Number, default: 0 },
       bio: { type: String, default: '' },
+      service_settings: { 
+        type: Schema.Types.Mixed, 
+        default: {} 
+      },
     },
   },
   { timestamps: true }

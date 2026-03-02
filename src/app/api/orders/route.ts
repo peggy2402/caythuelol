@@ -5,6 +5,7 @@ import User from '@/models/User';
 import Transaction, { TransactionType, TransactionStatus } from '@/models/Transaction';
 import { calculatePrice } from '@/lib/pricing';
 import mongoose from 'mongoose';
+import { LOL_RANKS_ORDER } from '@/lib/pricing';
 import { jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
 
@@ -50,14 +51,43 @@ export async function POST(req: Request) {
 
   try {
     const body = await req.json();
-    const { serviceType, currentRank, desiredRank, options, details, customer_id } = body;
+    const { serviceType, currentRank, desiredRank, options, details, customer_id, booster_id, queueType } = body;
+
+    // Fetch Booster Config if booster_id is present
+    let boosterConfig = undefined;
+    if (booster_id) {
+        const booster = await User.findById(booster_id).select('booster_info.service_settings');
+        if (booster && booster.booster_info && booster.booster_info.service_settings) {
+            boosterConfig = booster.booster_info.service_settings;
+        }
+    }
+
+    // Normalize Ranks for Pricing (Map "Silver IV" -> "SILVER_IV")
+    // Assuming frontend sends "Silver" and "IV" separately or combined.
+    // Let's assume frontend sends "Silver" "IV" in details, and we construct the key.
+    // Or frontend sends constructed keys.
+    // Based on create/page.tsx, it sends `currentRank: "Silver"`, `details: { current_rank: "Silver", ... }`
+    // We need to construct the key for `calculatePrice` which expects `SILVER_IV`.
+    
+    // Helper to format rank
+    const formatRank = (r: string, d: string) => {
+        if (!r) return undefined;
+        const tier = r.toUpperCase();
+        const div = d ? d.toUpperCase() : 'NA';
+        return `${tier}_${div}`;
+    };
+
+    const pricingCurrentRank = formatRank(details.current_rank, details.current_division); // Need to ensure frontend sends division
+    const pricingDesiredRank = formatRank(details.desired_rank, details.desired_division);
 
     // 1. Validate & Calculate Price Server-side
     const pricingResult = calculatePrice({
       serviceType,
-      currentRank,
-      desiredRank,
+      currentRank: pricingCurrentRank || currentRank, // Fallback
+      desiredRank: pricingDesiredRank || desiredRank,
       options,
+      queueType,
+      boosterConfig,
       gamesCount: body.gamesCount
     });
 
@@ -82,6 +112,7 @@ export async function POST(req: Request) {
         server: details.server || 'VN',
       },
       options,
+      queue_type: queueType, // Save queue type
       pricing: {
         base_price: pricingResult.basePrice,
         option_fees: pricingResult.optionFees,

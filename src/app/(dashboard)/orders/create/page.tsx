@@ -10,6 +10,7 @@ import {
   Map, Video, Users, ChevronRight, Flame, Clock, Search, Star
 } from 'lucide-react';
 import ChampionModal from '@/components/champion/ChampionModal';
+import { LOL_RANKS_ORDER } from '@/lib/pricing';
 import Link from 'next/link';
 
 // --- CONSTANTS & DATA ---
@@ -109,6 +110,7 @@ function CreateOrderContent() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [agreed, setAgreed] = useState(false);
+  const [queueType, setQueueType] = useState('SOLO_DUO');
 
   // Options
   const [optLane, setOptLane] = useState(false);
@@ -140,12 +142,47 @@ function CreateOrderContent() {
   // Calculate Price
   const calculateTotal = () => {
     let base = 0;
+    
+    // Construct keys for new pricing logic (e.g. SILVER_IV)
+    const startKey = `${currentRank.toUpperCase()}_${currentDiv}`;
+    const endKey = `${desiredRank.toUpperCase()}_${desiredDiv}`;
+    
+    // Check if Booster has custom config
+    const boosterConfig = booster?.booster_info?.service_settings;
 
     if (activeTab === 'RANK_BOOST') {
-      const startIdx = RANKS.indexOf(currentRank) * 4 + DIVISIONS.indexOf(currentDiv);
-      const endIdx = RANKS.indexOf(desiredRank) * 4 + DIVISIONS.indexOf(desiredDiv);
       
-      if (endIdx > startIdx) {
+      if (boosterConfig && boosterConfig.rankPrices) {
+        // --- NEW DYNAMIC PRICING ---
+        const startIdx = LOL_RANKS_ORDER.indexOf(startKey);
+        const endIdx = LOL_RANKS_ORDER.indexOf(endKey);
+        
+        if (startIdx !== -1 && endIdx !== -1 && endIdx > startIdx) {
+            for (let i = startIdx; i < endIdx; i++) {
+                const key = LOL_RANKS_ORDER[i];
+                base += (boosterConfig.rankPrices[key] || 0);
+            }
+        }
+
+        // Apply LP Gain Modifier
+        if (boosterConfig.lpModifiers) {
+            const gainVal = parseInt(lpGain.replace('+', ''));
+            let lpMod = 0;
+            if (gainVal >= 20) lpMod = boosterConfig.lpModifiers.high || 0;
+            else if (gainVal >= 16) lpMod = boosterConfig.lpModifiers.medium || 0;
+            else lpMod = boosterConfig.lpModifiers.low || 0;
+            
+            if (lpMod !== 0) base = base * (1 + lpMod / 100);
+        }
+
+        // Apply Queue Type Modifier
+        if (boosterConfig.queueModifiers && queueType) {
+            const qMod = boosterConfig.queueModifiers[queueType] || 0;
+            if (qMod !== 0) base = base * (1 + qMod / 100);
+        }
+
+      } else {
+        // --- OLD STATIC PRICING (Fallback) ---
         const startPrice = RANK_BASE_PRICES[currentRank] || 0;
         const endPrice = RANK_BASE_PRICES[desiredRank] || 0;
         base = Math.max(0, endPrice - startPrice);
@@ -153,7 +190,13 @@ function CreateOrderContent() {
       }
     } 
     else if (activeTab === 'PROMOTION') {
-      base = (RANK_BASE_PRICES[currentRank] || 100000) * 0.4;
+      if (boosterConfig && boosterConfig.rankPrices) {
+        // Dynamic: Price of current division
+        base = boosterConfig.rankPrices[startKey] || 100000;
+      } else {
+        // Static Fallback
+        base = (RANK_BASE_PRICES[currentRank] || 100000) * 0.4;
+      }
     }
     else if (activeTab === 'MASTERY') {
       base = Math.max(0, (desiredMastery - currentMastery) * MASTERY_PRICE_PER_LEVEL);
@@ -162,7 +205,17 @@ function CreateOrderContent() {
       base = Math.max(0, (desiredLevel - currentLevel) * LEVELING_PRICE_PER_LEVEL);
     }
     else if (activeTab === 'NET_WINS') {
-      const pricePerWin = (RANK_BASE_PRICES[currentRank] || 100000) / 10;
+      let pricePerWin = 0;
+      if (boosterConfig && boosterConfig.rankPrices) {
+        // Dynamic: ~40% of division price per win
+        const divPrice = boosterConfig.rankPrices[startKey] || 0;
+        pricePerWin = Math.ceil(divPrice * 0.4);
+        // Fallback if divPrice is 0 (e.g. Iron 4)
+        if (pricePerWin === 0) pricePerWin = 20000;
+      } else {
+        // Static Fallback
+        pricePerWin = (RANK_BASE_PRICES[currentRank] || 100000) / 10;
+      }
       base = numGames * pricePerWin;
     }
     else if (activeTab === 'PLACEMENTS') {
@@ -209,12 +262,15 @@ function CreateOrderContent() {
           details: {
             current_rank: currentRank,
             desired_rank: desiredRank,
+            current_division: currentDiv, // Added for backend
+            desired_division: desiredDiv, // Added for backend
             current_lp: parseInt(currentLP),
             lp_gain: parseInt(lpGain),
             server,
             account_username: username,
             account_password: password,
           },
+          queueType, // Send queue type
           options: {
             flash_boost: optSpeed,
             specific_champs: optChamp && selectedChamp ? [selectedChamp.name] : [],
@@ -365,6 +421,17 @@ function CreateOrderContent() {
                       <option value="+15" className="bg-zinc-900">+15 trở xuống (Bad MMR)</option>
                       <option value="+18" className="bg-zinc-900">+16 đến +19 (Normal)</option>
                       <option value="+20" className="bg-zinc-900">+20 trở lên (Good MMR)</option>
+                    </select>
+                    <ChevronRight className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 rotate-90 text-zinc-500 pointer-events-none" />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-bold uppercase text-zinc-500 tracking-wider">{t('queueType')}</label>
+                  <div className="relative">
+                    <select value={queueType} onChange={e => setQueueType(e.target.value)} className="w-full appearance-none bg-zinc-900/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-blue-500/50 outline-none transition-all">
+                      <option value="SOLO_DUO" className="bg-zinc-900">Đơn / Đôi</option>
+                      <option value="FLEX" className="bg-zinc-900">Linh Hoạt</option>
+                      <option value="TFT" className="bg-zinc-900">Đấu Trường Chân Lý</option>
                     </select>
                     <ChevronRight className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 rotate-90 text-zinc-500 pointer-events-none" />
                   </div>
@@ -564,6 +631,11 @@ function CreateOrderContent() {
               <div className="flex justify-between text-sm">
                 <span className="text-zinc-400">Server:</span>
                 <span className="text-white font-medium">{server}</span>
+              </div>
+
+              <div className="flex justify-between text-sm">
+                <span className="text-zinc-400">Chế độ:</span>
+                <span className="text-white font-medium">{queueType === 'SOLO_DUO' ? 'Đơn/Đôi' : queueType === 'FLEX' ? 'Linh Hoạt' : 'TFT'}</span>
               </div>
 
               {(optLane || optChamp || optStream || optSpeed || optDuo) && (

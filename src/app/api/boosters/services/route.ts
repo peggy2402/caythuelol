@@ -4,66 +4,56 @@ import User from '@/models/User';
 import { jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
 
-async function getAuthUser() {
+async function getBoosterId() {
   const cookieStore = await cookies();
   const token = cookieStore.get('token')?.value;
-  
   if (!token) return null;
-  
   try {
     const secret = new TextEncoder().encode(process.env.JWT_SECRET);
     const { payload } = await jwtVerify(token, secret);
-    return payload;
-  } catch {
-    return null;
-  }
+    // @ts-ignore
+    if (payload.role !== 'BOOSTER') return null;
+    return payload.userId as string;
+  } catch { return null; }
 }
 
-// GET: Fetch Booster's service configuration
-export async function GET() {
+export async function GET(req: Request) {
   try {
     await dbConnect();
-    const payload = await getAuthUser();
-    
-    if (!payload || payload.role !== 'BOOSTER') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
-    }
+    const userId = await getBoosterId();
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const user = await User.findById(payload.userId).select('booster_config');
-    
-    return NextResponse.json({
-      service_settings: user?.booster_config?.services || [],
-      option_settings: user?.booster_config?.options || []
-    });
+    const user = await User.findById(userId).select('booster_info.service_settings');
+    return NextResponse.json(user?.booster_info?.service_settings || {});
   } catch (error) {
-    console.error('Fetch Service Config Error:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
 
-// POST: Save Booster's service configuration
 export async function POST(req: Request) {
   try {
     await dbConnect();
-    const payload = await getAuthUser();
+    const userId = await getBoosterId();
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    if (!payload || payload.role !== 'BOOSTER') {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+    const body = await req.json();
+    
+    // Validate body structure if needed
+    
+    const user = await User.findById(userId);
+    if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 });
+
+    // Ensure booster_info exists
+    if (!user.booster_info) {
+      user.booster_info = {};
     }
 
-    const { service_settings, option_settings } = await req.json();
-
-    await User.findByIdAndUpdate(payload.userId, {
-      $set: {
-        'booster_config.services': service_settings,
-        'booster_config.options': option_settings
-      }
-    });
+    user.booster_info.service_settings = body;
+    user.markModified('booster_info'); // Important for Mixed types to be detected as changed
+    await user.save();
 
     return NextResponse.json({ success: true });
-
   } catch (error) {
-    console.error('Update Service Config Error:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

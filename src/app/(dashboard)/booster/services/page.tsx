@@ -3,44 +3,74 @@
 import { useState, useEffect } from 'react';
 import { useLanguage } from '@/lib/i18n';
 import { toast } from 'sonner';
-import { Loader2, Save, Check, X, Settings2 } from 'lucide-react';
+import { Loader2, Save, Settings2, Trophy, Zap, Swords, ChevronDown, ChevronUp } from 'lucide-react';
 
-const SERVICE_TYPES = [
-  { id: 'RANK_BOOST', label: 'Rank Boost' },
-  { id: 'PROMOTION', label: 'Promotion' },
-  { id: 'MASTERY', label: 'Mastery' },
-  { id: 'LEVELING', label: 'Leveling' },
-  { id: 'NET_WINS', label: 'Net Wins' },
-  { id: 'PLACEMENTS', label: 'Placements' },
+// --- CONSTANTS ---
+const LOL_RANKS = [
+  { gameCode: "LOL", tier: "IRON", division: "IV", order: 1 },
+  { gameCode: "LOL", tier: "IRON", division: "III", order: 2 },
+  { gameCode: "LOL", tier: "IRON", division: "II", order: 3 },
+  { gameCode: "LOL", tier: "IRON", division: "I", order: 4 },
+  { gameCode: "LOL", tier: "BRONZE", division: "IV", order: 5 },
+  { gameCode: "LOL", tier: "BRONZE", division: "III", order: 6 },
+  { gameCode: "LOL", tier: "BRONZE", division: "II", order: 7 },
+  { gameCode: "LOL", tier: "BRONZE", division: "I", order: 8 },
+  { gameCode: "LOL", tier: "SILVER", division: "IV", order: 9 },
+  { gameCode: "LOL", tier: "SILVER", division: "III", order: 10 },
+  { gameCode: "LOL", tier: "SILVER", division: "II", order: 11 },
+  { gameCode: "LOL", tier: "SILVER", division: "I", order: 12 },
+  { gameCode: "LOL", tier: "GOLD", division: "IV", order: 13 },
+  { gameCode: "LOL", tier: "GOLD", division: "III", order: 14 },
+  { gameCode: "LOL", tier: "GOLD", division: "II", order: 15 },
+  { gameCode: "LOL", tier: "GOLD", division: "I", order: 16 },
+  { gameCode: "LOL", tier: "PLATINUM", division: "IV", order: 17 },
+  { gameCode: "LOL", tier: "PLATINUM", division: "III", order: 18 },
+  { gameCode: "LOL", tier: "PLATINUM", division: "II", order: 19 },
+  { gameCode: "LOL", tier: "PLATINUM", division: "I", order: 20 },
+  { gameCode: "LOL", tier: "EMERALD", division: "IV", order: 21 },
+  { gameCode: "LOL", tier: "EMERALD", division: "III", order: 22 },
+  { gameCode: "LOL", tier: "EMERALD", division: "II", order: 23 },
+  { gameCode: "LOL", tier: "EMERALD", division: "I", order: 24 },
+  { gameCode: "LOL", tier: "DIAMOND", division: "IV", order: 25 },
+  { gameCode: "LOL", tier: "DIAMOND", division: "III", order: 26 },
+  { gameCode: "LOL", tier: "DIAMOND", division: "II", order: 27 },
+  { gameCode: "LOL", tier: "DIAMOND", division: "I", order: 28 },
+  { gameCode: "LOL", tier: "MASTER", division: null, order: 29 },
+  { gameCode: "LOL", tier: "GRANDMASTER", division: null, order: 30 },
+  { gameCode: "LOL", tier: "CHALLENGER", division: null, order: 31 }
 ];
 
-const OPTION_TYPES = [
-  { id: 'flash_boost', label: 'Flash Boost (Siêu tốc)' },
-  { id: 'streaming', label: 'Streaming' },
-  { id: 'duo_queue', label: 'Duo Queue' },
-  { id: 'specific_champs', label: 'Specific Champions' },
-];
+// Group ranks by Tier for UI
+const GROUPED_RANKS = LOL_RANKS.reduce((acc, rank) => {
+  if (!acc[rank.tier]) acc[rank.tier] = [];
+  acc[rank.tier].push(rank);
+  return acc;
+}, {} as Record<string, typeof LOL_RANKS>);
 
-interface ServiceSetting {
-  type: string;
-  enabled: boolean;
-  price: number;
-  modifier: number;
-}
-
-interface OptionSetting {
-  key: string;
-  enabled: boolean;
-  price: number;
-  modifier: number;
-}
+const TIERS_ORDER = ['IRON', 'BRONZE', 'SILVER', 'GOLD', 'PLATINUM', 'EMERALD', 'DIAMOND', 'MASTER', 'GRANDMASTER', 'CHALLENGER'];
 
 export default function BoosterServicesPage() {
   const { t } = useLanguage();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [services, setServices] = useState<ServiceSetting[]>([]);
-  const [options, setOptions] = useState<OptionSetting[]>([]);
+  
+  // Config State
+  const [rankPrices, setRankPrices] = useState<Record<string, number>>({});
+  const [lpModifiers, setLpModifiers] = useState({
+    high: -30, // 17+
+    medium: -10, // 15-17
+    low: 0 // 14-
+  });
+  const [queueModifiers, setQueueModifiers] = useState({
+    SOLO_DUO: 0,
+    FLEX: -10,
+    TFT: 0
+  });
+
+  // UI State
+  const [expandedTiers, setExpandedTiers] = useState<Record<string, boolean>>({
+    'IRON': true, 'BRONZE': true, 'SILVER': true, 'GOLD': true // Default expand low elo
+  });
 
   useEffect(() => {
     const fetchData = async () => {
@@ -48,20 +78,11 @@ export default function BoosterServicesPage() {
         const res = await fetch('/api/boosters/services');
         if (!res.ok) throw new Error('Failed to fetch settings');
         const data = await res.json();
+        
         if (data) {
-          // Merge with defaults to ensure all types exist
-          const mergedServices = SERVICE_TYPES.map(type => {
-            const existing = data.service_settings?.find((s: any) => s.type === type.id);
-            return existing || { type: type.id, enabled: false, price: 0, modifier: 100 };
-          });
-          
-          const mergedOptions = OPTION_TYPES.map(opt => {
-            const existing = data.option_settings?.find((o: any) => o.key === opt.id);
-            return existing || { key: opt.id, enabled: false, price: 0, modifier: 100 };
-          });
-
-          setServices(mergedServices);
-          setOptions(mergedOptions);
+          if (data.rankPrices) setRankPrices(data.rankPrices);
+          if (data.lpModifiers) setLpModifiers(data.lpModifiers);
+          if (data.queueModifiers) setQueueModifiers(data.queueModifiers);
         }
       } catch (error) {
         console.error(error);
@@ -79,9 +100,10 @@ export default function BoosterServicesPage() {
       const res = await fetch('/api/boosters/services', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          service_settings: services,
-          option_settings: options
+        body: JSON.stringify({ 
+          rankPrices,
+          lpModifiers,
+          queueModifiers
         }),
       });
       
@@ -97,16 +119,13 @@ export default function BoosterServicesPage() {
     }
   };
 
-  const updateService = (index: number, field: keyof ServiceSetting, value: any) => {
-    const newServices = [...services];
-    newServices[index] = { ...newServices[index], [field]: value };
-    setServices(newServices);
+  const handlePriceChange = (key: string, value: string) => {
+    const numValue = parseInt(value.replace(/[^0-9]/g, '')) || 0;
+    setRankPrices(prev => ({ ...prev, [key]: numValue }));
   };
 
-  const updateOption = (index: number, field: keyof OptionSetting, value: any) => {
-    const newOptions = [...options];
-    newOptions[index] = { ...newOptions[index], [field]: value };
-    setOptions(newOptions);
+  const toggleTier = (tier: string) => {
+    setExpandedTiers(prev => ({ ...prev, [tier]: !prev[tier] }));
   };
 
   if (loading) return <div className="flex justify-center py-20"><Loader2 className="animate-spin text-blue-500" /></div>;
@@ -128,103 +147,167 @@ export default function BoosterServicesPage() {
         </button>
       </div>
 
-      {/* Services Section */}
-      <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
-        <div className="p-4 border-b border-zinc-800 bg-zinc-950/50 flex items-center gap-2">
-          <Settings2 className="w-5 h-5 text-blue-500" />
-          <h3 className="font-bold text-white">Dịch vụ cung cấp</h3>
+      {/* 1. RANK BOOST CONFIG */}
+      <div className="space-y-4">
+        <div className="flex items-center gap-2 text-lg font-bold text-blue-400">
+          <Trophy className="w-6 h-6" />
+          <h2>Cấu hình giá Rank Boost (LOL)</h2>
         </div>
-        <div className="divide-y divide-zinc-800">
-          {services.map((service, idx) => (
-            <div key={service.type} className="p-4 flex flex-col sm:flex-row sm:items-center gap-4 hover:bg-zinc-800/30 transition-colors">
-              <div className="flex items-center gap-3 flex-1">
-                <input 
-                  type="checkbox" 
-                  checked={service.enabled} 
-                  onChange={(e) => updateService(idx, 'enabled', e.target.checked)}
-                  className="w-5 h-5 rounded border-zinc-600 bg-zinc-800 text-blue-600 focus:ring-blue-500"
-                />
-                <span className={`font-medium ${service.enabled ? 'text-white' : 'text-zinc-500'}`}>
-                  {SERVICE_TYPES.find(t => t.id === service.type)?.label}
-                </span>
+
+        <div className="grid gap-4">
+          {TIERS_ORDER.map((tier) => {
+            const ranksInTier = GROUPED_RANKS[tier];
+            if (!ranksInTier) return null;
+            const isExpanded = expandedTiers[tier];
+
+            return (
+              <div key={tier} className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
+                <button 
+                  onClick={() => toggleTier(tier)}
+                  className="w-full flex items-center justify-between p-4 bg-zinc-950/50 hover:bg-zinc-800/50 transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    {/* Placeholder for Rank Icon */}
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs border border-white/10 ${
+                      tier === 'IRON' ? 'bg-zinc-700 text-zinc-400' :
+                      tier === 'BRONZE' ? 'bg-orange-900 text-orange-400' :
+                      tier === 'SILVER' ? 'bg-slate-400 text-slate-900' :
+                      tier === 'GOLD' ? 'bg-yellow-600 text-yellow-100' :
+                      tier === 'PLATINUM' ? 'bg-teal-600 text-teal-100' :
+                      tier === 'EMERALD' ? 'bg-emerald-600 text-emerald-100' :
+                      tier === 'DIAMOND' ? 'bg-blue-400 text-blue-900' :
+                      'bg-purple-600 text-purple-100'
+                    }`}>
+                      {tier[0]}
+                    </div>
+                    <span className="font-bold text-white">{tier}</span>
+                  </div>
+                  {isExpanded ? <ChevronUp className="w-5 h-5 text-zinc-500" /> : <ChevronDown className="w-5 h-5 text-zinc-500" />}
+                </button>
+
+                {isExpanded && (
+                  <div className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 animate-in slide-in-from-top-2">
+                    {ranksInTier.map((rank) => {
+                      const key = `${rank.tier}_${rank.division || 'I'}`; // Use I for Master+ just for key consistency if needed, or handle null
+                      const displayKey = rank.division ? `${rank.tier} ${rank.division}` : rank.tier;
+                      const configKey = `${rank.tier}_${rank.division || 'NA'}`;
+
+                      return (
+                        <div key={configKey} className="space-y-1.5">
+                          <label className="text-xs font-medium text-zinc-500">{displayKey}</label>
+                          <div className="relative">
+                            <input
+                              type="text"
+                              value={rankPrices[configKey] ? rankPrices[configKey].toLocaleString() : ''}
+                              onChange={(e) => handlePriceChange(configKey, e.target.value)}
+                              placeholder="0"
+                              className="w-full bg-zinc-950 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white focus:border-blue-500 outline-none pr-8"
+                            />
+                            <span className="absolute right-3 top-2 text-xs text-zinc-600">đ</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
-              
-              {service.enabled && (
-                <div className="flex gap-4 animate-in fade-in slide-in-from-left-5">
-                  <div>
-                    <label className="block text-xs text-zinc-500 mb-1">Giá cơ bản (VNĐ)</label>
-                    <input 
-                      type="number" 
-                      value={service.price} 
-                      onChange={(e) => updateService(idx, 'price', Number(e.target.value))}
-                      className="w-32 bg-zinc-950 border border-zinc-700 rounded px-3 py-1.5 text-sm text-white focus:border-blue-500 outline-none"
-                      placeholder="0"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs text-zinc-500 mb-1">Điều chỉnh (%)</label>
-                    <input 
-                      type="number" 
-                      value={service.modifier} 
-                      onChange={(e) => updateService(idx, 'modifier', Number(e.target.value))}
-                      className="w-24 bg-zinc-950 border border-zinc-700 rounded px-3 py-1.5 text-sm text-white focus:border-blue-500 outline-none"
-                      placeholder="100"
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
-      {/* Options Section */}
-      <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
-        <div className="p-4 border-b border-zinc-800 bg-zinc-950/50 flex items-center gap-2">
-          <Settings2 className="w-5 h-5 text-yellow-500" />
-          <h3 className="font-bold text-white">Tùy chọn mở rộng</h3>
+      {/* 2. LP GAIN MODIFIERS */}
+      <div className="space-y-4">
+        <div className="flex items-center gap-2 text-lg font-bold text-yellow-400">
+          <Zap className="w-6 h-6" />
+          <h2>Điểm cộng mỗi ván (LP Gain)</h2>
         </div>
-        <div className="divide-y divide-zinc-800">
-          {options.map((option, idx) => (
-            <div key={option.key} className="p-4 flex flex-col sm:flex-row sm:items-center gap-4 hover:bg-zinc-800/30 transition-colors">
-              <div className="flex items-center gap-3 flex-1">
-                <input 
-                  type="checkbox" 
-                  checked={option.enabled} 
-                  onChange={(e) => updateOption(idx, 'enabled', e.target.checked)}
-                  className="w-5 h-5 rounded border-zinc-600 bg-zinc-800 text-yellow-600 focus:ring-yellow-500"
-                />
-                <span className={`font-medium ${option.enabled ? 'text-white' : 'text-zinc-500'}`}>
-                  {OPTION_TYPES.find(t => t.id === option.key)?.label}
-                </span>
-              </div>
-              
-              {option.enabled && (
-                <div className="flex gap-4 animate-in fade-in slide-in-from-left-5">
-                  <div>
-                    <label className="block text-xs text-zinc-500 mb-1">Phụ phí (VNĐ)</label>
-                    <input 
-                      type="number" 
-                      value={option.price} 
-                      onChange={(e) => updateOption(idx, 'price', Number(e.target.value))}
-                      className="w-32 bg-zinc-950 border border-zinc-700 rounded px-3 py-1.5 text-sm text-white focus:border-yellow-500 outline-none"
-                      placeholder="0"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs text-zinc-500 mb-1">Điều chỉnh (%)</label>
-                    <input 
-                      type="number" 
-                      value={option.modifier} 
-                      onChange={(e) => updateOption(idx, 'modifier', Number(e.target.value))}
-                      className="w-24 bg-zinc-950 border border-zinc-700 rounded px-3 py-1.5 text-sm text-white focus:border-yellow-500 outline-none"
-                      placeholder="100"
-                    />
-                  </div>
-                </div>
-              )}
+        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-zinc-400">Từ 17+ LP (Good MMR)</label>
+            <div className="flex items-center gap-2">
+              <input 
+                type="number" 
+                value={lpModifiers.high}
+                onChange={(e) => setLpModifiers({...lpModifiers, high: Number(e.target.value)})}
+                className="w-full bg-zinc-950 border border-zinc-700 rounded-lg px-3 py-2 text-white focus:border-yellow-500 outline-none"
+              />
+              <span className="text-zinc-500">%</span>
             </div>
-          ))}
+            <p className="text-xs text-zinc-600">Thường giảm giá vì leo nhanh.</p>
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-zinc-400">15 - 17 LP (Normal)</label>
+            <div className="flex items-center gap-2">
+              <input 
+                type="number" 
+                value={lpModifiers.medium}
+                onChange={(e) => setLpModifiers({...lpModifiers, medium: Number(e.target.value)})}
+                className="w-full bg-zinc-950 border border-zinc-700 rounded-lg px-3 py-2 text-white focus:border-yellow-500 outline-none"
+              />
+              <span className="text-zinc-500">%</span>
+            </div>
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-zinc-400">Dưới 14 LP (Bad MMR)</label>
+            <div className="flex items-center gap-2">
+              <input 
+                type="number" 
+                value={lpModifiers.low}
+                onChange={(e) => setLpModifiers({...lpModifiers, low: Number(e.target.value)})}
+                className="w-full bg-zinc-950 border border-zinc-700 rounded-lg px-3 py-2 text-white focus:border-yellow-500 outline-none"
+              />
+              <span className="text-zinc-500">%</span>
+            </div>
+            <p className="text-xs text-zinc-600">Thường tăng giá hoặc giữ nguyên.</p>
+          </div>
+        </div>
+      </div>
+
+      {/* 3. QUEUE TYPE MODIFIERS */}
+      <div className="space-y-4">
+        <div className="flex items-center gap-2 text-lg font-bold text-purple-400">
+          <Swords className="w-6 h-6" />
+          <h2>Chế độ chơi (Queue Type)</h2>
+        </div>
+        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-zinc-400">Đơn / Đôi (Solo/Duo)</label>
+            <div className="flex items-center gap-2">
+              <input 
+                type="number" 
+                value={queueModifiers.SOLO_DUO}
+                onChange={(e) => setQueueModifiers({...queueModifiers, SOLO_DUO: Number(e.target.value)})}
+                className="w-full bg-zinc-950 border border-zinc-700 rounded-lg px-3 py-2 text-white focus:border-purple-500 outline-none"
+              />
+              <span className="text-zinc-500">%</span>
+            </div>
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-zinc-400">Linh Hoạt (Flex)</label>
+            <div className="flex items-center gap-2">
+              <input 
+                type="number" 
+                value={queueModifiers.FLEX}
+                onChange={(e) => setQueueModifiers({...queueModifiers, FLEX: Number(e.target.value)})}
+                className="w-full bg-zinc-950 border border-zinc-700 rounded-lg px-3 py-2 text-white focus:border-purple-500 outline-none"
+              />
+              <span className="text-zinc-500">%</span>
+            </div>
+            <p className="text-xs text-zinc-600">Thường dễ hơn Solo/Duo.</p>
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-zinc-400">Đấu Trường Chân Lý (TFT)</label>
+            <div className="flex items-center gap-2">
+              <input 
+                type="number" 
+                value={queueModifiers.TFT}
+                onChange={(e) => setQueueModifiers({...queueModifiers, TFT: Number(e.target.value)})}
+                className="w-full bg-zinc-950 border border-zinc-700 rounded-lg px-3 py-2 text-white focus:border-purple-500 outline-none"
+              />
+              <span className="text-zinc-500">%</span>
+            </div>
+          </div>
         </div>
       </div>
     </div>
