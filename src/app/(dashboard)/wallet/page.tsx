@@ -416,7 +416,7 @@ export default function WalletPage() {
               ) : (
                 <tr>
                   <td colSpan={5} className="px-6 py-8 text-center text-zinc-500">
-                    {t('noOrders')}
+                    {t('noTransfer')}
                   </td>
                 </tr>
               )}

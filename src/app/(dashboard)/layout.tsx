@@ -23,6 +23,7 @@ import { socket } from '@/lib/socket';
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isLangMenuOpen, setIsLangMenuOpen] = useState(false);
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [user, setUser] = useState<any>(null);
   const pathname = usePathname();
   const { t, language, setLanguage } = useLanguage();
@@ -185,18 +186,63 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
             <div className="h-8 w-[1px] bg-white/10" />
 
-            <div className="flex items-center gap-3">
-              <div className="text-right hidden sm:block">
-                <div className="text-sm font-bold text-white">{user?.username || 'User'}</div>
-                <div className="text-xs text-blue-400 font-medium">
-                  {user?.wallet_balance?.toLocaleString('vi-VN') || 0} đ
+            <div className="relative">
+              <button 
+                onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                className="flex items-center gap-3 hover:bg-white/5 p-2 rounded-xl transition-colors"
+              >
+                <div className="text-right hidden sm:block">
+                  <div className="text-sm font-bold text-white">{user?.username || 'User'}</div>
+                  <div className="text-xs text-blue-400 font-medium">
+                    {user?.wallet_balance?.toLocaleString('vi-VN') || 0} đ
+                  </div>
                 </div>
-              </div>
-              <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 p-[1px]">
-                <div className="h-full w-full rounded-full bg-zinc-900 flex items-center justify-center">
-                   <User className="h-5 w-5 text-white" />
+                <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 p-[1px]">
+                  <div className="h-full w-full rounded-full bg-zinc-900 flex items-center justify-center overflow-hidden">
+                     {user?.profile?.avatar ? (
+                        <img src={user.profile.avatar} alt="Avatar" className="w-full h-full object-cover" />
+                     ) : (
+                        <User className="h-5 w-5 text-white" />
+                     )}
+                  </div>
                 </div>
-              </div>
+              </button>
+
+              {/* User Dropdown Menu */}
+              {isUserMenuOpen && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setIsUserMenuOpen(false)} />
+                  <div className="absolute right-0 top-full mt-2 z-50 w-56 rounded-xl border border-white/10 bg-zinc-900 p-2 shadow-xl animate-in fade-in zoom-in-95 duration-200 origin-top-right">
+                    <div className="px-3 py-2 border-b border-white/5 mb-1">
+                      <p className="text-sm font-bold text-white">{user?.username}</p>
+                      <p className="text-xs text-zinc-500 truncate">{user?.email}</p>
+                    </div>
+                    
+                    <Link href="/profile" onClick={() => setIsUserMenuOpen(false)} className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-zinc-300 hover:bg-white/5 hover:text-white transition-colors">
+                      <User className="w-4 h-4" />
+                      {t('profile')}
+                    </Link>
+                    <Link href="/wallet" onClick={() => setIsUserMenuOpen(false)} className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-zinc-300 hover:bg-white/5 hover:text-white transition-colors">
+                      <Wallet className="w-4 h-4" />
+                      {t('wallet')}
+                    </Link>
+                    
+                    <div className="border-t border-white/5 my-1" />
+                    
+                    <button 
+                      onClick={() => {
+                        localStorage.removeItem('token');
+                        localStorage.removeItem('user');
+                        window.location.href = '/login';
+                      }}
+                      className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-red-400 hover:bg-red-500/10 transition-colors"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      {t('logout')}
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </header>
