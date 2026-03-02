@@ -40,6 +40,7 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
+
     // Phân trang
     const { searchParams } = new URL(req.url);
     const page = parseInt(searchParams.get('page') || '1');
@@ -104,6 +105,30 @@ export async function POST(req: Request) {
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
+
+    // 1. Kiểm tra xem đã có đơn PENDING cùng số tiền chưa (Idempotency)
+    // Nếu có thì trả về đơn đó luôn, không tạo mới -> Tránh spam và lỗi limit
+    const existingPending = await Transaction.findOne({
+      userId,
+      status: TransactionStatus.PENDING,
+      type: TransactionType.DEPOSIT,
+      amount
+    });
+
+    // Tạo nội dung chuyển khoản & QR trước để dùng cho cả 2 trường hợp
+    const transferContent = `ZT${user.username.toUpperCase().replace(/\s/g, '')}`;
+    const qrUrl = `https://qr.sepay.vn/img?acc=${encodeURIComponent(ACCOUNT_NO)}&bank=${encodeURIComponent(BANK_ID)}&amount=${amount}&des=${encodeURIComponent(transferContent)}`;
+
+    if (existingPending) {
+       return NextResponse.json({
+          success: true,
+          transaction: existingPending,
+          qrUrl,
+          paymentInfo: { bankId: BANK_ID, accountNo: ACCOUNT_NO, accountName: ACCOUNT_NAME, content: transferContent, amount },
+          message: 'Đang hiển thị đơn chờ thanh toán hiện tại'
+       });
+    }
+
     // Anti-spam: Kiểm tra xem user có quá nhiều đơn đang treo không
     const pendingCount = await Transaction.countDocuments({
       userId,
@@ -111,8 +136,9 @@ export async function POST(req: Request) {
       type: TransactionType.DEPOSIT
     });
 
-    if (pendingCount >= 3) {
-      return NextResponse.json({ error: 'Bạn chưa thực hiện thanh toán. Vui lòng thanh toán trước' }, { status: 400 });
+    // FIX: Tăng giới hạn lên 10 để tránh chặn khách hàng khi họ lỡ tạo nhiều đơn nháp
+    if (pendingCount >= 10) {
+      return NextResponse.json({ error: 'Bạn có quá nhiều đơn nạp tiền đang chờ. Vui lòng hủy bớt đơn cũ.' }, { status: 400 });
     }
     
     // Tạo giao dịch PENDING
@@ -125,14 +151,6 @@ export async function POST(req: Request) {
       status: TransactionStatus.PENDING,
       description: `Nạp tiền ${amount.toLocaleString('vi-VN')}đ`,
     });
-
-    // Tạo nội dung chuyển khoản: ZT<USERNAME>
-    // Ví dụ: ZTTRANANHKIENHP (Thử đổi sang ZT theo mẫu mặc định)
-    const transferContent = `ZT${user.username.toUpperCase().replace(/\s/g, '')}`;
-    
-    // Tạo link SePay QR
-    // Format: https://qr.sepay.vn/img?acc=SO_TAI_KHOAN&bank=NGAN_HANG&amount=SO_TIEN&des=NOI_DUNG
-    const qrUrl = `https://qr.sepay.vn/img?acc=${encodeURIComponent(ACCOUNT_NO)}&bank=${encodeURIComponent(BANK_ID)}&amount=${amount}&des=${encodeURIComponent(transferContent)}`;
 
     return NextResponse.json({
       success: true,

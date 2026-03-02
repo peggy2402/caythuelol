@@ -55,8 +55,8 @@ export async function POST(req: Request) {
     console.log('🔍 [SePay Analysis] Content:', content);
     
     // Regex: Tìm ZT + Username + Code (Optional)
-    // Cập nhật: Cho phép khoảng trắng trong username ([\s]) và dùng non-greedy (+?) để không ăn vào phần Code
-    const regex = /ZT\s*([a-zA-Z0-9_\-\.\s]+?)(?:\s+([a-zA-Z0-9]+))?$/i;
+    // FIX: Bỏ \s trong username để tránh match nhầm các từ khóa khác (như Trace) và bỏ $ để chấp nhận ký tự rác phía sau
+    const regex = /ZT\s*([a-zA-Z0-9_\-\.]+)(?:\s+([a-zA-Z0-9]+))?/i;
     const match = content.match(regex);
     
     if (!match) {
@@ -81,6 +81,14 @@ export async function POST(req: Request) {
       username: new RegExp(`^${username}$`, 'i') 
     });
 
+    // FIX: Nếu không tìm thấy user, thử loại bỏ các ký tự số ở cuối (VD: CHIEN24022003 -> CHIEN)
+    // Trường hợp khách quen tay nhập thêm ngày sinh hoặc số điện thoại vào nội dung
+    if (!user && /\d+$/.test(username)) {
+        const usernameNoDigits = username.replace(/\d+$/, '');
+        console.log(`⚠️ [SePay Webhook] User not found. Trying to strip trailing digits: "${username}" -> "${usernameNoDigits}"`);
+        user = await User.findOne({ username: new RegExp(`^${usernameNoDigits}$`, 'i') });
+    }
+
     // Smart Recovery (Tìm qua Transaction nếu không thấy User)
     if (!user) {
         console.log(`⚠️ [SePay Webhook] User not found by name "${username}". Trying smart recovery...`);
@@ -95,10 +103,12 @@ export async function POST(req: Request) {
             if (tx.userId && tx.userId.username) {
                 // @ts-ignore
                 const dbUsernameClean = tx.userId.username.toUpperCase().replace(/\s/g, '');
-                const webhookUsernameClean = username.toUpperCase().replace(/\s/g, ''); // Clean cả username từ webhook
-                if (dbUsernameClean === webhookUsernameClean) {
+                // FIX: Kiểm tra xem nội dung chuyển khoản có CHỨA "ZT" + Username trong DB không
+                // Ví dụ: Content "ZTCHIEN24022003" sẽ khớp với User "CHIEN" (ZTCHIEN)
+                if (content.toUpperCase().includes(`ZT${dbUsernameClean}`)) {
                     // @ts-ignore
                     user = tx.userId;
+                    console.log(`✅ [SePay Webhook] Smart Recovery: Found user "${dbUsernameClean}" in content via Transaction match`);
                     break;
                 }
             }
