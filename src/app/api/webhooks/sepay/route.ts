@@ -82,9 +82,40 @@ export async function POST(req: Request) {
     console.log(`🔍 [SePay Analysis] Parsed Username: "${username}", Code: "${txCode || 'N/A'}"`);
 
     // 3. Tìm User
-    const user = await User.findOne({ 
+    let user = await User.findOne({ 
       username: new RegExp(`^${username}$`, 'i') 
     });
+
+    // --- SMART RECOVERY: Nếu không tìm thấy user (do username có dấu cách bị xóa trong QR) ---
+    if (!user) {
+        console.log(`⚠️ [SePay Webhook] User not found by exact name "${username}". Trying smart recovery via Transaction...`);
+        
+        // Tìm các giao dịch PENDING có cùng số tiền
+        const potentialTxs = await Transaction.find({
+            amount: data.transferAmount,
+            status: TransactionStatus.PENDING,
+            type: TransactionType.DEPOSIT
+        }).populate('userId');
+
+        for (const tx of potentialTxs) {
+            // @ts-ignore
+            if (tx.userId && tx.userId.username) {
+                // Normalize username trong DB: Upper + Remove Spaces để so sánh
+                // @ts-ignore
+                const dbUsernameClean = tx.userId.username.toUpperCase().replace(/\s/g, '');
+                const webhookUsernameClean = username.toUpperCase();
+                
+                if (dbUsernameClean === webhookUsernameClean) {
+                    // @ts-ignore
+                    console.log(`✅ [SePay Webhook] Smart Recovery: Found user "${tx.userId.username}" via Transaction match.`);
+                    // @ts-ignore
+                    user = tx.userId;
+                    break;
+                }
+            }
+        }
+    }
+    // -----------------------------------------------------------------------------------------
 
     if (!user) {
       console.error(`🔴 [SePay Webhook] User NOT FOUND in DB. Searched for: "${username}"`); 

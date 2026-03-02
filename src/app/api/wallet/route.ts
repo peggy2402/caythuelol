@@ -115,9 +115,9 @@ export async function POST(req: Request) {
     // Ví dụ: NAP TRANANHKIENHP B60357
     const transferContent = `NAP ${user.username.toUpperCase().replace(/\s/g, '')} ${transaction._id.toString().slice(-6).toUpperCase()}`;
     
-    // Tạo link VietQR
-    // Format: https://img.vietqr.io/image/<BANK_ID>-<ACCOUNT_NO>-<TEMPLATE>.png?amount=<AMOUNT>&addInfo=<CONTENT>
-    const qrUrl = `https://img.vietqr.io/image/${BANK_ID}-${ACCOUNT_NO}-compact2.png?amount=${amount}&addInfo=${encodeURIComponent(transferContent)}&accountName=${encodeURIComponent(ACCOUNT_NAME)}`;
+    // Tạo link SePay QR
+    // Format: https://qr.sepay.vn/img?acc=SO_TAI_KHOAN&bank=NGAN_HANG&amount=SO_TIEN&des=NOI_DUNG
+    const qrUrl = `https://qr.sepay.vn/img?acc=${encodeURIComponent(ACCOUNT_NO)}&bank=${encodeURIComponent(BANK_ID)}&amount=${amount}&des=${encodeURIComponent(transferContent)}`;
 
     return NextResponse.json({
       success: true,
