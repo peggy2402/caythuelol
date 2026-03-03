@@ -22,10 +22,9 @@ interface RankHistoryItem {
 }
 
 const LP_GAIN_OPTIONS = [
-  { value: 15, label: 'LOW ELO (+15 LP)', settingKey: 'low', color: 'text-red-500' }, // Low LP -> Khó -> Key 'low'
-  { value: 19, label: 'MEDIUM ELO (+19 LP)', settingKey: 'medium', color: 'text-yellow-500' },
-  { value: 24, label: 'HIGH ELO (+24 LP)', settingKey: 'high', color: 'text-green-500' }, // High LP -> Dễ -> Key 'high'
-  { value: 30, label: 'VERY HIGH ELO (+30 LP)', settingKey: 'high', color: 'text-green-500' },
+  { key: 'low', value: 18, label: 'Ít LP (<19 LP/win)', desc: 'Khó cày, nên tăng giá (+)', color: 'text-red-500' },
+  { key: 'medium', value: 20, label: 'Bình thường (19-21 LP)', desc: 'Giá tiêu chuẩn', color: 'text-yellow-500' },
+  { key: 'high', value: 22, label: 'Nhiều LP (>21 LP/win)', desc: 'Dễ cày, nên giảm giá (-)', color: 'text-green-500' },
 ];
 
 export default function NetWinsPage() {
@@ -137,10 +136,10 @@ export default function NetWinsPage() {
     // Validation Logic (Pricing Consistency Check)
     // Kiểm tra xem giá Low/Medium có bị rẻ hơn High/Very High không
     // FIX: Sử dụng 100 LP làm chuẩn để so sánh
-    const priceLow = calculateScenarioPrice(15, 'low', 100);
-    const priceMedium = calculateScenarioPrice(19, 'medium', 100);
-    const priceHigh = calculateScenarioPrice(24, 'high', 100);
-    const priceVeryHigh = calculateScenarioPrice(30, 'high', 100);
+    const priceLow = calculateScenarioPrice(18, 'low', 100);
+    const priceMedium = calculateScenarioPrice(20, 'medium', 100);
+    const priceHigh = calculateScenarioPrice(22, 'high', 100);
+    const priceVeryHigh = calculateScenarioPrice(25, 'high', 100);
 
     if (priceLow < priceHigh || priceLow < priceVeryHigh || priceMedium < priceHigh || priceMedium < priceVeryHigh) {
         setCalcPrice(0);
@@ -152,12 +151,15 @@ export default function NetWinsPage() {
       setCalcPrice(0);
       setCalcError('Chưa nhập giá');
     } else {
-      // Tính giá cho lựa chọn hiện tại
-      const lpOption = LP_GAIN_OPTIONS.find(o => o.value === calcLPGain) || LP_GAIN_OPTIONS[1];
-      const modifier = settings.lpModifiers[lpOption.settingKey as keyof typeof settings.lpModifiers] || 0;
+      // Logic xác định key dựa trên range thay vì find exact value
+      let lpKey = 'medium';
+      if (calcLPGain < 19) lpKey = 'low';
+      else if (calcLPGain > 21) lpKey = 'high';
+
+      const modifier = settings.lpModifiers[lpKey as keyof typeof settings.lpModifiers] || 0;
       setAppliedModifier(modifier);
 
-      setCalcPrice(calculateScenarioPrice(calcLPGain, lpOption.settingKey, lpDiff));
+      setCalcPrice(calculateScenarioPrice(calcLPGain, lpKey, lpDiff));
     }
   }, [calcRank, calcCurrentLP, calcDesiredLP, calcLPGain, settings.netWinPrices, challengerStat.cutoff, gmStat.cutoff, settings.lpModifiers]);
 
@@ -313,8 +315,9 @@ export default function NetWinsPage() {
                     <label className="text-xs text-zinc-500 mb-1 block">Điểm hiện tại</label>
                     <input 
                         type="number" 
+                        min="1"
                         value={calcCurrentLP} 
-                        onChange={(e) => setCalcCurrentLP(Number(e.target.value))}
+                        onChange={(e) => setCalcCurrentLP(Math.max(1, Number(e.target.value)))}
                         className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white outline-none focus:border-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                     />
                 </div>
@@ -323,8 +326,9 @@ export default function NetWinsPage() {
                     <label className="text-xs text-zinc-500 mb-1 block">Điểm mong muốn</label>
                     <input 
                         type="number" 
+                        min="1"
                         value={calcDesiredLP} 
-                        onChange={(e) => setCalcDesiredLP(Number(e.target.value))}
+                        onChange={(e) => setCalcDesiredLP(Math.max(1, Number(e.target.value)))}
                         className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white outline-none focus:border-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                     />
                 </div>
@@ -332,21 +336,27 @@ export default function NetWinsPage() {
 
             <div>
                 <label className="text-xs text-zinc-500 mb-1 block">
-                  Mức độ Elo / Điểm cộng (Ảnh hưởng giá tiền)
+                  Nhập điểm ELO Trung Bình mỗi trận
                 </label>
                 <div className="relative">
-                  <select 
+                  <input 
+                      type="number"
+                      min="1"
                       value={calcLPGain}
-                      onChange={(e) => setCalcLPGain(Number(e.target.value))}
-                      className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white outline-none focus:border-blue-500"
-                  >
-                      {LP_GAIN_OPTIONS.map(opt => (
-                        <option key={opt.value} value={opt.value} className={opt.color}>{opt.label}</option>
-                      ))}
-                  </select>
-                  <div className={`absolute right-8 top-1/2 -translate-y-1/2 text-xs font-bold ${calcLPGain < 19 ? 'text-red-500' : calcLPGain > 21 ? 'text-green-500' : 'text-yellow-500'}`}>
-                    {calcLPGain < 19 ? '+' : calcLPGain > 21 ? '-' : ''}{Math.abs(appliedModifier)}%
+                      onChange={(e) => setCalcLPGain(Math.max(1, Number(e.target.value)))}
+                      className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white outline-none focus:border-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                      placeholder="VD: 19"
+                  />
+                  <div className={`absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold ${calcLPGain < 19 ? 'text-red-500' : calcLPGain > 21 ? 'text-green-500' : 'text-yellow-500'}`}>
+                    {appliedModifier > 0 ? '+' : ''}{appliedModifier}%
                   </div>
+                </div>
+                <div className="flex gap-2 mt-2">
+                  {LP_GAIN_OPTIONS.map(opt => (
+                    <button key={opt.key} onClick={() => setCalcLPGain(opt.value)} className={`text-[10px] px-2 py-1 rounded border transition-colors ${calcLPGain === opt.value ? `${opt.color} border-current bg-current/10` : 'text-zinc-500 border-zinc-800 hover:border-zinc-600'}`}>
+                      {opt.label}
+                    </button>
+                  ))}
                 </div>
                 <label className="text-xs mt-2 block">
                 <span className="text-zinc-500">Chênh lệch:</span>
@@ -400,12 +410,13 @@ export default function NetWinsPage() {
                     × (1{appliedModifier >= 0 ? '+' : ''}{appliedModifier}%)
                 </div>
 
-                <div className="mt-1 text-[11px] italic 
-                    {lpModifier > 0 
+                <div className={`mt-1 text-[11px] italic ${
+                    appliedModifier > 0 
                     ? 'text-red-400' 
-                    : lpModifier < 0 
+                    : appliedModifier < 0 
                         ? 'text-green-400' 
-                        : 'text-zinc-400'}">
+                        : 'text-zinc-400'
+                }`}>
                     {appliedModifier > 0 && `Giá tăng ${appliedModifier}% do hệ số LP.`}
                     {appliedModifier < 0 && `Giá giảm ${Math.abs(appliedModifier)}% do hệ số LP.`}
                     {appliedModifier === 0 && `Không có điều chỉnh LP.`}
