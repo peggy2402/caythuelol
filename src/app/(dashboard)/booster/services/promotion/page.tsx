@@ -177,18 +177,20 @@ export default function PromotionPage() {
               <div className="relative">
                 <input
                   type="text"
-                  placeholder="Nhập giá..."
+                  placeholder="0"
                   value={currentPrice ? currentPrice.toLocaleString('en-US') : ''}
                   onChange={(e) => updatePrice(step.id, e.target.value)}
-                  className={`w-full bg-zinc-950 border rounded-lg pl-4 pr-10 py-3 text-right font-bold outline-none transition-colors ${
+                  className={`w-full bg-zinc-950/50 border rounded-xl pl-4 pr-16 py-4 text-right text-lg font-bold outline-none transition-all ${
                     currentPrice > MAX_PRICE_PER_STEP 
                       ? 'border-red-500 text-red-500' 
                       : isHighRank 
                         ? 'border-purple-500/30 text-purple-400 focus:border-purple-500' 
-                        : 'border-zinc-700 text-green-400 focus:border-green-500'
+                        : 'border-white/10 text-white focus:border-green-500 focus:text-green-400'
                   }`}
                 />
-                <span className="absolute right-3 top-3.5 text-zinc-500 text-sm">VNĐ</span>
+                <div className="absolute right-4 top-1/2 -translate-y-1/2 flex flex-col items-end pointer-events-none">
+                    <span className="text-[10px] text-zinc-500 font-medium uppercase">VNĐ</span>
+                </div>
               </div>
             </div>
           );

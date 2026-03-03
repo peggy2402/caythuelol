@@ -21,6 +21,13 @@ interface RankHistoryItem {
   grandmasterCutoff: number;
 }
 
+const LP_GAIN_OPTIONS = [
+  { value: 15, label: 'LOW ELO (+15 LP)', settingKey: 'high' },     // Ít LP -> Khó -> Tăng giá
+  { value: 19, label: 'MEDIUM ELO (+19 LP)', settingKey: 'medium' }, // TB -> Giá chuẩn
+  { value: 24, label: 'HIGH ELO (+24 LP)', settingKey: 'low' },     // Nhiều LP -> Dễ -> Giảm giá
+  { value: 30, label: 'VERY HIGH ELO (+30 LP)', settingKey: 'low' }, // Rất nhiều LP -> Giảm giá
+];
+
 export default function NetWinsPage() {
   const { settings, setSettings, MAX_PRICE_PER_STEP, platformFee } = useServiceContext();
 
@@ -28,10 +35,11 @@ export default function NetWinsPage() {
   const [calcRank, setCalcRank] = useState('Master');
   const [calcCurrentLP, setCalcCurrentLP] = useState(0);
   const [calcDesiredLP, setCalcDesiredLP] = useState(100);
-  const [calcLPGain, setCalcLPGain] = useState(20);
+  const [calcLPGain, setCalcLPGain] = useState(19); // Default Medium
   const [calcPrice, setCalcPrice] = useState(0);
   const [calcWins, setCalcWins] = useState(0);
   const [calcError, setCalcError] = useState<string | null>(null);
+  const [appliedModifier, setAppliedModifier] = useState(0);
 
   // Fee Tool State
   const [toolNet, setToolNet] = useState('');
@@ -109,9 +117,15 @@ export default function NetWinsPage() {
       setCalcPrice(0);
       setCalcError('Chưa nhập giá');
     } else {
-      setCalcPrice(lpDiff * pricePerLP);
+      // Tính toán giá có áp dụng Modifier theo ELO
+      const lpOption = LP_GAIN_OPTIONS.find(o => o.value === calcLPGain) || LP_GAIN_OPTIONS[1];
+      const modifier = settings.lpGain[lpOption.settingKey as keyof typeof settings.lpGain] || 0;
+      setAppliedModifier(modifier);
+
+      const basePrice = lpDiff * pricePerLP;
+      setCalcPrice(basePrice * (1 + modifier / 100));
     }
-  }, [calcRank, calcCurrentLP, calcDesiredLP, calcLPGain, settings.netWinPrices, challengerStat.cutoff, gmStat.cutoff]);
+  }, [calcRank, calcCurrentLP, calcDesiredLP, calcLPGain, settings.netWinPrices, challengerStat.cutoff, gmStat.cutoff, settings.lpGain]);
 
   return (
     <div className="space-y-8">
@@ -130,7 +144,7 @@ export default function NetWinsPage() {
               <br/>
               Hệ thống tính tiền dựa trên <strong>số điểm LP cần cày</strong>.
               <br/>
-              Ví dụ: Bạn nhập giá <strong>1.000đ / 1 LP</strong>. Nếu 1 trận thắng được <strong>+23 điểm</strong> ➜ Giá trị trận đó là <strong>23.000đ</strong>.
+              Ví dụ: Bạn nhập giá <strong>1.000đ / 1 LP</strong>. Khách cần cày <strong>60 LP</strong> ➜ Giá gốc là <strong>60.000đ</strong> (Chưa tính hệ số Elo).
             </p>
           </div>
         </div>
@@ -283,17 +297,23 @@ export default function NetWinsPage() {
             </div>
 
             <div>
-                <label className="text-xs text-zinc-500 mb-1 block">Ước tính điểm cộng/trận (để tính số trận)</label>
-                <select 
-                    value={calcLPGain}
-                    onChange={(e) => setCalcLPGain(Number(e.target.value))}
-                    className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white outline-none focus:border-blue-500"
-                >
-                    <option value={15}>+15 LP (Thấp)</option>
-                    <option value={18}>+18 LP (Trung bình)</option>
-                    <option value={20}>+20 LP (Cao)</option>
-                    <option value={25}>+25 LP (Rất cao)</option>
-                </select>
+                <label className="text-xs text-zinc-500 mb-1 block">
+                  Mức độ Elo / Điểm cộng (Ảnh hưởng giá tiền)
+                </label>
+                <div className="relative">
+                  <select 
+                      value={calcLPGain}
+                      onChange={(e) => setCalcLPGain(Number(e.target.value))}
+                      className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white outline-none focus:border-blue-500"
+                  >
+                      {LP_GAIN_OPTIONS.map(opt => (
+                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                      ))}
+                  </select>
+                  <div className={`absolute right-8 top-1/2 -translate-y-1/2 text-xs font-bold ${appliedModifier > 0 ? 'text-green-400' : appliedModifier < 0 ? 'text-red-400' : 'text-zinc-500'}`}>
+                    {appliedModifier > 0 ? '+' : ''}{appliedModifier}%
+                  </div>
+                </div>
             </div>
 
             <div className="flex gap-2 mt-4">
