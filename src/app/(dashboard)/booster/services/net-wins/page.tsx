@@ -22,7 +22,7 @@ interface RankHistoryItem {
 }
 
 export default function NetWinsPage() {
-  const { settings, setSettings, MAX_PRICE_PER_STEP } = useServiceContext();
+  const { settings, setSettings, MAX_PRICE_PER_STEP, platformFee } = useServiceContext();
 
   // Calculator State
   const [calcRank, setCalcRank] = useState('Master');
@@ -307,9 +307,9 @@ export default function NetWinsPage() {
                 </div>
                 <div className="flex-1 bg-green-900/20 border border-green-500/30 rounded-lg p-3 text-center">
                     <span className="text-xs text-green-200 block flex items-center justify-center gap-1">
-                      <Coins className="w-3 h-3" /> Thực nhận (-5%)
+                      <Coins className="w-3 h-3" /> Thực nhận (-{platformFee}%)
                     </span>
-                    <span className="text-xl font-bold text-green-400">{(calcPrice * 0.95).toLocaleString('vi-VN')} đ</span>
+                    <span className="text-xl font-bold text-green-400">{(Math.floor(calcPrice * (1 - platformFee / 100))).toLocaleString('vi-VN')} đ</span>
                 </div>
             </div>
           </div>
@@ -319,7 +319,7 @@ export default function NetWinsPage() {
         <div className="bg-zinc-950 border border-zinc-800 rounded-xl p-5">
           <h3 className="text-white font-bold flex items-center gap-2 mb-4">
             <Coins className="w-5 h-5 text-yellow-500" />
-            Tính phí sàn (5%)
+            Tính phí sàn ({platformFee}%)
           </h3>
             <span className="text-red-400 font-semibold">
             ⚠ Lưu ý quan trọng:
@@ -328,10 +328,10 @@ export default function NetWinsPage() {
             Bạn cần điều chỉnh giá phù hợp và
             </span>{" "}
             <span className="text-yellow-400 font-bold">
-            Tips cho ADMIN 5%
+            Tips cho ADMIN {platformFee}%
             </span>{" "}
             <span className="text-zinc-300">
-            (Phí sàn hệ thống).
+            (Phí sàn để duy trì hệ thống).
             </span>
 
             <br />
@@ -347,7 +347,7 @@ export default function NetWinsPage() {
              {toolNet && (
                 <div className="flex justify-between items-center border-t border-zinc-800 pt-2">
                     <span className="text-zinc-400 text-sm">Cần nhập giá:</span>
-                    <span className="text-yellow-400 font-bold text-lg">{Math.ceil(parseInt(toolNet.replace(/\./g, '')) / 0.95).toLocaleString('vi-VN')} đ</span>
+                    <span className="text-yellow-400 font-bold text-lg">{Math.ceil(parseInt(toolNet.replace(/\./g, '')) / (1 - platformFee / 100)).toLocaleString('vi-VN')} đ</span>
                 </div>
              )}
           </div>

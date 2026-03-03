@@ -17,7 +17,7 @@ const MASTERY_STEPS = [
 ];
 
 export default function MasteryPage() {
-  const { settings, setSettings, MAX_PRICE_PER_STEP } = useServiceContext();
+  const { settings, setSettings, MAX_PRICE_PER_STEP, platformFee } = useServiceContext();
 
   // Calculator State
   const [calcFrom, setCalcFrom] = useState(1);
@@ -134,9 +134,9 @@ export default function MasteryPage() {
           </div>
           <div className="flex-1 bg-green-900/20 border border-green-500/30 rounded-lg p-3 text-center">
             <span className="text-xs text-green-200 block flex items-center justify-center gap-1">
-              <Coins className="w-3 h-3" /> Thực nhận (-5%)
+              <Coins className="w-3 h-3" /> Thực nhận (-{platformFee}%)
             </span>
-            <span className="text-xl font-bold text-green-400">{(calcPrice * 0.95).toLocaleString('vi-VN')} đ</span>
+            <span className="text-xl font-bold text-green-400">{(Math.floor(calcPrice * (1 - platformFee / 100))).toLocaleString('vi-VN')} đ</span>
           </div>
         </div>
       </div>

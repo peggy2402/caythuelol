@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import { Info, Calculator, ArrowRight, Coins, FileText, TrendingUp, Trash2, AlertTriangle } from 'lucide-react';
 
 export default function RankBoostPage() {
-  const { settings, setSettings, ranks, MAX_PRICE_PER_STEP } = useServiceContext();
+  const { settings, setSettings, ranks, MAX_PRICE_PER_STEP, platformFee } = useServiceContext();
   
   // Filter ranks to only show up to Master (exclude Master, Grandmaster and Challenger)
   const visibleRanks = useMemo(() => {
@@ -233,11 +233,11 @@ export default function RankBoostPage() {
               <span className="text-zinc-300">
                 Bạn cần điều chỉnh giá phù hợp và
               </span>{" "}
-              <span className="text-yellow-400 font-bold">
-                Tips cho ADMIN 5%
+              <span className="text-yellow-400 font-bold text-nowrap">
+                Tips cho ADMIN {platformFee}%
               </span>{" "}
               <span className="text-zinc-300">
-                (Phí sàn hệ thống).
+                (Phí sàn để duy trì hệ thống).
               </span>
 
               <br />
@@ -266,8 +266,8 @@ export default function RankBoostPage() {
               <span className="text-green-400 font-bold">
                 47.500 VNĐ
               </span>{" "}
-              <span className="text-red-400 font-semibold">
-                (-5%)
+              <span className="text-red-400 font-semibold text-nowrap">
+                (-{platformFee}%)
               </span>
             </p>
 
@@ -327,11 +327,11 @@ export default function RankBoostPage() {
                 </div>
                 {/* Net Earnings Preview */}
                 <div className="flex-1 bg-green-900/20 border border-green-500/30 rounded-lg p-3 text-center">
-                    <span className="text-xs text-green-200 block flex items-center justify-center gap-1">
-                      <Coins className="w-3 h-3" /> Thực nhận (-5%)
+                    <span className="text-xs text-green-200 block flex items-center justify-center gap-1 text-nowrap">
+                      <Coins className="w-3 h-3" /> Thực nhận (-{platformFee}%)
                     </span>
                     <span className="text-xl font-bold text-green-400">
-                        {(calcPrice * 0.95).toLocaleString('vi-VN')} đ
+                        {(Math.floor(calcPrice * (1 - platformFee / 100))).toLocaleString('vi-VN')} đ
                     </span>
                 </div>
             </div>
@@ -341,7 +341,7 @@ export default function RankBoostPage() {
         <div className="bg-zinc-950 border border-zinc-800 rounded-xl p-5">
           <h3 className="text-white font-bold flex items-center gap-2 mb-4">
             <Coins className="w-5 h-5 text-yellow-500" />
-            Công cụ tính phí sàn (5%)
+            Công cụ tính phí sàn ({platformFee}%)
           </h3>
           <div className="space-y-6">
              {/* Net to Gross */}
@@ -365,7 +365,7 @@ export default function RankBoostPage() {
                         <div className="flex justify-between items-center">
                             <span className="text-zinc-400 text-xs">Bạn cần nhập:</span>
                             <span className="text-yellow-400 font-bold text-lg">
-                                {Math.ceil(parseInt(toolNet.replace(/\./g, '')) / 0.95).toLocaleString('vi-VN')} đ
+                                {Math.ceil(parseInt(toolNet.replace(/\./g, '')) / (1 - platformFee / 100)).toLocaleString('vi-VN')} đ
                             </span>
                         </div>
                     </div>
@@ -393,15 +393,15 @@ export default function RankBoostPage() {
                 {toolGross && (
                     <div className="mt-2 p-3 bg-green-500/10 border border-green-500/20 rounded-lg space-y-1 animate-in fade-in slide-in-from-top-1">
                         <div className="flex justify-between items-center">
-                            <span className="text-zinc-400 text-xs">Phí sàn (-5%):</span>
+                            <span className="text-zinc-400 text-xs">Phí sàn (-{platformFee}%):</span>
                             <span className="text-red-400 font-bold text-sm">
-                                -{(Math.ceil(parseInt(toolGross.replace(/\./g, '')) * 0.05)).toLocaleString('vi-VN')} đ
+                                -{(Math.ceil(parseInt(toolGross.replace(/\./g, '')) * (platformFee / 100))).toLocaleString('vi-VN')} đ
                             </span>
                         </div>
                         <div className="flex justify-between items-center pt-1 border-t border-green-500/20">
                             <span className="text-zinc-300 text-xs font-medium">Thực nhận:</span>
                             <span className="text-green-400 font-bold text-lg">
-                                {Math.floor(parseInt(toolGross.replace(/\./g, '')) * 0.95).toLocaleString('vi-VN')} đ
+                                {Math.floor(parseInt(toolGross.replace(/\./g, '')) * (1 - platformFee / 100)).toLocaleString('vi-VN')} đ
                             </span>
                         </div>
                     </div>

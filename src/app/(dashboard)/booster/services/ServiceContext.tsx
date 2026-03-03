@@ -54,11 +54,12 @@ interface ServiceContextType {
   hasDraft: boolean;
   handleRestoreDraft: () => void;
   MAX_PRICE_PER_STEP: number;
+  platformFee: number;
 }
 
 const ServiceContext = createContext<ServiceContextType | undefined>(undefined);
 
-const DRAFT_KEY = 'booster_services_draft';
+const DRAFT_KEY = 'booster_draft_9f4c2a7d8e1b6c3f5a9d0e7b2c4f8a1d6e3c9b7a5f2d1c8e4a6b9d3f0c7e2a1';
 const MAX_PRICE_PER_STEP = 10000000;
 
 export function ServiceProvider({ children }: { children: ReactNode }) {
@@ -67,6 +68,7 @@ export function ServiceProvider({ children }: { children: ReactNode }) {
   const [ranks, setRanks] = useState<Rank[]>([]);
   const [hasDraft, setHasDraft] = useState(false);
   const [isModified, setIsModified] = useState(false);
+  const [platformFee, setPlatformFee] = useState(0); // Mặc định 5%
   
   const [settings, _setSettings] = useState<ServiceSettings>({
     servers: ['VN'],
@@ -101,7 +103,17 @@ export function ServiceProvider({ children }: { children: ReactNode }) {
 
   const fetchData = async () => {
     try {
-      const res = await fetch('/api/boosters/services');
+      // Fetch song song để đảm bảo lấy được cả 2 dữ liệu mới nhất
+      const [res, resFee] = await Promise.all([
+        fetch('/api/boosters/services'),
+        fetch('/api/settings/platform-fee', { cache: 'no-store', headers: { 'Pragma': 'no-cache' } })
+      ]);
+
+      if (resFee.ok) {
+        const dataFee = await resFee.json();
+        setPlatformFee(Number(dataFee.fee));
+      }
+
       const data = await res.json();
       
       if (data.ranks && Array.isArray(data.ranks)) {
@@ -267,7 +279,7 @@ export function ServiceProvider({ children }: { children: ReactNode }) {
   return (
     <ServiceContext.Provider value={{
       loading, saving, ranks, settings, setSettings,
-      handleSave, handleDiscardChanges, hasDraft, handleRestoreDraft, MAX_PRICE_PER_STEP
+      handleSave, handleDiscardChanges, hasDraft, handleRestoreDraft, MAX_PRICE_PER_STEP, platformFee
     }}>
       {children}
     </ServiceContext.Provider>
