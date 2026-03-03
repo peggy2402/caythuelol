@@ -10,7 +10,7 @@ const PLACEMENT_RANKS = [
 const PLACEMENT_GAMES = [1, 2, 3, 4, 5];
 
 export default function PlacementsPage() {
-  const { settings, setSettings, MAX_PRICE_PER_STEP } = useServiceContext();
+  const { settings, setSettings, MAX_PRICE_PER_STEP, ranks } = useServiceContext();
 
   // Calculator State
   const [calcPrevRank, setCalcPrevRank] = useState(PLACEMENT_RANKS[2]); // Default Silver
@@ -156,16 +156,35 @@ export default function PlacementsPage() {
       <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
         <h3 className="text-xl font-bold text-white mb-4">Nhập giá theo Rank mùa trước</h3>
         <div className="mb-6">
-            <label className="text-xs text-zinc-500 mb-1 block">Chọn Rank để cấu hình</label>
-            <select 
-                value={selectedConfigRank}
-                onChange={(e) => setSelectedConfigRank(e.target.value)}
-                className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white outline-none focus:border-blue-500"
-            >
-                {PLACEMENT_RANKS.map(rank => (
-                    <option key={rank} value={rank}>{rank}</option>
+            <label className="text-xs text-zinc-500 mb-2 block">Chọn Rank để cấu hình</label>
+            {ranks.length > 0 ? (
+              <div className="flex overflow-x-auto gap-3 pb-4 no-scrollbar snap-x">
+                {ranks.map((rank) => (
+                  <button
+                    key={rank._id}
+                    onClick={() => setSelectedConfigRank(rank.name)}
+                    className={`flex-shrink-0 snap-center flex flex-col items-center justify-center gap-2 p-3 rounded-xl border w-24 transition-all ${
+                      selectedConfigRank === rank.name
+                        ? 'bg-blue-600/10 border-blue-500 text-white shadow-[0_0_15px_rgba(37,99,235,0.3)]'
+                        : 'bg-zinc-900 border-zinc-800 text-zinc-500 hover:bg-zinc-900 hover:text-zinc-300'
+                    }`}
+                  >
+                    <img src={rank.imageUrl} alt={rank.name} className={`w-10 h-10 object-contain transition-all ${selectedConfigRank === rank.name ? 'scale-110 drop-shadow-lg' : 'grayscale opacity-50'}`} />
+                    <span className="text-xs font-bold">{rank.name}</span>
+                  </button>
                 ))}
-            </select>
+              </div>
+            ) : (
+              <select 
+                  value={selectedConfigRank}
+                  onChange={(e) => setSelectedConfigRank(e.target.value)}
+                  className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white outline-none focus:border-blue-500"
+              >
+                  {PLACEMENT_RANKS.map(rank => (
+                      <option key={rank} value={rank}>{rank}</option>
+                  ))}
+              </select>
+            )}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
