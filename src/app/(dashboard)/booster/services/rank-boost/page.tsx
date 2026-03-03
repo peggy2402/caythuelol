@@ -8,6 +8,12 @@ import { Info, Calculator, ArrowRight, Coins, FileText, TrendingUp, Trash2, Aler
 export default function RankBoostPage() {
   const { settings, setSettings, ranks, MAX_PRICE_PER_STEP } = useServiceContext();
   
+  // Filter ranks to only show up to Master (exclude Master, Grandmaster and Challenger)
+  const visibleRanks = useMemo(() => {
+    // FIX: Chuyển về chữ hoa để so sánh chính xác với DB (MASTER, GRANDMASTER, CHALLENGER)
+    return ranks.filter(r => !['MASTER', 'GRANDMASTER', 'CHALLENGER'].includes(r.name.toUpperCase()));
+  }, [ranks]);
+
   // Local State for Calculator & Tools
   const [calcFrom, setCalcFrom] = useState('');
   const [calcTo, setCalcTo] = useState('');
@@ -23,8 +29,8 @@ export default function RankBoostPage() {
   // --- LOGIC ---
   const flatTiers = useMemo(() => {
     const list: { key: string; label: string }[] = [];
-    if (Array.isArray(ranks)) {
-      ranks.forEach(rank => {
+    if (Array.isArray(visibleRanks)) {
+      visibleRanks.forEach(rank => {
         if (Array.isArray(rank.tiers)) {
           rank.tiers.forEach(tier => {
             list.push({
@@ -35,11 +41,23 @@ export default function RankBoostPage() {
         }
       });
     }
+    // Thêm Master vào cuối danh sách để làm đích đến (Target) cho Calculator
+    // Vì cấu hình chỉ đến Diamond I -> Master, nên Master là điểm cuối cùng
+    list.push({ key: 'MASTER', label: 'MASTER' });
+    
     return list;
-  }, [ranks]);
+  }, [visibleRanks]);
 
   useEffect(() => {
     setCalcError(null);
+
+    // Validation: Nếu chọn Từ Rank là Master (hoặc MASTER) -> Báo lỗi ngay
+    if (calcFrom.toUpperCase() === 'MASTER') {
+        setCalcPrice(0);
+        setCalcError('Đây là rank tối đa. Vui lòng chọn lại!');
+        return;
+    }
+
     if (!calcFrom || !calcTo || !flatTiers.length) {
       setCalcPrice(0);
       return;
@@ -126,7 +144,7 @@ export default function RankBoostPage() {
         if (rankMatch) {
           const rawName = rankMatch[1].trim().toUpperCase();
           const rawTier = rankMatch[2];
-          const validRank = ranks.find(r => r.name.toUpperCase() === rawName);
+          const validRank = visibleRanks.find(r => r.name.toUpperCase() === rawName);
           if (validRank) {
             rankName = validRank.name;
             tier = normalizeTier(rawTier);
@@ -176,9 +194,9 @@ export default function RankBoostPage() {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {[
-            { key: 'low', label: 'Nhiều LP (>25 LP/win)', desc: 'Dễ cày, nên giảm giá', color: 'text-green-500' },
-            { key: 'medium', label: 'Bình thường (18-24 LP)', desc: 'Giá tiêu chuẩn', color: 'text-yellow-500' },
-            { key: 'high', label: 'Ít LP (<17 LP/win)', desc: 'Khó cày, nên tăng giá', color: 'text-red-500' },
+            { key: 'low', label: 'Nhiều LP (>21 LP/win)', desc: 'Dễ cày, nên giảm giá', color: 'text-green-500' },
+            { key: 'medium', label: 'Bình thường (19-21 LP)', desc: 'Giá tiêu chuẩn', color: 'text-yellow-500' },
+            { key: 'high', label: 'Ít LP (<19 LP/win)', desc: 'Khó cày, nên tăng giá', color: 'text-red-500' },
           ].map((item) => (
             <div key={item.key} className="bg-zinc-950 p-4 rounded-xl border border-zinc-800">
               <div className={`font-bold ${item.color} mb-1`}>{item.label}</div>
@@ -265,9 +283,13 @@ export default function RankBoostPage() {
                         className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white outline-none focus:border-blue-500"
                     >
                         <option value="">Chọn Rank bắt đầu</option>
-                        {flatTiers.map((t) => (
-                            <option key={t.key} value={t.key}>{t.label}</option>
-                        ))}
+                        {flatTiers.map((t) => {
+                            // Ẩn Master khỏi danh sách "Từ Rank" vì không ai cày từ Master ở mục này
+                            if (t.key.toUpperCase() === 'MASTER') return null;
+                            return (
+                                <option key={t.key} value={t.key}>{t.label}</option>
+                            );
+                        })}
                     </select>
                 </div>
                 <ArrowRight className="w-5 h-5 text-zinc-600 hidden md:block mt-5" />
@@ -429,10 +451,10 @@ export default function RankBoostPage() {
         )}
         
         {/* Rank Selector (Horizontal Scroll) */}
-        {ranks.length > 0 && (
+        {visibleRanks.length > 0 && (
           <div className="mb-6">
             <div className="flex overflow-x-auto gap-3 pb-4 no-scrollbar snap-x">
-              {ranks.map((rank, index) => (
+              {visibleRanks.map((rank, index) => (
                 <button
                   key={rank._id}
                   onClick={() => setPage(index)}
@@ -451,9 +473,9 @@ export default function RankBoostPage() {
         )}
 
         <div className="space-y-4 min-h-[200px]">
-          {Array.isArray(ranks) && ranks.length > 0 && (() => {
-            const rank = ranks[page];
-            if (!rank) return null;
+          {Array.isArray(visibleRanks) && visibleRanks.length > 0 && (() => {
+            const rank = visibleRanks[page] || visibleRanks[0];
+            if (!rank) return <div className="text-center text-zinc-500 py-10">Vui lòng chọn Rank</div>;
             const rankIndex = page;
 
             return (
@@ -466,8 +488,11 @@ export default function RankBoostPage() {
                   const nextTier = rank.tiers[tierIndex + 1];
                   nextTierName = nextTier ? `${rank.name} ${nextTier}` : rank.name;
                 } else {
-                  const nextRank = ranks[rankIndex + 1];
-                  nextTierName = nextRank ? (nextRank.tiers?.[0] ? `${nextRank.name} ${nextRank.tiers[0]}` : nextRank.name) : `MAX RANK`;
+                  // Logic hiển thị đích đến: Nếu là Diamond I thì đích đến là Master
+                  // Các rank khác thì lấy rank kế tiếp trong danh sách
+                  const currentRankIdx = ranks.findIndex(r => r.name === rank.name);
+                  const nextRank = ranks[currentRankIdx + 1];
+                  nextTierName = nextRank ? (nextRank.tiers?.[0] ? `${nextRank.name} ${nextRank.tiers[0]}` : nextRank.name) : `Master`;
                 }
                 
                 const key = tier ? `${rank.name}_${tier}` : rank.name;
@@ -478,8 +503,8 @@ export default function RankBoostPage() {
                    const prevTier = rank.tiers[tierIndex - 1];
                    prevPrice = settings.rankPrices[`${rank.name}_${prevTier}`] || 0;
                 } else if (rankIndex > 0) {
-                   const prevRank = ranks[rankIndex - 1];
-                   if (prevRank.tiers && prevRank.tiers.length > 0) {
+                   const prevRank = visibleRanks[rankIndex - 1];
+                   if (prevRank && prevRank.tiers && prevRank.tiers.length > 0) {
                       const prevTier = prevRank.tiers[prevRank.tiers.length - 1];
                       prevPrice = settings.rankPrices[`${prevRank.name}_${prevTier}`] || 0;
                    }

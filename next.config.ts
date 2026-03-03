@@ -24,6 +24,14 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "ddragon.leagueoflegends.com",
       },
+      {
+        protocol: "https",
+        hostname: "b2c-api-cdn.deeplol.gg",
+      },
+      {
+        protocol: "https",
+        hostname: "qr.sepay.vn",
+      },
     ],
   },
   // Ensure we don't have any experimental flags that might cause cache issues

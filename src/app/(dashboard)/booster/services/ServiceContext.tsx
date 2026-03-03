@@ -25,6 +25,8 @@ export interface ServiceSettings {
   promotionPrices: Record<string, number>;
   placementPrices: Record<string, number>; // Added for Placements
   playingChampions: string[];
+  levelingPrices: Record<string, number>; // Added for Leveling
+  netWinPrices: Record<string, number>; // Added for Net Wins (High Elo)
   masteryPrices: Record<string, number>;
   lpGain: {
     low: number;
@@ -72,6 +74,8 @@ export function ServiceProvider({ children }: { children: ReactNode }) {
     promotionPrices: {},
     placementPrices: {}, // Initialized
     playingChampions: [],
+    levelingPrices: {}, // Initialized
+    netWinPrices: {}, // Initialized
     masteryPrices: {},
     lpGain: { low: 30, medium: 0, high: -20 },
     options: {
@@ -132,6 +136,8 @@ export function ServiceProvider({ children }: { children: ReactNode }) {
           ...data.settings,
           playingChampions: data.settings.playingChampions || [],
           placementPrices: data.settings.placementPrices || {}, // Load from DB
+          levelingPrices: data.settings.levelingPrices || {}, // Load from DB
+          netWinPrices: data.settings.netWinPrices || {}, // Load from DB
           promotionPrices: data.settings.promotionPrices || {},
           options: { 
             ...prev.options, 
