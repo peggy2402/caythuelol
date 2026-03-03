@@ -1,6 +1,6 @@
 Project: LOL Boosting Platform
 Date started: 2026-02-25
-Last updated: 2026-03-02
+Last updated: 2026-03-03
 
 Purpose:
 
@@ -411,3 +411,30 @@ caythuelol/
     - Fix lỗi "Internal Server Error" do không `await` các request `fetch` (Socket trigger) trong Serverless Functions.
     - Xóa log `MONGODB_URI` để bảo mật.
     - Fix lỗi cache build `MODULE_NOT_FOUND`.
+
+13. 2026-03-03 — Booster Service Config Complete & Dynamic Pricing
+
+- **Booster Service Configuration (Full Suite):**
+  - **Architecture:** Triển khai `ServiceContext` để quản lý state, tự động lưu nháp (Auto-save Draft) và khôi phục dữ liệu khi cấu hình dịch vụ.
+  - **Rank Boost:** Hoàn thiện nhập giá theo từng bậc, tính năng "Nhập nhanh" (Bulk Import), và Calculator dự tính thu nhập.
+  - **Net Wins:** Xây dựng cấu hình cho Rank cao (Master+), tích hợp **LP Modifiers** (Hệ số điểm cộng) và hiển thị thống kê Cut-off Rank thực tế.
+  - **Placements & Promotion:** Cấu hình giá dựa trên Rank mùa trước và loại chuỗi thăng hạng.
+  - **Leveling & Mastery:** Nhập giá chi tiết cho từng khoảng Level và cấp độ Thông thạo.
+  - **General Settings:** Chọn Server hoạt động, cấu hình hệ số LP (Dễ/Khó), và **Champion Pool** (Tướng sở trường) với Modal lọc nâng cao.
+
+- **Dynamic Pricing Engine (Core):**
+  - Cập nhật `src/app/services` và `create order` để tính giá đơn hàng **động** dựa trên cấu hình riêng của Booster được chọn.
+  - Logic xử lý: Nếu Booster có cấu hình -> Dùng giá Booster. Nếu không -> Dùng giá sàn hệ thống.
+  - Tích hợp các hệ số: LP Gain (Elo), Tướng chỉ định, Duo Queue vào giá cuối cùng.
+
+- **Admin & System:**
+  - **Admin Settings:** Tạo trang `/admin/settings` để quản lý tham số toàn cục như **Platform Fee** (Phí sàn).
+  - **SePay Webhook:** Tối ưu hóa `/api/webhooks/sepay`: Tự động khớp User kể cả khi nội dung chuyển khoản bị dính ký tự lạ (Smart Regex), check mã giao dịch để tránh trùng lặp.
+
+- **Booster Workflow:**
+  - **Dashboard:** Hiển thị thống kê tổng quan (Thu nhập, Đơn đang chạy) và danh sách "Đơn hàng của tôi" (`/booster/my-orders`) có bộ lọc trạng thái.
+  - **Job Market:** (Đang hoàn thiện) Giao diện nhận đơn.
+
+- **UI/UX:**
+  - **Champion Modal:** Component tái sử dụng cho phép tìm kiếm, lọc tướng theo Vai trò, Độ khó, Loại sát thương.
+  - **Realtime:** Cải thiện kết nối Socket.io trong `DashboardLayout` để cập nhật số dư ví ngay lập tức (hiệu ứng âm thanh).

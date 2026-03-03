@@ -1,7 +1,7 @@
 'use client';
 
 import { useServiceContext } from './ServiceContext';
-import { Globe, Zap, Clock, Crosshair, CheckCircle2, Users, Video, Download, Copy, Upload, Swords, Search, X, Shield, Target, Heart, Filter, Sparkles } from 'lucide-react';
+import { Globe, Zap, Clock, Crosshair, CheckCircle2, Users, Video, Download, Copy, Upload, Swords, Search, X, Shield, Target, Heart, Filter, Sparkles, Calculator } from 'lucide-react';
 import { useState, useEffect, useMemo } from 'react';
 import { toast } from 'sonner';
 
@@ -41,6 +41,7 @@ export default function GeneralSettingsPage() {
   const [searchChamp, setSearchChamp] = useState('');
   const [selectedRoleFilter, setSelectedRoleFilter] = useState<string | null>(null);
   const [activeRoleTab, setActiveRoleTab] = useState<string>('Fighter'); // Mặc định ưu tiên Đấu sĩ
+  const [modifierInputs, setModifierInputs] = useState<Record<string, string>>({});
 
   useEffect(() => {
     fetch('/api/champions')
@@ -48,6 +49,15 @@ export default function GeneralSettingsPage() {
       .then(data => setChampions(data || []))
       .catch(err => console.error('Failed to load champions', err));
   }, []);
+
+  // Sync settings to local inputs when loaded
+  useEffect(() => {
+    if (settings.lpModifiers) {
+        const newInputs: Record<string, string> = {};
+        Object.entries(settings.lpModifiers).forEach(([k, v]) => newInputs[k] = v.toString());
+        setModifierInputs(newInputs);
+    }
+  }, [settings.lpModifiers]);
 
   // Extract unique roles from loaded champions
   const availableRoles = useMemo(() => {
@@ -150,7 +160,7 @@ export default function GeneralSettingsPage() {
         ...prev,
         ...parsed,
         options: { ...prev.options, ...parsed.options },
-        lpGain: { ...prev.lpGain, ...parsed.lpGain }
+        lpModifiers: { ...prev.lpModifiers, ...parsed.lpModifiers }
       }));
       toast.success('Đã nhập cấu hình thành công!');
       setShowConfigTools(false);
@@ -224,7 +234,91 @@ export default function GeneralSettingsPage() {
           })}
         </div>
       </div>
+      {/* Config LP Gain */}
+      <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
+        <div className="mb-6">
+          <h2 className="text-xl font-bold text-white flex items-center gap-2">
+            <Calculator className="w-5 h-5 text-purple-500" />
+            Cấu hình LP Modifiers 
+            <span className="text-sm font-medium text-zinc-400">
+              (Điều chỉnh giá theo LP Gain)
+            </span>
+          </h2>
 
+        <div className="mt-4 bg-gradient-to-br from-zinc-900/80 to-zinc-800/60 border border-zinc-700 rounded-xl p-5 text-sm leading-relaxed shadow-lg">
+
+          {/* Tiêu đề nhỏ */}
+          <div className="mb-3 flex items-center gap-2">
+            <div className="w-2 h-2 bg-purple-500 rounded-full animate-pulse" />
+            <span className="text-white font-semibold">
+              Quy tắc nhập % hệ số Elo (Tăng/Giảm giá theo LP Gain)
+            </span>
+          </div>
+
+          {/* Nội dung chính */}
+          <p className="text-zinc-300">
+            Bạn có thể nhập giá trị phần trăm để điều chỉnh giá theo LP thực tế mỗi trận.
+          </p>
+
+          {/* Rule Box */}
+          <div className="mt-3 bg-zinc-900/70 border border-zinc-800 rounded-lg p-4 space-y-3">
+
+            <div className="flex items-start gap-3">
+              <span className="text-red-400 font-bold text-lg">▲</span>
+              <div>
+                <p className="text-red-400 font-semibold">Tăng giá</p>
+                <p className="text-zinc-400 text-xs">
+                  Chỉ cần nhập <span className="text-white font-semibold">10</span> 
+                  (không cần dấu +) → hệ thống hiểu là <span className="text-red-400 font-semibold">+10%</span>
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-3">
+              <span className="text-green-400 font-bold text-lg">▼</span>
+              <div>
+                <p className="text-green-400 font-semibold">Giảm giá</p>
+                <p className="text-zinc-400 text-xs">
+                  Phải nhập dấu âm. Ví dụ: <span className="text-white font-semibold">-10</span> 
+                  → hệ thống hiểu là <span className="text-green-400 font-semibold">-10%</span>
+                </p>
+              </div>
+            </div>
+
+          </div>
+        </div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {[
+            { key: 'low', label: 'Ít LP (<19 LP/win)', desc: 'Khó cày, nên tăng giá (+)', color: 'text-red-500' },
+            { key: 'medium', label: 'Bình thường (19-21 LP)', desc: 'Giá tiêu chuẩn', color: 'text-yellow-500' },
+            { key: 'high', label: 'Nhiều LP (>21 LP/win)', desc: 'Dễ cày, nên giảm giá (-)', color: 'text-green-500' },
+          ].map((item) => (
+            <div key={item.key} className="bg-zinc-950 p-4 rounded-xl border border-zinc-800">
+              <div className={`font-bold ${item.color} mb-1`}>{item.label}</div>
+              <div className="text-xs text-zinc-500 mb-3">{item.desc}</div>
+              <div className="relative">
+                <input
+                  type="text"
+                  value={modifierInputs[item.key] || ''}
+                  placeholder="0"
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    // Chỉ cho phép nhập số, dấu trừ, dấu cộng
+                    if (/^[-+]?[0-9]*$/.test(val)) {
+                        setModifierInputs({ ...modifierInputs, [item.key]: val });
+                        const num = Number(val);
+                        if (!isNaN(num)) setSettings({ ...settings, lpModifiers: { ...settings.lpModifiers, [item.key]: num } });
+                    }
+                  }}
+                  className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white outline-none focus:border-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                />
+                <span className="absolute right-3 top-2 text-zinc-500">%</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
       {/* Champion Selection */}
       <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">

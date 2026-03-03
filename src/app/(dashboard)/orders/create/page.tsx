@@ -165,7 +165,7 @@ function CreateOrderContent() {
         }
 
         // Apply LP Gain Modifier
-        if (boosterConfig.lpModifiers) {
+        if (boosterConfig.lpModifiers) { // Changed from lpGain to lpModifiers
             const gainVal = parseInt(lpGain.replace('+', ''));
             let lpMod = 0;
             if (gainVal >= 20) lpMod = boosterConfig.lpModifiers.high || 0;

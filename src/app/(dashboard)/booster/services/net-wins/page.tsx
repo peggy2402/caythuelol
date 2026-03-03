@@ -22,10 +22,10 @@ interface RankHistoryItem {
 }
 
 const LP_GAIN_OPTIONS = [
-  { value: 15, label: 'LOW ELO (+15 LP)', settingKey: 'high' },     // Ít LP -> Khó -> Tăng giá
-  { value: 19, label: 'MEDIUM ELO (+19 LP)', settingKey: 'medium' }, // TB -> Giá chuẩn
-  { value: 24, label: 'HIGH ELO (+24 LP)', settingKey: 'low' },     // Nhiều LP -> Dễ -> Giảm giá
-  { value: 30, label: 'VERY HIGH ELO (+30 LP)', settingKey: 'low' }, // Rất nhiều LP -> Giảm giá
+  { value: 15, label: 'LOW ELO (+15 LP)', settingKey: 'low', color: 'text-red-500' }, // Low LP -> Khó -> Key 'low'
+  { value: 19, label: 'MEDIUM ELO (+19 LP)', settingKey: 'medium', color: 'text-yellow-500' },
+  { value: 24, label: 'HIGH ELO (+24 LP)', settingKey: 'high', color: 'text-green-500' }, // High LP -> Dễ -> Key 'high'
+  { value: 30, label: 'VERY HIGH ELO (+30 LP)', settingKey: 'high', color: 'text-green-500' },
 ];
 
 export default function NetWinsPage() {
@@ -69,6 +69,13 @@ export default function NetWinsPage() {
     }
   };
 
+  // Helper variables for rendering (Tính toán để hiển thị ra UI)
+  const lpDiff = Math.max(0, calcDesiredLP - calcCurrentLP);
+  const pricePerLP = settings.netWinPrices?.[calcRank] || 0;
+  // Tính toán lại ở đây để dùng cho UI
+  const winsNeededForDisplay = Math.ceil(lpDiff / calcLPGain);
+  const totalLPGainedForDisplay = winsNeededForDisplay * calcLPGain;
+
   useEffect(() => {
     fetchRankStats();
   }, []);
@@ -87,6 +94,22 @@ export default function NetWinsPage() {
   // Calculate Total Price
   useEffect(() => {
     setCalcError(null);
+
+    // Helper tính giá cho 1 kịch bản cụ thể để so sánh logic
+    const calculateScenarioPrice = (lpGainVal: number, settingKey: string, targetLp: number) => {
+        const wins = Math.ceil(targetLp / lpGainVal);
+        const totalLP = wins * lpGainVal;
+        const base = totalLP * (pricePerLP > 0 ? pricePerLP : 1000); // Dùng giá giả định 1000đ nếu chưa nhập giá để check logic
+        const mod = settings.lpModifiers[settingKey as keyof typeof settings.lpModifiers] || 0;
+        
+        // Logic tính toán theo yêu cầu:
+        if (settingKey === 'high') {
+             return base * (1 - Math.abs(mod) / 100); // High LP (Dễ) -> Giảm giá (Luôn trừ số dương)
+        } else {
+             return base * (1 + Math.abs(mod) / 100); // Low/Medium LP (Khó) -> Tăng giá (Luôn cộng số dương)
+        }
+    };
+
     if (calcDesiredLP <= calcCurrentLP) {
       setCalcPrice(0);
       setCalcWins(0);
@@ -94,8 +117,6 @@ export default function NetWinsPage() {
     }
 
     // Công thức mới: Tổng tiền = Chênh lệch LP * Giá mỗi LP
-    const lpDiff = calcDesiredLP - calcCurrentLP;
-    const pricePerLP = settings.netWinPrices?.[calcRank];
 
     // Ước tính số trận (chỉ để tham khảo)
     setCalcWins(Math.ceil(lpDiff / calcLPGain));
@@ -113,19 +134,32 @@ export default function NetWinsPage() {
       return;
     }
 
+    // Validation Logic (Pricing Consistency Check)
+    // Kiểm tra xem giá Low/Medium có bị rẻ hơn High/Very High không
+    // FIX: Sử dụng 100 LP làm chuẩn để so sánh
+    const priceLow = calculateScenarioPrice(15, 'low', 100);
+    const priceMedium = calculateScenarioPrice(19, 'medium', 100);
+    const priceHigh = calculateScenarioPrice(24, 'high', 100);
+    const priceVeryHigh = calculateScenarioPrice(30, 'high', 100);
+
+    if (priceLow < priceHigh || priceLow < priceVeryHigh || priceMedium < priceHigh || priceMedium < priceVeryHigh) {
+        setCalcPrice(0);
+        setCalcError('LỖI LOGIC TÍNH TOÁN: Giá Low/Medium Elo đang thấp hơn High Elo. Vui lòng kiểm tra lại % hệ số.');
+        return;
+    }
+
     if (!pricePerLP || pricePerLP <= 0) {
       setCalcPrice(0);
       setCalcError('Chưa nhập giá');
     } else {
-      // Tính toán giá có áp dụng Modifier theo ELO
+      // Tính giá cho lựa chọn hiện tại
       const lpOption = LP_GAIN_OPTIONS.find(o => o.value === calcLPGain) || LP_GAIN_OPTIONS[1];
-      const modifier = settings.lpGain[lpOption.settingKey as keyof typeof settings.lpGain] || 0;
+      const modifier = settings.lpModifiers[lpOption.settingKey as keyof typeof settings.lpModifiers] || 0;
       setAppliedModifier(modifier);
 
-      const basePrice = lpDiff * pricePerLP;
-      setCalcPrice(basePrice * (1 + modifier / 100));
+      setCalcPrice(calculateScenarioPrice(calcLPGain, lpOption.settingKey, lpDiff));
     }
-  }, [calcRank, calcCurrentLP, calcDesiredLP, calcLPGain, settings.netWinPrices, challengerStat.cutoff, gmStat.cutoff, settings.lpGain]);
+  }, [calcRank, calcCurrentLP, calcDesiredLP, calcLPGain, settings.netWinPrices, challengerStat.cutoff, gmStat.cutoff, settings.lpModifiers]);
 
   return (
     <div className="space-y-8">
@@ -144,7 +178,7 @@ export default function NetWinsPage() {
               <br/>
               Hệ thống tính tiền dựa trên <strong>số điểm LP cần cày</strong>.
               <br/>
-              Ví dụ: Bạn nhập giá <strong>1.000đ / 1 LP</strong>. Khách cần cày <strong>60 LP</strong> ➜ Giá gốc là <strong>60.000đ</strong> (Chưa tính hệ số Elo).
+              Ví dụ: Bạn nhập giá <strong>1.000đ / 1 LP</strong>. Khách cần cày <strong>60 LP</strong> với mức +15LP/trận ➜ Cần 4 trận (60 LP) ➜ Giá gốc là <strong>60.000đ</strong> (Chưa tính hệ số Elo).
             </p>
           </div>
         </div>
@@ -281,7 +315,7 @@ export default function NetWinsPage() {
                         type="number" 
                         value={calcCurrentLP} 
                         onChange={(e) => setCalcCurrentLP(Number(e.target.value))}
-                        className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white outline-none focus:border-blue-500"
+                        className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white outline-none focus:border-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                     />
                 </div>
                 <ArrowRight className="w-5 h-5 text-zinc-600 self-center mt-5" />
@@ -291,7 +325,7 @@ export default function NetWinsPage() {
                         type="number" 
                         value={calcDesiredLP} 
                         onChange={(e) => setCalcDesiredLP(Number(e.target.value))}
-                        className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white outline-none focus:border-blue-500"
+                        className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white outline-none focus:border-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                     />
                 </div>
             </div>
@@ -307,22 +341,45 @@ export default function NetWinsPage() {
                       className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white outline-none focus:border-blue-500"
                   >
                       {LP_GAIN_OPTIONS.map(opt => (
-                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                        <option key={opt.value} value={opt.value} className={opt.color}>{opt.label}</option>
                       ))}
                   </select>
-                  <div className={`absolute right-8 top-1/2 -translate-y-1/2 text-xs font-bold ${appliedModifier > 0 ? 'text-green-400' : appliedModifier < 0 ? 'text-red-400' : 'text-zinc-500'}`}>
-                    {appliedModifier > 0 ? '+' : ''}{appliedModifier}%
+                  <div className={`absolute right-8 top-1/2 -translate-y-1/2 text-xs font-bold ${calcLPGain < 19 ? 'text-red-500' : calcLPGain > 21 ? 'text-green-500' : 'text-yellow-500'}`}>
+                    {calcLPGain < 19 ? '+' : calcLPGain > 21 ? '-' : ''}{Math.abs(appliedModifier)}%
                   </div>
                 </div>
+                <label className="text-xs mt-2 block">
+                <span className="text-zinc-500">Chênh lệch:</span>
+
+                <span className="mx-2 px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 font-semibold">
+                    {calcDesiredLP} LP - {calcCurrentLP} LP = {calcDesiredLP - calcCurrentLP} LP
+                </span>
+
+                <span className="text-zinc-600">➜</span>
+
+                <span className="mx-2 px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 font-semibold">
+                    {calcWins} trận thắng
+                </span>
+
+                <span className="text-zinc-500 ml-1">(ước tính)</span>
+                </label>
             </div>
 
             <div className="flex gap-2 mt-4">
                 <div className="flex-1 bg-blue-900/20 border border-blue-500/30 rounded-lg p-3 text-center">
-                    <span className="text-xs text-blue-200 block">Tổng tiền (Khoảng {calcWins} trận)</span>
+                    <span className="text-xs text-blue-200 block mb-1">Tổng tiền dự kiến</span>
                     {calcError ? (
                       <span className="text-sm font-bold text-red-400 animate-pulse">{calcError}</span>
                     ) : (
-                      <span className="text-xl font-bold text-blue-400">{calcPrice.toLocaleString('vi-VN')} đ</span>
+                      <div className="flex flex-col items-center">
+                        <span className="text-xl font-bold text-blue-400">{calcPrice.toLocaleString('vi-VN')} đ</span>
+                        <div className="text-[10px] text-zinc-400 mt-1 flex flex-wrap justify-center gap-1 bg-black/20 px-2 py-1 rounded border border-white/5">
+                           <span>{lpDiff} LP</span>
+                           <span>x</span>
+                           <span>{pricePerLP.toLocaleString()}đ</span>
+                           {appliedModifier !== 0 && <span className={appliedModifier > 0 ? 'text-green-400' : 'text-red-400'}>({appliedModifier > 0 ? '+' : ''}{appliedModifier}%)</span>}
+                        </div>
+                      </div>
                     )}
                 </div>
                 <div className="flex-1 bg-green-900/20 border border-green-500/30 rounded-lg p-3 text-center">
@@ -332,6 +389,28 @@ export default function NetWinsPage() {
                     <span className="text-xl font-bold text-green-400">{(Math.floor(calcPrice * (1 - platformFee / 100))).toLocaleString('vi-VN')} đ</span>
                 </div>
             </div>
+                <div className="mt-3 text-xs text-center px-4">
+                <div className="font-semibold text-yellow-400">
+                    Công thức tính giá:
+                </div>
+
+                <div className="mt-1 text-zinc-300 font-mono bg-zinc-800/60 rounded-lg py-2 px-3">
+                    (Số trận thắng × LP thực tế mỗi trận) × Giá / 1 LP
+                    <br />
+                    × (1{appliedModifier >= 0 ? '+' : ''}{appliedModifier}%)
+                </div>
+
+                <div className="mt-1 text-[11px] italic 
+                    {lpModifier > 0 
+                    ? 'text-red-400' 
+                    : lpModifier < 0 
+                        ? 'text-green-400' 
+                        : 'text-zinc-400'}">
+                    {appliedModifier > 0 && `Giá tăng ${appliedModifier}% do hệ số LP.`}
+                    {appliedModifier < 0 && `Giá giảm ${Math.abs(appliedModifier)}% do hệ số LP.`}
+                    {appliedModifier === 0 && `Không có điều chỉnh LP.`}
+                </div>
+                </div>
           </div>
         </div>
 

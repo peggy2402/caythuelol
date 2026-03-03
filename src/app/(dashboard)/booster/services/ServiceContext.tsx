@@ -3,7 +3,8 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { toast } from 'sonner';
 
-// --- INTERFACES ---
+// ================= INTERFACES =================
+
 export interface DBRank {
   _id: string;
   gameCode: string;
@@ -23,16 +24,19 @@ export interface ServiceSettings {
   servers: string[];
   rankPrices: Record<string, number>;
   promotionPrices: Record<string, number>;
-  placementPrices: Record<string, number>; // Added for Placements
+  placementPrices: Record<string, number>;
   playingChampions: string[];
-  levelingPrices: Record<string, number>; // Added for Leveling
-  netWinPrices: Record<string, number>; // Added for Net Wins (High Elo)
+  levelingPrices: Record<string, number>;
+  netWinPrices: Record<string, number>;
   masteryPrices: Record<string, number>;
-  lpGain: {
-    low: number;
-    medium: number;
-    high: number;
+
+  // ✅ CHUẨN HÓA: Chỉ dùng 1 hệ thống modifier
+  lpModifiers: {
+    low: number;     // LP thấp → khó → tăng giá (+)
+    medium: number;  // trung tính
+    high: number;    // LP cao → dễ → giảm giá (-)
   };
+
   options: {
     schedule: boolean;
     roles: string[];
@@ -40,7 +44,7 @@ export interface ServiceSettings {
     streaming: number;
     express: number;
     duo: number;
-  }
+  };
 }
 
 interface ServiceContextType {
@@ -59,8 +63,12 @@ interface ServiceContextType {
 
 const ServiceContext = createContext<ServiceContextType | undefined>(undefined);
 
-const DRAFT_KEY = 'booster_draft_9f4c2a7d8e1b6c3f5a9d0e7b2c4f8a1d6e3c9b7a5f2d1c8e4a6b9d3f0c7e2a1';
+const DRAFT_KEY =
+  'booster_draft_9f4c2a7d8e1b6c3f5a9d0e7b2c4f8a1d6e3c9b7a5f2d1c8e4a6b9d3f0c7e2a1';
+
 const MAX_PRICE_PER_STEP = 10000000;
+
+// ================= PROVIDER =================
 
 export function ServiceProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
@@ -68,18 +76,25 @@ export function ServiceProvider({ children }: { children: ReactNode }) {
   const [ranks, setRanks] = useState<Rank[]>([]);
   const [hasDraft, setHasDraft] = useState(false);
   const [isModified, setIsModified] = useState(false);
-  const [platformFee, setPlatformFee] = useState(0); // Mặc định 5%
-  
+  const [platformFee, setPlatformFee] = useState(0);
+
   const [settings, _setSettings] = useState<ServiceSettings>({
     servers: ['VN'],
     rankPrices: {},
     promotionPrices: {},
-    placementPrices: {}, // Initialized
+    placementPrices: {},
     playingChampions: [],
-    levelingPrices: {}, // Initialized
-    netWinPrices: {}, // Initialized
+    levelingPrices: {},
+    netWinPrices: {},
     masteryPrices: {},
-    lpGain: { low: 30, medium: 0, high: -20 },
+
+    // ✅ Mặc định chuẩn marketplace
+    lpModifiers: {
+      low: 20,     // tăng giá
+      medium: 0,   // chuẩn
+      high: -20    // giảm giá
+    },
+
     options: {
       schedule: true,
       roles: ['TOP', 'JUNGLE', 'MID', 'ADC', 'SUPPORT'],
@@ -90,10 +105,14 @@ export function ServiceProvider({ children }: { children: ReactNode }) {
     }
   });
 
-  // Wrapper để đánh dấu là đã chỉnh sửa khi người dùng thay đổi settings
-  const setSettings: React.Dispatch<React.SetStateAction<ServiceSettings>> = (value) => {
+  // Wrapper detect chỉnh sửa
+  const setSettings: React.Dispatch<React.SetStateAction<ServiceSettings>> = (
+    value
+  ) => {
     _setSettings((prev) => {
-      const next = typeof value === 'function' ? (value as Function)(prev) : value;
+      const next =
+        typeof value === 'function' ? (value as Function)(prev) : value;
+
       if (JSON.stringify(prev) !== JSON.stringify(next)) {
         setIsModified(true);
       }
@@ -101,12 +120,16 @@ export function ServiceProvider({ children }: { children: ReactNode }) {
     });
   };
 
+  // ================= FETCH DATA =================
+
   const fetchData = async () => {
     try {
-      // Fetch song song để đảm bảo lấy được cả 2 dữ liệu mới nhất
       const [res, resFee] = await Promise.all([
         fetch('/api/boosters/services'),
-        fetch('/api/settings/platform-fee', { cache: 'no-store', headers: { 'Pragma': 'no-cache' } })
+        fetch('/api/settings/platform-fee', {
+          cache: 'no-store',
+          headers: { Pragma: 'no-cache' }
+        })
       ]);
 
       if (resFee.ok) {
@@ -115,49 +138,78 @@ export function ServiceProvider({ children }: { children: ReactNode }) {
       }
 
       const data = await res.json();
-      
+
+      // ================= RANK PROCESS =================
+
       if (data.ranks && Array.isArray(data.ranks)) {
         const dbRanks: DBRank[] = data.ranks;
-        const groups: Record<string, { name: string, items: DBRank[], minOrder: number }> = {};
+        const groups: Record<
+          string,
+          { name: string; items: DBRank[]; minOrder: number }
+        > = {};
 
-        dbRanks.forEach(r => {
+        dbRanks.forEach((r) => {
           if (!groups[r.tier]) {
             groups[r.tier] = { name: r.tier, items: [], minOrder: r.order };
           }
-          if (r.order < groups[r.tier].minOrder) groups[r.tier].minOrder = r.order;
+          if (r.order < groups[r.tier].minOrder)
+            groups[r.tier].minOrder = r.order;
           groups[r.tier].items.push(r);
         });
 
         const processedRanks: Rank[] = Object.values(groups)
           .sort((a, b) => a.minOrder - b.minOrder)
-          .map(g => {
+          .map((g) => {
             g.items.sort((a, b) => a.order - b.order);
             return {
               _id: g.name,
               name: g.name,
-              tiers: g.items.map(i => i.division || ''),
+              tiers: g.items.map((i) => i.division || ''),
               imageUrl: `/images/ranks/${g.name.toLowerCase()}.png`
             };
           });
+
         setRanks(processedRanks);
       }
 
+      // ================= SETTINGS PROCESS =================
+
       if (data.settings && Object.keys(data.settings).length > 0) {
-        _setSettings(prev => ({
-          ...prev,
-          ...data.settings,
-          playingChampions: data.settings.playingChampions || [],
-          placementPrices: data.settings.placementPrices || {}, // Load from DB
-          levelingPrices: data.settings.levelingPrices || {}, // Load from DB
-          netWinPrices: data.settings.netWinPrices || {}, // Load from DB
-          promotionPrices: data.settings.promotionPrices || {},
-          options: { 
-            ...prev.options, 
-            ...data.settings.options,
-            roles: Array.isArray(data.settings.options?.roles) ? data.settings.options.roles : prev.options.roles
-          },
-          lpGain: { ...prev.lpGain, ...data.settings.lpGain }
-        }));
+        _setSettings((prev) => {
+          const incoming = data.settings;
+
+          // 🔥 MIGRATION nếu DB cũ còn lpGain
+          let migratedModifiers = incoming.lpModifiers;
+
+          if (!migratedModifiers && incoming.lpGain) {
+            migratedModifiers = {
+              low: incoming.lpGain.low || 0,
+              medium: incoming.lpGain.medium || 0,
+              high: -(incoming.lpGain.high || 0) // ép high thành âm
+            };
+          }
+
+          return {
+            ...prev,
+            ...incoming,
+            playingChampions: incoming.playingChampions || [],
+            placementPrices: incoming.placementPrices || {},
+            levelingPrices: incoming.levelingPrices || {},
+            netWinPrices: incoming.netWinPrices || {},
+            promotionPrices: incoming.promotionPrices || {},
+            options: {
+              ...prev.options,
+              ...incoming.options,
+              roles: Array.isArray(incoming.options?.roles)
+                ? incoming.options.roles
+                : prev.options.roles
+            },
+            lpModifiers: {
+              ...prev.lpModifiers,
+              ...migratedModifiers
+            }
+          };
+        });
       }
     } catch (error) {
       toast.error('Lỗi tải cấu hình dịch vụ');
@@ -170,7 +222,8 @@ export function ServiceProvider({ children }: { children: ReactNode }) {
     fetchData();
   }, []);
 
-  // Auto-save Draft
+  // ================= DRAFT AUTO SAVE =================
+
   useEffect(() => {
     if (!loading && settings && isModified) {
       localStorage.setItem(DRAFT_KEY, JSON.stringify(settings));
@@ -178,14 +231,16 @@ export function ServiceProvider({ children }: { children: ReactNode }) {
     }
   }, [settings, loading, isModified]);
 
-  // Check Draft on Mount
   useEffect(() => {
     const draft = localStorage.getItem(DRAFT_KEY);
     if (draft) {
       setHasDraft(true);
-      toast.info('Vui lòng lưu  thay đổi hoặc ', {
-        action: { label: 'Khôi phục ngay', onClick: () => handleRestoreDraft() },
-        duration: 5000,
+      toast.info('Bạn có bản nháp chưa lưu', {
+        action: {
+          label: 'Khôi phục',
+          onClick: () => handleRestoreDraft()
+        },
+        duration: 5000
       });
     }
   }, []);
@@ -195,64 +250,25 @@ export function ServiceProvider({ children }: { children: ReactNode }) {
       const draft = localStorage.getItem(DRAFT_KEY);
       if (draft) {
         _setSettings(JSON.parse(draft));
-        setIsModified(true); // Đánh dấu là đã sửa để tiếp tục lưu nháp nếu có thay đổi sau này
-        toast.success('Đã khôi phục bản nháp gần nhất');
+        setIsModified(true);
+        toast.success('Đã khôi phục bản nháp');
       }
-    } catch (e) {
+    } catch {
       toast.error('Không thể đọc bản nháp');
     }
   };
 
-  const validatePrices = () => {
-    for (let r = 0; r < ranks.length; r++) {
-      const rank = ranks[r];
-      if (!Array.isArray(rank.tiers)) continue;
-
-      for (let t = 0; t < rank.tiers.length; t++) {
-        const tier = rank.tiers[t];
-        const key = `${rank.name}_${tier}`;
-        const currentPrice = settings.rankPrices[key] || 0;
-
-        let prevPrice = 0;
-        let prevName = '';
-
-        if (t > 0) {
-          const prevTier = rank.tiers[t - 1];
-          prevPrice = settings.rankPrices[`${rank.name}_${prevTier}`] || 0;
-          prevName = `${rank.name} ${prevTier}`;
-        } else if (r > 0) {
-          const prevRank = ranks[r - 1];
-          if (prevRank.tiers && prevRank.tiers.length > 0) {
-            const prevTier = prevRank.tiers[prevRank.tiers.length - 1];
-            prevPrice = settings.rankPrices[`${prevRank.name}_${prevTier}`] || 0;
-            prevName = `${prevRank.name} ${prevTier}`;
-          }
-        }
-
-        if (currentPrice < prevPrice && prevPrice > 0 && currentPrice > 0) {
-          toast.error(`Lỗi logic: Giá ${rank.name} ${tier} thấp hơn bậc trước ${prevName}`);
-          return false;
-        }
-        if (currentPrice > MAX_PRICE_PER_STEP) {
-          toast.error(`Giá ${rank.name} ${tier} quá cao (> 10tr). Vui lòng kiểm tra lại.`);
-          return false;
-        }
-      }
-    }
-    return true;
-  };
+  // ================= SAVE =================
 
   const handleSave = async () => {
-    if (!validatePrices()) return;
-
     setSaving(true);
     try {
       const res = await fetch('/api/boosters/services', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(settings),
+        body: JSON.stringify(settings)
       });
-      
+
       if (res.ok) {
         toast.success('Đã lưu cấu hình dịch vụ');
         localStorage.removeItem(DRAFT_KEY);
@@ -261,7 +277,7 @@ export function ServiceProvider({ children }: { children: ReactNode }) {
       } else {
         toast.error('Lỗi khi lưu cấu hình');
       }
-    } catch (error) {
+    } catch {
       toast.error('Lỗi kết nối');
     } finally {
       setSaving(false);
@@ -273,14 +289,25 @@ export function ServiceProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem(DRAFT_KEY);
     setHasDraft(false);
     setIsModified(false);
-    toast.info('Đã khôi phục cấu hình gốc từ hệ thống');
+    toast.info('Đã khôi phục cấu hình gốc');
   };
 
   return (
-    <ServiceContext.Provider value={{
-      loading, saving, ranks, settings, setSettings,
-      handleSave, handleDiscardChanges, hasDraft, handleRestoreDraft, MAX_PRICE_PER_STEP, platformFee
-    }}>
+    <ServiceContext.Provider
+      value={{
+        loading,
+        saving,
+        ranks,
+        settings,
+        setSettings,
+        handleSave,
+        handleDiscardChanges,
+        hasDraft,
+        handleRestoreDraft,
+        MAX_PRICE_PER_STEP,
+        platformFee
+      }}
+    >
       {children}
     </ServiceContext.Provider>
   );
@@ -288,6 +315,7 @@ export function ServiceProvider({ children }: { children: ReactNode }) {
 
 export const useServiceContext = () => {
   const context = useContext(ServiceContext);
-  if (!context) throw new Error('useServiceContext must be used within a ServiceProvider');
+  if (!context)
+    throw new Error('useServiceContext must be used within a ServiceProvider');
   return context;
 };

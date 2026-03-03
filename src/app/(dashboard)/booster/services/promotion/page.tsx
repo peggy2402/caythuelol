@@ -116,37 +116,72 @@ export default function PromotionPage() {
         <div className="bg-zinc-950 border border-zinc-800 rounded-xl p-5">
           <h3 className="text-white font-bold flex items-center gap-2 mb-4">
             <Coins className="w-5 h-5 text-yellow-500" />
-            Tính phí sàn ({platformFee}%)
+            Công cụ tính phí sàn ({platformFee}%)
           </h3>
-            <span className="text-red-400 font-semibold">
-            ⚠ Lưu ý quan trọng:
-            </span>{" "}
-            <span className="text-zinc-300">
-            Bạn cần điều chỉnh giá phù hợp và
-            </span>{" "}
-            <span className="text-yellow-400 font-bold">
-            Tips cho ADMIN {platformFee}%
-            </span>{" "}
-            <span className="text-zinc-300">
-            (Phí sàn để duy trì hệ thống).
-            </span>
-
-            <br />
-
-            <span className="text-xs text-zinc-500 italic">
-            Vui lòng tính toán trước khi nhập giá để tránh bị lỗ.
-            </span>
-          <div className="space-y-4">
-             <div className="relative">
-                <input type="text" value={toolNet} onChange={(e) => { const val = e.target.value.replace(/[^0-9]/g, ''); setToolNet(val ? Number(val).toLocaleString('vi-VN') : ''); }} placeholder="Muốn thực nhận (VNĐ)" className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white text-sm outline-none" />
-                <span className="absolute right-3 top-2 text-zinc-500 text-xs">VNĐ</span>
-             </div>
-             {toolNet && (
-                <div className="flex justify-between items-center border-t border-zinc-800 pt-2">
-                    <span className="text-zinc-400 text-sm">Bạn cần nhập giá:</span>
-                    <span className="text-yellow-400 font-bold text-lg">{Math.ceil(parseInt(toolNet.replace(/\./g, '')) / (1 - platformFee / 100)).toLocaleString('vi-VN')} đ</span>
+          <div className="space-y-6">
+             {/* Net to Gross */}
+             <div>
+                <label className="block text-sm font-medium text-zinc-400 mb-2">Muốn thực nhận (VNĐ)</label>
+                <div className="relative">
+                    <input 
+                        type="text" 
+                        value={toolNet} 
+                        onChange={(e) => { 
+                            const val = e.target.value.replace(/[^0-9]/g, ''); 
+                            setToolNet(val ? Number(val).toLocaleString('vi-VN') : ''); 
+                        }} 
+                        placeholder="Ví dụ: 95.000" 
+                        className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white text-sm outline-none focus:border-yellow-500 transition-colors" 
+                    />
+                    <span className="absolute right-3 top-2 text-zinc-500 text-xs">VNĐ</span>
                 </div>
-             )}
+                {toolNet && (
+                    <div className="mt-2 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg animate-in fade-in slide-in-from-top-1">
+                        <div className="flex justify-between items-center">
+                            <span className="text-zinc-400 text-xs">Bạn cần nhập:</span>
+                            <span className="text-yellow-400 font-bold text-lg">
+                                {Math.ceil(parseInt(toolNet.replace(/\./g, '')) / (1 - platformFee / 100)).toLocaleString('vi-VN')} đ
+                            </span>
+                        </div>
+                    </div>
+                )}
+             </div>
+
+             <div className="border-t border-zinc-800"></div>
+
+             {/* Gross to Net */}
+             <div>
+                <label className="block text-sm font-medium text-zinc-400 mb-2">Nhập giá gốc (Khách trả)</label>
+                <div className="relative">
+                    <input 
+                        type="text" 
+                        value={toolGross} 
+                        onChange={(e) => { 
+                            const val = e.target.value.replace(/[^0-9]/g, ''); 
+                            setToolGross(val ? Number(val).toLocaleString('vi-VN') : ''); 
+                        }} 
+                        placeholder="Ví dụ: 100.000" 
+                        className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white text-sm outline-none focus:border-green-500 transition-colors" 
+                    />
+                    <span className="absolute right-3 top-2 text-zinc-500 text-xs">VNĐ</span>
+                </div>
+                {toolGross && (
+                    <div className="mt-2 p-3 bg-green-500/10 border border-green-500/20 rounded-lg space-y-1 animate-in fade-in slide-in-from-top-1">
+                        <div className="flex justify-between items-center">
+                            <span className="text-zinc-400 text-xs">Phí sàn (-{platformFee}%):</span>
+                            <span className="text-red-400 font-bold text-sm">
+                                -{(Math.ceil(parseInt(toolGross.replace(/\./g, '')) * (platformFee / 100))).toLocaleString('vi-VN')} đ
+                            </span>
+                        </div>
+                        <div className="flex justify-between items-center pt-1 border-t border-green-500/20">
+                            <span className="text-zinc-300 text-xs font-medium">Thực nhận:</span>
+                            <span className="text-green-400 font-bold text-lg">
+                                {Math.floor(parseInt(toolGross.replace(/\./g, '')) * (1 - platformFee / 100)).toLocaleString('vi-VN')} đ
+                            </span>
+                        </div>
+                    </div>
+                )}
+             </div>
           </div>
         </div>
       </div>
