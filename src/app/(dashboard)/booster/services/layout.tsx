@@ -4,7 +4,7 @@ import { ReactNode } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { ServiceProvider, useServiceContext } from './ServiceContext';
-import { Save, Download, History, RotateCcw, Trophy, TrendingUp, Medal, Zap, Target, Swords, Settings } from 'lucide-react';
+import { Save, Download, History, RotateCcw, Trophy, TrendingUp, Medal, Zap, Target, Swords, Settings, Award, AwardIcon } from 'lucide-react';
 
 // Component con để dùng hook useServiceContext (vì Layout chính phải bọc Provider trước)
 function ServiceLayoutContent({ children }: { children: ReactNode }) {
@@ -70,6 +70,7 @@ function ServiceLayoutContent({ children }: { children: ReactNode }) {
           <Link
             key={tab.href}
             href={tab.href}
+            scroll={false}
             className={`flex items-center gap-2 px-4 py-3 rounded-t-xl font-medium transition-colors whitespace-nowrap border-b-2 ${
               isActive(tab.href, tab.exact)
                 ? 'border-blue-500 text-blue-400 bg-blue-500/5'

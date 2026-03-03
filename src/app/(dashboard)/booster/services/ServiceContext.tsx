@@ -22,6 +22,9 @@ export interface Rank {
 export interface ServiceSettings {
   servers: string[];
   rankPrices: Record<string, number>;
+  promotionPrices: Record<string, number>;
+  placementPrices: Record<string, number>; // Added for Placements
+  playingChampions: string[];
   masteryPrices: Record<string, number>;
   lpGain: {
     low: number;
@@ -61,10 +64,14 @@ export function ServiceProvider({ children }: { children: ReactNode }) {
   const [saving, setSaving] = useState(false);
   const [ranks, setRanks] = useState<Rank[]>([]);
   const [hasDraft, setHasDraft] = useState(false);
+  const [isModified, setIsModified] = useState(false);
   
-  const [settings, setSettings] = useState<ServiceSettings>({
+  const [settings, _setSettings] = useState<ServiceSettings>({
     servers: ['VN'],
     rankPrices: {},
+    promotionPrices: {},
+    placementPrices: {}, // Initialized
+    playingChampions: [],
     masteryPrices: {},
     lpGain: { low: 30, medium: 0, high: -20 },
     options: {
@@ -76,6 +83,17 @@ export function ServiceProvider({ children }: { children: ReactNode }) {
       duo: 50
     }
   });
+
+  // Wrapper để đánh dấu là đã chỉnh sửa khi người dùng thay đổi settings
+  const setSettings: React.Dispatch<React.SetStateAction<ServiceSettings>> = (value) => {
+    _setSettings((prev) => {
+      const next = typeof value === 'function' ? (value as Function)(prev) : value;
+      if (JSON.stringify(prev) !== JSON.stringify(next)) {
+        setIsModified(true);
+      }
+      return next;
+    });
+  };
 
   const fetchData = async () => {
     try {
@@ -109,9 +127,12 @@ export function ServiceProvider({ children }: { children: ReactNode }) {
       }
 
       if (data.settings && Object.keys(data.settings).length > 0) {
-        setSettings(prev => ({
+        _setSettings(prev => ({
           ...prev,
           ...data.settings,
+          playingChampions: data.settings.playingChampions || [],
+          placementPrices: data.settings.placementPrices || {}, // Load from DB
+          promotionPrices: data.settings.promotionPrices || {},
           options: { 
             ...prev.options, 
             ...data.settings.options,
@@ -133,18 +154,18 @@ export function ServiceProvider({ children }: { children: ReactNode }) {
 
   // Auto-save Draft
   useEffect(() => {
-    if (!loading && settings) {
+    if (!loading && settings && isModified) {
       localStorage.setItem(DRAFT_KEY, JSON.stringify(settings));
       setHasDraft(true);
     }
-  }, [settings, loading]);
+  }, [settings, loading, isModified]);
 
   // Check Draft on Mount
   useEffect(() => {
     const draft = localStorage.getItem(DRAFT_KEY);
     if (draft) {
       setHasDraft(true);
-      toast.info('Tìm thấy bản nháp chưa lưu', {
+      toast.info('Vui lòng lưu  thay đổi hoặc ', {
         action: { label: 'Khôi phục ngay', onClick: () => handleRestoreDraft() },
         duration: 5000,
       });
@@ -155,7 +176,8 @@ export function ServiceProvider({ children }: { children: ReactNode }) {
     try {
       const draft = localStorage.getItem(DRAFT_KEY);
       if (draft) {
-        setSettings(JSON.parse(draft));
+        _setSettings(JSON.parse(draft));
+        setIsModified(true); // Đánh dấu là đã sửa để tiếp tục lưu nháp nếu có thay đổi sau này
         toast.success('Đã khôi phục bản nháp gần nhất');
       }
     } catch (e) {
@@ -217,6 +239,7 @@ export function ServiceProvider({ children }: { children: ReactNode }) {
         toast.success('Đã lưu cấu hình dịch vụ');
         localStorage.removeItem(DRAFT_KEY);
         setHasDraft(false);
+        setIsModified(false);
       } else {
         toast.error('Lỗi khi lưu cấu hình');
       }
@@ -231,6 +254,7 @@ export function ServiceProvider({ children }: { children: ReactNode }) {
     await fetchData();
     localStorage.removeItem(DRAFT_KEY);
     setHasDraft(false);
+    setIsModified(false);
     toast.info('Đã khôi phục cấu hình gốc từ hệ thống');
   };
 
