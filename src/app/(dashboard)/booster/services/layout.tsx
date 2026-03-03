@@ -15,7 +15,7 @@ function ServiceLayoutContent({ children }: { children: ReactNode }) {
     { href: '/booster/services', label: 'Cài đặt chung', icon: Settings, exact: true },
     { href: '/booster/services/rank-boost', label: 'Cày Rank/Elo', icon: Trophy },
     { href: '/booster/services/promotion', label: 'Chuỗi thăng hạng', icon: TrendingUp },
-    { href: '/booster/services/placements', label: 'Phân hạng', icon: Swords },
+    { href: '/booster/services/placements', label: 'Phân hạng đầu mùa', icon: Swords },
     { href: '/booster/services/mastery', label: 'Thông thạo', icon: Medal },
     { href: '/booster/services/leveling', label: 'Cày cấp', icon: Zap },
     { href: '/booster/services/net-wins', label: 'Số trận thắng', icon: Target },

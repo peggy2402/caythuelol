@@ -22,6 +22,7 @@ export interface Rank {
 export interface ServiceSettings {
   servers: string[];
   rankPrices: Record<string, number>;
+  masteryPrices: Record<string, number>;
   lpGain: {
     low: number;
     medium: number;
@@ -64,6 +65,7 @@ export function ServiceProvider({ children }: { children: ReactNode }) {
   const [settings, setSettings] = useState<ServiceSettings>({
     servers: ['VN'],
     rankPrices: {},
+    masteryPrices: {},
     lpGain: { low: 30, medium: 0, high: -20 },
     options: {
       schedule: true,

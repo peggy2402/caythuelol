@@ -395,7 +395,10 @@ export default function RankBoostPage() {
           <div>
             <h2 className="text-xl font-bold text-white">Bảng giá leo Rank</h2>
             <div className="mt-3 bg-blue-900/20 border border-blue-500/30 rounded-xl p-4 text-sm">
-              <p className="text-blue-100"><span className="text-yellow-400 font-bold mr-2">⚠️ LƯU Ý:</span>Chỉ nhập giá cho <span className="font-bold text-white border-b border-white">1 BẬC DUY NHẤT</span>.</p>
+              <p className="text-blue-100 mb-2"><span className="text-yellow-400 font-bold mr-2">⚠️ LƯU Ý:</span>Chỉ nhập giá cho <span className="font-bold text-white border-b border-white">1 BẬC DUY NHẤT</span> (Ví dụ: Vàng 1 lên Bạch Kim 4).</p>
+              <p className="text-zinc-400 text-xs mb-3 italic">
+                 * Hệ thống sẽ <span className="text-green-400 font-bold">TỰ ĐỘNG CỘNG DỒN</span> giá tiền nếu khách đặt đơn leo nhiều bậc (Ví dụ: Từ Sắt 4 lên Thách Đấu = Tổng giá của tất cả các bậc ở giữa cộng lại). Bạn không cần nhập giá cho khoảng dài.
+              </p>
               <div className="flex gap-2 mt-2">
                 <button onClick={handleIncreasePrices} className="flex items-center gap-1 bg-green-600/20 text-green-400 px-2 py-1 rounded text-xs font-bold border border-green-600/30"><TrendingUp className="w-3 h-3" /> +10%</button>
                 <button onClick={() => setShowClearConfirm(true)} className="flex items-center gap-1 bg-red-600/20 text-red-400 px-2 py-1 rounded text-xs font-bold border border-red-600/30"><Trash2 className="w-3 h-3" /> Xóa hết</button>
@@ -407,8 +410,18 @@ export default function RankBoostPage() {
 
         {showBulkImport && (
           <div className="mb-6 bg-zinc-950 p-4 rounded-xl border border-zinc-800 animate-in slide-in-from-top-2">
-            <label className="block text-sm font-medium text-zinc-400 mb-2">Dán bảng giá (Ví dụ: diamond 2|diamond 1|159.000)</label>
-            <textarea value={bulkImportText} onChange={(e) => setBulkImportText(e.target.value)} className="w-full h-32 bg-zinc-900 border border-zinc-700 rounded-lg p-3 text-sm text-white font-mono outline-none" />
+            <label className="block text-sm font-medium text-zinc-400 mb-2">
+                Dán bảng giá nhanh (Bulk Import)
+            </label>
+            <p className="text-xs text-zinc-500 mb-3">
+                Nhập theo định dạng: <code className="bg-zinc-900 px-1 py-0.5 rounded text-blue-400">Rank Hiện Tại | Rank Mục Tiêu | Giá Tiền</code><br/>
+                Mỗi dòng một mục. Ví dụ:<br/>
+                <span className="text-zinc-400 block mt-1 pl-2 border-l-2 border-zinc-800">
+                    Diamond 2 | Diamond 1 | 159000<br/>
+                    Platinum 1 | Emerald 4 | 120000
+                </span>
+            </p>
+            <textarea value={bulkImportText} onChange={(e) => setBulkImportText(e.target.value)} className="w-full h-32 bg-zinc-900 border border-zinc-700 rounded-lg p-3 text-sm text-white font-mono outline-none" placeholder="Dán danh sách giá vào đây..." />
             <div className="flex justify-end gap-2 mt-3">
               <button onClick={handleBulkImport} className="px-4 py-2 text-sm bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-medium">Áp dụng</button>
             </div>
