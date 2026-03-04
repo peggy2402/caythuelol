@@ -13,7 +13,6 @@ export default function RankBoostPage() {
     // FIX: Chuyển về chữ hoa để so sánh chính xác với DB (MASTER, GRANDMASTER, CHALLENGER)
     // Thêm check r.name để tránh crash nếu dữ liệu lỗi
     return ranks.filter(r => r.name && !['MASTER', 'GRANDMASTER', 'CHALLENGER'].includes(r.name.toUpperCase()));
-    return ranks?.filter(r => r.name && !['MASTER', 'GRANDMASTER', 'CHALLENGER'].includes(r.name.toUpperCase())) || [];
   }, [ranks]);
 
   // Local State for Calculator & Tools
@@ -38,7 +37,7 @@ export default function RankBoostPage() {
   const [bulkImportText, setBulkImportText] = useState('');
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [page, setPage] = useState(0);
-  const [activeTab, setActiveTab] = useState<'SOLO' | 'FLEX' | 'DUO'>('SO LO');
+  const [activeTab, setActiveTab] = useState<'SOLO' | 'FLEX' | 'DUO'>('SOLO');
 
   // Collapsible State
   const [expanded, setExpanded] = useState({
@@ -520,9 +519,6 @@ export default function RankBoostPage() {
                     </div>
                 ) : (
                     <div className="text-center text-zinc-500 py-4 text-sm">
-                    <div 
-                        className="text-center text-zinc-500 py-4 text-sm"
-                        suppressHydration
                         Vui lòng chọn Rank và nhập giá để xem chi tiết.
                     </div>
                 )}
