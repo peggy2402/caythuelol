@@ -3,7 +3,7 @@
 import { useServiceContext } from '@/components/ServiceContext';
 import { useState, useEffect, useMemo } from 'react';
 import { toast } from 'sonner';
-import { Info, Calculator, ArrowRight, Coins, FileText, TrendingUp, Trash2, AlertTriangle, Users, Layers } from 'lucide-react';
+import { Info, Calculator, ArrowRight, Coins, FileText, TrendingUp, Trash2, AlertTriangle, Users, Layers, ChevronDown } from 'lucide-react';
 
 export default function RankBoostPage() {
   const { settings, setSettings, ranks, MAX_PRICE_PER_STEP, platformFee } = useServiceContext();
@@ -13,6 +13,7 @@ export default function RankBoostPage() {
     // FIX: Chuyển về chữ hoa để so sánh chính xác với DB (MASTER, GRANDMASTER, CHALLENGER)
     // Thêm check r.name để tránh crash nếu dữ liệu lỗi
     return ranks.filter(r => r.name && !['MASTER', 'GRANDMASTER', 'CHALLENGER'].includes(r.name.toUpperCase()));
+    return ranks?.filter(r => r.name && !['MASTER', 'GRANDMASTER', 'CHALLENGER'].includes(r.name.toUpperCase())) || [];
   }, [ranks]);
 
   // Local State for Calculator & Tools
@@ -22,7 +23,14 @@ export default function RankBoostPage() {
   const [calcLPGain, setCalcLPGain] = useState('19');
   const [appliedModifier, setAppliedModifier] = useState(0);
   const [calcBasePrice, setCalcBasePrice] = useState(0);
-  const [calcPrice, setCalcPrice] = useState(0);
+  const [calcDetails, setCalcDetails] = useState<{
+    basePrice: number;
+    eloAmount: number;
+    serviceFee: number;
+    customerPay: number;
+    boosterReceive: number;
+    adminReceive: number;
+  } | null>(null);
   const [calcError, setCalcError] = useState<string | null>(null);
   const [toolGross, setToolGross] = useState('');
   const [toolNet, setToolNet] = useState('');
@@ -30,7 +38,26 @@ export default function RankBoostPage() {
   const [bulkImportText, setBulkImportText] = useState('');
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [page, setPage] = useState(0);
-  const [activeTab, setActiveTab] = useState<'SOLO' | 'FLEX' | 'DUO'>('SOLO');
+  const [activeTab, setActiveTab] = useState<'SOLO' | 'FLEX' | 'DUO'>('SO LO');
+
+  // Collapsible State
+  const [expanded, setExpanded] = useState({
+    lp: true,
+    calc: true,
+    fee: true,
+    rank: true
+  });
+
+  useEffect(() => {
+    // Tự động đóng các khối phụ khi ở trên mobile/tablet (< 1024px)
+    if (window.innerWidth < 1024) {
+      setExpanded({ lp: false, calc: false, fee: false, rank: true });
+    }
+  }, []);
+
+  const toggle = (key: keyof typeof expanded) => {
+    setExpanded(prev => ({ ...prev, [key]: !prev[key] }));
+  };
 
   // Helper: Lấy giá an toàn (Case-insensitive) để fix lỗi hiển thị 0đ
   const getPrice = (key: string) => {
@@ -70,14 +97,14 @@ export default function RankBoostPage() {
 
     // Validation: Nếu chọn Từ Rank là Master (hoặc MASTER) -> Báo lỗi ngay
     if (calcFrom.toUpperCase() === 'MASTER') {
-        setCalcPrice(0);
+        setCalcDetails(null);
         setCalcBasePrice(0);
         setCalcError('Đây là rank tối đa. Vui lòng chọn lại!');
         return;
     }
 
     if (!calcFrom || !calcTo || !flatTiers.length) {
-      setCalcPrice(0);
+      setCalcDetails(null);
       setCalcBasePrice(0);
       return;
     }
@@ -86,7 +113,7 @@ export default function RankBoostPage() {
     const toIndex = flatTiers.findIndex(t => t.key === calcTo);
 
     if (fromIndex === -1 || toIndex === -1 || fromIndex >= toIndex) {
-      setCalcPrice(0);
+      setCalcDetails(null);
       setCalcBasePrice(0);
       return;
     }
@@ -113,31 +140,40 @@ export default function RankBoostPage() {
     }
 
     if (missingCount > 0) {
-      setCalcPrice(0);
+      setCalcDetails(null);
       setCalcBasePrice(0);
       setCalcError(`Chưa nhập giá ${missingCount} bậc`);
     } else {
       setCalcBasePrice(total);
 
-      // 2. Tính Thực Nhận = Giá Gốc * (1 - Phí sàn)
-      let netEarnings = total * (1 - platformFee / 100);
-
-      // 3. Tính Tổng Tiền Thanh Toán = Thực Nhận * (1 + Hệ số Elo)
-      let finalPrice = netEarnings;
+      // Logic tính toán mới chuẩn xác
       let mod = 0;
       if (settings.lpModifiers && calcLPGain) {
           const lp = parseInt(calcLPGain);
           if (!isNaN(lp)) {
-            if (lp < 19) mod = settings.lpModifiers.low;
-            else if (lp > 21) mod = settings.lpModifiers.high;
-            else mod = settings.lpModifiers.medium;
-            
-            if (mod !== 0) finalPrice = netEarnings * (1 + mod / 100);
+            if (lp < 19) mod = settings.lpModifiers.low || 0;
+            else if (lp > 21) mod = settings.lpModifiers.high || 0;
+            else mod = settings.lpModifiers.medium || 0;
           }
       }
       setAppliedModifier(mod);
 
-      setCalcPrice(Math.round(finalPrice));
+      const basePrice = total;
+      const eloAmount = basePrice * (mod / 100);
+      const serviceFee = basePrice * (platformFee / 100);
+      
+      const customerPay = basePrice + eloAmount + serviceFee;
+      const adminReceive = serviceFee;
+      const boosterReceive = customerPay - serviceFee; // Hoặc basePrice + eloAmount
+
+      setCalcDetails({
+        basePrice,
+        eloAmount,
+        serviceFee,
+        customerPay,
+        boosterReceive,
+        adminReceive
+      });
     }
   }, [calcFrom, calcTo, calcQueueType, calcLPGain, settings, flatTiers, platformFee]);
 
@@ -249,13 +285,21 @@ export default function RankBoostPage() {
   return (
     <div className="space-y-8">
       {/* LP Gain Settings */}
-      <section className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
-        <div className="flex items-center gap-3 mb-6">
-          <Info className="w-6 h-6 text-blue-500" />
-          <h2 className="text-xl font-bold text-white">Điểm cộng mỗi ván (LP Gain)</h2>
+      <section className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden transition-all">
+        <div 
+          onClick={() => toggle('lp')}
+          className="p-6 flex items-center justify-between cursor-pointer hover:bg-zinc-800/50 transition-colors"
+        >
+          <div className="flex items-center gap-3">
+            <Info className="w-6 h-6 text-blue-500" />
+            <h2 className="text-xl font-bold text-white">Điểm cộng mỗi ván (LP Gain)</h2>
+          </div>
+          <ChevronDown className={`w-6 h-6 text-zinc-500 transition-transform duration-300 ${expanded.lp ? 'rotate-180' : ''}`} />
         </div>
 
-        <div className="bg-zinc-950/50 p-5 rounded-xl border border-zinc-800/50 mb-8">
+        {expanded.lp && (
+        <div className="px-6 pb-6 animate-in slide-in-from-top-2">
+        <div className="bg-zinc-950/50 p-5 rounded-xl border border-zinc-800/50">
           <div className="space-y-6">
             <div>
               <p className="mb-2 text-sm"><span className="text-blue-400 font-bold">LP (League Points):</span></p>
@@ -270,16 +314,27 @@ export default function RankBoostPage() {
             </div>
           </div>
         </div>
+        </div>
+        )}
       </section>
 
       {/* Calculator & Tools */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Preview Calculator */}
-        <div className="bg-zinc-950 border border-zinc-800 rounded-xl p-5">
-            <h3 className="text-white font-bold flex items-center gap-2 mb-4">
-                <Calculator className="w-5 h-5 text-blue-500" />
-                Xem trước giá (Preview Calculator)
-            </h3>
+        <div className="bg-zinc-950 border border-zinc-800 rounded-xl overflow-hidden h-fit">
+            <div 
+              onClick={() => toggle('calc')}
+              className="p-5 flex items-center justify-between cursor-pointer hover:bg-zinc-900/50 transition-colors"
+            >
+                <h3 className="text-white font-bold flex items-center gap-2">
+                    <Calculator className="w-5 h-5 text-blue-500" />
+                    Xem trước giá (Preview Calculator)
+                </h3>
+                <ChevronDown className={`w-5 h-5 text-zinc-500 transition-transform duration-300 ${expanded.calc ? 'rotate-180' : ''}`} />
+            </div>
+            
+            {expanded.calc && (
+            <div className="px-5 pb-5 animate-in slide-in-from-top-2">
             <p className="text-sm md:text-base mt-4 text-left font-medium mb-6">
               <span className="text-red-400 font-semibold">
                 ⚠ Lưu ý quan trọng:
@@ -396,50 +451,101 @@ export default function RankBoostPage() {
                 </div>
             </div>
 
-            <div className="flex gap-2 mt-4">
-                <div className="flex-1 bg-blue-900/20 border border-blue-500/30 rounded-lg p-3 text-center">
-                    <span className="text-xs text-blue-200 block mb-1">Tổng tiền thanh toán</span>
-                    {calcError ? (
-                      <span className="text-sm font-bold text-red-400 animate-pulse text-center">
-                        {calcError}
-                      </span>
-                    ) : (
-                      <span className="text-xl font-bold text-blue-400">
-                          {calcPrice.toLocaleString('vi-VN')} đ
-                      </span>
-                    )}
-                </div>
+            <div className="mt-6 space-y-4">
+                {calcError ? (
+                    <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-center">
+                        <span className="text-sm font-bold text-red-400 animate-pulse">
+                            {calcError}
+                        </span>
+                    </div>
+                ) : calcDetails ? (
+                    <div className="grid grid-cols-1 gap-4">
+                        {/* 1. Customer Block */}
+                        <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4">
+                            <div className="flex items-center gap-2 mb-3">
+                                <Users className="w-4 h-4 text-blue-400" />
+                                <h4 className="font-bold text-white text-sm">Khách hàng thanh toán</h4>
+                            </div>
+                            <div className="space-y-2 text-sm">
+                                <div className="flex justify-between text-zinc-400">
+                                    <span>Giá gốc:</span>
+                                    <span>{calcDetails.basePrice.toLocaleString('vi-VN')} ₫</span>
+                                </div>
+                                <div className="flex justify-between text-zinc-400">
+                                    <span>Hệ số Elo ({appliedModifier > 0 ? '+' : ''}{appliedModifier}%):</span>
+                                    <span className={appliedModifier > 0 ? 'text-red-400' : appliedModifier < 0 ? 'text-green-400' : 'text-zinc-400'}>
+                                        {appliedModifier > 0 ? '+' : ''}{calcDetails.eloAmount.toLocaleString('vi-VN')} ₫
+                                    </span>
+                                </div>
+                                <div className="flex justify-between text-zinc-400">
+                                    <span>Phí dịch vụ ({platformFee}%):</span>
+                                    <span className="text-yellow-400">+{calcDetails.serviceFee.toLocaleString('vi-VN')} ₫</span>
+                                </div>
+                                <div className="border-t border-zinc-800 pt-2 flex justify-between font-bold text-base">
+                                    <span className="text-white">Tổng thanh toán:</span>
+                                    <span className="text-blue-400">{Math.round(calcDetails.customerPay).toLocaleString('vi-VN')} ₫</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                            {/* 2. Booster Block */}
+                            <div className="bg-green-900/10 border border-green-500/20 rounded-xl p-4">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <TrendingUp className="w-4 h-4 text-green-400" />
+                                    <h4 className="font-bold text-green-400 text-sm">Booster thực nhận</h4>
+                                </div>
+                                <div className="text-2xl font-bold text-white mb-1">
+                                    {Math.round(calcDetails.boosterReceive).toLocaleString('vi-VN')} ₫
+                                </div>
+                                <p className="text-[10px] text-zinc-500">
+                                    = Khách trả - Phí dịch vụ
+                                </p>
+                            </div>
+
+                            {/* 3. Admin Block */}
+                            <div className="bg-yellow-900/10 border border-yellow-500/20 rounded-xl p-4">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <Coins className="w-4 h-4 text-yellow-400" />
+                                    <h4 className="font-bold text-yellow-400 text-sm">Admin nhận</h4>
+                                </div>
+                                <div className="text-2xl font-bold text-white mb-1">
+                                    {Math.round(calcDetails.adminReceive).toLocaleString('vi-VN')} ₫
+                                </div>
+                                <p className="text-[10px] text-zinc-500">
+                                    = Giá gốc × {platformFee}%
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="text-center text-zinc-500 py-4 text-sm">
+                    <div 
+                        className="text-center text-zinc-500 py-4 text-sm"
+                        suppressHydration
+                        Vui lòng chọn Rank và nhập giá để xem chi tiết.
+                    </div>
+                )}
             </div>
-
-            <div className="mt-3 text-xs text-center px-4">
-                <div className="font-semibold text-yellow-400">
-                    Công thức tính giá:
-                </div>
-
-                <div className="mt-1 text-zinc-300 font-mono bg-zinc-800/60 rounded-lg py-2 px-3">
-                    (Giá gốc {calcBasePrice.toLocaleString()} - {platformFee}%) × (1{appliedModifier >= 0 ? '+' : ''}{appliedModifier}%)
-                </div>
-
-                <div className={`mt-1 text-[11px] italic ${
-                    appliedModifier > 0 
-                    ? 'text-red-400' 
-                    : appliedModifier < 0 
-                        ? 'text-green-400' 
-                        : 'text-zinc-400'
-                }`}>
-                    {appliedModifier > 0 && `Giá tăng ${appliedModifier}% do hệ số LP.`}
-                    {appliedModifier < 0 && `Giá giảm ${Math.abs(appliedModifier)}% do hệ số LP.`}
-                    {appliedModifier === 0 && `Không có điều chỉnh LP.`}
-                </div>
             </div>
+            )}
         </div>
 
         {/* Fee Tool */}
-        <div className="bg-zinc-950 border border-zinc-800 rounded-xl p-5">
-          <h3 className="text-white font-bold flex items-center gap-2 mb-4">
-            <Coins className="w-5 h-5 text-yellow-500" />
-            Công cụ tính phí sàn ({platformFee}%)
-          </h3>
+        <div className="bg-zinc-950 border border-zinc-800 rounded-xl overflow-hidden h-fit">
+          <div 
+              onClick={() => toggle('fee')}
+              className="p-5 flex items-center justify-between cursor-pointer hover:bg-zinc-900/50 transition-colors"
+            >
+              <h3 className="text-white font-bold flex items-center gap-2">
+                <Coins className="w-5 h-5 text-yellow-500" />
+                Công cụ tính phí sàn ({platformFee}%)
+              </h3>
+              <ChevronDown className={`w-5 h-5 text-zinc-500 transition-transform duration-300 ${expanded.fee ? 'rotate-180' : ''}`} />
+          </div>
+
+          {expanded.fee && (
+          <div className="px-5 pb-5 animate-in slide-in-from-top-2">
           <div className="space-y-6">
              {/* Net to Gross */}
              <div>
@@ -505,11 +611,23 @@ export default function RankBoostPage() {
                 )}
              </div>
           </div>
+          </div>
+          )}
         </div>
       </div>
 
       {/* Rank Pricing Table */}
-      <section className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
+      <section className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden">
+        <div 
+          onClick={() => toggle('rank')}
+          className="p-6 flex items-center justify-between cursor-pointer hover:bg-zinc-800/50 transition-colors"
+        >
+           <h2 className="text-xl font-bold text-white">Bảng giá leo Rank</h2>
+           <ChevronDown className={`w-6 h-6 text-zinc-500 transition-transform duration-300 ${expanded.rank ? 'rotate-180' : ''}`} />
+        </div>
+
+        {expanded.rank && (
+        <div className="px-6 pb-6 animate-in slide-in-from-top-2">
         <div className="mb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
             {/* TABS */}
@@ -528,7 +646,6 @@ export default function RankBoostPage() {
               </button>
             </div>
 
-            <h2 className="text-xl font-bold text-white">Bảng giá leo Rank</h2>
             <div className="mt-3 bg-blue-900/20 border border-blue-500/30 rounded-xl p-4 text-sm">
               <p className="text-blue-100 mb-2"><span className="text-yellow-400 font-bold mr-2">⚠️ LƯU Ý:</span>Chỉ nhập giá cho <span className="font-bold text-white border-b border-white">1 BẬC DUY NHẤT</span> (Ví dụ: Vàng 1 lên Bạch Kim 4).</p>
               <p className="text-zinc-400 text-xs mb-3 italic">
@@ -653,6 +770,8 @@ export default function RankBoostPage() {
             );
           })()}
         </div>
+        </div>
+        )}
       </section>
 
       {showClearConfirm && (
