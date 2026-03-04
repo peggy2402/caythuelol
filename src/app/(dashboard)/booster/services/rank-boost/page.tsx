@@ -18,6 +18,10 @@ export default function RankBoostPage() {
   // Local State for Calculator & Tools
   const [calcFrom, setCalcFrom] = useState('');
   const [calcTo, setCalcTo] = useState('');
+  const [calcQueueType, setCalcQueueType] = useState<'SOLO' | 'FLEX'>('SOLO');
+  const [calcLPGain, setCalcLPGain] = useState('19');
+  const [appliedModifier, setAppliedModifier] = useState(0);
+  const [calcBasePrice, setCalcBasePrice] = useState(0);
   const [calcPrice, setCalcPrice] = useState(0);
   const [calcError, setCalcError] = useState<string | null>(null);
   const [toolGross, setToolGross] = useState('');
@@ -67,12 +71,14 @@ export default function RankBoostPage() {
     // Validation: Nếu chọn Từ Rank là Master (hoặc MASTER) -> Báo lỗi ngay
     if (calcFrom.toUpperCase() === 'MASTER') {
         setCalcPrice(0);
+        setCalcBasePrice(0);
         setCalcError('Đây là rank tối đa. Vui lòng chọn lại!');
         return;
     }
 
     if (!calcFrom || !calcTo || !flatTiers.length) {
       setCalcPrice(0);
+      setCalcBasePrice(0);
       return;
     }
 
@@ -81,26 +87,59 @@ export default function RankBoostPage() {
 
     if (fromIndex === -1 || toIndex === -1 || fromIndex >= toIndex) {
       setCalcPrice(0);
+      setCalcBasePrice(0);
       return;
     }
+
+    // 1. Xác định bảng giá dựa trên Queue Type trong Calculator
+    let prices = settings.rankPrices || {};
+    if (calcQueueType === 'FLEX') prices = settings.rankPricesFlex || {};
+
+    // Helper lấy giá cho Calculator (khác với getPrice dùng cho Config)
+    const getCalcPrice = (key: string) => {
+        if (prices[key] !== undefined) return prices[key];
+        if (prices[key.toUpperCase()] !== undefined) return prices[key.toUpperCase()];
+        return 0;
+    };
 
     let total = 0;
     let missingCount = 0;
 
     for (let i = fromIndex; i < toIndex; i++) {
       const stepKey = flatTiers[i].key;
-      const price = getPrice(stepKey);
+      const price = getCalcPrice(stepKey);
       if (!price || price <= 0) missingCount++;
       total += (price || 0);
     }
 
     if (missingCount > 0) {
       setCalcPrice(0);
+      setCalcBasePrice(0);
       setCalcError(`Chưa nhập giá ${missingCount} bậc`);
     } else {
-      setCalcPrice(total);
+      setCalcBasePrice(total);
+
+      // 2. Tính Thực Nhận = Giá Gốc * (1 - Phí sàn)
+      let netEarnings = total * (1 - platformFee / 100);
+
+      // 3. Tính Tổng Tiền Thanh Toán = Thực Nhận * (1 + Hệ số Elo)
+      let finalPrice = netEarnings;
+      let mod = 0;
+      if (settings.lpModifiers && calcLPGain) {
+          const lp = parseInt(calcLPGain);
+          if (!isNaN(lp)) {
+            if (lp < 19) mod = settings.lpModifiers.low;
+            else if (lp > 21) mod = settings.lpModifiers.high;
+            else mod = settings.lpModifiers.medium;
+            
+            if (mod !== 0) finalPrice = netEarnings * (1 + mod / 100);
+          }
+      }
+      setAppliedModifier(mod);
+
+      setCalcPrice(Math.round(finalPrice));
     }
-  }, [calcFrom, calcTo, settings.rankPrices, settings.rankPricesFlex, settings.rankPricesDuo, flatTiers, activeTab]);
+  }, [calcFrom, calcTo, calcQueueType, calcLPGain, settings, flatTiers, platformFee]);
 
   const updateRankPrice = (rankName: string, tier: string, price: string) => {
     // FIX: Lưu key dạng UPPERCASE (IRON_IV) để đồng bộ với JSON data
@@ -282,11 +321,11 @@ export default function RankBoostPage() {
                 47.500 VNĐ
               </span>{" "}
               <span className="text-red-400 font-semibold text-nowrap">
-                (-{platformFee}%)
+                (-5%) chưa cộng Hệ số Elo
               </span>
             </p>
 
-            <div className="flex flex-col md:flex-row items-center gap-4">
+            <div className="flex flex-col md:flex-row items-center gap-4 mb-4">
                 <div className="flex-1 w-full">
                     <label className="text-xs text-zinc-500 mb-1 block">Từ Rank</label>
                     <select 
@@ -327,9 +366,39 @@ export default function RankBoostPage() {
                 </div>
             </div>
 
+            <div className="flex flex-col md:flex-row items-center gap-4 mb-4">
+                <div className="flex-1 w-full">
+                    <label className="text-xs text-zinc-500 mb-1 block">Loại xếp hạng</label>
+                    <select 
+                        value={calcQueueType}
+                        onChange={(e) => setCalcQueueType(e.target.value as 'SOLO' | 'FLEX')}
+                        className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white outline-none focus:border-blue-500"
+                    >
+                        <option value="SOLO">Đơn / Đôi</option>
+                        <option value="FLEX">Linh Hoạt</option>
+                    </select>
+                </div>
+                <div className="flex-1 w-full">
+                    <label className="text-xs text-zinc-500 mb-1 block">Điểm cộng mỗi trận (LP)</label>
+                    <div className="relative">
+                        <input 
+                            type="number"
+                            min="1"
+                            value={calcLPGain}
+                            onChange={(e) => setCalcLPGain(e.target.value)}
+                            className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white outline-none focus:border-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                            placeholder="VD: 19"
+                        />
+                        <div className={`absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold ${appliedModifier > 0 ? 'text-red-400' : appliedModifier < 0 ? 'text-green-400' : 'text-zinc-500'}`}>
+                            {appliedModifier > 0 ? '+' : ''}{appliedModifier}%
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div className="flex gap-2 mt-4">
                 <div className="flex-1 bg-blue-900/20 border border-blue-500/30 rounded-lg p-3 text-center">
-                    <span className="text-xs text-blue-200 block">Tổng tiền</span>
+                    <span className="text-xs text-blue-200 block mb-1">Tổng tiền thanh toán</span>
                     {calcError ? (
                       <span className="text-sm font-bold text-red-400 animate-pulse text-center">
                         {calcError}
@@ -340,14 +409,27 @@ export default function RankBoostPage() {
                       </span>
                     )}
                 </div>
-                {/* Net Earnings Preview */}
-                <div className="flex-1 bg-green-900/20 border border-green-500/30 rounded-lg p-3 text-center">
-                    <span className="text-xs text-green-200 block flex items-center justify-center gap-1 text-nowrap">
-                      <Coins className="w-3 h-3" /> Thực nhận (-{platformFee}%)
-                    </span>
-                    <span className="text-xl font-bold text-green-400">
-                        {(Math.floor(calcPrice * (1 - platformFee / 100))).toLocaleString('vi-VN')} đ
-                    </span>
+            </div>
+
+            <div className="mt-3 text-xs text-center px-4">
+                <div className="font-semibold text-yellow-400">
+                    Công thức tính giá:
+                </div>
+
+                <div className="mt-1 text-zinc-300 font-mono bg-zinc-800/60 rounded-lg py-2 px-3">
+                    (Giá gốc {calcBasePrice.toLocaleString()} - {platformFee}%) × (1{appliedModifier >= 0 ? '+' : ''}{appliedModifier}%)
+                </div>
+
+                <div className={`mt-1 text-[11px] italic ${
+                    appliedModifier > 0 
+                    ? 'text-red-400' 
+                    : appliedModifier < 0 
+                        ? 'text-green-400' 
+                        : 'text-zinc-400'
+                }`}>
+                    {appliedModifier > 0 && `Giá tăng ${appliedModifier}% do hệ số LP.`}
+                    {appliedModifier < 0 && `Giá giảm ${Math.abs(appliedModifier)}% do hệ số LP.`}
+                    {appliedModifier === 0 && `Không có điều chỉnh LP.`}
                 </div>
             </div>
         </div>
@@ -443,12 +525,6 @@ export default function RankBoostPage() {
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'FLEX' ? 'bg-purple-600 text-white' : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'}`}
               >
                 <Layers className="w-4 h-4" /> Flex
-              </button>
-              <button 
-                onClick={() => setActiveTab('DUO')}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'DUO' ? 'bg-green-600 text-white' : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'}`}
-              >
-                <Users className="w-4 h-4" /> Duo (Chơi cùng)
               </button>
             </div>
 

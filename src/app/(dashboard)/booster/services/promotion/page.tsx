@@ -208,12 +208,6 @@ export default function PromotionPage() {
         >
           <Layers className="w-4 h-4" /> Flex
         </button>
-        <button 
-          onClick={() => setActiveTab('DUO')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'DUO' ? 'bg-green-600 text-white' : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'}`}
-        >
-          <Users className="w-4 h-4" /> Duo (Chơi cùng)
-        </button>
       </div>
 
       {/* Pricing Inputs */}

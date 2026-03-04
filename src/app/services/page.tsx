@@ -19,11 +19,15 @@ type ServiceType = 'RANK_BOOST' | 'PROMOTION' | 'MASTERY' | 'LEVELING' | 'NET_WI
 type BoosterConfig = {
     servers: string[];
     rankPrices: Record<string, number>;
+    rankPricesFlex?: Record<string, number>;
     promotionPrices: Record<string, number>;
+    promotionPricesFlex?: Record<string, number>;
     placementPrices: Record<string, number>;
+    placementPricesFlex?: Record<string, number>;
     playingChampions: string[];
     levelingPrices: Record<string, number>;
     netWinPrices: Record<string, number>;
+    netWinPricesFlex?: Record<string, number>;
     masteryPrices: Record<string, number>;
     lpModifiers: {
       low: number;
@@ -321,34 +325,37 @@ function ServicesContent() {
 
     let base = 0;
 
+    // Select Price Tables based on Queue Type
+    const prices = {
+        rank: queueType === 'FLEX' ? (config.rankPricesFlex || config.rankPrices) : config.rankPrices,
+        promotion: queueType === 'FLEX' ? (config.promotionPricesFlex || config.promotionPrices) : config.promotionPrices,
+        netWin: queueType === 'FLEX' ? (config.netWinPricesFlex || config.netWinPrices) : config.netWinPrices,
+        placement: queueType === 'FLEX' ? (config.placementPricesFlex || config.placementPrices) : config.placementPrices,
+    };
+
     if (activeTab === 'RANK_BOOST') {
       // Logic tính giá Rank Boost
       // FIX: Sử dụng FLAT_TIERS để tìm index chính xác
       const startIdx = RANK_BOOST_TIERS.findIndex(t => t.key === currentTier);
       const endIdx = RANK_BOOST_TIERS.findIndex(t => t.key === desiredTier);
 
-      if (config?.rankPrices && Object.keys(config.rankPrices).length > 0) {
+      if (prices.rank && Object.keys(prices.rank).length > 0) {
           if (endIdx > startIdx) {
               for (let i = startIdx; i < endIdx; i++) {
                   const key = RANK_BOOST_TIERS[i].key;
                   // Lấy giá của Booster cho Rank tương ứng. Nếu không có giá -> 0
-                  const pricePerStep = getPrice(config.rankPrices, key);
+                  const pricePerStep = getPrice(prices.rank, key);
                   base += pricePerStep;
               }
           }
       }
 
-      // Áp dụng Phí sàn -2% vào giá Rank (Theo yêu cầu)
-      // Ví dụ: 50.000 -> 49.000
-      base = base * 0.98;
-
     } else if (activeTab === 'PROMOTION') {
-      // Lấy giá Promotion từ Config Booster
       // Extract Rank name from Tier key (e.g. SILVER_IV -> Silver)
       const rankName = currentTier.split('_')[0];
       // Promotion prices usually keyed by Rank (e.g. Silver_I -> Gold_IV promotion)
       // Assuming config uses keys like "Silver_I" or just "Silver"
-      base = getPrice(config?.promotionPrices, currentTier) || getPrice(config?.promotionPrices, rankName);
+      base = getPrice(prices.promotion, currentTier) || getPrice(prices.promotion, rankName);
     } else if (activeTab === 'MASTERY') {
       // Lấy giá Mastery từ Config Booster
       const pricePerLevel = config?.masteryPrices?.[currentMastery.toString()] || config?.masteryPrices?.['default'] || 0;
@@ -360,7 +367,7 @@ function ServicesContent() {
     } else if (activeTab === 'NET_WINS') {
       // Logic Net Wins: Dùng giá Booster cấu hình (Price per LP) -> Quy đổi ra Game (~20LP/win)
       const rankName = currentTier.split('_')[0]; // MASTER, GRANDMASTER...
-      const pricePerLP = getPrice(config?.netWinPrices, rankName);
+      const pricePerLP = getPrice(prices.netWin, rankName);
       
       let pricePerWin = 0;
       if (pricePerLP > 0) {
@@ -369,45 +376,27 @@ function ServicesContent() {
       
       base = numGames * pricePerWin;
 
-      // Áp dụng hệ số LP (LP Modifiers) từ Config
-      if (config?.lpModifiers) {
-          const val = parseInt(lpGain);
-          let modPercent = 0;
-          if (val < 19) modPercent = config.lpModifiers.low; // Khó (+%)
-          else if (val > 21) modPercent = config.lpModifiers.high; // Dễ (-%)
-          else modPercent = config.lpModifiers.medium;
-          
-          // Lưu ý: modPercent có thể âm (giảm giá) hoặc dương (tăng giá)
-          base = base * (1 + modPercent / 100); // Multiplicative
-      }
-
-      // Apply Queue Type Modifier for NET_WINS
-      if (config?.queueModifiers && queueType) {
-        const qMod = config.queueModifiers[queueType] || 0;
-        if (qMod !== 0) base = base * (1 + qMod / 100);
-      }
-
     } else if (activeTab === 'PLACEMENTS') {
       // Lấy giá Placements từ Config Booster theo Rank mùa trước
-      const pricePerGame = getPrice(config?.placementPrices, prevRank);
+      const pricePerGame = getPrice(prices.placement, prevRank);
       base = numGames * pricePerGame;
     }
     
-    // Apply LP Modifier for RANK_BOOST (Multiplicative)
-    if (activeTab === 'RANK_BOOST' && config?.lpModifiers) {
-        const lp = parseInt(lpGain) || 0;
-        let mod = 0;
-        if (lp < 19) mod = config.lpModifiers.low;
-        else if (lp > 21) mod = config.lpModifiers.high;
-        else mod = config.lpModifiers.medium;
-        
-        // Formula: Base * (1 + LP%)
-        base = base * (1 + mod / 100);
+    // --- ÁP DỤNG CÁC HỆ SỐ ĐIỀU CHỈNH (MODIFIERS) ---
 
-        // Apply Queue Type Modifier for RANK_BOOST
-        if (config?.queueModifiers && queueType) {
-            const qMod = config.queueModifiers[queueType] || 0;
-            if (qMod !== 0) base = base * (1 + qMod / 100);
+    // 1. Áp dụng Phí sàn -2% vào giá gốc (Theo yêu cầu: 50.000 -> 49.000)
+    base = base * 0.98;
+
+    // 2. Áp dụng hệ số LP (LP Modifiers) - Chỉ cho RANK_BOOST và NET_WINS
+    if (activeTab && ['RANK_BOOST', 'NET_WINS'].includes(activeTab) && config?.lpModifiers && lpGain) {
+        const lp = parseInt(lpGain);
+        if (!isNaN(lp)) {
+            let mod = 0;
+            if (lp < 19) mod = config.lpModifiers.low;
+            else if (lp > 21) mod = config.lpModifiers.high;
+            else mod = config.lpModifiers.medium;
+            
+            if (mod !== 0) base = base * (1 + mod / 100);
         }
     }
 
@@ -439,18 +428,13 @@ function ServicesContent() {
 
   // Helper to get current LP Modifier for display
   const currentLPMod = useMemo(() => {
-    if (!config?.lpModifiers) return 0;
-    const lp = parseInt(lpGain) || 0;
+    if (!config?.lpModifiers || !lpGain) return 0;
+    const lp = parseInt(lpGain);
+    if (isNaN(lp)) return 0;
     if (lp < 19) return config.lpModifiers.low;
     if (lp > 21) return config.lpModifiers.high;
     return config.lpModifiers.medium;
   }, [lpGain, config]);
-
-  // Helper to get current Queue Modifier
-  const currentQueueMod = useMemo(() => {
-    if (!config?.queueModifiers || !queueType) return 0;
-    return config.queueModifiers[queueType] || 0;
-  }, [queueType, config]);
 
   // Helper to get current Option Modifiers
   const getOptionMod = (key: keyof BoosterConfig['options'], defaultVal: number) => {
@@ -739,6 +723,7 @@ function ServicesContent() {
 
                     {/* Service Details Form */}
                     <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-zinc-900/60 backdrop-blur-xl p-6 shadow-xl">
+                        <h3 className="text-lg font-bold text-white mb-4">Thông tin dịch vụ</h3>
                         {activeTab === 'RANK_BOOST' && (
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 {renderTierSelector(t('servicesCurrentRank'), currentTier, setCurrentTier, RANK_BOOST_TIERS)}
@@ -762,21 +747,50 @@ function ServicesContent() {
                                 <div className="space-y-2">
                                     <label className="text-xs font-bold uppercase text-zinc-500 tracking-wider">{t('lpGain')}</label>
                                     <div className="relative">
-                                        <input 
-                                            type="number" 
-                                            value={lpGain} 
-                                            onChange={e => setLpGain(e.target.value)} 
-                                            className="w-full bg-zinc-900/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-blue-500/50 outline-none transition-all font-medium"
-                                            placeholder="VD: 19"
-                                        />
-                                        <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
-                                            {currentLPMod !== 0 && (
-                                                <span className={`text-xs font-bold ${currentLPMod > 0 ? 'text-red-400' : 'text-green-400'}`}>
-                                                    {currentLPMod > 0 ? '+' : ''}{currentLPMod}%
-                                                </span>
-                                            )}
-                                            <span className="text-zinc-500 text-sm font-medium">LP/Win</span>
+                                      <input 
+                                        type="number"
+                                        min="1"
+                                        step="1"
+                                        value={lpGain}
+                                        onChange={e => {
+                                          const val = e.target.value;
+                                          if (val === '') {
+                                            setLpGain('');
+                                            return;
+                                          }
+                                          if (val.includes('-') || Number(val) < 0) {
+                                            toast.error('Vui lòng nhập số nguyên dương');
+                                            return;
+                                          }
+                                          setLpGain(val);
+                                        }}
+                                        className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white outline-none focus:border-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                        placeholder="VD: 19"
+                                      />
+                                    <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                                      
+                                      {currentLPMod !== 0 && (
+                                        <div
+                                          className={`px-2 py-1 rounded-md text-xs font-semibold flex items-center gap-1
+                                            ${currentLPMod > 0 
+                                              ? 'bg-red-500/10 text-red-400 border border-red-500/30' 
+                                              : 'bg-green-500/10 text-green-400 border border-green-500/30'
+                                            }`}
+                                          title={
+                                            currentLPMod > 0
+                                              ? `LP thấp → Tăng giá ${Math.abs(currentLPMod)}%`
+                                              : `LP cao → Giảm giá ${Math.abs(currentLPMod)}%`
+                                          }
+                                        >
+                                          {currentLPMod > 0 ? 'Tăng giá +' : 'Giảm giá -'}
+                                          {Math.abs(currentLPMod)}%
                                         </div>
+                                      )}
+
+                                      <span className="text-zinc-400 text-sm font-medium">
+                                        LP mỗi trận
+                                      </span>
+                                    </div>
                                     </div>
                                 </div>
                             </div>
@@ -976,7 +990,7 @@ function ServicesContent() {
                             </div>
                             <div className="flex justify-between text-sm">
                                 <span className="text-zinc-400">Dịch vụ:</span>
-                                <span className="text-white font-medium text-right">{t(activeTab as any)}</span>
+                                <span className="text-white font-medium text-right">{activeTab ? t(activeTab as any) : ''}</span>
                             </div>
                             {/* ... More summary details ... */}
                         </div>
