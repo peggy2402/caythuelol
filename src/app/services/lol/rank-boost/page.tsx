@@ -1,7 +1,7 @@
 // src/app/services/lol/rank-boost/page.tsx
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { ChevronRight, Flame, CheckCircle2, Loader2, AlertCircle, Rocket, Users, Video, ShieldCheck, Clock, Crosshair } from 'lucide-react';
 import { toast } from 'sonner';
@@ -32,7 +32,7 @@ const FLAT_TIERS = (() => {
   return list;
 })();
 
-export default function RankBoostPage() {
+function RankBoostContent() {
   const searchParams = useSearchParams();
   const boosterId = searchParams.get('booster');
 
@@ -456,6 +456,14 @@ export default function RankBoostPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function RankBoostPage() {
+  return (
+    <Suspense fallback={<div className="flex justify-center items-center min-h-[50vh]"><Loader2 className="w-8 h-8 animate-spin text-blue-500" /></div>}>
+      <RankBoostContent />
+    </Suspense>
   );
 }
 

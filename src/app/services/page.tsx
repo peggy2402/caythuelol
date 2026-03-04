@@ -70,6 +70,14 @@ export default function ServicesHub() {
             >
               {/* Image Placeholder if no image */}
               <div className={`h-48 w-full bg-gradient-to-br ${game.color} relative overflow-hidden`}>
+                {game.image && (
+                  <Image
+                    src={game.image}
+                    alt={game.name}
+                    fill
+                    className="object-cover opacity-80 group-hover:opacity-100 transition-opacity duration-500"
+                  />
+                )}
                 <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors" />
                 <game.icon className="absolute bottom-4 right-4 w-16 h-16 text-white/20 group-hover:scale-110 transition-transform duration-500" />
                 
