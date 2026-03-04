@@ -1,6 +1,6 @@
 'use client';
 
-import { useServiceContext } from '../ServiceContext';
+import { useServiceContext } from '../../../../../../components/ServiceContext';
 import { useState, useEffect } from 'react';
 import { Target, Calculator, Coins, ArrowRight, Info, RefreshCw, Trophy, TrendingUp, Layers, Users } from 'lucide-react';
 

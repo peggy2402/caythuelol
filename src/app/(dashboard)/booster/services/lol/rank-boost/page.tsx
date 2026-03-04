@@ -1,6 +1,6 @@
 'use client';
 
-import { useServiceContext } from '../ServiceContext';
+import { useServiceContext } from '@/components/ServiceContext';
 import { useState, useEffect, useMemo } from 'react';
 import { toast } from 'sonner';
 import { Info, Calculator, ArrowRight, Coins, FileText, TrendingUp, Trash2, AlertTriangle, Users, Layers } from 'lucide-react';
