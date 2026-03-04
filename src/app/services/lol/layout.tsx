@@ -9,10 +9,10 @@ import { Trophy, Target, TrendingUp, Swords, Zap, Medal, MousePointerClick } fro
 import { Suspense, useEffect, useState } from 'react';
 
 const TABS = [
-  { id: 'rank-boost', label: 'Cày Rank', href: '/services/lol/rank-boost', icon: Trophy, key: 'RANK_BOOST' },
-  { id: 'net-wins', label: 'Net Wins', href: '/services/lol/net-wins', icon: Target, key: 'NET_WINS' },
-  { id: 'promotion', label: 'Chuỗi Promotion', href: '/services/lol/promotion', icon: TrendingUp, key: 'PROMOTION' },
-  { id: 'placements', label: 'Phân Hạng', href: '/services/lol/placements', icon: Swords, key: 'PLACEMENTS' },
+  { id: 'rank-boost', label: 'Cày Rank/Elo', href: '/services/lol/rank-boost', icon: Trophy, key: 'RANK_BOOST' },
+  { id: 'net-wins', label: 'Cày Điểm Cao Thủ, Thách Đấu', href: '/services/lol/net-wins', icon: Target, key: 'NET_WINS' },
+  { id: 'promotion', label: 'Chuỗi Thăng Hạng', href: '/services/lol/promotion', icon: TrendingUp, key: 'PROMOTION' },
+  { id: 'placements', label: 'Phân Hạng Đầu Mùa', href: '/services/lol/placements', icon: Swords, key: 'PLACEMENTS' },
   { id: 'leveling', label: 'Cày Level', href: '/services/lol/leveling', icon: Zap, key: 'LEVELING' },
   { id: 'mastery', label: 'Thông Thạo', href: '/services/lol/mastery', icon: Medal, key: 'MASTERY' },
 ];

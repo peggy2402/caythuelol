@@ -16,6 +16,7 @@ const ACCOUNT_TYPES = [
     { id: 'FACEBOOK', name: 'Facebook' },
     { id: 'APPLE', name: 'Apple' },
     { id: 'XBOX', name: 'Xbox' },
+    { id: 'PLAYSTATION', name: 'PlayStation' }
 ];
 
 const FLAT_TIERS = (() => {

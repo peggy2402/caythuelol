@@ -15,11 +15,11 @@ function LOLLayoutContent({ children }: { children: ReactNode }) {
   const tabs = [
     { href: '/booster/services/lol', label: 'Cài đặt chung', icon: Settings, exact: true },
     { href: '/booster/services/lol/rank-boost', label: 'Cày Rank/Elo', icon: Trophy },
-    { href: '/booster/services/lol/net-wins', label: 'Net Wins', icon: Target },
-    { href: '/booster/services/lol/placements', label: 'Phân hạng', icon: Swords },
+    { href: '/booster/services/lol/net-wins', label: 'Cày Điểm Cao Thủ, Thách Đấu', icon: Target },
+    { href: '/booster/services/lol/placements', label: 'Phân hạng đầu mùa', icon: Swords },
     { href: '/booster/services/lol/promotion', label: 'Chuỗi thăng hạng', icon: TrendingUp },
     { href: '/booster/services/lol/leveling', label: 'Cày Level', icon: Zap },
-    { href: '/booster/services/lol/mastery', label: 'Thông thạo', icon: Medal },
+    { href: '/booster/services/lol/mastery', label: 'Cày Thông thạo', icon: Medal },
   ];
 
   const isActive = (path: string, exact = false) => {
