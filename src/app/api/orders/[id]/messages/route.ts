@@ -35,8 +35,9 @@ export async function GET(
     if (!order) return NextResponse.json({ error: 'Order not found' }, { status: 404 });
 
     const userId = user.userId as string;
-    const isCustomer = order.customerId.toString() === userId;
-    const isBooster = order.boosterId?.toString() === userId;
+    const orderObj = order as any; // Ép kiểu để tránh lỗi TS do lệch tên trường (customerId vs customer_id)
+    const isCustomer = orderObj.customer_id.toString() === userId;
+    const isBooster = orderObj.booster_id?.toString() === userId;
     const isAdmin = user.role === 'ADMIN';
 
     if (!isCustomer && !isBooster && !isAdmin) {
@@ -77,8 +78,9 @@ export async function POST(
     if (!order) return NextResponse.json({ error: 'Order not found' }, { status: 404 });
 
     const userId = user.userId as string;
-    const isCustomer = order.customerId.toString() === userId;
-    const isBooster = order.boosterId?.toString() === userId;
+    const orderObj = order as any; // Ép kiểu để tránh lỗi TS
+    const isCustomer = orderObj.customer_id.toString() === userId;
+    const isBooster = orderObj.booster_id?.toString() === userId;
     const isAdmin = user.role === 'ADMIN';
 
     if (!isCustomer && !isBooster && !isAdmin) {

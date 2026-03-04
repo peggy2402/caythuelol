@@ -1,7 +1,7 @@
 'use client';
 
 import { useServiceContext } from './ServiceContext';
-import { Globe, Zap, Clock, Crosshair, CheckCircle2, Users, Video, Download, Copy, Upload, Swords, Search, X, Shield, Target, Heart, Filter, Sparkles, Calculator } from 'lucide-react';
+import { Globe, Zap, Clock, Crosshair, CheckCircle2, Users, Video, Download, Copy, Upload, Swords, Search, X, Shield, Target, Heart, Filter, Sparkles, Calculator, Trophy, TrendingUp, Medal, Power } from 'lucide-react';
 import { useState, useEffect, useMemo } from 'react';
 import { toast } from 'sonner';
 
@@ -30,8 +30,18 @@ const ROLE_STYLES: Record<string, { label: string, icon: any, color: string, bg:
   'Support': { label: 'Hỗ trợ', icon: Heart, color: 'text-green-400', bg: 'bg-green-500/10 border-green-500/20' },
 };
 
+// Danh sách dịch vụ hỗ trợ
+const SUPPORTED_SERVICES = [
+    { key: 'RANK_BOOST', label: 'Cày Rank (Elo Boost)', icon: Trophy, desc: 'Leo rank từ Sắt đến Thách Đấu' },
+    { key: 'NET_WINS', label: 'Cày Số Trận Thắng', icon: Target, desc: 'Đảm bảo số trận thắng (Net Wins)' },
+    { key: 'PLACEMENTS', label: 'Phân Hạng Đầu Mùa', icon: Swords, desc: 'Cày 5 trận đầu mùa giải' },
+    { key: 'PROMOTION', label: 'Chuỗi Thăng Hạng', icon: TrendingUp, desc: 'Vượt qua chuỗi BO3/BO5' },
+    { key: 'LEVELING', label: 'Cày Cấp Độ (Level)', icon: Zap, desc: 'Cày level 1-30 hoặc farm Tinh Hoa' },
+    { key: 'MASTERY', label: 'Cày Thông Thạo', icon: Medal, desc: 'Cày điểm thông thạo tướng' },
+];
+
 export default function GeneralSettingsPage() {
-  const { settings, setSettings, loading } = useServiceContext();
+  const { settings, setSettings, loading, toggleService } = useServiceContext();
   const [showConfigTools, setShowConfigTools] = useState(false);
   const [importJson, setImportJson] = useState('');
   
@@ -174,6 +184,52 @@ export default function GeneralSettingsPage() {
 
   return (
     <div className="space-y-8">
+      {/* SERVICE MANAGEMENT (TOGGLE ON/OFF) */}
+      <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
+        <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+          <Power className="w-5 h-5 text-green-500" />
+          Quản lý Dịch vụ
+        </h2>
+        <p className="text-sm text-zinc-400 mb-6">
+            Bật/Tắt các dịch vụ mà bạn muốn cung cấp. Chỉ những dịch vụ đang bật (ON) mới hiển thị cho khách hàng thuê.
+        </p>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {SUPPORTED_SERVICES.map((svc) => {
+                const isEnabled = settings.enabledServices?.includes(svc.key);
+                const Icon = svc.icon;
+                
+                return (
+                    <div 
+                        key={svc.key}
+                        className={`relative p-4 rounded-xl border transition-all ${
+                            isEnabled 
+                                ? 'bg-zinc-950 border-green-500/50 shadow-[0_0_15px_rgba(34,197,94,0.1)]' 
+                                : 'bg-zinc-950/50 border-zinc-800 opacity-70 hover:opacity-100'
+                        }`}
+                    >
+                        <div className="flex justify-between items-start mb-2">
+                            <div className={`p-2 rounded-lg ${isEnabled ? 'bg-green-500/10 text-green-400' : 'bg-zinc-900 text-zinc-500'}`}>
+                                <Icon className="w-5 h-5" />
+                            </div>
+                            <label className="relative inline-flex items-center cursor-pointer">
+                                <input 
+                                    type="checkbox" 
+                                    className="sr-only peer" 
+                                    checked={isEnabled}
+                                    onChange={(e) => toggleService(svc.key, e.target.checked)}
+                                />
+                                <div className="w-11 h-6 bg-zinc-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
+                            </label>
+                        </div>
+                        <h3 className={`font-bold ${isEnabled ? 'text-white' : 'text-zinc-400'}`}>{svc.label}</h3>
+                        <p className="text-xs text-zinc-500 mt-1">{svc.desc}</p>
+                    </div>
+                );
+            })}
+        </div>
+      </div>
+
       {/* Import/Export Tools */}
       <div className="flex justify-end">
         <button

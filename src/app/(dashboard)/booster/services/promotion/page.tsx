@@ -2,7 +2,7 @@
 
 import { useServiceContext } from '../ServiceContext';
 import { useState, useEffect } from 'react';
-import { TrendingUp, Calculator, Coins, ArrowRight, Info } from 'lucide-react';
+import { TrendingUp, Calculator, Coins, ArrowRight, Info, Layers, Users } from 'lucide-react';
 
 const PROMOTION_STEPS = [
   { id: 'Iron_I', label: 'Sắt I ➜ Đồng IV', from: 'Sắt I', to: 'Đồng IV' },
@@ -21,6 +21,7 @@ export default function PromotionPage() {
   const [selectedPromo, setSelectedPromo] = useState(PROMOTION_STEPS[2].id); // Default Silver -> Gold
   const [calcPrice, setCalcPrice] = useState(0);
   const [calcError, setCalcError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'SOLO' | 'FLEX' | 'DUO'>('SOLO');
 
   // Fee Tool State
   const [toolGross, setToolGross] = useState('');
@@ -31,16 +32,23 @@ export default function PromotionPage() {
     const cleanPrice = price.replace(/,/g, '');
     const numValue = parseInt(cleanPrice) || 0;
 
-    setSettings(prev => ({
-      ...prev,
-      promotionPrices: { ...prev.promotionPrices, [id]: numValue }
-    }));
+    setSettings(prev => {
+      if (activeTab === 'FLEX') {
+        return { ...prev, promotionPricesFlex: { ...prev.promotionPricesFlex, [id]: numValue } };
+      }
+      if (activeTab === 'DUO') {
+        return { ...prev, promotionPricesDuo: { ...prev.promotionPricesDuo, [id]: numValue } };
+      }
+      return { ...prev, promotionPrices: { ...prev.promotionPrices, [id]: numValue } };
+    });
   };
 
   // Calculate Price Preview
   useEffect(() => {
     setCalcError(null);
-    const price = settings.promotionPrices?.[selectedPromo];
+    let price = settings.promotionPrices?.[selectedPromo] || 0;
+    if (activeTab === 'FLEX') price = settings.promotionPricesFlex?.[selectedPromo] || 0;
+    if (activeTab === 'DUO') price = settings.promotionPricesDuo?.[selectedPromo] || 0;
     
     if (!price || price <= 0) {
         setCalcPrice(0);
@@ -48,7 +56,7 @@ export default function PromotionPage() {
     } else {
         setCalcPrice(price);
     }
-  }, [selectedPromo, settings.promotionPrices]);
+  }, [selectedPromo, settings.promotionPrices, settings.promotionPricesFlex, settings.promotionPricesDuo, activeTab]);
 
   return (
     <div className="space-y-8">
@@ -186,10 +194,34 @@ export default function PromotionPage() {
         </div>
       </div>
 
+      {/* TABS */}
+      <div className="flex gap-2">
+        <button 
+          onClick={() => setActiveTab('SOLO')}
+          className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'SOLO' ? 'bg-blue-600 text-white' : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'}`}
+        >
+          Solo / Duo (Mặc định)
+        </button>
+        <button 
+          onClick={() => setActiveTab('FLEX')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'FLEX' ? 'bg-purple-600 text-white' : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'}`}
+        >
+          <Layers className="w-4 h-4" /> Flex
+        </button>
+        <button 
+          onClick={() => setActiveTab('DUO')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'DUO' ? 'bg-green-600 text-white' : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'}`}
+        >
+          <Users className="w-4 h-4" /> Duo (Chơi cùng)
+        </button>
+      </div>
+
       {/* Pricing Inputs */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {PROMOTION_STEPS.map((step) => {
-          const currentPrice = settings.promotionPrices?.[step.id] || 0;
+          let currentPrice = settings.promotionPrices?.[step.id] || 0;
+          if (activeTab === 'FLEX') currentPrice = settings.promotionPricesFlex?.[step.id] || 0;
+          if (activeTab === 'DUO') currentPrice = settings.promotionPricesDuo?.[step.id] || 0;
           const isHighRank = step.id.includes('Diamond') || step.id.includes('Emerald');
 
           return (

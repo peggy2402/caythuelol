@@ -6,8 +6,8 @@ import { useLanguage } from '@/lib/i18n';
 import { 
   Trophy, TrendingUp, Medal, Zap, Target, Swords,
   CheckCircle2, AlertCircle, Loader2, Search,
-  ShieldCheck, Clock, Star, ChevronRight, Flame, ChevronLeft,
-  Video, Users, Map, User, Lock, LogIn, MousePointerClick
+  ShieldCheck, Clock, Star, ChevronRight, Flame, ChevronLeft, Calendar,
+  Video, Users, Map, User, Lock, LogIn, MousePointerClick, Filter, Gamepad2
 } from 'lucide-react';
 import { toast } from 'sonner';
 import ChampionModal from '@/components/champion/ChampionModal';
@@ -15,6 +15,31 @@ import Navbar from '@/components/Navbar';
 
 // --- TYPES ---
 type ServiceType = 'RANK_BOOST' | 'PROMOTION' | 'MASTERY' | 'LEVELING' | 'NET_WINS' | 'PLACEMENTS';
+
+type BoosterConfig = {
+    servers: string[];
+    rankPrices: Record<string, number>;
+    promotionPrices: Record<string, number>;
+    placementPrices: Record<string, number>;
+    playingChampions: string[];
+    levelingPrices: Record<string, number>;
+    netWinPrices: Record<string, number>;
+    masteryPrices: Record<string, number>;
+    lpModifiers: {
+      low: number;
+      medium: number;
+      high: number;
+    };
+    queueModifiers?: Record<string, number>;
+    options: {
+      schedule: boolean;
+      roles: string[];
+      specificChamps: number;
+      streaming: number;
+      express: number;
+      duo: number;
+    };
+};
 
 interface Booster {
   _id: string;
@@ -26,11 +51,9 @@ interface Booster {
     completed_orders: number; 
     bio: string;
     services?: string[]; // List of supported services
+    service_settings?: BoosterConfig;
   };
-  booster_config?: {
-    services: { type: string; enabled: boolean; price: number; modifier: number }[];
-    options: { key: string; enabled: boolean; price: number; modifier: number }[];
-  };
+  booster_config?: BoosterConfig;
 }
 
 interface Champion {
@@ -50,15 +73,23 @@ const SERVERS = ['VN', 'KR', 'JP', 'EUW', 'NA'];
 const ACCOUNT_TYPES = ['Riot', 'Facebook', 'Google', 'Apple', 'Xbox', 'PlayStation'];
 const PROMOTION_RANKS = ['Iron', 'Bronze', 'Silver', 'Gold', 'Platinum', 'Emerald', 'Diamond'];
 
-// Base Prices (Example)
-const RANK_BASE_PRICES: Record<string, number> = {
-  'Iron': 50000, 'Bronze': 80000, 'Silver': 120000, 'Gold': 200000,
-  'Platinum': 350000, 'Emerald': 550000, 'Diamond': 900000, 'Master': 2000000,
-  'Grandmaster': 4000000, 'Challenger': 8000000
-};
-const MASTERY_PRICE_PER_LEVEL = 50000;
-const LEVELING_PRICE_PER_LEVEL = 30000;
-const PLACEMENT_PRICE_PER_GAME = 60000;
+// Generate Flat Tiers List (Iron IV -> Challenger)
+const FLAT_TIERS = (() => {
+  const list: { key: string; label: string }[] = [];
+  RANKS.forEach(rank => {
+    if (['Master', 'Grandmaster', 'Challenger'].includes(rank)) {
+      list.push({ key: rank.toUpperCase(), label: rank });
+    } else {
+      DIVISIONS.forEach(div => {
+        list.push({ key: `${rank.toUpperCase()}_${div}`, label: `${rank} ${div}` });
+      });
+    }
+  });
+  return list;
+})();
+
+// Filter for RANK_BOOST (Iron IV -> Master only)
+const RANK_BOOST_TIERS = FLAT_TIERS.filter(t => !['GRANDMASTER', 'CHALLENGER'].includes(t.key.split('_')[0]));
 
 const SERVICE_KEYS: Record<string, string> = {
   RANK_BOOST: 'svcRankBoost',
@@ -67,6 +98,15 @@ const SERVICE_KEYS: Record<string, string> = {
   LEVELING: 'svcLeveling',
   NET_WINS: 'svcNetWins',
   PLACEMENTS: 'svcPlacements',
+};
+
+const SERVICE_ICONS: Record<string, any> = {
+  RANK_BOOST: Trophy,
+  PROMOTION: TrendingUp,
+  MASTERY: Medal,
+  LEVELING: Zap,
+  NET_WINS: Target,
+  PLACEMENTS: Swords,
 };
 
 // --- SUB-COMPONENTS ---
@@ -103,6 +143,19 @@ const OptionCard = ({ label, price, checked, onChange, icon: Icon, badge, descri
   </div>
 );
 
+const ModifierDisplay = ({ label, value }: { label: string, value: number }) => {
+  if (value === 0) return null;
+  const isPositive = value > 0;
+  return (
+    <div className="flex justify-between text-xs">
+      <span className="text-zinc-400">{label}</span>
+      <span className={isPositive ? 'text-red-400' : 'text-green-400'}>
+        {isPositive ? 'Tăng giá' : 'Giảm giá'} {isPositive ? '+' : ''}{value}%
+      </span>
+    </div>
+  );
+};
+
 function ServicesContent() {
   const { t, language, setLanguage } = useLanguage();
   const router = useRouter();
@@ -120,17 +173,19 @@ function ServicesContent() {
   const [selectedBooster, setSelectedBooster] = useState<Booster | null>(null);
   const [activeTab, setActiveTab] = useState<ServiceType | null>(null);
   
+  // Filter State
+  const [filterServer, setFilterServer] = useState('VN');
+  const [filterService, setFilterService] = useState<string>('');
+
   // UI State
   const [isChampModalOpen, setIsChampModalOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   // Form State
-  const [currentRank, setCurrentRank] = useState('Silver');
-  const [currentDiv, setCurrentDiv] = useState('IV');
-  const [desiredRank, setDesiredRank] = useState('Gold');
-  const [desiredDiv, setDesiredDiv] = useState('IV');
+  const [currentTier, setCurrentTier] = useState('SILVER_IV');
+  const [desiredTier, setDesiredTier] = useState('GOLD_IV');
   const [currentLP, setCurrentLP] = useState('0-20');
-  const [lpGain, setLpGain] = useState('+20');
+  const [lpGain, setLpGain] = useState('19');
   const [currentLevel, setCurrentLevel] = useState(1);
   const [desiredLevel, setDesiredLevel] = useState(30);
   const [currentMastery, setCurrentMastery] = useState(1);
@@ -143,6 +198,8 @@ function ServicesContent() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [agreed, setAgreed] = useState(false);
+  const [queueType, setQueueType] = useState('SOLO_DUO');
+  const [scheduleTime, setScheduleTime] = useState({ start: '08:00', end: '22:00' });
 
   // Options
   const [optLane, setOptLane] = useState(false);
@@ -159,21 +216,27 @@ function ServicesContent() {
       try { setUser(JSON.parse(userData)); } catch (e) {}
     }
 
-    // Fetch Boosters
-    fetch('/api/boosters')
-      .then(res => {
-        if (!res.ok) throw new Error('Failed to fetch boosters');
-        return res.json();
-      })
-      .then(data => setBoosters(data.boosters || []))
-      .catch(err => console.error(err));
-
     // Fetch Champions
     fetch('/api/champions')
       .then(res => res.json())
       .then(data => setChampions(data))
       .catch(err => console.error(err));
   }, []);
+
+  // Fetch Boosters when filters change
+  useEffect(() => {
+    const fetchBoosters = async () => {
+      try {
+        const params = new URLSearchParams();
+        if (filterServer) params.append('server', filterServer);
+        if (filterService) params.append('service', filterService);
+        const res = await fetch(`/api/boosters?${params.toString()}`);
+        const data = await res.json();
+        setBoosters(data.boosters || []);
+      } catch (err) { console.error(err); }
+    };
+    fetchBoosters();
+  }, [filterServer, filterService]);
 
   // Handle URL param for booster
   useEffect(() => {
@@ -209,7 +272,14 @@ function ServicesContent() {
         return services as ServiceType[];
     }
     
-    return ['RANK_BOOST', 'PROMOTION', 'MASTERY', 'LEVELING', 'NET_WINS', 'PLACEMENTS'] as ServiceType[];
+    return Object.keys(SERVICE_ICONS) as ServiceType[];
+  }, [selectedBooster]);
+
+  // Update server selection when booster changes
+  useEffect(() => {
+    if (selectedBooster?.booster_config?.servers?.length) {
+        setServer(selectedBooster.booster_config.servers[0]);
+    }
   }, [selectedBooster]);
 
   // --- LOGIC ---
@@ -233,44 +303,160 @@ function ServicesContent() {
   };
 
   const calculateTotal = () => {
+    const config = selectedBooster?.booster_config || selectedBooster?.booster_info?.service_settings;
+    // Nếu chưa chọn Booster hoặc Booster chưa có config, trả về 0
+    if (!config) return 0;
+
+    // Helper: Tra cứu giá an toàn (Case-insensitive)
+    // Giúp tìm được giá dù key trong DB là "SILVER", "Silver" hay "silver"
+    const getPrice = (prices: Record<string, number> | undefined, key: string): number => {
+        if (!prices) return 0;
+        if (prices[key] !== undefined) return prices[key];
+        if (prices[key.toUpperCase()] !== undefined) return prices[key.toUpperCase()];
+        if (prices[key.toLowerCase()] !== undefined) return prices[key.toLowerCase()];
+        const titleCase = key.charAt(0).toUpperCase() + key.slice(1).toLowerCase();
+        if (prices[titleCase] !== undefined) return prices[titleCase];
+        return 0;
+    };
+
     let base = 0;
+
     if (activeTab === 'RANK_BOOST') {
-      const startIdx = RANKS.indexOf(currentRank) * 4 + DIVISIONS.indexOf(currentDiv);
-      const endIdx = RANKS.indexOf(desiredRank) * 4 + DIVISIONS.indexOf(desiredDiv);
-      if (endIdx > startIdx) {
-        const startPrice = RANK_BASE_PRICES[currentRank] || 0;
-        const endPrice = RANK_BASE_PRICES[desiredRank] || 0;
-        base = Math.max(0, endPrice - startPrice);
-        base += (DIVISIONS.indexOf(desiredDiv) - DIVISIONS.indexOf(currentDiv)) * 20000;
+      // Logic tính giá Rank Boost
+      // FIX: Sử dụng FLAT_TIERS để tìm index chính xác
+      const startIdx = RANK_BOOST_TIERS.findIndex(t => t.key === currentTier);
+      const endIdx = RANK_BOOST_TIERS.findIndex(t => t.key === desiredTier);
+
+      if (config?.rankPrices && Object.keys(config.rankPrices).length > 0) {
+          if (endIdx > startIdx) {
+              for (let i = startIdx; i < endIdx; i++) {
+                  const key = RANK_BOOST_TIERS[i].key;
+                  // Lấy giá của Booster cho Rank tương ứng. Nếu không có giá -> 0
+                  const pricePerStep = getPrice(config.rankPrices, key);
+                  base += pricePerStep;
+              }
+          }
       }
+
+      // Áp dụng Phí sàn -2% vào giá Rank (Theo yêu cầu)
+      // Ví dụ: 50.000 -> 49.000
+      base = base * 0.98;
+
     } else if (activeTab === 'PROMOTION') {
-      base = (RANK_BASE_PRICES[currentRank] || 100000) * 0.4;
+      // Lấy giá Promotion từ Config Booster
+      // Extract Rank name from Tier key (e.g. SILVER_IV -> Silver)
+      const rankName = currentTier.split('_')[0];
+      // Promotion prices usually keyed by Rank (e.g. Silver_I -> Gold_IV promotion)
+      // Assuming config uses keys like "Silver_I" or just "Silver"
+      base = getPrice(config?.promotionPrices, currentTier) || getPrice(config?.promotionPrices, rankName);
     } else if (activeTab === 'MASTERY') {
-      base = Math.max(0, (desiredMastery - currentMastery) * MASTERY_PRICE_PER_LEVEL);
+      // Lấy giá Mastery từ Config Booster
+      const pricePerLevel = config?.masteryPrices?.[currentMastery.toString()] || config?.masteryPrices?.['default'] || 0;
+      base = Math.max(0, (desiredMastery - currentMastery) * pricePerLevel);
     } else if (activeTab === 'LEVELING') {
-      base = Math.max(0, (desiredLevel - currentLevel) * LEVELING_PRICE_PER_LEVEL);
+      // Lấy giá Leveling từ Config Booster
+      const pricePerLevel = config?.levelingPrices?.['default'] || 0;
+      base = Math.max(0, (desiredLevel - currentLevel) * pricePerLevel);
     } else if (activeTab === 'NET_WINS') {
-      const pricePerWin = (RANK_BASE_PRICES[currentRank] || 100000) / 10;
+      // Logic Net Wins: Dùng giá Booster cấu hình (Price per LP) -> Quy đổi ra Game (~20LP/win)
+      const rankName = currentTier.split('_')[0]; // MASTER, GRANDMASTER...
+      const pricePerLP = getPrice(config?.netWinPrices, rankName);
+      
+      let pricePerWin = 0;
+      if (pricePerLP > 0) {
+          pricePerWin = pricePerLP * 20; // Giả định 1 win = 20 LP
+      }
+      
       base = numGames * pricePerWin;
+
+      // Áp dụng hệ số LP (LP Modifiers) từ Config
+      if (config?.lpModifiers) {
+          const val = parseInt(lpGain);
+          let modPercent = 0;
+          if (val < 19) modPercent = config.lpModifiers.low; // Khó (+%)
+          else if (val > 21) modPercent = config.lpModifiers.high; // Dễ (-%)
+          else modPercent = config.lpModifiers.medium;
+          
+          // Lưu ý: modPercent có thể âm (giảm giá) hoặc dương (tăng giá)
+          base = base * (1 + modPercent / 100); // Multiplicative
+      }
+
+      // Apply Queue Type Modifier for NET_WINS
+      if (config?.queueModifiers && queueType) {
+        const qMod = config.queueModifiers[queueType] || 0;
+        if (qMod !== 0) base = base * (1 + qMod / 100);
+      }
+
     } else if (activeTab === 'PLACEMENTS') {
-      base = numGames * PLACEMENT_PRICE_PER_GAME;
-      if (['Master', 'Grandmaster', 'Challenger'].includes(prevRank)) base *= 1.5;
-      else if (['Diamond', 'Emerald'].includes(prevRank)) base *= 1.2;
+      // Lấy giá Placements từ Config Booster theo Rank mùa trước
+      const pricePerGame = getPrice(config?.placementPrices, prevRank);
+      base = numGames * pricePerGame;
+    }
+    
+    // Apply LP Modifier for RANK_BOOST (Multiplicative)
+    if (activeTab === 'RANK_BOOST' && config?.lpModifiers) {
+        const lp = parseInt(lpGain) || 0;
+        let mod = 0;
+        if (lp < 19) mod = config.lpModifiers.low;
+        else if (lp > 21) mod = config.lpModifiers.high;
+        else mod = config.lpModifiers.medium;
+        
+        // Formula: Base * (1 + LP%)
+        base = base * (1 + mod / 100);
+
+        // Apply Queue Type Modifier for RANK_BOOST
+        if (config?.queueModifiers && queueType) {
+            const qMod = config.queueModifiers[queueType] || 0;
+            if (qMod !== 0) base = base * (1 + qMod / 100);
+        }
     }
 
-    let multiplier = 1.0;
-    if (optLane) multiplier += 0.05;
-    if (optChamp) multiplier += 0.30;
-    if (optSpeed) multiplier += 0.35;
-    if (optDuo) multiplier += 0.50;
+    // Helper lấy giá trị option từ config hoặc mặc định
+    const getOptPercent = (key: keyof BoosterConfig['options'], defaultVal: number): number => {
+        const val = config?.options?.[key];
+        return typeof val === 'number' ? val : defaultVal;
+    };
 
-    let total = base * multiplier;
-    if (optStream) total += 349000;
+    // Apply Options Multiplicatively (Sequential Multiplication)
+    // Formula: CurrentTotal * (1 + Option%)
+    if (optLane && config?.options?.roles?.length) base = base * 1.05;
+    if (optChamp && config?.options?.specificChamps) base = base * (1 + getOptPercent('specificChamps', 30) / 100);
+    if (optSpeed && config?.options?.express) base = base * (1 + getOptPercent('express', 35) / 100);
+    if (optDuo && config?.options?.duo) base = base * (1 + getOptPercent('duo', 50) / 100);
+
+    let total = base;
+    
+    if (optStream) {
+        const streamPrice = config?.options ? config.options.streaming : 349000;
+        total += streamPrice;
+    }
 
     return Math.max(0, Math.round(total));
   };
 
   const total = calculateTotal();
+  const config = selectedBooster?.booster_config || selectedBooster?.booster_info?.service_settings;
+
+  // Helper to get current LP Modifier for display
+  const currentLPMod = useMemo(() => {
+    if (!config?.lpModifiers) return 0;
+    const lp = parseInt(lpGain) || 0;
+    if (lp < 19) return config.lpModifiers.low;
+    if (lp > 21) return config.lpModifiers.high;
+    return config.lpModifiers.medium;
+  }, [lpGain, config]);
+
+  // Helper to get current Queue Modifier
+  const currentQueueMod = useMemo(() => {
+    if (!config?.queueModifiers || !queueType) return 0;
+    return config.queueModifiers[queueType] || 0;
+  }, [queueType, config]);
+
+  // Helper to get current Option Modifiers
+  const getOptionMod = (key: keyof BoosterConfig['options'], defaultVal: number) => {
+      if (!config?.options) return defaultVal;
+      return typeof config.options[key] === 'number' ? config.options[key] : defaultVal;
+  };
 
   const handleSubmit = async () => {
     if (!user) {
@@ -302,13 +488,15 @@ function ServicesContent() {
           booster_id: selectedBooster._id,
           serviceType: activeTab === 'PLACEMENTS' ? 'PLACEMENT' : activeTab,
           details: {
-            current_rank: currentRank,
-            desired_rank: desiredRank,
+            current_rank: currentTier, // Sending full key e.g. IRON_IV
+            desired_rank: desiredTier,
             current_lp: parseInt(currentLP),
             lp_gain: parseInt(lpGain),
-            server,
+            server: server, // Use selected server state
             account_username: username,
             account_password: password,
+            account_type: accType,
+            schedule: config?.options?.schedule ? `${scheduleTime.start} - ${scheduleTime.end}` : undefined
           },
           options: {
             flash_boost: optSpeed,
@@ -344,22 +532,14 @@ function ServicesContent() {
   };
 
   // --- RENDER HELPERS ---
-  const renderRankSelector = (label: string, rank: string, setRank: any, div: string, setDiv: any) => (
+  const renderTierSelector = (label: string, value: string, onChange: (val: string) => void, tiers = FLAT_TIERS) => (
     <div className="space-y-2">
       <label className="text-xs font-bold uppercase text-zinc-500 tracking-wider">{label}</label>
-      <div className="flex gap-2">
-        <div className="relative flex-1">
-          <select value={rank} onChange={e => setRank(e.target.value)} className="w-full appearance-none bg-zinc-900/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all font-medium">
-            {RANKS.map(r => <option key={r} value={r} className="bg-zinc-900">{r}</option>)}
-          </select>
-          <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-500"><ChevronRight className="w-4 h-4 rotate-90" /></div>
-        </div>
-        <div className="relative w-24">
-          <select value={div} onChange={e => setDiv(e.target.value)} className="w-full appearance-none bg-zinc-900/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all font-medium text-center">
-            {DIVISIONS.map(d => <option key={d} value={d} className="bg-zinc-900">{d}</option>)}
-          </select>
-          <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-500"><ChevronRight className="w-3 h-3 rotate-90" /></div>
-        </div>
+      <div className="relative">
+        <select value={value} onChange={e => onChange(e.target.value)} className="w-full appearance-none bg-zinc-900/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all font-medium">
+          {tiers.map(t => <option key={t.key} value={t.key} className="bg-zinc-900">{t.label}</option>)}
+        </select>
+        <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-500"><ChevronRight className="w-4 h-4 rotate-90" /></div>
       </div>
     </div>
   );
@@ -424,6 +604,35 @@ function ServicesContent() {
                 Chọn Booster
             </h2>
             
+            {/* Filter Bar */}
+            <div className="flex flex-wrap gap-4 mb-6">
+              <div className="relative">
+                <select 
+                  value={filterServer} 
+                  onChange={(e) => setFilterServer(e.target.value)}
+                  className="appearance-none bg-zinc-900 border border-white/10 rounded-xl pl-4 pr-10 py-2 text-sm font-medium text-white focus:border-blue-500 outline-none"
+                >
+                  {SERVERS.map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+                <ChevronRight className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 rotate-90 text-zinc-500 pointer-events-none" />
+              </div>
+
+              <div className="relative">
+                <select 
+                  value={filterService} 
+                  onChange={(e) => setFilterService(e.target.value)}
+                  className="appearance-none bg-zinc-900 border border-white/10 rounded-xl pl-4 pr-10 py-2 text-sm font-medium text-white focus:border-blue-500 outline-none"
+                >
+                  <option value="">Tất cả dịch vụ</option>
+                  <option value="RANK_BOOST">Cày Rank</option>
+                  <option value="NET_WINS">Net Wins</option>
+                  <option value="PLACEMENTS">Phân hạng</option>
+                  <option value="LEVELING">Cày Level</option>
+                </select>
+                <Filter className="absolute right-3 top-1/2 -translate-y-1/2 w-3 h-3 text-zinc-500 pointer-events-none" />
+              </div>
+            </div>
+
             {boosters.length === 0 ? (
                 <div className="text-center py-12 text-zinc-500 bg-zinc-900/30 rounded-2xl border border-white/5">
                     <Loader2 className="w-8 h-8 animate-spin mx-auto mb-2" />
@@ -462,6 +671,15 @@ function ServicesContent() {
                                     <span key={i} className="px-2 py-1 rounded bg-white/5 text-[10px] font-medium text-zinc-400 border border-white/5">{rank}</span>
                                 ))}
                             </div>
+                            {/* Supported Services Icons */}
+                            <div className="flex gap-1.5 pt-3 border-t border-white/5">
+                                {booster.booster_info?.services?.slice(0, 5).map((svc) => {
+                                    const SvcIcon = SERVICE_ICONS[svc] || Trophy;
+                                    return (
+                                        <div key={svc} className="p-1 rounded bg-zinc-800 text-zinc-400" title={svc}><SvcIcon className="w-3 h-3" /></div>
+                                    );
+                                })}
+                            </div>
                             {selectedBooster?._id === booster._id && (
                                 <div className="absolute top-4 right-4 text-blue-500">
                                     <CheckCircle2 className="w-5 h-5" />
@@ -497,11 +715,12 @@ function ServicesContent() {
                         {[
                             { id: 'RANK_BOOST', label: t('svcRankBoost'), icon: Trophy },
                             { id: 'PROMOTION', label: t('svcPromotion'), icon: TrendingUp },
-                            { id: 'MASTERY', label: t('svcMastery'), icon: Medal },
                             { id: 'LEVELING', label: t('svcLeveling'), icon: Zap },
                             { id: 'NET_WINS', label: t('svcNetWins'), icon: Target },
                             { id: 'PLACEMENTS', label: t('svcPlacements'), icon: Swords },
-                        ].map((svc) => (
+                            { id: 'MASTERY', label: t('svcMastery'), icon: Medal },
+                        ].filter(svc => availableServiceTypes.includes(svc.id as ServiceType))
+                        .map((svc) => (
                             <button
                             key={svc.id}
                             onClick={() => setActiveTab(svc.id as ServiceType)}
@@ -522,26 +741,42 @@ function ServicesContent() {
                     <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-zinc-900/60 backdrop-blur-xl p-6 shadow-xl">
                         {activeTab === 'RANK_BOOST' && (
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                {renderRankSelector(t('servicesCurrentRank'), currentRank, setCurrentRank, currentDiv, setCurrentDiv)}
-                                {renderRankSelector(t('servicesDesiredRank'), desiredRank, setDesiredRank, desiredDiv, setDesiredDiv)}
+                                {renderTierSelector(t('servicesCurrentRank'), currentTier, setCurrentTier, RANK_BOOST_TIERS)}
+                                {renderTierSelector(t('servicesDesiredRank'), desiredTier, setDesiredTier, RANK_BOOST_TIERS)}
+                                
                                 <div className="space-y-2">
-                                    <label className="text-xs font-bold uppercase text-zinc-500 tracking-wider">{t('currentLP')}</label>
-                                    <div className="relative">
-                                        <select value={currentLP} onChange={e => setCurrentLP(e.target.value)} className="w-full appearance-none bg-zinc-900/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-blue-500/50 outline-none transition-all font-medium">
-                                            {['0-20', '21-40', '41-60', '61-80', '81-100'].map(v => <option key={v} value={v} className="bg-zinc-900">{v}</option>)}
-                                        </select>
-                                        <ChevronRight className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 rotate-90 text-zinc-500 pointer-events-none" />
+                                    <label className="text-xs font-bold uppercase text-zinc-500 tracking-wider">{t('queueType')}</label>
+                                    <div className="flex bg-zinc-900/50 p-1 rounded-xl border border-white/10">
+                                        {['SOLO_DUO', 'FLEX'].map((type) => (
+                                            <button
+                                                key={type}
+                                                onClick={() => setQueueType(type)}
+                                                className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${queueType === type ? 'bg-blue-600 text-white shadow-lg' : 'text-zinc-400 hover:text-white'}`}
+                                            >
+                                                {type === 'SOLO_DUO' ? 'Đơn / Đôi' : 'Linh Hoạt'}
+                                            </button>
+                                        ))}
                                     </div>
                                 </div>
+
                                 <div className="space-y-2">
                                     <label className="text-xs font-bold uppercase text-zinc-500 tracking-wider">{t('lpGain')}</label>
                                     <div className="relative">
-                                        <select value={lpGain} onChange={e => setLpGain(e.target.value)} className="w-full appearance-none bg-zinc-900/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-blue-500/50 outline-none transition-all font-medium">
-                                            <option value="+15" className="bg-zinc-900">+15 trở xuống (Bad MMR)</option>
-                                            <option value="+18" className="bg-zinc-900">+16 đến +19 (Normal)</option>
-                                            <option value="+20" className="bg-zinc-900">+20 trở lên (Good MMR)</option>
-                                        </select>
-                                        <ChevronRight className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 rotate-90 text-zinc-500 pointer-events-none" />
+                                        <input 
+                                            type="number" 
+                                            value={lpGain} 
+                                            onChange={e => setLpGain(e.target.value)} 
+                                            className="w-full bg-zinc-900/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-blue-500/50 outline-none transition-all font-medium"
+                                            placeholder="VD: 19"
+                                        />
+                                        <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                                            {currentLPMod !== 0 && (
+                                                <span className={`text-xs font-bold ${currentLPMod > 0 ? 'text-red-400' : 'text-green-400'}`}>
+                                                    {currentLPMod > 0 ? '+' : ''}{currentLPMod}%
+                                                </span>
+                                            )}
+                                            <span className="text-zinc-500 text-sm font-medium">LP/Win</span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -549,7 +784,7 @@ function ServicesContent() {
                         
                         {activeTab === 'PROMOTION' && (
                             <div className="space-y-6">
-                                {renderRankSelector(t('servicesCurrentRank'), currentRank, setCurrentRank, currentDiv, setCurrentDiv)}
+                                {renderTierSelector(t('servicesCurrentRank'), currentTier, setCurrentTier)}
                                 <div className="p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-xl flex gap-3">
                                     <TrendingUp className="w-5 h-5 text-yellow-500 shrink-0" />
                                     <p className="text-sm text-yellow-200">
@@ -575,7 +810,7 @@ function ServicesContent() {
 
                         {activeTab === 'NET_WINS' && (
                             <div className="space-y-6">
-                                {renderRankSelector(t('servicesCurrentRank'), currentRank, setCurrentRank, currentDiv, setCurrentDiv)}
+                                {renderTierSelector(t('servicesCurrentRank'), currentTier, setCurrentTier)}
                                 <div className="space-y-2">
                                     <label className="text-xs font-bold uppercase text-zinc-500 tracking-wider">{t('numGames')} (Số trận thắng)</label>
                                     <div className="flex items-center gap-4">
@@ -649,17 +884,74 @@ function ServicesContent() {
                                 <label className="text-xs font-bold uppercase text-zinc-500 tracking-wider">{t('servicePassword')}</label>
                                 <input type="password" value={password} onChange={e => setPassword(e.target.value)} className="w-full bg-zinc-900/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-blue-500/50 outline-none transition-all" placeholder="••••••••" />
                             </div>
+                            <div className="space-y-2 md:col-span-2">
+                                <label className="text-xs font-bold uppercase text-zinc-500 tracking-wider">Server</label>
+                                <select value={server} onChange={e => setServer(e.target.value)} className="w-full bg-zinc-900/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-blue-500/50 outline-none transition-all">
+                                    {(config?.servers || SERVERS).map(s => <option key={s} value={s} className="bg-zinc-900">{s}</option>)}
+                                </select>
+                            </div>
                         </div>
                     </div>
+
+                    {/* Schedule Boosting (If Enabled) */}
+                    {config?.options?.schedule && (
+                        <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-zinc-900/60 backdrop-blur-xl p-6 shadow-xl">
+                            <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                                <Calendar className="w-5 h-5 text-green-500" />
+                                Đặt lịch cày
+                            </h3>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold uppercase text-zinc-500 tracking-wider">Giờ bắt đầu</label>
+                                    <input type="time" value={scheduleTime.start} onChange={e => setScheduleTime({...scheduleTime, start: e.target.value})} className="w-full bg-zinc-900/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-blue-500/50 outline-none" />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold uppercase text-zinc-500 tracking-wider">Giờ kết thúc</label>
+                                    <input type="time" value={scheduleTime.end} onChange={e => setScheduleTime({...scheduleTime, end: e.target.value})} className="w-full bg-zinc-900/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-blue-500/50 outline-none" />
+                                </div>
+                            </div>
+                            <p className="text-xs text-zinc-500 mt-3">* Booster sẽ ưu tiên cày trong khung giờ này.</p>
+                        </div>
+                    )}
 
                     <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-zinc-900/60 backdrop-blur-xl p-6 shadow-xl">
                         <h3 className="text-lg font-bold text-white mb-4">Tùy chọn thêm</h3>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <OptionCard label="Chọn Lane" price="+5%" checked={optLane} onChange={setOptLane} icon={Map} description="Đảm bảo vị trí sở trường" />
-                            <OptionCard label="Chọn Tướng" price="+30%" checked={optChamp} onChange={setOptChamp} icon={User} description="Chỉ chơi tướng chỉ định" />
-                            <OptionCard label="Siêu Tốc" price="+35%" checked={optSpeed} onChange={setOptSpeed} icon={Zap} description="Ưu tiên xử lý ngay lập tức" badge="Most Popular" />
-                            <OptionCard label="Duo Queue" price="+50%" checked={optDuo} onChange={setOptDuo} icon={Users} description="Chơi cùng Booster" />
-                            <OptionCard label="Streaming" price="+349k" checked={optStream} onChange={setOptStream} icon={Video} description="Xem trực tiếp quá trình" />
+                            {config?.options?.roles && config.options.roles.length > 0 && (
+                                <OptionCard 
+                                    label="Chọn Lane" 
+                                    price="+5%" 
+                                    checked={optLane} onChange={setOptLane} icon={Map} description="Đảm bảo vị trí sở trường" 
+                                />
+                            )}
+                            {config?.options?.specificChamps && config.options.specificChamps > 0 && (
+                                <OptionCard 
+                                    label="Chọn Tướng" 
+                                    price={`+${config.options.specificChamps}%`} 
+                                    checked={optChamp} onChange={setOptChamp} icon={User} description="Chỉ chơi tướng chỉ định" 
+                                />
+                            )}
+                            {config?.options?.express && config.options.express > 0 && (
+                                <OptionCard 
+                                    label="Siêu Tốc" 
+                                    price={`+${config.options.express}%`} 
+                                    checked={optSpeed} onChange={setOptSpeed} icon={Zap} description="Ưu tiên xử lý ngay lập tức" badge="Most Popular" 
+                                />
+                            )}
+                            {config?.options?.duo && config.options.duo > 0 && (
+                                <OptionCard 
+                                    label="Duo Queue" 
+                                    price={`+${config.options.duo}%`} 
+                                    checked={optDuo} onChange={setOptDuo} icon={Users} description="Chơi cùng Booster" 
+                                />
+                            )}
+                            {config?.options?.streaming && config.options.streaming > 0 && (
+                                <OptionCard 
+                                    label="Streaming" 
+                                    price={`+${config.options.streaming.toLocaleString('vi-VN')}đ`} 
+                                    checked={optStream} onChange={setOptStream} icon={Video} description="Xem trực tiếp quá trình" 
+                                />
+                            )}
                         </div>
                         <div className="flex items-center gap-3 p-4 mt-6 rounded-xl border border-white/5 bg-zinc-900/30">
                             <input type="checkbox" checked={agreed} onChange={e => setAgreed(e.target.checked)} className="w-5 h-5 accent-blue-500" />

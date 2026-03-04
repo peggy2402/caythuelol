@@ -9,6 +9,7 @@ export interface DBRank {
   _id: string;
   gameCode: string;
   tier: string;
+  name?: string; // Bổ sung field name để tránh lỗi nếu DB trả về name thay vì tier
   division: string | null;
   order: number;
 }
@@ -21,13 +22,22 @@ export interface Rank {
 }
 
 export interface ServiceSettings {
+  enabledServices: string[]; // Danh sách dịch vụ đang bật (MỚI)
   servers: string[];
   rankPrices: Record<string, number>;
+  rankPricesFlex?: Record<string, number>;
+  rankPricesDuo?: Record<string, number>;
   promotionPrices: Record<string, number>;
+  promotionPricesFlex?: Record<string, number>;
+  promotionPricesDuo?: Record<string, number>;
   placementPrices: Record<string, number>;
+  placementPricesFlex?: Record<string, number>;
+  placementPricesDuo?: Record<string, number>;
   playingChampions: string[];
   levelingPrices: Record<string, number>;
   netWinPrices: Record<string, number>;
+  netWinPricesFlex?: Record<string, number>;
+  netWinPricesDuo?: Record<string, number>;
   masteryPrices: Record<string, number>;
 
   // ✅ CHUẨN HÓA: Chỉ dùng 1 hệ thống modifier
@@ -36,6 +46,7 @@ export interface ServiceSettings {
     medium: number;  // trung tính
     high: number;    // LP cao → dễ → giảm giá (-)
   };
+  queueModifiers?: Record<string, number>;
 
   options: {
     schedule: boolean;
@@ -57,6 +68,7 @@ interface ServiceContextType {
   handleDiscardChanges: () => Promise<void>;
   hasDraft: boolean;
   handleRestoreDraft: () => void;
+  toggleService: (key: string, enabled: boolean) => Promise<void>; // Hàm toggle (MỚI)
   MAX_PRICE_PER_STEP: number;
   platformFee: number;
 }
@@ -79,13 +91,22 @@ export function ServiceProvider({ children }: { children: ReactNode }) {
   const [platformFee, setPlatformFee] = useState(0);
 
   const [settings, _setSettings] = useState<ServiceSettings>({
+    enabledServices: [],
     servers: ['VN'],
     rankPrices: {},
+    rankPricesFlex: {},
+    rankPricesDuo: {},
     promotionPrices: {},
+    promotionPricesFlex: {},
+    promotionPricesDuo: {},
     placementPrices: {},
+    placementPricesFlex: {},
+    placementPricesDuo: {},
     playingChampions: [],
     levelingPrices: {},
     netWinPrices: {},
+    netWinPricesFlex: {},
+    netWinPricesDuo: {},
     masteryPrices: {},
 
     // ✅ Mặc định chuẩn marketplace
@@ -102,7 +123,8 @@ export function ServiceProvider({ children }: { children: ReactNode }) {
       streaming: 349000,
       express: 35,
       duo: 50
-    }
+    },
+    queueModifiers: { SOLO_DUO: 0, FLEX: 0, TFT: 0 }
   });
 
   // Wrapper detect chỉnh sửa
@@ -138,6 +160,11 @@ export function ServiceProvider({ children }: { children: ReactNode }) {
       }
 
       const data = await res.json();
+      console.log('API /api/boosters/services response:', data); // DEBUG: Kiểm tra dữ liệu trả về
+
+      if (!data.ranks || data.ranks.length === 0) {
+        console.warn('Cảnh báo: API không trả về danh sách Rank (data.ranks is empty)');
+      }
 
       // ================= RANK PROCESS =================
 
@@ -149,12 +176,16 @@ export function ServiceProvider({ children }: { children: ReactNode }) {
         > = {};
 
         dbRanks.forEach((r) => {
-          if (!groups[r.tier]) {
-            groups[r.tier] = { name: r.tier, items: [], minOrder: r.order };
+          // FIX: Lấy tier hoặc name, đảm bảo không bị undefined
+          const rankName = r.tier || r.name;
+          if (!rankName) return;
+
+          if (!groups[rankName]) {
+            groups[rankName] = { name: rankName, items: [], minOrder: r.order };
           }
-          if (r.order < groups[r.tier].minOrder)
-            groups[r.tier].minOrder = r.order;
-          groups[r.tier].items.push(r);
+          if (r.order < groups[rankName].minOrder)
+            groups[rankName].minOrder = r.order;
+          groups[rankName].items.push(r);
         });
 
         const processedRanks: Rank[] = Object.values(groups)
@@ -192,11 +223,21 @@ export function ServiceProvider({ children }: { children: ReactNode }) {
           return {
             ...prev,
             ...incoming,
+            enabledServices: data.services || [], // Map từ API response vào state
             playingChampions: incoming.playingChampions || [],
             placementPrices: incoming.placementPrices || {},
+            placementPricesFlex: incoming.placementPricesFlex || {},
+            placementPricesDuo: incoming.placementPricesDuo || {},
             levelingPrices: incoming.levelingPrices || {},
             netWinPrices: incoming.netWinPrices || {},
+            netWinPricesFlex: incoming.netWinPricesFlex || {},
+            netWinPricesDuo: incoming.netWinPricesDuo || {},
             promotionPrices: incoming.promotionPrices || {},
+            promotionPricesFlex: incoming.promotionPricesFlex || {},
+            promotionPricesDuo: incoming.promotionPricesDuo || {},
+            rankPricesFlex: incoming.rankPricesFlex || {},
+            rankPricesDuo: incoming.rankPricesDuo || {},
+            queueModifiers: incoming.queueModifiers || { SOLO_DUO: 0, FLEX: 0, TFT: 0 },
             options: {
               ...prev.options,
               ...incoming.options,
@@ -292,6 +333,32 @@ export function ServiceProvider({ children }: { children: ReactNode }) {
     toast.info('Đã khôi phục cấu hình gốc');
   };
 
+  // ================= TOGGLE SERVICE (MỚI) =================
+  const toggleService = async (key: string, enabled: boolean) => {
+    // Optimistic Update (Cập nhật UI trước khi gọi API)
+    _setSettings(prev => ({
+        ...prev,
+        enabledServices: enabled 
+            ? [...prev.enabledServices, key] 
+            : prev.enabledServices.filter(s => s !== key)
+    }));
+
+    try {
+        const res = await fetch('/api/boosters/services', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ serviceKey: key, enabled })
+        });
+
+        if (!res.ok) throw new Error('Failed to update');
+        toast.success(enabled ? `Đã bật dịch vụ ${key}` : `Đã tắt dịch vụ ${key}`);
+    } catch (error) {
+        toast.error('Lỗi cập nhật dịch vụ');
+        // Revert nếu lỗi (Gọi lại fetchData hoặc revert state thủ công)
+        fetchData(); 
+    }
+  };
+
   return (
     <ServiceContext.Provider
       value={{
@@ -304,6 +371,7 @@ export function ServiceProvider({ children }: { children: ReactNode }) {
         handleDiscardChanges,
         hasDraft,
         handleRestoreDraft,
+        toggleService,
         MAX_PRICE_PER_STEP,
         platformFee
       }}

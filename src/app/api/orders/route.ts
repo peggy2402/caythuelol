@@ -5,7 +5,6 @@ import User from '@/models/User';
 import Transaction, { TransactionType, TransactionStatus } from '@/models/Transaction';
 import { calculatePrice } from '@/lib/pricing';
 import mongoose from 'mongoose';
-import { LOL_RANKS_ORDER } from '@/lib/pricing';
 import { jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
 
@@ -51,7 +50,7 @@ export async function POST(req: Request) {
 
   try {
     const body = await req.json();
-    const { serviceType, currentRank, desiredRank, options, details, customer_id, booster_id, queueType } = body;
+    const { serviceType, currentRank, desiredRank, options, details, customer_id, booster_id, queueType, gamesCount } = body;
 
     // Fetch Booster Config if booster_id is present
     let boosterConfig = undefined;
@@ -62,13 +61,12 @@ export async function POST(req: Request) {
         }
     }
 
-    // Normalize Ranks for Pricing (Map "Silver IV" -> "SILVER_IV")
-    // Assuming frontend sends "Silver" and "IV" separately or combined.
-    // Let's assume frontend sends "Silver" "IV" in details, and we construct the key.
-    // Or frontend sends constructed keys.
-    // Based on create/page.tsx, it sends `currentRank: "Silver"`, `details: { current_rank: "Silver", ... }`
-    // We need to construct the key for `calculatePrice` which expects `SILVER_IV`.
-    
+    // Validate Account Type
+    const VALID_ACCOUNT_TYPES = ['Riot', 'Facebook', 'Google', 'Apple', 'Xbox', 'PlayStation'];
+    if (details.account_type && !VALID_ACCOUNT_TYPES.includes(details.account_type)) {
+        return NextResponse.json({ error: 'Invalid account type' }, { status: 400 });
+    }
+
     // Helper to format rank
     const formatRank = (r: string, d: string) => {
         if (!r) return undefined;
@@ -88,7 +86,7 @@ export async function POST(req: Request) {
       options,
       queueType,
       boosterConfig,
-      gamesCount: body.gamesCount
+      gamesCount
     });
 
     // 2. Get User & Check Balance

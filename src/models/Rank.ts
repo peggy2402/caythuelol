@@ -13,6 +13,6 @@ const RankSchema = new Schema({
   tier: { type: String, required: true },
   division: { type: String, default: null },
   order: { type: Number, required: true },
-});
+}, { collection: 'ranks' }); // Explicitly define collection name
 
 export default mongoose.models.Rank || mongoose.model<IRank>('Rank', RankSchema);

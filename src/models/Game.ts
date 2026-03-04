@@ -13,6 +13,6 @@ const GameSchema = new Schema({
   name: { type: String, required: true },
   slug: { type: String, required: true },
   active: { type: Boolean, default: true },
-});
+}, { collection: 'games' }); // Explicitly define collection name
 
 export default mongoose.models.Game || mongoose.model<IGame>('Game', GameSchema);

@@ -3,7 +3,7 @@
 import { useServiceContext } from '../ServiceContext';
 import { useState, useEffect, useMemo } from 'react';
 import { toast } from 'sonner';
-import { Info, Calculator, ArrowRight, Coins, FileText, TrendingUp, Trash2, AlertTriangle } from 'lucide-react';
+import { Info, Calculator, ArrowRight, Coins, FileText, TrendingUp, Trash2, AlertTriangle, Users, Layers } from 'lucide-react';
 
 export default function RankBoostPage() {
   const { settings, setSettings, ranks, MAX_PRICE_PER_STEP, platformFee } = useServiceContext();
@@ -11,7 +11,8 @@ export default function RankBoostPage() {
   // Filter ranks to only show up to Master (exclude Master, Grandmaster and Challenger)
   const visibleRanks = useMemo(() => {
     // FIX: Chuyển về chữ hoa để so sánh chính xác với DB (MASTER, GRANDMASTER, CHALLENGER)
-    return ranks.filter(r => !['MASTER', 'GRANDMASTER', 'CHALLENGER'].includes(r.name.toUpperCase()));
+    // Thêm check r.name để tránh crash nếu dữ liệu lỗi
+    return ranks.filter(r => r.name && !['MASTER', 'GRANDMASTER', 'CHALLENGER'].includes(r.name.toUpperCase()));
   }, [ranks]);
 
   // Local State for Calculator & Tools
@@ -25,6 +26,18 @@ export default function RankBoostPage() {
   const [bulkImportText, setBulkImportText] = useState('');
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [page, setPage] = useState(0);
+  const [activeTab, setActiveTab] = useState<'SOLO' | 'FLEX' | 'DUO'>('SOLO');
+
+  // Helper: Lấy giá an toàn (Case-insensitive) để fix lỗi hiển thị 0đ
+  const getPrice = (key: string) => {
+    let prices = settings.rankPrices || {};
+    if (activeTab === 'FLEX') prices = settings.rankPricesFlex || {};
+    if (activeTab === 'DUO') prices = settings.rankPricesDuo || {};
+
+    if (prices[key] !== undefined) return prices[key];
+    if (prices[key.toUpperCase()] !== undefined) return prices[key.toUpperCase()];
+    return 0;
+  };
 
   // --- LOGIC ---
   const flatTiers = useMemo(() => {
@@ -76,7 +89,7 @@ export default function RankBoostPage() {
 
     for (let i = fromIndex; i < toIndex; i++) {
       const stepKey = flatTiers[i].key;
-      const price = settings.rankPrices[stepKey];
+      const price = getPrice(stepKey);
       if (!price || price <= 0) missingCount++;
       total += (price || 0);
     }
@@ -87,21 +100,31 @@ export default function RankBoostPage() {
     } else {
       setCalcPrice(total);
     }
-  }, [calcFrom, calcTo, settings.rankPrices, flatTiers]);
+  }, [calcFrom, calcTo, settings.rankPrices, settings.rankPricesFlex, settings.rankPricesDuo, flatTiers, activeTab]);
 
   const updateRankPrice = (rankName: string, tier: string, price: string) => {
-    const key = tier ? `${rankName}_${tier}` : rankName;
+    // FIX: Lưu key dạng UPPERCASE (IRON_IV) để đồng bộ với JSON data
+    const key = (tier ? `${rankName}_${tier}` : rankName).toUpperCase();
     const cleanPrice = price.replace(/,/g, '');
     const numValue = parseInt(cleanPrice) || 0;
 
-    setSettings(prev => ({
-      ...prev,
-      rankPrices: { ...prev.rankPrices, [key]: numValue }
-    }));
+    setSettings(prev => {
+      if (activeTab === 'FLEX') {
+        return { ...prev, rankPricesFlex: { ...prev.rankPricesFlex, [key]: numValue } };
+      }
+      if (activeTab === 'DUO') {
+        return { ...prev, rankPricesDuo: { ...prev.rankPricesDuo, [key]: numValue } };
+      }
+      return { ...prev, rankPrices: { ...prev.rankPrices, [key]: numValue } };
+    });
   };
 
   const handleIncreasePrices = () => {
-    const newPrices = { ...settings.rankPrices };
+    let currentPrices = settings.rankPrices;
+    if (activeTab === 'FLEX') currentPrices = settings.rankPricesFlex || {};
+    if (activeTab === 'DUO') currentPrices = settings.rankPricesDuo || {};
+
+    const newPrices = { ...currentPrices };
     let count = 0;
     for (const key in newPrices) {
       const currentPrice = newPrices[key];
@@ -111,12 +134,21 @@ export default function RankBoostPage() {
         count++;
       }
     }
-    setSettings(prev => ({ ...prev, rankPrices: newPrices }));
+    
+    setSettings(prev => {
+      if (activeTab === 'FLEX') return { ...prev, rankPricesFlex: newPrices };
+      if (activeTab === 'DUO') return { ...prev, rankPricesDuo: newPrices };
+      return { ...prev, rankPrices: newPrices };
+    });
     toast.success(`Đã tăng giá 10% cho ${count} mục`);
   };
 
   const confirmClearPrices = () => {
-    setSettings(prev => ({ ...prev, rankPrices: {} }));
+    setSettings(prev => {
+      if (activeTab === 'FLEX') return { ...prev, rankPricesFlex: {} };
+      if (activeTab === 'DUO') return { ...prev, rankPricesDuo: {} };
+      return { ...prev, rankPrices: {} };
+    });
     toast.success('Đã xóa toàn bộ giá');
     setShowClearConfirm(false);
   };
@@ -129,7 +161,11 @@ export default function RankBoostPage() {
   const handleBulkImport = () => {
     if (!bulkImportText.trim()) return;
     const lines = bulkImportText.trim().split('\n');
-    const newPrices = { ...settings.rankPrices };
+    
+    let currentPrices = settings.rankPrices;
+    if (activeTab === 'FLEX') currentPrices = settings.rankPricesFlex || {};
+    if (activeTab === 'DUO') currentPrices = settings.rankPricesDuo || {};
+    const newPrices = { ...currentPrices };
     let count = 0;
 
     lines.forEach(line => {
@@ -151,7 +187,7 @@ export default function RankBoostPage() {
           }
         }
         
-        const key = tier ? `${rankName}_${tier}` : rankName;
+        const key = (tier ? `${rankName}_${tier}` : rankName).toUpperCase();
         const price = parseInt(priceStr.replace(/[^0-9]/g, ''));
 
         if (rankName && !isNaN(price)) {
@@ -161,7 +197,11 @@ export default function RankBoostPage() {
       }
     });
 
-    setSettings(prev => ({ ...prev, rankPrices: newPrices }));
+    setSettings(prev => {
+      if (activeTab === 'FLEX') return { ...prev, rankPricesFlex: newPrices };
+      if (activeTab === 'DUO') return { ...prev, rankPricesDuo: newPrices };
+      return { ...prev, rankPrices: newPrices };
+    });
     toast.success(`Đã cập nhật ${count} mục giá`);
     setShowBulkImport(false);
     setBulkImportText('');
@@ -390,6 +430,28 @@ export default function RankBoostPage() {
       <section className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
         <div className="mb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
+            {/* TABS */}
+            <div className="flex gap-2 mb-4">
+              <button 
+                onClick={() => setActiveTab('SOLO')}
+                className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'SOLO' ? 'bg-blue-600 text-white' : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'}`}
+              >
+                Solo / Duo (Mặc định)
+              </button>
+              <button 
+                onClick={() => setActiveTab('FLEX')}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'FLEX' ? 'bg-purple-600 text-white' : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'}`}
+              >
+                <Layers className="w-4 h-4" /> Flex
+              </button>
+              <button 
+                onClick={() => setActiveTab('DUO')}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'DUO' ? 'bg-green-600 text-white' : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'}`}
+              >
+                <Users className="w-4 h-4" /> Duo (Chơi cùng)
+              </button>
+            </div>
+
             <h2 className="text-xl font-bold text-white">Bảng giá leo Rank</h2>
             <div className="mt-3 bg-blue-900/20 border border-blue-500/30 rounded-xl p-4 text-sm">
               <p className="text-blue-100 mb-2"><span className="text-yellow-400 font-bold mr-2">⚠️ LƯU Ý:</span>Chỉ nhập giá cho <span className="font-bold text-white border-b border-white">1 BẬC DUY NHẤT</span> (Ví dụ: Vàng 1 lên Bạch Kim 4).</p>
@@ -426,7 +488,7 @@ export default function RankBoostPage() {
         )}
         
         {/* Rank Selector (Horizontal Scroll) */}
-        {visibleRanks.length > 0 && (
+        {visibleRanks.length > 0 ? (
           <div className="mb-6">
             <div className="flex overflow-x-auto gap-3 pb-4 no-scrollbar snap-x">
               {visibleRanks.map((rank, index) => (
@@ -444,6 +506,10 @@ export default function RankBoostPage() {
                 </button>
               ))}
             </div>
+          </div>
+        ) : (
+          <div className="text-center text-zinc-500 py-10 border border-dashed border-zinc-800 rounded-xl mb-6">
+             Không tìm thấy dữ liệu Rank. Vui lòng kiểm tra lại cấu hình hệ thống hoặc tải lại trang.
           </div>
         )}
 
@@ -471,17 +537,17 @@ export default function RankBoostPage() {
                 }
                 
                 const key = tier ? `${rank.name}_${tier}` : rank.name;
-                const currentPrice = settings.rankPrices[key] || 0;
+                const currentPrice = getPrice(key);
 
                 let prevPrice = 0;
                 if (tierIndex > 0) {
                    const prevTier = rank.tiers[tierIndex - 1];
-                   prevPrice = settings.rankPrices[`${rank.name}_${prevTier}`] || 0;
+                   prevPrice = getPrice(`${rank.name}_${prevTier}`);
                 } else if (rankIndex > 0) {
                    const prevRank = visibleRanks[rankIndex - 1];
                    if (prevRank && prevRank.tiers && prevRank.tiers.length > 0) {
                       const prevTier = prevRank.tiers[prevRank.tiers.length - 1];
-                      prevPrice = settings.rankPrices[`${prevRank.name}_${prevTier}`] || 0;
+                      prevPrice = getPrice(`${prevRank.name}_${prevTier}`);
                    }
                 }
                 

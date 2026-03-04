@@ -9,10 +9,9 @@ export async function GET() {
     const API_URL = 'https://b2c-api-cdn.deeplol.gg/summoner/summoner_rank?platform_id=VN2&lane=All';
     let allData: any[] = [];
     
-    // OPTIMIZATION: Fetch song song 10 trang đầu (Top 1000 players) thay vì tuần tự
-    // Challenger ~300, GM ~700 -> 1000 là đủ bao phủ Cut-off
-    const PAGES_TO_FETCH = 50;
-    const pageNumbers = Array.from({ length: PAGES_TO_FETCH }, (_, i) => i + 1);
+    // LOGIC CHUẨN: Fetch đủ 10 trang để lấy đúng số lượng Players (Count)
+    // Nhưng Cut-off sẽ được trích xuất riêng từ Page 3 và Page 10
+    const pageNumbers = Array.from({ length: 10 }, (_, i) => i + 1);
 
     const responses = await Promise.all(
       pageNumbers.map(async (page) => {
@@ -34,17 +33,24 @@ export async function GET() {
     // Gộp dữ liệu từ tất cả các trang
     allData = responses.flat();
 
-    // 2. Process Data
+    // 2. Process Data: Tính Count từ TOÀN BỘ dữ liệu (10 trang)
     const challengers = allData.filter((p: any) => p.tier === 'CHALLENGER');
     const grandmasters = allData.filter((p: any) => p.tier === 'GRANDMASTER');
 
-    // Tính Cut-off (Min LP)
-    const chalCutoff = challengers.length > 0 
-      ? Math.min(...challengers.map((p: any) => p.lp)) 
+    // 3. Tính Cut-off: Chỉ lấy từ Page 3 (index 2) và Page 10 (index 9) theo yêu cầu
+    const page3Data = responses[2] || []; // Dữ liệu trang 3
+    const page10Data = responses[9] || []; // Dữ liệu trang 10
+
+    // Lọc Challenger trong Page 3 để tìm Cut-off Thách Đấu
+    const page3Challengers = page3Data.filter((p: any) => p.tier === 'CHALLENGER');
+    const chalCutoff = page3Challengers.length > 0 
+      ? Math.min(...page3Challengers.map((p: any) => p.lp)) 
       : 0;
     
-    const gmCutoff = grandmasters.length > 0 
-      ? Math.min(...grandmasters.map((p: any) => p.lp)) 
+    // Lọc Grandmaster trong Page 10 để tìm Cut-off Đại Cao Thủ
+    const page10Grandmasters = page10Data.filter((p: any) => p.tier === 'GRANDMASTER');
+    const gmCutoff = page10Grandmasters.length > 0 
+      ? Math.min(...page10Grandmasters.map((p: any) => p.lp)) 
       : 0;
 
     // 3. Lưu & Lấy lịch sử (Bọc try/catch để không crash nếu lỗi DB)

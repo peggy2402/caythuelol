@@ -2,7 +2,7 @@
 
 import { useServiceContext } from '../ServiceContext';
 import { useState, useEffect } from 'react';
-import { Swords, Calculator, Coins, ArrowRight, Info } from 'lucide-react';
+import { Swords, Calculator, Coins, ArrowRight, Info, Layers, Users } from 'lucide-react';
 
 const PLACEMENT_RANKS = [
   'Iron', 'Bronze', 'Silver', 'Gold', 'Platinum', 'Emerald', 'Diamond', 'Master', 'Grandmaster', 'Challenger'
@@ -17,6 +17,7 @@ export default function PlacementsPage() {
   const [calcNumGames, setCalcNumGames] = useState(3); // Default 3 games
   const [calcPrice, setCalcPrice] = useState(0);
   const [calcError, setCalcError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'SOLO' | 'FLEX' | 'DUO'>('SOLO');
 
   // Fee Tool State
   const [toolGross, setToolGross] = useState('');
@@ -31,10 +32,15 @@ export default function PlacementsPage() {
     const cleanPrice = price.replace(/,/g, '');
     const numValue = parseInt(cleanPrice) || 0;
 
-    setSettings(prev => ({
-      ...prev,
-      placementPrices: { ...prev.placementPrices, [key]: numValue }
-    }));
+    setSettings(prev => {
+      if (activeTab === 'FLEX') {
+        return { ...prev, placementPricesFlex: { ...prev.placementPricesFlex, [key]: numValue } };
+      }
+      if (activeTab === 'DUO') {
+        return { ...prev, placementPricesDuo: { ...prev.placementPricesDuo, [key]: numValue } };
+      }
+      return { ...prev, placementPrices: { ...prev.placementPrices, [key]: numValue } };
+    });
   };
 
   // Calculate Total Price for Preview
@@ -46,7 +52,9 @@ export default function PlacementsPage() {
     }
 
     const key = `P_${calcPrevRank}_${calcNumGames}`;
-    const price = settings.placementPrices?.[key];
+    let price = settings.placementPrices?.[key] || 0;
+    if (activeTab === 'FLEX') price = settings.placementPricesFlex?.[key] || 0;
+    if (activeTab === 'DUO') price = settings.placementPricesDuo?.[key] || 0;
 
     if (!price || price <= 0) {
       setCalcPrice(0);
@@ -54,7 +62,7 @@ export default function PlacementsPage() {
     } else {
       setCalcPrice(price);
     }
-  }, [calcPrevRank, calcNumGames, settings.placementPrices]);
+  }, [calcPrevRank, calcNumGames, settings.placementPrices, settings.placementPricesFlex, settings.placementPricesDuo, activeTab]);
 
   return (
     <div className="space-y-8">
@@ -205,6 +213,28 @@ export default function PlacementsPage() {
         </div>
       </div>
 
+      {/* TABS */}
+      <div className="flex gap-2">
+        <button 
+          onClick={() => setActiveTab('SOLO')}
+          className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'SOLO' ? 'bg-blue-600 text-white' : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'}`}
+        >
+          Solo / Duo (Mặc định)
+        </button>
+        <button 
+          onClick={() => setActiveTab('FLEX')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'FLEX' ? 'bg-purple-600 text-white' : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'}`}
+        >
+          <Layers className="w-4 h-4" /> Flex
+        </button>
+        <button 
+          onClick={() => setActiveTab('DUO')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'DUO' ? 'bg-green-600 text-white' : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'}`}
+        >
+          <Users className="w-4 h-4" /> Duo (Chơi cùng)
+        </button>
+      </div>
+
       {/* Pricing Inputs */}
       <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
         <h3 className="text-xl font-bold text-white mb-4">Nhập giá theo Rank mùa trước</h3>
@@ -243,7 +273,9 @@ export default function PlacementsPage() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {PLACEMENT_GAMES.map((games) => {
             const key = `P_${selectedConfigRank}_${games}`;
-            const currentPrice = settings.placementPrices?.[key] || 0;
+            let currentPrice = settings.placementPrices?.[key] || 0;
+            if (activeTab === 'FLEX') currentPrice = settings.placementPricesFlex?.[key] || 0;
+            if (activeTab === 'DUO') currentPrice = settings.placementPricesDuo?.[key] || 0;
             const isHighRank = PLACEMENT_RANKS.indexOf(selectedConfigRank) >= PLACEMENT_RANKS.indexOf('Diamond');
 
             return (

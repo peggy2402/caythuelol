@@ -2,7 +2,7 @@
 
 import { useServiceContext } from '../ServiceContext';
 import { useState, useEffect } from 'react';
-import { Target, Calculator, Coins, ArrowRight, Info, RefreshCw, Trophy, TrendingUp } from 'lucide-react';
+import { Target, Calculator, Coins, ArrowRight, Info, RefreshCw, Trophy, TrendingUp, Layers, Users } from 'lucide-react';
 
 const HIGH_ELO_RANKS = [
   { id: 'Master', label: 'Cao Thủ (Master)', color: 'text-purple-400', border: 'border-purple-500/30', bg: 'bg-purple-500/10' },
@@ -39,6 +39,7 @@ export default function NetWinsPage() {
   const [calcWins, setCalcWins] = useState(0);
   const [calcError, setCalcError] = useState<string | null>(null);
   const [appliedModifier, setAppliedModifier] = useState(0);
+  const [activeTab, setActiveTab] = useState<'SOLO' | 'FLEX' | 'DUO'>('SOLO');
 
   // Fee Tool State
   const [toolNet, setToolNet] = useState('');
@@ -70,7 +71,11 @@ export default function NetWinsPage() {
 
   // Helper variables for rendering (Tính toán để hiển thị ra UI)
   const lpDiff = Math.max(0, calcDesiredLP - calcCurrentLP);
-  const pricePerLP = settings.netWinPrices?.[calcRank] || 0;
+  
+  let pricePerLP = settings.netWinPrices?.[calcRank] || 0;
+  if (activeTab === 'FLEX') pricePerLP = settings.netWinPricesFlex?.[calcRank] || 0;
+  if (activeTab === 'DUO') pricePerLP = settings.netWinPricesDuo?.[calcRank] || 0;
+
   // Tính toán lại ở đây để dùng cho UI
   const winsNeededForDisplay = Math.ceil(lpDiff / calcLPGain);
   const totalLPGainedForDisplay = winsNeededForDisplay * calcLPGain;
@@ -84,10 +89,15 @@ export default function NetWinsPage() {
     const cleanPrice = price.replace(/,/g, '');
     const numValue = parseInt(cleanPrice) || 0;
 
-    setSettings(prev => ({
-      ...prev,
-      netWinPrices: { ...prev.netWinPrices, [rankId]: numValue }
-    }));
+    setSettings(prev => {
+      if (activeTab === 'FLEX') {
+        return { ...prev, netWinPricesFlex: { ...prev.netWinPricesFlex, [rankId]: numValue } };
+      }
+      if (activeTab === 'DUO') {
+        return { ...prev, netWinPricesDuo: { ...prev.netWinPricesDuo, [rankId]: numValue } };
+      }
+      return { ...prev, netWinPrices: { ...prev.netWinPrices, [rankId]: numValue } };
+    });
   };
 
   // Calculate Total Price
@@ -161,7 +171,7 @@ export default function NetWinsPage() {
 
       setCalcPrice(calculateScenarioPrice(calcLPGain, lpKey, lpDiff));
     }
-  }, [calcRank, calcCurrentLP, calcDesiredLP, calcLPGain, settings.netWinPrices, challengerStat.cutoff, gmStat.cutoff, settings.lpModifiers]);
+  }, [calcRank, calcCurrentLP, calcDesiredLP, calcLPGain, settings.netWinPrices, settings.netWinPricesFlex, settings.netWinPricesDuo, challengerStat.cutoff, gmStat.cutoff, settings.lpModifiers, activeTab]);
 
   return (
     <div className="space-y-8">
@@ -227,57 +237,6 @@ export default function NetWinsPage() {
             </div>
           </div>
         </div>
-
-        {/* History Chart */}
-        {history.length > 1 && (
-          <div className="mt-6 bg-zinc-950 p-4 rounded-xl border border-zinc-800">
-            <div className="flex items-center gap-2 mb-4">
-              <TrendingUp className="w-4 h-4 text-blue-500" />
-              <h4 className="text-sm font-bold text-white">Xu hướng Cut-off (7 ngày qua)</h4>
-            </div>
-            
-            <div className="h-32 flex items-end gap-2 relative">
-              {/* Simple Bar Chart Visualization */}
-              {history.map((item, index) => {
-                const maxVal = Math.max(...history.map(h => h.challengerCutoff));
-                const minVal = Math.min(...history.map(h => h.grandmasterCutoff)) * 0.9;
-                const range = maxVal - minVal;
-                
-                const chalHeight = ((item.challengerCutoff - minVal) / range) * 100;
-                const gmHeight = ((item.grandmasterCutoff - minVal) / range) * 100;
-
-                return (
-                  <div key={item.date} className="flex-1 flex flex-col justify-end gap-1 group relative">
-                    {/* Tooltip */}
-                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-zinc-800 text-[10px] text-white p-2 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10 pointer-events-none border border-zinc-700">
-                      <div className="font-bold mb-1">{new Date(item.date).toLocaleDateString('vi-VN')}</div>
-                      <div className="text-yellow-400">Chal: {item.challengerCutoff} LP</div>
-                      <div className="text-red-400">GM: {item.grandmasterCutoff} LP</div>
-                    </div>
-
-                    {/* Challenger Bar */}
-                    <div 
-                      style={{ height: `${chalHeight}%` }} 
-                      className="w-full bg-yellow-500/20 border-t-2 border-yellow-500 rounded-t-sm relative transition-all group-hover:bg-yellow-500/30"
-                    >
-                    </div>
-                    
-                    {/* Grandmaster Bar (Overlay or Stacked - here using absolute positioning for overlay effect) */}
-                    <div 
-                      style={{ height: `${gmHeight}%` }} 
-                      className="absolute bottom-0 w-full bg-red-500/20 border-t-2 border-red-500 rounded-t-sm transition-all group-hover:bg-red-500/30"
-                    >
-                    </div>
-
-                    <div className="text-[10px] text-zinc-600 text-center mt-1 truncate">
-                      {new Date(item.date).getDate()}/{new Date(item.date).getMonth() + 1}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
         
         <div className="flex justify-end mt-2">
           <button 
@@ -464,10 +423,34 @@ export default function NetWinsPage() {
         </div>
       </div>
 
+      {/* TABS */}
+      <div className="flex gap-2">
+        <button 
+          onClick={() => setActiveTab('SOLO')}
+          className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'SOLO' ? 'bg-blue-600 text-white' : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'}`}
+        >
+          Solo / Duo (Mặc định)
+        </button>
+        <button 
+          onClick={() => setActiveTab('FLEX')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'FLEX' ? 'bg-purple-600 text-white' : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'}`}
+        >
+          <Layers className="w-4 h-4" /> Flex
+        </button>
+        <button 
+          onClick={() => setActiveTab('DUO')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'DUO' ? 'bg-green-600 text-white' : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'}`}
+        >
+          <Users className="w-4 h-4" /> Duo (Chơi cùng)
+        </button>
+      </div>
+
       {/* Pricing Inputs */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {HIGH_ELO_RANKS.map((rank) => {
-          const currentPrice = settings.netWinPrices?.[rank.id] || 0;
+          let currentPrice = settings.netWinPrices?.[rank.id] || 0;
+          if (activeTab === 'FLEX') currentPrice = settings.netWinPricesFlex?.[rank.id] || 0;
+          if (activeTab === 'DUO') currentPrice = settings.netWinPricesDuo?.[rank.id] || 0;
 
           return (
             <div 
