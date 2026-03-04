@@ -1,6 +1,6 @@
 Project: LOL Boosting Platform
 Date started: 2026-02-25
-Last updated: 2026-03-03
+Last updated: 2026-03-04
 
 Purpose:
 
@@ -438,3 +438,19 @@ caythuelol/
 - **UI/UX:**
   - **Champion Modal:** Component tái sử dụng cho phép tìm kiếm, lọc tướng theo Vai trò, Độ khó, Loại sát thương.
   - **Realtime:** Cải thiện kết nối Socket.io trong `DashboardLayout` để cập nhật số dư ví ngay lập tức (hiệu ứng âm thanh).
+
+14. 2026-03-04 — Rank Boost Config Refinement & Bug Fixes
+
+- **Rank Boost Page (`/booster/services/lol/rank-boost`):**
+  - **Bug Fixes:**
+    - Sửa lỗi Type mismatch trong khởi tạo state `activeTab` (`'SO LO'` -> `'SOLO'`).
+    - Sửa lỗi cú pháp JSX (unexpected token) và loại bỏ code thừa (unreachable code) trong `visibleRanks`.
+    - Sửa logic lọc Rank Master+ (so sánh không phân biệt hoa thường để tránh lỗi dữ liệu).
+  - **Features:**
+    - **Calculator:** Tinh chỉnh logic tính toán để hiển thị chính xác: Khách trả, Booster thực nhận, và Phí sàn (Admin Fee).
+    - **Fee Tool:** Thêm công cụ chuyển đổi nhanh giữa Giá thực nhận (Net) và Giá khách trả (Gross).
+    - **Bulk Import:** Hoàn thiện tính năng nhập giá nhanh qua văn bản (Format: `Rank | Target | Price`).
+    - **Pricing Tabs:** Hỗ trợ bảng giá riêng biệt cho các chế độ: SOLO, FLEX, và DUO.
+  - **UI/UX:**
+    - Tối ưu hóa các khối nội dung có thể thu gọn (Collapsible) cho giao diện Mobile.
+    - Thêm cảnh báo trực quan khi nhập giá không hợp lệ (ví dụ: giá thấp hơn bậc trước).

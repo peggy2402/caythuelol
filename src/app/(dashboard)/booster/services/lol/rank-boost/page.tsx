@@ -481,7 +481,7 @@ export default function RankBoostPage() {
                                     <span className="text-yellow-400">+{calcDetails.serviceFee.toLocaleString('vi-VN')} ₫</span>
                                 </div>
                                 <div className="border-t border-zinc-800 pt-2 flex justify-between font-bold text-base">
-                                    <span className="text-white">Tổng thanh toán:</span>
+                                    <span className="text-white">Khách trả:</span>
                                     <span className="text-blue-400">{Math.round(calcDetails.customerPay).toLocaleString('vi-VN')} ₫</span>
                                 </div>
                             </div>
@@ -492,7 +492,7 @@ export default function RankBoostPage() {
                             <div className="bg-green-900/10 border border-green-500/20 rounded-xl p-4">
                                 <div className="flex items-center gap-2 mb-2">
                                     <TrendingUp className="w-4 h-4 text-green-400" />
-                                    <h4 className="font-bold text-green-400 text-sm">Booster thực nhận</h4>
+                                    <h4 className="font-bold text-green-400 text-sm">Bạn nhận</h4>
                                 </div>
                                 <div className="text-2xl font-bold text-white mb-1">
                                     {Math.round(calcDetails.boosterReceive).toLocaleString('vi-VN')} ₫
