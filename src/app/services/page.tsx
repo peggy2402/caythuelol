@@ -205,6 +205,11 @@ function ServicesContent() {
   const [queueType, setQueueType] = useState('SOLO_DUO');
   const [scheduleTime, setScheduleTime] = useState({ start: '08:00', end: '22:00' });
 
+  // Net Wins Specific State
+  const [nwCurrentRank, setNwCurrentRank] = useState('Master');
+  const [nwCurrentLP, setNwCurrentLP] = useState(0);
+  const [nwDesiredLP, setNwDesiredLP] = useState(100);
+
   // Options
   const [optLane, setOptLane] = useState(false);
   const [optChamp, setOptChamp] = useState(false);
@@ -366,15 +371,12 @@ function ServicesContent() {
       base = Math.max(0, (desiredLevel - currentLevel) * pricePerLevel);
     } else if (activeTab === 'NET_WINS') {
       // Logic Net Wins: Dùng giá Booster cấu hình (Price per LP) -> Quy đổi ra Game (~20LP/win)
-      const rankName = currentTier.split('_')[0]; // MASTER, GRANDMASTER...
-      const pricePerLP = getPrice(prices.netWin, rankName);
-      
-      let pricePerWin = 0;
-      if (pricePerLP > 0) {
-          pricePerWin = pricePerLP * 20; // Giả định 1 win = 20 LP
-      }
-      
-      base = numGames * pricePerWin;
+      // Sử dụng nwCurrentRank (Master, Grandmaster, Challenger)
+      const pricePerLP = getPrice(prices.netWin, nwCurrentRank);
+      console.log('Price per LP based on current rank:', pricePerLP);
+      const lpDiff = Math.max(0, nwDesiredLP - nwCurrentLP);
+      console.log('LP Difference:', lpDiff);
+      base = lpDiff * pricePerLP;
 
     } else if (activeTab === 'PLACEMENTS') {
       // Lấy giá Placements từ Config Booster theo Rank mùa trước
@@ -472,9 +474,10 @@ function ServicesContent() {
           booster_id: selectedBooster._id,
           serviceType: activeTab === 'PLACEMENTS' ? 'PLACEMENT' : activeTab,
           details: {
-            current_rank: currentTier, // Sending full key e.g. IRON_IV
-            desired_rank: desiredTier,
-            current_lp: parseInt(currentLP),
+            current_rank: activeTab === 'NET_WINS' ? nwCurrentRank : currentTier, 
+            desired_rank: activeTab === 'NET_WINS' ? nwCurrentRank : desiredTier,
+            current_lp: activeTab === 'NET_WINS' ? nwCurrentLP : parseInt(currentLP),
+            desired_lp: activeTab === 'NET_WINS' ? nwDesiredLP : undefined,
             lp_gain: parseInt(lpGain),
             server: server, // Use selected server state
             account_username: username,
@@ -824,12 +827,94 @@ function ServicesContent() {
 
                         {activeTab === 'NET_WINS' && (
                             <div className="space-y-6">
-                                {renderTierSelector(t('servicesCurrentRank'), currentTier, setCurrentTier)}
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-bold uppercase text-zinc-500 tracking-wider">{t('servicesCurrentRank')}</label>
+                                        <div className="relative">
+                                            <select 
+                                                value={nwCurrentRank} 
+                                                onChange={e => setNwCurrentRank(e.target.value)} 
+                                                className="w-full appearance-none bg-zinc-900/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-blue-500/50 outline-none transition-all font-medium"
+                                            >
+                                                {['Master', 'Grandmaster', 'Challenger'].map(r => (
+                                                    <option key={r} value={r} className="bg-zinc-900">{r}</option>
+                                                ))}
+                                            </select>
+                                            <ChevronRight className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 rotate-90 text-zinc-500 pointer-events-none" />
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-bold uppercase text-zinc-500 tracking-wider">{t('queueType')}</label>
+                                        <div className="flex bg-zinc-900/50 p-1 rounded-xl border border-white/10">
+                                            {['SOLO_DUO', 'FLEX'].map((type) => (
+                                                <button
+                                                    key={type}
+                                                    onClick={() => setQueueType(type)}
+                                                    className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${queueType === type ? 'bg-blue-600 text-white shadow-lg' : 'text-zinc-400 hover:text-white'}`}
+                                                >
+                                                    {type === 'SOLO_DUO' ? 'Đơn / Đôi' : 'Linh Hoạt'}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-bold uppercase text-zinc-500 tracking-wider">{t('currentLP')}</label>
+                                        <input 
+                                            type="number" 
+                                            min="0"
+                                            value={nwCurrentLP} 
+                                            onChange={e => setNwCurrentLP(Math.max(0, Number(e.target.value)))}
+                                            className="w-full bg-zinc-900/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-blue-500/50 outline-none transition-all font-medium"
+                                            placeholder="0"
+                                        />
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-bold uppercase text-zinc-500 tracking-wider">{t('desiredLP')}</label>
+                                        <input 
+                                            type="number" 
+                                            min="0"
+                                            value={nwDesiredLP} 
+                                            onChange={e => setNwDesiredLP(Math.max(0, Number(e.target.value)))}
+                                            className="w-full bg-zinc-900/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-blue-500/50 outline-none transition-all font-medium"
+                                            placeholder="100"
+                                        />
+                                    </div>
+                                </div>
+
                                 <div className="space-y-2">
-                                    <label className="text-xs font-bold uppercase text-zinc-500 tracking-wider">{t('numGames')} (Số trận thắng)</label>
-                                    <div className="flex items-center gap-4">
-                                        <input type="range" min="1" max="10" value={numGames} onChange={e => setNumGames(Number(e.target.value))} className="w-full h-2 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-blue-500" />
-                                        <div className="w-12 h-10 flex items-center justify-center bg-zinc-800 rounded border border-white/10 font-bold">{numGames}</div>
+                                    <label className="text-xs font-bold uppercase text-zinc-500 tracking-wider">{t('lpGain')}</label>
+                                    <div className="relative">
+                                      <input 
+                                        type="number"
+                                        min="1"
+                                        step="1"
+                                        value={lpGain}
+                                        onChange={e => {
+                                          const val = e.target.value;
+                                          if (val === '') {
+                                            setLpGain('');
+                                            return;
+                                          }
+                                          if (val.includes('-') || Number(val) < 0) {
+                                            toast.error('Vui lòng nhập số nguyên dương');
+                                            return;
+                                          }
+                                          setLpGain(val);
+                                        }}
+                                        className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white outline-none focus:border-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                        placeholder="VD: 19"
+                                      />
+                                    <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                                      {currentLPMod !== 0 && (
+                                        <div className={`px-2 py-1 rounded-md text-xs font-semibold flex items-center gap-1 ${currentLPMod > 0 ? 'bg-red-500/10 text-red-400 border border-red-500/30' : 'bg-green-500/10 text-green-400 border border-green-500/30'}`}>
+                                          {currentLPMod > 0 ? 'Tăng giá +' : 'Giảm giá -'}{Math.abs(currentLPMod)}%
+                                        </div>
+                                      )}
+                                      <span className="text-zinc-400 text-sm font-medium">LP mỗi trận</span>
+                                    </div>
                                     </div>
                                 </div>
                             </div>
