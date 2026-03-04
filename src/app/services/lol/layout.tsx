@@ -6,15 +6,15 @@ import { usePathname, useSearchParams } from 'next/navigation';
 import Navbar from '@/components/Navbar';
 import BoosterPicker from '@/components/BoosterPicker';
 import { Trophy, Target, TrendingUp, Swords, Zap, Medal, MousePointerClick } from 'lucide-react';
-import { Suspense } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 
 const TABS = [
-  { id: 'rank-boost', label: 'Cày Rank', href: '/services/lol/rank-boost', icon: Trophy },
-  { id: 'net-wins', label: 'Net Wins', href: '/services/lol/net-wins', icon: Target },
-  { id: 'promotion', label: 'Chuỗi Promotion', href: '/services/lol/promotion', icon: TrendingUp },
-  { id: 'placements', label: 'Phân Hạng', href: '/services/lol/placements', icon: Swords },
-  { id: 'leveling', label: 'Cày Level', href: '/services/lol/leveling', icon: Zap },
-  { id: 'mastery', label: 'Thông Thạo', href: '/services/lol/mastery', icon: Medal },
+  { id: 'rank-boost', label: 'Cày Rank', href: '/services/lol/rank-boost', icon: Trophy, key: 'RANK_BOOST' },
+  { id: 'net-wins', label: 'Net Wins', href: '/services/lol/net-wins', icon: Target, key: 'NET_WINS' },
+  { id: 'promotion', label: 'Chuỗi Promotion', href: '/services/lol/promotion', icon: TrendingUp, key: 'PROMOTION' },
+  { id: 'placements', label: 'Phân Hạng', href: '/services/lol/placements', icon: Swords, key: 'PLACEMENTS' },
+  { id: 'leveling', label: 'Cày Level', href: '/services/lol/leveling', icon: Zap, key: 'LEVELING' },
+  { id: 'mastery', label: 'Thông Thạo', href: '/services/lol/mastery', icon: Medal, key: 'MASTERY' },
 ];
 
 function ServiceTabs() {
@@ -22,11 +22,43 @@ function ServiceTabs() {
   const searchParams = useSearchParams();
   const queryString = searchParams.toString();
   const query = queryString ? `?${queryString}` : '';
+  const boosterId = searchParams.get('booster');
+
+  const [allowedServices, setAllowedServices] = useState<string[] | null>(null);
+
+  // Fetch thông tin services của Booster khi boosterId thay đổi
+  useEffect(() => {
+    if (!boosterId) {
+      setAllowedServices(null); // Nếu chưa chọn booster, hiện tất cả (hoặc logic tuỳ bạn)
+      return;
+    }
+
+    const fetchBoosterServices = async () => {
+      try {
+        // Gọi API lấy list boosters (hoặc endpoint detail riêng nếu có)
+        // Ở đây dùng filter _id giả lập việc lấy detail
+        const res = await fetch(`/api/boosters`); 
+        const data = await res.json();
+        const booster = data.boosters?.find((b: any) => b._id === boosterId);
+        
+        if (booster && booster.booster_info?.services) {
+          setAllowedServices(booster.booster_info.services);
+        }
+      } catch (error) {
+        console.error("Failed to fetch booster services", error);
+      }
+    };
+
+    fetchBoosterServices();
+  }, [boosterId]);
 
   return (
     <div className="mb-8 overflow-x-auto pb-2 no-scrollbar">
       <div className="flex gap-2 min-w-max">
         {TABS.map((tab) => {
+          // Logic ẩn hiện: Nếu đã chọn booster và booster đó KHÔNG có service này -> Ẩn
+          if (allowedServices && tab.key && !allowedServices.includes(tab.key)) return null;
+
           const isActive = pathname.includes(tab.href);
           return (
             <Link

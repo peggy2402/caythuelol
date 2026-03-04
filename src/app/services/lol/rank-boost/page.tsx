@@ -32,6 +32,135 @@ const FLAT_TIERS = (() => {
   return list;
 })();
 
+const VisualRankSelector = ({ 
+    label, 
+    value, 
+    onChange, 
+    minRankIndex = -1 
+  }: { 
+    label: string, 
+    value: string, 
+    onChange: (val: string) => void, 
+    minRankIndex?: number 
+  }) => {
+    const { tier: selectedTier, division: selectedDiv } = useMemo(() => {
+        if (value === 'MASTER') return { tier: 'Master', division: '' };
+        const parts = value.split('_');
+        const t = parts[0].charAt(0).toUpperCase() + parts[0].slice(1).toLowerCase();
+        return { tier: t, division: parts[1] };
+    }, [value]);
+
+    const handleTierClick = (tier: string) => {
+        if (tier === 'Master') {
+            onChange('MASTER');
+            return;
+        }
+        
+        let bestDiv = 'IV';
+        // Find the lowest valid division for this tier
+        for (const div of DIVISIONS) { 
+             const testKey = `${tier.toUpperCase()}_${div}`;
+             const idx = FLAT_TIERS.findIndex(t => t.key === testKey);
+             if (idx > minRankIndex) {
+                 bestDiv = div;
+                 break; 
+             }
+        }
+        onChange(`${tier.toUpperCase()}_${bestDiv}`);
+    };
+
+    const handleDivClick = (div: string) => {
+        if (selectedTier === 'Master') return;
+        const newKey = `${selectedTier.toUpperCase()}_${div}`;
+        onChange(newKey);
+    };
+
+    return (
+      <div className="space-y-3">
+        <label className="text-xs font-bold uppercase text-zinc-500 tracking-wider">{label}</label>
+        <div className="bg-zinc-900/50 border border-white/10 rounded-xl p-4">
+            {/* Tiers Grid */}
+            <div className="grid grid-cols-4 gap-2 mb-4">
+                {RANKS.map(rank => {
+                    if (rank === 'Master') {
+                        const idx = FLAT_TIERS.findIndex(t => t.key === 'MASTER');
+                        const disabled = idx <= minRankIndex;
+                        const active = selectedTier === 'Master';
+                        return (
+                            <button 
+                                key={rank}
+                                onClick={() => !disabled && handleTierClick(rank)}
+                                disabled={disabled}
+                                className={`py-2 rounded-lg text-xs font-bold transition-all border ${
+                                    active 
+                                    ? 'bg-blue-600 border-blue-500 text-white shadow-lg' 
+                                    : disabled 
+                                        ? 'opacity-20 cursor-not-allowed border-transparent text-zinc-600'
+                                        : 'bg-zinc-800 border-zinc-700 text-zinc-400 hover:bg-zinc-700 hover:text-white'
+                                }`}
+                            >
+                                {rank}
+                            </button>
+                        );
+                    }
+                    
+                    const maxKey = `${rank.toUpperCase()}_I`;
+                    const maxIdx = FLAT_TIERS.findIndex(t => t.key === maxKey);
+                    const disabled = maxIdx <= minRankIndex;
+                    const active = selectedTier === rank;
+
+                    return (
+                        <button 
+                            key={rank}
+                            onClick={() => !disabled && handleTierClick(rank)}
+                            disabled={disabled}
+                            className={`py-2 rounded-lg text-xs font-bold transition-all border ${
+                                active 
+                                ? 'bg-blue-600 border-blue-500 text-white shadow-lg' 
+                                : disabled 
+                                    ? 'opacity-20 cursor-not-allowed border-transparent text-zinc-600'
+                                    : 'bg-zinc-800 border-zinc-700 text-zinc-400 hover:bg-zinc-700 hover:text-white'
+                            }`}
+                        >
+                            {rank}
+                        </button>
+                    );
+                })}
+            </div>
+
+            {/* Divisions Row */}
+            {selectedTier !== 'Master' && (
+                <div className="flex gap-2 p-1 bg-zinc-950/50 rounded-lg border border-white/5">
+                    {DIVISIONS.map(div => {
+                        const key = `${selectedTier.toUpperCase()}_${div}`;
+                        const idx = FLAT_TIERS.findIndex(t => t.key === key);
+                        const disabled = idx <= minRankIndex;
+                        const active = selectedDiv === div;
+                        
+                        return (
+                            <button
+                                key={div}
+                                onClick={() => !disabled && handleDivClick(div)}
+                                disabled={disabled}
+                                className={`flex-1 py-1.5 rounded-md text-xs font-bold transition-all ${
+                                    active
+                                    ? 'bg-zinc-700 text-white shadow'
+                                    : disabled
+                                        ? 'opacity-20 cursor-not-allowed text-zinc-600'
+                                        : 'text-zinc-400 hover:text-white hover:bg-zinc-800'
+                                }`}
+                            >
+                                {div}
+                            </button>
+                        )
+                    })}
+                </div>
+            )}
+        </div>
+      </div>
+    );
+  };
+
 function RankBoostContent() {
   const searchParams = useSearchParams();
   const boosterId = searchParams.get('booster');
@@ -63,7 +192,6 @@ function RankBoostContent() {
 
   const [boosterConfig, setBoosterConfig] = useState<any>(null);
   const [loadingConfig, setLoadingConfig] = useState(false);
-  const [price, setPrice] = useState(0);
 
   // 1. Fetch Platform Fee
   useEffect(() => {
@@ -124,12 +252,11 @@ function RankBoostContent() {
     }
   }, [currentTier, desiredTier]);
 
-  // 3. Tính giá (Logic chi tiết)
-  useEffect(() => {
+  // 3. Tính giá chi tiết (Sử dụng useMemo để hiển thị breakdown)
+  const priceDetails = useMemo(() => {
     // Nếu chưa có config hoặc chưa chọn booster -> Giá = 0
     if (!boosterConfig?.booster_info?.service_settings) {
-        setPrice(0);
-        return;
+        return null;
     }
 
     const settings = boosterConfig.booster_info.service_settings;
@@ -140,11 +267,10 @@ function RankBoostContent() {
 
     // Validate: Rank mong muốn phải cao hơn Rank hiện tại
     if (startIdx === -1 || endIdx === -1 || startIdx >= endIdx) {
-        setPrice(0);
-        return;
+        return null;
     }
 
-    // A. Tính giá dịch vụ gốc (Base Price)
+    // A. Giá Rank (Base Price)
     let totalBase = 0;
     // Chọn bảng giá dựa trên hàng chờ (nếu Flex có bảng giá riêng thì dùng, không thì dùng bảng chung)
     const priceTable = (queueType === 'FLEX' && settings.rankPricesFlex && Object.keys(settings.rankPricesFlex).length > 0)
@@ -159,11 +285,12 @@ function RankBoostContent() {
         totalBase += rankPrice;
     }
 
-    // B. Áp dụng Hệ số Elo (LP Modifier)
+    // B. Hệ số Elo (LP Modifier) - Tính trên Base Price
     let lpModPercent = 0;
-    const lp = parseInt(lpGain) || 0;
+    const lp = parseInt(lpGain);
+    if (isNaN(lp) || lp < 0) return null;
     
-    if (settings.lpModifiers) {
+    if (lp > 0 && settings.lpModifiers) {
         if (lp < 19) {
             lpModPercent = settings.lpModifiers.low || 0;
         } else if (lp >= 19 && lp <= 21) {
@@ -172,47 +299,50 @@ function RankBoostContent() {
             lpModPercent = settings.lpModifiers.high || 0;
         }
     }
-    const eloModifier = (1 + lpModPercent / 100);
+    const lpModValue = totalBase * (lpModPercent / 100);
 
-    // C. Áp dụng Tùy chọn thêm (Options)
-    let optionsPercentModifier = 1;
-    let optionsFixedPrice = 0;
+    // C. Tùy chọn thêm (Options) - Tính trên Base Price (theo ví dụ của bạn)
     const boosterOptions = settings.options || {};
+    const optionDetails: { label: string; percent?: number; value: number }[] = [];
+    let optionsTotalValue = 0;
 
     if (extraOptions.express && boosterOptions.express > 0) {
-        optionsPercentModifier *= (1 + boosterOptions.express / 100);
+        const val = totalBase * (boosterOptions.express / 100);
+        optionsTotalValue += val;
+        optionDetails.push({ label: 'Cày siêu tốc', percent: boosterOptions.express, value: val });
     }
     if (extraOptions.duo && boosterOptions.duo > 0) {
-        optionsPercentModifier *= (1 + boosterOptions.duo / 100);
+        const val = totalBase * (boosterOptions.duo / 100);
+        optionsTotalValue += val;
+        optionDetails.push({ label: 'Duo với Booster', percent: boosterOptions.duo, value: val });
     }
     if (extraOptions.specificChamps && boosterOptions.specificChamps > 0) {
-        optionsPercentModifier *= (1 + boosterOptions.specificChamps / 100);
+        const val = totalBase * (boosterOptions.specificChamps / 100);
+        optionsTotalValue += val;
+        optionDetails.push({ label: 'Tướng chỉ định', percent: boosterOptions.specificChamps, value: val });
     }
     if (extraOptions.streaming && boosterOptions.streaming > 0) {
-        optionsFixedPrice += boosterOptions.streaming;
+        const val = boosterOptions.streaming;
+        optionsTotalValue += val;
+        optionDetails.push({ label: 'Streaming', value: val });
     }
+    // Schedule (Miễn phí theo code cũ, nếu có phí thì thêm vào đây)
 
-    // D. Tính giá cuối cùng
-    // 1. Áp dụng các modifier % vào giá gốc, sau đó cộng giá cố định
-    const priceWithMods = (totalBase * eloModifier * optionsPercentModifier) + optionsFixedPrice;
-    // 2. Áp dụng phí nền tảng
-    const finalPrice = priceWithMods * (1 + platformFee / 100);
-    
-    setPrice(Math.max(0, Math.round(finalPrice)));
+    // D. Phí dịch vụ (Platform Fee) - Tính trên Giá Rank (theo yêu cầu: giá rank * 2%)
+    const platformFeeValue = totalBase * (platformFee / 100);
 
+    // E. Tổng cộng
+    const total = totalBase + lpModValue + optionsTotalValue + platformFeeValue;
+
+    return {
+        basePrice: totalBase,
+        lpModPercent,
+        lpModValue,
+        optionDetails,
+        platformFeeValue,
+        total: Math.max(0, Math.round(total))
+    };
   }, [currentTier, desiredTier, lpGain, queueType, boosterConfig, platformFee, extraOptions]);
-
-  const renderTierSelector = (label: string, value: string, onChange: (val: string) => void, options: typeof FLAT_TIERS) => (
-    <div className="space-y-2">
-      <label className="text-xs font-bold uppercase text-zinc-500 tracking-wider">{label}</label>
-      <div className="relative">
-        <select value={value} onChange={e => onChange(e.target.value)} className="w-full appearance-none bg-zinc-900/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-blue-500/50 outline-none transition-all font-medium">
-          {options.map(t => <option key={t.key} value={t.key} className="bg-zinc-900">{t.label}</option>)}
-        </select>
-        <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-500"><ChevronRight className="w-4 h-4 rotate-90" /></div>
-      </div>
-    </div>
-  );
 
   const handleOptionChange = (optionKey: string) => {
     setExtraOptions(prev => ({ ...prev, [optionKey]: !prev[optionKey] }));
@@ -242,6 +372,8 @@ function RankBoostContent() {
     const lp = parseInt(lpGain);
     if (isNaN(lp)) return null;
 
+    if (lp === 0) return <div className="text-xs font-bold mt-2 text-zinc-500">Giá tiêu chuẩn (Không áp dụng hệ số Elo)</div>;
+
     const mods = boosterConfig.booster_info.service_settings.lpModifiers;
     let percent = 0;
     
@@ -260,9 +392,7 @@ function RankBoostContent() {
     );
   };
 
-  // Filter Desired Ranks (Must be > Current Rank)
   const currentTierIndex = FLAT_TIERS.findIndex(t => t.key === currentTier);
-  const desiredTierOptions = FLAT_TIERS.filter((_, index) => index > currentTierIndex);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -275,8 +405,8 @@ function RankBoostContent() {
           </h3>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {renderTierSelector("Rank Hiện Tại", currentTier, setCurrentTier, FLAT_TIERS)}
-            {renderTierSelector("Rank Mong Muốn", desiredTier, setDesiredTier, desiredTierOptions)}
+            <VisualRankSelector label="Rank Hiện Tại" value={currentTier} onChange={setCurrentTier} />
+            <VisualRankSelector label="Rank Mong Muốn" value={desiredTier} onChange={setDesiredTier} minRankIndex={currentTierIndex} />
             
             <div className="space-y-2">
                 <label className="text-xs font-bold uppercase text-zinc-500 tracking-wider">Loại hàng chờ</label>
@@ -300,12 +430,20 @@ function RankBoostContent() {
                         type="number" 
                         value={lpGain} 
                         onChange={e => setLpGain(e.target.value)}
-                        className="w-full bg-zinc-900/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-blue-500/50 outline-none"
+                        className={`w-full bg-zinc-900 border ${parseInt(lpGain) < 0 ? 'border-red-500 focus:border-red-500' : 'border-zinc-700 focus:border-blue-500'} rounded-lg px-3 py-2 text-white outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`}
                         placeholder="VD: 19"
+                        min="0"
                     />
                     <span className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-500 text-xs font-bold">LP/Win</span>
                 </div>
-                {getLpFeedback()}
+                {parseInt(lpGain) < 0 ? (
+                    <div className="text-red-500 text-xs font-bold mt-2 flex items-center gap-1">
+                        <AlertCircle className="w-3 h-3" />
+                        Vui lòng nhập số điểm cộng hợp lệ (không âm).
+                    </div>
+                ) : (
+                    getLpFeedback()
+                )}
             </div>
           </div>
         </div>
@@ -419,39 +557,51 @@ function RankBoostContent() {
                         </div>
                     </div>
 
-                    <div className="flex justify-between text-sm pt-2 border-t border-white/10">
-                        <span className="text-zinc-400">Dịch vụ:</span>
-                        <span className="text-white font-bold">Rank Boost</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                        <span className="text-zinc-400">Từ:</span>
-                        <span className="text-zinc-300 font-medium">{FLAT_TIERS.find(t => t.key === currentTier)?.label}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                        <span className="text-zinc-400">Đến:</span>
-                        <span className="text-blue-400 font-bold">{FLAT_TIERS.find(t => t.key === desiredTier)?.label}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                        <span className="text-zinc-400">Phí nền tảng:</span>
-                        <span className="text-white font-medium">{platformFee}%</span>
+                    {/* Price Breakdown */}
+                    <div className="space-y-2 pt-2 border-t border-white/10">
+                        <div className="flex justify-between text-sm">
+                            <span className="text-zinc-400">Giá Rank ({FLAT_TIERS.find(t => t.key === currentTier)?.label} {'->'} {FLAT_TIERS.find(t => t.key === desiredTier)?.label}):</span>
+                            <span className="text-white font-medium">{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(priceDetails?.basePrice || 0)}</span>
+                        </div>
+
+                        {priceDetails?.lpModPercent !== 0 && (
+                            <div className="flex justify-between text-sm">
+                                <span className="text-zinc-400">Hệ số Elo ({priceDetails?.lpModPercent && priceDetails.lpModPercent > 0 ? '+' : ''}{priceDetails?.lpModPercent}%):</span>
+                                <span className={`${(priceDetails?.lpModValue || 0) > 0 ? 'text-red-400' : 'text-green-400'} font-medium`}>
+                                    {(priceDetails?.lpModValue || 0) > 0 ? '+' : ''}{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(priceDetails?.lpModValue || 0)}
+                                </span>
+                            </div>
+                        )}
+
+                        {priceDetails?.optionDetails.map((opt, idx) => (
+                            <div key={idx} className="flex justify-between text-sm">
+                                <span className="text-zinc-400">{opt.label} {opt.percent ? `(${opt.percent}%)` : ''}:</span>
+                                <span className="text-white font-medium">+{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(opt.value)}</span>
+                            </div>
+                        ))}
+
+                        <div className="flex justify-between text-sm">
+                            <span className="text-zinc-400">Phí dịch vụ ({platformFee}%):</span>
+                            <span className="text-white font-medium">+{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(priceDetails?.platformFeeValue || 0)}</span>
+                        </div>
                     </div>
                     
                     {/* Total Price */}
                     <div className="flex justify-between items-end pt-4 border-t-2 border-white/10 mt-4">
                         <span className="text-zinc-400 font-medium">Tổng cộng:</span>
                         <span className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">
-                            {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price)}
+                            {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(priceDetails?.total || 0)}
                         </span>
                     </div>
                 </div>
             )}
 
             <button 
-                disabled={!boosterId || price <= 0}
+                disabled={!boosterId || !priceDetails || priceDetails.total <= 0}
                 className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-blue-600/20"
             >
                 <ShieldCheck className="w-5 h-5" />
-                {price > 0 ? 'Tiến hành thuê' : 'Vui lòng cấu hình'}
+                {priceDetails && priceDetails.total > 0 ? 'Tiến hành thuê' : 'Vui lòng cấu hình'}
             </button>
         </div>
       </div>

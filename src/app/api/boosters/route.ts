@@ -8,6 +8,7 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
     
     // 1. Parse Query Params
+    const search = searchParams.get('search'); // Filter theo tên booster
     const server = searchParams.get('server'); // Filter theo server (VN, KR...)
     const service = searchParams.get('service'); // Filter theo loại dịch vụ (RANK_BOOST, NET_WINS...)
     const page = parseInt(searchParams.get('page') || '1');
@@ -16,6 +17,11 @@ export async function GET(req: Request) {
 
     // 2. Build Query
     const query: any = { role: 'BOOSTER' };
+
+    // Nếu có filter search, tìm kiếm username gần đúng
+    if (search) {
+      query.username = { $regex: search, $options: 'i' };
+    }
 
     // Nếu có filter server, kiểm tra xem booster có hỗ trợ server đó không
     if (server) {
