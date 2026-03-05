@@ -177,6 +177,7 @@ function RankBoostContent() {
   const [gameUsername, setGameUsername] = useState('');
   const [gamePassword, setGamePassword] = useState('');
   const [selectedServer, setSelectedServer] = useState('');
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
 
   // Extra Options State
   const [extraOptions, setExtraOptions] = useState<Record<string, boolean>>({
@@ -356,14 +357,15 @@ function RankBoostContent() {
   };
 
   const OptionCheckbox = ({ id, label, priceInfo, checked, onChange, disabled = false }: { id: string, label: string, priceInfo: string, checked: boolean, onChange: () => void, disabled?: boolean }) => (
-    <label htmlFor={id} className={`flex items-center justify-between p-4 rounded-xl border-2 transition-all ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'} ${checked ? 'border-blue-500 bg-blue-500/10' : 'border-zinc-800 bg-zinc-950 hover:border-zinc-700'}`}>
-        <div>
-            <div className="font-bold text-white">{label}</div>
+    <label htmlFor={id} className={`flex items-center justify-between p-3 rounded-xl border transition-all cursor-pointer group ${disabled ? 'opacity-50 cursor-not-allowed' : ''} ${checked ? 'border-blue-500 bg-blue-500/10' : 'border-white/10 bg-zinc-900/40 hover:bg-zinc-900/60 hover:border-white/20'}`}>
+        <div className="flex items-center gap-3">
+            <div className={`w-5 h-5 rounded border flex items-center justify-center transition-all ${checked ? 'bg-blue-600 border-blue-600' : 'border-zinc-600 bg-zinc-900 group-hover:border-zinc-500'}`}>
+                {checked && <CheckCircle2 className="w-3.5 h-3.5 text-white" />}
+            </div>
+            <div className="font-medium text-zinc-200 text-sm">{label}</div>
         </div>
-        <div className="flex items-center gap-4">
-            <span className="text-sm font-bold text-green-400">{priceInfo}</span>
-            <input id={id} type="checkbox" checked={checked} onChange={onChange} disabled={disabled} className="w-5 h-5 accent-blue-600 rounded-md bg-zinc-700 border-zinc-600 focus:ring-blue-500" />
-        </div>
+        <span className="text-xs font-bold text-green-400 bg-green-400/10 px-2 py-1 rounded">{priceInfo}</span>
+        <input id={id} type="checkbox" checked={checked} onChange={onChange} disabled={disabled} className="hidden" />
     </label>
   );
 
@@ -597,8 +599,20 @@ function RankBoostContent() {
                 </div>
             )}
 
+            <div className="flex items-center gap-3 mt-4 mb-4 px-1">
+                <button 
+                    onClick={() => setAgreedToTerms(!agreedToTerms)}
+                    className={`w-5 h-5 rounded border flex items-center justify-center transition-all shrink-0 ${agreedToTerms ? 'bg-blue-600 border-blue-600' : 'border-zinc-600 hover:border-zinc-500'}`}
+                >
+                    {agreedToTerms && <CheckCircle2 className="w-3.5 h-3.5 text-white" />}
+                </button>
+                <span className="text-sm text-zinc-400 select-none cursor-pointer" onClick={() => setAgreedToTerms(!agreedToTerms)}>
+                    Tôi đồng ý với <span className="text-blue-400 hover:underline">Điều khoản & Chính sách</span>
+                </span>
+            </div>
+
             <button 
-                disabled={!boosterId || !priceDetails || priceDetails.total <= 0}
+                disabled={!boosterId || !priceDetails || priceDetails.total <= 0 || !agreedToTerms}
                 className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-blue-600/20"
             >
                 <ShieldCheck className="w-5 h-5" />

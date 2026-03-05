@@ -2,7 +2,7 @@
 
 import { useServiceContext } from '../../../../../../components/ServiceContext';
 import { useState, useEffect } from 'react';
-import { Target, Calculator, Coins, ArrowRight, Info, RefreshCw, Trophy, TrendingUp, Layers, Users } from 'lucide-react';
+import { Target, Calculator, Coins, ArrowRight, Info, RefreshCw, Trophy, TrendingUp, Layers, Users, Wallet, Scale, AlertCircle, CheckCircle2, XCircle } from 'lucide-react';
 
 const HIGH_ELO_RANKS = [
   { id: 'Master', label: 'Cao Thủ (Master)', color: 'text-purple-400', border: 'border-purple-500/30', bg: 'bg-purple-500/10' },
@@ -15,12 +15,6 @@ interface RankStat {
   count: number;
 }
 
-interface RankHistoryItem {
-  date: string;
-  challengerCutoff: number;
-  grandmasterCutoff: number;
-}
-
 const LP_GAIN_OPTIONS = [
   { key: 'low', value: 18, label: 'Ít LP (<19 LP/win)', desc: 'Khó cày, nên tăng giá (+)', color: 'text-red-500' },
   { key: 'medium', value: 20, label: 'Bình thường (19-21 LP)', desc: 'Giá tiêu chuẩn', color: 'text-yellow-500' },
@@ -30,37 +24,46 @@ const LP_GAIN_OPTIONS = [
 export default function NetWinsPage() {
   const { settings, setSettings, MAX_PRICE_PER_STEP, platformFee } = useServiceContext();
 
-  // Calculator State
+  // --- CONFIG STATE ---
+  const [activeTab, setActiveTab] = useState<'SOLO' | 'FLEX' | 'DUO'>('SOLO');
+  const depositPercent = settings.netWinDepositPercent || 50;
+  const setDepositPercent = (val: number) => {
+    setSettings(prev => ({ ...prev, netWinDepositPercent: val }));
+  };
+
+  // --- CALCULATOR STATE (PHASE 1: BOOKING) ---
+  const [calcMode, setCalcMode] = useState<'BY_LP' | 'BY_GAMES'>('BY_LP');
   const [calcRank, setCalcRank] = useState('Master');
   const [calcCurrentLP, setCalcCurrentLP] = useState(0);
-  const [calcDesiredLP, setCalcDesiredLP] = useState(100);
-  const [calcLPGain, setCalcLPGain] = useState(19); // Default Medium
-  const [calcPrice, setCalcPrice] = useState(0);
-  const [calcWins, setCalcWins] = useState(0);
-  const [calcError, setCalcError] = useState<string | null>(null);
+  const [calcTarget, setCalcTarget] = useState(100); // Target LP or Num of Games
+  const [calcLPGain, setCalcLPGain] = useState(19);
+  
+  // --- SIMULATION STATE (PHASE 2: SETTLEMENT) ---
+  const [simActualLP, setSimActualLP] = useState(0); // LP thực tế đạt được
+  const [simGames, setSimGames] = useState<{id: number, lp: number}[]>([{id: 1, lp: 20}]); // Danh sách trận đấu mô phỏng
+
+  // --- OUTPUT STATE ---
+  const [estimatedPrice, setEstimatedPrice] = useState(0);
+  const [depositAmount, setDepositAmount] = useState(0);
+  const [actualPrice, setActualPrice] = useState(0);
   const [appliedModifier, setAppliedModifier] = useState(0);
-  const [activeTab, setActiveTab] = useState<'SOLO' | 'FLEX' | 'DUO'>('SOLO');
-
-  // Fee Tool State
-  const [toolNet, setToolNet] = useState('');
-
-  // Rank Stats State
+  const [calcBreakdown, setCalcBreakdown] = useState({ base: 0, elo: 0, fee: 0 });
+  const [simBreakdown, setSimBreakdown] = useState({ base: 0, elo: 0, fee: 0 });
+  
+  // Rank Stats
   const [challengerStat, setChallengerStat] = useState<RankStat>({ cutoff: 0, count: 0 });
   const [gmStat, setGmStat] = useState<RankStat>({ cutoff: 0, count: 0 });
   const [loadingStats, setLoadingStats] = useState(false);
-  const [history, setHistory] = useState<RankHistoryItem[]>([]);
 
   // --- FETCH RANK DATA ---
   const fetchRankStats = async () => {
     setLoadingStats(true);
     try {
-      // Gọi API nội bộ (Proxy) để tránh lỗi CORS
       const res = await fetch('/api/rank-stats');
       if (res.ok) {
         const data = await res.json();
         if (data.challenger) setChallengerStat(data.challenger);
         if (data.grandmaster) setGmStat(data.grandmaster);
-        if (data.history) setHistory(data.history);
       }
     } catch (error) {
       console.error('Failed to fetch rank stats:', error);
@@ -69,22 +72,17 @@ export default function NetWinsPage() {
     }
   };
 
-  // Helper variables for rendering (Tính toán để hiển thị ra UI)
-  const lpDiff = Math.max(0, calcDesiredLP - calcCurrentLP);
-  
-  let pricePerLP = settings.netWinPrices?.[calcRank] || 0;
-  if (activeTab === 'FLEX') pricePerLP = settings.netWinPricesFlex?.[calcRank] || 0;
-  if (activeTab === 'DUO') pricePerLP = settings.netWinPricesDuo?.[calcRank] || 0;
-
-  // Tính toán lại ở đây để dùng cho UI
-  const winsNeededForDisplay = Math.ceil(lpDiff / calcLPGain);
-  const totalLPGainedForDisplay = winsNeededForDisplay * calcLPGain;
-
   useEffect(() => {
     fetchRankStats();
   }, []);
 
   // --- LOGIC ---
+  const getPricePerLP = (rank: string) => {
+    if (activeTab === 'FLEX') return settings.netWinPricesFlex?.[rank] || 0;
+    if (activeTab === 'DUO') return settings.netWinPricesDuo?.[rank] || 0;
+    return settings.netWinPrices?.[rank] || 0;
+  };
+
   const updatePrice = (rankId: string, price: string) => {
     const cleanPrice = price.replace(/,/g, '');
     const numValue = parseInt(cleanPrice) || 0;
@@ -100,386 +98,370 @@ export default function NetWinsPage() {
     });
   };
 
-  // Calculate Total Price
+  // --- AUTO-CALC SIMULATION ---
   useEffect(() => {
-    setCalcError(null);
+    if (calcMode === 'BY_LP') {
+        setSimActualLP(Math.max(0, calcTarget - calcCurrentLP));
+    }
+  }, [calcTarget, calcCurrentLP, calcMode]);
 
-    // Helper tính giá cho 1 kịch bản cụ thể để so sánh logic
-    const calculateScenarioPrice = (lpGainVal: number, settingKey: string, targetLp: number) => {
-        const wins = Math.ceil(targetLp / lpGainVal);
-        const totalLP = wins * lpGainVal;
-        const base = totalLP * (pricePerLP > 0 ? pricePerLP : 1000); // Dùng giá giả định 1000đ nếu chưa nhập giá để check logic
-        const mod = settings.lpModifiers[settingKey as keyof typeof settings.lpModifiers] || 0;
-        
-        // Logic tính toán theo yêu cầu:
-        if (settingKey === 'high') {
-             return base * (1 - Math.abs(mod) / 100); // High LP (Dễ) -> Giảm giá (Luôn trừ số dương)
-        } else {
-             return base * (1 + Math.abs(mod) / 100); // Low/Medium LP (Khó) -> Tăng giá (Luôn cộng số dương)
-        }
+  // --- CORE CALCULATION EFFECT ---
+  useEffect(() => {
+    const basePricePerLP = getPricePerLP(calcRank);
+    
+    // 1. Calculate Modifier
+    let lpKey = 'medium';
+    if (calcLPGain < 19) lpKey = 'low';
+    else if (calcLPGain > 21) lpKey = 'high';
+    const mod = settings.lpModifiers[lpKey as keyof typeof settings.lpModifiers] || 0;
+    setAppliedModifier(mod);
+
+    // Helper: Calculate Elo Amount
+    const getEloAmt = (base: number) => {
+        return base * (mod / 100);
     };
 
-    if (calcDesiredLP <= calcCurrentLP) {
-      setCalcPrice(0);
-      setCalcWins(0);
-      return;
-    }
-
-    // Công thức mới: Tổng tiền = Chênh lệch LP * Giá mỗi LP
-
-    // Ước tính số trận (chỉ để tham khảo)
-    setCalcWins(Math.ceil(lpDiff / calcLPGain));
-
-    // Validation Logic (Input Validation)
-    if (calcRank === 'Grandmaster' && challengerStat.cutoff > 0 && calcDesiredLP >= challengerStat.cutoff) {
-      setCalcPrice(0);
-      setCalcError(`Điểm mong muốn (${calcDesiredLP}) đã đạt mức Thách Đấu (${challengerStat.cutoff}+). Vui lòng chọn rank Thách Đấu.`);
-      return;
-    }
-
-    if (calcRank === 'Master' && gmStat.cutoff > 0 && calcDesiredLP >= gmStat.cutoff) {
-      setCalcPrice(0);
-      setCalcError(`Điểm mong muốn (${calcDesiredLP}) đã đạt mức Đại Cao Thủ (${gmStat.cutoff}+). Vui lòng chọn rank Đại Cao Thủ.`);
-      return;
-    }
-
-    // Validation Logic (Pricing Consistency Check)
-    // Kiểm tra xem giá Low/Medium có bị rẻ hơn High/Very High không
-    // FIX: Sử dụng 100 LP làm chuẩn để so sánh
-    const priceLow = calculateScenarioPrice(18, 'low', 100);
-    const priceMedium = calculateScenarioPrice(20, 'medium', 100);
-    const priceHigh = calculateScenarioPrice(22, 'high', 100);
-    const priceVeryHigh = calculateScenarioPrice(25, 'high', 100);
-
-    if (priceLow < priceHigh || priceLow < priceVeryHigh || priceMedium < priceHigh || priceMedium < priceVeryHigh) {
-        setCalcPrice(0);
-        setCalcError('LỖI LOGIC TÍNH TOÁN: Giá Low/Medium Elo đang thấp hơn High Elo. Vui lòng kiểm tra lại % hệ số.');
-        return;
-    }
-
-    if (!pricePerLP || pricePerLP <= 0) {
-      setCalcPrice(0);
-      setCalcError('Chưa nhập giá');
+    // 2. Phase 1: Estimated Price (Booking)
+    let base1 = 0;
+    if (calcMode === 'BY_LP') {
+        const lpDiff = Math.max(0, calcTarget - calcCurrentLP);
+        base1 = lpDiff * basePricePerLP;
     } else {
-      // Logic xác định key dựa trên range thay vì find exact value
-      let lpKey = 'medium';
-      if (calcLPGain < 19) lpKey = 'low';
-      else if (calcLPGain > 21) lpKey = 'high';
-
-      const modifier = settings.lpModifiers[lpKey as keyof typeof settings.lpModifiers] || 0;
-      setAppliedModifier(modifier);
-
-      setCalcPrice(calculateScenarioPrice(calcLPGain, lpKey, lpDiff));
+        const estimatedTotalLP = calcTarget * calcLPGain; 
+        base1 = estimatedTotalLP * basePricePerLP;
     }
-  }, [calcRank, calcCurrentLP, calcDesiredLP, calcLPGain, settings.netWinPrices, settings.netWinPricesFlex, settings.netWinPricesDuo, challengerStat.cutoff, gmStat.cutoff, settings.lpModifiers, activeTab]);
+    
+    const elo1 = getEloAmt(base1);
+    const fee1 = base1 * (platformFee / 100);
+    const total1 = base1 + elo1 + fee1;
+
+    setEstimatedPrice(Math.round(total1));
+    setCalcBreakdown({ base: base1, elo: elo1, fee: fee1 });
+    setDepositAmount(Math.round(total1 * (depositPercent / 100)));
+
+    // 3. Phase 2: Actual Price (Settlement Simulation)
+    let base2 = 0;
+    if (calcMode === 'BY_LP') {
+        base2 = simActualLP * basePricePerLP;
+    } else {
+        const totalLPChange = simGames.reduce((sum, game) => sum + game.lp, 0);
+        base2 = Math.max(0, totalLPChange) * basePricePerLP;
+    }
+    
+    const elo2 = getEloAmt(base2);
+    const fee2 = base2 * (platformFee / 100);
+    const total2 = base2 + elo2 + fee2;
+
+    setActualPrice(Math.round(total2));
+    setSimBreakdown({ base: base2, elo: elo2, fee: fee2 });
+
+  }, [calcRank, calcCurrentLP, calcTarget, calcLPGain, calcMode, simActualLP, simGames, settings, activeTab, platformFee]);
+
+
+  // --- SETTLEMENT HELPERS ---
+  const settlementDiff = actualPrice - depositAmount;
+  const settlementStatus = 
+    settlementDiff > 0 ? 'CUSTOMER_PAYS' : 
+    settlementDiff < 0 ? 'REFUND_CUSTOMER' : 'DONE';
+
+  const addSimGame = () => setSimGames([...simGames, { id: Date.now(), lp: 20 }]);
+  const updateSimGame = (id: number, val: number) => setSimGames(simGames.map(g => g.id === id ? { ...g, lp: val } : g));
+  const removeSimGame = (id: number) => setSimGames(simGames.filter(g => g.id !== id));
 
   return (
     <div className="space-y-8">
       {/* Header Info */}
       <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
-        <div className="flex items-center gap-3 mb-4">
-          <Target className="w-6 h-6 text-yellow-500" />
-          <h2 className="text-xl font-bold text-white">Cấu hình Cày Điểm (Master+)</h2>
-        </div>
-        <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4 text-sm text-blue-200 flex gap-3">
-          <Info className="w-5 h-5 shrink-0 mt-0.5" />
-          <div>
-            <p className="font-bold mb-1">Dịch vụ Cày Điểm (Net Wins):</p>
-            <p className="text-zinc-400">
-              Áp dụng cho các Rank cao (Cao Thủ, Đại Cao Thủ, Thách Đấu).
-              <br/>
-              Hệ thống tính tiền dựa trên <strong>số điểm LP cần cày</strong>.
-              <br/>
-              Ví dụ: Bạn nhập giá <strong>1.000đ / 1 LP</strong>. Khách cần cày <strong>60 LP</strong> với mức +15LP/trận ➜ Cần 4 trận (60 LP) ➜ Giá gốc là <strong>60.000đ</strong> (Chưa tính hệ số Elo).
-            </p>
-          </div>
+        <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+                <Target className="w-6 h-6 text-yellow-500" />
+                <h2 className="text-xl font-bold text-white">Cấu hình Cày Điểm (Net Wins)</h2>
+            </div>
+            <div className="flex gap-2">
+                <button 
+                onClick={() => setActiveTab('SOLO')}
+                className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'SOLO' ? 'bg-blue-600 text-white' : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'}`}
+                >
+                Solo / Duo
+                </button>
+                <button 
+                onClick={() => setActiveTab('FLEX')}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'FLEX' ? 'bg-purple-600 text-white' : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'}`}
+                >
+                <Layers className="w-4 h-4" /> Flex
+                </button>
+            </div>
         </div>
 
-        {/* Live Rank Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
-          <div className="bg-zinc-950 p-4 rounded-xl border border-zinc-800 flex items-center justify-between">
-            <div>
-              <div className="text-xs text-zinc-500 uppercase font-bold mb-1 flex items-center gap-2">
-                <Trophy className="w-3 h-3 text-yellow-500" /> 
-                Challenger Cut-off
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
-                </span>
-              </div>
-              <div className="text-2xl font-bold text-white">
-                {loadingStats ? '...' : challengerStat.cutoff.toLocaleString()} LP
-              </div>
-              <div className="text-xs text-zinc-600 mt-1">{challengerStat.count} Players</div>
-            </div>
-            <div className="h-14 w-14 flex items-center justify-center">
-              <img src="/images/ranks/challenger.png" alt="Challenger" className="w-full h-full object-contain drop-shadow-[0_0_10px_rgba(234,179,8,0.3)]" />
-            </div>
-          </div>
-
-          <div className="bg-zinc-950 p-4 rounded-xl border border-zinc-800 flex items-center justify-between">
-            <div>
-              <div className="text-xs text-zinc-500 uppercase font-bold mb-1 flex items-center gap-2">
-                <Trophy className="w-3 h-3 text-red-500" /> 
-                Grandmaster Cut-off
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
-                </span>
-              </div>
-              <div className="text-2xl font-bold text-white">
-                {loadingStats ? '...' : gmStat.cutoff.toLocaleString()} LP
-              </div>
-              <div className="text-xs text-zinc-600 mt-1">{gmStat.count} Players</div>
-            </div>
-            <div className="h-14 w-14 flex items-center justify-center">
-              <img src="/images/ranks/grandmaster.png" alt="Grandmaster" className="w-full h-full object-contain drop-shadow-[0_0_10px_rgba(239,68,68,0.3)]" />
-            </div>
-          </div>
-        </div>
-        
-        <div className="flex justify-end mt-2">
-          <button 
-            onClick={fetchRankStats} 
-            disabled={loadingStats}
-            className="text-xs text-zinc-500 hover:text-white flex items-center gap-1 transition-colors"
-          >
-            <RefreshCw className={`w-3 h-3 ${loadingStats ? 'animate-spin' : ''}`} /> Cập nhật dữ liệu
-          </button>
+        {/* Pricing Inputs */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+            {HIGH_ELO_RANKS.map((rank) => {
+            const currentPrice = getPricePerLP(rank.id);
+            return (
+                <div key={rank.id} className={`p-5 rounded-2xl border transition-all hover:-translate-y-1 ${rank.bg} ${rank.border}`}>
+                <div className="flex flex-col gap-1 mb-4">
+                    <div className={`font-black text-xl ${rank.color}`}>{rank.label.split(' (')[0]}</div>
+                    <div className={`text-xs font-medium opacity-80 ${rank.color}`}>{rank.label.match(/\((.*?)\)/)?.[1]}</div>
+                </div>
+                <div className="relative">
+                    <input
+                    type="text"
+                    placeholder="0"
+                    value={currentPrice ? currentPrice.toLocaleString('en-US') : ''}
+                    onChange={(e) => updatePrice(rank.id, e.target.value)}
+                    className={`w-full bg-zinc-950/50 border rounded-xl pl-4 pr-16 py-4 text-right text-lg font-bold outline-none transition-all ${
+                        currentPrice > MAX_PRICE_PER_STEP ? 'border-red-500 text-red-500' : 'border-white/10 text-white focus:border-green-500 focus:text-green-400'
+                    }`}
+                    />
+                    <div className="absolute right-4 top-1/2 -translate-y-1/2 flex flex-col items-end pointer-events-none">
+                        <span className="text-[10px] text-zinc-500 font-medium uppercase">VNĐ</span>
+                        <span className="text-[10px] text-zinc-600">/ 1 LP</span>
+                    </div>
+                </div>
+                </div>
+            );
+            })}
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Calculator */}
-        <div className="bg-zinc-950 border border-zinc-800 rounded-xl p-5">
-          <h3 className="text-white font-bold flex items-center gap-2 mb-4">
-            <Calculator className="w-5 h-5 text-blue-500" />
-            Xem trước giá (Preview)
-          </h3>
-          
-          <div className="space-y-4">
-            <div>
-                <label className="text-xs text-zinc-500 mb-1 block">Rank hiện tại</label>
-                <select 
-                    value={calcRank}
-                    onChange={(e) => setCalcRank(e.target.value)}
-                    className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white outline-none focus:border-blue-500"
-                >
-                    {HIGH_ELO_RANKS.map(r => <option key={r.id} value={r.id}>{r.label}</option>)}
-                </select>
+      {/* --- DEPOSIT CONFIGURATION --- */}
+      <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
+        <div className="flex items-center gap-3 mb-4">
+            <Wallet className="w-6 h-6 text-emerald-500" />
+            <h3 className="text-lg font-bold text-white">Cấu hình Đặt cọc (Deposit)</h3>
+        </div>
+        <div className="flex flex-col md:flex-row gap-6 items-start">
+            <div className="flex-1">
+                <label className="text-sm text-zinc-400 mb-2 block">Tỷ lệ cọc yêu cầu (%)</label>
+                <div className="flex gap-2">
+                    {[30, 50, 70, 100].map(pct => (
+                        <button 
+                            key={pct}
+                            onClick={() => setDepositPercent(pct)}
+                            className={`flex-1 py-2 rounded-lg font-bold border transition-all ${depositPercent === pct ? 'bg-emerald-600 border-emerald-500 text-white' : 'bg-zinc-950 border-zinc-800 text-zinc-500 hover:border-zinc-600'}`}
+                        >
+                            {pct}%
+                        </button>
+                    ))}
+                </div>
+                <p className="text-xs text-zinc-500 mt-2">
+                    * Khách hàng sẽ thanh toán khoản này trước. Số tiền được Admin giữ (HOLD) cho đến khi đơn hoàn thành.
+                </p>
             </div>
+            <div className="flex-1 bg-zinc-950 p-4 rounded-xl border border-zinc-800 text-sm">
+                <h4 className="font-bold text-white mb-2 flex items-center gap-2"><Info className="w-4 h-4 text-blue-400"/> Quy trình dòng tiền:</h4>
+                <ul className="space-y-2 text-zinc-400 list-disc list-inside">
+                    <li>Khách đặt đơn ➜ Thanh toán <strong>Tiền cọc</strong> ➜ Admin giữ tiền.</li>
+                    <li>Booster nhận đơn ➜ Trạng thái <strong>IN_PROGRESS</strong>.</li>
+                    <li>Hoàn thành ➜ Tính <strong>Giá thực tế</strong> dựa trên kết quả.</li>
+                    <li>Quyết toán ➜ So sánh <strong>Giá thực tế</strong> vs <strong>Tiền cọc</strong> để hoàn tiền hoặc thu thêm.</li>
+                </ul>
+            </div>
+        </div>
+      </div>
 
-            <div className="flex gap-4">
-                <div className="flex-1">
-                    <label className="text-xs text-zinc-500 mb-1 block">Điểm hiện tại</label>
-                    <input 
-                        type="number" 
-                        min="1"
-                        value={calcCurrentLP} 
-                        onChange={(e) => setCalcCurrentLP(Math.max(1, Number(e.target.value)))}
-                        className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white outline-none focus:border-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                    />
-                </div>
-                <ArrowRight className="w-5 h-5 text-zinc-600 self-center mt-5" />
-                <div className="flex-1">
-                    <label className="text-xs text-zinc-500 mb-1 block">Điểm mong muốn</label>
-                    <input 
-                        type="number" 
-                        min="1"
-                        value={calcDesiredLP} 
-                        onChange={(e) => setCalcDesiredLP(Math.max(1, Number(e.target.value)))}
-                        className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white outline-none focus:border-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                    />
+      {/* --- PREVIEW & SIMULATION SYSTEM --- */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        
+        {/* LEFT: BOOKING SIMULATION (CUSTOMER VIEW) */}
+        <div className="bg-zinc-950 border border-zinc-800 rounded-xl overflow-hidden flex flex-col">
+            <div className="p-4 bg-zinc-900/50 border-b border-zinc-800 flex justify-between items-center">
+                <h3 className="font-bold text-white flex items-center gap-2">
+                    <Users className="w-5 h-5 text-blue-500" />
+                    1. Mô phỏng Đặt đơn (Khách hàng)
+                </h3>
+                <div className="flex bg-zinc-900 rounded-lg p-1 border border-zinc-800">
+                    <button onClick={() => setCalcMode('BY_LP')} className={`px-3 py-1 text-xs font-bold rounded ${calcMode === 'BY_LP' ? 'bg-blue-600 text-white' : 'text-zinc-500'}`}>Theo LP</button>
+                    <button onClick={() => setCalcMode('BY_GAMES')} className={`px-3 py-1 text-xs font-bold rounded ${calcMode === 'BY_GAMES' ? 'bg-blue-600 text-white' : 'text-zinc-500'}`}>Theo Trận</button>
                 </div>
             </div>
-
-            <div>
-                <label className="text-xs text-zinc-500 mb-1 block">
-                  Nhập điểm ELO Trung Bình mỗi trận
-                </label>
-                <div className="relative">
-                  <input 
-                      type="number"
-                      min="1"
-                      value={calcLPGain}
-                      onChange={(e) => setCalcLPGain(Math.max(1, Number(e.target.value)))}
-                      className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white outline-none focus:border-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                      placeholder="VD: 19"
-                  />
-                  <div className={`absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold ${calcLPGain < 19 ? 'text-red-500' : calcLPGain > 21 ? 'text-green-500' : 'text-yellow-500'}`}>
-                    {appliedModifier > 0 ? '+' : ''}{appliedModifier}%
-                  </div>
-                </div>
-                <div className="flex gap-2 mt-2">
-                  {LP_GAIN_OPTIONS.map(opt => (
-                    <button key={opt.key} onClick={() => setCalcLPGain(opt.value)} className={`text-[10px] px-2 py-1 rounded border transition-colors ${calcLPGain === opt.value ? `${opt.color} border-current bg-current/10` : 'text-zinc-500 border-zinc-800 hover:border-zinc-600'}`}>
-                      {opt.label}
-                    </button>
-                  ))}
-                </div>
-                <label className="text-xs mt-2 block">
-                <span className="text-zinc-500">Chênh lệch:</span>
-
-                <span className="mx-2 px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 font-semibold">
-                    {calcDesiredLP} LP - {calcCurrentLP} LP = {calcDesiredLP - calcCurrentLP} LP
-                </span>
-
-                <span className="text-zinc-600">➜</span>
-
-                <span className="mx-2 px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 font-semibold">
-                    {calcWins} trận thắng
-                </span>
-
-                <span className="text-zinc-500 ml-1">(ước tính)</span>
-                </label>
-            </div>
-
-            <div className="flex gap-2 mt-4">
-                <div className="flex-1 bg-blue-900/20 border border-blue-500/30 rounded-lg p-3 text-center">
-                    <span className="text-xs text-blue-200 block mb-1">Tổng tiền dự kiến</span>
-                    {calcError ? (
-                      <span className="text-sm font-bold text-red-400 animate-pulse">{calcError}</span>
-                    ) : (
-                      <div className="flex flex-col items-center">
-                        <span className="text-xl font-bold text-blue-400">{calcPrice.toLocaleString('vi-VN')} đ</span>
-                        <div className="text-[10px] text-zinc-400 mt-1 flex flex-wrap justify-center gap-1 bg-black/20 px-2 py-1 rounded border border-white/5">
-                           <span>{lpDiff} LP</span>
-                           <span>x</span>
-                           <span>{pricePerLP.toLocaleString()}đ</span>
-                           {appliedModifier !== 0 && <span className={appliedModifier > 0 ? 'text-green-400' : 'text-red-400'}>({appliedModifier > 0 ? '+' : ''}{appliedModifier}%)</span>}
+            
+            <div className="p-5 space-y-5 flex-1">
+                {/* Inputs */}
+                <div className="grid grid-cols-2 gap-4">
+                    <div>
+                        <label className="text-xs text-zinc-500 mb-1 block">Rank áp dụng</label>
+                        <select value={calcRank} onChange={(e) => setCalcRank(e.target.value)} className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white text-sm outline-none">
+                            {HIGH_ELO_RANKS.map(r => <option key={r.id} value={r.id}>{r.label}</option>)}
+                        </select>
+                    </div>
+                    <div>
+                        <label className="text-xs text-zinc-500 mb-1 block">LP trung bình/trận</label>
+                        <div className="relative">
+                            <input type="number" value={calcLPGain} onChange={(e) => setCalcLPGain(Number(e.target.value))} className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white outline-none focus:border-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
+                            <div className={`absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold ${appliedModifier > 0 ? 'text-red-400' : appliedModifier < 0 ? 'text-green-400' : 'text-zinc-500'}`}>
+                                {appliedModifier > 0 ? `Tăng giá ${Math.abs(appliedModifier)}%` : appliedModifier < 0 ? `Giảm giá ${Math.abs(appliedModifier)}%` : ''}
+                            </div>
                         </div>
-                      </div>
+                    </div>
+                </div>
+
+                {calcMode === 'BY_LP' ? (
+                    <div className="flex gap-4 items-center">
+                        <div className="flex-1">
+                            <label className="text-xs text-zinc-500 mb-1 block">LP Hiện tại</label>
+                            <input type="number" value={calcCurrentLP} onChange={(e) => setCalcCurrentLP(Number(e.target.value))} className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white outline-none focus:border-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
+                        </div>
+                        <ArrowRight className="w-4 h-4 text-zinc-600 mt-5" />
+                        <div className="flex-1">
+                            <label className="text-xs text-zinc-500 mb-1 block">LP Mong muốn</label>
+                            <input type="number" value={calcTarget} min={calcMode === 'BY_LP' ? calcCurrentLP : 1} onChange={(e) => setCalcTarget(Number(e.target.value))} className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white outline-none focus:border-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
+                        </div>
+                    </div>
+                ) : (
+                    <div>
+                        <label className="text-xs text-zinc-500 mb-1 block">Số trận muốn thuê</label>
+                        <input type="number" value={calcTarget} onChange={(e) => setCalcTarget(Number(e.target.value))} className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white outline-none focus:border-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
+                    </div>
+                )}
+
+                {/* Booking Result */}
+                <div className="mt-auto pt-4 border-t border-zinc-800">
+                    <div className="space-y-1 text-sm text-zinc-400 mb-2 border-b border-zinc-800 pb-2">
+                        <div className="flex justify-between">
+                            <span>Giá gốc:</span>
+                            <span>{calcBreakdown.base.toLocaleString('vi-VN')} ₫</span>
+                        </div>
+                        <div className="flex justify-between">
+                            <span>Hệ số Elo ({appliedModifier > 0 ? '+' : ''}{appliedModifier}%):</span>
+                            <span className={appliedModifier > 0 ? 'text-red-400' : appliedModifier < 0 ? 'text-green-400' : 'text-zinc-400'}>{calcBreakdown.elo > 0 ? '+' : ''}{calcBreakdown.elo.toLocaleString('vi-VN')} ₫</span>
+                        </div>
+                        <div className="flex justify-between">
+                            <span>Phí sàn ({platformFee}%):</span>
+                            <span className="text-yellow-400">+{calcBreakdown.fee.toLocaleString('vi-VN')} ₫</span>
+                        </div>
+                    </div>
+                    <div className="flex justify-between items-center mb-2">
+                        <span className="text-zinc-400 text-sm">Giá tạm tính:</span>
+                        <span className="text-white font-bold">{estimatedPrice.toLocaleString('vi-VN')} đ</span>
+                    </div>
+                    <div className="bg-emerald-900/20 border border-emerald-500/30 p-3 rounded-xl flex justify-between items-center">
+                        <div>
+                            <span className="text-emerald-400 font-bold text-sm block">Tiền cọc ({depositPercent}%)</span>
+                            <span className="text-[10px] text-emerald-500/70">Khách thanh toán ngay</span>
+                        </div>
+                        <span className="text-2xl font-bold text-emerald-400">{depositAmount.toLocaleString('vi-VN')} đ</span>
+                    </div>
+                    <div className="text-center mt-2">
+                        <span className="text-[10px] bg-zinc-800 text-zinc-400 px-2 py-1 rounded-full">Trạng thái: PENDING_BOOSTER</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {/* RIGHT: SETTLEMENT SIMULATION (BOOSTER VIEW) */}
+        <div className="bg-zinc-950 border border-zinc-800 rounded-xl overflow-hidden flex flex-col">
+            <div className="p-4 bg-zinc-900/50 border-b border-zinc-800">
+                <h3 className="font-bold text-white flex items-center gap-2">
+                    <Scale className="w-5 h-5 text-purple-500" />
+                    2. Mô phỏng Quyết toán (Kết thúc đơn)
+                </h3>
+            </div>
+
+            <div className="p-5 space-y-5 flex-1 flex flex-col">
+                <div className="bg-zinc-900/50 p-3 rounded-lg border border-zinc-800">
+                    <label className="text-xs font-bold text-zinc-400 uppercase mb-2 block">Nhập kết quả thực tế:</label>
+                    
+                    {calcMode === 'BY_LP' ? (
+                        <div>
+                            <label className="text-xs text-zinc-500 mb-1 block">Tổng LP đạt được (Actual Gained)</label>
+                            <input 
+                                type="number" 
+                                value={simActualLP} 
+                                onChange={(e) => setSimActualLP(Number(e.target.value))} 
+                                className="w-full bg-zinc-950 border border-zinc-700 rounded-lg px-3 py-2 text-white text-sm outline-none focus:border-purple-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                placeholder="Ví dụ: 95 LP"
+                            />
+                            <p className="text-[10px] text-zinc-500 mt-1">Giá thực tế = {simActualLP} LP x {getPricePerLP(calcRank).toLocaleString()}đ</p>
+                        </div>
+                    ) : (
+                        <div className="space-y-2">
+                            <div className="max-h-[120px] overflow-y-auto space-y-2 pr-1 custom-scrollbar">
+                                {simGames.map((game, idx) => (
+                                    <div key={game.id} className="flex items-center gap-2">
+                                        <span className="text-xs text-zinc-500 w-12">Trận {idx + 1}:</span>
+                                        <input 
+                                            type="number" 
+                                            value={game.lp} 
+                                            onChange={(e) => updateSimGame(game.id, Number(e.target.value))}
+                                            className={`flex-1 bg-zinc-950 border rounded px-2 py-1 text-sm outline-none ${game.lp >= 0 ? 'text-green-400 border-green-900' : 'text-red-400 border-red-900'}`}
+                                        />
+                                        <button onClick={() => removeSimGame(game.id)} className="text-zinc-600 hover:text-red-500"><XCircle className="w-4 h-4"/></button>
+                                    </div>
+                                ))}
+                            </div>
+                            <button onClick={addSimGame} className="w-full py-1.5 text-xs border border-dashed border-zinc-700 text-zinc-400 rounded hover:text-white hover:border-zinc-500">+ Thêm trận đấu</button>
+                            <p className="text-[10px] text-zinc-500 mt-1">Tổng LP thay đổi: <span className={simGames.reduce((s,g)=>s+g.lp,0) >= 0 ? 'text-green-400' : 'text-red-400'}>{simGames.reduce((s,g)=>s+g.lp,0)} LP</span></p>
+                        </div>
                     )}
                 </div>
-                <div className="flex-1 bg-green-900/20 border border-green-500/30 rounded-lg p-3 text-center">
-                    <span className="text-xs text-green-200 block flex items-center justify-center gap-1">
-                      <Coins className="w-3 h-3" /> Thực nhận (-{platformFee}%)
-                    </span>
-                    <span className="text-xl font-bold text-green-400">{(Math.floor(calcPrice * (1 - platformFee / 100))).toLocaleString('vi-VN')} đ</span>
+
+                {/* Settlement Result */}
+                <div className="mt-auto space-y-3">
+                    <div className="space-y-1 text-sm text-zinc-400 border-b border-zinc-800 pb-2">
+                        <div className="flex justify-between">
+                            <span>Giá gốc thực tế:</span>
+                            <span>{simBreakdown.base.toLocaleString('vi-VN')} ₫</span>
+                        </div>
+                        <div className="flex justify-between">
+                            <span>Hệ số Elo ({appliedModifier > 0 ? '+' : ''}{appliedModifier}%):</span>
+                            <span className={appliedModifier > 0 ? 'text-red-400' : appliedModifier < 0 ? 'text-green-400' : 'text-zinc-400'}>{simBreakdown.elo > 0 ? '+' : ''}{simBreakdown.elo.toLocaleString('vi-VN')} ₫</span>
+                        </div>
+                        <div className="flex justify-between">
+                            <span>Phí sàn ({platformFee}%):</span>
+                            <span className="text-yellow-400">+{simBreakdown.fee.toLocaleString('vi-VN')} ₫</span>
+                        </div>
+                    </div>
+                    <div className="flex justify-between items-center text-sm">
+                        <span className="text-zinc-400">Giá thực tế (Actual):</span>
+                        <span className="text-white font-bold">{actualPrice.toLocaleString('vi-VN')} đ</span>
+                    </div>
+                    <div className="flex justify-between items-center text-sm">
+                        <span className="text-zinc-400">Đã cọc (Deposit):</span>
+                        <span className="text-emerald-400 font-bold">- {depositAmount.toLocaleString('vi-VN')} đ</span>
+                    </div>
+                    
+                    <div className="border-t border-zinc-800 pt-3">
+                        {settlementStatus === 'DONE' && (
+                            <div className="bg-zinc-800 p-3 rounded-xl text-center">
+                                <CheckCircle2 className="w-6 h-6 text-green-500 mx-auto mb-1" />
+                                <span className="text-green-400 font-bold block">Đã thanh toán đủ</span>
+                                <span className="text-xs text-zinc-500">Booster nhận đủ tiền cọc. Không phát sinh thêm.</span>
+                            </div>
+                        )}
+
+                        {settlementStatus === 'REFUND_CUSTOMER' && (
+                            <div className="bg-red-900/10 border border-red-500/20 p-3 rounded-xl">
+                                <div className="flex justify-between items-center mb-1">
+                                    <span className="text-red-400 font-bold text-sm">Hoàn lại khách:</span>
+                                    <span className="text-xl font-bold text-red-400">{Math.abs(settlementDiff).toLocaleString('vi-VN')} đ</span>
+                                </div>
+                                <p className="text-[10px] text-red-300/70">
+                                    Giá thực tế &lt; Cọc. Hệ thống tự động trích từ tiền cọc trả về ví khách.
+                                </p>
+                            </div>
+                        )}
+
+                        {settlementStatus === 'CUSTOMER_PAYS' && (
+                            <div className="bg-yellow-900/10 border border-yellow-500/20 p-3 rounded-xl">
+                                <div className="flex justify-between items-center mb-1">
+                                    <span className="text-yellow-400 font-bold text-sm">Khách trả thêm:</span>
+                                    <span className="text-xl font-bold text-yellow-400">{Math.abs(settlementDiff).toLocaleString('vi-VN')} đ</span>
+                                </div>
+                                <p className="text-[10px] text-yellow-300/70">
+                                    Giá thực tế &gt; Cọc. Khách cần thanh toán phần còn thiếu để hoàn tất đơn.
+                                </p>
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="bg-blue-600/10 border border-blue-500/20 p-3 rounded-xl flex justify-between items-center">
+                        <span className="text-blue-200 text-sm font-bold">Tổng Booster nhận:</span>
+                        <span className="text-xl font-bold text-blue-400">{actualPrice.toLocaleString('vi-VN')} đ</span>
+                    </div>
                 </div>
             </div>
-                <div className="mt-3 text-xs text-center px-4">
-                <div className="font-semibold text-yellow-400">
-                    Công thức tính giá:
-                </div>
-
-                <div className="mt-1 text-zinc-300 font-mono bg-zinc-800/60 rounded-lg py-2 px-3">
-                    (Số trận thắng × LP thực tế mỗi trận) × Giá / 1 LP
-                    <br />
-                    × (1{appliedModifier >= 0 ? '+' : ''}{appliedModifier}%)
-                </div>
-
-                <div className={`mt-1 text-[11px] italic ${
-                    appliedModifier > 0 
-                    ? 'text-red-400' 
-                    : appliedModifier < 0 
-                        ? 'text-green-400' 
-                        : 'text-zinc-400'
-                }`}>
-                    {appliedModifier > 0 && `Giá tăng ${appliedModifier}% do hệ số LP.`}
-                    {appliedModifier < 0 && `Giá giảm ${Math.abs(appliedModifier)}% do hệ số LP.`}
-                    {appliedModifier === 0 && `Không có điều chỉnh LP.`}
-                </div>
-                </div>
-          </div>
         </div>
-
-        {/* Fee Tool */}
-        <div className="bg-zinc-950 border border-zinc-800 rounded-xl p-5">
-          <h3 className="text-white font-bold flex items-center gap-2 mb-4">
-            <Coins className="w-5 h-5 text-yellow-500" />
-            Tính phí sàn ({platformFee}%)
-          </h3>
-            <span className="text-red-400 font-semibold">
-            ⚠ Lưu ý quan trọng:
-            </span>{" "}
-            <span className="text-zinc-300">
-            Bạn cần điều chỉnh giá phù hợp và
-            </span>{" "}
-            <span className="text-yellow-400 font-bold">
-            Tips cho ADMIN {platformFee}%
-            </span>{" "}
-            <span className="text-zinc-300">
-            (Phí sàn để duy trì hệ thống).
-            </span>
-
-            <br />
-
-            <span className="text-xs text-zinc-500 italic">
-            Vui lòng tính toán trước khi nhập giá để tránh bị lỗ.
-            </span>
-          <div className="space-y-4">
-             <div className="relative">
-                <input type="text" value={toolNet} onChange={(e) => { const val = e.target.value.replace(/[^0-9]/g, ''); setToolNet(val ? Number(val).toLocaleString('vi-VN') : ''); }} placeholder="Muốn thực nhận (VNĐ)" className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white text-sm outline-none" />
-                <span className="absolute right-3 top-2 text-zinc-500 text-xs">VNĐ</span>
-             </div>
-             {toolNet && (
-                <div className="flex justify-between items-center border-t border-zinc-800 pt-2">
-                    <span className="text-zinc-400 text-sm">Cần nhập giá:</span>
-                    <span className="text-yellow-400 font-bold text-lg">{Math.ceil(parseInt(toolNet.replace(/\./g, '')) / (1 - platformFee / 100)).toLocaleString('vi-VN')} đ</span>
-                </div>
-             )}
-          </div>
-        </div>
-      </div>
-
-      {/* TABS */}
-      <div className="flex gap-2">
-        <button 
-          onClick={() => setActiveTab('SOLO')}
-          className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'SOLO' ? 'bg-blue-600 text-white' : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'}`}
-        >
-          Solo / Duo (Mặc định)
-        </button>
-        <button 
-          onClick={() => setActiveTab('FLEX')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'FLEX' ? 'bg-purple-600 text-white' : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'}`}
-        >
-          <Layers className="w-4 h-4" /> Flex
-        </button>
-      </div>
-
-      {/* Pricing Inputs */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {HIGH_ELO_RANKS.map((rank) => {
-          let currentPrice = settings.netWinPrices?.[rank.id] || 0;
-          if (activeTab === 'FLEX') currentPrice = settings.netWinPricesFlex?.[rank.id] || 0;
-          if (activeTab === 'DUO') currentPrice = settings.netWinPricesDuo?.[rank.id] || 0;
-
-          return (
-            <div 
-              key={rank.id} 
-              className={`p-5 rounded-2xl border transition-all hover:-translate-y-1 ${rank.bg} ${rank.border}`}
-            >
-              <div className="flex flex-col gap-1 mb-4">
-                <div className={`font-black text-xl ${rank.color}`}>
-                    {rank.label.split(' (')[0]}
-                </div>
-                <div className={`text-xs font-medium opacity-80 ${rank.color}`}>
-                    {rank.label.match(/\((.*?)\)/)?.[1]}
-                </div>
-              </div>
-
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="0"
-                  value={currentPrice ? currentPrice.toLocaleString('en-US') : ''}
-                  onChange={(e) => updatePrice(rank.id, e.target.value)}
-                  className={`w-full bg-zinc-950/50 border rounded-xl pl-4 pr-16 py-4 text-right text-lg font-bold outline-none transition-all ${
-                    currentPrice > MAX_PRICE_PER_STEP 
-                      ? 'border-red-500 text-red-500' 
-                      : 'border-white/10 text-white focus:border-green-500 focus:text-green-400'
-                  }`}
-                />
-                <div className="absolute right-4 top-1/2 -translate-y-1/2 flex flex-col items-end pointer-events-none">
-                    <span className="text-[10px] text-zinc-500 font-medium uppercase">VNĐ</span>
-                    <span className="text-[10px] text-zinc-600">/ 1 LP</span>
-                </div>
-              </div>
-            </div>
-          );
-        })}
       </div>
     </div>
   );

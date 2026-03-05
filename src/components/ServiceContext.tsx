@@ -38,6 +38,7 @@ export interface ServiceSettings {
   netWinPrices: Record<string, number>;
   netWinPricesFlex?: Record<string, number>;
   netWinPricesDuo?: Record<string, number>;
+  netWinDepositPercent?: number;
   masteryPrices: Record<string, number>;
 
   // ✅ CHUẨN HÓA: Chỉ dùng 1 hệ thống modifier
@@ -107,6 +108,7 @@ export function ServiceProvider({ children }: { children: ReactNode }) {
     netWinPrices: {},
     netWinPricesFlex: {},
     netWinPricesDuo: {},
+    netWinDepositPercent: 50,
     masteryPrices: {},
 
     // ✅ Mặc định chuẩn marketplace

@@ -3,7 +3,8 @@
 import { useServiceContext } from '@/components/ServiceContext';
 import { useState, useEffect, useMemo } from 'react';
 import { toast } from 'sonner';
-import { Info, Calculator, ArrowRight, Coins, FileText, TrendingUp, Trash2, AlertTriangle, Users, Layers, ChevronDown } from 'lucide-react';
+import { Info, Calculator, ArrowRight, ArrowDown, Coins, FileText, TrendingUp, Trash2, AlertTriangle, Users, Layers, ChevronDown } from 'lucide-react';
+import { VisualRankSelect } from '@/components/VisualRankSelect';
 
 export default function RankBoostPage() {
   const { settings, setSettings, ranks, MAX_PRICE_PER_STEP, platformFee } = useServiceContext();
@@ -147,7 +148,8 @@ export default function RankBoostPage() {
 
       // Logic tính toán mới chuẩn xác
       let mod = 0;
-      if (settings.lpModifiers && calcLPGain) {
+      // Chỉ tính hệ số khi LP gain là số dương
+      if (settings.lpModifiers && calcLPGain && parseInt(calcLPGain) > 0) {
           const lp = parseInt(calcLPGain);
           if (!isNaN(lp)) {
             if (lp < 19) mod = settings.lpModifiers.low || 0;
@@ -327,7 +329,7 @@ export default function RankBoostPage() {
             >
                 <h3 className="text-white font-bold flex items-center gap-2">
                     <Calculator className="w-5 h-5 text-blue-500" />
-                    Xem trước giá (Preview Calculator)
+                    Mô phỏng đặt đơn (Khách hàng)
                 </h3>
                 <ChevronDown className={`w-5 h-5 text-zinc-500 transition-transform duration-300 ${expanded.calc ? 'rotate-180' : ''}`} />
             </div>
@@ -379,44 +381,34 @@ export default function RankBoostPage() {
               </span>
             </p>
 
-            <div className="flex flex-col md:flex-row items-center gap-4 mb-4">
-                <div className="flex-1 w-full">
-                    <label className="text-xs text-zinc-500 mb-1 block">Từ Rank</label>
-                    <select 
-                        value={calcFrom}
-                        onChange={(e) => {
-                            setCalcFrom(e.target.value);
+            <div className="flex flex-col gap-6 mb-6">
+                <div className="w-full">
+                    <VisualRankSelect
+                        label="Từ Rank"
+                        ranks={flatTiers.filter(t => t.key.toUpperCase() !== 'MASTER')}
+                        selectedRank={calcFrom}
+                        onSelect={(rankKey) => {
+                            setCalcFrom(rankKey);
                             setCalcTo(''); // Reset đích đến khi thay đổi điểm xuất phát
                         }}
-                        className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white outline-none focus:border-blue-500"
-                    >
-                        <option value="">Chọn Rank bắt đầu</option>
-                        {flatTiers.map((t) => {
-                            // Ẩn Master khỏi danh sách "Từ Rank" vì không ai cày từ Master ở mục này
-                            if (t.key.toUpperCase() === 'MASTER') return null;
-                            return (
-                                <option key={t.key} value={t.key}>{t.label}</option>
-                            );
-                        })}
-                    </select>
+                    />
                 </div>
-                <ArrowRight className="w-5 h-5 text-zinc-600 hidden md:block mt-5" />
-                <div className="flex-1 w-full">
-                    <label className="text-xs text-zinc-500 mb-1 block">Đến Rank</label>
-                    <select 
-                        value={calcTo}
-                        onChange={(e) => setCalcTo(e.target.value)}
-                        className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white outline-none focus:border-blue-500"
-                    >
-                        <option value="">Chọn Rank mục tiêu</option>
-                        {flatTiers.map((t, idx) => {
-                            // Logic: Chỉ hiển thị các rank đứng SAU rank bắt đầu
-                            const startIdx = flatTiers.findIndex(item => item.key === calcFrom);
-                            if (startIdx !== -1 && idx <= startIdx) return null;
-                            
-                            return <option key={t.key} value={t.key}>{t.label}</option>
-                        })}
-                    </select>
+                <div className="flex justify-center">
+                    <ArrowDown className="w-6 h-6 text-zinc-600 animate-bounce" />
+                </div>
+                <div className="w-full">
+                    <VisualRankSelect
+                        label="Đến Rank"
+                        ranks={flatTiers}
+                        selectedRank={calcTo}
+                        onSelect={setCalcTo}
+                        disabledRanks={(() => {
+                            const startIndex = flatTiers.findIndex(t => t.key === calcFrom);
+                            if (startIndex === -1) return flatTiers.map(t => t.key); // Vô hiệu hóa tất cả nếu chưa chọn rank bắt đầu
+                            // Vô hiệu hóa các rank bằng hoặc thấp hơn rank bắt đầu
+                            return flatTiers.slice(0, startIndex + 1).map(t => t.key);
+                        })()}
+                    />
                 </div>
             </div>
 
@@ -437,9 +429,15 @@ export default function RankBoostPage() {
                     <div className="relative">
                         <input 
                             type="number"
-                            min="1"
+                            min="0"
                             value={calcLPGain}
-                            onChange={(e) => setCalcLPGain(e.target.value)}
+                            onChange={(e) => {
+                                const value = e.target.value;
+                                // Chỉ cho phép chuỗi rỗng hoặc số không âm
+                                if (value === '' || parseInt(value, 10) >= 0) {
+                                    setCalcLPGain(value);
+                                }
+                            }}
                             className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white outline-none focus:border-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                             placeholder="VD: 19"
                         />
@@ -477,7 +475,7 @@ export default function RankBoostPage() {
                                     </span>
                                 </div>
                                 <div className="flex justify-between text-zinc-400">
-                                    <span>Phí dịch vụ ({platformFee}%):</span>
+                                    <span>Phí sàn ({platformFee}%):</span>
                                     <span className="text-yellow-400">+{calcDetails.serviceFee.toLocaleString('vi-VN')} ₫</span>
                                 </div>
                                 <div className="border-t border-zinc-800 pt-2 flex justify-between font-bold text-base">
@@ -487,7 +485,7 @@ export default function RankBoostPage() {
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             {/* 2. Booster Block */}
                             <div className="bg-green-900/10 border border-green-500/20 rounded-xl p-4">
                                 <div className="flex items-center gap-2 mb-2">
@@ -498,7 +496,7 @@ export default function RankBoostPage() {
                                     {Math.round(calcDetails.boosterReceive).toLocaleString('vi-VN')} ₫
                                 </div>
                                 <p className="text-[10px] text-zinc-500">
-                                    = Khách trả - Phí dịch vụ
+                                    = Khách trả - Phí sàn
                                 </p>
                             </div>
 
@@ -512,7 +510,7 @@ export default function RankBoostPage() {
                                     {Math.round(calcDetails.adminReceive).toLocaleString('vi-VN')} ₫
                                 </div>
                                 <p className="text-[10px] text-zinc-500">
-                                    = Giá gốc × {platformFee}%
+                                    = Giá gốc rank × {platformFee}%
                                 </p>
                             </div>
                         </div>
@@ -545,7 +543,7 @@ export default function RankBoostPage() {
           <div className="space-y-6">
              {/* Net to Gross */}
              <div>
-                <label className="block text-sm font-medium text-zinc-400 mb-2">Muốn thực nhận (VNĐ)</label>
+                <label className="block text-sm font-medium text-zinc-400 mb-2">Bạn muốn nhận bao nhiêu? (VNĐ)</label>
                 <div className="relative">
                     <input 
                         type="text" 
@@ -562,7 +560,7 @@ export default function RankBoostPage() {
                 {toolNet && (
                     <div className="mt-2 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg animate-in fade-in slide-in-from-top-1">
                         <div className="flex justify-between items-center">
-                            <span className="text-zinc-400 text-xs">Bạn cần nhập:</span>
+                            <span className="text-zinc-400 text-xs">Số tiền bạn cần nhập:</span>
                             <span className="text-yellow-400 font-bold text-lg">
                                 {Math.ceil(parseInt(toolNet.replace(/\./g, '')) / (1 - platformFee / 100)).toLocaleString('vi-VN')} đ
                             </span>
@@ -598,7 +596,7 @@ export default function RankBoostPage() {
                             </span>
                         </div>
                         <div className="flex justify-between items-center pt-1 border-t border-green-500/20">
-                            <span className="text-zinc-300 text-xs font-medium">Thực nhận:</span>
+                            <span className="text-zinc-300 text-xs font-medium">Bạn nhận được:</span>
                             <span className="text-green-400 font-bold text-lg">
                                 {Math.floor(parseInt(toolGross.replace(/\./g, '')) * (1 - platformFee / 100)).toLocaleString('vi-VN')} đ
                             </span>

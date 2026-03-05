@@ -150,7 +150,9 @@ caythuelol/
 └── ...config files
 ```
 
-# ================================================================================ 2. DATABASE SCHEMA (MONGODB)
+# ================================================================================
+# 2. DATABASE SCHEMA (MONGODB) - Cập nhật ngày 2026-03-05
+# ================================================================================
 
 ### A. Users Collection
 
@@ -159,77 +161,150 @@ caythuelol/
 - `email`: string (unique)
 - `password_hash`: string
 - `role`: enum ['ADMIN', 'BOOSTER', 'CUSTOMER']
+- `platform`: enum ['EMAIL', 'GOOGLE'] (Phương thức đăng ký)
 - `phoneNumber`: string (optional)
 - `isEmailVerified`: boolean (default: false)
-- `wallet_balance`: number (Available funds)
-- `pending_balance`: number (Locked funds - for Boosters)
+- `wallet_balance`: number (Số dư có thể sử dụng)
+- `pending_balance`: number (Số dư đang bị khóa, vd: cho đơn hàng Booster đang thực hiện)
+- `createdAt`, `updatedAt`: Date
 - `profile`: {
-  `avatar`: string,
-  `discord_id`: string,
-  `bank_info`: { ... } (For Boosters)
+  `avatar`: string (URL)
+  `discord_id`: string (optional)
+  `bank_info`: { (Dành cho Booster để rút tiền)
+    `bankName`: string (vd: "CAKE")
+    `accountNumber`: string
+    `accountHolder`: string
   }
-- `booster_info`: {
-  `ranks`: string[],
-  `services`: string[],
-  `team_id`: ObjectId (Ref Team),
-  `rating`: number
+}
+- `booster_info`: { (Chỉ dành cho user có role 'BOOSTER')
+  `bio`: string (Mô tả bản thân của Booster)
+  `services`: string[] (Danh sách các loại dịch vụ cung cấp, vd: 'RANK_BOOST')
+  `rating`: number (Đánh giá trung bình từ khách hàng)
+  `completed_orders`: number (Số đơn hàng đã hoàn thành)
+  `team_id`: ObjectId (Ref 'Teams', optional)
+  `service_settings`: { (Object phức tạp cho việc định giá động, do Booster tự cấu hình)
+    `enabledServices`: string[] (Các dịch vụ đang được bật)
+    `servers`: string[] (Các máy chủ game mà Booster hoạt động, vd: 'VN', 'KR')
+    `playingChampions`: string[] (Danh sách các tướng Booster chuyên chơi)
+
+    # Bảng giá (Dạng Key-Value)
+    `rankPrices`: Record<string, number> (Giá mỗi đoàn cho rank SOLO)
+    `rankPricesFlex`: Record<string, number> (Giá mỗi đoàn cho rank FLEX)
+    `rankPricesDuo`: Record<string, number> (Giá mỗi đoàn cho rank DUO)
+    `promotionPrices`: Record<string, number> (Giá cho chuỗi thăng hạng, vd: 'Gold_I')
+    `promotionPricesFlex`: Record<string, number>
+    `promotionPricesDuo`: Record<string, number>
+    `placementPrices`: Record<string, number> (Giá mỗi trận phân hạng dựa trên rank mùa trước)
+    `placementPricesFlex`: Record<string, number>
+    `placementPricesDuo`: Record<string, number>
+    `netWinPrices`: Record<string, number> (Giá mỗi trận thắng-thua, cho rank Master+)
+    `netWinPricesFlex`: Record<string, number>
+    `netWinPricesDuo`: Record<string, number>
+    `levelingPrices`: Record<string, number> (Giá mỗi khoảng cấp độ, vd: '1-10')
+    `masteryPrices`: Record<string, number> (Giá mỗi khoảng cấp độ thông thạo, vd: 'M5_M6')
+
+    # Các hệ số & Tùy chọn
+    `lpGain`: { (Khoảng điểm LP nhận được để điều chỉnh giá theo MMR)
+        `low`: number
+        `medium`: number
+        `high`: number
+    }
+    `queueModifiers`: { (Phụ phí/giảm giá dựa trên loại hàng chờ)
+        `SOLO_DUO`: number (phần trăm)
+        `FLEX`: number (phần trăm)
+        `TFT`: number (phần trăm)
+    }
+    `options`: { (Giá/phần trăm cho các tùy chọn thêm của đơn hàng)
+        `schedule`: boolean (Booster có nhận đặt lịch không)
+        `roles`: string[] (Vai trò ưa thích, vd: 'JUNGLE', 'MID')
+        `specificChamps`: number (Phụ phí phần trăm)
+        `streaming`: number (Phí cố định)
+        `express`: number (Phụ phí phần trăm cho đơn hàng siêu tốc)
+        `duo`: number (Phụ phí phần trăm cho chơi cùng)
+    }
   }
+}
 
 ### B. Orders Collection
 
 - `_id`: ObjectId
-- `customer_id`: ObjectId (Ref User)
-- `booster_id`: ObjectId (Ref User, nullable)
-- `service_type`: enum ['RANK_BOOST', 'PLACEMENT', 'MASTERY', 'LEVELING', 'NET_WINS']
+- `customer_id`: ObjectId (Ref 'Users')
+- `booster_id`: ObjectId (Ref 'Users', nullable)
+- `service_type`: enum ['RANK_BOOST', 'PLACEMENT', 'MASTERY', 'LEVELING', 'NET_WINS', 'PROMOTION']
 - `status`: enum ['PENDING_PAYMENT', 'PAID', 'APPROVED', 'IN_PROGRESS', 'COMPLETED', 'REJECTED', 'REFUNDED', 'DISPUTED']
 - `details`: {
   `current_rank`: string,
   `desired_rank`: string,
   `current_lp`: number,
   `server`: string,
-  `account_info`: { `username`: string, `password`: string } (Encrypted)
-  }
-- `options`: {
-  `flash_boost`: boolean (+35%),
-  `specific_champs`: string[] (+30%),
-  `streaming`: boolean (+349k),
-  `duo_queue`: boolean (+50%)
-  }
+  `account_info`: { `username`: string, `password`: string } (Được mã hóa bằng AES-256)
+}
+- `options`: { (Các tùy chọn khách hàng đã chọn cho đơn hàng này)
+  `express`: boolean
+  `specific_champs`: string[]
+  `streaming`: boolean
+  `duo_queue`: boolean
+  `scheduled_time`: Date (optional)
+}
 - `pricing`: {
-  `base_price`: number,
-  `option_fees`: number,
-  `total_amount`: number,
-  `platform_fee`: number,
-  `booster_earnings`: number
-  }
+  `base_price`: number (Tính từ cài đặt của Booster hoặc mặc định của hệ thống)
+  `option_fees`: number
+  `total_amount`: number (Giá cuối cùng khách hàng trả)
+  `platform_fee`: number (Phần của nền tảng)
+  `booster_earnings`: number (Phần của booster)
+}
 - `timeline`: [{ `status`: string, `timestamp`: Date, `actor`: ObjectId }]
-- `chat_room_id`: string
+- `chat_room_id`: string (Dành cho chat trong đơn hàng)
+- `createdAt`, `updatedAt`: Date
 
-### C. Transactions Collection (Ledger)
+### C. Transactions Collection (Sổ cái)
 
 - `_id`: ObjectId
-- `user_id`: ObjectId
-- `order_id`: ObjectId (nullable)
+- `userId`: ObjectId (Ref 'Users')
+- `order_id`: ObjectId (Ref 'Orders', nullable)
 - `type`: enum ['DEPOSIT', 'WITHDRAWAL', 'PAYMENT_HOLD', 'PAYMENT_RELEASE', 'REFUND', 'COMMISSION']
-- `amount`: number (+ for credit, - for debit)
-- `balance_after`: number
+- `amount`: number (+ cho credit, - cho debit)
+- `balanceAfter`: number (Số dư ví của user sau giao dịch này)
 - `status`: enum ['PENDING', 'SUCCESS', 'FAILED']
-- `created_at`: Date
+- `metadata`: { (Cho các chi tiết bổ sung)
+  `gateway`: string (vd: 'SePay'),
+  `gateway_txn_id`: string
+}
+- `createdAt`, `updatedAt`: Date
 
 ### D. Teams Collection
 
 - `_id`: ObjectId
-- `leader_id`: ObjectId
-- `members`: [{ `user_id`: ObjectId, `split_percent`: number }]
 - `name`: string
+- `leader_id`: ObjectId (Ref 'Users')
+- `members`: [{
+  `user_id`: ObjectId (Ref 'Users'),
+  `split_percent`: number
+}]
+- `createdAt`, `updatedAt`: Date
 
-### E. VerificationCodes Collection (New)
+### E. VerificationCodes Collection
 
+- `_id`: ObjectId
 - `email`: string (index)
-- `code`: string (6 digits)
-- `expiresAt`: Date (TTL Index)
-- `attempts`: number (default 0)
-- `type`: enum ['EMAIL_VERIFICATION', 'PASSWORD_RESET']
+- `code`: string (6 chữ số)
+- `expiresAt`: Date (TTL Index để tự động xóa)
+- `attempts`: number (default: 0)
+- `type`: enum ['EMAIL_VERIFICATION', 'PASSWORD_RESET', 'EMAIL_CHANGE']
+- `createdAt`, `updatedAt`: Date
+
+### F. Game Collection (Mới - Dành cho dữ liệu hệ thống)
+- `_id`: ObjectId
+- `name`: string (vd: "League of Legends")
+- `ranks`: [{ `name`: string, `order`: number, `img_url`: string }] (vd: "IRON_IV", 1, "/ranks/iron.png")
+- `servers`: [{ `id`: string, `name`: string }] (vd: "VN", "Vietnam")
+
+### G. SystemSetting Collection (Mới - Dành cho cấu hình của admin)
+- `_id`: ObjectId
+- `key`: string (unique, vd: "platform_fee_percent")
+- `value`: any
+- `description`: string
+- `createdAt`, `updatedAt`: Date
 
 # ================================================================================ 3. PRICING LOGIC & FORMULAS
 
