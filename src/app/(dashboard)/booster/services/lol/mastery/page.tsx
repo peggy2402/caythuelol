@@ -2,7 +2,7 @@
 
 import { useServiceContext } from '../../../../../../components/ServiceContext';
 import { useState, useEffect } from 'react';
-import { Medal, Calculator, Coins, ArrowRight, Info } from 'lucide-react';
+import { Medal, Calculator, Coins, ArrowRight, Info, ChevronDown } from 'lucide-react';
 
 const MASTERY_STEPS = [
   { from: 1, to: 2, label: 'Cấp 1 ➜ Cấp 2', desc: 'Cày 1.800 Điểm Thông Thạo' },
@@ -28,6 +28,19 @@ export default function MasteryPage() {
   // Fee Tool State
   const [toolNet, setToolNet] = useState('');
   const [toolGross, setToolGross] = useState('');
+
+  // Collapsible State
+  const [expanded, setExpanded] = useState({ info: true, calc: true, fee: true, pricing: true });
+
+  useEffect(() => {
+    if (window.innerWidth < 1024) {
+      setExpanded({ info: true, calc: false, fee: false, pricing: true });
+    }
+  }, []);
+
+  const toggle = (key: keyof typeof expanded) => {
+    setExpanded(prev => ({ ...prev, [key]: !prev[key] }));
+  };
 
   // --- LOGIC ---
   const updatePrice = (from: number, to: number, price: string) => {
@@ -70,13 +83,19 @@ export default function MasteryPage() {
   return (
     <div className="space-y-8">
       {/* Header Info */}
-      <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
-        <div className="flex items-center gap-3 mb-4">
-          <Medal className="w-6 h-6 text-yellow-500" />
-          <h2 className="text-xl font-bold text-white">Cấu hình Cày Thông Thạo</h2>
+      <div className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden">
+        <div onClick={() => toggle('info')} className="p-6 flex items-center justify-between cursor-pointer hover:bg-zinc-800/50 transition-colors">
+            <div className="flex items-center gap-3">
+                <Medal className="w-6 h-6 text-yellow-500" />
+                <h2 className="text-xl font-bold text-white">Cấu hình Cày Thông Thạo</h2>
+            </div>
+            <ChevronDown className={`w-6 h-6 text-zinc-500 transition-transform duration-300 ${expanded.info ? 'rotate-180' : ''}`} />
         </div>
+        
+        {expanded.info && (
+        <div className="px-6 pb-6 animate-in slide-in-from-top-2">
         <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4 text-sm text-yellow-200 flex gap-3">
-          <Info className="w-5 h-5 shrink-0 mt-0.5" />
+          <Info className="w-5 h-5 shrink-0 mt-0.5 flex-none" />
           <div>
             <p className="font-bold mb-1">Hệ thống Thông Thạo Mới (Patch 14.10+):</p>
             <ul className="list-disc list-inside space-y-1 text-zinc-400">
@@ -87,149 +106,331 @@ export default function MasteryPage() {
             </ul>
           </div>
         </div>
-      </div>
+        </div>
+        )}
+        </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
         {/* Calculator */}
-      <div className="bg-zinc-950 border border-zinc-800 rounded-xl p-5">
-        <h3 className="text-white font-bold flex items-center gap-2 mb-4">
-          <Calculator className="w-5 h-5 text-blue-500" />
-          Mô phỏng đơn đặt (Khách hàng)
-        </h3>
-        
-        <div className="flex flex-col md:flex-row items-center gap-4">
-          <div className="flex-1 w-full">
-            <label className="text-xs text-zinc-500 mb-1 block">Từ Cấp</label>
-            <select 
-              value={calcFrom}
-              onChange={(e) => {
-                setCalcFrom(Number(e.target.value));
-                if (Number(e.target.value) >= calcTo) setCalcTo(Number(e.target.value) + 1);
-              }}
-              className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white outline-none focus:border-blue-500"
-            >
-              {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(lvl => (
-                <option key={lvl} value={lvl}>Cấp {lvl}</option>
-              ))}
-            </select>
+        <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden h-fit">
+
+          <div
+            onClick={() => toggle('calc')}
+            className="p-5 flex items-center justify-between cursor-pointer hover:bg-zinc-900/50 transition-colors"
+          >
+            <h3 className="text-white font-bold flex items-center gap-2">
+              <Calculator className="w-5 h-5 text-blue-500" />
+              Mô phỏng đơn đặt (Khách hàng)
+            </h3>
+
+            <ChevronDown
+              className={`w-5 h-5 text-zinc-500 transition-transform duration-300 ${
+                expanded.calc ? 'rotate-180' : ''
+              }`}
+            />
           </div>
-          <ArrowRight className="w-5 h-5 text-zinc-600 hidden md:block mt-5" />
-          <div className="flex-1 w-full">
-            <label className="text-xs text-zinc-500 mb-1 block">Đến Cấp</label>
-            <select 
-              value={calcTo}
-              onChange={(e) => setCalcTo(Number(e.target.value))}
-              className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white outline-none focus:border-blue-500"
-            >
-              {[2, 3, 4, 5, 6, 7, 8, 9, 10].map(lvl => (
-                <option key={lvl} value={lvl} disabled={lvl <= calcFrom}>Cấp {lvl}</option>
-              ))}
-            </select>
-          </div>
+
+          {expanded.calc && (
+            <div className="px-5 pb-5 animate-in slide-in-from-top-2">
+
+              <div className="flex flex-col md:flex-row items-center gap-4">
+
+                <div className="flex-1 w-full">
+                  <label className="text-xs text-zinc-500 mb-1 block">
+                    Từ Cấp
+                  </label>
+
+                  <select
+                    value={calcFrom}
+                    onChange={(e) => {
+                      const value = Number(e.target.value)
+                      setCalcFrom(value)
+
+                      if (value >= calcTo) {
+                        setCalcTo(value + 1)
+                      }
+                    }}
+                    className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white outline-none focus:border-blue-500"
+                  >
+                    {[1,2,3,4,5,6,7,8,9].map(lvl => (
+                      <option key={lvl} value={lvl}>
+                        Cấp {lvl}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <ArrowRight className="w-5 h-5 text-zinc-600 hidden md:block mt-5" />
+
+                <div className="flex-1 w-full">
+                  <label className="text-xs text-zinc-500 mb-1 block">
+                    Đến Cấp
+                  </label>
+
+                  <select
+                    value={calcTo}
+                    onChange={(e) => setCalcTo(Number(e.target.value))}
+                    className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white outline-none focus:border-blue-500"
+                  >
+                    {[2,3,4,5,6,7,8,9,10].map(lvl => (
+                      <option
+                        key={lvl}
+                        value={lvl}
+                        disabled={lvl <= calcFrom}
+                      >
+                        Cấp {lvl}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+              </div>
+
+
+              <div className="mt-4">
+
+                {calcError ? (
+
+                  <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-center">
+                    <span className="text-sm font-bold text-red-400 animate-pulse">
+                      {calcError}
+                    </span>
+                  </div>
+
+                ) : (
+
+                  <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4 space-y-3">
+
+                    <div className="flex justify-between text-sm text-zinc-400">
+                      <span>Giá gốc:</span>
+                      <span className="text-white font-bold">
+                        {calcPrice.toLocaleString('vi-VN')} đ
+                      </span>
+                    </div>
+
+                    <div className="flex justify-between text-sm text-zinc-400">
+                      <span>Phí sàn ({platformFee}%):</span>
+                      <span className="text-yellow-400">
+                        +{Math.ceil(calcPrice * (platformFee / 100)).toLocaleString('vi-VN')} đ
+                      </span>
+                    </div>
+
+                    <div className="border-t border-zinc-800 pt-2 flex justify-between items-center">
+                      <span className="text-sm font-bold text-white">
+                        Khách trả:
+                      </span>
+
+                      <span className="text-xl font-bold text-blue-400">
+                        {(calcPrice + Math.ceil(calcPrice * (platformFee / 100))).toLocaleString('vi-VN')} đ
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3 mt-2">
+
+                      <div className="bg-green-900/10 border border-green-500/20 p-2 rounded-lg">
+                        <span className="text-green-400 text-xs font-bold block mb-1">
+                          Bạn nhận:
+                        </span>
+
+                        <span className="text-lg font-bold text-white">
+                          {calcPrice.toLocaleString('vi-VN')} ₫
+                        </span>
+                      </div>
+
+                      <div className="bg-yellow-900/10 border border-yellow-500/20 p-2 rounded-lg">
+                        <span className="text-yellow-400 text-xs font-bold block mb-1">
+                          Admin nhận:
+                        </span>
+
+                        <span className="text-lg font-bold text-white">
+                          {Math.ceil(calcPrice * (platformFee / 100)).toLocaleString('vi-VN')} ₫
+                        </span>
+                      </div>
+
+                    </div>
+
+                  </div>
+
+                )}
+
+              </div>
+
+            </div>
+          )}
+
         </div>
 
-        <div className="mt-4">
-          {calcError ? (
-              <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-center">
-                  <span className="text-sm font-bold text-red-400 animate-pulse">{calcError}</span>
-              </div>
-          ) : (
-              <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4 space-y-3">
-                  <div className="flex justify-between text-sm text-zinc-400">
-                      <span>Giá gốc:</span>
-                      <span className="text-white font-bold">{calcPrice.toLocaleString('vi-VN')} đ</span>
-                  </div>
-                  <div className="flex justify-between text-sm text-zinc-400">
-                      <span>Phí sàn ({platformFee}%):</span>
-                      <span className="text-yellow-400">-{Math.ceil(calcPrice * (platformFee / 100)).toLocaleString('vi-VN')} đ</span>
-                  </div>
-                  <div className="border-t border-zinc-800 pt-2 flex justify-between items-center">
-                      <span className="text-sm font-bold text-green-400">Bạn thực nhận:</span>
-                      <span className="text-xl font-bold text-green-400">
-                          {Math.floor(calcPrice * (1 - platformFee / 100)).toLocaleString('vi-VN')} đ
-                      </span>
-                  </div>
-              </div>
-          )}
-        </div>
-      </div>
+
 
         {/* Fee Tool */}
-        <div className="bg-zinc-950 border border-zinc-800 rounded-xl p-5">
-          <h3 className="text-white font-bold flex items-center gap-2 mb-4">
-            <Coins className="w-5 h-5 text-yellow-500" />
-            Công cụ tính phí sàn ({platformFee}%)
-          </h3>
-          <div className="space-y-6">
-             {/* Net to Gross */}
-             <div>
-                <label className="block text-sm font-medium text-zinc-400 mb-2">Muốn thực nhận (VNĐ)</label>
-                <div className="relative">
-                    <input 
-                        type="text" 
-                        value={toolNet} 
-                        onChange={(e) => { 
-                            const val = e.target.value.replace(/[^0-9]/g, ''); 
-                            setToolNet(val ? Number(val).toLocaleString('vi-VN') : ''); 
-                        }} 
-                        placeholder="Ví dụ: 95.000" 
-                        className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white text-sm outline-none focus:border-yellow-500 transition-colors" 
-                    />
-                    <span className="absolute right-3 top-2 text-zinc-500 text-xs">VNĐ</span>
-                </div>
-                {toolNet && (
-                    <div className="mt-2 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg animate-in fade-in slide-in-from-top-1">
-                        <div className="flex justify-between items-center">
-                            <span className="text-zinc-400 text-xs">Bạn cần nhập:</span>
-                            <span className="text-yellow-400 font-bold text-lg">
-                                {Math.ceil(parseInt(toolNet.replace(/\./g, '')) / (1 - platformFee / 100)).toLocaleString('vi-VN')} đ
-                            </span>
-                        </div>
-                    </div>
-                )}
-             </div>
+        <div className="bg-zinc-950 border border-zinc-800 rounded-xl overflow-hidden h-fit">
 
-             <div className="border-t border-zinc-800"></div>
+          <div
+            onClick={() => toggle('fee')}
+            className="p-5 flex items-center justify-between cursor-pointer hover:bg-zinc-900/50 transition-colors"
+          >
+            <h3 className="text-white font-bold flex items-center gap-2">
+              <Coins className="w-5 h-5 text-yellow-500" />
+              Công cụ tính phí sàn ({platformFee}%)
+            </h3>
 
-             {/* Gross to Net */}
-             <div>
-                <label className="block text-sm font-medium text-zinc-400 mb-2">Nhập giá gốc (Khách trả)</label>
-                <div className="relative">
-                    <input 
-                        type="text" 
-                        value={toolGross} 
-                        onChange={(e) => { 
-                            const val = e.target.value.replace(/[^0-9]/g, ''); 
-                            setToolGross(val ? Number(val).toLocaleString('vi-VN') : ''); 
-                        }} 
-                        placeholder="Ví dụ: 100.000" 
-                        className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white text-sm outline-none focus:border-green-500 transition-colors" 
-                    />
-                    <span className="absolute right-3 top-2 text-zinc-500 text-xs">VNĐ</span>
-                </div>
-                {toolGross && (
-                    <div className="mt-2 p-3 bg-green-500/10 border border-green-500/20 rounded-lg space-y-1 animate-in fade-in slide-in-from-top-1">
-                        <div className="flex justify-between items-center">
-                            <span className="text-zinc-400 text-xs">Phí sàn (-{platformFee}%):</span>
-                            <span className="text-red-400 font-bold text-sm">
-                                -{(Math.ceil(parseInt(toolGross.replace(/\./g, '')) * (platformFee / 100))).toLocaleString('vi-VN')} đ
-                            </span>
-                        </div>
-                        <div className="flex justify-between items-center pt-1 border-t border-green-500/20">
-                            <span className="text-zinc-300 text-xs font-medium">Thực nhận:</span>
-                            <span className="text-green-400 font-bold text-lg">
-                                {Math.floor(parseInt(toolGross.replace(/\./g, '')) * (1 - platformFee / 100)).toLocaleString('vi-VN')} đ
-                            </span>
-                        </div>
-                    </div>
-                )}
-             </div>
+            <ChevronDown
+              className={`w-5 h-5 text-zinc-500 transition-transform duration-300 ${
+                expanded.fee ? 'rotate-180' : ''
+              }`}
+            />
           </div>
+
+          {expanded.fee && (
+            <div className="px-5 pb-5 animate-in slide-in-from-top-2">
+
+              <div className="space-y-6">
+
+                {/* Net to Gross */}
+                <div>
+
+                  <label className="block text-sm font-medium text-zinc-400 mb-2">
+                    Muốn thực nhận (VNĐ)
+                  </label>
+
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={toolNet}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/[^0-9]/g, '')
+                        setToolNet(val ? Number(val).toLocaleString('vi-VN') : '')
+                      }}
+                      placeholder="Ví dụ: 95.000"
+                      className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white text-sm outline-none focus:border-yellow-500 transition-colors"
+                    />
+
+                    <span className="absolute right-3 top-2 text-zinc-500 text-xs">
+                      VNĐ
+                    </span>
+                  </div>
+
+                  {toolNet && (
+                    <div className="mt-2 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg animate-in fade-in slide-in-from-top-1">
+
+                      <div className="flex justify-between items-center mb-1">
+                        <span className="text-zinc-400 text-xs">
+                          Phí sàn (+{platformFee}%):
+                        </span>
+
+                        <span className="text-yellow-400 font-bold text-sm">
+                          +{Math.ceil(
+                            parseInt(toolNet.replace(/\./g, '')) *
+                              (platformFee / 100)
+                          ).toLocaleString('vi-VN')} đ
+                        </span>
+                      </div>
+
+                      <div className="flex justify-between items-center pt-1 border-t border-yellow-500/20">
+                        <span className="text-zinc-300 text-xs font-medium">
+                          Bạn cần nhập:
+                        </span>
+
+                        <span className="text-yellow-400 font-bold text-lg">
+                          {Math.ceil(
+                            parseInt(toolNet.replace(/\./g, '')) *
+                              (1 + platformFee / 100)
+                          ).toLocaleString('vi-VN')} đ
+                        </span>
+                      </div>
+
+                    </div>
+                  )}
+
+                </div>
+
+
+
+                <div className="border-t border-zinc-800"></div>
+
+
+
+                {/* Gross to Net */}
+                <div>
+
+                  <label className="block text-sm font-medium text-zinc-400 mb-2">
+                    Nhập giá gốc (Khách trả)
+                  </label>
+
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={toolGross}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/[^0-9]/g, '')
+                        setToolGross(val ? Number(val).toLocaleString('vi-VN') : '')
+                      }}
+                      placeholder="Ví dụ: 100.000"
+                      className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white text-sm outline-none focus:border-green-500 transition-colors"
+                    />
+
+                    <span className="absolute right-3 top-2 text-zinc-500 text-xs">
+                      VNĐ
+                    </span>
+                  </div>
+
+                  {toolGross && (
+                    <div className="mt-2 p-3 bg-green-500/10 border border-green-500/20 rounded-lg space-y-1 animate-in fade-in slide-in-from-top-1">
+
+                      <div className="flex justify-between items-center">
+                        <span className="text-zinc-400 text-xs">
+                          Phí sàn (-{platformFee}%):
+                        </span>
+
+                        <span className="text-red-400 font-bold text-sm">
+                          -{(
+                            parseInt(toolGross.replace(/\./g, '')) -
+                            Math.floor(
+                              parseInt(toolGross.replace(/\./g, '')) /
+                                (1 + platformFee / 100)
+                            )
+                          ).toLocaleString('vi-VN')} đ
+                        </span>
+                      </div>
+
+                      <div className="flex justify-between items-center pt-1 border-t border-green-500/20">
+                        <span className="text-zinc-300 text-xs font-medium">
+                          Thực nhận:
+                        </span>
+
+                        <span className="text-green-400 font-bold text-lg">
+                          {Math.floor(
+                            parseInt(toolGross.replace(/\./g, '')) /
+                              (1 + platformFee / 100)
+                          ).toLocaleString('vi-VN')} đ
+                        </span>
+                      </div>
+
+                    </div>
+                  )}
+
+                </div>
+
+              </div>
+
+            </div>
+          )}
+
         </div>
+
       </div>
 
       {/* Pricing Inputs */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden">
+        <div onClick={() => toggle('pricing')} className="p-6 flex items-center justify-between cursor-pointer hover:bg-zinc-800/50 transition-colors">
+            <h2 className="text-xl font-bold text-white">Bảng giá Thông Thạo</h2>
+            <ChevronDown className={`w-6 h-6 text-zinc-500 transition-transform duration-300 ${expanded.pricing ? 'rotate-180' : ''}`} />
+        </div>
+
+        {expanded.pricing && (
+        <div className="px-6 pb-6 animate-in slide-in-from-top-2">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {MASTERY_STEPS.map((step) => {
           const key = `M${step.from}_M${step.to}`;
           const currentPrice = settings.masteryPrices?.[key] || 0;
@@ -275,6 +476,9 @@ export default function MasteryPage() {
             </div>
           );
         })}
+      </div>
+      </div>
+      )}
       </div>
     </div>
   );

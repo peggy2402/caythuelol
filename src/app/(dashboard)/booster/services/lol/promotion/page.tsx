@@ -114,13 +114,23 @@ export default function PromotionPage() {
                         </div>
                         <div className="flex justify-between text-sm text-zinc-400">
                             <span>Phí sàn ({platformFee}%):</span>
-                            <span className="text-yellow-400">-{Math.ceil(calcPrice * (platformFee / 100)).toLocaleString('vi-VN')} đ</span>
+                            <span className="text-yellow-400">+{Math.ceil(calcPrice * (platformFee / 100)).toLocaleString('vi-VN')} đ</span>
                         </div>
                         <div className="border-t border-zinc-800 pt-2 flex justify-between items-center">
-                            <span className="text-sm font-bold text-green-400">Bạn thực nhận:</span>
-                            <span className="text-xl font-bold text-green-400">
-                                {Math.floor(calcPrice * (1 - platformFee / 100)).toLocaleString('vi-VN')} đ
+                            <span className="text-sm font-bold text-white">Khách trả:</span>
+                            <span className="text-xl font-bold text-blue-400">
+                                {(calcPrice + Math.ceil(calcPrice * (platformFee / 100))).toLocaleString('vi-VN')} đ
                             </span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3 mt-2">
+                            <div className="bg-green-900/10 border border-green-500/20 p-2 rounded-lg">
+                                <span className="text-green-400 text-xs font-bold block mb-1">Bạn nhận:</span>
+                                <span className="text-lg font-bold text-white">{calcPrice.toLocaleString('vi-VN')} ₫</span>
+                            </div>
+                            <div className="bg-yellow-900/10 border border-yellow-500/20 p-2 rounded-lg">
+                                <span className="text-yellow-400 text-xs font-bold block mb-1">Admin nhận:</span>
+                                <span className="text-lg font-bold text-white">{Math.ceil(calcPrice * (platformFee / 100)).toLocaleString('vi-VN')} ₫</span>
+                            </div>
                         </div>
                     </div>
                 )}
@@ -156,7 +166,7 @@ export default function PromotionPage() {
                         <div className="flex justify-between items-center">
                             <span className="text-zinc-400 text-xs">Bạn cần nhập:</span>
                             <span className="text-yellow-400 font-bold text-lg">
-                                {Math.ceil(parseInt(toolNet.replace(/\./g, '')) / (1 - platformFee / 100)).toLocaleString('vi-VN')} đ
+                                {Math.ceil(parseInt(toolNet.replace(/\./g, '')) * (1 + platformFee / 100)).toLocaleString('vi-VN')} đ
                             </span>
                         </div>
                     </div>
@@ -186,13 +196,13 @@ export default function PromotionPage() {
                         <div className="flex justify-between items-center">
                             <span className="text-zinc-400 text-xs">Phí sàn (-{platformFee}%):</span>
                             <span className="text-red-400 font-bold text-sm">
-                                -{(Math.ceil(parseInt(toolGross.replace(/\./g, '')) * (platformFee / 100))).toLocaleString('vi-VN')} đ
+                                -{(parseInt(toolGross.replace(/\./g, '')) - Math.floor(parseInt(toolGross.replace(/\./g, '')) / (1 + platformFee / 100))).toLocaleString('vi-VN')} đ
                             </span>
                         </div>
                         <div className="flex justify-between items-center pt-1 border-t border-green-500/20">
                             <span className="text-zinc-300 text-xs font-medium">Thực nhận:</span>
                             <span className="text-green-400 font-bold text-lg">
-                                {Math.floor(parseInt(toolGross.replace(/\./g, '')) * (1 - platformFee / 100)).toLocaleString('vi-VN')} đ
+                                {Math.floor(parseInt(toolGross.replace(/\./g, '')) / (1 + platformFee / 100)).toLocaleString('vi-VN')} đ
                             </span>
                         </div>
                     </div>

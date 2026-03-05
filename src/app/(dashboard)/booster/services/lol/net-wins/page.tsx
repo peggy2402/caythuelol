@@ -36,7 +36,7 @@ export default function NetWinsPage() {
   const [calcRank, setCalcRank] = useState('Master');
   const [calcCurrentLP, setCalcCurrentLP] = useState(0);
   const [calcTarget, setCalcTarget] = useState(100); // Target LP or Num of Games
-  const [calcLPGain, setCalcLPGain] = useState(19);
+  const [calcLPGain, setCalcLPGain] = useState('19');
   
   // --- SIMULATION STATE (PHASE 2: SETTLEMENT) ---
   const [simActualLP, setSimActualLP] = useState(0); // LP thực tế đạt được
@@ -54,6 +54,19 @@ export default function NetWinsPage() {
   const [challengerStat, setChallengerStat] = useState<RankStat>({ cutoff: 0, count: 0 });
   const [gmStat, setGmStat] = useState<RankStat>({ cutoff: 0, count: 0 });
   const [loadingStats, setLoadingStats] = useState(false);
+
+  // Collapsible State
+  const [expanded, setExpanded] = useState({ pricing: true, deposit: true, booking: true, settlement: true });
+
+  useEffect(() => {
+    if (window.innerWidth < 1024) {
+      setExpanded({ pricing: true, deposit: false, booking: false, settlement: false });
+    }
+  }, []);
+
+  const toggle = (key: keyof typeof expanded) => {
+    setExpanded(prev => ({ ...prev, [key]: !prev[key] }));
+  };
 
   // --- FETCH RANK DATA ---
   const fetchRankStats = async () => {
@@ -111,8 +124,9 @@ export default function NetWinsPage() {
     
     // 1. Calculate Modifier
     let lpKey = 'medium';
-    if (calcLPGain < 19) lpKey = 'low';
-    else if (calcLPGain > 21) lpKey = 'high';
+    const lpVal = parseInt(calcLPGain) || 19;
+    if (lpVal < 19) lpKey = 'low';
+    else if (lpVal > 21) lpKey = 'high';
     const mod = settings.lpModifiers[lpKey as keyof typeof settings.lpModifiers] || 0;
     setAppliedModifier(mod);
 
@@ -127,7 +141,7 @@ export default function NetWinsPage() {
         const lpDiff = Math.max(0, calcTarget - calcCurrentLP);
         base1 = lpDiff * basePricePerLP;
     } else {
-        const estimatedTotalLP = calcTarget * calcLPGain; 
+        const estimatedTotalLP = calcTarget * lpVal; 
         base1 = estimatedTotalLP * basePricePerLP;
     }
     
@@ -171,8 +185,8 @@ export default function NetWinsPage() {
   return (
     <div className="space-y-8">
       {/* Header Info */}
-      <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
-        <div className="flex items-center justify-between">
+      <div className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden">
+        <div onClick={() => toggle('pricing')} className="p-6 flex items-center justify-between cursor-pointer hover:bg-zinc-800/50 transition-colors">
             <div className="flex items-center gap-3">
                 <Target className="w-6 h-6 text-yellow-500" />
                 <h2 className="text-xl font-bold text-white">Cấu hình Cày Điểm (Net Wins)</h2>
@@ -191,9 +205,12 @@ export default function NetWinsPage() {
                 <Layers className="w-4 h-4" /> Flex
                 </button>
             </div>
+            <ChevronDown className={`w-6 h-6 text-zinc-500 transition-transform duration-300 md:hidden ${expanded.pricing ? 'rotate-180' : ''}`} />
         </div>
 
         {/* Pricing Inputs */}
+        {expanded.pricing && (
+        <div className="px-6 pb-6 animate-in slide-in-from-top-2">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
             {HIGH_ELO_RANKS.map((rank) => {
             const currentPrice = getPricePerLP(rank.id);
@@ -222,14 +239,21 @@ export default function NetWinsPage() {
             );
             })}
         </div>
+        </div>
+        )}
       </div>
 
       {/* --- DEPOSIT CONFIGURATION --- */}
-      <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
-        <div className="flex items-center gap-3 mb-4">
-            <Wallet className="w-6 h-6 text-emerald-500" />
-            <h3 className="text-lg font-bold text-white">Cấu hình Đặt cọc (Deposit)</h3>
+      <div className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden">
+        <div onClick={() => toggle('deposit')} className="p-6 flex items-center justify-between cursor-pointer hover:bg-zinc-800/50 transition-colors">
+            <div className="flex items-center gap-3">
+                <Wallet className="w-6 h-6 text-emerald-500" />
+                <h3 className="text-lg font-bold text-white">Cấu hình Đặt cọc (Deposit)</h3>
+            </div>
+            <ChevronDown className={`w-6 h-6 text-zinc-500 transition-transform duration-300 ${expanded.deposit ? 'rotate-180' : ''}`} />
         </div>
+        {expanded.deposit && (
+        <div className="px-6 pb-6 animate-in slide-in-from-top-2">
         <div className="flex flex-col md:flex-row gap-6 items-start">
             <div className="flex-1">
                 <label className="text-sm text-zinc-400 mb-2 block">Tỷ lệ cọc yêu cầu (%)</label>
@@ -258,24 +282,31 @@ export default function NetWinsPage() {
                 </ul>
             </div>
         </div>
+        </div>
+        )}
       </div>
 
       {/* --- PREVIEW & SIMULATION SYSTEM --- */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         
         {/* LEFT: BOOKING SIMULATION (CUSTOMER VIEW) */}
-        <div className="bg-zinc-950 border border-zinc-800 rounded-xl overflow-hidden flex flex-col">
-            <div className="p-4 bg-zinc-900/50 border-b border-zinc-800 flex justify-between items-center">
+        <div className="bg-zinc-950 border border-zinc-800 rounded-xl overflow-hidden flex flex-col h-fit">
+            <div onClick={() => toggle('booking')} className="p-4 bg-zinc-900/50 border-b border-zinc-800 flex justify-between items-center cursor-pointer hover:bg-zinc-900 transition-colors">
                 <h3 className="font-bold text-white flex items-center gap-2">
                     <Users className="w-5 h-5 text-blue-500" />
                     1. Mô phỏng Đặt đơn (Khách hàng)
                 </h3>
-                <div className="flex bg-zinc-900 rounded-lg p-1 border border-zinc-800">
+                <div className="flex items-center gap-3">
+                <div className="flex bg-zinc-900 rounded-lg p-1 border border-zinc-800" onClick={(e) => e.stopPropagation()}>
                     <button onClick={() => setCalcMode('BY_LP')} className={`px-3 py-1 text-xs font-bold rounded ${calcMode === 'BY_LP' ? 'bg-blue-600 text-white' : 'text-zinc-500'}`}>Theo LP</button>
                     <button onClick={() => setCalcMode('BY_GAMES')} className={`px-3 py-1 text-xs font-bold rounded ${calcMode === 'BY_GAMES' ? 'bg-blue-600 text-white' : 'text-zinc-500'}`}>Theo Trận</button>
                 </div>
+                <ChevronDown className={`w-5 h-5 text-zinc-500 transition-transform duration-300 ${expanded.booking ? 'rotate-180' : ''}`} />
+                </div>
             </div>
             
+            {expanded.booking && (
+            <div className="p-5 space-y-5 flex-1 animate-in slide-in-from-top-2">
             <div className="p-5 space-y-5 flex-1">
                 {/* Inputs */}
                 <div className="grid grid-cols-2 gap-4">
@@ -290,7 +321,7 @@ export default function NetWinsPage() {
                         <div className="relative">
                             <select 
                                 value={calcLPGain} 
-                                onChange={(e) => setCalcLPGain(Number(e.target.value))} 
+                                onChange={(e) => setCalcLPGain(e.target.value)} 
                                 className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white outline-none focus:border-blue-500 appearance-none"
                             >
                                 <option value={18}>Thấp (&lt; 19 LP)</option>
@@ -302,7 +333,7 @@ export default function NetWinsPage() {
                             </div>
                         </div>
                         <div className={`text-right text-[10px] mt-1 font-bold ${appliedModifier > 0 ? 'text-red-400' : appliedModifier < 0 ? 'text-green-400' : 'text-zinc-500'}`}>
-                            {appliedModifier > 0 ? `Tăng giá ${Math.abs(appliedModifier)}%` : appliedModifier < 0 ? `Giảm giá ${Math.abs(appliedModifier)}%` : ''}
+                            {appliedModifier > 0 ? `Tăng giá ${Math.abs(appliedModifier)}%` : appliedModifier < 0 ? `Giảm giá ${Math.abs(appliedModifier)}%` : 'Không đổi giá'}
                         </div>
                     </div>
                 </div>
@@ -358,17 +389,22 @@ export default function NetWinsPage() {
                     </div>
                 </div>
             </div>
+            </div>
+            )}
         </div>
 
         {/* RIGHT: SETTLEMENT SIMULATION (BOOSTER VIEW) */}
-        <div className="bg-zinc-950 border border-zinc-800 rounded-xl overflow-hidden flex flex-col">
-            <div className="p-4 bg-zinc-900/50 border-b border-zinc-800">
+        <div className="bg-zinc-950 border border-zinc-800 rounded-xl overflow-hidden flex flex-col h-fit">
+            <div onClick={() => toggle('settlement')} className="p-4 bg-zinc-900/50 border-b border-zinc-800 flex justify-between items-center cursor-pointer hover:bg-zinc-900 transition-colors">
                 <h3 className="font-bold text-white flex items-center gap-2">
                     <Scale className="w-5 h-5 text-purple-500" />
                     2. Mô phỏng Quyết toán (Kết thúc đơn)
                 </h3>
+                <ChevronDown className={`w-5 h-5 text-zinc-500 transition-transform duration-300 ${expanded.settlement ? 'rotate-180' : ''}`} />
             </div>
 
+            {expanded.settlement && (
+            <div className="p-5 space-y-5 flex-1 flex flex-col animate-in slide-in-from-top-2">
             <div className="p-5 space-y-5 flex-1 flex flex-col">
                 <div className="bg-zinc-900/50 p-3 rounded-lg border border-zinc-800">
                     <label className="text-xs font-bold text-zinc-400 uppercase mb-2 block">Nhập kết quả thực tế:</label>
@@ -478,6 +514,8 @@ export default function NetWinsPage() {
                     </div>
                 </div>
             </div>
+            </div>
+            )}
         </div>
       </div>
     </div>
