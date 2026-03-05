@@ -52,7 +52,7 @@ function NetWinsContent() {
   const [currentLP, setCurrentLP] = useState<string>('');
   const [targetLP, setTargetLP] = useState<string>('');
   const [lpGain, setLpGain] = useState<string>('19');
-  const [wins, setWins] = useState(1);
+  const [wins, setWins] = useState<string>('1');
   const [queueType, setQueueType] = useState<'SOLO' | 'FLEX'>('SOLO');
 
   // Account Info State
@@ -135,7 +135,7 @@ function NetWinsContent() {
         base = diff * unitPrice;
     } else {
         // BY_GAMES: Giá = Số trận * LP mỗi trận * Giá mỗi LP
-        base = wins * lpVal * unitPrice;
+        base = (parseInt(wins) || 0) * lpVal * unitPrice;
     }
 
     // 3. Calculate LP Modifier
@@ -208,17 +208,27 @@ function NetWinsContent() {
   };
 
   const OptionCheckbox = ({ id, label, priceInfo, checked, onChange, disabled = false }: { id: string, label: string, priceInfo: string, checked: boolean, onChange: () => void, disabled?: boolean }) => (
-    <label htmlFor={id} className={`flex items-center justify-between p-3 rounded-xl border transition-all cursor-pointer group ${disabled ? 'opacity-50 cursor-not-allowed' : ''} ${checked ? 'border-blue-500 bg-blue-500/10' : 'border-white/10 bg-zinc-900/40 hover:bg-zinc-900/60 hover:border-white/20'}`}>
-        <div className="flex items-center gap-3">
-            <div className={`w-5 h-5 rounded border flex items-center justify-center transition-all ${checked ? 'bg-blue-600 border-blue-600' : 'border-zinc-600 bg-zinc-900 group-hover:border-zinc-500'}`}>
-                {checked && <CheckCircle2 className="w-3.5 h-3.5 text-white" />}
+    <label htmlFor={id} className={`flex items-center justify-between p-2.5 sm:p-3 rounded-xl border transition-all cursor-pointer group ${disabled ? 'opacity-50 cursor-not-allowed' : ''} ${checked ? 'border-blue-500 bg-blue-500/10' : 'border-white/10 bg-zinc-900/40 hover:bg-zinc-900/60 hover:border-white/20'}`}>
+        <div className="flex items-center gap-2 sm:gap-3">
+            <div className={`w-4 h-4 sm:w-5 sm:h-5 rounded border flex items-center justify-center transition-all ${checked ? 'bg-blue-600 border-blue-600' : 'border-zinc-600 bg-zinc-900 group-hover:border-zinc-500'}`}>
+                {checked && <CheckCircle2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-white" />}
             </div>
-            <div className="font-medium text-zinc-200 text-sm">{label}</div>
+            <div className="font-medium text-zinc-200 text-xs sm:text-sm">{label}</div>
         </div>
-        <span className="text-xs font-bold text-green-400 bg-green-400/10 px-2 py-1 rounded">{priceInfo}</span>
+        <span className="text-[10px] sm:text-xs font-bold text-green-400 bg-green-400/10 px-1.5 py-0.5 sm:px-2 sm:py-1 rounded">{priceInfo}</span>
         <input id={id} type="checkbox" checked={checked} onChange={onChange} disabled={disabled} className="hidden" />
     </label>
   );
+
+  const isLpInvalid = useMemo(() => {
+    if (calcMode !== 'BY_LP') return false;
+    const current = parseInt(currentLP);
+    const target = parseInt(targetLP);
+    if (!isNaN(current) && !isNaN(target)) {
+        return current >= target;
+    }
+    return false;
+  }, [calcMode, currentLP, targetLP]);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -299,15 +309,16 @@ function NetWinsContent() {
                                 Điểm cộng mỗi trận (LP Gain)
                             </label>
                             <div className="relative">
-                                <input 
-                                    type="number" 
+                                <select
                                     value={lpGain}
                                     onChange={(e) => setLpGain(e.target.value)}
-                                    className={`w-full bg-zinc-900 border ${parseInt(lpGain) < 0 ? 'border-red-500 focus:border-red-500' : 'border-zinc-700 focus:border-blue-500'} rounded-lg px-3 py-2 text-white outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`}
-                                    placeholder="VD: 19"
-                                    min="0"
-                                />
-                                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-500 text-xs font-bold">LP/Win</span>
+                                    className="w-full appearance-none bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white outline-none focus:border-blue-500"
+                                >
+                                    <option value="18">Dưới 19 LP (Elo Thấp)</option>
+                                    <option value="19">19 - 21 LP (Elo Thường)</option>
+                                    <option value="22">Trên 21 LP (Elo Cao)</option>
+                                </select>
+                                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-500"><ChevronRight className="w-4 h-4 rotate-90" /></div>
                             </div>
                             {priceDetails?.modifierPct !== 0 && (
                                 <div className={`text-xs font-bold mt-2 flex items-center gap-1 ${(priceDetails?.modifierPct || 0) > 0 ? 'text-red-400' : 'text-green-400'}`}>
@@ -325,7 +336,12 @@ function NetWinsContent() {
                                         <input 
                                             type="number" 
                                             value={currentLP}
-                                            onChange={(e) => setCurrentLP(e.target.value)}
+                                            onChange={(e) => {
+                                                const val = e.target.value;
+                                                if (val === '' || parseInt(val) >= 0) {
+                                                    setCurrentLP(val);
+                                                }
+                                            }}
                                             className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white outline-none focus:border-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                             placeholder="VD: 45"
                                         />
@@ -338,33 +354,43 @@ function NetWinsContent() {
                                         <input 
                                             type="number" 
                                             value={targetLP}
-                                            onChange={(e) => setTargetLP(e.target.value)}
-                                            className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white outline-none focus:border-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                            onChange={(e) => {
+                                                const val = e.target.value;
+                                                if (val === '' || parseInt(val) >= 0) {
+                                                    setTargetLP(val);
+                                                }
+                                            }}
+                                            className={`w-full bg-zinc-900 border ${isLpInvalid ? 'border-red-500 focus:border-red-500' : 'border-zinc-700 focus:border-blue-500'} rounded-lg px-3 py-2 text-white outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`}
                                             placeholder="VD: 100"
                                         />
                                         <span className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-500 text-xs font-bold">LP</span>
                                     </div>
+                                    {isLpInvalid && (
+                                        <div className="text-red-500 text-xs mt-2 flex items-center gap-1 font-medium animate-in fade-in slide-in-from-top-1">
+                                            <AlertCircle className="w-3 h-3" />
+                                            Điểm mong muốn phải lớn hơn điểm hiện tại
+                                        </div>
+                                    )}
                                 </div>
                             </>
                         ) : (
                             <div>
                                 <label className="text-xs font-bold uppercase text-zinc-500 tracking-wider mb-2 block">Số trận mong muốn</label>
-                                <div className="flex items-center gap-3">
-                                    <button 
-                                        onClick={() => setWins(Math.max(1, wins - 1))}
-                                        className="w-10 h-10 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white font-bold flex items-center justify-center transition-colors"
-                                    >
-                                        -
-                                    </button>
-                                    <div className="flex-1 bg-zinc-950 border border-zinc-700 rounded-xl h-10 flex items-center justify-center font-bold text-white">
-                                        {wins} Trận
-                                    </div>
-                                    <button 
-                                        onClick={() => setWins(wins + 1)}
-                                        className="w-10 h-10 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white font-bold flex items-center justify-center transition-colors"
-                                    >
-                                        +
-                                    </button>
+                                <div className="relative">
+                                    <input 
+                                        type="number" 
+                                        value={wins}
+                                        onChange={(e) => {
+                                            const val = e.target.value;
+                                            if (val === '' || parseInt(val) > 0) {
+                                                setWins(val);
+                                            }
+                                        }}
+                                        className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white outline-none focus:border-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                        placeholder="VD: 5"
+                                        min="1"
+                                    />
+                                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-500 text-xs font-bold">Trận</span>
                                 </div>
                             </div>
                         )}
@@ -523,15 +549,19 @@ function NetWinsContent() {
                             </div>
                             
                             {/* Total */}
-                            <div className="flex justify-between items-end pt-4 border-t-2 border-white/10 mt-4">
-                                <div className="flex flex-col">
+                            <div className="pt-4 border-t-2 border-white/10 mt-4">
+                                <div className="flex justify-between items-end mb-1">
                                     <span className="text-zinc-400 font-medium">Tiền cọc ({priceDetails?.depositPercent}%):</span>
-                                    {/* Optional: Show Total for clarity */}
-                                    <span className="text-xs text-zinc-600">Tổng đơn: {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(priceDetails?.totalPrice || 0)}</span>
+                                    <span className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">
+                                        {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(priceDetails?.depositAmount || 0)}
+                                    </span>
                                 </div>
-                                <span className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">
-                                    {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(priceDetails?.depositAmount || 0)}
-                                </span>
+                                <div className="flex justify-between items-end mb-1">
+                                    <span className="text-xs text-zinc-500">Tổng tiền dự kiến:</span>
+                                    <span className="text-sm font-semibold text-emerald-400 bg-emerald-400/10 px-2 py-0.5 rounded-md border border-emerald-400/20">
+                                        {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(priceDetails?.totalPrice || 0)}
+                                    </span>
+                                </div>
                             </div>
 
                             <div className="mt-4 p-3 bg-blue-500/10 border border-blue-500/20 rounded-xl text-xs text-blue-200/80 leading-relaxed">
@@ -549,20 +579,20 @@ function NetWinsContent() {
                         </div>
                     )}
 
-                    <div className="flex items-center gap-3 mt-4 mb-4 px-1">
+                    <div className="flex items-center gap-2 sm:gap-3 mt-3 sm:mt-4 mb-3 sm:mb-4 px-1">
                         <button 
                             onClick={() => setAgreedToTerms(!agreedToTerms)}
-                            className={`w-5 h-5 rounded border flex items-center justify-center transition-all shrink-0 ${agreedToTerms ? 'bg-blue-600 border-blue-600' : 'border-zinc-600 hover:border-zinc-500'}`}
+                            className={`w-4 h-4 sm:w-5 sm:h-5 rounded border flex items-center justify-center transition-all shrink-0 ${agreedToTerms ? 'bg-blue-600 border-blue-600' : 'border-zinc-600 hover:border-zinc-500'}`}
                         >
-                            {agreedToTerms && <CheckCircle2 className="w-3.5 h-3.5 text-white" />}
+                            {agreedToTerms && <CheckCircle2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-white" />}
                         </button>
-                        <span className="text-sm text-zinc-400 select-none cursor-pointer" onClick={() => setAgreedToTerms(!agreedToTerms)}>
+                        <span className="text-xs sm:text-sm text-zinc-400 select-none cursor-pointer" onClick={() => setAgreedToTerms(!agreedToTerms)}>
                             Tôi đồng ý với <span className="text-blue-400 hover:underline">Điều khoản & Chính sách</span>
                         </span>
                     </div>
 
                     <button
-                        disabled={!boosterId || !priceDetails || priceDetails.totalPrice <= 0 || !agreedToTerms}
+                        disabled={!boosterId || !priceDetails || priceDetails.totalPrice <= 0 || !agreedToTerms || isLpInvalid}
                         className="w-full py-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-lg shadow-lg shadow-blue-600/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                     >
                         {priceDetails && priceDetails.totalPrice > 0 ? 'Tiến hành thuê' : 'Vui lòng cấu hình'} <ArrowRight className="w-5 h-5" />

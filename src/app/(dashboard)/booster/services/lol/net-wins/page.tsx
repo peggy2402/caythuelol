@@ -2,7 +2,7 @@
 
 import { useServiceContext } from '../../../../../../components/ServiceContext';
 import { useState, useEffect } from 'react';
-import { Target, Calculator, Coins, ArrowRight, Info, RefreshCw, Trophy, TrendingUp, Layers, Users, Wallet, Scale, AlertCircle, CheckCircle2, XCircle } from 'lucide-react';
+import { Target, Calculator, Coins, ArrowRight, Info, RefreshCw, Trophy, TrendingUp, Layers, Users, Wallet, Scale, AlertCircle, CheckCircle2, XCircle, ChevronDown } from 'lucide-react';
 
 const HIGH_ELO_RANKS = [
   { id: 'Master', label: 'Cao Thủ (Master)', color: 'text-purple-400', border: 'border-purple-500/30', bg: 'bg-purple-500/10' },
@@ -288,10 +288,21 @@ export default function NetWinsPage() {
                     <div>
                         <label className="text-xs text-zinc-500 mb-1 block">LP trung bình/trận</label>
                         <div className="relative">
-                            <input type="number" value={calcLPGain} onChange={(e) => setCalcLPGain(Number(e.target.value))} className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white outline-none focus:border-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
-                            <div className={`absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold ${appliedModifier > 0 ? 'text-red-400' : appliedModifier < 0 ? 'text-green-400' : 'text-zinc-500'}`}>
-                                {appliedModifier > 0 ? `Tăng giá ${Math.abs(appliedModifier)}%` : appliedModifier < 0 ? `Giảm giá ${Math.abs(appliedModifier)}%` : ''}
+                            <select 
+                                value={calcLPGain} 
+                                onChange={(e) => setCalcLPGain(Number(e.target.value))} 
+                                className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white outline-none focus:border-blue-500 appearance-none"
+                            >
+                                <option value={18}>Thấp (&lt; 19 LP)</option>
+                                <option value={19}>Trung bình (19-21 LP)</option>
+                                <option value={22}>Cao (&gt; 21 LP)</option>
+                            </select>
+                            <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-500">
+                                <ChevronDown className="w-4 h-4" />
                             </div>
+                        </div>
+                        <div className={`text-right text-[10px] mt-1 font-bold ${appliedModifier > 0 ? 'text-red-400' : appliedModifier < 0 ? 'text-green-400' : 'text-zinc-500'}`}>
+                            {appliedModifier > 0 ? `Tăng giá ${Math.abs(appliedModifier)}%` : appliedModifier < 0 ? `Giảm giá ${Math.abs(appliedModifier)}%` : ''}
                         </div>
                     </div>
                 </div>
@@ -376,7 +387,7 @@ export default function NetWinsPage() {
                         </div>
                     ) : (
                         <div className="space-y-2">
-                            <div className="max-h-[120px] overflow-y-auto space-y-2 pr-1 custom-scrollbar">
+                            <div className="max-h-[120px] overflow-y-auto space-y-2 pr-1 no-scrollbar">
                                 {simGames.map((game, idx) => (
                                     <div key={game.id} className="flex items-center gap-2">
                                         <span className="text-xs text-zinc-500 w-12">Trận {idx + 1}:</span>
@@ -384,7 +395,7 @@ export default function NetWinsPage() {
                                             type="number" 
                                             value={game.lp} 
                                             onChange={(e) => updateSimGame(game.id, Number(e.target.value))}
-                                            className={`flex-1 bg-zinc-950 border rounded px-2 py-1 text-sm outline-none ${game.lp >= 0 ? 'text-green-400 border-green-900' : 'text-red-400 border-red-900'}`}
+                                            className={`flex-1 bg-zinc-950 border rounded px-2 py-1 text-sm outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${game.lp >= 0 ? 'text-green-400 border-green-900' : 'text-red-400 border-red-900'}`}
                                         />
                                         <button onClick={() => removeSimGame(game.id)} className="text-zinc-600 hover:text-red-500"><XCircle className="w-4 h-4"/></button>
                                     </div>
@@ -455,9 +466,15 @@ export default function NetWinsPage() {
                         )}
                     </div>
 
-                    <div className="bg-blue-600/10 border border-blue-500/20 p-3 rounded-xl flex justify-between items-center">
-                        <span className="text-blue-200 text-sm font-bold">Tổng Booster nhận:</span>
-                        <span className="text-xl font-bold text-blue-400">{actualPrice.toLocaleString('vi-VN')} đ</span>
+                    <div className="grid grid-cols-2 gap-3">
+                        <div className="bg-blue-600/10 border border-blue-500/20 p-3 rounded-xl">
+                            <span className="text-blue-200 text-xs font-bold block mb-1">Bạn thực nhận:</span>
+                            <span className="text-lg font-bold text-blue-400">{Math.round(actualPrice - simBreakdown.fee).toLocaleString('vi-VN')} ₫</span>
+                        </div>
+                        <div className="bg-yellow-600/10 border border-yellow-500/20 p-3 rounded-xl">
+                            <span className="text-yellow-200 text-xs font-bold block mb-1">Admin nhận:</span>
+                            <span className="text-lg font-bold text-yellow-400">{Math.round(simBreakdown.fee).toLocaleString('vi-VN')} ₫</span>
+                        </div>
                     </div>
                 </div>
             </div>

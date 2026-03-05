@@ -84,7 +84,7 @@ export default function PromotionPage() {
         <div className="bg-zinc-950 border border-zinc-800 rounded-xl p-5">
           <h3 className="text-white font-bold flex items-center gap-2 mb-4">
             <Calculator className="w-5 h-5 text-blue-500" />
-            Xem trước giá (Preview)
+            Mô phỏng đơn đặt (Khách hàng)
           </h3>
           
           <div className="space-y-4">
@@ -101,21 +101,29 @@ export default function PromotionPage() {
                 </select>
             </div>
 
-            <div className="flex gap-2 mt-4">
-                <div className="flex-1 bg-blue-900/20 border border-blue-500/30 rounded-lg p-3 text-center">
-                    <span className="text-xs text-blue-200 block">Tổng tiền</span>
-                    {calcError ? (
-                    <span className="text-sm font-bold text-red-400 animate-pulse">{calcError}</span>
-                    ) : (
-                    <span className="text-xl font-bold text-blue-400">{calcPrice.toLocaleString('vi-VN')} đ</span>
-                    )}
-                </div>
-                <div className="flex-1 bg-green-900/20 border border-green-500/30 rounded-lg p-3 text-center">
-                    <span className="text-xs text-green-200 block flex items-center justify-center gap-1">
-                    <Coins className="w-3 h-3" /> Thực nhận (-{platformFee}%)
-                    </span>
-                    <span className="text-xl font-bold text-green-400">{(Math.floor(calcPrice * (1 - platformFee / 100))).toLocaleString('vi-VN')} đ</span>
-                </div>
+            <div className="mt-4">
+                {calcError ? (
+                    <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-center">
+                        <span className="text-sm font-bold text-red-400 animate-pulse">{calcError}</span>
+                    </div>
+                ) : (
+                    <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4 space-y-3">
+                        <div className="flex justify-between text-sm text-zinc-400">
+                            <span>Giá gốc:</span>
+                            <span className="text-white font-bold">{calcPrice.toLocaleString('vi-VN')} đ</span>
+                        </div>
+                        <div className="flex justify-between text-sm text-zinc-400">
+                            <span>Phí sàn ({platformFee}%):</span>
+                            <span className="text-yellow-400">-{Math.ceil(calcPrice * (platformFee / 100)).toLocaleString('vi-VN')} đ</span>
+                        </div>
+                        <div className="border-t border-zinc-800 pt-2 flex justify-between items-center">
+                            <span className="text-sm font-bold text-green-400">Bạn thực nhận:</span>
+                            <span className="text-xl font-bold text-green-400">
+                                {Math.floor(calcPrice * (1 - platformFee / 100)).toLocaleString('vi-VN')} đ
+                            </span>
+                        </div>
+                    </div>
+                )}
             </div>
           </div>
         </div>

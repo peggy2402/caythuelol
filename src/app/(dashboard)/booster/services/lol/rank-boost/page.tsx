@@ -427,23 +427,21 @@ export default function RankBoostPage() {
                 <div className="flex-1 w-full">
                     <label className="text-xs text-zinc-500 mb-1 block">Điểm cộng mỗi trận (LP)</label>
                     <div className="relative">
-                        <input 
-                            type="number"
-                            min="0"
+                        <select 
                             value={calcLPGain}
-                            onChange={(e) => {
-                                const value = e.target.value;
-                                // Chỉ cho phép chuỗi rỗng hoặc số không âm
-                                if (value === '' || parseInt(value, 10) >= 0) {
-                                    setCalcLPGain(value);
-                                }
-                            }}
-                            className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white outline-none focus:border-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                            placeholder="VD: 19"
-                        />
-                        <div className={`absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold ${appliedModifier > 0 ? 'text-red-400' : appliedModifier < 0 ? 'text-green-400' : 'text-zinc-500'}`}>
-                            {appliedModifier > 0 ? '+' : ''}{appliedModifier}%
+                            onChange={(e) => setCalcLPGain(e.target.value)}
+                            className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white outline-none focus:border-blue-500 appearance-none"
+                        >
+                            <option value="18">Thấp (&lt; 19 LP)</option>
+                            <option value="19">Trung bình (19-21 LP)</option>
+                            <option value="22">Cao (&gt; 21 LP)</option>
+                        </select>
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-500">
+                            <ChevronDown className="w-4 h-4" />
                         </div>
+                    </div>
+                    <div className={`text-right text-[10px] mt-1 font-bold ${appliedModifier > 0 ? 'text-red-400' : appliedModifier < 0 ? 'text-green-400' : 'text-zinc-500'}`}>
+                        {appliedModifier > 0 ? `Tăng giá ${appliedModifier}%` : appliedModifier < 0 ? `Giảm giá ${Math.abs(appliedModifier)}%` : 'Không đổi giá'}
                     </div>
                 </div>
             </div>

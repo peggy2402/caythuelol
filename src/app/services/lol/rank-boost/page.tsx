@@ -357,14 +357,14 @@ function RankBoostContent() {
   };
 
   const OptionCheckbox = ({ id, label, priceInfo, checked, onChange, disabled = false }: { id: string, label: string, priceInfo: string, checked: boolean, onChange: () => void, disabled?: boolean }) => (
-    <label htmlFor={id} className={`flex items-center justify-between p-3 rounded-xl border transition-all cursor-pointer group ${disabled ? 'opacity-50 cursor-not-allowed' : ''} ${checked ? 'border-blue-500 bg-blue-500/10' : 'border-white/10 bg-zinc-900/40 hover:bg-zinc-900/60 hover:border-white/20'}`}>
-        <div className="flex items-center gap-3">
-            <div className={`w-5 h-5 rounded border flex items-center justify-center transition-all ${checked ? 'bg-blue-600 border-blue-600' : 'border-zinc-600 bg-zinc-900 group-hover:border-zinc-500'}`}>
-                {checked && <CheckCircle2 className="w-3.5 h-3.5 text-white" />}
+    <label htmlFor={id} className={`flex items-center justify-between p-2.5 sm:p-3 rounded-xl border transition-all cursor-pointer group ${disabled ? 'opacity-50 cursor-not-allowed' : ''} ${checked ? 'border-blue-500 bg-blue-500/10' : 'border-white/10 bg-zinc-900/40 hover:bg-zinc-900/60 hover:border-white/20'}`}>
+        <div className="flex items-center gap-2 sm:gap-3">
+            <div className={`w-4 h-4 sm:w-5 sm:h-5 rounded border flex items-center justify-center transition-all ${checked ? 'bg-blue-600 border-blue-600' : 'border-zinc-600 bg-zinc-900 group-hover:border-zinc-500'}`}>
+                {checked && <CheckCircle2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-white" />}
             </div>
-            <div className="font-medium text-zinc-200 text-sm">{label}</div>
+            <div className="font-medium text-zinc-200 text-xs sm:text-sm">{label}</div>
         </div>
-        <span className="text-xs font-bold text-green-400 bg-green-400/10 px-2 py-1 rounded">{priceInfo}</span>
+        <span className="text-[10px] sm:text-xs font-bold text-green-400 bg-green-400/10 px-1.5 py-0.5 sm:px-2 sm:py-1 rounded">{priceInfo}</span>
         <input id={id} type="checkbox" checked={checked} onChange={onChange} disabled={disabled} className="hidden" />
     </label>
   );
@@ -403,7 +403,7 @@ function RankBoostContent() {
       <div className="lg:col-span-2 space-y-6">
         <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-zinc-900/60 backdrop-blur-xl p-6 shadow-xl">
           <h3 className="text-lg font-bold text-white mb-4 flex items-center justify-between">
-            <span>Thông tin Rank Boost</span>
+            <span>Thông tin dịch vụ Cày Rank/Elo</span>
             {loadingConfig && <Loader2 className="w-4 h-4 animate-spin text-blue-500" />}
           </h3>
           
@@ -427,26 +427,20 @@ function RankBoostContent() {
             </div>
 
             <div className="space-y-2">
-                <label className="text-xs font-bold uppercase text-zinc-500 tracking-wider">Điểm cộng (LP Gain)</label>
+                <label className="text-xs font-bold uppercase text-zinc-500 tracking-wider">Điểm cộng mỗi trận (LP Gain)</label>
                 <div className="relative">
-                    <input 
-                        type="number" 
-                        value={lpGain} 
-                        onChange={e => setLpGain(e.target.value)}
-                        className={`w-full bg-zinc-900 border ${parseInt(lpGain) < 0 ? 'border-red-500 focus:border-red-500' : 'border-zinc-700 focus:border-blue-500'} rounded-lg px-3 py-2 text-white outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none`}
-                        placeholder="VD: 19"
-                        min="0"
-                    />
-                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-500 text-xs font-bold">LP/Win</span>
+                    <select
+                        value={lpGain}
+                        onChange={(e) => setLpGain(e.target.value)}
+                        className="w-full appearance-none bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white outline-none focus:border-blue-500"
+                    >
+                        <option value="18">Dưới 19 LP (Elo Thấp)</option>
+                        <option value="19">19 - 21 LP (Elo Thường)</option>
+                        <option value="22">Trên 21 LP (Elo Cao)</option>
+                    </select>
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-500"><ChevronRight className="w-4 h-4 rotate-90" /></div>
                 </div>
-                {parseInt(lpGain) < 0 ? (
-                    <div className="text-red-500 text-xs font-bold mt-2 flex items-center gap-1">
-                        <AlertCircle className="w-3 h-3" />
-                        Vui lòng nhập số điểm cộng hợp lệ (không âm).
-                    </div>
-                ) : (
-                    getLpFeedback()
-                )}
+                {getLpFeedback()}
             </div>
           </div>
         </div>
@@ -599,14 +593,14 @@ function RankBoostContent() {
                 </div>
             )}
 
-            <div className="flex items-center gap-3 mt-4 mb-4 px-1">
+            <div className="flex items-center gap-2 sm:gap-3 mt-3 sm:mt-4 mb-3 sm:mb-4 px-1">
                 <button 
                     onClick={() => setAgreedToTerms(!agreedToTerms)}
-                    className={`w-5 h-5 rounded border flex items-center justify-center transition-all shrink-0 ${agreedToTerms ? 'bg-blue-600 border-blue-600' : 'border-zinc-600 hover:border-zinc-500'}`}
+                    className={`w-4 h-4 sm:w-5 sm:h-5 rounded border flex items-center justify-center transition-all shrink-0 ${agreedToTerms ? 'bg-blue-600 border-blue-600' : 'border-zinc-600 hover:border-zinc-500'}`}
                 >
-                    {agreedToTerms && <CheckCircle2 className="w-3.5 h-3.5 text-white" />}
+                    {agreedToTerms && <CheckCircle2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-white" />}
                 </button>
-                <span className="text-sm text-zinc-400 select-none cursor-pointer" onClick={() => setAgreedToTerms(!agreedToTerms)}>
+                <span className="text-xs sm:text-sm text-zinc-400 select-none cursor-pointer" onClick={() => setAgreedToTerms(!agreedToTerms)}>
                     Tôi đồng ý với <span className="text-blue-400 hover:underline">Điều khoản & Chính sách</span>
                 </span>
             </div>

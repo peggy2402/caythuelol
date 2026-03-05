@@ -13,8 +13,8 @@ export default function PlacementsPage() {
   const { settings, setSettings, MAX_PRICE_PER_STEP, ranks, platformFee } = useServiceContext();
 
   // Calculator State
-  const [calcPrevRank, setCalcPrevRank] = useState(PLACEMENT_RANKS[2]); // Default Silver
-  const [calcNumGames, setCalcNumGames] = useState(3); // Default 3 games
+  const [calcPrevRank, setCalcPrevRank] = useState('SILVER'); // Default Silver (Uppercase)
+  const [calcNumGames, setCalcNumGames] = useState(5); // Default 5 games
   const [calcPrice, setCalcPrice] = useState(0);
   const [calcError, setCalcError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'SOLO' | 'FLEX' | 'DUO'>('SOLO');
@@ -24,11 +24,12 @@ export default function PlacementsPage() {
   const [toolNet, setToolNet] = useState('');
 
   // Pricing Inputs State
-  const [selectedConfigRank, setSelectedConfigRank] = useState(PLACEMENT_RANKS[0]); // Rank currently being configured
+  const [selectedConfigRank, setSelectedConfigRank] = useState('IRON'); // Rank currently being configured (Uppercase)
 
   // --- LOGIC ---
   const updatePrice = (prevRank: string, numGames: number, price: string) => {
-    const key = `P_${prevRank}_${numGames}`;
+    const normalizedRank = prevRank.toUpperCase();
+    const key = `P_${normalizedRank}_${numGames}`;
     const cleanPrice = price.replace(/,/g, '');
     const numValue = parseInt(cleanPrice) || 0;
 
@@ -51,7 +52,9 @@ export default function PlacementsPage() {
       return;
     }
 
-    const key = `P_${calcPrevRank}_${calcNumGames}`;
+    const normalizedRank = calcPrevRank.toUpperCase();
+    const key = `P_${normalizedRank}_${calcNumGames}`;
+    
     let price = settings.placementPrices?.[key] || 0;
     if (activeTab === 'FLEX') price = settings.placementPricesFlex?.[key] || 0;
     if (activeTab === 'DUO') price = settings.placementPricesDuo?.[key] || 0;
@@ -90,7 +93,7 @@ export default function PlacementsPage() {
         <div className="bg-zinc-950 border border-zinc-800 rounded-xl p-5">
           <h3 className="text-white font-bold flex items-center gap-2 mb-4">
             <Calculator className="w-5 h-5 text-blue-500" />
-            Xem trước giá (Preview)
+            Mô phỏng đơn đặt (Khách hàng)
           </h3>
           
           <div className="flex flex-col md:flex-row items-center gap-4">
@@ -102,7 +105,7 @@ export default function PlacementsPage() {
                 className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white outline-none focus:border-blue-500"
               >
                 {PLACEMENT_RANKS.map(rank => (
-                  <option key={rank} value={rank}>{rank}</option>
+                  <option key={rank} value={rank.toUpperCase()}>{rank}</option>
                 ))}
               </select>
             </div>
@@ -121,21 +124,29 @@ export default function PlacementsPage() {
             </div>
           </div>
 
-          <div className="flex gap-2 mt-4">
-            <div className="flex-1 bg-blue-900/20 border border-blue-500/30 rounded-lg p-3 text-center">
-              <span className="text-xs text-blue-200 block">Tổng tiền</span>
-              {calcError ? (
-                <span className="text-sm font-bold text-red-400 animate-pulse">{calcError}</span>
-              ) : (
-                <span className="text-xl font-bold text-blue-400">{calcPrice.toLocaleString('vi-VN')} đ</span>
-              )}
-            </div>
-            <div className="flex-1 bg-green-900/20 border border-green-500/30 rounded-lg p-3 text-center">
-              <span className="text-xs text-green-200 block flex items-center justify-center gap-1">
-                <Coins className="w-3 h-3" /> Thực nhận (-{platformFee}%)
-              </span>
-              <span className="text-xl font-bold text-green-400">{(Math.floor(calcPrice * (1 - platformFee / 100))).toLocaleString('vi-VN')} đ</span>
-            </div>
+          <div className="mt-4">
+            {calcError ? (
+                <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-center">
+                    <span className="text-sm font-bold text-red-400 animate-pulse">{calcError}</span>
+                </div>
+            ) : (
+                <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4 space-y-3">
+                    <div className="flex justify-between text-sm text-zinc-400">
+                        <span>Giá gốc:</span>
+                        <span className="text-white font-bold">{calcPrice.toLocaleString('vi-VN')} đ</span>
+                    </div>
+                    <div className="flex justify-between text-sm text-zinc-400">
+                        <span>Phí sàn ({platformFee}%):</span>
+                        <span className="text-yellow-400">-{Math.ceil(calcPrice * (platformFee / 100)).toLocaleString('vi-VN')} đ</span>
+                    </div>
+                    <div className="border-t border-zinc-800 pt-2 flex justify-between items-center">
+                        <span className="text-sm font-bold text-green-400">Bạn thực nhận:</span>
+                        <span className="text-xl font-bold text-green-400">
+                            {Math.floor(calcPrice * (1 - platformFee / 100)).toLocaleString('vi-VN')} đ
+                        </span>
+                    </div>
+                </div>
+            )}
           </div>
         </div>
 
@@ -258,7 +269,7 @@ export default function PlacementsPage() {
                   className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white outline-none focus:border-blue-500"
               >
                   {PLACEMENT_RANKS.map(rank => (
-                      <option key={rank} value={rank}>{rank}</option>
+                      <option key={rank} value={rank.toUpperCase()}>{rank}</option>
                   ))}
               </select>
             )}
