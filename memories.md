@@ -1,6 +1,6 @@
 Project: LOL Boosting Platform
 Date started: 2026-02-25
-Last updated: 2026-03-05
+Last updated: 2026-03-06
 
 Purpose:
 
@@ -558,3 +558,22 @@ caythuelol/
 - **Architecture:**
   - Cập nhật `ServiceContext` để lưu trữ `netWinDepositPercent`.
   - Tinh chỉnh logic tính giá để xử lý cả 2 chế độ "Theo LP" và "Theo Số Trận" trong Net Wins.
+
+16. 2026-03-06 — Service Config UI Polish & Fee Logic Standardization
+
+- **UI/UX Enhancements:**
+  - **Collapsible Sections:** Áp dụng cơ chế đóng/mở (Dropdown) cho tất cả các trang cấu hình dịch vụ (`Leveling`, `Mastery`, `Placements`, `Promotion`, `Net Wins`, `Rank Boost`) để tối ưu không gian trên Mobile.
+  - **Mobile Optimization:** Điều chỉnh Grid layout (1 cột trên mobile, 2 cột trên desktop), padding và input styles để tránh vỡ giao diện.
+  - **Visuals:** Thêm hình ảnh Rank minh họa cho Promotion và Rank Boost configuration.
+
+- **Financial Logic Standardization:**
+  - **Platform Fee:** Chuẩn hóa công thức tính phí sàn là **Markup** (`Giá Khách Trả = Giá Gốc * (1 + %Phí)`) trên toàn bộ hệ thống.
+  - **Breakdown Display:** Cập nhật "Mô phỏng Đặt đơn" để hiển thị rõ ràng 3 phần:
+    - **Khách trả:** Tổng tiền khách thanh toán.
+    - **Bạn nhận:** Số tiền thực tế Booster nhận (Net).
+    - **Admin nhận:** Phí sàn.
+  - **Fee Tool:** Bổ sung hiển thị "Phí sàn (+...)" trong công cụ chuyển đổi Net-to-Gross để minh bạch số tiền cộng thêm.
+
+- **Specific Service Fixes:**
+  - **Leveling:** Sửa logic đếm cấp độ (1->30 là 29 cấp) và thêm Tooltip giải thích.
+  - **Mastery/Placements/Promotion:** Sửa các lỗi cú pháp (syntax errors) và cấu trúc HTML trong form cấu hình.
