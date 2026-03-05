@@ -186,60 +186,100 @@ export default function NetWinsPage() {
     <div className="space-y-8">
       {/* Header Info */}
       <div className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden">
-        <div onClick={() => toggle('pricing')} className="p-6 flex items-center justify-between cursor-pointer hover:bg-zinc-800/50 transition-colors">
+        <div
+          onClick={() => toggle('pricing')}
+          className="p-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between cursor-pointer hover:bg-zinc-800/50 transition-colors"
+        >
+
+          {/* Title */}
+          <div className="flex items-center justify-between w-full md:w-auto">
             <div className="flex items-center gap-3">
-                <Target className="w-6 h-6 text-yellow-500" />
-                <h2 className="text-xl font-bold text-white">Cấu hình Cày Điểm (Net Wins)</h2>
+              <Target className="w-6 h-6 text-yellow-500" />
+              <h2 className="text-lg md:text-xl font-bold text-white">
+                Cấu hình Cày Điểm Cao thủ/ Thách đấu
+              </h2>
             </div>
-            <div className="flex gap-2">
-                <button 
-                onClick={() => setActiveTab('SOLO')}
-                className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'SOLO' ? 'bg-blue-600 text-white' : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'}`}
-                >
-                Solo / Duo
-                </button>
-                <button 
-                onClick={() => setActiveTab('FLEX')}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'FLEX' ? 'bg-purple-600 text-white' : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'}`}
-                >
-                <Layers className="w-4 h-4" /> Flex
-                </button>
-            </div>
-            <ChevronDown className={`w-6 h-6 text-zinc-500 transition-transform duration-300 md:hidden ${expanded.pricing ? 'rotate-180' : ''}`} />
+
+            <ChevronDown
+              className={`w-6 h-6 text-zinc-500 transition-transform duration-300 md:hidden ${
+                expanded.pricing ? 'rotate-180' : ''
+              }`}
+            />
+          </div>
+
+          {/* Tabs */}
+          <div className="flex gap-2 w-full md:w-auto">
+            <button
+              onClick={() => setActiveTab('SOLO')}
+              className={`flex-1 md:flex-none px-4 py-2 rounded-lg text-sm font-bold transition-all ${
+                activeTab === 'SOLO'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'
+              }`}
+            >
+              Solo / Duo
+            </button>
+
+            <button
+              onClick={() => setActiveTab('FLEX')}
+              className={`flex items-center justify-center gap-2 flex-1 md:flex-none px-4 py-2 rounded-lg text-sm font-bold transition-all ${
+                activeTab === 'FLEX'
+                  ? 'bg-purple-600 text-white'
+                  : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'
+              }`}
+            >
+              <Layers className="w-4 h-4" /> Flex
+            </button>
+          </div>
         </div>
 
         {/* Pricing Inputs */}
         {expanded.pricing && (
-        <div className="px-6 pb-6 animate-in slide-in-from-top-2">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
-            {HIGH_ELO_RANKS.map((rank) => {
-            const currentPrice = getPricePerLP(rank.id);
-            return (
-                <div key={rank.id} className={`p-5 rounded-2xl border transition-all hover:-translate-y-1 ${rank.bg} ${rank.border}`}>
-                <div className="flex flex-col gap-1 mb-4">
-                    <div className={`font-black text-xl ${rank.color}`}>{rank.label.split(' (')[0]}</div>
-                    <div className={`text-xs font-medium opacity-80 ${rank.color}`}>{rank.label.match(/\((.*?)\)/)?.[1]}</div>
-                </div>
-                <div className="relative">
-                    <input
-                    type="text"
-                    placeholder="0"
-                    value={currentPrice ? currentPrice.toLocaleString('en-US') : ''}
-                    onChange={(e) => updatePrice(rank.id, e.target.value)}
-                    className={`w-full bg-zinc-950/50 border rounded-xl pl-4 pr-16 py-4 text-right text-lg font-bold outline-none transition-all ${
-                        currentPrice > MAX_PRICE_PER_STEP ? 'border-red-500 text-red-500' : 'border-white/10 text-white focus:border-green-500 focus:text-green-400'
-                    }`}
-                    />
-                    <div className="absolute right-4 top-1/2 -translate-y-1/2 flex flex-col items-end pointer-events-none">
-                        <span className="text-[10px] text-zinc-500 font-medium uppercase">VNĐ</span>
-                        <span className="text-[10px] text-zinc-600">/ 1 LP</span>
+          <div className="px-6 pb-6 animate-in slide-in-from-top-2">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+              {HIGH_ELO_RANKS.map((rank) => {
+                const currentPrice = getPricePerLP(rank.id);
+
+                return (
+                  <div
+                    key={rank.id}
+                    className={`p-5 rounded-2xl border transition-all hover:-translate-y-1 ${rank.bg} ${rank.border}`}
+                  >
+                    <div className="flex flex-col gap-1 mb-4">
+                      <div className={`font-black text-xl ${rank.color}`}>
+                        {rank.label.split(' (')[0]}
+                      </div>
+
+                      <div className={`text-xs font-medium opacity-80 ${rank.color}`}>
+                        {rank.label.match(/\((.*?)\)/)?.[1]}
+                      </div>
                     </div>
-                </div>
-                </div>
-            );
-            })}
-        </div>
-        </div>
+
+                    <div className="relative">
+                      <input
+                        type="text"
+                        placeholder="0"
+                        value={currentPrice ? currentPrice.toLocaleString('en-US') : ''}
+                        onChange={(e) => updatePrice(rank.id, e.target.value)}
+                        className={`w-full bg-zinc-950/50 border rounded-xl pl-4 pr-16 py-4 text-right text-lg font-bold outline-none transition-all ${
+                          currentPrice > MAX_PRICE_PER_STEP
+                            ? 'border-red-500 text-red-500'
+                            : 'border-white/10 text-white focus:border-green-500 focus:text-green-400'
+                        }`}
+                      />
+
+                      <div className="absolute right-4 top-1/2 -translate-y-1/2 flex flex-col items-end pointer-events-none">
+                        <span className="text-[10px] text-zinc-500 font-medium uppercase">
+                          VNĐ
+                        </span>
+                        <span className="text-[10px] text-zinc-600">/ 1 LP</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         )}
       </div>
 
@@ -291,106 +331,223 @@ export default function NetWinsPage() {
         
         {/* LEFT: BOOKING SIMULATION (CUSTOMER VIEW) */}
         <div className="bg-zinc-950 border border-zinc-800 rounded-xl overflow-hidden flex flex-col h-fit">
-            <div onClick={() => toggle('booking')} className="p-4 bg-zinc-900/50 border-b border-zinc-800 flex justify-between items-center cursor-pointer hover:bg-zinc-900 transition-colors">
-                <h3 className="font-bold text-white flex items-center gap-2">
-                    <Users className="w-5 h-5 text-blue-500" />
-                    1. Mô phỏng Đặt đơn (Khách hàng)
-                </h3>
-                <div className="flex items-center gap-3">
-                <div className="flex bg-zinc-900 rounded-lg p-1 border border-zinc-800" onClick={(e) => e.stopPropagation()}>
-                    <button onClick={() => setCalcMode('BY_LP')} className={`px-3 py-1 text-xs font-bold rounded ${calcMode === 'BY_LP' ? 'bg-blue-600 text-white' : 'text-zinc-500'}`}>Theo LP</button>
-                    <button onClick={() => setCalcMode('BY_GAMES')} className={`px-3 py-1 text-xs font-bold rounded ${calcMode === 'BY_GAMES' ? 'bg-blue-600 text-white' : 'text-zinc-500'}`}>Theo Trận</button>
-                </div>
-                <ChevronDown className={`w-5 h-5 text-zinc-500 transition-transform duration-300 ${expanded.booking ? 'rotate-180' : ''}`} />
-                </div>
+
+          <div
+            onClick={() => toggle('booking')}
+            className="p-4 bg-zinc-900/50 border-b border-zinc-800 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 cursor-pointer hover:bg-zinc-900 transition-colors"
+          >
+            <h3 className="font-bold text-white flex items-center gap-2">
+              <Users className="w-5 h-5 text-blue-500" />
+              1. Mô phỏng Đặt đơn (Khách hàng)
+            </h3>
+
+            <div className="flex items-center gap-3">
+              <div
+                className="flex bg-zinc-900 rounded-lg p-1 border border-zinc-800"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <button
+                  onClick={() => setCalcMode('BY_LP')}
+                  className={`px-3 py-1 text-xs font-bold rounded ${
+                    calcMode === 'BY_LP'
+                      ? 'bg-blue-600 text-white'
+                      : 'text-zinc-500'
+                  }`}
+                >
+                  Theo LP
+                </button>
+
+                <button
+                  onClick={() => setCalcMode('BY_GAMES')}
+                  className={`px-3 py-1 text-xs font-bold rounded ${
+                    calcMode === 'BY_GAMES'
+                      ? 'bg-blue-600 text-white'
+                      : 'text-zinc-500'
+                  }`}
+                >
+                  Theo Trận
+                </button>
+              </div>
+
+              <ChevronDown
+                className={`w-5 h-5 text-zinc-500 transition-transform duration-300 ${
+                  expanded.booking ? 'rotate-180' : ''
+                }`}
+              />
             </div>
-            
-            {expanded.booking && (
-            <div className="p-5 space-y-5 flex-1 animate-in slide-in-from-top-2">
-            <div className="p-5 space-y-5 flex-1">
-                {/* Inputs */}
-                <div className="grid grid-cols-2 gap-4">
-                    <div>
-                        <label className="text-xs text-zinc-500 mb-1 block">Rank áp dụng</label>
-                        <select value={calcRank} onChange={(e) => setCalcRank(e.target.value)} className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white text-sm outline-none">
-                            {HIGH_ELO_RANKS.map(r => <option key={r.id} value={r.id}>{r.label}</option>)}
-                        </select>
-                    </div>
-                    <div>
-                        <label className="text-xs text-zinc-500 mb-1 block">LP trung bình/trận</label>
-                        <div className="relative">
-                            <select 
-                                value={calcLPGain} 
-                                onChange={(e) => setCalcLPGain(e.target.value)} 
-                                className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white outline-none focus:border-blue-500 appearance-none"
-                            >
-                                <option value={18}>Thấp (&lt; 19 LP)</option>
-                                <option value={19}>Trung bình (19-21 LP)</option>
-                                <option value={22}>Cao (&gt; 21 LP)</option>
-                            </select>
-                            <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-500">
-                                <ChevronDown className="w-4 h-4" />
-                            </div>
-                        </div>
-                        <div className={`text-right text-[10px] mt-1 font-bold ${appliedModifier > 0 ? 'text-red-400' : appliedModifier < 0 ? 'text-green-400' : 'text-zinc-500'}`}>
-                            {appliedModifier > 0 ? `Tăng giá ${Math.abs(appliedModifier)}%` : appliedModifier < 0 ? `Giảm giá ${Math.abs(appliedModifier)}%` : 'Không đổi giá'}
-                        </div>
-                    </div>
+          </div>
+
+          {expanded.booking && (
+            <div className="p-4 sm:p-5 space-y-5 flex-1 animate-in slide-in-from-top-2">
+
+              {/* Inputs */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+                <div>
+                  <label className="text-xs text-zinc-500 mb-1 block">
+                    Rank áp dụng
+                  </label>
+
+                  <select
+                    value={calcRank}
+                    onChange={(e) => setCalcRank(e.target.value)}
+                    className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white text-sm outline-none"
+                  >
+                    {HIGH_ELO_RANKS.map((r) => (
+                      <option key={r.id} value={r.id}>
+                        {r.label}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
-                {calcMode === 'BY_LP' ? (
-                    <div className="flex gap-4 items-center">
-                        <div className="flex-1">
-                            <label className="text-xs text-zinc-500 mb-1 block">LP Hiện tại</label>
-                            <input type="number" value={calcCurrentLP} onChange={(e) => setCalcCurrentLP(Number(e.target.value))} className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white outline-none focus:border-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
-                        </div>
-                        <ArrowRight className="w-4 h-4 text-zinc-600 mt-5" />
-                        <div className="flex-1">
-                            <label className="text-xs text-zinc-500 mb-1 block">LP Mong muốn</label>
-                            <input type="number" value={calcTarget} min={calcMode === 'BY_LP' ? calcCurrentLP : 1} onChange={(e) => setCalcTarget(Number(e.target.value))} className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white outline-none focus:border-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
-                        </div>
-                    </div>
-                ) : (
-                    <div>
-                        <label className="text-xs text-zinc-500 mb-1 block">Số trận muốn thuê</label>
-                        <input type="number" value={calcTarget} onChange={(e) => setCalcTarget(Number(e.target.value))} className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white outline-none focus:border-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
-                    </div>
-                )}
+                <div>
+                  <label className="text-xs text-zinc-500 mb-1 block">
+                    LP trung bình/trận
+                  </label>
 
-                {/* Booking Result */}
-                <div className="mt-auto pt-4 border-t border-zinc-800">
-                    <div className="space-y-1 text-sm text-zinc-400 mb-2 border-b border-zinc-800 pb-2">
-                        <div className="flex justify-between">
-                            <span>Giá gốc:</span>
-                            <span>{calcBreakdown.base.toLocaleString('vi-VN')} ₫</span>
-                        </div>
-                        <div className="flex justify-between">
-                            <span>Hệ số Elo ({appliedModifier > 0 ? '+' : ''}{appliedModifier}%):</span>
-                            <span className={appliedModifier > 0 ? 'text-red-400' : appliedModifier < 0 ? 'text-green-400' : 'text-zinc-400'}>{calcBreakdown.elo > 0 ? '+' : ''}{calcBreakdown.elo.toLocaleString('vi-VN')} ₫</span>
-                        </div>
-                        <div className="flex justify-between">
-                            <span>Phí sàn ({platformFee}%):</span>
-                            <span className="text-yellow-400">+{calcBreakdown.fee.toLocaleString('vi-VN')} ₫</span>
-                        </div>
+                  <div className="relative">
+                    <select
+                      value={calcLPGain}
+                      onChange={(e) => setCalcLPGain(e.target.value)}
+                      className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white outline-none focus:border-blue-500 appearance-none"
+                    >
+                      <option value={18}>Thấp (&lt; 19 LP)</option>
+                      <option value={19}>Trung bình (19-21 LP)</option>
+                      <option value={22}>Cao (&gt; 21 LP)</option>
+                    </select>
+
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-500">
+                      <ChevronDown className="w-4 h-4" />
                     </div>
-                    <div className="flex justify-between items-center mb-2">
-                        <span className="text-zinc-400 text-sm">Giá tạm tính:</span>
-                        <span className="text-white font-bold">{estimatedPrice.toLocaleString('vi-VN')} đ</span>
-                    </div>
-                    <div className="bg-emerald-900/20 border border-emerald-500/30 p-3 rounded-xl flex justify-between items-center">
-                        <div>
-                            <span className="text-emerald-400 font-bold text-sm block">Tiền cọc ({depositPercent}%)</span>
-                            <span className="text-[10px] text-emerald-500/70">Khách thanh toán ngay</span>
-                        </div>
-                        <span className="text-2xl font-bold text-emerald-400">{depositAmount.toLocaleString('vi-VN')} đ</span>
-                    </div>
-                    <div className="text-center mt-2">
-                        <span className="text-[10px] bg-zinc-800 text-zinc-400 px-2 py-1 rounded-full">Trạng thái: PENDING_BOOSTER</span>
-                    </div>
+                  </div>
+
+                  <div
+                    className={`text-right text-[10px] mt-1 font-bold ${
+                      appliedModifier > 0
+                        ? 'text-red-400'
+                        : appliedModifier < 0
+                        ? 'text-green-400'
+                        : 'text-zinc-500'
+                    }`}
+                  >
+                    {appliedModifier > 0
+                      ? `Tăng giá ${Math.abs(appliedModifier)}%`
+                      : appliedModifier < 0
+                      ? `Giảm giá ${Math.abs(appliedModifier)}%`
+                      : 'Không đổi giá'}
+                  </div>
                 </div>
+
+              </div>
+
+              {/* LP MODE */}
+              {calcMode === 'BY_LP' ? (
+                <div className="flex flex-col sm:flex-row gap-4">
+
+                  <div className="flex-1">
+                    <label className="text-xs text-zinc-500 mb-1 block">
+                      LP Hiện tại
+                    </label>
+
+                    <input
+                      type="number"
+                      value={calcCurrentLP}
+                      onChange={(e) => setCalcCurrentLP(Number(e.target.value))}
+                      className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white outline-none focus:border-blue-500"
+                    />
+                  </div>
+
+                  <div className="flex-1">
+                    <label className="text-xs text-zinc-500 mb-1 block">
+                      LP Mong muốn
+                    </label>
+
+                    <input
+                      type="number"
+                      value={calcTarget}
+                      onChange={(e) => setCalcTarget(Number(e.target.value))}
+                      className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white outline-none focus:border-blue-500"
+                    />
+                  </div>
+
+                </div>
+              ) : (
+                <div>
+                  <label className="text-xs text-zinc-500 mb-1 block">
+                    Số trận muốn thuê
+                  </label>
+
+                  <input
+                    type="number"
+                    value={calcTarget}
+                    onChange={(e) => setCalcTarget(Number(e.target.value))}
+                    className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white outline-none focus:border-blue-500"
+                  />
+                </div>
+              )}
+
+              {/* RESULT */}
+              <div className="mt-auto pt-4 border-t border-zinc-800">
+
+                <div className="space-y-1 text-sm text-zinc-400 mb-2 border-b border-zinc-800 pb-2">
+
+                  <div className="flex justify-between">
+                    <span>Giá gốc:</span>
+                    <span>{calcBreakdown.base.toLocaleString('vi-VN')} ₫</span>
+                  </div>
+
+                  <div className="flex justify-between">
+                    <span>Hệ số Elo ({appliedModifier}%):</span>
+                    <span>{calcBreakdown.elo.toLocaleString('vi-VN')} ₫</span>
+                  </div>
+
+                  <div className="flex justify-between">
+                    <span>Phí sàn ({platformFee}%):</span>
+                    <span className="text-yellow-400">
+                      +{calcBreakdown.fee.toLocaleString('vi-VN')} ₫
+                    </span>
+                  </div>
+
+                </div>
+
+                <div className="flex justify-between items-center mb-3">
+                  <span className="text-zinc-400">Giá tạm tính</span>
+
+                  <span className="text-white font-bold">
+                    {estimatedPrice.toLocaleString('vi-VN')} đ
+                  </span>
+                </div>
+
+                <div className="bg-emerald-900/20 border border-emerald-500/30 p-3 rounded-xl flex justify-between items-center">
+
+                  <div>
+                    <span className="text-emerald-400 font-bold text-sm block">
+                      Tiền cọc ({depositPercent}%)
+                    </span>
+
+                    <span className="text-[10px] text-emerald-500/70">
+                      Khách thanh toán ngay
+                    </span>
+                  </div>
+
+                  <span className="text-lg sm:text-2xl font-bold text-emerald-400">
+                    {depositAmount.toLocaleString('vi-VN')} đ
+                  </span>
+
+                </div>
+
+                <div className="text-center mt-2">
+                  <span className="text-[10px] bg-zinc-800 text-zinc-400 px-2 py-1 rounded-full">
+                    Trạng thái: PENDING_BOOSTER
+                  </span>
+                </div>
+
+              </div>
+
             </div>
-            </div>
-            )}
+          )}
+
         </div>
 
         {/* RIGHT: SETTLEMENT SIMULATION (BOOSTER VIEW) */}
