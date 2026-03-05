@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useMemo, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Medal, Flame, CheckCircle2, Loader2, ArrowRight, Shield, Zap, Wallet, Info, ChevronRight, Crosshair } from 'lucide-react';
+import { Medal, Flame, CheckCircle2, Loader2, ArrowRight, Shield, Zap, Wallet, Info, ChevronRight, Crosshair, Search, X, Filter, Clock } from 'lucide-react';
 import { toast } from 'sonner';
 
 const ACCOUNT_TYPES = [
@@ -17,6 +17,15 @@ const ACCOUNT_TYPES = [
 
 const MASTERY_LEVELS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 
+const ROLE_FILTERS = [
+  { id: 'Fighter', label: 'Đấu sĩ' },
+  { id: 'Tank', label: 'Đỡ đòn' },
+  { id: 'Mage', label: 'Pháp sư' },
+  { id: 'Assassin', label: 'Sát thủ' },
+  { id: 'Marksman', label: 'Xạ thủ' },
+  { id: 'Support', label: 'Hỗ trợ' },
+];
+
 function MasteryContent() {
   const searchParams = useSearchParams();
   const boosterId = searchParams.get('booster');
@@ -29,6 +38,13 @@ function MasteryContent() {
   // Service State
   const [currentLevel, setCurrentLevel] = useState(1);
   const [desiredLevel, setDesiredLevel] = useState(7);
+  
+  // Champion State
+  const [allChampions, setAllChampions] = useState<any[]>([]);
+  const [selectedChampion, setSelectedChampion] = useState<any>(null);
+  const [championQuery, setChampionQuery] = useState('');
+  const [isChampModalOpen, setIsChampModalOpen] = useState(false);
+  const [selectedRole, setSelectedRole] = useState<string | null>(null);
 
   // Account Info State
   const [accountType, setAccountType] = useState('RIOT');
@@ -53,6 +69,14 @@ function MasteryContent() {
       setPlatformFee(data.fee || 0);
     };
     fetchFee().catch(console.error);
+  }, []);
+
+  // Fetch Champions
+  useEffect(() => {
+    fetch('/api/champions')
+      .then(res => res.json())
+      .then(data => setAllChampions(data || []))
+      .catch(err => console.error('Failed to load champions', err));
   }, []);
 
   // 2. Fetch Booster Config
@@ -134,6 +158,27 @@ function MasteryContent() {
     };
   }, [boosterConfig, currentLevel, desiredLevel, extraOptions, platformFee]);
 
+  // Filtered Champions for Modal
+  const filteredChampions = useMemo(() => {
+    let result = allChampions;
+    if (selectedRole) {
+        result = result.filter(c => c.tags && c.tags.includes(selectedRole));
+    }
+    if (championQuery) {
+        result = result.filter(c => c.name.toLowerCase().includes(championQuery.toLowerCase()));
+    }
+    // OPTIMIZATION: Chỉ lấy 50 tướng đầu tiên để tránh lag khi render modal
+    return result.slice(0, 50);
+  }, [allChampions, championQuery, selectedRole]);
+
+  // Booster's Signature Champions
+  const boosterChampions = useMemo(() => {
+    if (!boosterConfig?.booster_info?.service_settings?.playingChampions || !allChampions.length) return [];
+    const ids = boosterConfig.booster_info.service_settings.playingChampions;
+    // Map IDs to full champion objects
+    return allChampions.filter(c => ids.includes(c.id));
+  }, [boosterConfig, allChampions]);
+
   const handleOptionChange = (optionKey: string) => {
     setExtraOptions(prev => ({ ...prev, [optionKey]: !prev[optionKey] }));
   };
@@ -156,6 +201,10 @@ function MasteryContent() {
         <input id={id} type="checkbox" checked={checked} onChange={onChange} disabled={disabled} className="hidden" />
     </label>
   );
+
+  const isAccountValid = useMemo(() => {
+    return gameUsername.trim().length >= 3 && gamePassword.trim().length >= 3;
+  }, [gameUsername, gamePassword]);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -205,6 +254,54 @@ function MasteryContent() {
                     </div>
                 </div>
 
+                {/* Champion Selection */}
+                <div>
+                    <label className="text-xs font-bold uppercase text-zinc-500 tracking-wider mb-2 block">Tướng cần cày</label>
+                    
+                    {/* Selected Champion Display */}
+                    {selectedChampion ? (
+                        <div className="flex items-center justify-between p-3 bg-blue-600/10 border border-blue-500/50 rounded-xl">
+                            <div className="flex items-center gap-3">
+                                <img src={selectedChampion.imageUrl} alt={selectedChampion.name} className="w-10 h-10 rounded-lg object-cover border border-blue-500/30" />
+                                <div>
+                                    <div className="text-sm font-bold text-white">{selectedChampion.name}</div>
+                                    <div className="text-xs text-blue-400">Đã chọn</div>
+                                </div>
+                            </div>
+                            <button onClick={() => { setSelectedChampion(null); setChampionQuery(''); }} className="p-2 hover:bg-white/10 rounded-lg transition-colors">
+                                <X className="w-4 h-4 text-zinc-400 hover:text-white" />
+                            </button>
+                        </div>
+                    ) : (
+                        <button 
+                            onClick={() => setIsChampModalOpen(true)}
+                            className="w-full flex items-center justify-center gap-2 p-4 rounded-xl border border-dashed border-zinc-700 bg-zinc-900/50 text-zinc-400 hover:text-white hover:border-zinc-500 hover:bg-zinc-900 transition-all"
+                        >
+                            <Search className="w-5 h-5" />
+                            <span>Bấm vào đây để chọn tướng</span>
+                        </button>
+                    )}
+
+                    {/* Booster's Signature Champions */}
+                    {!selectedChampion && boosterChampions.length > 0 && (
+                        <div className="mt-3">
+                            <div className="text-[10px] uppercase font-bold text-zinc-500 mb-2 flex items-center gap-1"><Flame className="w-3 h-3 text-orange-500" /> Tướng sở trường của Booster</div>
+                            <div className="flex flex-wrap gap-2">
+                                {boosterChampions.map(champ => (
+                                    <button 
+                                        key={champ.id} 
+                                        onClick={() => setSelectedChampion(champ)}
+                                        className="group relative w-10 h-10 rounded-lg overflow-hidden border border-zinc-700 hover:border-orange-500 transition-all"
+                                        title={champ.name}
+                                    >
+                                        <img src={champ.imageUrl} alt={champ.name} className="w-full h-full object-cover opacity-70 group-hover:opacity-100 transition-opacity" />
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                </div>
+
                 <div className="mt-4 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-xl text-xs text-yellow-200/80 leading-relaxed flex gap-2">
                     <Info className="w-4 h-4 shrink-0 mt-0.5" />
                     <div>
@@ -243,11 +340,11 @@ function MasteryContent() {
                     </div>
                     <div className="space-y-2">
                         <label className="text-xs font-bold uppercase text-zinc-500 tracking-wider">Tài khoản</label>
-                        <input type="text" value={gameUsername} onChange={e => setGameUsername(e.target.value)} className="w-full bg-zinc-900/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-blue-500/50 outline-none" placeholder="Tên đăng nhập" />
+                        <input type="text" value={gameUsername} onChange={e => setGameUsername(e.target.value)} className={`w-full bg-zinc-900/50 border rounded-xl px-4 py-3 text-white focus:border-blue-500/50 outline-none ${gameUsername && gameUsername.length < 3 ? 'border-red-500/50' : 'border-white/10'}`} placeholder="Tên đăng nhập" />
                     </div>
                     <div className="space-y-2">
                         <label className="text-xs font-bold uppercase text-zinc-500 tracking-wider">Mật khẩu</label>
-                        <input type="password" value={gamePassword} onChange={e => setGamePassword(e.target.value)} className="w-full bg-zinc-900/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-blue-500/50 outline-none" placeholder="Mật khẩu game" />
+                        <input type="password" value={gamePassword} onChange={e => setGamePassword(e.target.value)} className={`w-full bg-zinc-900/50 border rounded-xl px-4 py-3 text-white focus:border-blue-500/50 outline-none ${gamePassword && gamePassword.length < 3 ? 'border-red-500/50' : 'border-white/10'}`} placeholder="Mật khẩu game" />
                     </div>
                 </div>
             </div>
@@ -336,6 +433,26 @@ function MasteryContent() {
                                 <span className="text-zinc-400">Cấp độ:</span>
                                 <span className="text-white font-medium">{currentLevel} ➜ {desiredLevel}</span>
                             </div>
+                            <div className="flex justify-between text-sm">
+                                <span className="text-zinc-400">Tướng:</span>
+                                <span className="text-white font-medium">{selectedChampion ? selectedChampion.name : 'Chưa chọn'}</span>
+                            </div>
+                            {/* Hiển thị Vị trí / Đường */}
+                            {selectedRoles.length > 0 && (
+                                <div className="flex justify-between text-sm">
+                                    <span className="text-zinc-400">Vị trí:</span>
+                                    <span className="text-white font-medium text-right">{selectedRoles.join(', ')}</span>
+                                </div>
+                            )}
+                            {/* Hiển thị Lịch cày */}
+                            {extraOptions.schedule && (
+                                <div className="flex justify-between text-sm">
+                                    <span className="text-zinc-400 flex items-center gap-1">
+                                        <Clock className="w-3 h-3" /> Đặt lịch:
+                                    </span>
+                                    <span className="text-green-400 font-medium">Đã kích hoạt</span>
+                                </div>
+                            )}
                             <div className="border-t border-white/5 my-1"></div>
                             <div className="flex justify-between text-sm">
                                 <span className="text-zinc-400">Giá gốc:</span>
@@ -376,13 +493,68 @@ function MasteryContent() {
                 </div>
 
                 <button
-                    disabled={!boosterId || !priceDetails || priceDetails.totalPrice <= 0 || !agreedToTerms}
+                    disabled={!boosterId || !priceDetails || priceDetails.totalPrice <= 0 || !agreedToTerms || !selectedChampion || !isAccountValid}
                     className="w-full py-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-lg shadow-lg shadow-blue-600/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                     {priceDetails && priceDetails.totalPrice > 0 ? 'Tiến hành thuê' : 'Vui lòng cấu hình'} <ArrowRight className="w-5 h-5" />
                 </button>
+                {!isAccountValid && (gameUsername || gamePassword) && (
+                    <div className="text-center mt-2 text-xs text-red-400">
+                        Vui lòng nhập đầy đủ thông tin tài khoản (tối thiểu 3 ký tự).
+                    </div>
+                )}
             </div>
         </div>
+
+        {/* Champion Selection Modal */}
+        {isChampModalOpen && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+                <div className="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-4xl h-[80vh] flex flex-col shadow-2xl animate-in zoom-in-95 duration-200">
+                    {/* Header */}
+                    <div className="p-4 border-b border-zinc-800 flex justify-between items-center bg-zinc-950 rounded-t-2xl">
+                        <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                            <Crosshair className="w-5 h-5 text-blue-500" />
+                            Chọn tướng
+                        </h3>
+                        <button onClick={() => setIsChampModalOpen(false)} className="text-zinc-400 hover:text-white transition-colors"><X className="w-6 h-6" /></button>
+                    </div>
+                    {/* Filters */}
+                    <div className="p-4 border-b border-zinc-800 bg-zinc-900 space-y-4">
+                        <div className="relative">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+                            <input 
+                                type="text" 
+                                value={championQuery}
+                                onChange={(e) => setChampionQuery(e.target.value)}
+                                placeholder="Tìm kiếm tướng..." 
+                                className="w-full bg-zinc-950 border border-zinc-700 rounded-xl pl-10 pr-4 py-2.5 text-white outline-none focus:border-blue-500 transition-all"
+                                autoFocus
+                            />
+                        </div>
+                        <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
+                            <button onClick={() => setSelectedRole(null)} className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap border transition-all ${!selectedRole ? 'bg-white text-black border-white' : 'bg-zinc-950 text-zinc-400 border-zinc-800 hover:border-zinc-600'}`}>Tất cả</button>
+                            {ROLE_FILTERS.map(role => (
+                                <button key={role.id} onClick={() => setSelectedRole(role.id === selectedRole ? null : role.id)} className={`px-3 py-1.5 rounded-lg text-xs font-bold whitespace-nowrap border transition-all ${selectedRole === role.id ? 'bg-blue-600 text-white border-blue-600' : 'bg-zinc-950 text-zinc-400 border-zinc-800 hover:border-zinc-600'}`}>{role.label}</button>
+                            ))}
+                        </div>
+                    </div>
+                    {/* Grid */}
+                    <div className="flex-1 overflow-y-auto p-4 bg-zinc-950/50">
+                        <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8 gap-3">
+                            {filteredChampions.map(champ => (
+                                <button key={champ.id} onClick={() => { setSelectedChampion(champ); setIsChampModalOpen(false); }} className={`group relative aspect-square rounded-xl overflow-hidden border transition-all ${selectedChampion?.id === champ.id ? 'border-blue-500 ring-2 ring-blue-500/20' : 'border-zinc-800 hover:border-zinc-600'}`}>
+                                    <img src={champ.imageUrl} alt={champ.name} className="w-full h-full object-cover transition-transform group-hover:scale-110" loading="lazy" />
+                                    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 to-transparent p-2 pt-6">
+                                        <div className="text-[10px] sm:text-xs font-bold text-white text-center truncate">{champ.name}</div>
+                                    </div>
+                                </button>
+                            ))}
+                        </div>
+                        {filteredChampions.length === 0 && <div className="text-center py-10 text-zinc-500">Không tìm thấy tướng phù hợp</div>}
+                    </div>
+                </div>
+            </div>
+        )}
     </div>
   );
 }
