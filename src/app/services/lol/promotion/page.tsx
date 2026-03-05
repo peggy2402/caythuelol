@@ -2,8 +2,9 @@
 
 import { useState, useEffect, useMemo, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { TrendingUp, Flame, CheckCircle2, Loader2, ArrowRight, Shield, Zap, Wallet, Info, ChevronRight, Crosshair } from 'lucide-react';
+import { TrendingUp, Flame, CheckCircle2, Loader2, ArrowRight, Shield, Zap, Wallet, Info, ChevronRight, Crosshair, Clock } from 'lucide-react';
 import { toast } from 'sonner';
+import ScheduleModal, { TimeWindow } from '@/components/ScheduleModal';
 
 const ACCOUNT_TYPES = [
     { id: 'RIOT', name: 'Riot' },
@@ -53,6 +54,10 @@ function PromotionContent() {
     schedule: false,
   });
   const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
+
+  // Schedule State
+  const [scheduleWindows, setScheduleWindows] = useState<TimeWindow[]>([]);
+  const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
 
   // 1. Fetch Platform Fee
   useEffect(() => {
@@ -132,6 +137,12 @@ function PromotionContent() {
         optionsTotalValue += val;
         optionDetails.push({ label: 'Streaming', value: val });
     }
+    // Schedule Fee
+    if (extraOptions.schedule && boosterOptions.schedule && boosterOptions.scheduleFee > 0) {
+        const val = base * (boosterOptions.scheduleFee / 100);
+        optionsTotalValue += val;
+        optionDetails.push({ label: 'Phí đặt lịch', percent: boosterOptions.scheduleFee, value: val });
+    }
 
     // 4. Platform Fee
     const platformFeeValue = base * (platformFee / 100);
@@ -148,7 +159,27 @@ function PromotionContent() {
   }, [boosterConfig, selectedPromo, queueType, extraOptions, platformFee]);
 
   const handleOptionChange = (optionKey: string) => {
-    setExtraOptions(prev => ({ ...prev, [optionKey]: !prev[optionKey] }));
+    if (optionKey === 'express' && !extraOptions.express && extraOptions.schedule) {
+        toast.warning('Đã tắt "Đặt lịch" vì xung đột với "Cày siêu tốc".');
+        setExtraOptions(prev => ({ ...prev, express: true, schedule: false }));
+        return;
+    }
+    if (optionKey === 'schedule' && !extraOptions.schedule && extraOptions.express) {
+        toast.error('Không thể chọn "Đặt lịch" khi đang dùng "Cày siêu tốc".');
+        return;
+    }
+    if (optionKey === 'schedule') {
+        if (extraOptions.schedule) {
+            // Nếu đang bật -> Tắt và xóa lịch
+            setExtraOptions(prev => ({ ...prev, schedule: false }));
+            setScheduleWindows([]);
+        } else {
+            // Nếu đang tắt -> Mở Modal để cấu hình
+            setIsScheduleModalOpen(true);
+        }
+    } else {
+        setExtraOptions(prev => ({ ...prev, [optionKey]: !prev[optionKey] }));
+    }
   };
 
   const toggleRole = (role: string) => {
@@ -157,13 +188,33 @@ function PromotionContent() {
     );
   };
 
-  const OptionCheckbox = ({ id, label, priceInfo, checked, onChange, disabled = false }: { id: string, label: string, priceInfo: string, checked: boolean, onChange: () => void, disabled?: boolean }) => (
+  const handleSaveSchedule = (windows: TimeWindow[]) => {
+      if (windows.length > 0) {
+          setScheduleWindows(windows);
+          setExtraOptions(prev => ({ ...prev, schedule: true }));
+      } else {
+          setExtraOptions(prev => ({ ...prev, schedule: false }));
+      }
+  };
+
+  const OptionCheckbox = ({ id, label, priceInfo, checked, onChange, disabled = false, tooltip }: { id: string, label: string, priceInfo: string, checked: boolean, onChange: () => void, disabled?: boolean, tooltip?: string }) => (
     <label htmlFor={id} className={`flex items-center justify-between p-2.5 sm:p-3 rounded-xl border transition-all cursor-pointer group ${disabled ? 'opacity-50 cursor-not-allowed' : ''} ${checked ? 'border-blue-500 bg-blue-500/10' : 'border-white/10 bg-zinc-900/40 hover:bg-zinc-900/60 hover:border-white/20'}`}>
         <div className="flex items-center gap-2 sm:gap-3">
             <div className={`w-4 h-4 sm:w-5 sm:h-5 rounded border flex items-center justify-center transition-all ${checked ? 'bg-blue-600 border-blue-600' : 'border-zinc-600 bg-zinc-900 group-hover:border-zinc-500'}`}>
                 {checked && <CheckCircle2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-white" />}
             </div>
-            <div className="font-medium text-zinc-200 text-xs sm:text-sm">{label}</div>
+            <div className="font-medium text-zinc-200 text-xs sm:text-sm flex items-center gap-2">
+                {label}
+                {tooltip && (
+                    <div className="group/tooltip relative" onClick={(e) => e.preventDefault()}>
+                        <Info className="w-3.5 h-3.5 text-zinc-500 hover:text-blue-400 transition-colors" />
+                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 bg-zinc-800 border border-zinc-700 rounded-lg text-[10px] text-zinc-300 opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none shadow-xl z-50">
+                            {tooltip}
+                            <div className="absolute bottom-[-4px] left-1/2 -translate-x-1/2 w-2 h-2 bg-zinc-800 border-b border-r border-zinc-700 rotate-45"></div>
+                        </div>
+                    </div>
+                )}
+            </div>
         </div>
         <span className="text-[10px] sm:text-xs font-bold text-green-400 bg-green-400/10 px-1.5 py-0.5 sm:px-2 sm:py-1 rounded">{priceInfo}</span>
         <input id={id} type="checkbox" checked={checked} onChange={onChange} disabled={disabled} className="hidden" />
@@ -302,7 +353,7 @@ function PromotionContent() {
                             )}
 
                             {boosterConfig.booster_info.service_settings.options?.express > 0 && (
-                                <OptionCheckbox id="express" label="Cày siêu tốc" priceInfo={`+${boosterConfig.booster_info.service_settings.options.express}%`} checked={extraOptions.express} onChange={() => handleOptionChange('express')} />
+                                <OptionCheckbox id="express" label="Cày siêu tốc" priceInfo={`+${boosterConfig.booster_info.service_settings.options.express}%`} checked={extraOptions.express} onChange={() => handleOptionChange('express')} tooltip="Booster sẽ cày liên tục để hoàn thành sớm nhất. Không thể dùng chung với Đặt lịch." />
                             )}
                             {boosterConfig.booster_info.service_settings.options?.duo > 0 && (
                                 <OptionCheckbox id="duo" label="Chơi cùng Booster (Duo)" priceInfo={`+${boosterConfig.booster_info.service_settings.options.duo}%`} checked={extraOptions.duo} onChange={() => handleOptionChange('duo')} />
@@ -314,7 +365,7 @@ function PromotionContent() {
                                 <OptionCheckbox id="specificChamps" label="Chơi tướng chỉ định" priceInfo={`+${boosterConfig.booster_info.service_settings.options.specificChamps}%`} checked={extraOptions.specificChamps} onChange={() => handleOptionChange('specificChamps')} />
                             )}
                             {boosterConfig.booster_info.service_settings.options?.schedule && (
-                                <OptionCheckbox id="schedule" label="Đặt lịch cày mỗi ngày" priceInfo="Miễn phí" checked={extraOptions.schedule} onChange={() => handleOptionChange('schedule')} />
+                                <OptionCheckbox id="schedule" label="Đặt lịch cày mỗi ngày" priceInfo={boosterConfig.booster_info.service_settings.options.scheduleFee > 0 ? `+${boosterConfig.booster_info.service_settings.options.scheduleFee}%` : "Miễn phí"} checked={extraOptions.schedule} onChange={() => handleOptionChange('schedule')} tooltip="Chọn khung giờ bạn muốn chơi game. Booster sẽ tạm dừng cày trong thời gian này. Không thể dùng chung với Cày siêu tốc." />
                             )}
                         </div>
                     ) : (
@@ -374,6 +425,27 @@ function PromotionContent() {
                                     <span className="text-zinc-400">Phí dịch vụ ({platformFee}%):</span>
                                     <span className="text-white font-medium">+{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(priceDetails?.platformFeeValue || 0)}</span>
                                 </div>
+                                {/* Hiển thị thông tin bổ sung (Roles/Schedule) nếu có */}
+                                {(selectedRoles.length > 0 || (extraOptions.schedule && scheduleWindows.length > 0)) && (
+                                    <div className="mt-2 pt-2 border-t border-zinc-800/50 text-xs text-zinc-500 space-y-1">
+                                        {selectedRoles.length > 0 && (
+                                            <div className="flex justify-between">
+                                                <span className="flex items-center gap-1"><Crosshair className="w-3 h-3"/> Vị trí:</span>
+                                                <span className="text-zinc-300 text-right max-w-[60%] truncate" title={selectedRoles.join(', ')}>{selectedRoles.join(', ')}</span>
+                                            </div>
+                                        )}
+                                        {extraOptions.schedule && scheduleWindows.length > 0 && (
+                                            <div className="flex justify-between items-start">
+                                                <span className="flex items-center gap-1 shrink-0"><Clock className="w-3 h-3"/> Cấm chơi {boosterConfig.booster_info.service_settings.options.scheduleFee > 0 ? `(+${boosterConfig.booster_info.service_settings.options.scheduleFee}%)` : ''}:</span>
+                                                <div className="text-right">
+                                                    {scheduleWindows.map((w, i) => (
+                                                        <div key={i} className="text-red-400 font-mono">{w.start}-{w.end}</div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
                             </div>
                             
                             {/* Total */}
@@ -406,6 +478,13 @@ function PromotionContent() {
                     </button>
                 </div>
             </div>
+
+      <ScheduleModal 
+        isOpen={isScheduleModalOpen} 
+        onClose={() => setIsScheduleModalOpen(false)} 
+        onSave={handleSaveSchedule}
+        initialWindows={scheduleWindows}
+      />
     </div>
   );
 }

@@ -6,7 +6,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { ChevronRight, Flame, CheckCircle2, Loader2, AlertCircle, Rocket, Users, Video, ShieldCheck, Clock, Crosshair } from 'lucide-react';
 import { toast } from 'sonner';
 import ScheduleModal, { TimeWindow } from '@/components/ScheduleModal';
-
+import { Info } from 'lucide-react';
 // --- CONSTANTS & TYPES ---
 const RANKS = ['Iron', 'Bronze', 'Silver', 'Gold', 'Platinum', 'Emerald', 'Diamond', 'Master'];
 const DIVISIONS = ['IV', 'III', 'II', 'I'];
@@ -400,13 +400,24 @@ function RankBoostContent() {
       }
   };
 
-  const OptionCheckbox = ({ id, label, priceInfo, checked, onChange, disabled = false }: { id: string, label: string, priceInfo: string, checked: boolean, onChange: () => void, disabled?: boolean }) => (
+  const OptionCheckbox = ({ id, label, priceInfo, checked, onChange, disabled = false, tooltip }: { id: string, label: string, priceInfo: string, checked: boolean, onChange: () => void, disabled?: boolean, tooltip?: string }) => (
     <label htmlFor={id} className={`flex items-center justify-between p-2.5 sm:p-3 rounded-xl border transition-all cursor-pointer group ${disabled ? 'opacity-50 cursor-not-allowed' : ''} ${checked ? 'border-blue-500 bg-blue-500/10' : 'border-white/10 bg-zinc-900/40 hover:bg-zinc-900/60 hover:border-white/20'}`}>
         <div className="flex items-center gap-2 sm:gap-3">
             <div className={`w-4 h-4 sm:w-5 sm:h-5 rounded border flex items-center justify-center transition-all ${checked ? 'bg-blue-600 border-blue-600' : 'border-zinc-600 bg-zinc-900 group-hover:border-zinc-500'}`}>
                 {checked && <CheckCircle2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-white" />}
             </div>
-            <div className="font-medium text-zinc-200 text-xs sm:text-sm">{label}</div>
+            <div className="font-medium text-zinc-200 text-xs sm:text-sm flex items-center gap-2">
+                {label}
+                {tooltip && (
+                    <div className="group/tooltip relative" onClick={(e) => e.preventDefault()}>
+                        <Info className="w-3.5 h-3.5 text-zinc-500 hover:text-blue-400 transition-colors" />
+                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 bg-zinc-800 border border-zinc-700 rounded-lg text-[10px] text-zinc-300 opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none shadow-xl z-50">
+                            {tooltip}
+                            <div className="absolute bottom-[-4px] left-1/2 -translate-x-1/2 w-2 h-2 bg-zinc-800 border-b border-r border-zinc-700 rotate-45"></div>
+                        </div>
+                    </div>
+                )}
+            </div>
         </div>
         <span className="text-[10px] sm:text-xs font-bold text-green-400 bg-green-400/10 px-1.5 py-0.5 sm:px-2 sm:py-1 rounded">{priceInfo}</span>
         <input id={id} type="checkbox" checked={checked} onChange={onChange} disabled={disabled} className="hidden" />
@@ -551,7 +562,7 @@ function RankBoostContent() {
                     )}
 
                     {boosterConfig.booster_info.service_settings.options?.express > 0 && (
-                        <OptionCheckbox id="express" label="Cày siêu tốc" priceInfo={`+${boosterConfig.booster_info.service_settings.options.express}%`} checked={extraOptions.express} onChange={() => handleOptionChange('express')} />
+                        <OptionCheckbox id="express" label="Cày siêu tốc" priceInfo={`+${boosterConfig.booster_info.service_settings.options.express}%`} checked={extraOptions.express} onChange={() => handleOptionChange('express')} tooltip="Booster sẽ cày liên tục để hoàn thành sớm nhất. Không thể dùng chung với Đặt lịch." />
                     )}
                     {boosterConfig.booster_info.service_settings.options?.duo > 0 && (
                         <OptionCheckbox id="duo" label="Chơi cùng Booster (Duo)" priceInfo={`+${boosterConfig.booster_info.service_settings.options.duo}%`} checked={extraOptions.duo} onChange={() => handleOptionChange('duo')} />
@@ -563,7 +574,7 @@ function RankBoostContent() {
                         <OptionCheckbox id="specificChamps" label="Chơi tướng chỉ định" priceInfo={`+${boosterConfig.booster_info.service_settings.options.specificChamps}%`} checked={extraOptions.specificChamps} onChange={() => handleOptionChange('specificChamps')} />
                     )}
                     {boosterConfig.booster_info.service_settings.options?.schedule && (
-                        <OptionCheckbox id="schedule" label="Đặt lịch cấm chơi mỗi ngày" priceInfo={boosterConfig.booster_info.service_settings.options.scheduleFee > 0 ? `+${boosterConfig.booster_info.service_settings.options.scheduleFee}%` : "Miễn phí"} checked={extraOptions.schedule} onChange={() => handleOptionChange('schedule')} />
+                        <OptionCheckbox id="schedule" label="Đặt lịch cày mỗi ngày" priceInfo={boosterConfig.booster_info.service_settings.options.scheduleFee > 0 ? `+${boosterConfig.booster_info.service_settings.options.scheduleFee}%` : "Miễn phí"} checked={extraOptions.schedule} onChange={() => handleOptionChange('schedule')} tooltip="Chọn khung giờ bạn muốn chơi game. Booster sẽ tạm dừng cày trong thời gian này. Không thể dùng chung với Cày siêu tốc." />
                     )}
                 </div>
             ) : (
