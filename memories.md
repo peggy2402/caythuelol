@@ -1,6 +1,6 @@
 Project: LOL Boosting Platform
 Date started: 2026-02-25
-Last updated: 2026-03-04
+Last updated: 2026-03-05
 
 Purpose:
 
@@ -151,7 +151,9 @@ caythuelol/
 ```
 
 # ================================================================================
+
 # 2. DATABASE SCHEMA (MONGODB) - Cập nhật ngày 2026-03-05
+
 # ================================================================================
 
 ### A. Users Collection
@@ -171,11 +173,11 @@ caythuelol/
   `avatar`: string (URL)
   `discord_id`: string (optional)
   `bank_info`: { (Dành cho Booster để rút tiền)
-    `bankName`: string (vd: "CAKE")
-    `accountNumber`: string
-    `accountHolder`: string
+  `bankName`: string (vd: "CAKE")
+  `accountNumber`: string
+  `accountHolder`: string
   }
-}
+  }
 - `booster_info`: { (Chỉ dành cho user có role 'BOOSTER')
   `bio`: string (Mô tả bản thân của Booster)
   `services`: string[] (Danh sách các loại dịch vụ cung cấp, vd: 'RANK_BOOST')
@@ -183,47 +185,48 @@ caythuelol/
   `completed_orders`: number (Số đơn hàng đã hoàn thành)
   `team_id`: ObjectId (Ref 'Teams', optional)
   `service_settings`: { (Object phức tạp cho việc định giá động, do Booster tự cấu hình)
-    `enabledServices`: string[] (Các dịch vụ đang được bật)
-    `servers`: string[] (Các máy chủ game mà Booster hoạt động, vd: 'VN', 'KR')
-    `playingChampions`: string[] (Danh sách các tướng Booster chuyên chơi)
+  `enabledServices`: string[] (Các dịch vụ đang được bật)
+  `servers`: string[] (Các máy chủ game mà Booster hoạt động, vd: 'VN', 'KR')
+  `playingChampions`: string[] (Danh sách các tướng Booster chuyên chơi)
 
-    # Bảng giá (Dạng Key-Value)
-    `rankPrices`: Record<string, number> (Giá mỗi đoàn cho rank SOLO)
-    `rankPricesFlex`: Record<string, number> (Giá mỗi đoàn cho rank FLEX)
-    `rankPricesDuo`: Record<string, number> (Giá mỗi đoàn cho rank DUO)
-    `promotionPrices`: Record<string, number> (Giá cho chuỗi thăng hạng, vd: 'Gold_I')
-    `promotionPricesFlex`: Record<string, number>
-    `promotionPricesDuo`: Record<string, number>
-    `placementPrices`: Record<string, number> (Giá mỗi trận phân hạng dựa trên rank mùa trước)
-    `placementPricesFlex`: Record<string, number>
-    `placementPricesDuo`: Record<string, number>
-    `netWinPrices`: Record<string, number> (Giá mỗi trận thắng-thua, cho rank Master+)
-    `netWinPricesFlex`: Record<string, number>
-    `netWinPricesDuo`: Record<string, number>
-    `levelingPrices`: Record<string, number> (Giá mỗi khoảng cấp độ, vd: '1-10')
-    `masteryPrices`: Record<string, number> (Giá mỗi khoảng cấp độ thông thạo, vd: 'M5_M6')
+      # Bảng giá (Dạng Key-Value)
+      `rankPrices`: Record<string, number> (Giá mỗi đoàn cho rank SOLO)
+      `rankPricesFlex`: Record<string, number> (Giá mỗi đoàn cho rank FLEX)
+      `rankPricesDuo`: Record<string, number> (Giá mỗi đoàn cho rank DUO)
+      `promotionPrices`: Record<string, number> (Giá cho chuỗi thăng hạng, vd: 'Gold_I')
+      `promotionPricesFlex`: Record<string, number>
+      `promotionPricesDuo`: Record<string, number>
+      `placementPrices`: Record<string, number> (Giá mỗi trận phân hạng dựa trên rank mùa trước)
+      `placementPricesFlex`: Record<string, number>
+      `placementPricesDuo`: Record<string, number>
+      `netWinPrices`: Record<string, number> (Giá mỗi trận thắng-thua, cho rank Master+)
+      `netWinPricesFlex`: Record<string, number>
+      `netWinPricesDuo`: Record<string, number>
+      `levelingPrices`: Record<string, number> (Giá mỗi khoảng cấp độ, vd: '1-10')
+      `masteryPrices`: Record<string, number> (Giá mỗi khoảng cấp độ thông thạo, vd: 'M5_M6')
 
-    # Các hệ số & Tùy chọn
-    `lpGain`: { (Khoảng điểm LP nhận được để điều chỉnh giá theo MMR)
-        `low`: number
-        `medium`: number
-        `high`: number
-    }
-    `queueModifiers`: { (Phụ phí/giảm giá dựa trên loại hàng chờ)
-        `SOLO_DUO`: number (phần trăm)
-        `FLEX`: number (phần trăm)
-        `TFT`: number (phần trăm)
-    }
-    `options`: { (Giá/phần trăm cho các tùy chọn thêm của đơn hàng)
-        `schedule`: boolean (Booster có nhận đặt lịch không)
-        `roles`: string[] (Vai trò ưa thích, vd: 'JUNGLE', 'MID')
-        `specificChamps`: number (Phụ phí phần trăm)
-        `streaming`: number (Phí cố định)
-        `express`: number (Phụ phí phần trăm cho đơn hàng siêu tốc)
-        `duo`: number (Phụ phí phần trăm cho chơi cùng)
-    }
+      # Các hệ số & Tùy chọn
+      `lpGain`: { (Khoảng điểm LP nhận được để điều chỉnh giá theo MMR)
+          `low`: number
+          `medium`: number
+          `high`: number
+      }
+      `queueModifiers`: { (Phụ phí/giảm giá dựa trên loại hàng chờ)
+          `SOLO_DUO`: number (phần trăm)
+          `FLEX`: number (phần trăm)
+          `TFT`: number (phần trăm)
+      }
+      `options`: { (Giá/phần trăm cho các tùy chọn thêm của đơn hàng)
+          `schedule`: boolean (Booster có nhận đặt lịch không)
+          `roles`: string[] (Vai trò ưa thích, vd: 'JUNGLE', 'MID')
+          `specificChamps`: number (Phụ phí phần trăm)
+          `streaming`: number (Phí cố định)
+          `express`: number (Phụ phí phần trăm cho đơn hàng siêu tốc)
+          `duo`: number (Phụ phí phần trăm cho chơi cùng)
+      }
+
   }
-}
+  }
 
 ### B. Orders Collection
 
@@ -238,21 +241,21 @@ caythuelol/
   `current_lp`: number,
   `server`: string,
   `account_info`: { `username`: string, `password`: string } (Được mã hóa bằng AES-256)
-}
+  }
 - `options`: { (Các tùy chọn khách hàng đã chọn cho đơn hàng này)
   `express`: boolean
   `specific_champs`: string[]
   `streaming`: boolean
   `duo_queue`: boolean
   `scheduled_time`: Date (optional)
-}
+  }
 - `pricing`: {
   `base_price`: number (Tính từ cài đặt của Booster hoặc mặc định của hệ thống)
   `option_fees`: number
   `total_amount`: number (Giá cuối cùng khách hàng trả)
   `platform_fee`: number (Phần của nền tảng)
   `booster_earnings`: number (Phần của booster)
-}
+  }
 - `timeline`: [{ `status`: string, `timestamp`: Date, `actor`: ObjectId }]
 - `chat_room_id`: string (Dành cho chat trong đơn hàng)
 - `createdAt`, `updatedAt`: Date
@@ -269,7 +272,7 @@ caythuelol/
 - `metadata`: { (Cho các chi tiết bổ sung)
   `gateway`: string (vd: 'SePay'),
   `gateway_txn_id`: string
-}
+  }
 - `createdAt`, `updatedAt`: Date
 
 ### D. Teams Collection
@@ -280,7 +283,7 @@ caythuelol/
 - `members`: [{
   `user_id`: ObjectId (Ref 'Users'),
   `split_percent`: number
-}]
+  }]
 - `createdAt`, `updatedAt`: Date
 
 ### E. VerificationCodes Collection
@@ -294,12 +297,14 @@ caythuelol/
 - `createdAt`, `updatedAt`: Date
 
 ### F. Game Collection (Mới - Dành cho dữ liệu hệ thống)
+
 - `_id`: ObjectId
 - `name`: string (vd: "League of Legends")
 - `ranks`: [{ `name`: string, `order`: number, `img_url`: string }] (vd: "IRON_IV", 1, "/ranks/iron.png")
 - `servers`: [{ `id`: string, `name`: string }] (vd: "VN", "Vietnam")
 
 ### G. SystemSetting Collection (Mới - Dành cho cấu hình của admin)
+
 - `_id`: ObjectId
 - `key`: string (unique, vd: "platform_fee_percent")
 - `value`: any
@@ -529,3 +534,27 @@ caythuelol/
   - **UI/UX:**
     - Tối ưu hóa các khối nội dung có thể thu gọn (Collapsible) cho giao diện Mobile.
     - Thêm cảnh báo trực quan khi nhập giá không hợp lệ (ví dụ: giá thấp hơn bậc trước).
+
+15. 2026-03-05 — Net Wins Overhaul, Deposit Logic & Customer UI Polish
+
+- **Net Wins Service (`/booster/services/lol/net-wins`):**
+  - **Redesign:** Thiết kế lại toàn bộ trang cấu hình. Chia thành 2 phần: "Mô phỏng Đặt đơn" (Booking) và "Mô phỏng Quyết toán" (Settlement).
+  - **Financial Logic:** Triển khai hệ thống **Tiền cọc (Deposit)**. Booster có thể cấu hình % cọc (mặc định 50%).
+  - **Settlement:** Thêm logic tính "Giá thực tế" dựa trên kết quả thực (LP đạt được hoặc số trận thắng) so với tiền cọc. Xử lý các trường hợp Hoàn tiền/Thanh toán thêm.
+  - **UI/UX:** Thay thế input LP Gain bằng Dropdown (Low/Medium/High Elo). Hiển thị chi tiết phân chia doanh thu (Admin Fee vs Booster Receive).
+
+- **Customer Service Pages (`/services/lol/*`):**
+  - **Net Wins:** Xây dựng trang đặt đơn cho khách hàng với logic tính giá động theo Booster đã chọn.
+  - **Rank Boost:** Cập nhật trang đặt đơn Rank Boost để đồng bộ logic.
+  - **Deposit Display:** Thay đổi hiển thị giá thành **"Tiền cọc"** thay vì tổng tiền, kèm tooltip giải thích quy trình thanh toán.
+  - **Validation & Terms:** Thêm checkbox "Đồng ý điều khoản" và validate chặt chẽ các ô nhập liệu (ví dụ: Điểm mong muốn > Điểm hiện tại).
+  - **UI Polish:** Cải thiện style Checkbox, ẩn thanh cuộn/spinner input, và tối ưu hiển thị trên Mobile.
+
+- **Booster Dashboard Enhancements:**
+  - **Calculators:** Cập nhật tất cả các công cụ tính giá (Leveling, Mastery, Promotion, Placements) để hiển thị rõ **Phí sàn** và **Thực nhận**.
+  - **General Settings:** Cải thiện UI phần "Tùy chọn mở rộng" (Toggle switches, input gọn gàng).
+  - **Rank Boost Config:** Chuyển đổi input LP Gain sang dạng Dropdown để dễ sử dụng hơn.
+
+- **Architecture:**
+  - Cập nhật `ServiceContext` để lưu trữ `netWinDepositPercent`.
+  - Tinh chỉnh logic tính giá để xử lý cả 2 chế độ "Theo LP" và "Theo Số Trận" trong Net Wins.
