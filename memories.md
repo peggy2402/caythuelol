@@ -577,3 +577,25 @@ caythuelol/
 - **Specific Service Fixes:**
   - **Leveling:** Sửa logic đếm cấp độ (1->30 là 29 cấp) và thêm Tooltip giải thích.
   - **Mastery/Placements/Promotion:** Sửa các lỗi cú pháp (syntax errors) và cấu trúc HTML trong form cấu hình.
+
+17. 2026-03-06 — Customer Service Pages & Schedule System
+
+- **Customer Service Pages (`/services/lol/*`):**
+  - **Leveling:** Xây dựng giao diện chọn Level bằng Slider, tính giá động theo khoảng cấp độ.
+  - **Mastery:** Xây dựng giao diện chọn Cấp độ Thông thạo, tích hợp Modal chọn tướng với bộ lọc nâng cao (Role, Search).
+  - **Placements & Promotion:** Hoàn thiện giao diện đặt đơn với các tùy chọn đặc thù (Rank mùa trước, Chuỗi thăng hạng).
+  - **Net Wins:** Cập nhật giao diện đặt đơn theo số trận thắng hoặc LP.
+
+- **Schedule System (Đặt lịch):**
+  - **Feature:** Triển khai tính năng "Đặt lịch cấm chơi" (Blackout Window) cho phép khách hàng chọn khung giờ họ muốn chơi game để Booster tránh.
+  - **UI:** Xây dựng `ScheduleModal` tái sử dụng, cho phép thêm/xóa nhiều khung giờ.
+  - **Logic:**
+    - Tích hợp vào tất cả các trang dịch vụ (Rank Boost, Net Wins, Mastery, Leveling, Promotion, Placements).
+    - Xử lý xung đột: Tự động tắt "Đặt lịch" nếu chọn "Cày siêu tốc" và ngược lại.
+    - Tính phí: Cộng thêm phí đặt lịch (nếu Booster cấu hình) vào tổng tiền đơn hàng.
+  - **Display:** Hiển thị chi tiết lịch cấm chơi và phí trong phần "Thanh toán" (Summary).
+
+- **UI/UX Polish:**
+  - **Validation:** Thêm kiểm tra độ dài tài khoản/mật khẩu (>3 ký tự) trước khi cho phép thanh toán.
+  - **Tooltips:** Thêm hướng dẫn chi tiết cho các tùy chọn phức tạp (Cày siêu tốc, Đặt lịch).
+  - **Summary:** Cập nhật khối "Thanh toán" để hiển thị đầy đủ thông tin: Vị trí (Roles), Tướng chỉ định, Lịch cấm chơi, Phí dịch vụ.
