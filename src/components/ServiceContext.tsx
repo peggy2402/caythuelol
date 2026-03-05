@@ -51,6 +51,7 @@ export interface ServiceSettings {
 
   options: {
     schedule: boolean;
+    scheduleFee: number; // Phí đặt lịch (%)
     roles: string[];
     specificChamps: number;
     streaming: number;
@@ -120,6 +121,7 @@ export function ServiceProvider({ children }: { children: ReactNode }) {
 
     options: {
       schedule: true,
+      scheduleFee: 0, // Mặc định miễn phí
       roles: ['TOP', 'JUNGLE', 'MID', 'ADC', 'SUPPORT'],
       specificChamps: 30,
       streaming: 349000,
@@ -243,6 +245,7 @@ export function ServiceProvider({ children }: { children: ReactNode }) {
             options: {
               ...prev.options,
               ...incoming.options,
+              scheduleFee: incoming.options?.scheduleFee || 0,
               roles: Array.isArray(incoming.options?.roles)
                 ? incoming.options.roles
                 : prev.options.roles

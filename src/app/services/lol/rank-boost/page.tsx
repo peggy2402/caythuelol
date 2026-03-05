@@ -5,6 +5,7 @@ import { useState, useEffect, useMemo, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { ChevronRight, Flame, CheckCircle2, Loader2, AlertCircle, Rocket, Users, Video, ShieldCheck, Clock, Crosshair } from 'lucide-react';
 import { toast } from 'sonner';
+import ScheduleModal, { TimeWindow } from '@/components/ScheduleModal';
 
 // --- CONSTANTS & TYPES ---
 const RANKS = ['Iron', 'Bronze', 'Silver', 'Gold', 'Platinum', 'Emerald', 'Diamond', 'Master'];
@@ -190,6 +191,10 @@ function RankBoostContent() {
   const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
 
   // Platform Fee State
+  // Schedule State
+  const [scheduleWindows, setScheduleWindows] = useState<TimeWindow[]>([]);
+  const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
+
   const [platformFee, setPlatformFee] = useState(0);
 
   const [boosterConfig, setBoosterConfig] = useState<any>(null);
@@ -329,6 +334,12 @@ function RankBoostContent() {
         optionDetails.push({ label: 'Streaming', value: val });
     }
     // Schedule (Miễn phí theo code cũ, nếu có phí thì thêm vào đây)
+    // Schedule Fee
+    if (extraOptions.schedule && boosterOptions.schedule && boosterOptions.scheduleFee > 0) {
+        const val = totalBase * (boosterOptions.scheduleFee / 100);
+        optionsTotalValue += val;
+        optionDetails.push({ label: 'Phí đặt lịch', percent: boosterOptions.scheduleFee, value: val });
+    }
 
     // D. Phí dịch vụ (Platform Fee) - Tính trên Giá Rank (theo yêu cầu: giá rank * 2%)
     const platformFeeValue = totalBase * (platformFee / 100);
@@ -347,13 +358,46 @@ function RankBoostContent() {
   }, [currentTier, desiredTier, lpGain, queueType, boosterConfig, platformFee, extraOptions]);
 
   const handleOptionChange = (optionKey: string) => {
-    setExtraOptions(prev => ({ ...prev, [optionKey]: !prev[optionKey] }));
+    if (optionKey === 'schedule') {
+        if (extraOptions.schedule) {
+            // Nếu đang bật -> Tắt và xóa lịch
+            setExtraOptions(prev => ({ ...prev, schedule: false }));
+            setScheduleWindows([]);
+        } else {
+            // Validation: Express vs Schedule
+            if (extraOptions.express) {
+                toast.error('Không thể chọn "Đặt lịch" khi đang dùng "Cày siêu tốc".');
+                return;
+            }
+            // Nếu đang tắt -> Mở Modal để cấu hình
+            setIsScheduleModalOpen(true);
+        }
+    } else if (optionKey === 'express') {
+        if (!extraOptions.express && extraOptions.schedule) {
+            toast.warning('Đã tắt "Đặt lịch" vì xung đột với "Cày siêu tốc".');
+            setExtraOptions(prev => ({ ...prev, express: true, schedule: false }));
+            setScheduleWindows([]);
+        } else {
+            setExtraOptions(prev => ({ ...prev, express: !prev.express }));
+        }
+    } else {
+        setExtraOptions(prev => ({ ...prev, [optionKey]: !prev[optionKey] }));
+    }
   };
 
   const toggleRole = (role: string) => {
     setSelectedRoles(prev => 
       prev.includes(role) ? prev.filter(r => r !== role) : [...prev, role]
     );
+  };
+
+  const handleSaveSchedule = (windows: TimeWindow[]) => {
+      if (windows.length > 0) {
+          setScheduleWindows(windows);
+          setExtraOptions(prev => ({ ...prev, schedule: true }));
+      } else {
+          setExtraOptions(prev => ({ ...prev, schedule: false }));
+      }
   };
 
   const OptionCheckbox = ({ id, label, priceInfo, checked, onChange, disabled = false }: { id: string, label: string, priceInfo: string, checked: boolean, onChange: () => void, disabled?: boolean }) => (
@@ -519,7 +563,7 @@ function RankBoostContent() {
                         <OptionCheckbox id="specificChamps" label="Chơi tướng chỉ định" priceInfo={`+${boosterConfig.booster_info.service_settings.options.specificChamps}%`} checked={extraOptions.specificChamps} onChange={() => handleOptionChange('specificChamps')} />
                     )}
                     {boosterConfig.booster_info.service_settings.options?.schedule && (
-                        <OptionCheckbox id="schedule" label="Đặt lịch cày mỗi ngày" priceInfo="Miễn phí" checked={extraOptions.schedule} onChange={() => handleOptionChange('schedule')} />
+                        <OptionCheckbox id="schedule" label="Đặt lịch cấm chơi mỗi ngày" priceInfo={boosterConfig.booster_info.service_settings.options.scheduleFee > 0 ? `+${boosterConfig.booster_info.service_settings.options.scheduleFee}%` : "Miễn phí"} checked={extraOptions.schedule} onChange={() => handleOptionChange('schedule')} />
                     )}
                 </div>
             ) : (
@@ -575,12 +619,34 @@ function RankBoostContent() {
                                 <span className="text-zinc-400">{opt.label} {opt.percent ? `(${opt.percent}%)` : ''}:</span>
                                 <span className="text-white font-medium">+{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(opt.value)}</span>
                             </div>
+                            
                         ))}
 
                         <div className="flex justify-between text-sm">
                             <span className="text-zinc-400">Phí dịch vụ ({platformFee}%):</span>
                             <span className="text-white font-medium">+{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(priceDetails?.platformFeeValue || 0)}</span>
                         </div>
+                        {/* Hiển thị thông tin bổ sung (Roles/Schedule) nếu có */}
+                        {(selectedRoles.length > 0 || (extraOptions.schedule && scheduleWindows.length > 0)) && (
+                            <div className="mt-2 pt-2 border-t border-zinc-800/50 text-xs text-zinc-500 space-y-1">
+                                {selectedRoles.length > 0 && (
+                                    <div className="flex justify-between">
+                                        <span className="flex items-center gap-1"><Crosshair className="w-3 h-3"/> Vị trí:</span>
+                                        <span className="text-zinc-300 text-right max-w-[60%] truncate" title={selectedRoles.join(', ')}>{selectedRoles.join(', ')}</span>
+                                    </div>
+                                )}
+                                {extraOptions.schedule && scheduleWindows.length > 0 && (
+                                    <div className="flex justify-between items-start">
+                                        <span className="flex items-center gap-1 shrink-0"><Clock className="w-3 h-3"/> Cấm chơi {boosterConfig.booster_info.service_settings.options.scheduleFee > 0 ? `(+${boosterConfig.booster_info.service_settings.options.scheduleFee}%)` : ''}:</span>
+                                        <div className="text-right">
+                                            {scheduleWindows.map((w, i) => (
+                                                <div key={i} className="text-red-400 font-mono">{w.start}-{w.end}</div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
                     </div>
                     
                     {/* Total Price */}
@@ -614,6 +680,13 @@ function RankBoostContent() {
             </button>
         </div>
       </div>
+
+      <ScheduleModal 
+        isOpen={isScheduleModalOpen} 
+        onClose={() => setIsScheduleModalOpen(false)} 
+        onSave={handleSaveSchedule}
+        initialWindows={scheduleWindows}
+      />
     </div>
   );
 }

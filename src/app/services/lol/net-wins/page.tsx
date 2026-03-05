@@ -2,9 +2,10 @@
 
 import { useState, useEffect, useMemo, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { Trophy, Flame, Info, CheckCircle2, AlertCircle, ArrowRight, Shield, Swords, Zap, Wallet, Loader2, ChevronRight, Crosshair } from 'lucide-react';
+import { Trophy, Flame, Info, CheckCircle2, AlertCircle, ArrowRight, Shield, Swords, Zap, Wallet, Loader2, ChevronRight, Crosshair, Clock } from 'lucide-react';
 import { toast } from 'sonner';
 import BoosterPicker from '@/components/BoosterPicker';
+// import ScheduleModal, { TimeWindow } from '@/components/ScheduleModal';
 
 const ACCOUNT_TYPES = [
     { id: 'RIOT', name: 'Riot' },
@@ -198,6 +199,15 @@ function NetWinsContent() {
   }, [boosterConfig, selectedRank, wins, lpGain, queueType, extraOptions, platformFee, calcMode, currentLP, targetLP]);
 
   const handleOptionChange = (optionKey: string) => {
+    if (optionKey === 'express' && !extraOptions.express && extraOptions.schedule) {
+        toast.warning('Đã tắt "Đặt lịch" vì xung đột với "Cày siêu tốc".');
+        setExtraOptions(prev => ({ ...prev, express: true, schedule: false }));
+        return;
+    }
+    if (optionKey === 'schedule' && !extraOptions.schedule && extraOptions.express) {
+        toast.error('Không thể chọn "Đặt lịch" khi đang dùng "Cày siêu tốc".');
+        return;
+    }
     setExtraOptions(prev => ({ ...prev, [optionKey]: !prev[optionKey] }));
   };
 

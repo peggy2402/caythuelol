@@ -501,6 +501,23 @@ export default function GeneralSettingsPage() {
                     />
                 </button>
               </div>
+
+              {/* Schedule Fee Input */}
+              {settings.options.schedule && (
+                <div className="mb-4 animate-in fade-in slide-in-from-top-1">
+                    <label className="block text-sm font-bold text-zinc-400 mb-2">Phí đặt lịch (+%)</label>
+                    <div className="relative">
+                        <input 
+                            type="number" 
+                            value={settings.options.scheduleFee || 0} 
+                            onChange={(e) => setSettings({...settings, options: {...settings.options, scheduleFee: Number(e.target.value)}})} 
+                            className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white focus:border-blue-500 outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" 
+                        />
+                        <span className="absolute right-3 top-2 text-zinc-500 font-bold">%</span>
+                    </div>
+                    <p className="text-xs text-zinc-500 mt-1">Thu thêm phí khi khách yêu cầu tránh giờ chơi (Blackout).</p>
+                </div>
+              )}
               
               {/* Suggestion for Time Slots */}
               {settings.options.schedule && (
@@ -510,7 +527,7 @@ export default function GeneralSettingsPage() {
                           <p>
                               Tính năng <strong>Time Slots</strong> (Khung giờ rảnh) sẽ giúp bạn quản lý lịch trình tốt hơn. 
                               <br/>
-                              <span className="opacity-60 italic">Hiện tại hệ thống sẽ hiển thị trạng thái "Có nhận đặt lịch" cho khách hàng.</span>
+                              <span className="opacity-60 italic">Hiện tại hệ thống sẽ hiển thị trạng thái "Đã kích hoạt" cho khách hàng và đang trong giai đoạn update.</span>
                           </p>
                       </div>
                   </div>
