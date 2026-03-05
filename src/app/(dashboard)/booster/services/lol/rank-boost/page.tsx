@@ -319,6 +319,163 @@ export default function RankBoostPage() {
         )}
       </section>
 
+      {/* Rank Pricing Table */}
+      <section className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden">
+        <div 
+          onClick={() => toggle('rank')}
+          className="p-6 flex items-center justify-between cursor-pointer hover:bg-zinc-800/50 transition-colors"
+        >
+           <h2 className="text-xl font-bold text-white">Bảng giá leo Rank</h2>
+           <ChevronDown className={`w-6 h-6 text-zinc-500 transition-transform duration-300 ${expanded.rank ? 'rotate-180' : ''}`} />
+        </div>
+
+        {expanded.rank && (
+        <div className="px-6 pb-6 animate-in slide-in-from-top-2">
+        <div className="mb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div>
+            {/* TABS */}
+            <div className="flex gap-2 mb-4">
+              <button 
+                onClick={() => setActiveTab('SOLO')}
+                className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'SOLO' ? 'bg-blue-600 text-white' : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'}`}
+              >
+                Solo / Duo (Mặc định)
+              </button>
+              <button 
+                onClick={() => setActiveTab('FLEX')}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'FLEX' ? 'bg-purple-600 text-white' : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'}`}
+              >
+                <Layers className="w-4 h-4" /> Flex
+              </button>
+            </div>
+
+            <div className="mt-3 bg-blue-900/20 border border-blue-500/30 rounded-xl p-4 text-sm">
+              <p className="text-blue-100 mb-2"><span className="text-yellow-400 font-bold mr-2">⚠️ LƯU Ý:</span>Chỉ nhập giá cho <span className="font-bold text-white border-b border-white">1 BẬC DUY NHẤT</span> (Ví dụ: Vàng 1 lên Bạch Kim 4).</p>
+              <p className="text-zinc-400 text-xs mb-3 italic">
+                 * Hệ thống sẽ <span className="text-green-400 font-bold">TỰ ĐỘNG CỘNG DỒN</span> giá tiền nếu khách đặt đơn leo nhiều bậc (Ví dụ: Từ Sắt 4 lên Thách Đấu = Tổng giá của tất cả các bậc ở giữa cộng lại). Bạn không cần nhập giá cho khoảng dài.
+              </p>
+              <div className="flex gap-2 mt-2">
+                <button onClick={handleIncreasePrices} className="flex items-center gap-1 bg-green-600/20 text-green-400 px-2 py-1 rounded text-xs font-bold border border-green-600/30"><TrendingUp className="w-3 h-3" /> +10%</button>
+                <button onClick={() => setShowClearConfirm(true)} className="flex items-center gap-1 bg-red-600/20 text-red-400 px-2 py-1 rounded text-xs font-bold border border-red-600/30"><Trash2 className="w-3 h-3" /> Xóa hết</button>
+              </div>
+            </div>
+          </div>
+          <button onClick={() => setShowBulkImport(!showBulkImport)} className="flex items-center gap-2 text-sm bg-zinc-800 hover:bg-zinc-700 text-white px-4 py-2 rounded-lg transition-colors"><FileText className="w-4 h-4" /> Nhập nhanh</button>
+        </div>
+
+        {showBulkImport && (
+          <div className="mb-6 bg-zinc-950 p-4 rounded-xl border border-zinc-800 animate-in slide-in-from-top-2">
+            <label className="block text-sm font-medium text-zinc-400 mb-2">
+                Dán bảng giá nhanh (Bulk Import)
+            </label>
+            <p className="text-xs text-zinc-500 mb-3">
+                Nhập theo định dạng: <code className="bg-zinc-900 px-1 py-0.5 rounded text-blue-400">Rank Hiện Tại | Rank Mục Tiêu | Giá Tiền</code><br/>
+                Mỗi dòng một mục. Ví dụ:<br/>
+                <span className="text-zinc-400 block mt-1 pl-2 border-l-2 border-zinc-800">
+                    Diamond 2 | Diamond 1 | 159000<br/>
+                    Platinum 1 | Emerald 4 | 120000
+                </span>
+            </p>
+            <textarea value={bulkImportText} onChange={(e) => setBulkImportText(e.target.value)} className="w-full h-32 bg-zinc-900 border border-zinc-700 rounded-lg p-3 text-sm text-white font-mono outline-none" placeholder="Dán danh sách giá vào đây..." />
+            <div className="flex justify-end gap-2 mt-3">
+              <button onClick={handleBulkImport} className="px-4 py-2 text-sm bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-medium">Áp dụng</button>
+            </div>
+          </div>
+        )}
+        
+        {/* Rank Selector (Horizontal Scroll) */}
+        {visibleRanks.length > 0 ? (
+          <div className="mb-6">
+            <div className="flex overflow-x-auto gap-3 pb-4 no-scrollbar snap-x">
+              {visibleRanks.map((rank, index) => (
+                <button
+                  key={rank._id}
+                  onClick={() => setPage(index)}
+                  className={`flex-shrink-0 snap-center flex flex-col items-center justify-center gap-2 p-3 rounded-xl border w-24 transition-all ${
+                    page === index
+                      ? 'bg-blue-600/10 border-blue-500 text-white shadow-[0_0_15px_rgba(37,99,235,0.3)]'
+                      : 'bg-zinc-950 border-zinc-800 text-zinc-500 hover:bg-zinc-900 hover:text-zinc-300'
+                  }`}
+                >
+                  <img src={rank.imageUrl} alt={rank.name} className={`w-10 h-10 object-contain transition-all ${page === index ? 'scale-110 drop-shadow-lg' : 'grayscale opacity-50'}`} />
+                  <span className="text-xs font-bold">{rank.name}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div className="text-center text-zinc-500 py-10 border border-dashed border-zinc-800 rounded-xl mb-6">
+             Không tìm thấy dữ liệu Rank. Vui lòng kiểm tra lại cấu hình hệ thống hoặc tải lại trang.
+          </div>
+        )}
+
+        <div className="space-y-4 min-h-[200px]">
+          {Array.isArray(visibleRanks) && visibleRanks.length > 0 && (() => {
+            const rank = visibleRanks[page] || visibleRanks[0];
+            if (!rank) return <div className="text-center text-zinc-500 py-10">Vui lòng chọn Rank</div>;
+            const rankIndex = page;
+
+            return (
+            <div key={rank._id} className="space-y-2 animate-in fade-in slide-in-from-right-4 duration-300">
+              {Array.isArray(rank.tiers) && rank.tiers.map((tier, tierIndex) => {
+                const currentTierName = tier ? `${rank.name} ${tier}` : rank.name;
+                const isLastTier = tierIndex === rank.tiers.length - 1;
+                let nextTierName = 'Next Rank';
+                if (!isLastTier) {
+                  const nextTier = rank.tiers[tierIndex + 1];
+                  nextTierName = nextTier ? `${rank.name} ${nextTier}` : rank.name;
+                } else {
+                  // Logic hiển thị đích đến: Nếu là Diamond I thì đích đến là Master
+                  // Các rank khác thì lấy rank kế tiếp trong danh sách
+                  const currentRankIdx = ranks.findIndex(r => r.name === rank.name);
+                  const nextRank = ranks[currentRankIdx + 1];
+                  nextTierName = nextRank ? (nextRank.tiers?.[0] ? `${nextRank.name} ${nextRank.tiers[0]}` : nextRank.name) : `Master`;
+                }
+                
+                const key = tier ? `${rank.name}_${tier}` : rank.name;
+                const currentPrice = getPrice(key);
+
+                let prevPrice = 0;
+                if (tierIndex > 0) {
+                   const prevTier = rank.tiers[tierIndex - 1];
+                   prevPrice = getPrice(`${rank.name}_${prevTier}`);
+                } else if (rankIndex > 0) {
+                   const prevRank = visibleRanks[rankIndex - 1];
+                   if (prevRank && prevRank.tiers && prevRank.tiers.length > 0) {
+                      const prevTier = prevRank.tiers[prevRank.tiers.length - 1];
+                      prevPrice = getPrice(`${prevRank.name}_${prevTier}`);
+                   }
+                }
+                
+                const isTooHigh = currentPrice > MAX_PRICE_PER_STEP;
+                const isInvalid = (currentPrice > 0 && prevPrice > 0 && currentPrice < prevPrice) || isTooHigh;
+
+                return (
+                  <div key={key} className="flex flex-col md:flex-row items-center gap-4 bg-zinc-950 p-3 rounded-xl border border-zinc-800 hover:border-zinc-700 transition-colors group">
+                    <div className="flex items-center justify-between w-full md:w-1/3">
+                      <div className="flex items-center gap-3">
+                        <img src={rank.imageUrl} alt={rank.name} className="w-8 h-8 object-contain" />
+                        <span className="font-bold text-zinc-200 text-sm">{currentTierName}</span>
+                      </div>
+                      <div className="flex md:hidden items-center text-zinc-500 text-xs gap-1 bg-zinc-900 px-2 py-1 rounded border border-zinc-800"><ArrowRight className="w-3 h-3" /><span>{nextTierName}</span></div>
+                    </div>
+                    <div className="hidden md:flex justify-center w-10"><ArrowRight className="w-6 h-6 text-zinc-600" /></div>
+                    <div className="hidden md:flex items-center gap-3 w-full md:w-1/3 md:pl-8"><span className="font-bold text-white">{nextTierName}</span></div>
+                    <div className="w-full md:w-1/3 relative mt-1 md:mt-0">
+                      <input type="text" placeholder="Nhập giá..." value={currentPrice ? currentPrice.toLocaleString('en-US') : ''} onChange={(e) => updateRankPrice(rank.name, tier, e.target.value)} className={`w-full bg-zinc-900 border rounded-lg pl-4 pr-10 py-2 text-right font-bold outline-none transition-colors ${isInvalid ? 'border-red-500 text-red-500' : 'border-zinc-700 text-green-400 focus:border-green-500'}`} />
+                      <span className="absolute right-3 top-2.5 text-zinc-500 text-xs">VNĐ</span>
+                      {isInvalid && <p className="absolute right-0 -bottom-5 text-[10px] text-red-500">{isTooHigh ? 'Giá quá cao' : `Thấp hơn bậc trước (${prevPrice.toLocaleString()})`}</p>}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            );
+          })()}
+        </div>
+        </div>
+        )}
+      </section>
       {/* Calculator & Tools */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Preview Calculator */}
@@ -614,163 +771,6 @@ export default function RankBoostPage() {
         </div>
       </div>
 
-      {/* Rank Pricing Table */}
-      <section className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden">
-        <div 
-          onClick={() => toggle('rank')}
-          className="p-6 flex items-center justify-between cursor-pointer hover:bg-zinc-800/50 transition-colors"
-        >
-           <h2 className="text-xl font-bold text-white">Bảng giá leo Rank</h2>
-           <ChevronDown className={`w-6 h-6 text-zinc-500 transition-transform duration-300 ${expanded.rank ? 'rotate-180' : ''}`} />
-        </div>
-
-        {expanded.rank && (
-        <div className="px-6 pb-6 animate-in slide-in-from-top-2">
-        <div className="mb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <div>
-            {/* TABS */}
-            <div className="flex gap-2 mb-4">
-              <button 
-                onClick={() => setActiveTab('SOLO')}
-                className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'SOLO' ? 'bg-blue-600 text-white' : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'}`}
-              >
-                Solo / Duo (Mặc định)
-              </button>
-              <button 
-                onClick={() => setActiveTab('FLEX')}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'FLEX' ? 'bg-purple-600 text-white' : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'}`}
-              >
-                <Layers className="w-4 h-4" /> Flex
-              </button>
-            </div>
-
-            <div className="mt-3 bg-blue-900/20 border border-blue-500/30 rounded-xl p-4 text-sm">
-              <p className="text-blue-100 mb-2"><span className="text-yellow-400 font-bold mr-2">⚠️ LƯU Ý:</span>Chỉ nhập giá cho <span className="font-bold text-white border-b border-white">1 BẬC DUY NHẤT</span> (Ví dụ: Vàng 1 lên Bạch Kim 4).</p>
-              <p className="text-zinc-400 text-xs mb-3 italic">
-                 * Hệ thống sẽ <span className="text-green-400 font-bold">TỰ ĐỘNG CỘNG DỒN</span> giá tiền nếu khách đặt đơn leo nhiều bậc (Ví dụ: Từ Sắt 4 lên Thách Đấu = Tổng giá của tất cả các bậc ở giữa cộng lại). Bạn không cần nhập giá cho khoảng dài.
-              </p>
-              <div className="flex gap-2 mt-2">
-                <button onClick={handleIncreasePrices} className="flex items-center gap-1 bg-green-600/20 text-green-400 px-2 py-1 rounded text-xs font-bold border border-green-600/30"><TrendingUp className="w-3 h-3" /> +10%</button>
-                <button onClick={() => setShowClearConfirm(true)} className="flex items-center gap-1 bg-red-600/20 text-red-400 px-2 py-1 rounded text-xs font-bold border border-red-600/30"><Trash2 className="w-3 h-3" /> Xóa hết</button>
-              </div>
-            </div>
-          </div>
-          <button onClick={() => setShowBulkImport(!showBulkImport)} className="flex items-center gap-2 text-sm bg-zinc-800 hover:bg-zinc-700 text-white px-4 py-2 rounded-lg transition-colors"><FileText className="w-4 h-4" /> Nhập nhanh</button>
-        </div>
-
-        {showBulkImport && (
-          <div className="mb-6 bg-zinc-950 p-4 rounded-xl border border-zinc-800 animate-in slide-in-from-top-2">
-            <label className="block text-sm font-medium text-zinc-400 mb-2">
-                Dán bảng giá nhanh (Bulk Import)
-            </label>
-            <p className="text-xs text-zinc-500 mb-3">
-                Nhập theo định dạng: <code className="bg-zinc-900 px-1 py-0.5 rounded text-blue-400">Rank Hiện Tại | Rank Mục Tiêu | Giá Tiền</code><br/>
-                Mỗi dòng một mục. Ví dụ:<br/>
-                <span className="text-zinc-400 block mt-1 pl-2 border-l-2 border-zinc-800">
-                    Diamond 2 | Diamond 1 | 159000<br/>
-                    Platinum 1 | Emerald 4 | 120000
-                </span>
-            </p>
-            <textarea value={bulkImportText} onChange={(e) => setBulkImportText(e.target.value)} className="w-full h-32 bg-zinc-900 border border-zinc-700 rounded-lg p-3 text-sm text-white font-mono outline-none" placeholder="Dán danh sách giá vào đây..." />
-            <div className="flex justify-end gap-2 mt-3">
-              <button onClick={handleBulkImport} className="px-4 py-2 text-sm bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-medium">Áp dụng</button>
-            </div>
-          </div>
-        )}
-        
-        {/* Rank Selector (Horizontal Scroll) */}
-        {visibleRanks.length > 0 ? (
-          <div className="mb-6">
-            <div className="flex overflow-x-auto gap-3 pb-4 no-scrollbar snap-x">
-              {visibleRanks.map((rank, index) => (
-                <button
-                  key={rank._id}
-                  onClick={() => setPage(index)}
-                  className={`flex-shrink-0 snap-center flex flex-col items-center justify-center gap-2 p-3 rounded-xl border w-24 transition-all ${
-                    page === index
-                      ? 'bg-blue-600/10 border-blue-500 text-white shadow-[0_0_15px_rgba(37,99,235,0.3)]'
-                      : 'bg-zinc-950 border-zinc-800 text-zinc-500 hover:bg-zinc-900 hover:text-zinc-300'
-                  }`}
-                >
-                  <img src={rank.imageUrl} alt={rank.name} className={`w-10 h-10 object-contain transition-all ${page === index ? 'scale-110 drop-shadow-lg' : 'grayscale opacity-50'}`} />
-                  <span className="text-xs font-bold">{rank.name}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        ) : (
-          <div className="text-center text-zinc-500 py-10 border border-dashed border-zinc-800 rounded-xl mb-6">
-             Không tìm thấy dữ liệu Rank. Vui lòng kiểm tra lại cấu hình hệ thống hoặc tải lại trang.
-          </div>
-        )}
-
-        <div className="space-y-4 min-h-[200px]">
-          {Array.isArray(visibleRanks) && visibleRanks.length > 0 && (() => {
-            const rank = visibleRanks[page] || visibleRanks[0];
-            if (!rank) return <div className="text-center text-zinc-500 py-10">Vui lòng chọn Rank</div>;
-            const rankIndex = page;
-
-            return (
-            <div key={rank._id} className="space-y-2 animate-in fade-in slide-in-from-right-4 duration-300">
-              {Array.isArray(rank.tiers) && rank.tiers.map((tier, tierIndex) => {
-                const currentTierName = tier ? `${rank.name} ${tier}` : rank.name;
-                const isLastTier = tierIndex === rank.tiers.length - 1;
-                let nextTierName = 'Next Rank';
-                if (!isLastTier) {
-                  const nextTier = rank.tiers[tierIndex + 1];
-                  nextTierName = nextTier ? `${rank.name} ${nextTier}` : rank.name;
-                } else {
-                  // Logic hiển thị đích đến: Nếu là Diamond I thì đích đến là Master
-                  // Các rank khác thì lấy rank kế tiếp trong danh sách
-                  const currentRankIdx = ranks.findIndex(r => r.name === rank.name);
-                  const nextRank = ranks[currentRankIdx + 1];
-                  nextTierName = nextRank ? (nextRank.tiers?.[0] ? `${nextRank.name} ${nextRank.tiers[0]}` : nextRank.name) : `Master`;
-                }
-                
-                const key = tier ? `${rank.name}_${tier}` : rank.name;
-                const currentPrice = getPrice(key);
-
-                let prevPrice = 0;
-                if (tierIndex > 0) {
-                   const prevTier = rank.tiers[tierIndex - 1];
-                   prevPrice = getPrice(`${rank.name}_${prevTier}`);
-                } else if (rankIndex > 0) {
-                   const prevRank = visibleRanks[rankIndex - 1];
-                   if (prevRank && prevRank.tiers && prevRank.tiers.length > 0) {
-                      const prevTier = prevRank.tiers[prevRank.tiers.length - 1];
-                      prevPrice = getPrice(`${prevRank.name}_${prevTier}`);
-                   }
-                }
-                
-                const isTooHigh = currentPrice > MAX_PRICE_PER_STEP;
-                const isInvalid = (currentPrice > 0 && prevPrice > 0 && currentPrice < prevPrice) || isTooHigh;
-
-                return (
-                  <div key={key} className="flex flex-col md:flex-row items-center gap-4 bg-zinc-950 p-3 rounded-xl border border-zinc-800 hover:border-zinc-700 transition-colors group">
-                    <div className="flex items-center justify-between w-full md:w-1/3">
-                      <div className="flex items-center gap-3">
-                        <img src={rank.imageUrl} alt={rank.name} className="w-8 h-8 object-contain" />
-                        <span className="font-bold text-zinc-200 text-sm">{currentTierName}</span>
-                      </div>
-                      <div className="flex md:hidden items-center text-zinc-500 text-xs gap-1 bg-zinc-900 px-2 py-1 rounded border border-zinc-800"><ArrowRight className="w-3 h-3" /><span>{nextTierName}</span></div>
-                    </div>
-                    <div className="hidden md:flex justify-center w-10"><ArrowRight className="w-6 h-6 text-zinc-600" /></div>
-                    <div className="hidden md:flex items-center gap-3 w-full md:w-1/3 md:pl-8"><span className="font-bold text-white">{nextTierName}</span></div>
-                    <div className="w-full md:w-1/3 relative mt-1 md:mt-0">
-                      <input type="text" placeholder="Nhập giá..." value={currentPrice ? currentPrice.toLocaleString('en-US') : ''} onChange={(e) => updateRankPrice(rank.name, tier, e.target.value)} className={`w-full bg-zinc-900 border rounded-lg pl-4 pr-10 py-2 text-right font-bold outline-none transition-colors ${isInvalid ? 'border-red-500 text-red-500' : 'border-zinc-700 text-green-400 focus:border-green-500'}`} />
-                      <span className="absolute right-3 top-2.5 text-zinc-500 text-xs">VNĐ</span>
-                      {isInvalid && <p className="absolute right-0 -bottom-5 text-[10px] text-red-500">{isTooHigh ? 'Giá quá cao' : `Thấp hơn bậc trước (${prevPrice.toLocaleString()})`}</p>}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-            );
-          })()}
-        </div>
-        </div>
-        )}
-      </section>
 
       {showClearConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
