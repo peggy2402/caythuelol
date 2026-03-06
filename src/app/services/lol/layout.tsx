@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
 import Navbar from '@/components/Navbar';
 import BoosterPicker from '@/components/BoosterPicker';
-import { Trophy, Target, TrendingUp, Swords, Zap, Medal, MousePointerClick } from 'lucide-react';
+import { Trophy, Target, TrendingUp, Swords, Zap, Medal } from 'lucide-react';
 import { Suspense, useEffect, useState } from 'react';
 
 const TABS = [
@@ -64,6 +64,7 @@ function ServiceTabs() {
             <Link
               key={tab.id}
               href={tab.href + query} // Preserve query params (booster)
+              scroll={false}
               className={`flex items-center gap-2 px-5 py-3 rounded-xl font-bold text-sm transition-all duration-300 ${
                 isActive
                   ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30'
