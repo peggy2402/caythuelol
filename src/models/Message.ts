@@ -5,6 +5,13 @@ export interface IMessage extends Document {
   sender_id: mongoose.Types.ObjectId;
   content: string;
   is_system_message: boolean; // Dùng cho thông báo hệ thống (VD: "Booster đã nhận đơn")
+  type?: 'TEXT' | 'IMAGE' | 'COMMAND_RESULT';
+  metadata?: any; // Lưu kết quả của command (VD: thông tin trận đấu, tip amount)
+  reactions?: {
+    emoji: string;
+    userId: mongoose.Types.ObjectId;
+  }[];
+  replyTo?: mongoose.Types.ObjectId; // ID tin nhắn được reply
   created_at: Date;
 }
 
@@ -14,6 +21,13 @@ const MessageSchema = new Schema<IMessage>(
     sender_id: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     content: { type: String, required: true },
     is_system_message: { type: Boolean, default: false },
+    type: { type: String, enum: ['TEXT', 'IMAGE', 'COMMAND_RESULT'], default: 'TEXT' },
+    metadata: { type: Schema.Types.Mixed },
+    reactions: [{
+      emoji: String,
+      userId: { type: Schema.Types.ObjectId, ref: 'User' }
+    }],
+    replyTo: { type: Schema.Types.ObjectId, ref: 'Message' }
   },
   { timestamps: { createdAt: 'created_at', updatedAt: false } }
 );

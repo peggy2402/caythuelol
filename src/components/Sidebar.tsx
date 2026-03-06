@@ -18,7 +18,8 @@ import {
   Newspaper,
   LogOut,
   Home,
-  CreditCard
+  CreditCard,
+  AlertTriangle
 } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n';
 
@@ -118,6 +119,7 @@ export default function Sidebar({ className = '', onLinkClick }: SidebarProps) {
             <NavItem href="/admin/orders" icon={FileText} label={t('manageOrders')} />
             <NavItem href="/admin/blogs" icon={Newspaper} label={t('manageBlogs')} />
             <NavItem href="/admin/withdrawals" icon={Wallet} label="Quản lý Rút tiền" />
+            <NavItem href="/admin/disputes" icon={AlertTriangle} label="Quản lý Tranh chấp" />
             <NavItem href="/admin/settings" icon={Settings} label={t('systemSettings')} />
             <NavItem href="/admin/audit-logs" icon={ListTodo} label={t('auditLogs')} />
           </>

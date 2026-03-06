@@ -3,6 +3,7 @@ import dbConnect from '@/lib/db';
 import Order, { OrderStatus } from '@/models/Order';
 import User from '@/models/User';
 import Transaction, { TransactionType, TransactionStatus } from '@/models/Transaction';
+import Notification from '@/models/Notification';
 import mongoose from 'mongoose';
 import { jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
@@ -102,6 +103,17 @@ export async function POST(req: Request) {
     // Let's use a standard status from your enum.
     // If money is taken, it is PAID.
     newOrder.status = OrderStatus.PAID; 
+
+    // Notify Booster if selected
+    if (boosterId) {
+        await Notification.create([{
+            userId: boosterId,
+            title: 'Đơn hàng mới',
+            message: `Bạn nhận được đơn hàng mới #${newOrder._id.toString().slice(-6)}. Vui lòng kiểm tra và nhận đơn.`,
+            type: 'ORDER_UPDATE',
+            link: `/booster/jobs`
+        }], { session });
+    }
     
     await newOrder.save({ session });
 

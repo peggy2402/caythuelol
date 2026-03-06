@@ -85,19 +85,21 @@ export default function BoostersPage() {
                   <div className="h-28 bg-gradient-to-r from-zinc-800 to-zinc-900 relative">
                     <div className="absolute inset-0 bg-blue-600/5 group-hover:bg-blue-600/10 transition-colors" />
                     <div className="absolute -bottom-10 left-1/2 -translate-x-1/2">
-                      <div className="w-20 h-20 rounded-full border-4 border-zinc-900 bg-zinc-800 overflow-hidden flex items-center justify-center shadow-lg">
+                      <Link href={`/boosters/${booster._id}`} className="block w-20 h-20 rounded-full border-4 border-zinc-900 bg-zinc-800 overflow-hidden flex items-center justify-center shadow-lg hover:scale-105 transition-transform cursor-pointer">
                         {booster.profile.avatar ? (
                           <img src={booster.profile.avatar} alt={booster.username} className="w-full h-full object-cover" />
                         ) : (
                           <UserIcon className="w-10 h-10 text-zinc-500" />
                         )}
-                      </div>
+                      </Link>
                     </div>
                   </div>
 
                   {/* Info Area */}
                   <div className="pt-12 pb-6 px-6 text-center">
-                    <h3 className="text-xl font-bold text-white mb-1 group-hover:text-blue-400 transition-colors">{booster.username}</h3>
+                    <Link href={`/boosters/${booster._id}`} className="block">
+                        <h3 className="text-xl font-bold text-white mb-1 group-hover:text-blue-400 transition-colors">{booster.username}</h3>
+                    </Link>
                     <div className="flex items-center justify-center gap-1 text-yellow-500 mb-4">
                       <Star className="w-4 h-4 fill-current" />
                       <span className="font-bold">{booster.booster_info?.rating?.toFixed(1) || '5.0'}</span>

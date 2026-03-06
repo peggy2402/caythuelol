@@ -3,20 +3,8 @@
 import { useState, useEffect, useRef, use } from 'react';
 import { useLanguage } from '@/lib/i18n';
 import { toast } from 'sonner';
-import { Send, User, Shield, MapPin, Loader2, MessageSquare, Swords, Trophy, XCircle, ChevronDown, ChevronUp, X, Minimize2, Maximize2, AlertTriangle, CheckCircle2, Wallet, Star, Flag } from 'lucide-react';
-
-interface Message {
-  _id: string;
-  content: string;
-  sender_id: {
-    _id: string;
-    username: string;
-    profile: { avatar: string };
-    role: string;
-  };
-  created_at: string;
-  is_system_message: boolean;
-}
+import { Shield, Loader2, Swords, CheckCircle2, Wallet, Star, Flag, ChevronUp, ChevronDown, AlertTriangle, X } from 'lucide-react';
+import ChatWindow from '@/components/chat/ChatWindow';
 
 interface OrderDetails {
   _id: string;
@@ -60,15 +48,10 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
   const { t } = useLanguage();
   
   const [order, setOrder] = useState<OrderDetails | null>(null);
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
-  const [sending, setSending] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [showDetails, setShowDetails] = useState(false);
-  const [isChatOpen, setIsChatOpen] = useState(true);
   
-  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Booster Complete Modal State
   const [isCompleteModalOpen, setIsCompleteModalOpen] = useState(false);
@@ -92,13 +75,6 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
   // Fetch Order & Messages
   const fetchData = async () => {
     try {
-      // 1. Fetch Messages
-      const msgRes = await fetch(`/api/orders/${id}/messages`);
-      const msgData = await msgRes.json();
-      
-      if (msgRes.ok) {
-        setMessages(msgData.messages);
-      }
 
       // 2. Fetch Order Details (Tạm thời dùng API list và filter vì chưa có API get single order)
       // Trong thực tế bạn nên tạo thêm API GET /api/orders/[id]
@@ -124,54 +100,6 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
     fetchData();
   }, [id]);
 
-  // Polling Messages (Realtime simulation) - 3 giây/lần
-  useEffect(() => {
-    const interval = setInterval(async () => {
-      if (!id) return;
-      const res = await fetch(`/api/orders/${id}/messages`);
-      if (res.ok) {
-        const data = await res.json();
-        // Chỉ update nếu có tin nhắn mới (so sánh độ dài)
-        setMessages(prev => {
-            if (data.messages.length !== prev.length) return data.messages;
-            return prev;
-        });
-      }
-    }, 3000);
-
-    return () => clearInterval(interval);
-  }, [id]);
-
-  // Auto scroll to bottom
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
-
-  const handleSendMessage = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (!newMessage.trim()) return;
-
-    setSending(true);
-    try {
-      const res = await fetch(`/api/orders/${id}/messages`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: newMessage }),
-      });
-      const data = await res.json();
-
-      if (res.ok) {
-        setMessages([...messages, data.message]);
-        setNewMessage('');
-      } else {
-        toast.error(data.error);
-      }
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setSending(false);
-    }
-  };
 
   const handlePayRemaining = async () => {
     if (!confirm('Xác nhận thanh toán phần còn thiếu?')) return;
@@ -261,14 +189,14 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
   const chatTitle = isBooster ? 'Trao đổi với Khách hàng' : t('chatTitle');
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-140px)] relative">
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 relative pb-20">
       {/* Left Column: Order Info */}
-      <div className="lg:col-span-1 space-y-6 overflow-y-auto pr-2">
+      <div className="lg:col-span-2 space-y-6">
         <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-bold text-white flex items-center gap-2">
               <Shield className="w-5 h-5 text-blue-500" />
-              {t('orderDetails')}
+              {t('orderDetails')} <span className="text-zinc-500 text-sm font-normal">#{order._id.slice(-6).toUpperCase()}</span>
             </h2>
             <button 
               onClick={() => setShowDetails(!showDetails)}
@@ -447,46 +375,12 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
         </div>
       </div>
 
-      {/* Right Column: Chat */}
-      <div className={`fixed bottom-0 right-4 w-80 lg:static lg:w-auto lg:col-span-2 flex flex-col bg-zinc-900 border border-zinc-800 rounded-t-xl lg:rounded-xl overflow-hidden transition-all duration-300 shadow-2xl z-50 ${isChatOpen ? 'h-[500px] lg:h-full' : 'h-12'}`}>
-        <div 
-            className="p-4 border-b border-zinc-800 bg-zinc-900 flex items-center justify-between cursor-pointer lg:cursor-default"
-            onClick={() => window.innerWidth < 1024 && setIsChatOpen(!isChatOpen)}
-        >
-          <div className="flex items-center gap-3">
-            <MessageSquare className="w-5 h-5 text-blue-500" />
-            <h3 className="font-bold text-white">{chatTitle}</h3>
-          </div>
-          <button onClick={(e) => { e.stopPropagation(); setIsChatOpen(!isChatOpen); }} className="text-zinc-400 hover:text-white lg:hidden">
-            {isChatOpen ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
-          </button>
-        </div>
-
-        {isChatOpen && (
-        <>
-            <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-zinc-950/50">
-            {messages.map((msg) => {
-                const isMe = msg.sender_id._id === currentUser?._id;
-                return (
-                <div key={msg._id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
-                    <div className={`px-4 py-2 rounded-2xl text-sm max-w-[80%] ${isMe ? 'bg-blue-600 text-white' : 'bg-zinc-800 text-zinc-200'}`}>
-                    {msg.content}
-                    </div>
-                </div>
-                );
-            })}
-            <div ref={messagesEndRef} />
-            </div>
-
-            <div className="p-4 bg-zinc-900 border-t border-zinc-800">
-          <form onSubmit={handleSendMessage} className="flex gap-2">
-            <input type="text" value={newMessage} onChange={(e) => setNewMessage(e.target.value)} placeholder={t('typeMessage')} className="flex-1 bg-zinc-950 border border-zinc-700 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-blue-500" />
-            <button type="submit" disabled={sending || !newMessage.trim()} className="bg-blue-600 hover:bg-blue-500 text-white p-2.5 rounded-lg">{sending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}</button>
-          </form>
-        </div>
-        </>
-        )}
-      </div>
+      {/* Floating Chat Window */}
+      <ChatWindow 
+        orderId={id} 
+        currentUser={currentUser} 
+        title={chatTitle} 
+      />
 
       {/* Complete Order Modal */}
       {isCompleteModalOpen && (

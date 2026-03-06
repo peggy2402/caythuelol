@@ -19,10 +19,12 @@ import {
   Briefcase,
   ListTodo,
   Zap,
-  Trophy
+  Trophy,
+  Bell
 } from 'lucide-react';
 import { useLanguage, Language } from '../lib/i18n';
 import { useRouter, usePathname } from 'next/navigation';
+import { socket } from '@/lib/socket';
 
 function LanguageSwitcher({
   language,
@@ -65,6 +67,22 @@ export default function Navbar() {
   const router = useRouter();
   const pathname = usePathname();
 
+  const fetchUserData = () => {
+    const token = localStorage.getItem('token');
+    if (token) {
+        fetch('/api/wallet', { headers: { Authorization: `Bearer ${token}` } })
+            .then(res => res.json())
+            .then(data => {
+                if (data.balance !== undefined) {
+                    const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+                    const updatedUser = { ...currentUser, wallet_balance: data.balance, pending_balance: data.pending };
+                    setUser(updatedUser);
+                    localStorage.setItem('user', JSON.stringify(updatedUser));
+                }
+            }).catch(() => {});
+    }
+  };
+
   useEffect(() => {
     const userData = localStorage.getItem('user');
     const token = localStorage.getItem('token');
@@ -80,6 +98,9 @@ export default function Navbar() {
                     setUnreadCount(data.unreadCount || 0);
                 });
         }
+        
+        // Fetch fresh balance on mount to fix 0đ issue
+        fetchUserData();
       } catch (e) {
         console.error("Failed to parse user data", e);
       }
@@ -90,8 +111,13 @@ export default function Navbar() {
         const updated = localStorage.getItem('user');
         if (updated) setUser(JSON.parse(updated));
     };
+    
     window.addEventListener('user-updated', handleUserUpdate);
-    return () => window.removeEventListener('user-updated', handleUserUpdate);
+    window.addEventListener('focus', fetchUserData); // Auto refresh khi quay lại tab
+    return () => {
+        window.removeEventListener('user-updated', handleUserUpdate);
+        window.removeEventListener('focus', fetchUserData);
+    };
   }, []);
 
   const handleReadNoti = async () => {

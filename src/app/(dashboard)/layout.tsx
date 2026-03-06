@@ -25,6 +25,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [isLangMenuOpen, setIsLangMenuOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [user, setUser] = useState<any>(null);
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [isNotiOpen, setIsNotiOpen] = useState(false);
   const pathname = usePathname();
   const { t, language, setLanguage } = useLanguage();
 
@@ -38,6 +41,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
     const userData = localStorage.getItem('user');
     if (userData) {
+      const token = localStorage.getItem('token');
       const parsedUser = JSON.parse(userData);
       setUser(parsedUser);
 
@@ -47,6 +51,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       // console.log('🔌 Layout Socket joining room:', parsedUser._id);
 
       const handleWalletUpdate = (data: { balance: number }) => {
+        console.log('💰 Socket Wallet Update:', data);
         // Hiệu ứng âm thanh tiền về (ting ting)
         // Chỉ phát ở Layout nếu KHÔNG PHẢI trang Wallet (vì trang Wallet đã tự xử lý phát âm thanh rồi)
         if (pathname !== '/wallet') {
@@ -57,15 +62,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           } catch (e) {}
         }
 
-        setUser((prev: any) => ({ ...prev, wallet_balance: data.balance }));
+        const newBalance = data.balance;
+        setUser((prev: any) => ({ ...prev, wallet_balance: newBalance }));
         
         // Cập nhật localStorage để đồng bộ dữ liệu mới nhất
         const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
-        currentUser.wallet_balance = data.balance;
+        currentUser.wallet_balance = newBalance;
         localStorage.setItem('user', JSON.stringify(currentUser));
         
         // Dispatch event for other components (like Navbar)
-        window.dispatchEvent(new Event('user-updated'));
+        window.dispatchEvent(new CustomEvent('user-updated'));
       };
 
       socket.on('wallet_update', handleWalletUpdate);
@@ -75,8 +81,27 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         socket.off('wallet_update', handleWalletUpdate);
         window.removeEventListener('user-updated', updateUserData);
       };
+
+      // Fetch notifications
+      if (token) {
+        fetch('/api/notifications', { headers: { Authorization: `Bearer ${token}` } })
+            .then(res => res.json())
+            .then(data => {
+                setNotifications(data.notifications || []);
+                setUnreadCount(data.unreadCount || 0);
+            })
+            .catch(err => console.error("Failed to fetch notifications", err));
+      }
     }
   }, []);
+
+  const handleReadNoti = async () => {
+    setIsNotiOpen(!isNotiOpen);
+    if (unreadCount > 0) {
+        await fetch('/api/notifications', { method: 'PATCH' });
+        setUnreadCount(0);
+    }
+  };
 
   // Danh sách tất cả các trang để hiển thị tiêu đề (Breadcrumb)
   const allNavItems = [
@@ -101,6 +126,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { href: '/admin/blogs', label: t('manageBlogs') },
     { href: '/admin/settings', label: t('systemSettings') },
     { href: '/admin/withdrawals', label: 'Quản lý Rút tiền' },
+    { href: '/admin/audit-logs', label: t('auditLogs') },
+    { href: '/admin/disputes', label: 'Quản lý Tranh chấp' },
   ];
 
   // Tìm item khớp với URL hiện tại (ưu tiên khớp chính xác hoặc khớp phần đầu)
@@ -183,10 +210,44 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               )}
             </div>
 
-            <button className="relative rounded-full p-2 text-zinc-400 transition-colors hover:bg-white/5 hover:text-white">
-              <Bell className="h-5 w-5" />
-              <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-red-500 ring-2 ring-zinc-950" />
-            </button>
+            <div className="relative">
+              <button 
+                onClick={handleReadNoti}
+                className="relative rounded-full p-2 text-zinc-400 transition-colors hover:bg-white/5 hover:text-white"
+              >
+                <Bell className="h-5 w-5" />
+                {unreadCount > 0 && (
+                  <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-red-500 ring-2 ring-zinc-950 animate-pulse" />
+                )}
+              </button>
+
+              {isNotiOpen && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setIsNotiOpen(false)} />
+                  <div className="absolute right-0 top-full mt-2 z-50 w-80 rounded-xl border border-white/10 bg-zinc-900 shadow-xl animate-in fade-in zoom-in-95 duration-200 overflow-hidden">
+                    <div className="p-3 border-b border-white/5 font-bold text-white text-sm">Thông báo</div>
+                    <div className="max-h-80 overflow-y-auto">
+                      {notifications.length === 0 ? (
+                        <div className="p-4 text-center text-zinc-500 text-xs">Không có thông báo mới</div>
+                      ) : (
+                        notifications.map((noti, idx) => (
+                          <Link 
+                            href={noti.link || '#'} 
+                            key={idx} 
+                            onClick={() => setIsNotiOpen(false)}
+                            className="block p-3 hover:bg-white/5 transition-colors border-b border-white/5 last:border-0"
+                          >
+                            <div className="text-sm font-bold text-white mb-1">{noti.title}</div>
+                            <div className="text-xs text-zinc-400 line-clamp-2">{noti.message}</div>
+                            <div className="text-[10px] text-zinc-600 mt-1">{new Date(noti.createdAt).toLocaleDateString()}</div>
+                          </Link>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
 
             <div className="h-8 w-[1px] bg-white/10" />
 
