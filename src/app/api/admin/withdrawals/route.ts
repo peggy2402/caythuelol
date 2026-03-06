@@ -19,7 +19,7 @@ export async function GET(req: Request) {
     if (status && status !== 'ALL') query.status = status;
 
     const withdrawals = await Withdrawal.find(query)
-      .populate('userId', 'username email')
+      .populate('userId', 'username email role wallet_balance pending_balance')
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
       .limit(limit);
