@@ -110,7 +110,7 @@ export default function LOLLayout({ children }: { children: React.ReactNode }) {
             <div className="flex items-center justify-between mb-6">
                 <h2 className="text-2xl font-bold text-white flex items-center gap-2">
                     <span className="flex items-center justify-center w-8 h-8 rounded-full bg-zinc-800 text-sm border border-white/10">2</span>
-                    Cấu hình dịch vụ
+                    Chọn dịch vụ
                 </h2>
             </div>
 
