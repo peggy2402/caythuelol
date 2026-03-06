@@ -1,70 +1,93 @@
 import { NextResponse } from 'next/server';
+import { auth } from '@/lib/auth';
 import dbConnect from '@/lib/db';
 import User from '@/models/User';
-import Transaction, { TransactionType, TransactionStatus } from '@/models/Transaction';
-import { jwtVerify } from 'jose';
-import { cookies } from 'next/headers';
+import Withdrawal from '@/models/Withdrawal';
+import Transaction from '@/models/Transaction';
+import SystemSetting from '@/models/SystemSetting';
 
-async function getUserId() {
-  const cookieStore = await cookies();
-  const token = cookieStore.get('token')?.value;
-  if (!token) return null;
-  try {
-    const secret = new TextEncoder().encode(process.env.JWT_SECRET);
-    const { payload } = await jwtVerify(token, secret);
-    return payload.userId as string;
-  } catch { return null; }
-}
+const MIN_WITHDRAW = 50000;
+const DAILY_LIMIT = 1000000;
 
 export async function POST(req: Request) {
   try {
+    const session = await auth();
+    if (!session || !session.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     await dbConnect();
-    const userId = await getUserId();
-    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    
+    // Fetch dynamic fee
+    const feeSetting = await SystemSetting.findOne({ key: 'withdraw_fee' });
+    const WITHDRAW_FEE = feeSetting ? Number(feeSetting.value) : 5000;
 
     const { amount } = await req.json();
+    const withdrawAmount = parseInt(amount);
 
-    // Validate
-    if (!amount || amount < 50000) {
-      return NextResponse.json({ error: 'Số tiền rút tối thiểu là 50,000 VNĐ' }, { status: 400 });
+    if (isNaN(withdrawAmount) || withdrawAmount < MIN_WITHDRAW) {
+      return NextResponse.json(
+        { error: `Số tiền rút tối thiểu là ${new Intl.NumberFormat('vi-VN').format(MIN_WITHDRAW)} đ` },
+        { status: 400 }
+      );
     }
 
-    const user = await User.findById(userId);
+    const user = await User.findById(session.user.id);
     if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 });
 
-    // Kiểm tra số dư
-    if (user.wallet_balance < amount) {
-      return NextResponse.json({ error: 'Số dư không đủ để thực hiện giao dịch' }, { status: 400 });
-    }
-
-    // Kiểm tra thông tin ngân hàng
     if (!user.profile?.bank_info?.accountNumber) {
-      return NextResponse.json({ error: 'Vui lòng cập nhật thông tin ngân hàng trước khi rút tiền' }, { status: 400 });
+      return NextResponse.json({ error: 'Vui lòng cập nhật thông tin ngân hàng trước' }, { status: 400 });
     }
 
-    // Trừ tiền user (Atomic)
-    const updatedUser = await User.findByIdAndUpdate(
-      userId,
-      { $inc: { wallet_balance: -amount } },
-      { new: true }
-    );
+    if (user.wallet_balance < withdrawAmount) {
+      return NextResponse.json({ error: 'Số dư không đủ' }, { status: 400 });
+    }
 
-    // Tạo giao dịch Rút tiền (PENDING)
-    const transaction = await Transaction.create({
-      userId,
-      type: TransactionType.WITHDRAWAL,
-      amount: amount, // Số tiền rút (dương, nhưng logic hiển thị sẽ là trừ)
-      balanceAfter: updatedUser.wallet_balance,
-      status: TransactionStatus.PENDING,
-      description: `Rút tiền về ${user.profile.bank_info.bankName} - ${user.profile.bank_info.accountNumber}`,
-      metadata: {
-        bank_info: user.profile.bank_info
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+    const withdrawalsToday = await Withdrawal.aggregate([
+      { $match: { userId: user._id, createdAt: { $gte: startOfDay } } },
+      { $group: { _id: null, total: { $sum: '$amount' } } }
+    ]);
+    const totalToday = withdrawalsToday[0]?.total || 0;
+    
+    if (totalToday + withdrawAmount > DAILY_LIMIT) {
+      return NextResponse.json({ error: 'Vượt quá hạn mức rút tiền trong ngày (1.000.000 đ)' }, { status: 400 });
+    }
+
+    const netAmount = withdrawAmount - WITHDRAW_FEE;
+
+    user.wallet_balance -= withdrawAmount;
+    await user.save();
+
+    const withdrawal = await Withdrawal.create({
+      userId: user._id,
+      amount: withdrawAmount,
+      fee: WITHDRAW_FEE,
+      netAmount: netAmount,
+      bankInfo: user.profile.bank_info,
+      status: 'PENDING'
+    });
+
+    await Transaction.create({
+      userId: user._id,
+      type: 'WITHDRAWAL',
+      amount: -withdrawAmount,
+      balanceAfter: user.wallet_balance,
+      status: 'PENDING',
+      description: `Rút tiền về ngân hàng #${withdrawal._id.toString().slice(-6)}`,
+      metadata: { 
+        withdrawalId: withdrawal._id,
+        bankInfo: user.profile.bank_info, // Lưu snapshot thông tin ngân hàng lúc rút
+        fee: WITHDRAW_FEE,
+        netAmount: netAmount,
+        requestAmount: withdrawAmount
       }
     });
 
-    return NextResponse.json({ success: true, newBalance: updatedUser.wallet_balance });
-  } catch (error) {
-    console.error('Withdraw Error:', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    return NextResponse.json({ success: true, withdrawal });
+  } catch (error: any) {
+    console.error('Withdraw error:', error);
+    return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
   }
 }

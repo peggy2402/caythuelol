@@ -97,6 +97,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { href: '/admin/transactions', label: t('manageTransactions') },
     { href: '/admin/blogs', label: t('manageBlogs') },
     { href: '/admin/settings', label: t('systemSettings') },
+    { href: '/admin/withdrawals', label: 'Quản lý Rút tiền' },
   ];
 
   // Tìm item khớp với URL hiện tại (ưu tiên khớp chính xác hoặc khớp phần đầu)

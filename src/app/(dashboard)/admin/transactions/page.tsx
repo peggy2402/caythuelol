@@ -298,6 +298,33 @@ export default function AdminTransactionsPage() {
                 </div>
               </div>
 
+              {/* Hiển thị thông tin Rút tiền (Nếu có trong metadata) */}
+              {selectedTx.type === 'WITHDRAWAL' && selectedTx.metadata?.bankInfo && (
+                <div className="space-y-3 p-4 bg-zinc-950 rounded-xl border border-zinc-800">
+                  <h4 className="text-sm font-bold text-blue-400 uppercase">Thông tin chuyển khoản</h4>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <div className="text-zinc-500">Ngân hàng</div>
+                      <div className="text-white font-medium">{selectedTx.metadata.bankInfo.bankName}</div>
+                    </div>
+                    <div>
+                      <div className="text-zinc-500">Số tài khoản</div>
+                      <div className="text-white font-medium">{selectedTx.metadata.bankInfo.accountNumber}</div>
+                    </div>
+                    <div>
+                      <div className="text-zinc-500">Chủ tài khoản</div>
+                      <div className="text-white font-medium uppercase">{selectedTx.metadata.bankInfo.accountHolder}</div>
+                    </div>
+                    <div>
+                      <div className="text-zinc-500">Thực nhận (Sau phí)</div>
+                      <div className="text-green-400 font-bold text-lg">{formatCurrency(selectedTx.metadata.netAmount || 0)}</div>
+                      <div className="text-xs text-zinc-500">Phí: {formatCurrency(selectedTx.metadata.fee || 0)}</div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Metadata Viewer (JSON từ SePay) */}
               <div className="space-y-2">
                 <div className="text-sm font-medium text-zinc-400">Dữ liệu gốc từ cổng thanh toán (Metadata)</div>

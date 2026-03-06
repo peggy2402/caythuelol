@@ -117,6 +117,7 @@ export default function Sidebar({ className = '', onLinkClick }: SidebarProps) {
             <NavItem href="/admin/transactions" icon={CreditCard} label={t('manageTransactions')} />
             <NavItem href="/admin/orders" icon={FileText} label={t('manageOrders')} />
             <NavItem href="/admin/blogs" icon={Newspaper} label={t('manageBlogs')} />
+            <NavItem href="/admin/withdrawals" icon={Wallet} label="Quản lý Rút tiền" />
             <NavItem href="/admin/settings" icon={Settings} label={t('systemSettings')} />
             <NavItem href="/admin/audit-logs" icon={ListTodo} label={t('auditLogs')} />
           </>

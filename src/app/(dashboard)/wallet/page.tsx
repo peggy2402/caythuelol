@@ -6,7 +6,7 @@ import { useLanguage } from '@/lib/i18n';
 import { toast } from 'sonner';
 import { socket } from '@/lib/socket';
 import confetti from 'canvas-confetti';
-import { Wallet, ArrowUpRight, ArrowDownLeft, History, CreditCard, Loader2, QrCode, Copy, Check, X, RefreshCw, XCircle, CheckCircle2, ShieldCheck, AlertCircle, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Wallet, ArrowUpRight, ArrowDownLeft, History, CreditCard, Loader2, QrCode, Copy, Check, X, RefreshCw, XCircle, CheckCircle2, ShieldCheck, AlertCircle, ChevronLeft, ChevronRight, Clock } from 'lucide-react';
 
 interface Transaction {
   _id: string;
@@ -15,6 +15,11 @@ interface Transaction {
   status: string;
   description: string;
   createdAt: string;
+  metadata?: {
+    fee?: number;
+    netAmount?: number;
+    [key: string]: any;
+  };
 }
 
 interface PaymentInfo {
@@ -29,6 +34,7 @@ export default function WalletPage() {
   const { t } = useLanguage();
   const router = useRouter();
   const [balance, setBalance] = useState(0);
+  const [pendingBalance, setPendingBalance] = useState(0);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [depositAmount, setDepositAmount] = useState('');
@@ -45,6 +51,7 @@ export default function WalletPage() {
   const [isFailed, setIsFailed] = useState(false);
   const [failReason, setFailReason] = useState('');
   const [withdrawAmount, setWithdrawAmount] = useState('');
+  const [withdrawFee, setWithdrawFee] = useState(5000);
   
   // State cho QR Code
   const [pendingTx, setPendingTx] = useState<{ qrUrl: string, info: PaymentInfo } | null>(null);
@@ -62,6 +69,7 @@ export default function WalletPage() {
       const data = await res.json();
       if (res.ok) {
         setBalance(data.balance);
+        setPendingBalance(data.pending_balance || 0);
         setTransactions(data.transactions);
         setBankConfig(data.bankInfo);
         setUserBankInfo(data.userBankInfo);
@@ -76,6 +84,14 @@ export default function WalletPage() {
       setLoading(false);
     }
   };
+
+  // Fetch Withdraw Fee
+  useEffect(() => {
+    fetch('/api/settings/withdraw-fee')
+      .then(res => res.json())
+      .then(data => setWithdrawFee(data.fee || 5000))
+      .catch(() => setWithdrawFee(5000));
+  }, []);
 
   useEffect(() => {
     fetchWalletData(1, limit);
@@ -114,6 +130,7 @@ export default function WalletPage() {
 
         // Cập nhật UI ngay lập tức (Force Update)
         setBalance(data.balance);
+        // Note: pending_balance might also need update via socket if implemented on backend
         
         if (isDepositModalOpen) {
           // Nếu đang mở modal nạp tiền -> Chuyển sang trạng thái thành công
@@ -285,6 +302,7 @@ export default function WalletPage() {
   // Xử lý xác nhận Rút tiền
   const handleConfirmWithdraw = async () => {
     const amount = parseInt(withdrawAmount.replace(/,/g, ''));
+    
     if (isNaN(amount) || amount < 50000) {
       toast.error('Số tiền rút tối thiểu là 50,000 VNĐ');
       return;
@@ -306,11 +324,16 @@ export default function WalletPage() {
         setIsWithdrawModalOpen(false);
         setWithdrawAmount('');
         fetchWalletData(1);
+        // Optional: Play success sound
       } else {
         toast.error(data.error || 'Lỗi rút tiền');
       }
     } catch (e) { toast.error('Lỗi kết nối'); }
   };
+
+  // Tính toán số tiền thực nhận cho Modal Rút tiền
+  const withdrawAmountNum = parseInt(withdrawAmount.replace(/,/g, '')) || 0;
+  const netReceived = Math.max(0, withdrawAmountNum - withdrawFee);
 
   // Xóa đoạn if (loading) return ... cũ để tránh layout shift
   // Thay vào đó ta dùng loading state để làm mờ bảng hoặc hiện skeleton
@@ -334,7 +357,14 @@ export default function WalletPage() {
             <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
               {formatCurrency(balance)}
             </h2>
-
+            
+            {pendingBalance > 0 && (
+              <div className="mb-6 flex items-center gap-2 text-yellow-500 bg-yellow-500/10 px-3 py-1.5 rounded-lg w-fit border border-yellow-500/20">
+                <Clock className="w-4 h-4" />
+                <span className="text-sm font-medium">Đang chờ duyệt/giữ: {formatCurrency(pendingBalance)}</span>
+              </div>
+            )}
+            
             <div className="flex gap-3">
               <button 
                 onClick={() => setIsDepositModalOpen(true)}
@@ -388,11 +418,18 @@ export default function WalletPage() {
                     <td className="px-6 py-4 text-zinc-400">
                       {new Date(tx.createdAt).toLocaleDateString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
                     </td>
-                    <td className="px-6 py-4 text-white font-medium">{tx.description}</td>
+                    <td className="px-6 py-4 text-white font-medium">
+                      {tx.description}
+                      {tx.type === 'WITHDRAWAL' && (
+                        <div className="text-xs text-zinc-500 mt-1">
+                          Thực nhận: <span className="text-zinc-300">{formatCurrency(Math.abs(tx.amount) - (tx.metadata?.fee || 0))}</span> • Phí: <span className="text-zinc-300">{formatCurrency(tx.metadata?.fee || 0)}</span>
+                        </div>
+                      )}
+                    </td>
                     <td className={`px-6 py-4 font-bold ${
-                      tx.type === 'DEPOSIT' || tx.type === 'PAYMENT_RELEASE' ? 'text-green-500' : 'text-red-500'
+                      tx.type === 'DEPOSIT' || tx.type === 'PAYMENT_RELEASE' || tx.type === 'REFUND' ? 'text-green-500' : 'text-red-500'
                     }`}>
-                      {tx.type === 'DEPOSIT' ? '+' : '-'}{formatCurrency(tx.amount)}
+                      {['DEPOSIT', 'PAYMENT_RELEASE', 'REFUND'].includes(tx.type) ? '+' : ''}{formatCurrency(tx.amount)}
                     </td>
                     <td className="px-6 py-4">
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
@@ -675,7 +712,16 @@ export default function WalletPage() {
                     Rút hết
                   </button>
                 </div>
-                <p className="text-xs text-zinc-500 mt-2">Số dư khả dụng: {formatCurrency(balance)}</p>
+                <div className="flex justify-between text-xs text-zinc-500 mt-2">
+                  <span>Số dư khả dụng: {formatCurrency(balance)}</span>
+                  <span>Phí rút: {formatCurrency(withdrawFee)}</span>
+                </div>
+                {withdrawAmountNum > 0 && (
+                  <div className="flex justify-between text-sm font-bold text-white mt-3 pt-3 border-t border-zinc-800">
+                    <span>Thực nhận về bank:</span>
+                    <span className="text-green-500">{formatCurrency(netReceived)}</span>
+                  </div>
+                )}
               </div>
 
               <button
