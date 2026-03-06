@@ -22,6 +22,7 @@ import {
   AlertTriangle
 } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n';
+import { logout } from '@/lib/logout';
 
 interface SidebarProps {
   className?: string;
@@ -128,11 +129,7 @@ export default function Sidebar({ className = '', onLinkClick }: SidebarProps) {
 
       <div className="p-4 border-t border-white/5 space-y-1">
         <button
-          onClick={() => {
-            localStorage.removeItem('token');
-            localStorage.removeItem('user');
-            window.location.href = '/';
-          }}
+          onClick={() => { logout(); }}
           className="flex w-full items-center gap-3 px-4 py-3 rounded-xl text-red-400 hover:bg-red-500/10 transition-all duration-200 group"
         >
           <LogOut className="w-5 h-5" />

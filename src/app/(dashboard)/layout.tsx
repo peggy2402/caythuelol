@@ -30,7 +30,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [isNotiOpen, setIsNotiOpen] = useState(false);
   const pathname = usePathname();
   const { t, language, setLanguage } = useLanguage();
-
+  
   useEffect(() => {
     const updateUserData = () => {
       const userData = localStorage.getItem('user');

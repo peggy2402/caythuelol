@@ -103,7 +103,8 @@ export default function ChatInput({ onSend, disabled, onTyping, replyingTo, onCa
         toast.error('Số tiền tip tối thiểu 10,000đ');
         return;
     }
-    await onSend(`/tip @booster ${amount}`, 'COMMAND_RESULT', { amount });
+    // FIX: Backend chỉ parse "/tip amount", không cần @booster
+    await onSend(`/tip ${amount}`, 'TEXT');
     setShowTipModal(false);
     setTipAmount('');
   };
@@ -210,7 +211,7 @@ export default function ChatInput({ onSend, disabled, onTyping, replyingTo, onCa
                         value={tipAmount}
                         onChange={(e) => setTipAmount(e.target.value)}
                         placeholder="Nhập số tiền (VD: 50000)"
-                        className="w-full bg-zinc-950 border border-zinc-700 rounded-lg pl-3 pr-10 py-2 text-white text-sm focus:border-yellow-500 outline-none"
+                        className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white outline-none focus:border-yellow-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                         autoFocus
                     />
                     <span className="absolute right-3 top-2 text-xs text-zinc-500 font-bold">VNĐ</span>

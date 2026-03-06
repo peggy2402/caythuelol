@@ -12,6 +12,7 @@ export interface IMessage extends Document {
     userId: mongoose.Types.ObjectId;
   }[];
   replyTo?: mongoose.Types.ObjectId; // ID tin nhắn được reply
+  readBy?: mongoose.Types.ObjectId[]; // Danh sách người đã xem
   created_at: Date;
 }
 
@@ -27,7 +28,8 @@ const MessageSchema = new Schema<IMessage>(
       emoji: String,
       userId: { type: Schema.Types.ObjectId, ref: 'User' }
     }],
-    replyTo: { type: Schema.Types.ObjectId, ref: 'Message' }
+    replyTo: { type: Schema.Types.ObjectId, ref: 'Message' },
+    readBy: [{ type: Schema.Types.ObjectId, ref: 'User' }]
   },
   { timestamps: { createdAt: 'created_at', updatedAt: false } }
 );

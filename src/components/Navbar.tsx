@@ -25,6 +25,7 @@ import {
 import { useLanguage, Language } from '../lib/i18n';
 import { useRouter, usePathname } from 'next/navigation';
 import { socket } from '@/lib/socket';
+import { logout } from '@/lib/logout';
 
 function LanguageSwitcher({
   language,
@@ -136,12 +137,12 @@ export default function Navbar() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    setUser(null);
-    router.push('/');
-  };
+  // const handleLogout = () => {
+  //   localStorage.removeItem('token');
+  //   localStorage.removeItem('user');
+  //   setUser(null);
+  //   router.push('/');
+  // };
 
   const closeMobileMenu = () => setIsMobileMenuOpen(false);
 
@@ -334,7 +335,7 @@ export default function Navbar() {
                   <div className="border-t border-white/10 my-1" />
 
                   <button
-                    onClick={handleLogout}
+                    onClick={() => { logout(); }}
                     className="flex w-full items-center gap-3 px-3 py-2 rounded-lg text-red-400 hover:bg-red-500/10"
                   >
                     <LogOut className="h-4 w-4" />
@@ -466,7 +467,7 @@ export default function Navbar() {
               <div className="mt-6 pt-6 border-t border-white/10 space-y-3">
                 <Link href="/dashboard" onClick={closeMobileMenu} className="block w-full text-center rounded-lg bg-blue-600 px-6 py-3 text-white font-semibold">{t('rentNow')}</Link>
                 <Link href="/wallet" onClick={closeMobileMenu} className="block w-full text-center rounded-lg bg-emerald-600/20 border border-emerald-500/30 px-6 py-3 text-emerald-400 font-semibold">{t('depositNow')}</Link>
-                <button onClick={() => { handleLogout(); closeMobileMenu(); }} className="flex w-full items-center justify-center gap-3 rounded-lg py-3 text-red-400 hover:bg-red-500/10 transition-colors">
+                <button onClick={() => { logout(); closeMobileMenu(); }} className="flex w-full items-center justify-center gap-3 rounded-lg py-3 text-red-400 hover:bg-red-500/10 transition-colors">
                   <LogOut className="h-5 w-5" /> {t('logout')}
                 </button>
               </div>

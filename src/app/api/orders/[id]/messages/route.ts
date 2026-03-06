@@ -7,6 +7,7 @@ import { cookies } from 'next/headers';
 import User from '@/models/User';
 import Transaction, { TransactionType, TransactionStatus } from '@/models/Transaction';
 import mongoose from 'mongoose';
+import Notification from '@/models/Notification'; // Import Notification Model
 
 async function getAuthUser() {
   const cookieStore = await cookies();
@@ -97,7 +98,7 @@ export async function POST(
     let finalMetadata = metadata || {};
 
     if (content.startsWith('/')) {
-        const parts = content.trim().split(' ');
+        const parts = content.trim().split(/\s+/); // Fix: Dùng regex để handle nhiều khoảng trắng
         const cmd = parts[0].toLowerCase();
         const args = parts.slice(1);
 
@@ -105,7 +106,7 @@ export async function POST(
             // Format: /tip @username amount OR /tip amount (defaults to other party)
             // Simplified: /tip amount
             const amount = parseInt(args[0]?.replace(/,/g, ''));
-            if (isNaN(amount) || amount < 10000) {
+            if (isNaN(amount) || amount < 5000) {
                 return NextResponse.json({ error: 'Số tiền không hợp lệ (tối thiểu 10,000)' }, { status: 400 });
             }
 
@@ -137,7 +138,7 @@ export async function POST(
                     amount: -amount,
                     balanceAfter: sender.wallet_balance,
                     status: TransactionStatus.SUCCESS,
-                    description: `Tip cho đơn hàng #${orderId.slice(-6)}`,
+                    description: `Tip cho Customer có mã đơn hàng #${orderId.slice(-6)}`,
                 }], { session });
 
                 await Transaction.create([{
@@ -152,6 +153,29 @@ export async function POST(
 
                 await session.commitTransaction();
                 
+                // FIX: Trigger Socket cập nhật số dư ngay lập tức cho cả 2 bên
+                const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 'https://caythuelol-server-production.up.railway.app';
+                // Update Sender Balance
+                fetch(`${socketUrl}/trigger-payment`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      userId: userId,
+                      balance: sender.wallet_balance,
+                      message: `Đã tip ${amount.toLocaleString()}đ`
+                    })
+                }).catch(() => {});
+                // Update Receiver Balance
+                fetch(`${socketUrl}/trigger-payment`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      userId: receiverId,
+                      balance: receiver.wallet_balance,
+                      message: `Nhận tip ${amount.toLocaleString()}đ`
+                    })
+                }).catch(() => {});
+
                 finalType = 'COMMAND_RESULT';
                 finalContent = `💸 Đã gửi Tip: ${amount.toLocaleString()} đ`;
                 finalMetadata = { amount, currency: 'VND' };
@@ -198,6 +222,21 @@ export async function POST(
     await newMessage.populate('sender_id', 'username profile.avatar role')
     await newMessage.populate({ path: 'replyTo', select: 'content sender_id', strictPopulate: false });
 
+    // FIX: Tạo Notification cho người nhận (nếu không phải là tin nhắn hệ thống/command)
+    if (finalType !== 'COMMAND_RESULT') {
+        const receiverId = isCustomer ? orderObj.boosterId : orderObj.customerId;
+        // Chỉ tạo thông báo nếu có người nhận và người gửi không phải là người nhận (tránh tự thông báo)
+        if (receiverId && receiverId.toString() !== userId) {
+            await Notification.create({
+                userId: receiverId,
+                title: `Tin nhắn mới đơn hàng #${orderId.slice(-6)}`,
+                message: finalType === 'IMAGE' ? 'Đã gửi một hình ảnh' : finalContent.substring(0, 60),
+                type: 'ORDER_UPDATE',
+                link: `/orders/${orderId}`,
+            });
+        }
+    }
+
     return NextResponse.json({ success: true, message: newMessage });
   } catch (error) {
     console.error('Send Message Error:', error);
@@ -208,13 +247,19 @@ export async function POST(
 // DELETE: Xóa tin nhắn (chỉ người gửi mới được xóa)
 export async function DELETE(
   req: Request,
-  { params }: { params: Promise<{ id: string; messageId: string }> }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getAuthUser();
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const { messageId } = await params;
+    // FIX: File này là route collection (.../messages), params chỉ chứa 'id' (orderId).
+    // Để xóa message cụ thể, cần lấy messageId từ Query Param hoặc Body.
+    const { searchParams } = new URL(req.url);
+    const messageId = searchParams.get('messageId');
+
+    if (!messageId) return NextResponse.json({ error: 'Missing messageId' }, { status: 400 });
+
     await dbConnect();
     
     const message = await Message.findOne({ _id: messageId, sender_id: session.userId });

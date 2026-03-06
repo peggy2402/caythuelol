@@ -20,6 +20,9 @@ interface UserProfile {
     accountNumber: string;
     accountHolder: string;
   };
+  booster_info?: {
+    bio?: string;
+  };
 }
 
 interface Bank {
@@ -244,6 +247,7 @@ export default function ProfilePage() {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [avatarUrl, setAvatarUrl] = useState('');
+  const [bio, setBio] = useState('');
   
   // Bank Info states
   const [bankName, setBankName] = useState('');
@@ -271,6 +275,7 @@ export default function ProfilePage() {
       setUsername(parsedUser.username);
       setEmail(parsedUser.email);
       setAvatarUrl(parsedUser.profile.avatar || '');
+      setBio(parsedUser.profile.booster_info?.bio || '');
       
       if (parsedUser.profile.bank_info) {
         setBankName(parsedUser.profile.bank_info.bankName || '');
@@ -346,7 +351,11 @@ export default function ProfilePage() {
         const res = await fetch('/api/user/profile', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, avatar: avatarUrl }),
+            body: JSON.stringify({ 
+                username, 
+                avatar: avatarUrl,
+                booster_info: user.role === 'BOOSTER' ? { bio } : undefined 
+            }),
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error);
@@ -542,12 +551,34 @@ export default function ProfilePage() {
                   className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-2.5 text-white focus:border-blue-500 focus:ring-blue-500 transition-colors"
                 />
               </div>
+              {user.role === 'BOOSTER' && (
+                <div className="md:col-span-2">
+                    <label htmlFor="bio" className="block text-sm font-medium text-zinc-400 mb-2">Giới thiệu bản thân (Bio)</label>
+                    <textarea
+                    id="bio"
+                    value={bio}
+                    onChange={(e) => setBio(e.target.value)}
+                    className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-2.5 text-white focus:border-blue-500 focus:ring-blue-500 transition-colors min-h-[100px]"
+                    placeholder="Viết đôi lời về kinh nghiệm và kỹ năng của bạn..."
+                    />
+                </div>
+              )}
             </div>
             <div className="pt-2 flex justify-end">
               <button onClick={handleSaveChanges} disabled={isSavingProfile} className="flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-blue-500 transition-colors shadow-lg shadow-blue-500/20 disabled:opacity-50 disabled:cursor-not-allowed">
                 {isSavingProfile ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
                 {t('saveChanges')}
               </button>
+            </div>
+            
+            <div className="mt-4 pt-4 border-t border-white/5 text-xs text-zinc-500">
+                Tham gia ngày: <span className="text-zinc-300">
+                  {user.createdAt 
+                    ? new Date(user.createdAt).toLocaleDateString('vi-VN') 
+                    : user._id 
+                      ? new Date(parseInt(user._id.substring(0, 8), 16) * 1000).toLocaleDateString('vi-VN')
+                      : 'N/A'}
+                </span>
             </div>
           </div>
         </div>

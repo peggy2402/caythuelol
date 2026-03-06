@@ -2,21 +2,25 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
-import { format } from 'date-fns';
+import { formatDistanceToNow } from 'date-fns';
+import { vi } from 'date-fns/locale';
 import { User, Smile, Reply, Trash2 } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n';
+import { useRouter } from 'next/navigation';
 
 interface MessageProps {
   message: any;
   isMe: boolean;
+  isSequence?: boolean; // Prop mới: Có phải là tin nhắn liên tiếp không?
   onReact: (emoji: string) => void;
   onReply: () => void;
   onDelete?: () => void;
 }
 
-export default function MessageItem({ message, isMe, onReact, onReply, onDelete }: MessageProps) {
+export default function MessageItem({ message, isMe, isSequence = false, onReact, onReply, onDelete }: MessageProps) {
   const [showActions, setShowActions] = useState(false);
   const { t } = useLanguage();
+  const router = useRouter();
 
   const reactions = message.reactions || [];
   const groupedReactions = reactions.reduce((acc: any, r: any) => {
@@ -24,14 +28,29 @@ export default function MessageItem({ message, isMe, onReact, onReply, onDelete 
     return acc;
   }, {});
 
+  // Kiểm tra xem tin nhắn đã được xem chưa (bởi người khác)
+  // Logic: readBy chứa ít nhất 1 ID khác người gửi (là mình)
+  const isSeen = isMe && message.readBy && message.readBy.length > 0;
+
+  const handleViewProfile = () => {
+    if (message.sender_id?._id && message.sender_id.role === 'BOOSTER') {
+      router.push(`/boosters/${message.sender_id._id}`);
+    }
+  };
+
+  const timeAgo = message.created_at 
+    ? formatDistanceToNow(new Date(message.created_at), { addSuffix: true, locale: vi }) 
+    : '';
+
   return (
     <div
-      className={`group flex gap-3 mb-2 ${isMe ? 'flex-row-reverse' : 'flex-row'}`}
+      className={`group flex gap-3 ${isSequence ? 'mb-0.5' : 'mb-4'} ${isMe ? 'flex-row-reverse' : 'flex-row'}`}
     >
       {/* Avatar */}
-      <div className="flex-shrink-0 mt-1">
-        <div className="w-8 h-8 rounded-full overflow-hidden bg-zinc-800 border border-zinc-700">
-          {message.sender_id?.profile?.avatar ? (
+      <div className="flex-shrink-0 w-8 flex flex-col justify-end">
+        {!isSequence && (
+          <div onClick={handleViewProfile} className={`w-8 h-8 rounded-full overflow-hidden bg-zinc-800 border border-zinc-700 ${message.sender_id?.role === 'BOOSTER' ? 'cursor-pointer hover:ring-2 hover:ring-blue-500 transition-all' : ''}`}>
+            {message.sender_id?.profile?.avatar ? (
             <Image
               src={message.sender_id.profile.avatar}
               alt={message.sender_id.username}
@@ -39,22 +58,25 @@ export default function MessageItem({ message, isMe, onReact, onReply, onDelete 
               height={32}
               className="object-cover w-full h-full"
             />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center text-zinc-500">
-              <User size={16} />
-            </div>
-          )}
-        </div>
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-zinc-500">
+                <User size={16} />
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Content */}
       <div className={`flex flex-col max-w-[70%] ${isMe ? 'items-end' : 'items-start'}`}>
-        <div className="flex items-center gap-2 mb-1">
-          <span className="text-xs font-bold text-zinc-300">{message.sender_id?.username}</span>
-          <span className="text-[10px] text-zinc-500">
-            {format(new Date(message.created_at), 'HH:mm')}
-          </span>
-        </div>
+        {!isSequence && (
+          <div className="flex items-center gap-2 mb-1 px-1">
+            <span onClick={handleViewProfile} className={`text-xs font-bold text-zinc-400 ${message.sender_id?.role === 'BOOSTER' ? 'cursor-pointer hover:text-blue-400 hover:underline' : ''}`}>{message.sender_id?.username}</span>
+            <span className="text-[10px] text-zinc-600">
+              {timeAgo}
+            </span>
+          </div>
+        )}
 
         <div className="relative">
           {/* Reply Context */}
@@ -66,23 +88,25 @@ export default function MessageItem({ message, isMe, onReact, onReply, onDelete 
           )}
 
           {/* Message Bubble */}
-          <div className={`px-4 py-2 rounded-2xl text-sm break-all shadow-sm ${
-            message.type === 'COMMAND_RESULT'
+          <div className={`rounded-2xl text-sm break-all shadow-sm ${
+            message.type === 'IMAGE' 
+              ? 'bg-transparent p-0' // FIX: Không nền, không padding cho ảnh
+              : message.type === 'COMMAND_RESULT'
               ? 'bg-zinc-800 border border-zinc-700 text-zinc-200 font-mono whitespace-pre-wrap'
               : isMe
-                ? 'bg-blue-600 text-white rounded-tr-none'
-                : 'bg-zinc-800 text-zinc-200 rounded-tl-none border border-zinc-700'
-          }`}>
-            {message.type === 'IMAGE' ? (
-               <img 
-                 src={message.content} 
-                 alt="Image" 
-                 className="max-w-[240px] max-h-[300px] rounded-lg cursor-pointer hover:opacity-90 transition-opacity object-cover" 
-                 onClick={() => window.open(message.content, '_blank')} 
-               />
-            ) : (
-               message.content
-            )}
+                ? `bg-blue-600 text-white px-3 py-2 ${isSequence ? 'rounded-tr-md' : 'rounded-tr-none'}`
+                : `bg-zinc-800 text-zinc-200 border border-zinc-700 px-3 py-2 ${isSequence ? 'rounded-tl-md' : 'rounded-tl-none'}`
+          }`} title={timeAgo}>
+              {message.type === 'IMAGE' ? (
+                <img
+                  src={message.content}
+                  alt="Image"
+                  className="max-w-[260px] max-h-[320px] rounded-xl cursor-pointer hover:opacity-90 transition object-cover"
+                  onClick={() => window.open(message.content, '_blank')}
+                />
+              ) : (
+                message.content
+              )}
           </div>
 
           {/* Reactions Display */}
@@ -95,6 +119,11 @@ export default function MessageItem({ message, isMe, onReact, onReply, onDelete 
                 </div>
               ))}
             </div>
+          )}
+
+          {/* Seen Indicator */}
+          {isSeen && !isSequence && (
+            <div className="text-[10px] text-zinc-500 text-right mt-1 mr-1">Đã xem</div>
           )}
         </div>
 
