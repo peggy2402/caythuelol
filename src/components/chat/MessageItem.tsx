@@ -12,12 +12,14 @@ interface MessageProps {
   message: any;
   isMe: boolean;
   isSequence?: boolean; // Prop mới: Có phải là tin nhắn liên tiếp không?
+  searchTerm?: string; // Prop mới: Từ khóa tìm kiếm
+  isOnline?: boolean; // Prop mới: Trạng thái Online
   onReact: (emoji: string) => void;
   onReply: () => void;
   onDelete?: () => void;
 }
 
-export default function MessageItem({ message, isMe, isSequence = false, onReact, onReply, onDelete }: MessageProps) {
+export default function MessageItem({ message, isMe, isSequence = false, searchTerm = '', isOnline = false, onReact, onReply, onDelete }: MessageProps) {
   const [showActions, setShowActions] = useState(false);
   const { t } = useLanguage();
   const router = useRouter();
@@ -42,6 +44,16 @@ export default function MessageItem({ message, isMe, isSequence = false, onReact
     ? formatDistanceToNow(new Date(message.created_at), { addSuffix: true, locale: vi }) 
     : '';
 
+  // Hàm highlight từ khóa
+  const highlightText = (text: string, highlight: string) => {
+    if (!highlight.trim()) return text;
+    const regex = new RegExp(`(${highlight})`, 'gi');
+    const parts = text.split(regex);
+    return parts.map((part, i) => 
+      regex.test(part) ? <span key={i} className="bg-yellow-500/50 text-white font-bold rounded px-0.5">{part}</span> : part
+    );
+  };
+
   return (
     <div
       className={`group flex gap-3 ${isSequence ? 'mb-0.5' : 'mb-4'} ${isMe ? 'flex-row-reverse' : 'flex-row'}`}
@@ -49,7 +61,7 @@ export default function MessageItem({ message, isMe, isSequence = false, onReact
       {/* Avatar */}
       <div className="flex-shrink-0 w-8 flex flex-col justify-end">
         {!isSequence && (
-          <div onClick={handleViewProfile} className={`w-8 h-8 rounded-full overflow-hidden bg-zinc-800 border border-zinc-700 ${message.sender_id?.role === 'BOOSTER' ? 'cursor-pointer hover:ring-2 hover:ring-blue-500 transition-all' : ''}`}>
+          <div onClick={handleViewProfile} className={`relative w-8 h-8 rounded-full overflow-hidden bg-zinc-800 border border-zinc-700 ${message.sender_id?.role === 'BOOSTER' ? 'cursor-pointer hover:ring-2 hover:ring-blue-500 transition-all' : ''}`}>
             {message.sender_id?.profile?.avatar ? (
             <Image
               src={message.sender_id.profile.avatar}
@@ -63,6 +75,9 @@ export default function MessageItem({ message, isMe, isSequence = false, onReact
                 <User size={16} />
               </div>
             )}
+            
+            {/* Chấm xanh Online trên Avatar tin nhắn */}
+            {isOnline && <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 border-2 border-zinc-900 rounded-full"></div>}
           </div>
         )}
       </div>
@@ -105,7 +120,7 @@ export default function MessageItem({ message, isMe, isSequence = false, onReact
                   onClick={() => window.open(message.content, '_blank')}
                 />
               ) : (
-                message.content
+                highlightText(message.content, searchTerm)
               )}
           </div>
 

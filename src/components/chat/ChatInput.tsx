@@ -110,7 +110,7 @@ export default function ChatInput({ onSend, disabled, onTyping, replyingTo, onCa
   };
 
   return (
-    <div className="relative p-4 bg-zinc-900 border-t border-zinc-800">
+    <div className="relative p-4 bg-zinc-900 border-t border-zinc-800 rounded-b-3xl">
       {/* Reply Preview */}
       {replyingTo && (
         <div className="flex items-center justify-between bg-zinc-800/50 p-2 rounded-lg mb-2 border-l-2 border-blue-500">

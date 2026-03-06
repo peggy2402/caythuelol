@@ -17,6 +17,8 @@ interface OrderDetails {
     account_username: string;
     [key: string]: any;
   };
+  customerId?: any; // Thêm field
+  boosterId?: any;  // Thêm field
   pricing: {
     total_amount: number;
     deposit_amount?: number;
@@ -187,6 +189,10 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
 
   const isBooster = currentUser?.role === 'BOOSTER';
   const chatTitle = isBooster ? 'Trao đổi với Khách hàng' : t('chatTitle');
+  
+  // Xác định đối phương (Partner) để hiển thị trong ChatWindow
+  // Nếu mình là Booster -> Partner là Customer, và ngược lại
+  const partner = isBooster ? order.customerId : order.boosterId;
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 relative pb-20">
@@ -380,6 +386,7 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
         orderId={id} 
         currentUser={currentUser} 
         title={chatTitle} 
+        partner={partner} // Truyền thông tin người chat cùng
       />
 
       {/* Complete Order Modal */}

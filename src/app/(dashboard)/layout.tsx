@@ -47,8 +47,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
       // Socket: Lắng nghe thay đổi số dư toàn cục để cập nhật Header
       if (!socket.connected) socket.connect();
-      socket.emit('join_user_room', parsedUser._id);
-      // console.log('🔌 Layout Socket joining room:', parsedUser._id);
+      // Không cần emit join_user_room ở đây nữa vì ChatContext đã xử lý
 
       const handleWalletUpdate = (data: { balance: number }) => {
         console.log('💰 Socket Wallet Update:', data);

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, ReactNode, useCallback } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useCallback, useEffect } from 'react';
 import { socket } from '@/lib/socket';
 
 interface ChatContextType {
@@ -26,6 +26,41 @@ export function ChatProvider({ children }: { children: ReactNode }) {
       socket.disconnect();
     }
   }, []);
+
+  // FIX: Tự động kết nối khi vào trang nếu đã đăng nhập
+  useEffect(() => {
+      const token = localStorage.getItem('token');
+      if (token) {
+          connectSocket();
+      }
+
+      // FIX: Lắng nghe sự kiện connect để tự động định danh lại khi mạng rớt/kết nối lại
+      const joinUserRoom = () => {
+          const userStr = localStorage.getItem('user');
+          if (userStr) {
+              try {
+                  const user = JSON.parse(userStr);
+                  if (user._id) socket.emit('join_user_room', user._id);
+              } catch (e) {}
+          }
+      };
+
+      // Nếu đã kết nối rồi thì join luôn (tránh trường hợp F5 trang socket đã connected từ trước)
+      if (socket.connected) {
+          joinUserRoom();
+      }
+
+      socket.on('connect', joinUserRoom);
+
+      // Lắng nghe sự kiện đăng nhập thành công từ các component khác
+      const handleUserUpdate = () => connectSocket();
+      window.addEventListener('user-updated', handleUserUpdate);
+
+      return () => {
+          socket.off('connect', joinUserRoom);
+          window.removeEventListener('user-updated', handleUserUpdate);
+      };
+  }, [connectSocket]);
 
   const value = {
     hasNewMessage,

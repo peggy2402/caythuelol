@@ -1,18 +1,21 @@
-export function logout(disconnectSocket?: () => void) {
+import { socket } from '@/lib/socket';
+
+export function logout() {
   try {
-    // ngắt socket nếu có
-    if (disconnectSocket) {
-      disconnectSocket();
+    // 1. Ngắt kết nối socket ngay lập tức để Server biết user đã Offline
+    if (socket.connected) {
+      socket.disconnect();
     }
 
-    // clear local storage
+    // 2. Xóa dữ liệu local
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     localStorage.removeItem('chat_cache');
 
-    // redirect
+    // 3. Chuyển hướng về trang chủ
     window.location.href = '/';
   } catch (error) {
     console.error('Lỗi đăng xuất:', error);
+    window.location.href = '/';
   }
 }

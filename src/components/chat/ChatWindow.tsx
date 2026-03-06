@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { MessageSquare, X, Minimize2, Maximize2, Loader2, ArrowDown, UploadCloud, MessageCircle, Search } from 'lucide-react';
+import { MessageSquare, X, Minimize2, Maximize2, Loader2, ArrowDown, UploadCloud, MessageCircle, Search, User } from 'lucide-react';
+import Image from 'next/image';
 import { toast } from 'sonner';
 import MessageItem from './MessageItem';
 import ChatInput from './ChatInput';
@@ -13,9 +14,10 @@ interface ChatWindowProps {
   currentUser: any;
   title?: string;
   initialMessages?: any[];
+  partner?: any; // Thông tin người chat cùng
 }
 
-export default function ChatWindow({ orderId, currentUser, title, initialMessages = [] }: ChatWindowProps) {
+export default function ChatWindow({ orderId, currentUser, title, initialMessages = [], partner }: ChatWindowProps) {
   const [isOpen, setIsOpen] = useState(true);
   const [isMinimized, setIsMinimized] = useState(false);
   const [messages, setMessages] = useState<any[]>(initialMessages);
@@ -33,6 +35,7 @@ export default function ChatWindow({ orderId, currentUser, title, initialMessage
   const [isDraggingOver, setIsDraggingOver] = useState(false); // State cho hiệu ứng kéo thả
   const [isSearching, setIsSearching] = useState(false); // State bật/tắt tìm kiếm
   const [searchTerm, setSearchTerm] = useState(''); // Từ khóa tìm kiếm
+  const [isPartnerOnline, setIsPartnerOnline] = useState(false); // Trạng thái Online của đối phương
 
   // Ref để theo dõi trạng thái mở/đóng trong useEffect của socket mà không cần re-render
   const stateRef = useRef({ isOpen, isMinimized });
@@ -141,17 +144,35 @@ export default function ChatWindow({ orderId, currentUser, title, initialMessage
   useEffect(() => {
     // Socket Setup
     if (!socket.connected) socket.connect();
-    socket.emit('join_order_room', orderId);
+    
+    // FIX: Đưa logic join room và check online vào hàm để gọi lại khi socket reconnect
+    const onConnect = () => {
+        socket.emit('join_order_room', orderId);
+        if (partner?._id) socket.emit('check_online', partner._id);
+    };
+
+    // Gọi ngay nếu đã kết nối
+    if (socket.connected) {
+        onConnect();
+    }
+    
+    // Lắng nghe sự kiện connect để gọi lại khi mất kết nối và có lại
+    socket.on('connect', onConnect);
 
     const handleNewMessage = (msg: any) => {
         setMessages(prev => [...prev, msg]);
         
-        // Nếu đang đóng hoặc thu nhỏ -> Bật thông báo chưa đọc
-        if (!stateRef.current.isOpen || stateRef.current.isMinimized) {
-            setUnreadCount(prev => prev + 1); // FIX: Tăng số lượng tin nhắn chưa đọc
+        // Phát âm thanh nếu tin nhắn đến từ người khác (bất kể đang mở hay đóng chat)
+        const isMe = msg.sender_id?._id === currentUser?._id || msg.sender_id === currentUser?._id;
+        if (!isMe) {
             try {
                 new Audio('/sounds/message.mp3').play().catch(() => {});
             } catch (e) {}
+        }
+
+        // Nếu đang đóng hoặc thu nhỏ -> Bật thông báo chưa đọc
+        if (!stateRef.current.isOpen || stateRef.current.isMinimized) {
+            setUnreadCount(prev => prev + 1); // FIX: Tăng số lượng tin nhắn chưa đọc
         }
     };
 
@@ -174,9 +195,17 @@ export default function ChatWindow({ orderId, currentUser, title, initialMessage
         }
     };
 
+    // Lắng nghe sự kiện Online/Offline
+    const handleUserStatus = (data: { userId: string, status: 'online' | 'offline' }) => {
+        if (partner && data.userId === partner._id) {
+            setIsPartnerOnline(data.status === 'online');
+        }
+    };
+
     socket.on('new_message', handleNewMessage);
     socket.on('typing_status', handleTyping);
     socket.on('message_read', handleMessageRead);
+    socket.on('user_status', handleUserStatus); // Cần backend emit sự kiện này
 
     // FIX: Tách hàm fetch ra để gọi được ngay lập tức
     const fetchMessages = async () => {
@@ -215,6 +244,8 @@ export default function ChatWindow({ orderId, currentUser, title, initialMessage
         socket.off('new_message', handleNewMessage);
         socket.off('typing_status', handleTyping);
         socket.off('message_read', handleMessageRead);
+        socket.off('user_status', handleUserStatus);
+        socket.off('connect', onConnect);
     };
   }, [orderId, currentUser?._id]); // Bỏ isOpen khỏi dependency để socket luôn kết nối
 
@@ -355,12 +386,23 @@ export default function ChatWindow({ orderId, currentUser, title, initialMessage
       >
         <div className="flex items-center gap-3">
             <div className="relative">
-                <div className="w-2 h-2 bg-green-500 rounded-full absolute bottom-0 right-0 ring-2 ring-zinc-900"></div>
-                <MessageSquare className="w-5 h-5 text-blue-500" />
+                {/* Hiển thị Avatar Partner nếu có, ngược lại dùng icon mặc định */}
+                {partner?.profile?.avatar ? (
+                    <div className="w-8 h-8 rounded-full overflow-hidden border border-zinc-700">
+                        <Image src={partner.profile.avatar} alt={partner.username} width={32} height={32} className="object-cover w-full h-full" />
+                    </div>
+                ) : (
+                    <div className="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center border border-zinc-700">
+                        <User className="w-4 h-4 text-zinc-400" />
+                    </div>
+                )}
+                
+                {/* Chấm xanh Online */}
+                {isPartnerOnline && <div className="w-2.5 h-2.5 bg-green-500 rounded-full absolute bottom-0 right-0 ring-2 ring-zinc-900 animate-pulse"></div>}
             </div>
             <div>
-                <h3 className="font-bold text-white text-sm">{title || t('chatTitle')}</h3>
-                {!isMinimized && <p className="text-[10px] text-zinc-400">Đang hoạt động</p>}
+                <h3 className="font-bold text-white text-sm">{partner?.username || title || t('chatTitle')}</h3>
+                {!isMinimized && <p className="text-[10px] text-zinc-400">{isPartnerOnline ? 'Đang hoạt động' : 'Ngoại tuyến'}</p>}
             </div>
         </div>
         <div className="flex items-center gap-1">
@@ -401,6 +443,16 @@ export default function ChatWindow({ orderId, currentUser, title, initialMessage
       {/* Body */}
       {/* FIX: Wrap toàn bộ body (Messages + Input) trong 1 div flex có min-h-0 để tránh bị đẩy input ra ngoài */}
       <div className={`flex-1 flex flex-col min-h-0 bg-zinc-950/50 ${isMinimized ? 'hidden' : 'flex'}`}>
+            {/* CSS Animation cho hiệu ứng Typing mượt mà */}
+            <style jsx>{`
+                @keyframes typing {
+                    0%, 100% { transform: translateY(0); opacity: 0.5; }
+                    50% { transform: translateY(-4px); opacity: 1; }
+                }
+                .animate-typing {
+                    animation: typing 1.4s infinite ease-in-out both;
+                }
+            `}</style>
             <div 
                 ref={scrollViewportRef}
                 onScroll={handleScroll}
@@ -418,6 +470,8 @@ export default function ChatWindow({ orderId, currentUser, title, initialMessage
                         message={msg}
                         isMe={isMe}
                         isSequence={!!isSequence}
+                        isOnline={!isMe && isPartnerOnline} // Truyền trạng thái online xuống tin nhắn
+                        searchTerm={searchTerm} // Truyền từ khóa xuống để highlight
                         onReact={(emoji) => handleReact(msg._id, emoji)}
                         onReply={() => setReplyingTo(msg)}
                         onDelete={() => handleDelete(msg._id)}
@@ -429,11 +483,11 @@ export default function ChatWindow({ orderId, currentUser, title, initialMessage
                 )}
 
                 {isTyping && (
-                  <div className="flex items-center gap-2 ml-2 mb-2">
-                    <div className="flex space-x-1 bg-zinc-800 p-2 rounded-xl rounded-bl-none">
-                      <div className="w-1.5 h-1.5 bg-zinc-500 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
-                      <div className="w-1.5 h-1.5 bg-zinc-500 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
-                      <div className="w-1.5 h-1.5 bg-zinc-500 rounded-full animate-bounce"></div>
+                  <div className="flex items-center gap-2 ml-2 mb-2 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                    <div className="flex space-x-1.5 bg-zinc-800 p-3 rounded-2xl rounded-bl-none border border-zinc-700 items-center h-9">
+                      <div className="w-1.5 h-1.5 bg-zinc-400 rounded-full animate-typing [animation-delay:-0.32s]"></div>
+                      <div className="w-1.5 h-1.5 bg-zinc-400 rounded-full animate-typing [animation-delay:-0.16s]"></div>
+                      <div className="w-1.5 h-1.5 bg-zinc-400 rounded-full animate-typing"></div>
                     </div>
                     <span className="text-xs text-zinc-500 italic">Đang nhập...</span>
                   </div>
