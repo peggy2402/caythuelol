@@ -141,12 +141,13 @@ export default function PaymentSummary({
                     },
                     queueType
                 };
-                router.push(`/checkout?data=${encodeURIComponent(JSON.stringify(checkoutData))}`);
+                localStorage.setItem('pendingCheckout', JSON.stringify(checkoutData));
+                router.push('/checkout');
             }}
             disabled={!boosterId || !priceDetails || priceDetails.totalPrice <= 0}
             className="w-full py-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-lg shadow-lg shadow-blue-600/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
         >
-            {priceDetails && priceDetails.totalPrice > 0 ? 'Tiến hành thuê' : 'Vui lòng cấu hình'} <ArrowRight className="w-5 h-5" />
+            {priceDetails && priceDetails.totalPrice > 0 ? 'Bắt đầu thuê' : 'Vui lòng cấu hình'} <ArrowRight className="w-5 h-5" />
         </button>
         {!isValid && validationMessage && (
             <div className="text-center mt-2 text-xs text-red-400">

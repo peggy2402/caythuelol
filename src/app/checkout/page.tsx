@@ -1,42 +1,42 @@
 'use client';
 
 import { useState, useEffect, Suspense } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { Loader2, ShieldCheck, Wallet, ArrowRight, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 import Navbar from '@/components/Navbar';
 
 function CheckoutContent() {
-  const searchParams = useSearchParams();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [user, setUser] = useState<any>(null);
-
-  // Parse Data from URL (In real app, use Context or Zustand for complex objects)
-  // Here we assume params are passed as JSON string for simplicity in this demo
-  const dataParam = searchParams.get('data');
   const [orderData, setOrderData] = useState<any>(null);
 
   useEffect(() => {
     const userStr = localStorage.getItem('user');
     if (userStr) setUser(JSON.parse(userStr));
 
-    if (dataParam) {
-      try {
-        setOrderData(JSON.parse(decodeURIComponent(dataParam)));
-      } catch (e) {
-        toast.error('Dữ liệu đơn hàng không hợp lệ');
-        router.push('/services');
-      }
+    // Load data from localStorage instead of URL
+    const pendingData = localStorage.getItem('pendingCheckout');
+    if (pendingData) {
+      setOrderData(JSON.parse(pendingData));
+      // Optional: Clear data after loading to prevent reuse on refresh if desired
+      // localStorage.removeItem('pendingCheckout'); 
+    } else {
+      toast.error('Không tìm thấy thông tin đơn hàng');
+      router.push('/services');
     }
-  }, [dataParam, router]);
+  }, [router]);
 
   if (!orderData) return <div className="min-h-screen bg-zinc-950 pt-24 flex justify-center"><Loader2 className="animate-spin text-blue-500" /></div>;
 
-  const { pricing, serviceType, details, booster } = orderData;
+  const { pricing, serviceType, details, booster, options, queueType } = orderData;
   const depositAmount = pricing.deposit_amount || 0;
+  const totalAmount = pricing.total_amount || 0;
   const walletBalance = user?.wallet_balance || 0;
-  const isSufficient = walletBalance >= depositAmount;
+  const isDepositService = serviceType === 'NET_WINS';
+  const paymentAmount = isDepositService ? depositAmount : totalAmount;
+  const isSufficient = walletBalance >= paymentAmount;
 
   const handleConfirmPayment = async () => {
     if (!isSufficient) {
@@ -72,6 +72,103 @@ function CheckoutContent() {
     }
   };
 
+  const renderOrderDetails = () => {
+    switch (serviceType) {
+      case 'RANK_BOOST':
+        return (
+          <>
+            <div className="flex justify-between py-2 border-b border-zinc-800">
+              <span className="text-zinc-400">Rank hiện tại</span>
+              <span className="font-bold text-white">{details.current_rank}</span>
+            </div>
+            <div className="flex justify-between py-2 border-b border-zinc-800">
+              <span className="text-zinc-400">Rank mong muốn</span>
+              <span className="font-bold text-yellow-400">{details.desired_rank}</span>
+            </div>
+          </>
+        );
+      case 'NET_WINS':
+        return (
+          <>
+            <div className="flex justify-between py-2 border-b border-zinc-800">
+              <span className="text-zinc-400">Rank hiện tại</span>
+              <span className="font-bold text-white">{details.current_rank || details.rank} ({details.current_lp} LP)</span>
+            </div>
+            <div className="flex justify-between py-2 border-b border-zinc-800">
+              <span className="text-zinc-400">Mục tiêu</span>
+              <span className="font-bold text-yellow-400">
+                {details.calc_mode === 'BY_GAMES' ? `${details.num_games} Trận thắng` : `${details.target_lp} LP`}
+              </span>
+            </div>
+          </>
+        );
+      case 'PLACEMENTS':
+        return (
+          <>
+            <div className="flex justify-between py-2 border-b border-zinc-800">
+              <span className="text-zinc-400">Rank mùa trước</span>
+              <span className="font-bold text-white">{details.prev_rank}</span>
+            </div>
+            <div className="flex justify-between py-2 border-b border-zinc-800">
+              <span className="text-zinc-400">Số trận</span>
+              <span className="font-bold text-yellow-400">{details.num_games} Trận</span>
+            </div>
+          </>
+        );
+      case 'LEVELING':
+        return (
+          <>
+            <div className="flex justify-between py-2 border-b border-zinc-800">
+              <span className="text-zinc-400">Level hiện tại</span>
+              <span className="font-bold text-white">{details.current_level}</span>
+            </div>
+            <div className="flex justify-between py-2 border-b border-zinc-800">
+              <span className="text-zinc-400">Level mong muốn</span>
+              <span className="font-bold text-yellow-400">{details.desired_level}</span>
+            </div>
+          </>
+        );
+       case 'MASTERY':
+        return (
+          <>
+            <div className="flex justify-between py-2 border-b border-zinc-800">
+              <span className="text-zinc-400">Tướng</span>
+              <span className="font-bold text-white">{details.champion}</span>
+            </div>
+            <div className="flex justify-between py-2 border-b border-zinc-800">
+              <span className="text-zinc-400">Mục tiêu</span>
+              <span className="font-bold text-yellow-400">Cấp {details.current_mastery} ➜ {details.desired_mastery}</span>
+            </div>
+          </>
+        );
+       case 'PROMOTION':
+        return (
+          <>
+            <div className="flex justify-between py-2 border-b border-zinc-800">
+              <span className="text-zinc-400">Chuỗi thăng hạng</span>
+              <span className="font-bold text-yellow-400">{details.promo_from} ➜ {details.promo_to}</span>
+            </div>
+          </>
+        );
+      default:
+        return (
+            <div className="flex justify-between py-2 border-b border-zinc-800">
+              <span className="text-zinc-400">Thông tin</span>
+              <span className="font-bold text-white">Chi tiết trong đơn hàng</span>
+            </div>
+        );
+    }
+  };
+
+  const OPTION_LABELS: Record<string, string> = {
+    express: 'Cày siêu tốc',
+    duo: 'Chơi cùng Booster',
+    streaming: 'Xem trực tiếp (Streaming)',
+    specificChamps: 'Chơi tướng chỉ định',
+    schedule: 'Đặt lịch cày',
+  };
+  const selectedOptions = Object.entries(options || {}).filter(([, value]) => value === true);
+
   return (
     <div className="min-h-screen bg-zinc-950 text-white font-sans pt-24 pb-20 px-4">
       <Navbar />
@@ -79,7 +176,7 @@ function CheckoutContent() {
       <div className="max-w-4xl mx-auto">
         <h1 className="text-3xl font-bold mb-8 flex items-center gap-3">
           <ShieldCheck className="text-green-500 w-8 h-8" />
-          Xác nhận thanh toán (Escrow)
+          Xác nhận thanh toán
         </h1>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -97,27 +194,54 @@ function CheckoutContent() {
                   <span className="text-zinc-400">Booster</span>
                   <span className="font-bold">{booster?.username || 'Ngẫu nhiên'}</span>
                 </div>
-                <div className="flex justify-between py-2 border-b border-zinc-800">
-                  <span className="text-zinc-400">Rank hiện tại</span>
-                  <span>{details.current_rank} ({details.current_lp} LP)</span>
-                </div>
-                <div className="flex justify-between py-2 border-b border-zinc-800">
-                  <span className="text-zinc-400">Mục tiêu</span>
-                  <span className="text-yellow-400 font-bold">
-                    {details.target_lp ? `${details.target_lp} LP` : `${details.num_games} Trận`}
-                  </span>
-                </div>
+                {renderOrderDetails()}
+                {queueType && serviceType !== 'LEVELING' && serviceType !== 'MASTERY' && (
+                  <div className="flex justify-between py-2 border-b border-zinc-800">
+                    <span className="text-zinc-400">Loại hàng chờ</span>
+                    <span className="font-bold">{['SOLO', 'SOLO_DUO'].includes(queueType) ? 'Đơn / Đôi' : 'Linh hoạt'}</span>
+                  </div>
+                )}
               </div>
             </div>
 
+            {/* Account Info */}
+            <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
+              <h2 className="text-xl font-bold mb-4 text-blue-400">Thông tin tài khoản</h2>
+              <div className="space-y-4 text-sm">
+                <div className="flex justify-between py-2 border-b border-zinc-800"><span className="text-zinc-400">Tài khoản</span><span className="font-mono">{details.account_username}</span></div>
+                <div className="flex justify-between py-2 border-b border-zinc-800"><span className="text-zinc-400">Mật khẩu</span><span>••••••••</span></div>
+                <div className="flex justify-between py-2 border-b border-zinc-800"><span className="text-zinc-400">Server</span><span className="font-bold">{details.server}</span></div>
+              </div>
+            </div>
+            {/* Options Info */}
+            <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
+              <h2 className="text-xl font-bold mb-4 text-blue-400">Tùy chọn thêm</h2>
+              {selectedOptions.length > 0 ? (
+                <div className="space-y-4 text-sm">
+                  {selectedOptions.map(([key]) => (
+                    <div key={key} className="flex justify-between items-center py-2 border-b border-zinc-800 last:border-b-0">
+                      <span className="text-zinc-300">{OPTION_LABELS[key] || key}</span>
+                      <CheckCircle2 className="w-5 h-5 text-green-500" />
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-zinc-500 text-sm text-center py-4">Không có tùy chọn thêm nào được chọn.</p>
+              )}
+            </div>
             <div className="bg-blue-900/10 border border-blue-500/20 rounded-2xl p-6">
               <h3 className="font-bold text-blue-400 mb-2 flex items-center gap-2">
                 <AlertCircle className="w-5 h-5" /> Quy trình thanh toán đảm bảo
               </h3>
               <ul className="list-disc list-inside text-sm text-zinc-400 space-y-1">
-                <li>Số tiền cọc sẽ được <strong>hệ thống giữ (Escrow)</strong>.</li>
+                <li>Số tiền sẽ được <strong>hệ thống giữ (Escrow)</strong> an toàn.</li>
                 <li>Booster chỉ nhận được tiền khi hoàn thành đơn hàng.</li>
-                <li>Nếu Booster hủy đơn, bạn sẽ được <strong>hoàn tiền 100%</strong>.</li>
+                {isDepositService ? (
+                    <li>Đây là dịch vụ <strong>Đặt cọc</strong>. Bạn sẽ thanh toán phần còn lại sau khi đơn hàng hoàn tất.</li>
+                ) : (
+                    <li>Bạn sẽ thanh toán <strong>100% giá trị đơn hàng</strong> ngay bây giờ.</li>
+                )}
+                <li>Nếu Booster hủy đơn hoặc không hoàn thành, bạn sẽ được <strong>hoàn tiền</strong>.</li>
               </ul>
             </div>
           </div>
@@ -132,8 +256,8 @@ function CheckoutContent() {
 
               <div className="border-t border-zinc-800 my-4 pt-4">
                 <div className="flex justify-between items-center mb-2">
-                  <span className="text-zinc-300">Tiền cọc cần thanh toán:</span>
-                  <span className="text-xl font-bold text-green-400">{depositAmount.toLocaleString()} đ</span>
+                  <span className="text-zinc-300">{isDepositService ? 'Tiền cọc cần thanh toán:' : 'Thanh toán ngay:'}</span>
+                  <span className="text-xl font-bold text-green-400">{paymentAmount.toLocaleString()} đ</span>
                 </div>
                 <div className="flex justify-between items-center text-xs text-zinc-500">
                   <span>Số dư ví:</span>
@@ -145,7 +269,7 @@ function CheckoutContent() {
 
               {!isSufficient && (
                 <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-xs text-red-400 text-center">
-                  Số dư không đủ. Vui lòng nạp thêm { (depositAmount - walletBalance).toLocaleString() } đ
+                  Số dư không đủ. Vui lòng nạp thêm { (paymentAmount - walletBalance).toLocaleString() } đ
                 </div>
               )}
 
@@ -156,7 +280,7 @@ function CheckoutContent() {
                   className="w-full py-3 bg-green-600 hover:bg-green-500 text-white font-bold rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg shadow-green-600/20"
                 >
                   {loading ? <Loader2 className="animate-spin" /> : <CheckCircle2 />}
-                  Xác nhận & Đặt cọc
+                  {isDepositService ? 'Xác nhận & Đặt cọc' : 'Thanh toán ngay'}
                 </button>
               ) : (
                 <button

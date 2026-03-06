@@ -420,6 +420,7 @@ function NetWinsContent() {
                         target_lp: targetLP,
                         num_games: wins,
                         calc_mode: calcMode,
+                        current_rank: RANKS.find(r => r.id === selectedRank)?.label, // Add this for checkout display
                         rank: selectedRank,
                         server: selectedServer,
                         account_username: gameUsername,

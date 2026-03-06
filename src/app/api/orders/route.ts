@@ -24,17 +24,17 @@ export async function GET(req: Request) {
     const role = payload.role;
 
     // Mặc định lấy đơn của Customer
-    let query: any = { customer_id: userId };
+    let query: any = { customerId: userId };
 
     // Nếu là Booster thì lấy đơn Booster nhận (Logic mở rộng sau này)
     if (role === 'BOOSTER') {
-      query = { booster_id: userId };
+      query = { boosterId: userId };
     }
 
     const orders = await Order.find(query)
-      .populate('customer_id', 'username profile.avatar')
-      .populate('booster_id', 'username profile.avatar') // Lấy thông tin Booster nếu có
-      .sort({ created_at: -1 });
+      .populate('customerId', 'username profile.avatar')
+      .populate('boosterId', 'username profile.avatar') // Lấy thông tin Booster nếu có
+      .sort({ createdAt: -1 });
 
     return NextResponse.json({ orders });
   } catch (error) {
@@ -102,15 +102,15 @@ export async function POST(req: Request) {
 
     // 3. Create Order
     const newOrder = new Order({
-      customer_id: customer_id,
-      service_type: serviceType,
+      customerId: customer_id,
+      serviceType: serviceType,
       status: OrderStatus.PAID, // Money is held, so status is PAID
       details: {
         ...details,
         server: details.server || 'VN',
       },
       options,
-      queue_type: queueType, // Save queue type
+      // queue_type: queueType, // Save queue type - Schema doesn't seem to have queue_type at top level, maybe inside details? Or missing in schema provided.
       pricing: {
         base_price: pricingResult.basePrice,
         option_fees: pricingResult.optionFees,
@@ -126,11 +126,11 @@ export async function POST(req: Request) {
     await user.save({ session });
 
     const transaction = new Transaction({
-      user_id: customer_id,
-      order_id: newOrder._id,
+      userId: customer_id,
+      orderId: newOrder._id,
       type: TransactionType.PAYMENT_HOLD,
       amount: -pricingResult.totalPrice,
-      balance_after: user.wallet_balance,
+      balanceAfter: user.wallet_balance,
       status: TransactionStatus.SUCCESS,
       description: `Payment Hold for Order #${newOrder._id}`,
     });

@@ -120,7 +120,7 @@ export default function OrdersPage() {
                   </div>
                   <div>
                     <h3 className="font-bold text-white text-lg group-hover:text-blue-400 transition-colors">
-                      {order.service_type}
+                      {order.serviceType}
                       <span className="ml-3 text-xs font-normal text-zinc-500 font-mono">#{order._id.slice(-6).toUpperCase()}</span>
                     </h3>
                     <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-zinc-400 mt-1">
@@ -130,7 +130,7 @@ export default function OrdersPage() {
                       <span className="w-1 h-1 rounded-full bg-zinc-700 self-center"></span>
                       <span>{order.details?.server}</span>
                       <span className="w-1 h-1 rounded-full bg-zinc-700 self-center"></span>
-                      <span>{new Date(order.created_at).toLocaleDateString('vi-VN')}</span>
+                      <span>{new Date(order.createdAt).toLocaleDateString('vi-VN')}</span>
                     </div>
                   </div>
                 </div>

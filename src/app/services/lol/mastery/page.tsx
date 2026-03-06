@@ -365,10 +365,16 @@ function MasteryContent() {
                 platformFee={platformFee}
                 isValid={!!selectedChampion && isAccountValid}
                 validationMessage={!isAccountValid && (gameUsername || gamePassword) ? "Vui lòng nhập đầy đủ thông tin tài khoản (tối thiểu 3 ký tự)." : undefined}
-                onPayment={() => {
-                    // Handle payment logic here
-                    toast.info('Tính năng thanh toán đang được phát triển');
+                serviceType="MASTERY"
+                details={{
+                    current_mastery: currentLevel,
+                    desired_mastery: desiredLevel,
+                    champion: selectedChampion?.name,
+                    server: selectedServer,
+                    account_username: gameUsername,
+                    account_password: gamePassword
                 }}
+                options={extraOptions}
             >
                 {/* Service Specific Breakdown Content */}
                 <>

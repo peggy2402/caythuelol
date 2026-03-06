@@ -268,10 +268,16 @@ function PlacementsContent() {
                     platformFee={platformFee}
                     isValid={isAccountValid}
                     validationMessage={!isAccountValid && (gameUsername || gamePassword) ? "Vui lòng nhập đầy đủ thông tin tài khoản (tối thiểu 3 ký tự)." : undefined}
-                    onPayment={() => {
-                        // Handle payment logic here
-                        toast.info('Tính năng thanh toán đang được phát triển');
+                    serviceType="PLACEMENTS"
+                    details={{
+                        prev_rank: PLACEMENT_RANKS.find(r => r.id === selectedRank)?.label,
+                        num_games: numGames,
+                        server: selectedServer,
+                        account_username: gameUsername,
+                        account_password: gamePassword
                     }}
+                    options={extraOptions}
+                    queueType={queueType}
                 >
                     {/* Service Specific Breakdown Content */}
                     <>

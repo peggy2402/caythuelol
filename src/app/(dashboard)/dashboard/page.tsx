@@ -18,12 +18,12 @@ import { useLanguage } from '@/lib/i18n';
 
 interface Order {
   _id: string;
-  service_type: string;
+  serviceType: string;
   status: string;
   pricing: {
     total_amount: number;
   };
-  created_at: string;
+  createdAt: string;
 }
 
 export default function DashboardPage() {
@@ -210,7 +210,7 @@ export default function DashboardPage() {
                 {orders.slice(0, 5).map((order) => (
                   <tr key={order._id} className="group transition-colors hover:bg-white/5">
                     <td className="px-6 py-4 font-medium text-white">#{order._id.slice(-6).toUpperCase()}</td>
-                    <td className="px-6 py-4 text-zinc-300">{t(order.service_type as any) || order.service_type}</td>
+                    <td className="px-6 py-4 text-zinc-300">{t(order.serviceType as any) || order.serviceType}</td>
                     <td className="px-6 py-4">
                       <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ${statusStyles[order.status]?.bg || 'bg-gray-500/10'}`}>
                         <span className={`h-1.5 w-1.5 rounded-full ${statusStyles[order.status]?.dot || 'bg-gray-400'}`} />
@@ -220,7 +220,7 @@ export default function DashboardPage() {
                     <td className="px-6 py-4 font-medium text-white">
                       {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(order.pricing.total_amount)}
                     </td>
-                    <td className="px-6 py-4 text-zinc-500">{new Date(order.created_at).toLocaleDateString(language.startsWith('vi') ? 'vi-VN' : language)}</td>
+                    <td className="px-6 py-4 text-zinc-500">{new Date(order.createdAt).toLocaleDateString(language.startsWith('vi') ? 'vi-VN' : language)}</td>
                     <td className="px-6 py-4 text-right">
                       <button className="rounded p-1 text-zinc-500 hover:bg-white/10 hover:text-white">
                         <MoreHorizontal className="h-4 w-4" />

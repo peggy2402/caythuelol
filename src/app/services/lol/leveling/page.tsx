@@ -235,10 +235,15 @@ function LevelingContent() {
                 platformFee={platformFee}
                 isValid={isAccountValid}
                 validationMessage={!isAccountValid && (gameUsername || gamePassword) ? "Vui lòng nhập đầy đủ thông tin tài khoản (tối thiểu 3 ký tự)." : undefined}
-                onPayment={() => {
-                    // Handle payment logic here
-                    toast.info('Tính năng thanh toán đang được phát triển');
+                serviceType="LEVELING"
+                details={{
+                    current_level: currentLevel,
+                    desired_level: desiredLevel,
+                    server: selectedServer,
+                    account_username: gameUsername,
+                    account_password: gamePassword
                 }}
+                options={extraOptions}
             >
                 {/* Service Specific Breakdown Content */}
                 <>

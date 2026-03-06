@@ -369,7 +369,17 @@ function RankBoostContent() {
             platformFee={platformFee}
             isValid={isAccountValid}
             validationMessage={!isAccountValid && (gameUsername || gamePassword) ? "Vui lòng nhập đầy đủ thông tin tài khoản." : undefined}
-            onPayment={() => toast.info('Tính năng thanh toán đang được phát triển')}
+            serviceType="RANK_BOOST"
+            details={{
+                current_rank: FLAT_TIERS.find(t => t.key === currentTier)?.label,
+                desired_rank: FLAT_TIERS.find(t => t.key === desiredTier)?.label,
+                lp_gain: lpGain,
+                server: selectedServer,
+                account_username: gameUsername,
+                account_password: gamePassword
+            }}
+            options={extraOptions}
+            queueType={queueType}
         >
             <div className="space-y-3">
                 <div className="flex justify-between text-sm">

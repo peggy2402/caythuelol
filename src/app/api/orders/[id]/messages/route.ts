@@ -36,8 +36,8 @@ export async function GET(
 
     const userId = user.userId as string;
     const orderObj = order as any; // Ép kiểu để tránh lỗi TS do lệch tên trường (customerId vs customer_id)
-    const isCustomer = orderObj.customer_id.toString() === userId;
-    const isBooster = orderObj.booster_id?.toString() === userId;
+    const isCustomer = orderObj.customerId.toString() === userId;
+    const isBooster = orderObj.boosterId?.toString() === userId;
     const isAdmin = user.role === 'ADMIN';
 
     if (!isCustomer && !isBooster && !isAdmin) {
@@ -79,8 +79,8 @@ export async function POST(
 
     const userId = user.userId as string;
     const orderObj = order as any; // Ép kiểu để tránh lỗi TS
-    const isCustomer = orderObj.customer_id.toString() === userId;
-    const isBooster = orderObj.booster_id?.toString() === userId;
+    const isCustomer = orderObj.customerId.toString() === userId;
+    const isBooster = orderObj.boosterId?.toString() === userId;
     const isAdmin = user.role === 'ADMIN';
 
     if (!isCustomer && !isBooster && !isAdmin) {
