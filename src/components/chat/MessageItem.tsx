@@ -1,10 +1,11 @@
 'use client';
 
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import Image from 'next/image';
 import { formatDistanceToNow } from 'date-fns';
 import { vi } from 'date-fns/locale';
-import { User, Smile, Reply, Trash2 } from 'lucide-react';
+import { User, Smile, Reply, Trash2, X } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n';
 import { useRouter } from 'next/navigation';
 
@@ -21,6 +22,7 @@ interface MessageProps {
 
 export default function MessageItem({ message, isMe, isSequence = false, searchTerm = '', isOnline = false, onReact, onReply, onDelete }: MessageProps) {
   const [showActions, setShowActions] = useState(false);
+  const [isZoomed, setIsZoomed] = useState(false); // State cho chế độ xem ảnh
   const { t } = useLanguage();
   const router = useRouter();
 
@@ -55,6 +57,7 @@ export default function MessageItem({ message, isMe, isSequence = false, searchT
   };
 
   return (
+    <>
     <div
       className={`group flex gap-3 ${isSequence ? 'mb-0.5' : 'mb-4'} ${isMe ? 'flex-row-reverse' : 'flex-row'}`}
     >
@@ -117,7 +120,7 @@ export default function MessageItem({ message, isMe, isSequence = false, searchT
                   src={message.content}
                   alt="Image"
                   className="max-w-[260px] max-h-[320px] rounded-xl cursor-pointer hover:opacity-90 transition object-cover"
-                  onClick={() => window.open(message.content, '_blank')}
+                  onClick={() => setIsZoomed(true)}
                 />
               ) : (
                 highlightText(message.content, searchTerm)
@@ -158,5 +161,28 @@ export default function MessageItem({ message, isMe, isSequence = false, searchT
         </div>
       </div>
     </div>
+
+    {/* Image Zoom Modal (Lightbox) */}
+    {isZoomed && createPortal(
+        <div 
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-sm p-4 animate-in fade-in duration-200"
+          onClick={() => setIsZoomed(false)}
+        >
+          <button 
+            onClick={() => setIsZoomed(false)}
+            className="absolute top-5 right-5 p-2 text-white/70 hover:text-white bg-white/10 hover:bg-white/20 rounded-full transition-colors"
+          >
+            <X size={24} />
+          </button>
+          <img 
+            src={message.content} 
+            alt="Full view" 
+            className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl animate-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()} 
+          />
+        </div>,
+        document.body
+      )}
+    </>
   );
 }
