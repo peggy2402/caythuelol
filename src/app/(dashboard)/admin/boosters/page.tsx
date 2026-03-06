@@ -198,7 +198,9 @@ function ActiveBoostersTab() {
         {loading ? (
           <div className="p-10 flex justify-center"><Loader2 className="animate-spin text-blue-500" /></div>
         ) : (
-          <div className="overflow-x-auto">
+          <>
+          {/* Desktop Table */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-sm text-left">
               <thead className="bg-zinc-900 text-zinc-400 uppercase text-xs font-bold">
                 <tr>
@@ -253,6 +255,57 @@ function ActiveBoostersTab() {
               </tbody>
             </table>
           </div>
+
+          {/* Mobile Card List */}
+          <div className="md:hidden">
+            {boosters.length === 0 ? (
+              <div className="p-8 text-center text-zinc-500">Không tìm thấy Booster nào.</div>
+            ) : (
+              boosters.map((booster) => (
+                <div key={booster._id} className="p-4 border-b border-zinc-800 last:border-0 space-y-3 hover:bg-zinc-800/30 transition-colors">
+                  <div className="flex justify-between items-start">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-zinc-800 overflow-hidden relative shrink-0">
+                          {booster.profile?.avatar ? (
+                            <Image src={booster.profile.avatar} alt={booster.username} fill className="object-cover" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-zinc-500"><UserIcon size={20} /></div>
+                          )}
+                        </div>
+                        <div>
+                          <div className="font-bold text-white">{booster.username}</div>
+                          <div className="text-xs text-zinc-500">{booster.email}</div>
+                        </div>
+                    </div>
+                    <button className="p-2 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-zinc-400 hover:text-white transition-colors">
+                      <MoreHorizontal size={16} />
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="bg-zinc-950 p-2 rounded border border-zinc-800 flex items-center justify-between">
+                      <span className="text-xs text-zinc-500">Đánh giá</span>
+                      <div className="flex items-center gap-1 text-yellow-500 font-bold text-xs">
+                        <Star size={12} fill="currentColor" /> {booster.booster_info?.rating?.toFixed(1) || 'N/A'}
+                      </div>
+                    </div>
+                    <div className="bg-zinc-950 p-2 rounded border border-zinc-800 flex items-center justify-between">
+                      <span className="text-xs text-zinc-500">Đơn xong</span>
+                      <div className="flex items-center gap-1 text-zinc-300 font-bold text-xs">
+                        <Trophy size={12} /> {booster.booster_info?.completed_orders || 0}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-between items-center pt-1">
+                     <span className="text-xs text-zinc-500">Tham gia: {booster.createdAt ? format(new Date(booster.createdAt), 'dd/MM/yyyy') : 'N/A'}</span>
+                     <span className="font-mono text-emerald-400 font-bold">{booster.wallet_balance?.toLocaleString()} đ</span>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+          </>
         )}
         
         {/* Pagination */}

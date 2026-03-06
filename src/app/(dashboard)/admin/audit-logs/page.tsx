@@ -54,7 +54,8 @@ export default function AuditLogsPage() {
       </div>
 
       <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
-        <div className="overflow-x-auto">
+        {/* Desktop Table */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead className="bg-zinc-950 text-zinc-400 uppercase text-xs">
               <tr>
@@ -98,6 +99,42 @@ export default function AuditLogsPage() {
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* Mobile Card List */}
+        <div className="md:hidden">
+          {loading ? (
+             <div className="p-8 text-center"><Loader2 className="w-6 h-6 animate-spin mx-auto text-blue-500"/></div>
+          ) : logs.length === 0 ? (
+             <div className="p-8 text-center text-zinc-500">Chưa có nhật ký nào.</div>
+          ) : (
+             logs.map((log) => (
+                <div key={log._id} className="p-4 border-b border-zinc-800 last:border-0 hover:bg-zinc-800/30 transition-colors space-y-3">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <div className="font-bold text-white text-sm">{log.actorId?.username || 'Unknown'}</div>
+                      <div className="text-xs text-zinc-500">{log.actorId?.email}</div>
+                    </div>
+                    <span className="inline-flex items-center px-2 py-1 rounded-full text-[10px] font-medium bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                      {log.action}
+                    </span>
+                  </div>
+
+                  <div className="bg-zinc-950 p-3 rounded-lg border border-zinc-800 text-xs space-y-2">
+                     <div className="text-zinc-300 break-words">{log.description}</div>
+                     <div className="flex items-center gap-2 text-zinc-500 font-mono pt-2 border-t border-zinc-800/50">
+                        <span className="uppercase text-[10px]">IP:</span> {log.ipAddress}
+                     </div>
+                  </div>
+
+                  <div className="flex justify-end">
+                     <span className="text-xs text-zinc-500 flex items-center gap-1">
+                       <Clock className="w-3 h-3" /> {new Date(log.createdAt).toLocaleString('vi-VN')}
+                     </span>
+                  </div>
+                </div>
+             ))
+          )}
         </div>
 
         {/* Pagination */}

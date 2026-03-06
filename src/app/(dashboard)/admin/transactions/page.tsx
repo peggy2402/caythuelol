@@ -166,8 +166,10 @@ export default function AdminTransactionsPage() {
 
       {/* Table */}
       <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
-        <div className={`overflow-x-auto transition-opacity duration-200 ${loading ? 'opacity-60 pointer-events-none' : 'opacity-100'}`}>
-          <table className="w-full text-left text-sm">
+        <div className={`transition-opacity duration-200 ${loading ? 'opacity-60 pointer-events-none' : 'opacity-100'}`}>
+          {/* Desktop Table */}
+          <div className="hidden md:block overflow-x-auto">
+            <table className="w-full text-left text-sm">
             <thead className="bg-zinc-950 text-zinc-400 uppercase text-xs">
               <tr>
                 <th className="px-6 py-4">User</th>
@@ -231,6 +233,66 @@ export default function AdminTransactionsPage() {
               )}
             </tbody>
           </table>
+          </div>
+
+          {/* Mobile Card List */}
+          <div className="md:hidden">
+            {loading && transactions.length === 0 ? (
+              [...Array(5)].map((_, i) => (
+                <div key={i} className="p-4 border-b border-zinc-800 animate-pulse">
+                  <div className="h-4 bg-zinc-800 rounded w-3/4 mb-2"></div>
+                  <div className="flex justify-between">
+                    <div className="h-3 bg-zinc-800 rounded w-1/3"></div>
+                    <div className="h-3 bg-zinc-800 rounded w-1/4"></div>
+                  </div>
+                </div>
+              ))
+            ) : transactions.length === 0 ? (
+              <div className="p-8 text-center text-zinc-500">Không tìm thấy giao dịch nào</div>
+            ) : (
+              transactions.map((tx) => (
+                <div key={tx._id} className="p-4 border-b border-zinc-800 last:border-0 hover:bg-zinc-800/30 transition-colors space-y-3">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <div className="font-bold text-white text-sm">{tx.userId?.username || 'Unknown'}</div>
+                      <div className="text-xs text-zinc-500">{tx.userId?.email}</div>
+                    </div>
+                    <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold ${
+                      tx.status === 'SUCCESS' ? 'bg-green-500/10 text-green-500' :
+                      tx.status === 'PENDING' ? 'bg-yellow-500/10 text-yellow-500' :
+                      'bg-red-500/10 text-red-500'
+                    }`}>
+                      {tx.status}
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between items-center bg-zinc-950 p-3 rounded-lg border border-zinc-800">
+                     <div className="flex-1 mr-2 overflow-hidden">
+                        <div className="text-xs font-bold text-zinc-300 mb-0.5">{tx.type}</div>
+                        <div className="text-xs text-zinc-500 truncate" title={tx.description}>
+                          {tx.metadata?.content || tx.description}
+                        </div>
+                     </div>
+                     <div className={`text-sm font-bold whitespace-nowrap ${
+                        ['DEPOSIT', 'PAYMENT_RELEASE', 'REFUND'].includes(tx.type) ? 'text-green-500' : 'text-red-500'
+                      }`}>
+                        {['DEPOSIT', 'PAYMENT_RELEASE', 'REFUND'].includes(tx.type) ? '+' : ''}{formatCurrency(tx.amount)}
+                     </div>
+                  </div>
+
+                  <div className="flex justify-between items-center pt-1">
+                    <span className="text-xs text-zinc-500">{new Date(tx.createdAt).toLocaleString('vi-VN')}</span>
+                    <button 
+                      onClick={() => setSelectedTx(tx)}
+                      className="flex items-center gap-1 px-3 py-1.5 bg-zinc-800 text-zinc-300 hover:bg-zinc-700 hover:text-white rounded-lg transition-colors text-xs font-medium"
+                    >
+                      <Eye className="w-3 h-3" /> Chi tiết
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
         </div>
       </div>
 

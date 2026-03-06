@@ -140,12 +140,12 @@ export default function AdminWithdrawalsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white">Yêu cầu Rút tiền</h1>
+          <h1 className="text-xl md:text-2xl font-bold text-white">Yêu cầu Rút tiền</h1>
           <p className="text-zinc-400 text-sm">Duyệt và xử lý các khoản thanh toán cho Booster/User</p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-3">
           <button 
             onClick={handleUpdateFee}
             className="flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-white rounded-lg transition-colors text-sm font-medium"
@@ -167,7 +167,9 @@ export default function AdminWithdrawalsPage() {
       </div>
 
       <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
-        <table className="w-full text-left text-sm">
+        {/* Desktop Table */}
+        <div className="hidden md:block overflow-x-auto">
+          <table className="w-full text-left text-sm">
           <thead className="bg-zinc-950 text-zinc-400 uppercase text-xs">
             <tr>
               <th className="px-6 py-4">User</th>
@@ -209,6 +211,62 @@ export default function AdminWithdrawalsPage() {
             )}
           </tbody>
         </table>
+        </div>
+
+        {/* Mobile Card List */}
+        <div className="md:hidden">
+            {loading ? (
+              <div className="p-8 text-center"><Loader2 className="w-6 h-6 animate-spin mx-auto text-blue-500"/></div>
+            ) : withdrawals.length === 0 ? (
+              <div className="p-8 text-center text-zinc-500">Không có yêu cầu nào</div>
+            ) : (
+              withdrawals.map((w) => (
+                <div key={w._id} className="p-4 border-b border-zinc-800 last:border-0 space-y-3 hover:bg-zinc-800/30 transition-colors">
+                  <div className="flex justify-between items-start">
+                    <div>
+                        <div className="font-bold text-white text-sm">
+                        {w.userId?.username} <span className="text-zinc-500 font-normal text-xs">- {w.userId?.role}</span>
+                        </div>
+                        <div className="text-xs text-zinc-500">{new Date(w.createdAt).toLocaleString('vi-VN')}</div>
+                    </div>
+                    <span className={`px-2 py-1 rounded-full text-[10px] font-bold ${w.status === 'PENDING' ? 'bg-yellow-500/10 text-yellow-500' : w.status === 'COMPLETED' ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>{w.status}</span>
+                  </div>
+
+                  <div className="bg-zinc-950 p-3 rounded-lg border border-zinc-800 text-xs space-y-1">
+                    <div className="flex justify-between"><span className="text-zinc-500">Ngân hàng:</span> <span className="text-white font-medium">{w.bankInfo.bankName}</span></div>
+                    <div className="flex justify-between"><span className="text-zinc-500">Số TK:</span> <span className="text-white font-mono">{w.bankInfo.accountNumber}</span></div>
+                    <div className="flex justify-between"><span className="text-zinc-500">Chủ TK:</span> <span className="text-white uppercase">{w.bankInfo.accountHolder}</span></div>
+                  </div>
+
+                  <div className="flex justify-between items-center bg-zinc-900/50 p-2 rounded-lg">
+                    <div className="text-xs text-zinc-500">
+                        <div>Gốc: {formatCurrency(w.amount)}</div>
+                        <div>Phí: {formatCurrency(w.fee)}</div>
+                    </div>
+                    <div className="text-right">
+                        <div className="text-[10px] text-zinc-400">Thực nhận</div>
+                        <div className="font-bold text-green-400 text-base">{formatCurrency(w.netAmount)}</div>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2 pt-1">
+                    <button 
+                      onClick={() => handleViewUserStats(w.userId)}
+                      className="flex-1 py-2 bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-white rounded-lg transition-colors flex items-center justify-center gap-2 text-xs font-medium"
+                    >
+                      <Eye className="w-3 h-3" /> Chi tiết
+                    </button>
+                    {w.status === 'PENDING' && (
+                        <>
+                            <button onClick={() => handleAction(w._id, 'APPROVE')} className="flex-1 py-2 bg-green-600/20 text-green-500 hover:bg-green-600 hover:text-white rounded-lg transition-colors flex items-center justify-center gap-2 text-xs font-medium"><CheckCircle2 className="w-3 h-3" /> Duyệt</button>
+                            <button onClick={() => handleAction(w._id, 'REJECT')} className="flex-1 py-2 bg-red-600/20 text-red-500 hover:bg-red-600 hover:text-white rounded-lg transition-colors flex items-center justify-center gap-2 text-xs font-medium"><XCircle className="w-3 h-3" /> Từ chối</button>
+                        </>
+                    )}
+                  </div>
+                </div>
+              ))
+            )}
+        </div>
 
         {/* Pagination Controls */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 border-t border-zinc-800 bg-zinc-900/50">
@@ -257,10 +315,19 @@ export default function AdminWithdrawalsPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
           <div className="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-2xl shadow-2xl animate-in zoom-in-95 duration-200">
             <div className="p-6 border-b border-zinc-800 flex justify-between items-center bg-zinc-950 rounded-t-2xl">
-              <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                <Wallet className="w-5 h-5 text-blue-500" />
-                Thông tin tài chính: <span className="text-blue-400">{selectedUser.username}</span>
-              </h3>
+              <div className="flex flex-col">
+                <div className="flex items-center gap-2 text-lg font-bold text-white">
+                  <Wallet className="w-5 h-5 text-blue-500" />
+                  Thông tin tài chính
+                </div>
+
+                <span className="text-blue-400 text-sm">
+                  Người dùng: {selectedUser.username} 
+                </span>
+                <span className="text-blue-400 text-sm">
+                  Vai trò: {selectedUser.role} 
+                </span>
+              </div>
               <button onClick={() => setSelectedUser(null)} className="text-zinc-400 hover:text-white transition-colors">
                 <XCircle className="w-6 h-6" />
               </button>
