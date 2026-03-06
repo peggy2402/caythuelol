@@ -25,6 +25,7 @@ export interface IOrder {
     option_fees: number;
     platform_fee: number;
     booster_earnings: number;
+    settlement_status?: 'PENDING' | 'CUSTOMER_OWES' | 'REFUND_NEEDED' | 'SETTLED';
   };
   payment: {
     is_locked: boolean; // Tiền đang bị khóa?
@@ -42,6 +43,17 @@ export interface IOrder {
     reason?: string; // Lý do nếu thua
     timestamp: Date;
   }>;
+  dispute?: {
+    reason: string;
+    evidence?: string; // URL ảnh/video
+    status: 'PENDING' | 'RESOLVED' | 'REJECTED';
+    adminNote?: string;
+  };
+  rating?: {
+    stars: number;
+    comment?: string;
+    createdAt: Date;
+  };
   createdAt: Date;
   updatedAt: Date;
 }
@@ -63,7 +75,8 @@ const OrderSchema = new Schema<IOrder>(
       base_price: Number,
       option_fees: Number,
       platform_fee: Number,
-      booster_earnings: Number
+      booster_earnings: Number,
+      settlement_status: { type: String, enum: ['PENDING', 'CUSTOMER_OWES', 'REFUND_NEEDED', 'SETTLED'], default: 'PENDING' }
     },
     payment: {
       is_locked: { type: Boolean, default: false },
@@ -80,6 +93,17 @@ const OrderSchema = new Schema<IOrder>(
       reason: String,
       timestamp: { type: Date, default: Date.now }
     }],
+    dispute: {
+      reason: String,
+      evidence: String,
+      status: { type: String, enum: ['PENDING', 'RESOLVED', 'REJECTED'], default: 'PENDING' },
+      adminNote: String
+    },
+    rating: {
+      stars: Number,
+      comment: String,
+      createdAt: Date
+    }
   },
   { timestamps: true }
 );

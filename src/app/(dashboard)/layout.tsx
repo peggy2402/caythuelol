@@ -63,6 +63,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
         currentUser.wallet_balance = data.balance;
         localStorage.setItem('user', JSON.stringify(currentUser));
+        
+        // Dispatch event for other components (like Navbar)
+        window.dispatchEvent(new Event('user-updated'));
       };
 
       socket.on('wallet_update', handleWalletUpdate);

@@ -57,6 +57,9 @@ export default function Navbar() {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [isNotiOpen, setIsNotiOpen] = useState(false);
 
   const { t, language, setLanguage } = useLanguage();
   const router = useRouter();
@@ -64,14 +67,40 @@ export default function Navbar() {
 
   useEffect(() => {
     const userData = localStorage.getItem('user');
+    const token = localStorage.getItem('token');
     if (userData) {
       try {
         setUser(JSON.parse(userData));
+        // Fetch notifications
+        if (token) {
+            fetch('/api/notifications', { headers: { Authorization: `Bearer ${token}` } })
+                .then(res => res.json())
+                .then(data => {
+                    setNotifications(data.notifications || []);
+                    setUnreadCount(data.unreadCount || 0);
+                });
+        }
       } catch (e) {
         console.error("Failed to parse user data", e);
       }
     }
+
+    // Listen for balance updates from other components
+    const handleUserUpdate = () => {
+        const updated = localStorage.getItem('user');
+        if (updated) setUser(JSON.parse(updated));
+    };
+    window.addEventListener('user-updated', handleUserUpdate);
+    return () => window.removeEventListener('user-updated', handleUserUpdate);
   }, []);
+
+  const handleReadNoti = async () => {
+    setIsNotiOpen(!isNotiOpen);
+    if (unreadCount > 0) {
+        await fetch('/api/notifications', { method: 'PATCH' });
+        setUnreadCount(0);
+    }
+  };
 
   useEffect(() => {
     const handleScroll = () => {
@@ -163,6 +192,37 @@ export default function Navbar() {
             language={language}
             setLanguage={setLanguage}
           />
+
+          {/* Notification Bell */}
+          {user && (
+            <div className="relative ml-4">
+                <button onClick={handleReadNoti} className="relative p-2 text-zinc-400 hover:text-white transition-colors">
+                    <Bell className="w-5 h-5" />
+                    {unreadCount > 0 && (
+                        <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
+                    )}
+                </button>
+                
+                {isNotiOpen && (
+                    <div className="absolute right-0 mt-3 w-80 bg-zinc-900 border border-zinc-800 rounded-xl shadow-2xl overflow-hidden z-50">
+                        <div className="p-3 border-b border-zinc-800 font-bold text-white text-sm">Thông báo</div>
+                        <div className="max-h-64 overflow-y-auto">
+                            {notifications.length === 0 ? (
+                                <div className="p-4 text-center text-zinc-500 text-xs">Không có thông báo mới</div>
+                            ) : (
+                                notifications.map((noti, idx) => (
+                                    <Link href={noti.link || '#'} key={idx} className="block p-3 hover:bg-zinc-800 transition-colors border-b border-zinc-800/50 last:border-0">
+                                        <div className="text-sm font-bold text-white mb-1">{noti.title}</div>
+                                        <div className="text-xs text-zinc-400 line-clamp-2">{noti.message}</div>
+                                        <div className="text-[10px] text-zinc-600 mt-1">{new Date(noti.createdAt).toLocaleDateString()}</div>
+                                    </Link>
+                                ))
+                            )}
+                        </div>
+                    </div>
+                )}
+            </div>
+          )}
 
           {user ? (
             <div className="relative ml-4" suppressHydrationWarning>

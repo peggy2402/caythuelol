@@ -476,87 +476,169 @@ export default function GeneralSettingsPage() {
           <div className="space-y-6">
             
             {/* Schedule Boosting */}
-            <div className={`p-5 rounded-xl border transition-all ${settings.options.schedule ? 'bg-blue-900/10 border-blue-500/30' : 'bg-zinc-950 border-zinc-800'}`}>
-              <div className="flex items-center justify-between mb-3">
+            <div
+              className={`p-4 rounded-xl border transition-all duration-300
+              ${
+                settings.options.schedule
+                  ? "bg-blue-900/10 border-blue-500/30"
+                  : "bg-zinc-950 border-zinc-800"
+              }`}
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between gap-3">
+
                 <div className="flex items-center gap-3">
-                  <div className={`p-2 rounded-lg ${settings.options.schedule ? 'bg-blue-500/20 text-blue-400' : 'bg-zinc-900 text-zinc-500'}`}>
+                  <div
+                    className={`p-2 rounded-lg transition-colors
+                    ${
+                      settings.options.schedule
+                        ? "bg-blue-500/20 text-blue-400"
+                        : "bg-zinc-900 text-zinc-500"
+                    }`}
+                  >
                     <Clock className="w-5 h-5" />
                   </div>
-                  <div>
-                    <div className="font-bold text-white">Đặt lịch cày</div>
-                    <div className="text-xs text-zinc-500">Cho phép khách chọn khung giờ chơi</div>
+
+                  <div className="leading-tight">
+                    <div className="font-semibold text-white text-sm">
+                      Đặt lịch cày
+                    </div>
+                    <div className="text-xs text-zinc-500">
+                      Cho phép khách chọn khung giờ chơi
+                    </div>
                   </div>
                 </div>
-                {/* Custom Toggle Switch */}
+
+                {/* Toggle */}
                 <button
-                    onClick={() => setSettings({...settings, options: {...settings.options, schedule: !settings.options.schedule}})}
-                    className={`relative w-11 h-6 rounded-full transition-colors duration-200 ease-in-out focus:outline-none ${
-                    settings.options.schedule ? 'bg-blue-600' : 'bg-zinc-700'
-                    }`}
+                  onClick={() =>
+                    setSettings({
+                      ...settings,
+                      options: {
+                        ...settings.options,
+                        schedule: !settings.options.schedule,
+                      },
+                    })
+                  }
+                  className={`relative w-11 h-6 rounded-full transition-colors duration-300
+                  ${
+                    settings.options.schedule
+                      ? "bg-blue-500"
+                      : "bg-zinc-700"
+                  }`}
                 >
-                    <span
-                    className={`absolute left-1 top-1 w-4 h-4 bg-white rounded-full transition-transform duration-200 ease-in-out ${
-                        settings.options.schedule ? 'translate-x-5' : 'translate-x-0'
+                  <span
+                    className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow-md transition-transform duration-300
+                    ${
+                      settings.options.schedule
+                        ? "translate-x-5"
+                        : ""
                     }`}
-                    />
+                  />
                 </button>
               </div>
 
-              {/* Schedule Fee Input */}
-              {settings.options.schedule && (
-                <div className="mb-4 animate-in fade-in slide-in-from-top-1">
-                    <label className="block text-sm font-bold text-zinc-400 mb-2">Phí đặt lịch (+%)</label>
-                    <div className="relative">
-                        <input 
-                            type="number" 
-                            value={settings.options.scheduleFee || 0} 
-                            onChange={(e) => setSettings({...settings, options: {...settings.options, scheduleFee: Number(e.target.value)}})} 
-                            className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white focus:border-blue-500 outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" 
-                        />
-                        <span className="absolute right-3 top-2 text-zinc-500 font-bold">%</span>
-                    </div>
-                    <p className="text-xs text-zinc-500 mt-1">Thu thêm phí khi khách yêu cầu tránh giờ chơi (Blackout).</p>
+              {/* Schedule Fee */}
+              <div
+                className={`overflow-hidden transition-all duration-300
+                ${
+                  settings.options.schedule
+                    ? "max-h-40 opacity-100 mt-4"
+                    : "max-h-0 opacity-0"
+                }`}
+              >
+                <label className="block text-sm font-semibold text-zinc-400 mb-2">
+                  Phí đặt lịch (+%)
+                </label>
+
+                <div className="relative">
+                  <input
+                    type="number"
+                    value={settings.options.scheduleFee || 0}
+                    onChange={(e) =>
+                      setSettings({
+                        ...settings,
+                        options: {
+                          ...settings.options,
+                          scheduleFee: Number(e.target.value),
+                        },
+                      })
+                    }
+                    className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white focus:border-blue-500 outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  />
+
+                  <span className="absolute right-3 top-2 text-zinc-500 font-semibold">
+                    %
+                  </span>
                 </div>
-              )}
-              
-              {/* Suggestion for Time Slots */}
-              {settings.options.schedule && (
-                  <div className="mt-3 pt-3 border-t border-white/5">
-                      <div className="flex items-start gap-2 text-xs text-blue-200/70">
-                          <Info className="w-4 h-4 shrink-0 mt-0.5" />
-                          <p>
-                              Tính năng <strong>Time Slots</strong> (Khung giờ rảnh) sẽ giúp bạn quản lý lịch trình tốt hơn. 
-                              <br/>
-                              <span className="opacity-60 italic">Hiện tại hệ thống sẽ hiển thị trạng thái "Đã kích hoạt" cho khách hàng và đang trong giai đoạn update.</span>
-                          </p>
-                      </div>
+
+                <p className="text-xs text-zinc-500 mt-1">
+                  Thu thêm phí khi khách yêu cầu tránh giờ chơi (Blackout).
+                </p>
+
+                {/* Info */}
+                <div className="mt-3 pt-3 border-t border-white/5">
+                  <div className="flex items-start gap-2 text-xs text-blue-200/70">
+                    <Info className="w-4 h-4 shrink-0 mt-0.5" />
+                    <p>
+                      Tính năng <strong>Time Slots</strong> (Khung giờ rảnh) sẽ giúp bạn
+                      quản lý lịch trình tốt hơn.
+                      <br />
+                      <span className="opacity-60 italic">
+                        Hiện tại hệ thống sẽ hiển thị trạng thái "Đã kích hoạt" cho
+                        khách hàng và đang trong giai đoạn update.
+                      </span>
+                    </p>
                   </div>
-              )}
+                </div>
+              </div>
             </div>
 
             {/* Roles Selection */}
-            <div className="p-5 bg-zinc-950 rounded-xl border border-zinc-800">
+            <div className="p-4 bg-zinc-950 rounded-2xl border border-zinc-800">
+              
+              {/* Header */}
               <div className="flex items-center gap-3 mb-4">
                 <div className="p-2 rounded-lg bg-red-500/10 text-red-500">
-                    <Crosshair className="w-5 h-5" />
+                  <Crosshair className="w-5 h-5" />
                 </div>
+
                 <div>
-                  <div className="font-bold text-white">Vị trí / Đường (Roles)</div>
-                  <div className="text-xs text-zinc-500">Chọn các vị trí bạn có thể chơi tốt</div>
+                  <div className="font-semibold text-white">
+                    Vị trí / Đường
+                  </div>
+                  <div className="text-xs text-zinc-500">
+                    Chọn lane bạn chơi tốt
+                  </div>
                 </div>
               </div>
-            
-              <div className="grid grid-cols-2 gap-3">
-                {AVAILABLE_LANES.map((lane) => (
-                    <label key={lane.id} className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all ${settings.options.roles.includes(lane.id) ? 'bg-zinc-900 border-zinc-600' : 'border-transparent hover:bg-zinc-900'}`}>
-                    <div className={`w-5 h-5 rounded border flex items-center justify-center transition-colors shrink-0 ${settings.options.roles.includes(lane.id) ? 'bg-blue-600 border-blue-600' : 'border-zinc-600 bg-zinc-950'}`}>
-                        {settings.options.roles.includes(lane.id) && <CheckCircle2 className="w-3.5 h-3.5 text-white" />}
-                    </div>
-                    <input type="checkbox" className="hidden" checked={settings.options.roles.includes(lane.id)} onChange={() => toggleRole(lane.id)} />
-                    <span className={`text-sm font-medium ${settings.options.roles.includes(lane.id) ? 'text-white' : 'text-zinc-400'}`}>{lane.label}</span>
-                    </label>
-                ))}
+
+              {/* Roles */}
+              <div className="grid grid-cols-2 gap-2">
+                {AVAILABLE_LANES.map((lane) => {
+                  const active = settings.options.roles.includes(lane.id);
+
+                  return (
+                    <button
+                      key={lane.id}
+                      onClick={() => toggleRole(lane.id)}
+                      className={`
+                        flex items-center justify-center
+                        px-3 py-3 rounded-xl
+                        text-sm font-medium
+                        border transition-all
+
+                        ${active
+                          ? "bg-blue-600/20 border-blue-500 text-blue-400"
+                          : "bg-zinc-900 border-zinc-800 text-zinc-400 hover:border-zinc-600 hover:text-white"}
+                      `}
+                    >
+                      {lane.label}
+                    </button>
+                  );
+                })}
               </div>
+
             </div>
           </div>
 

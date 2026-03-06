@@ -70,17 +70,35 @@ function LOLLayoutContent({ children }: { children: ReactNode }) {
         </div>
         
         {/* Actions - Giữ nguyên logic nhưng tối ưu hiển thị */}
-        <div className="flex gap-2 w-full md:w-auto">
+        <div className="flex gap-3 w-full md:w-auto">
           {hasDraft && (
-            <button onClick={handleRestoreDraft} className="btn-secondary flex-1 md:flex-none">
-              <History className="w-4 h-4" /> Khôi phục
+            <button
+              onClick={handleRestoreDraft}
+              className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-zinc-800 hover:bg-zinc-700 transition text-sm"
+            >
+              <History className="w-4 h-4" />
+              Khôi phục
             </button>
           )}
-          <button onClick={handleDiscardChanges} className="btn-secondary flex-1 md:flex-none">
-            <RotateCcw className="w-4 h-4" /> Hủy
+
+          <button
+            onClick={handleDiscardChanges}
+            className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-zinc-800 hover:bg-zinc-700 transition text-sm"
+          >
+            <RotateCcw className="w-4 h-4" />
+            Hủy
           </button>
-          <button onClick={handleSave} disabled={saving} className="btn-primary flex-1 md:flex-none">
-            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 transition text-sm font-medium"
+          >
+            {saving ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Save className="w-4 h-4" />
+            )}
             Lưu
           </button>
         </div>
