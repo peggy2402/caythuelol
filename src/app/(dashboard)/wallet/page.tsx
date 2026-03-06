@@ -395,8 +395,10 @@ export default function WalletPage() {
           </h3>
         </div>
         
-        <div className={`overflow-x-auto transition-opacity duration-200 ${loading ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
-          <table className="w-full text-left text-sm">
+        <div className={`transition-opacity duration-200 ${loading ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
+          {/* Desktop View: Table */}
+          <div className="hidden md:block overflow-x-auto">
+            <table className="w-full text-left text-sm">
             <thead className="bg-zinc-950 text-zinc-400 uppercase text-xs">
               <tr>
                 <th className="px-6 py-4 font-medium">{t('date')}</th>
@@ -459,6 +461,57 @@ export default function WalletPage() {
               )}
             </tbody>
           </table>
+          </div>
+
+          {/* Mobile View: Card List */}
+          <div className="md:hidden">
+            {loading && transactions.length === 0 ? (
+               // Skeleton Loading Mobile
+               [...Array(5)].map((_, i) => (
+                  <div key={i} className="p-4 border-b border-zinc-800 animate-pulse">
+                    <div className="h-4 bg-zinc-800 rounded w-3/4 mb-2"></div>
+                    <div className="flex justify-between">
+                      <div className="h-3 bg-zinc-800 rounded w-1/3"></div>
+                      <div className="h-3 bg-zinc-800 rounded w-1/4"></div>
+                    </div>
+                  </div>
+               ))
+            ) : transactions.length > 0 ? (
+              transactions.map((tx) => (
+                <div key={tx._id} className="p-4 border-b border-zinc-800 last:border-0 hover:bg-zinc-800/50 transition-colors">
+                  <div className="flex justify-between items-start gap-3">
+                    <div className="flex-1">
+                      <div className="text-sm font-bold text-white mb-1 break-words">{tx.description}</div>
+                      <div className="text-xs text-zinc-500 mb-1">
+                        {new Date(tx.createdAt).toLocaleDateString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                      </div>
+                      {tx.type === 'WITHDRAWAL' && (
+                        <div className="text-[10px] text-zinc-400 bg-zinc-950 border border-zinc-800 rounded px-2 py-1 inline-block">
+                          Thực nhận: <span className="text-zinc-200 font-medium">{formatCurrency(Math.abs(tx.amount) - (tx.metadata?.fee || 0))}</span>
+                        </div>
+                      )}
+                    </div>
+                    <div className="text-right shrink-0">
+                      <div className={`text-sm font-bold mb-1 ${
+                        ['DEPOSIT', 'PAYMENT_RELEASE', 'REFUND'].includes(tx.type) ? 'text-green-500' : 'text-red-500'
+                      }`}>
+                        {['DEPOSIT', 'PAYMENT_RELEASE', 'REFUND'].includes(tx.type) ? '+' : ''}{formatCurrency(tx.amount)}
+                      </div>
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium ${
+                        tx.status === 'SUCCESS' ? 'bg-green-500/10 text-green-500' :
+                        tx.status === 'PENDING' ? 'bg-yellow-500/10 text-yellow-500' :
+                        'bg-red-500/10 text-red-500'
+                      }`}>
+                        {tx.status}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="p-8 text-center text-zinc-500 text-sm">{t('noTransfer')}</div>
+            )}
+          </div>
         </div>
 
         {/* Pagination Controls */}
