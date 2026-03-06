@@ -115,8 +115,8 @@ const dictionaries = {
     contact: "Liên hệ",
 
     serviceList: {
-        boostRank: "Cày Rank",
-        placement: "Cày Thuê Placement",
+        boostRank: "Cày Rank/Elo",
+        placement: "Phân hạng đầu mùa",
         mastery: "Cày Thông Thạo",
         coaching: "Coaching 1-1",
     },

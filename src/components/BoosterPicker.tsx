@@ -17,11 +17,11 @@ interface Booster {
 }
 
 const SERVICE_OPTIONS = [
-  { value: 'RANK_BOOST', label: 'Cày Rank' },
-  { value: 'NET_WINS', label: 'Net Wins' },
-  { value: 'PLACEMENTS', label: 'Phân Hạng' },
-  { value: 'LEVELING', label: 'Cày Level' },
-  { value: 'MASTERY', label: 'Thông Thạo' },
+  { value: 'RANK_BOOST', label: 'Cày Rank/Elo' },
+  { value: 'NET_WINS', label: 'Cày Điểm Cao Thủ/Thách Đấu' },
+  { value: 'PLACEMENTS', label: 'Phân Hạng đầu mùa' },
+  { value: 'LEVELING', label: 'Cày Level 30' },
+  { value: 'MASTERY', label: 'Thông Thạo tướng' },
 ];
 
 export default function BoosterPicker() {
