@@ -121,8 +121,8 @@ export default function LevelingPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Calculator */}
-        <div className="bg-zinc-950 border border-zinc-800 rounded-xl overflow-hidden h-fit">
-          <div onClick={() => toggle('calc')} className="p-5 flex items-center justify-between cursor-pointer hover:bg-zinc-900/50 transition-colors">
+        <div className="bg-zinc-950 border border-zinc-800 rounded-xl h-fit">
+          <div onClick={() => toggle('calc')} className={`p-5 flex items-center justify-between cursor-pointer hover:bg-zinc-900/50 transition-colors ${expanded.calc ? 'rounded-t-xl' : 'rounded-xl'}`}>
             <h3 className="text-white font-bold flex items-center gap-2">
                 <Calculator className="w-5 h-5 text-blue-500" />
                 Mô phỏng đơn đặt (Khách hàng)
