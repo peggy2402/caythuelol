@@ -9,6 +9,7 @@ export enum OrderStatus {
   REJECTED = 'REJECTED',
   REFUNDED = 'REFUNDED',
   DISPUTED = 'DISPUTED',
+  CANCELLED = 'CANCELLED',
 }
 
 export interface IOrder {
@@ -18,10 +19,29 @@ export interface IOrder {
   status: OrderStatus;
   pricing: {
     total_amount: number;
+    deposit_amount: number; // Số tiền cọc
+    final_amount?: number; // Số tiền thực tế sau khi hoàn thành
     base_price: number;
     option_fees: number;
+    platform_fee: number;
+    booster_earnings: number;
+  };
+  payment: {
+    is_locked: boolean; // Tiền đang bị khóa?
+    deposit_paid: boolean;
+    final_paid: boolean;
   };
   details: any;
+  // Tracking cho Net Wins
+  match_history?: Array<{
+    match_id?: string;
+    mode: string;
+    champion: string;
+    result: 'WIN' | 'LOSS';
+    lp_change: number;
+    reason?: string; // Lý do nếu thua
+    timestamp: Date;
+  }>;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -38,10 +58,28 @@ const OrderSchema = new Schema<IOrder>(
     },
     pricing: {
       total_amount: { type: Number, required: true },
+      deposit_amount: { type: Number, required: true },
+      final_amount: Number,
       base_price: Number,
-      option_fees: Number
+      option_fees: Number,
+      platform_fee: Number,
+      booster_earnings: Number
+    },
+    payment: {
+      is_locked: { type: Boolean, default: false },
+      deposit_paid: { type: Boolean, default: false },
+      final_paid: { type: Boolean, default: false }
     },
     details: { type: Schema.Types.Mixed },
+    match_history: [{
+      match_id: String,
+      mode: String,
+      champion: String,
+      result: { type: String, enum: ['WIN', 'LOSS'] },
+      lp_change: Number,
+      reason: String,
+      timestamp: { type: Date, default: Date.now }
+    }],
   },
   { timestamps: true }
 );

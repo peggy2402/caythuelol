@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, use } from 'react';
 import { useLanguage } from '@/lib/i18n';
 import { toast } from 'sonner';
-import { Send, User, Shield, MapPin, Loader2, MessageSquare } from 'lucide-react';
+import { Send, User, Shield, MapPin, Loader2, MessageSquare, Swords, Trophy, XCircle } from 'lucide-react';
 
 interface Message {
   _id: string;
@@ -32,6 +32,15 @@ interface OrderDetails {
     total_amount: number;
   };
   created_at: string;
+  // New fields
+  match_history?: Array<{
+    match_id?: string;
+    mode: string;
+    champion: string;
+    result: 'WIN' | 'LOSS';
+    lp_change: number;
+    reason?: string;
+  }>;
 }
 
 export default function OrderDetailsPage({ params }: { params: Promise<{ id: string }> }) {
@@ -178,6 +187,53 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
               </span>
             </div>
           </div>
+        </div>
+
+        {/* Match History Tracking (New Feature) */}
+        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6">
+            <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                <Swords className="w-5 h-5 text-red-500" />
+                Tiến độ trận đấu
+            </h2>
+            
+            {order.match_history && order.match_history.length > 0 ? (
+                <div className="overflow-x-auto">
+                    <table className="w-full text-sm text-left">
+                        <thead className="text-xs text-zinc-500 uppercase bg-zinc-950/50">
+                            <tr>
+                                <th className="px-3 py-2">Tướng</th>
+                                <th className="px-3 py-2">Kết quả</th>
+                                <th className="px-3 py-2">LP</th>
+                                <th className="px-3 py-2">Ghi chú</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-zinc-800">
+                            {order.match_history.map((match, idx) => (
+                                <tr key={idx} className="hover:bg-zinc-800/30">
+                                    <td className="px-3 py-2 font-medium text-white">{match.champion}</td>
+                                    <td className="px-3 py-2">
+                                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                                            match.result === 'WIN' ? 'bg-blue-500/20 text-blue-400' : 'bg-red-500/20 text-red-400'
+                                        }`}>
+                                            {match.result}
+                                        </span>
+                                    </td>
+                                    <td className={`px-3 py-2 font-bold ${match.lp_change >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                                        {match.lp_change > 0 ? '+' : ''}{match.lp_change}
+                                    </td>
+                                    <td className="px-3 py-2 text-zinc-500 text-xs truncate max-w-[100px]" title={match.reason}>
+                                        {match.reason || '-'}
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            ) : (
+                <div className="text-center py-8 text-zinc-500 text-sm border border-dashed border-zinc-800 rounded-lg">
+                    Chưa có trận đấu nào được cập nhật.
+                </div>
+            )}
         </div>
       </div>
 

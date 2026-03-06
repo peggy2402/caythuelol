@@ -2,7 +2,9 @@
 'use client';
 
 import { useState } from 'react';
-import { Flame, ArrowRight, CheckCircle2 } from 'lucide-react';
+import { Flame, ArrowRight, CheckCircle2, ShieldAlert } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 
 interface PaymentSummaryProps {
   boosterConfig: any;
@@ -12,10 +14,16 @@ interface PaymentSummaryProps {
     totalPrice: number;
     optionDetails: { label: string; percent?: number; value: number }[];
     platformFeeValue: number;
+    depositAmount?: number;
+    depositPercent?: number;
   } | null;
   platformFee: number;
   isValid: boolean;
-  onPayment: () => void;
+  // Add props to pass data for checkout
+  serviceType?: string;
+  details?: any;
+  options?: any;
+  queueType?: string;
   children?: React.ReactNode; // Dùng để chèn thêm thông tin breakdown riêng của từng service (VD: Rank A -> Rank B)
   validationMessage?: string;
 }
@@ -26,10 +34,14 @@ export default function PaymentSummary({
   priceDetails,
   platformFee,
   isValid,
-  onPayment,
+  serviceType = 'NET_WINS',
+  details,
+  options,
+  queueType,
   children,
   validationMessage
 }: PaymentSummaryProps) {
+  const router = useRouter();
   const [agreedToTerms, setAgreedToTerms] = useState(false);
 
   return (
@@ -97,8 +109,41 @@ export default function PaymentSummary({
         </div>
 
         <button
-            onClick={onPayment}
-            disabled={!boosterId || !priceDetails || priceDetails.totalPrice <= 0 || !agreedToTerms || !isValid}
+            onClick={() => {
+                if (!boosterId) {
+                    toast.error('Vui lòng chọn một Booster.');
+                    return;
+                }
+                if (!priceDetails || priceDetails.totalPrice <= 0) {
+                    toast.error('Vui lòng cấu hình dịch vụ trước khi thanh toán.');
+                    return;
+                }
+                if (!isValid) {
+                    toast.error(validationMessage || 'Vui lòng kiểm tra lại thông tin đã nhập.');
+                    return;
+                }
+                if (!agreedToTerms) {
+                    toast.error('Bạn cần đồng ý với Điều khoản & Chính sách của chúng tôi.');
+                    return;
+                }
+
+                // If all checks pass, proceed to checkout
+                const checkoutData = {
+                    serviceType,
+                    booster: boosterConfig,
+                    details,
+                    options,
+                    pricing: {
+                        ...priceDetails,
+                        deposit_amount: priceDetails?.depositAmount,
+                        total_amount: priceDetails?.totalPrice,
+                        platform_fee: priceDetails?.platformFeeValue
+                    },
+                    queueType
+                };
+                router.push(`/checkout?data=${encodeURIComponent(JSON.stringify(checkoutData))}`);
+            }}
+            disabled={!boosterId || !priceDetails || priceDetails.totalPrice <= 0}
             className="w-full py-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-lg shadow-lg shadow-blue-600/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
         >
             {priceDetails && priceDetails.totalPrice > 0 ? 'Tiến hành thuê' : 'Vui lòng cấu hình'} <ArrowRight className="w-5 h-5" />

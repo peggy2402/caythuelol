@@ -414,10 +414,19 @@ function NetWinsContent() {
                                 ? "Điểm mong muốn phải lớn hơn điểm hiện tại." 
                                 : undefined
                     }
-                    onPayment={() => {
-                        // Handle payment logic here
-                        toast.info('Tính năng thanh toán đang được phát triển');
+                    serviceType="NET_WINS"
+                    details={{
+                        current_lp: currentLP,
+                        target_lp: targetLP,
+                        num_games: wins,
+                        calc_mode: calcMode,
+                        rank: selectedRank,
+                        server: selectedServer,
+                        account_username: gameUsername,
+                        account_password: gamePassword // Note: Should encrypt in real app before URL
                     }}
+                    options={extraOptions}
+                    queueType={queueType}
                 >
                     {/* Service Specific Breakdown Content */}
                     <>
