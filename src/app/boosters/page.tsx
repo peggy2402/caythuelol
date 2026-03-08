@@ -5,7 +5,6 @@ import { useLanguage } from '@/lib/i18n';
 import { Star, Trophy, User as UserIcon, Loader2, ShieldCheck, ChevronRight, Search, Filter, X, Heart } from 'lucide-react';
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';
-import { useSearchParams, useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 
 interface Booster {
@@ -33,8 +32,6 @@ const SERVICE_OPTIONS = [
 
 export default function BoostersPage() {
   const { t } = useLanguage();
-  const router = useRouter();
-  const searchParams = useSearchParams();
   
   const [boosters, setBoosters] = useState<Booster[]>([]);
   const [loading, setLoading] = useState(true);
