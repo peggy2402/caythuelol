@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import dbConnect from '@/lib/db';
-import Order, { OrderStatus } from '@/models/Order';
+import Order from '@/models/Order';
 
-export async function PATCH(
+export async function POST(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
@@ -14,24 +14,25 @@ export async function PATCH(
     }
 
     const { id } = await params;
-    const { status } = await req.json();
-
-    const ALLOWED_STATUSES = [OrderStatus.IN_PROGRESS, OrderStatus.COMPLETED];
-    if (!ALLOWED_STATUSES.includes(status)) {
-        return NextResponse.json({ error: 'Invalid status' }, { status: 400 });
-    }
-
+    const { mode, champion, result, lp_change, reason } = await req.json();
     await dbConnect();
 
     const order = await Order.findOne({ _id: id, boosterId: session.user.id });
-    if (!order) {
-      return NextResponse.json({ error: 'Order not found or unauthorized' }, { status: 404 });
-    }
+    if (!order) return NextResponse.json({ error: 'Order not found' }, { status: 404 });
 
-    order.status = status;
+    if (!order.match_history) order.match_history = [];
+    
+    order.match_history.push({
+        mode,
+        champion,
+        result,
+        lp_change: Number(lp_change),
+        reason,
+        timestamp: new Date()
+    });
     await order.save();
 
-    return NextResponse.json({ success: true, order });
+    return NextResponse.json({ success: true, match_history: order.match_history });
   } catch (error) {
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }

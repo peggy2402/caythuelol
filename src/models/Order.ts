@@ -31,8 +31,10 @@ export interface IOrder {
     is_locked: boolean; // Tiền đang bị khóa?
     deposit_paid: boolean;
     final_paid: boolean;
+    booster_received_pending?: boolean; // Booster đã nhận tiền vào ví chờ chưa?
   };
   details: any;
+  options?: any;
   // Tracking cho Net Wins
   match_history?: Array<{
     match_id?: string;
@@ -48,6 +50,7 @@ export interface IOrder {
     evidence?: string; // URL ảnh/video
     status: 'PENDING' | 'RESOLVED' | 'REJECTED';
     adminNote?: string;
+    fundsDeducted?: boolean;
   };
   rating?: {
     stars: number;
@@ -81,9 +84,11 @@ const OrderSchema = new Schema<IOrder>(
     payment: {
       is_locked: { type: Boolean, default: false },
       deposit_paid: { type: Boolean, default: false },
-      final_paid: { type: Boolean, default: false }
+      final_paid: { type: Boolean, default: false },
+      booster_received_pending: { type: Boolean, default: false }
     },
     details: { type: Schema.Types.Mixed },
+    options: { type: Schema.Types.Mixed },
     match_history: [{
       match_id: String,
       mode: String,
@@ -97,7 +102,8 @@ const OrderSchema = new Schema<IOrder>(
       reason: String,
       evidence: String,
       status: { type: String, enum: ['PENDING', 'RESOLVED', 'REJECTED'], default: 'PENDING' },
-      adminNote: String
+      adminNote: String,
+      fundsDeducted: { type: Boolean, default: false } // Đánh dấu đã trừ tiền Booster chưa
     },
     rating: {
       stars: Number,

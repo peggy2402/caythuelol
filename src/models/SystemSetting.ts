@@ -15,7 +15,6 @@ const SystemSettingSchema = new Schema<ISystemSetting>(
   { timestamps: true }
 );
 
-const SystemSetting: Model<ISystemSetting> =
-  mongoose.models.SystemSetting || mongoose.model<ISystemSetting>('SystemSetting', SystemSettingSchema);
+const SystemSetting: Model<ISystemSetting> = mongoose.models.SystemSetting || mongoose.model<ISystemSetting>('SystemSetting', SystemSettingSchema);
 
 export default SystemSetting;

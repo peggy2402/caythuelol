@@ -144,7 +144,8 @@ function LevelingContent() {
         totalPrice: Math.max(0, Math.round(total)),
         optionDetails,
         platformFeeValue,
-        levelsToGrind: desiredLevel - currentLevel
+        levelsToGrind: desiredLevel - currentLevel,
+        depositAmount: 0 // Fix type error
     };
   }, [boosterConfig, currentLevel, desiredLevel, extraOptions, platformFee]);
 

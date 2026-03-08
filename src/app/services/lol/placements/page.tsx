@@ -152,7 +152,8 @@ function PlacementsContent() {
         basePrice: base,
         totalPrice: Math.max(0, Math.round(total)),
         optionDetails,
-        platformFeeValue
+        platformFeeValue,
+        depositAmount: 0 // Fix type error
     };
   }, [boosterConfig, selectedRank, numGames, queueType, extraOptions, platformFee]);
 

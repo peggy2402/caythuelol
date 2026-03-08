@@ -246,7 +246,7 @@ function RankBoostContent() {
 
     // Options
     const boosterOptions = settings.options || {};
-    const optionDetails: any[] = [];
+    const optionDetails: { label: string; percent?: number; value: number }[] = [];
     let optionsTotalValue = 0;
 
     const addOption = (key: string, label: string) => {
@@ -281,7 +281,8 @@ function RankBoostContent() {
         lpModValue,
         optionDetails,
         platformFeeValue,
-        total: Math.max(0, Math.round(total))
+        total: Math.max(0, Math.round(total)),
+        depositAmount: 0 // Rank Boost thanh toán 100% nên cọc = 0 (hoặc xử lý logic khác nếu muốn)
     };
   }, [currentTier, desiredTier, lpGain, queueType, boosterConfig, platformFee, extraOptions]);
 
@@ -363,7 +364,8 @@ function RankBoostContent() {
                 basePrice: priceDetails.basePrice, 
                 totalPrice: priceDetails.total, 
                 optionDetails: priceDetails.optionDetails, 
-                platformFeeValue: priceDetails.platformFeeValue 
+                platformFeeValue: priceDetails.platformFeeValue,
+                depositAmount: priceDetails.depositAmount
             } : null}
             platformFee={platformFee}
             isValid={isAccountValid}

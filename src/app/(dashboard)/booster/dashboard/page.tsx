@@ -61,7 +61,7 @@ export default function BoosterDashboardPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <StatCard 
           title="Tổng Thu Nhập" 
-          value={`${stats.totalIncome.toLocaleString()} đ`} 
+          value={`${(stats.totalIncome || 0).toLocaleString()} đ`} 
           icon={Wallet} 
           color="text-emerald-400" 
           bg="bg-emerald-500/10" 

@@ -110,7 +110,7 @@ export function BoosterProfileView({ id }: { id: string }) {
               </div>
 
               <Link 
-                href={`/services/lol/rank-boost?booster=${identifier}`}
+                href={`/services?booster=${encodeURIComponent(identifier)}`}
                 className="block w-full py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl text-center shadow-lg shadow-blue-600/20 transition-all mb-4"
               >
                 {t('hireBooster')}

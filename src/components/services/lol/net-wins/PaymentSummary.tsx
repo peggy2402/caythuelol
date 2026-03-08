@@ -137,7 +137,8 @@ export default function PaymentSummary({
                         ...priceDetails,
                         deposit_amount: priceDetails?.depositAmount,
                         total_amount: priceDetails?.totalPrice,
-                        platform_fee: priceDetails?.platformFeeValue
+                        platform_fee: priceDetails?.platformFeeValue,
+                        booster_earnings: (priceDetails?.totalPrice || 0) - (priceDetails?.platformFeeValue || 0) // Fix: Calculate earnings
                     },
                     queueType
                 };

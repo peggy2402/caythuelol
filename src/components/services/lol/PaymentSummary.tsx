@@ -14,6 +14,7 @@ interface PaymentSummaryProps {
     totalPrice: number;
     optionDetails: { label: string; percent?: number; value: number }[];
     platformFeeValue: number;
+    depositAmount?: number; // Thêm trường này để tương thích với các trang dịch vụ
   } | null;
   platformFee: number;
   isValid: boolean;
@@ -133,9 +134,10 @@ export default function PaymentSummary({
                     options,
                     pricing: {
                         ...priceDetails,
-                        deposit_amount: priceDetails?.totalPrice, // For non-deposit services, deposit = total
+                        deposit_amount: priceDetails?.depositAmount || priceDetails?.totalPrice, // Fix: Use || to handle 0 as falsy
                         total_amount: priceDetails?.totalPrice,
-                        platform_fee: priceDetails?.platformFeeValue
+                        platform_fee: priceDetails?.platformFeeValue,
+                        booster_earnings: (priceDetails?.totalPrice || 0) - (priceDetails?.platformFeeValue || 0) // Fix: Calculate earnings
                     },
                     queueType
                 };

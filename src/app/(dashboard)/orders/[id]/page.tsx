@@ -1,474 +1,599 @@
+// src/app/(dashboard)/orders/[id]/page.tsx
 'use client';
 
 import { useState, useEffect, useRef, use } from 'react';
+import { useRouter } from 'next/navigation';
 import { useLanguage } from '@/lib/i18n';
+import { socket } from '@/lib/socket';
+import { 
+  Send, Loader2, CheckCircle2, AlertCircle, Clock, 
+  MessageSquare, User, Shield, DollarSign, CreditCard,
+  Play, CheckSquare, Lock, Plus, Smile, Flag, Swords, Trophy, History, Save
+} from 'lucide-react';
 import { toast } from 'sonner';
-import { Shield, Loader2, Swords, CheckCircle2, Wallet, Star, Flag, ChevronUp, ChevronDown, AlertTriangle, X } from 'lucide-react';
-import ChatWindow from '@/components/chat/ChatWindow';
+import Image from 'next/image';
 
-interface OrderDetails {
+interface Message {
   _id: string;
-  status: string;
-  serviceType: string;
-  details: {
-    current_rank: string;
-    desired_rank: string;
-    server: string;
-    account_username: string;
-    [key: string]: any;
-  };
-  customerId?: any; // Thêm field
-  boosterId?: any;  // Thêm field
-  pricing: {
-    total_amount: number;
-    deposit_amount?: number;
-    final_amount?: number;
-    settlement_status?: 'PENDING' | 'CUSTOMER_OWES' | 'REFUND_NEEDED' | 'SETTLED';
-  };
-  payment?: {
-    deposit_paid: boolean;
+  content: string;
+  sender_id: {
+    _id: string;
+    username: string;
+    profile: { avatar?: string };
+    role: string;
   };
   createdAt: string;
-  // New fields
-  match_history?: Array<{
-    match_id?: string;
-    mode: string;
-    champion: string;
-    result: 'WIN' | 'LOSS';
-    lp_change: number;
-    reason?: string;
-  }>;
-  rating?: {
-    stars: number;
-    comment?: string;
-  };
-  dispute?: any;
+  type: 'TEXT' | 'IMAGE' | 'SYSTEM';
 }
 
 export default function OrderDetailsPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params); // Unwrap params (Next.js 15/14 pattern)
+  const { id } = use(params);
   const { t } = useLanguage();
+  const router = useRouter();
   
-  const [order, setOrder] = useState<OrderDetails | null>(null);
+  const [order, setOrder] = useState<any>(null);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
-  const [currentUser, setCurrentUser] = useState<any>(null);
-  const [showDetails, setShowDetails] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [user, setUser] = useState<any>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
   
-
-  // Booster Complete Modal State
-  const [isCompleteModalOpen, setIsCompleteModalOpen] = useState(false);
-  const [actualResultInput, setActualResultInput] = useState('');
-
-  // Rating Modal
-  const [isRatingModalOpen, setIsRatingModalOpen] = useState(false);
-  const [ratingStars, setRatingStars] = useState(5);
-  const [ratingComment, setRatingComment] = useState('');
-
-  // Dispute Modal
+  // UI States
+  const [activeTab, setActiveTab] = useState<'INFO' | 'PROGRESS'>('INFO');
   const [isDisputeModalOpen, setIsDisputeModalOpen] = useState(false);
   const [disputeReason, setDisputeReason] = useState('');
+  const [ingameName, setIngameName] = useState('');
 
-  // Lấy thông tin user hiện tại từ localStorage (để xác định tin nhắn của mình)
+  // Match Update State
+  const [matchForm, setMatchForm] = useState({
+      mode: 'Rank Đơn', champion: '', result: 'WIN', lp_change: '', reason: ''
+  });
+
+  // --- POLLING FALLBACK (Cứ 5s tải lại data 1 lần để chắc chắn cập nhật) ---
+  useEffect(() => {
+    const interval = setInterval(() => {
+        if (!id) return;
+        // Fetch Order Info
+        fetch(`/api/orders/${id}`).then(res => res.json()).then(data => {
+            if (data.success) {
+                setOrder((prev: any) => ({ ...prev, ...data.order }));
+                if (data.order?.details?.ingame_name) setIngameName(data.order.details.ingame_name);
+            }
+        });
+        // Fetch Messages (Chỉ lấy nếu cần, ở đây fetch lại hết để đồng bộ)
+        fetch(`/api/orders/${id}/messages`).then(res => res.json()).then(data => {
+            if (data.success && data.messages.length > messages.length) {
+                setMessages(data.messages);
+            }
+        });
+    }, 5000); // 5 giây
+
+    return () => clearInterval(interval);
+  }, [id, messages.length]);
+
+  // Load User
   useEffect(() => {
     const userStr = localStorage.getItem('user');
-    if (userStr) setCurrentUser(JSON.parse(userStr));
+    if (userStr) setUser(JSON.parse(userStr));
   }, []);
 
   // Fetch Order & Messages
-  const fetchData = async () => {
-    try {
-
-      // 2. Fetch Order Details (Tạm thời dùng API list và filter vì chưa có API get single order)
-      // Trong thực tế bạn nên tạo thêm API GET /api/orders/[id]
-      const orderRes = await fetch('/api/orders'); 
-      const orderData = await orderRes.json();
-      if (orderRes.ok) {
-        // Tìm đơn hàng trong danh sách trả về (Available hoặc MyOrders)
-        const allOrders = [...(orderData.orders || []), ...(orderData.availableOrders || []), ...(orderData.myOrders || [])];
-        const found = allOrders.find((o: any) => o._id === id);
-        if (found) setOrder(found);
-      }
-
-    } catch (error) {
-      console.error(error);
-      toast.error(t('serverError'));
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Initial Load
   useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [orderRes, msgRes] = await Promise.all([
+          fetch(`/api/orders/${id}`),
+          fetch(`/api/orders/${id}/messages`)
+        ]);
+
+        if (!orderRes.ok) throw new Error('Failed to load order');
+        
+        const orderData = await orderRes.json();
+        const msgData = await msgRes.json();
+
+        setOrder(orderData.order);
+        setMessages(msgData.messages || []);
+        if (orderData.order?.details?.ingame_name) {
+            setIngameName(orderData.order.details.ingame_name);
+        }
+      } catch (error) {
+        console.error(error);
+        toast.error('Lỗi tải thông tin đơn hàng');
+      } finally {
+        setLoading(false);
+      }
+    };
+
     fetchData();
   }, [id]);
 
+  // Socket.io Integration
+  useEffect(() => {
+    if (!socket.connected) socket.connect();
 
-  const handlePayRemaining = async () => {
-    if (!confirm('Xác nhận thanh toán phần còn thiếu?')) return;
-    setLoading(true);
-    try {
-        const res = await fetch(`/api/orders/${id}/pay-remaining`, {
-            method: 'POST'
-        });
-        const data = await res.json();
-        if (res.ok) {
-            toast.success('Thanh toán thành công!');
-            fetchData();
-        } else {
-            toast.error(data.error || 'Thanh toán thất bại');
+    socket.emit('join_order', id);
+
+    const handleNewMessage = (msg: Message) => {
+      setMessages((prev) => {
+        // Chống trùng lặp tin nhắn
+        if (prev.some(m => m._id === msg._id)) return prev;
+        return [...prev, msg];
+      });
+      scrollToBottom();
+    };
+
+    const handleOrderUpdate = (updatedData: any) => {
+        console.log('Socket Order Update:', updatedData);
+        setOrder((prev: any) => ({ ...prev, ...updatedData }));
+        if (updatedData.details?.ingame_name) {
+            setIngameName(updatedData.details.ingame_name);
         }
-    } catch (e) { toast.error('Lỗi kết nối'); }
-    finally { setLoading(false); }
+    };
+
+    socket.on('new_message', handleNewMessage);
+    socket.on('order_updated', handleOrderUpdate);
+
+    return () => {
+      socket.off('new_message', handleNewMessage);
+      socket.off('order_updated', handleOrderUpdate);
+      socket.emit('leave_order', id);
+    };
+  }, [id]);
+
+  // Auto-scroll to bottom
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  const handleCompleteOrder = async () => {
-    if (!actualResultInput) return toast.error('Vui lòng nhập kết quả thực tế');
-    if (!confirm('Xác nhận hoàn thành đơn hàng? Hành động này không thể hoàn tác.')) return;
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
 
-    setLoading(true);
+  const handleSendMessage = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    if (!newMessage.trim()) return;
+
+    setSending(true);
     try {
-        const resultValue = parseInt(actualResultInput);
-        const payload = order?.details.calc_mode === 'BY_LP' 
-            ? { lpGained: resultValue } 
-            : { gamesWon: resultValue };
+      const res = await fetch(`/api/orders/${id}/messages`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: newMessage, type: 'TEXT' }),
+      });
 
-        const res = await fetch(`/api/orders/${id}/complete`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ actualResult: payload }),
-        });
+      if (res.ok) {
         const data = await res.json();
-        if (res.ok) {
-            toast.success('Đã hoàn thành đơn hàng!');
-            setIsCompleteModalOpen(false);
-            fetchData();
-        } else {
-            toast.error(data.error || 'Thao tác thất bại');
-        }
-    } catch (e) { toast.error('Lỗi kết nối'); }
-    finally { setLoading(false); }
+        // Emit socket event manually if backend doesn't broadcast automatically
+        socket.emit('send_message', { room: id, message: data.message });
+        
+        // Optimistic update (optional, since socket will broadcast back)
+        setMessages(prev => [...prev, data.message]); // HIỂN THỊ NGAY LẬP TỨC
+        setNewMessage('');
+      }
+    } catch (error) {
+      toast.error('Gửi tin nhắn thất bại');
+    } finally {
+      setSending(false);
+    }
   };
 
-  const handleRateOrder = async () => {
-    setLoading(true);
+  const handleUpdateStatus = async (status: string) => {
+    if (!confirm(`Bạn có chắc chắn muốn chuyển trạng thái thành ${status}?`)) return;
+
     try {
-        const res = await fetch(`/api/orders/${id}/rate`, {
-            method: 'POST',
+        const endpoint = status === 'COMPLETED' 
+            ? `/api/orders/${id}/complete` 
+            : `/api/orders/${id}/status`;
+            
+        const method = status === 'COMPLETED' ? 'POST' : 'PATCH';
+        const body = status === 'COMPLETED' ? {} : { status };
+
+        const res = await fetch(endpoint, {
+            method,
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ stars: ratingStars, comment: ratingComment }),
+            body: JSON.stringify(body)
         });
+
         if (res.ok) {
-            toast.success('Đánh giá thành công!');
-            setIsRatingModalOpen(false);
-            fetchData();
-        } else toast.error('Lỗi đánh giá');
-    } catch (e) { toast.error('Lỗi kết nối'); }
-    finally { setLoading(false); }
+            toast.success('Cập nhật trạng thái thành công');
+            setOrder((prev: any) => ({ ...prev, status }));
+            // Reload page to refresh data
+            // window.location.reload(); // No need to reload if we use socket
+            socket.emit('update_order', { room: id, data: { status } });
+        } else {
+            const err = await res.json();
+            toast.error(err.error || 'Lỗi cập nhật');
+        }
+    } catch (e) {
+        toast.error('Lỗi kết nối');
+    }
+  };
+
+  const handleConfirmCompletion = async () => {
+      if (!confirm('Bạn xác nhận đã nhận được kết quả như mong muốn? Tiền sẽ được chuyển cho Booster.')) return;
+      try {
+          const res = await fetch(`/api/orders/${id}/confirm`, { method: 'POST' });
+          if (res.ok) {
+              toast.success('Đã xác nhận hoàn thành!');
+              window.location.reload();
+          }
+      } catch (e) { toast.error('Lỗi kết nối'); }
   };
 
   const handleDispute = async () => {
-    if (!disputeReason) return toast.error('Vui lòng nhập lý do khiếu nại');
-    setLoading(true);
-    try {
-        const res = await fetch(`/api/orders/${id}/dispute`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ reason: disputeReason }),
-        });
-        if (res.ok) {
-            toast.success('Đã gửi khiếu nại. Admin sẽ xem xét.');
-            setIsDisputeModalOpen(false);
-            fetchData();
-        } else toast.error('Lỗi gửi khiếu nại');
-    } catch (e) { toast.error('Lỗi kết nối'); }
-    finally { setLoading(false); }
+      if (!disputeReason.trim()) return toast.error('Vui lòng nhập lý do');
+      try {
+          const res = await fetch(`/api/orders/${id}/dispute`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ reason: disputeReason })
+          });
+          if (res.ok) { toast.success('Đã gửi khiếu nại'); window.location.reload(); }
+          else { toast.error('Lỗi gửi khiếu nại'); }
+      } catch (e) { toast.error('Lỗi kết nối'); }
   };
 
-  if (loading) return <div className="flex justify-center py-20"><Loader2 className="animate-spin text-blue-500" /></div>;
-  if (!order) return <div className="text-center py-20 text-zinc-500">Order not found</div>;
+  const handlePayRemaining = async () => {
+      if (!confirm('Thanh toán phần còn lại của đơn hàng?')) return;
+      try {
+          const res = await fetch(`/api/orders/${id}/pay-remaining`, { method: 'POST' });
+          if (res.ok) {
+              toast.success('Thanh toán thành công!');
+              window.location.reload();
+          } else {
+              const err = await res.json();
+              toast.error(err.error || 'Lỗi thanh toán');
+          }
+      } catch (e) {
+          toast.error('Lỗi kết nối');
+      }
+  };
 
-  const isBooster = currentUser?.role === 'BOOSTER';
-  const chatTitle = isBooster ? 'Trao đổi với Khách hàng' : t('chatTitle');
-  
-  // Xác định đối phương (Partner) để hiển thị trong ChatWindow
-  // Nếu mình là Booster -> Partner là Customer, và ngược lại
-  const partner = isBooster ? order.customerId : order.boosterId;
+  const handleAddMatch = async (e: React.FormEvent) => {
+      e.preventDefault();
+      try {
+          const res = await fetch(`/api/orders/${id}/matches`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(matchForm)
+          });
+          if (res.ok) {
+              toast.success('Đã cập nhật trận đấu');
+              const data = await res.json();
+              setOrder((prev: any) => ({ ...prev, match_history: data.match_history }));
+              setMatchForm({ mode: 'Rank Đơn', champion: '', result: 'WIN', lp_change: '', reason: '' });
+              toast.success('Đã thêm trận đấu mới');
+              
+              // Real-time broadcast
+              socket.emit('update_order', { room: id, data: { match_history: data.match_history } });
+          }
+      } catch (e) { toast.error('Lỗi cập nhật'); }
+  };
+
+  const handleUpdateIngame = async () => {
+      try {
+          const res = await fetch(`/api/orders/${id}/details`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ ingame_name: ingameName })
+          });
+          if (res.ok) {
+              const data = await res.json();
+              toast.success('Cập nhật Ingame thành công');
+              setOrder((prev: any) => ({ ...prev, details: data.details }));
+              // Real-time broadcast
+              socket.emit('update_order', { room: id, data: { details: data.details } });
+          } else {
+              toast.error('Lỗi cập nhật');
+          }
+      } catch (e) { toast.error('Lỗi kết nối'); }
+  };
+
+  if (loading) return <div className="min-h-screen bg-zinc-950 pt-24 flex justify-center"><Loader2 className="w-8 h-8 animate-spin text-blue-500" /></div>;
+  if (!order) return <div className="min-h-screen bg-zinc-950 pt-24 text-center text-zinc-500">Đơn hàng không tồn tại</div>;
+
+  const isBooster = user?.role === 'BOOSTER';
+  const isCustomer = user?.role === 'CUSTOMER';
+  const isDepositService = order.serviceType === 'NET_WINS';
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 relative pb-20">
-      {/* Left Column: Order Info */}
-      <div className="lg:col-span-2 space-y-6">
-        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-bold text-white flex items-center gap-2">
-              <Shield className="w-5 h-5 text-blue-500" />
-              {t('orderDetails')} <span className="text-zinc-500 text-sm font-normal">#{order._id.slice(-6).toUpperCase()}</span>
-            </h2>
-            <button 
-              onClick={() => setShowDetails(!showDetails)}
-              className="text-zinc-400 hover:text-white flex items-center gap-1 text-sm"
-            >
-              {showDetails ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-              {showDetails ? 'Thu gọn' : 'Xem thêm'}
-            </button>
-          </div>
-          
-          {/* Basic Info (Always Visible) */}
-          <div className="space-y-3 mb-4">
-             <div className="flex justify-between items-center">
-                <span className="text-zinc-400 text-sm">Trạng thái:</span>
-                <span className={`px-2 py-1 rounded text-xs font-bold ${
-                  order.status === 'COMPLETED' ? 'bg-green-500/20 text-green-500' :
-                  order.status === 'IN_PROGRESS' ? 'bg-blue-500/20 text-blue-500' :
-                  'bg-zinc-800 text-zinc-400'
-                }`}>
-                  {order.status}
-                </span>
-             </div>
-             <div className="flex justify-between items-center">
-                <span className="text-zinc-400 text-sm">Tiến độ:</span>
-                <span className="text-white font-medium text-sm">
-                    {order.details.current_rank || order.details.current_level || 'N/A'} 
-                    {' ➔ '} 
-                    {order.details.desired_rank || order.details.desired_level || 'N/A'}
-                </span>
-             </div>
-
-             {/* Booster Action: Complete Order */}
-             {isBooster && order.status === 'IN_PROGRESS' && (
-                <button 
-                    onClick={() => setIsCompleteModalOpen(true)}
-                    className="w-full mt-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-bold text-sm transition-colors flex items-center justify-center gap-2"
-                >
-                    <CheckCircle2 className="w-4 h-4" /> Hoàn thành đơn
-                </button>
-             )}
-
-             {/* Customer Actions: Rate & Dispute */}
-             {!isBooster && order.status === 'COMPLETED' && !order.rating && (
-                <button onClick={() => setIsRatingModalOpen(true)} className="w-full mt-4 py-2 bg-yellow-500/10 text-yellow-500 border border-yellow-500/20 hover:bg-yellow-500/20 rounded-lg font-bold text-sm transition-colors flex items-center justify-center gap-2">
-                    <Star className="w-4 h-4" /> Đánh giá Booster
-                </button>
-             )}
-             
-             {!isBooster && (order.status === 'COMPLETED' || order.status === 'IN_PROGRESS') && !order.dispute && (
-                <button onClick={() => setIsDisputeModalOpen(true)} className="w-full mt-2 py-2 text-zinc-500 hover:text-red-400 text-xs flex items-center justify-center gap-1 transition-colors">
-                    <Flag className="w-3 h-3" /> Khiếu nại đơn hàng
-                </button>
-             )}
-             {order.dispute && (
-                <div className="mt-2 text-center text-xs text-red-400 font-bold border border-red-500/20 bg-red-500/10 p-2 rounded">Đang có khiếu nại: {order.dispute.status}</div>
-             )}
-          </div>
-
-          {/* Detailed Info (Collapsible) */}
-          {showDetails && (
-            <div className="space-y-3 pt-4 border-t border-zinc-800 animate-in slide-in-from-top-2 fade-in duration-200">
-                <div className="flex justify-between py-1">
-                    <span className="text-zinc-500 text-xs">Mã đơn:</span>
-                    <span className="text-zinc-300 text-xs font-mono">#{order._id.slice(-6).toUpperCase()}</span>
-                </div>
-                <div className="flex justify-between py-1">
-                    <span className="text-zinc-500 text-xs">Dịch vụ:</span>
-                    <span className="text-blue-400 text-xs font-bold">{order.serviceType}</span>
-                </div>
-                <div className="flex justify-between py-1">
-                    <span className="text-zinc-500 text-xs">Server:</span>
-                    <span className="text-zinc-300 text-xs">{order.details.server}</span>
-                </div>
-                <div className="flex justify-between py-1">
-                    <span className="text-zinc-500 text-xs">Tài khoản Game:</span>
-                    <span className="text-zinc-300 text-xs font-mono">{order.details.account_username}</span>
-                </div>
-                
-                <div className="bg-zinc-950 p-3 rounded-lg mt-2 space-y-2">
-                    <div className="flex justify-between text-xs">
-                        <span className="text-zinc-500">Tổng tiền:</span>
-                        <span className="text-white font-bold">{order.pricing.total_amount.toLocaleString()} đ</span>
-                    </div>
-                    <div className="flex justify-between text-xs">
-                        <span className="text-zinc-500">Đã cọc:</span>
-                        <span className="text-green-400 font-bold">{order.pricing.deposit_amount?.toLocaleString() || 0} đ</span>
-                    </div>
-                </div>
-            </div>
-          )}
-
-          {/* Settlement Status (For Net Wins) */}
-          {order.pricing.settlement_status && order.pricing.settlement_status !== 'PENDING' && (
-            <div className="mt-4 p-4 rounded-xl border border-zinc-800 bg-zinc-950/50">
-                <h3 className="text-sm font-bold text-white mb-2 flex items-center gap-2">
-                    <Wallet className="w-4 h-4 text-yellow-500" /> Quyết toán đơn hàng
-                </h3>
-                
-                {order.pricing.settlement_status === 'CUSTOMER_OWES' && (
-                    <div className="space-y-3">
-                        <div className="text-sm text-zinc-400">
-                            Bạn cần thanh toán thêm: <span className="text-red-400 font-bold">{(order.pricing.final_amount! - (order.pricing.deposit_amount || 0)).toLocaleString()} đ</span>
-                        </div>
-                        {!isBooster && (
-                            <button 
-                                onClick={handlePayRemaining}
-                                className="w-full py-2 bg-green-600 hover:bg-green-500 text-white rounded-lg font-bold text-sm transition-colors"
-                            >
-                                Thanh toán ngay
-                            </button>
-                        )}
-                    </div>
-                )}
-
-                {order.pricing.settlement_status === 'REFUND_NEEDED' && (
-                    <div className="text-sm text-zinc-400">
-                        Bạn sẽ được hoàn lại: <span className="text-green-400 font-bold">{((order.pricing.deposit_amount || 0) - order.pricing.final_amount!).toLocaleString()} đ</span>
-                        <p className="text-xs text-zinc-500 mt-1">Hệ thống sẽ xử lý hoàn tiền trong 24h.</p>
-                    </div>
-                )}
-
-                {order.pricing.settlement_status === 'SETTLED' && (
-                    <div className="text-sm text-green-400 flex items-center gap-2">
-                        <CheckCircle2 className="w-4 h-4" /> Đơn hàng đã quyết toán xong.
-                    </div>
-                )}
-            </div>
-          )}
-        </div>
-
-        {/* Match History Tracking (New Feature) */}
-        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6">
-            <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-                <Swords className="w-5 h-5 text-red-500" />
-                Tiến độ trận đấu
-            </h2>
-            
-            {order.match_history && order.match_history.length > 0 ? (
-                <div className="overflow-x-auto">
-                    <table className="w-full text-sm text-left">
-                        <thead className="text-xs text-zinc-500 uppercase bg-zinc-950/50">
-                            <tr>
-                                <th className="px-3 py-2">Tướng</th>
-                                <th className="px-3 py-2">Kết quả</th>
-                                <th className="px-3 py-2">LP</th>
-                                <th className="px-3 py-2">Ghi chú</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-zinc-800">
-                            {order.match_history.map((match, idx) => (
-                                <tr key={idx} className="hover:bg-zinc-800/30">
-                                    <td className="px-3 py-2 font-medium text-white">{match.champion}</td>
-                                    <td className="px-3 py-2">
-                                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                                            match.result === 'WIN' ? 'bg-blue-500/20 text-blue-400' : 'bg-red-500/20 text-red-400'
-                                        }`}>
-                                            {match.result}
-                                        </span>
-                                    </td>
-                                    <td className={`px-3 py-2 font-bold ${match.lp_change >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                                        {match.lp_change > 0 ? '+' : ''}{match.lp_change}
-                                    </td>
-                                    <td className="px-3 py-2 text-zinc-500 text-xs truncate max-w-[100px]" title={match.reason}>
-                                        {match.reason || '-'}
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            ) : (
-                <div className="text-center py-8 text-zinc-500 text-sm border border-dashed border-zinc-800 rounded-lg">
-                    Chưa có trận đấu nào được cập nhật.
-                </div>
-            )}
-        </div>
-      </div>
-
-      {/* Floating Chat Window */}
-      <ChatWindow 
-        orderId={id} 
-        currentUser={currentUser} 
-        title={chatTitle} 
-        partner={partner} // Truyền thông tin người chat cùng
-      />
-
-      {/* Complete Order Modal */}
-      {isCompleteModalOpen && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-            <div className="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-md shadow-2xl p-6">
-                <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-lg font-bold text-white">Xác nhận kết quả</h3>
-                    <button onClick={() => setIsCompleteModalOpen(false)} className="text-zinc-400 hover:text-white"><X className="w-5 h-5" /></button>
-                </div>
-                
-                <div className="space-y-4">
+    <div className="min-h-screen bg-zinc-950 text-white font-sans pt-24 pb-10 px-4">
+      <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        {/* Left Column: Order Info */}
+        <div className="lg:col-span-2 space-y-6">
+            {/* Status Card */}
+            <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
+                <div className="flex justify-between items-start mb-4">
                     <div>
-                        <label className="block text-sm font-medium text-zinc-400 mb-2">
-                            {order.details.calc_mode === 'BY_LP' ? 'Tổng số LP đã cày được:' : 'Tổng số trận đã thắng:'}
-                        </label>
-                        <input 
-                            type="number" 
-                            value={actualResultInput}
-                            onChange={(e) => setActualResultInput(e.target.value)}
-                            className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-white focus:border-blue-500 outline-none"
-                            placeholder={order.details.calc_mode === 'BY_LP' ? 'VD: 85' : 'VD: 5'}
-                            autoFocus
-                        />
+                        <h2 className="text-lg font-bold text-white">Đơn hàng #{order._id.slice(-6).toUpperCase()}</h2>
+                        <p className="text-xs text-zinc-500">{new Date(order.createdAt).toLocaleString('vi-VN')}</p>
                     </div>
-                    
-                    <button onClick={handleCompleteOrder} className="w-full py-3 bg-green-600 hover:bg-green-500 text-white font-bold rounded-xl transition-colors">
-                        Xác nhận hoàn thành
+                    <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase ${
+                        order.status === 'COMPLETED' ? 'bg-green-500/10 text-green-500' :
+                        order.status === 'IN_PROGRESS' ? 'bg-blue-500/10 text-blue-500' :
+                        order.status === 'DISPUTED' ? 'bg-red-500/10 text-red-500' :
+                        'bg-yellow-500/10 text-yellow-500'
+                    }`}>
+                        {order.status === 'COMPLETED' ? 'HOÀN THÀNH (CHỜ XÁC NHẬN)' : order.status}
+                    </span>
+                </div>
+
+                {/* Actions */}
+                <div className="mt-6 space-y-2">
+                    {isBooster && order.status === 'APPROVED' && (
+                        <button onClick={() => handleUpdateStatus('IN_PROGRESS')} className="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl flex items-center justify-center gap-2 transition-colors">
+                            <Play className="w-4 h-4" /> Bắt đầu cày
+                        </button>
+                    )}
+                    {isBooster && order.status === 'IN_PROGRESS' && (
+                        <button onClick={() => handleUpdateStatus('COMPLETED')} className="w-full py-3 bg-green-600 hover:bg-green-500 text-white font-bold rounded-xl flex items-center justify-center gap-2 transition-colors">
+                            <CheckSquare className="w-4 h-4" /> Báo cáo hoàn thành
+                        </button>
+                    )}
+                    {isCustomer && order.pricing.settlement_status === 'CUSTOMER_OWES' && (
+                        <button onClick={handlePayRemaining} className="w-full py-3 bg-yellow-600 hover:bg-yellow-500 text-white font-bold rounded-xl flex items-center justify-center gap-2 transition-colors">
+                            <CreditCard className="w-4 h-4" /> Thanh toán phần còn lại
+                        </button>
+                    )}
+                    {isCustomer && order.status === 'COMPLETED' && (
+                        <div className="flex gap-2">
+                            <button onClick={handleConfirmCompletion} className="flex-1 py-3 bg-green-600 hover:bg-green-500 text-white font-bold rounded-xl flex items-center justify-center gap-2 transition-colors">
+                                <CheckCircle2 className="w-4 h-4" /> Xác nhận hoàn thành
+                            </button>
+                            <button onClick={() => setIsDisputeModalOpen(true)} className="px-4 py-3 bg-red-600/20 hover:bg-red-600/40 text-red-500 font-bold rounded-xl flex items-center justify-center gap-2 transition-colors">
+                                <Flag className="w-4 h-4" /> Khiếu nại
+                            </button>
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {/* TABS: Info vs Progress */}
+            <div className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden">
+                <div className="flex border-b border-zinc-800">
+                    <button onClick={() => setActiveTab('INFO')} className={`flex-1 py-4 text-sm font-bold transition-colors ${activeTab === 'INFO' ? 'bg-zinc-800 text-white' : 'text-zinc-400 hover:text-white'}`}>
+                        Thông tin đơn hàng
+                    </button>
+                    <button onClick={() => setActiveTab('PROGRESS')} className={`flex-1 py-4 text-sm font-bold transition-colors ${activeTab === 'PROGRESS' ? 'bg-zinc-800 text-white' : 'text-zinc-400 hover:text-white'}`}>
+                        Tiến độ & Trận đấu
                     </button>
                 </div>
-            </div>
-        </div>
-      )}
 
-      {/* Rating Modal */}
-      {isRatingModalOpen && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-            <div className="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-md p-6">
-                <h3 className="text-lg font-bold text-white mb-4">Đánh giá dịch vụ</h3>
-                <div className="flex justify-center gap-2 mb-6">
-                    {[1, 2, 3, 4, 5].map(star => (
-                        <button key={star} onClick={() => setRatingStars(star)} className="focus:outline-none transition-transform hover:scale-110">
-                            <Star className={`w-8 h-8 ${star <= ratingStars ? 'text-yellow-500 fill-yellow-500' : 'text-zinc-600'}`} />
-                        </button>
-                    ))}
-                </div>
-                <textarea 
-                    value={ratingComment}
-                    onChange={(e) => setRatingComment(e.target.value)}
-                    className="w-full bg-zinc-950 border border-zinc-800 rounded-xl p-3 text-white text-sm mb-4 focus:border-yellow-500 outline-none"
-                    placeholder="Nhập nhận xét của bạn..."
-                    rows={3}
-                />
-                <div className="flex gap-3">
-                    <button onClick={() => setIsRatingModalOpen(false)} className="flex-1 py-2 bg-zinc-800 text-white rounded-lg">Hủy</button>
-                    <button onClick={handleRateOrder} className="flex-1 py-2 bg-yellow-600 text-black font-bold rounded-lg">Gửi đánh giá</button>
+                <div className="p-6">
+                    {activeTab === 'INFO' ? (
+                        <div className="space-y-6">
+                            {/* Ingame Name Update (For Booster in Progress) */}
+                            {isBooster && order.status === 'IN_PROGRESS' && (
+                                <div className="bg-blue-900/10 border border-blue-500/20 p-4 rounded-xl flex items-end gap-3">
+                                    <div className="flex-1">
+                                        <label className="text-xs font-bold text-blue-400 uppercase mb-1 block">Cập nhật Tên Ingame</label>
+                                        <input 
+                                            type="text" 
+                                            value={ingameName}
+                                            onChange={(e) => setIngameName(e.target.value)}
+                                            className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white focus:border-blue-500 outline-none"
+                                            placeholder="Nhập tên nhân vật trong game..."
+                                        />
+                                    </div>
+                                    <button onClick={handleUpdateIngame} className="bg-blue-600 hover:bg-blue-500 text-white p-2 rounded-lg transition-colors"><Save className="w-5 h-5" /></button>
+                                </div>
+                            )}
+
+                            {/* Account Info */}
+                            <div>
+                                <h3 className="text-sm font-bold text-zinc-400 uppercase mb-3 flex items-center gap-2"><Shield className="w-4 h-4" /> Tài khoản Game</h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-zinc-950 p-4 rounded-xl border border-zinc-800">
+                                    <div>
+                                        <span className="text-xs text-zinc-500 block">Tài khoản</span>
+                                        <span className="font-mono text-white">{order.details.account_username}</span>
+                                    </div>
+                                    <div>
+                                        <span className="text-xs text-zinc-500 block">Mật khẩu</span>
+                                        <span className="font-mono text-white flex items-center gap-2">
+                                            {isBooster ? order.details.account_password : '••••••••'}
+                                            {!isBooster && <Lock className="w-3 h-3 text-zinc-600" />}
+                                        </span>
+                                    </div>
+                                    <div>
+                                        <span className="text-xs text-zinc-500 block">Server</span>
+                                        <span className="text-white">{order.details.server}</span>
+                                    </div>
+                                    <div>
+                                        <span className="text-xs text-zinc-500 block">Ingame (Nếu có)</span>
+                                        <span className="text-white font-medium text-blue-300">{order.details.ingame_name || 'Chưa cập nhật'}</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Service Info */}
+                            <div>
+                                <h3 className="text-sm font-bold text-zinc-400 uppercase mb-3 flex items-center gap-2"><Trophy className="w-4 h-4" /> Dịch vụ</h3>
+                                <div className="bg-zinc-950 p-4 rounded-xl border border-zinc-800 space-y-3 text-sm">
+                                    <div className="flex justify-between">
+                                        <span className="text-zinc-500">Loại dịch vụ:</span>
+                                        <span className="text-white font-medium">{order.serviceType}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-zinc-500">Mục tiêu:</span>
+                                        <span className="text-blue-400 font-bold">
+                                            {order.details.current_rank || order.details.current_level} ➜ {order.details.desired_rank || order.details.desired_level}
+                                        </span>
+                                    </div>
+                                    {/* Extra Options */}
+                                    {order.options && Object.keys(order.options).length > 0 && (
+                                        <div className="pt-3 border-t border-zinc-800">
+                                            <span className="text-zinc-500 block mb-1">Tùy chọn thêm:</span>
+                                            <div className="flex flex-wrap gap-2">
+                                                {Object.entries(order.options as Record<string, any>).map(([key, val]) => (
+                                                    val ? <span key={key} className="px-2 py-1 bg-zinc-900 border border-zinc-700 rounded text-xs text-zinc-300">{key}</span> : null
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Payment Info */}
+                            <div>
+                                <h3 className="text-sm font-bold text-zinc-400 uppercase mb-3 flex items-center gap-2"><DollarSign className="w-4 h-4" /> Thanh toán</h3>
+                                <div className="bg-zinc-950 p-4 rounded-xl border border-zinc-800 space-y-3 text-sm">
+                                    <div className="flex justify-between">
+                                        <span className="text-zinc-500">Tổng giá trị:</span>
+                                        <span className="text-white font-bold">{order.pricing.total_amount.toLocaleString()} đ</span>
+                                    </div>
+                                    {order.pricing.deposit_amount < order.pricing.total_amount ? (
+                                        <div className="flex justify-between">
+                                            <span className="text-zinc-500">Đã cọc:</span>
+                                            <span className="text-yellow-400 font-bold">{order.pricing.deposit_amount.toLocaleString()} đ</span>
+                                        </div>
+                                    ) : (
+                                        <div className="flex justify-between">
+                                            <span className="text-zinc-500">Trạng thái:</span>
+                                            <span className="text-green-400 font-bold">Đã thanh toán 100%</span>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="space-y-6">
+                            {/* Match History List */}
+                            <div className="space-y-3">
+                                {order.match_history?.length > 0 ? (
+                                    order.match_history.map((match: any, idx: number) => (
+                                        <div key={idx} className="flex items-center justify-between p-3 bg-zinc-950 border border-zinc-800 rounded-xl">
+                                            <div className="flex items-center gap-3">
+                                                <div className={`w-10 h-10 rounded-lg flex items-center justify-center font-bold ${match.result === 'WIN' ? 'bg-blue-500/20 text-blue-500' : 'bg-red-500/20 text-red-500'}`}>
+                                                    {match.result === 'WIN' ? 'W' : 'L'}
+                                                </div>
+                                                <div>
+                                                    <div className="text-sm font-bold text-white">{match.champion} <span className="text-zinc-500 font-normal">({match.mode})</span></div>
+                                                    <div className="text-xs text-zinc-500">{new Date(match.timestamp).toLocaleString('vi-VN')}</div>
+                                                </div>
+                                            </div>
+                                            <div className="text-right">
+                                                <div className={`font-bold ${match.lp_change >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                                                    {match.lp_change > 0 ? '+' : ''}{match.lp_change} LP
+                                                </div>
+                                                {match.reason && <div className="text-xs text-zinc-500">{match.reason}</div>}
+                                            </div>
+                                        </div>
+                                    ))
+                                ) : (
+                                    <div className="text-center py-8 text-zinc-500 border border-dashed border-zinc-800 rounded-xl">
+                                        Chưa có trận đấu nào được cập nhật.
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Add Match Form (Booster Only) */}
+                            {isBooster && order.status === 'IN_PROGRESS' && (
+                                <div className="bg-zinc-900/50 p-4 rounded-xl border border-zinc-800">
+                                    <h4 className="font-bold text-white mb-3 flex items-center gap-2"><Swords className="w-4 h-4" /> Cập nhật trận đấu</h4>
+                                    <form onSubmit={handleAddMatch} className="grid grid-cols-2 gap-3">
+                                        <input type="text" placeholder="Tướng (VD: Lee Sin)" className="bg-zinc-950 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white" value={matchForm.champion} onChange={e => setMatchForm({...matchForm, champion: e.target.value})} required />
+                                        <select className="bg-zinc-950 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white" value={matchForm.result} onChange={e => setMatchForm({...matchForm, result: e.target.value})}>
+                                            <option value="WIN">Thắng (Win)</option>
+                                            <option value="LOSS">Thua (Loss)</option>
+                                        </select>
+                                        <input type="number" placeholder="Điểm (+/- LP)" className="bg-zinc-950 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white" value={matchForm.lp_change} onChange={e => setMatchForm({...matchForm, lp_change: e.target.value})} required />
+                                        <input type="text" placeholder="Ghi chú (Tùy chọn)" className="bg-zinc-950 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white" value={matchForm.reason} onChange={e => setMatchForm({...matchForm, reason: e.target.value})} />
+                                        <button type="submit" className="col-span-2 bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 rounded-lg transition-colors">Thêm trận đấu</button>
+                                    </form>
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </div>
             </div>
         </div>
-      )}
+
+        {/* Right Column: Chat */}
+        <div className="lg:col-span-1 flex flex-col h-[600px] bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden">
+            <div className="p-4 border-b border-zinc-800 bg-zinc-950 flex justify-between items-center">
+                <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-zinc-800 overflow-hidden">
+                        {isCustomer ? (
+                            order.boosterId?.profile?.avatar ? <img src={order.boosterId.profile.avatar} className="w-full h-full object-cover" /> : <User className="w-full h-full p-2 text-zinc-500" />
+                        ) : (
+                            order.customerId?.profile?.avatar ? <img src={order.customerId.profile.avatar} className="w-full h-full object-cover" /> : <User className="w-full h-full p-2 text-zinc-500" />
+                        )}
+                    </div>
+                    <div>
+                        <div className="font-bold text-white">
+                            {isCustomer ? (order.boosterId?.username || 'Đang tìm Booster...') : order.customerId.username}
+                        </div>
+                        <div className="text-xs text-zinc-500 flex items-center gap-1">
+                            <span className="w-2 h-2 rounded-full bg-green-500"></span> Online
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Messages Area */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-zinc-900/50">
+                {messages.map((msg) => {
+                    const isMe = msg.sender_id._id === user?._id;
+                    return (
+                        <div key={msg._id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
+                            <div className={`max-w-[85%] rounded-2xl px-3 py-2 ${
+                                isMe ? 'bg-blue-600 text-white rounded-tr-none' : 'bg-zinc-800 text-zinc-200 rounded-tl-none'
+                            }`}>
+                                <p className="text-xs sm:text-sm leading-relaxed">{msg.content}</p>
+                                <div className={`text-[10px] mt-1 ${isMe ? 'text-blue-200' : 'text-zinc-500'}`}>
+                                    {msg.createdAt ? new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Just now'}
+                                </div>
+                            </div>
+                        </div>
+                    );
+                })}
+                <div ref={messagesEndRef} />
+            </div>
+
+            {/* Input Area */}
+            <form onSubmit={handleSendMessage} className="p-3 bg-zinc-950 border-t border-zinc-800 flex gap-2 items-center">
+                <button type="button" className="p-2 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-full transition-colors"><Plus className="w-5 h-5" /></button>
+                <input 
+                    type="text" 
+                    value={newMessage}
+                    onChange={(e) => setNewMessage(e.target.value)}
+                    placeholder="Nhập tin nhắn..."
+                    className="flex-1 bg-zinc-900 border border-zinc-800 rounded-full px-4 py-2 text-sm text-white focus:outline-none focus:border-blue-500 transition-colors"
+                />
+                <button type="button" className="p-2 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-full transition-colors"><Smile className="w-5 h-5" /></button>
+                {isCustomer && (
+                    <button type="button" className="p-2 text-green-400 hover:text-green-300 hover:bg-zinc-800 rounded-full transition-colors" title="Gửi tiền tip"><DollarSign className="w-5 h-5" /></button>
+                )}
+                <button 
+                    type="submit" 
+                    disabled={sending || !newMessage.trim()}
+                    className="p-2 bg-blue-600 hover:bg-blue-500 text-white rounded-full disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                    {sending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
+                </button>
+            </form>
+        </div>
+
+      </div>
 
       {/* Dispute Modal */}
       {isDisputeModalOpen && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-            <div className="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-md p-6">
-                <h3 className="text-lg font-bold text-red-500 mb-2 flex items-center gap-2"><AlertTriangle className="w-5 h-5"/> Khiếu nại đơn hàng</h3>
-                <p className="text-zinc-400 text-sm mb-4">Hãy mô tả chi tiết vấn đề. Admin sẽ vào cuộc để giải quyết.</p>
-                
-                <textarea 
-                    value={disputeReason}
-                    onChange={(e) => setDisputeReason(e.target.value)}
-                    className="w-full bg-zinc-950 border border-zinc-800 rounded-xl p-3 text-white text-sm mb-4 focus:border-red-500 outline-none"
-                    placeholder="Lý do khiếu nại (VD: Booster thái độ, không hoàn thành đúng hạn...)"
-                    rows={4}
-                />
-                
-                <div className="flex gap-3">
-                    <button onClick={() => setIsDisputeModalOpen(false)} className="flex-1 py-2 bg-zinc-800 text-white rounded-lg">Hủy</button>
-                    <button onClick={handleDispute} className="flex-1 py-2 bg-red-600 text-white font-bold rounded-lg">Gửi khiếu nại</button>
-                </div>
-            </div>
-        </div>
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+              <div className="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-md p-6">
+                  <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2"><AlertCircle className="w-6 h-6 text-red-500" /> Khiếu nại đơn hàng</h3>
+                  <textarea 
+                      className="w-full bg-zinc-950 border border-zinc-700 rounded-xl p-3 text-white mb-4 h-32" 
+                      placeholder="Mô tả vấn đề của bạn..." 
+                      value={disputeReason} onChange={e => setDisputeReason(e.target.value)}
+                  />
+                  <div className="flex gap-3 justify-end">
+                      <button onClick={() => setIsDisputeModalOpen(false)} className="px-4 py-2 text-zinc-400 hover:text-white">Hủy</button>
+                      <button onClick={handleDispute} className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-lg font-bold">Gửi khiếu nại</button>
+                  </div>
+              </div>
+          </div>
       )}
     </div>
   );

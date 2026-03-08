@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import dbConnect from '@/lib/db';
-import Order, { OrderStatus } from '@/models/Order';
+import Order from '@/models/Order';
 
 export async function PATCH(
   req: Request,
@@ -14,24 +14,19 @@ export async function PATCH(
     }
 
     const { id } = await params;
-    const { status } = await req.json();
-
-    const ALLOWED_STATUSES = [OrderStatus.IN_PROGRESS, OrderStatus.COMPLETED];
-    if (!ALLOWED_STATUSES.includes(status)) {
-        return NextResponse.json({ error: 'Invalid status' }, { status: 400 });
-    }
-
+    const { ingame_name } = await req.json();
+    
     await dbConnect();
 
     const order = await Order.findOne({ _id: id, boosterId: session.user.id });
-    if (!order) {
-      return NextResponse.json({ error: 'Order not found or unauthorized' }, { status: 404 });
-    }
+    if (!order) return NextResponse.json({ error: 'Order not found' }, { status: 404 });
 
-    order.status = status;
+    if (ingame_name !== undefined) order.details.ingame_name = ingame_name;
+
+    order.markModified('details');
     await order.save();
 
-    return NextResponse.json({ success: true, order });
+    return NextResponse.json({ success: true, details: order.details });
   } catch (error) {
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }

@@ -127,7 +127,8 @@ function CoachingContent() {
         totalPrice: Math.max(0, Math.round(total)),
         platformFeeValue,
         unitPrice,
-        optionDetails: [] // Fix: Thêm mảng rỗng vì Coaching hiện tại chưa có options phụ tính phí
+        optionDetails: [], // Fix: Thêm mảng rỗng vì Coaching hiện tại chưa có options phụ tính phí
+        depositAmount: 0
     };
   }, [boosterConfig, coachingType, hours, platformFee]);
 
