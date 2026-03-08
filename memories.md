@@ -595,6 +595,15 @@ caythuelol/
     - Tính phí: Cộng thêm phí đặt lịch (nếu Booster cấu hình) vào tổng tiền đơn hàng.
   - **Display:** Hiển thị chi tiết lịch cấm chơi và phí trong phần "Thanh toán" (Summary).
 
+18. 2026-03-08 — Chat System Enhancements (Drag & Drop, Reply)
+
+- **Chat Features:**
+  - **Drag & Drop Upload:** Implemented file upload via drag and drop in `ChatWindow`.
+  - **Reply Message:** Added ability to reply to specific messages.
+  - **Backend:**
+    - Updated `/api/orders/[id]/messages` to handle `replyToId` and populate `replyTo`.
+    - Created `/api/upload` to handle image uploads to Cloudinary.
+
 - **UI/UX Polish:**
   - **Validation:** Thêm kiểm tra độ dài tài khoản/mật khẩu (>3 ký tự) trước khi cho phép thanh toán.
   - **Tooltips:** Thêm hướng dẫn chi tiết cho các tùy chọn phức tạp (Cày siêu tốc, Đặt lịch).
