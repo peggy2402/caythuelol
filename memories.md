@@ -604,7 +604,33 @@ caythuelol/
     - Updated `/api/orders/[id]/messages` to handle `replyToId` and populate `replyTo`.
     - Created `/api/upload` to handle image uploads to Cloudinary.
 
+19. 2026-03-08 — Chat System UI/UX Overhaul & Fixes
+
+- **Chat UI Redesign:**
+  - **Gaming Style:** Refactored `ChatWindow`, `ChatInput`, and `MessageItem` with a dark, neon-accented gaming aesthetic.
+  - **Floating Trigger:** Added a floating chat button (bottom-right) with glow/pulse effects for better accessibility.
+  - **Window Controls:** Added Minimize, Maximize, and Close buttons to the chat window header.
+  - **Input Improvements:** Switched `ChatInput` to use `textarea` for multi-line support, added a dedicated tools menu (`+` button), and improved emoji picker positioning.
+  - **Message Bubbles:** Improved bubble styling with `break-words` and `whitespace-pre-wrap` to handle long text and newlines correctly. Added hover actions (Reply, React, Delete).
+
+- **Realtime & Logic Fixes:**
+  - **Typing Indicator:** Implemented typing indicators for both parties using Socket.io events (`typing`, `stop_typing`).
+  - **Message Duplication:** Fixed issue where messages appeared twice (optimistic UI + socket event) by adding ID checks.
+  - **Unread Count:** Fixed logic to only increment unread count when the chat window is closed or minimized.
+  - **Scroll Behavior:** Fixed auto-scroll issues and prevented the whole page from scrolling when new messages arrive.
+
 - **UI/UX Polish:**
   - **Validation:** Thêm kiểm tra độ dài tài khoản/mật khẩu (>3 ký tự) trước khi cho phép thanh toán.
   - **Tooltips:** Thêm hướng dẫn chi tiết cho các tùy chọn phức tạp (Cày siêu tốc, Đặt lịch).
   - **Summary:** Cập nhật khối "Thanh toán" để hiển thị đầy đủ thông tin: Vị trí (Roles), Tướng chỉ định, Lịch cấm chơi, Phí dịch vụ.
+
+20. 2026-03-08 — Booster Job Market (Sàn việc làm)
+
+- **Feature:** Xây dựng trang "Tìm việc" (`/booster/jobs`) cho phép Booster xem danh sách đơn hàng đang chờ (`PAID` & chưa có Booster).
+- **API:**
+  - `GET /api/boosters/jobs`: Lấy danh sách đơn hàng khả dụng (Status: PAID, Booster: null).
+  - `POST /api/orders/[id]/confirm`: API để Booster nhận đơn. Logic kiểm tra giới hạn đơn đang chạy (Max 3) và cập nhật trạng thái sang `APPROVED`.
+- **UI:**
+  - **Job Cards:** Hiển thị thông tin tóm tắt: Loại dịch vụ, Rank hiện tại/mong muốn, Server và Thu nhập dự kiến.
+  - **Interaction:** Nút "Nhận Đơn" có xử lý loading và error handling (nếu đơn đã bị người khác nhận).
+  - **Empty State:** Giao diện thân thiện khi không có đơn hàng nào.
