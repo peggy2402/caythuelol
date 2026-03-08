@@ -132,17 +132,15 @@ export default function JobMarketPage() {
 
   // Xử lý Claim cho Đơn công khai (Có Toast Confirm)
   const handleClaim = (jobId: string) => {
-    toast('Xác nhận nhận đơn?', {
-      description: 'Bạn có chắc chắn muốn nhận đơn này không?',
+    toast('🚀 Xác nhận nhận đơn?', {
+      description: 'Sau khi nhận, đơn hàng sẽ chuyển sang trạng thái "Đã nhận". Bạn cần bắt đầu cày sớm nhất có thể.',
       action: {
-        label: 'Nhận đơn',
+        label: 'Nhận việc',
         onClick: () => processClaim(jobId),
       },
       cancel: {
         label: "Hủy",
-        onClick: () => {
-          console.log("Đã hủy");
-        },
+        onClick: () => {},
       },
     });
   };

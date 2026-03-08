@@ -1,30 +1,17 @@
 // src/app/(dashboard)/orders/[id]/page.tsx
 'use client';
 
-import { useState, useEffect, useRef, use } from 'react';
+import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { useLanguage } from '@/lib/i18n';
 import { socket } from '@/lib/socket';
 import { 
-  Send, Loader2, CheckCircle2, AlertCircle, Clock, 
-  MessageSquare, User, Shield, DollarSign, CreditCard,
-  Play, CheckSquare, Lock, Plus, Smile, Flag, Swords, Trophy, History, Save
+  Loader2, CheckCircle2, AlertCircle, Clock, 
+  Shield, DollarSign, CreditCard,
+  Play, CheckSquare, Lock, Flag, Swords, Trophy, Save
 } from 'lucide-react';
 import { toast } from 'sonner';
-import Image from 'next/image';
-
-interface Message {
-  _id: string;
-  content: string;
-  sender_id: {
-    _id: string;
-    username: string;
-    profile: { avatar?: string };
-    role: string;
-  };
-  createdAt: string;
-  type: 'TEXT' | 'IMAGE' | 'SYSTEM';
-}
+import ChatWindow from '@/components/chat/ChatWindow';
 
 export default function OrderDetailsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -32,12 +19,8 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
   const router = useRouter();
   
   const [order, setOrder] = useState<any>(null);
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
-  const [sending, setSending] = useState(false);
   const [user, setUser] = useState<any>(null);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
   
   // UI States
   const [activeTab, setActiveTab] = useState<'INFO' | 'PROGRESS'>('INFO');
@@ -47,7 +30,7 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
 
   // Match Update State
   const [matchForm, setMatchForm] = useState({
-      mode: 'Rank Đơn', champion: '', result: 'WIN', lp_change: '', reason: ''
+      mode: 'Rank Đơn/Đôi', champion: '', result: 'WIN', lp_change: '', reason: ''
   });
 
   // --- POLLING FALLBACK (Cứ 5s tải lại data 1 lần để chắc chắn cập nhật) ---
@@ -61,16 +44,10 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                 if (data.order?.details?.ingame_name) setIngameName(data.order.details.ingame_name);
             }
         });
-        // Fetch Messages (Chỉ lấy nếu cần, ở đây fetch lại hết để đồng bộ)
-        fetch(`/api/orders/${id}/messages`).then(res => res.json()).then(data => {
-            if (data.success && data.messages.length > messages.length) {
-                setMessages(data.messages);
-            }
-        });
     }, 5000); // 5 giây
 
     return () => clearInterval(interval);
-  }, [id, messages.length]);
+  }, [id]);
 
   // Load User
   useEffect(() => {
@@ -82,18 +59,13 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [orderRes, msgRes] = await Promise.all([
-          fetch(`/api/orders/${id}`),
-          fetch(`/api/orders/${id}/messages`)
-        ]);
+        const orderRes = await fetch(`/api/orders/${id}`);
 
         if (!orderRes.ok) throw new Error('Failed to load order');
         
         const orderData = await orderRes.json();
-        const msgData = await msgRes.json();
 
         setOrder(orderData.order);
-        setMessages(msgData.messages || []);
         if (orderData.order?.details?.ingame_name) {
             setIngameName(orderData.order.details.ingame_name);
         }
@@ -114,15 +86,6 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
 
     socket.emit('join_order', id);
 
-    const handleNewMessage = (msg: Message) => {
-      setMessages((prev) => {
-        // Chống trùng lặp tin nhắn
-        if (prev.some(m => m._id === msg._id)) return prev;
-        return [...prev, msg];
-      });
-      scrollToBottom();
-    };
-
     const handleOrderUpdate = (updatedData: any) => {
         console.log('Socket Order Update:', updatedData);
         setOrder((prev: any) => ({ ...prev, ...updatedData }));
@@ -131,52 +94,13 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
         }
     };
 
-    socket.on('new_message', handleNewMessage);
     socket.on('order_updated', handleOrderUpdate);
 
     return () => {
-      socket.off('new_message', handleNewMessage);
       socket.off('order_updated', handleOrderUpdate);
       socket.emit('leave_order', id);
     };
   }, [id]);
-
-  // Auto-scroll to bottom
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
-
-  const handleSendMessage = async (e?: React.FormEvent) => {
-    e?.preventDefault();
-    if (!newMessage.trim()) return;
-
-    setSending(true);
-    try {
-      const res = await fetch(`/api/orders/${id}/messages`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: newMessage, type: 'TEXT' }),
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        // Emit socket event manually if backend doesn't broadcast automatically
-        socket.emit('send_message', { room: id, message: data.message });
-        
-        // Optimistic update (optional, since socket will broadcast back)
-        setMessages(prev => [...prev, data.message]); // HIỂN THỊ NGAY LẬP TỨC
-        setNewMessage('');
-      }
-    } catch (error) {
-      toast.error('Gửi tin nhắn thất bại');
-    } finally {
-      setSending(false);
-    }
-  };
 
   const handleUpdateStatus = async (status: string) => {
     if (!confirm(`Bạn có chắc chắn muốn chuyển trạng thái thành ${status}?`)) return;
@@ -210,15 +134,25 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
     }
   };
 
-  const handleConfirmCompletion = async () => {
-      if (!confirm('Bạn xác nhận đã nhận được kết quả như mong muốn? Tiền sẽ được chuyển cho Booster.')) return;
-      try {
-          const res = await fetch(`/api/orders/${id}/confirm`, { method: 'POST' });
-          if (res.ok) {
-              toast.success('Đã xác nhận hoàn thành!');
-              window.location.reload();
-          }
-      } catch (e) { toast.error('Lỗi kết nối'); }
+  const processConfirmCompletion = async () => {
+    try {
+        const res = await fetch(`/api/orders/${id}/confirm`, { method: 'POST' });
+        if (res.ok) {
+            toast.success('Đã xác nhận hoàn thành!');
+            // Cập nhật UI ngay lập tức: Ẩn nút, đổi trạng thái (nếu cần thiết kế riêng)
+            // Tuy nhiên, logic backend confirm xong thường giữ status COMPLETED hoặc đổi sang SETTLED
+            // Ở đây ta reload để đồng bộ dữ liệu mới nhất (ví dụ settlement_status)
+            window.location.reload();
+        }
+    } catch (e) { toast.error('Lỗi kết nối'); }
+  };
+
+  const handleConfirmCompletion = () => {
+      toast('🎉 Xác nhận hoàn thành đơn hàng?', {
+          description: 'Bạn xác nhận đã nhận được kết quả như mong muốn? Tiền sẽ được giải ngân cho Booster ngay lập tức.',
+          action: { label: 'Xác nhận & Trả tiền', onClick: processConfirmCompletion },
+          cancel: { label: 'Hủy', onClick: () => {} }
+      });
   };
 
   const handleDispute = async () => {
@@ -290,34 +224,56 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
       } catch (e) { toast.error('Lỗi kết nối'); }
   };
 
+  // --- UI COMPONENTS ---
+  const StatusBadge = ({ status }: { status: string }) => {
+      const styles: Record<string, string> = {
+          COMPLETED: 'bg-green-500/10 text-green-400 border-green-500/20 shadow-[0_0_15px_rgba(34,197,94,0.2)]',
+          IN_PROGRESS: 'bg-blue-500/10 text-blue-400 border-blue-500/20 shadow-[0_0_15px_rgba(59,130,246,0.2)] animate-pulse',
+          APPROVED: 'bg-purple-500/10 text-purple-400 border-purple-500/20',
+          DISPUTED: 'bg-red-500/10 text-red-400 border-red-500/20',
+          PAID: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20',
+      };
+      const style = styles[status] || 'bg-zinc-800 text-zinc-400 border-zinc-700';
+      
+      return (
+          <span className={`px-4 py-1.5 rounded-full text-xs font-bold uppercase border tracking-wider ${style}`}>
+              {status === 'COMPLETED' ? 'HOÀN THÀNH' : status.replace('_', ' ')}
+          </span>
+      );
+  };
+
   if (loading) return <div className="min-h-screen bg-zinc-950 pt-24 flex justify-center"><Loader2 className="w-8 h-8 animate-spin text-blue-500" /></div>;
   if (!order) return <div className="min-h-screen bg-zinc-950 pt-24 text-center text-zinc-500">Đơn hàng không tồn tại</div>;
 
   const isBooster = user?.role === 'BOOSTER';
   const isCustomer = user?.role === 'CUSTOMER';
-  const isDepositService = order.serviceType === 'NET_WINS';
+  const partner = isCustomer ? order.boosterId : order.customerId;
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white font-sans pt-24 pb-10 px-4">
-      <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="max-w-5xl mx-auto">
         
         {/* Left Column: Order Info */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="space-y-6">
             {/* Status Card */}
-            <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
-                <div className="flex justify-between items-start mb-4">
+            <div className="bg-zinc-900/80 backdrop-blur-md border border-zinc-800 rounded-2xl p-6 shadow-xl relative overflow-hidden">
+                {/* Background Glow */}
+                <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
+                
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 relative z-10">
                     <div>
-                        <h2 className="text-lg font-bold text-white">Đơn hàng #{order._id.slice(-6).toUpperCase()}</h2>
-                        <p className="text-xs text-zinc-500">{new Date(order.createdAt).toLocaleString('vi-VN')}</p>
+                        <div className="flex items-center gap-2 mb-1">
+                            <span className="text-zinc-500 text-xs font-mono">ORDER ID</span>
+                            <span className="bg-zinc-800 text-white text-xs px-2 py-0.5 rounded font-mono">#{order._id.slice(-6).toUpperCase()}</span>
+                        </div>
+                        <h2 className="text-2xl font-black text-white tracking-tight flex items-center gap-2">
+                            {order.serviceType.replace('_', ' ')}
+                        </h2>
+                        <p className="text-xs text-zinc-400 flex items-center gap-1 mt-1">
+                            <Clock size={12} /> {new Date(order.createdAt).toLocaleString('vi-VN')}
+                        </p>
                     </div>
-                    <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase ${
-                        order.status === 'COMPLETED' ? 'bg-green-500/10 text-green-500' :
-                        order.status === 'IN_PROGRESS' ? 'bg-blue-500/10 text-blue-500' :
-                        order.status === 'DISPUTED' ? 'bg-red-500/10 text-red-500' :
-                        'bg-yellow-500/10 text-yellow-500'
-                    }`}>
-                        {order.status === 'COMPLETED' ? 'HOÀN THÀNH (CHỜ XÁC NHẬN)' : order.status}
-                    </span>
+                    <StatusBadge status={order.status} />
                 </div>
 
                 {/* Actions */}
@@ -337,7 +293,7 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                             <CreditCard className="w-4 h-4" /> Thanh toán phần còn lại
                         </button>
                     )}
-                    {isCustomer && order.status === 'COMPLETED' && (
+                    {isCustomer && order.status === 'COMPLETED' && order.pricing.settlement_status !== 'SETTLED' && (
                         <div className="flex gap-2">
                             <button onClick={handleConfirmCompletion} className="flex-1 py-3 bg-green-600 hover:bg-green-500 text-white font-bold rounded-xl flex items-center justify-center gap-2 transition-colors">
                                 <CheckCircle2 className="w-4 h-4" /> Xác nhận hoàn thành
@@ -351,12 +307,12 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
             </div>
 
             {/* TABS: Info vs Progress */}
-            <div className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden">
+            <div className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden shadow-lg">
                 <div className="flex border-b border-zinc-800">
-                    <button onClick={() => setActiveTab('INFO')} className={`flex-1 py-4 text-sm font-bold transition-colors ${activeTab === 'INFO' ? 'bg-zinc-800 text-white' : 'text-zinc-400 hover:text-white'}`}>
+                    <button onClick={() => setActiveTab('INFO')} className={`flex-1 py-4 text-sm font-bold transition-all border-b-2 ${activeTab === 'INFO' ? 'bg-zinc-800/50 text-white border-blue-500' : 'text-zinc-500 border-transparent hover:text-zinc-300 hover:bg-zinc-800/30'}`}>
                         Thông tin đơn hàng
                     </button>
-                    <button onClick={() => setActiveTab('PROGRESS')} className={`flex-1 py-4 text-sm font-bold transition-colors ${activeTab === 'PROGRESS' ? 'bg-zinc-800 text-white' : 'text-zinc-400 hover:text-white'}`}>
+                    <button onClick={() => setActiveTab('PROGRESS')} className={`flex-1 py-4 text-sm font-bold transition-all border-b-2 ${activeTab === 'PROGRESS' ? 'bg-zinc-800/50 text-white border-blue-500' : 'text-zinc-500 border-transparent hover:text-zinc-300 hover:bg-zinc-800/30'}`}>
                         Tiến độ & Trận đấu
                     </button>
                 </div>
@@ -399,6 +355,10 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                                     <div>
                                         <span className="text-xs text-zinc-500 block">Server</span>
                                         <span className="text-white">{order.details.server}</span>
+                                    </div>
+                                    <div>
+                                        <span className="text-xs text-zinc-500 block">Chế độ</span>
+                                        <span className="text-white">{['SOLO', 'SOLO_DUO'].includes(order.details.queueType) ? 'Đơn / Đôi' : order.details.queueType === 'FLEX' ? 'Linh Hoạt' : order.details.queueType || 'Mặc định'}</span>
                                     </div>
                                     <div>
                                         <span className="text-xs text-zinc-500 block">Ingame (Nếu có)</span>
@@ -510,73 +470,15 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
             </div>
         </div>
 
-        {/* Right Column: Chat */}
-        <div className="lg:col-span-1 flex flex-col h-[600px] bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden">
-            <div className="p-4 border-b border-zinc-800 bg-zinc-950 flex justify-between items-center">
-                <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-zinc-800 overflow-hidden">
-                        {isCustomer ? (
-                            order.boosterId?.profile?.avatar ? <img src={order.boosterId.profile.avatar} className="w-full h-full object-cover" /> : <User className="w-full h-full p-2 text-zinc-500" />
-                        ) : (
-                            order.customerId?.profile?.avatar ? <img src={order.customerId.profile.avatar} className="w-full h-full object-cover" /> : <User className="w-full h-full p-2 text-zinc-500" />
-                        )}
-                    </div>
-                    <div>
-                        <div className="font-bold text-white">
-                            {isCustomer ? (order.boosterId?.username || 'Đang tìm Booster...') : order.customerId.username}
-                        </div>
-                        <div className="text-xs text-zinc-500 flex items-center gap-1">
-                            <span className="w-2 h-2 rounded-full bg-green-500"></span> Online
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            {/* Messages Area */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-zinc-900/50">
-                {messages.map((msg) => {
-                    const isMe = msg.sender_id._id === user?._id;
-                    return (
-                        <div key={msg._id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
-                            <div className={`max-w-[85%] rounded-2xl px-3 py-2 ${
-                                isMe ? 'bg-blue-600 text-white rounded-tr-none' : 'bg-zinc-800 text-zinc-200 rounded-tl-none'
-                            }`}>
-                                <p className="text-xs sm:text-sm leading-relaxed">{msg.content}</p>
-                                <div className={`text-[10px] mt-1 ${isMe ? 'text-blue-200' : 'text-zinc-500'}`}>
-                                    {msg.createdAt ? new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Just now'}
-                                </div>
-                            </div>
-                        </div>
-                    );
-                })}
-                <div ref={messagesEndRef} />
-            </div>
-
-            {/* Input Area */}
-            <form onSubmit={handleSendMessage} className="p-3 bg-zinc-950 border-t border-zinc-800 flex gap-2 items-center">
-                <button type="button" className="p-2 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-full transition-colors"><Plus className="w-5 h-5" /></button>
-                <input 
-                    type="text" 
-                    value={newMessage}
-                    onChange={(e) => setNewMessage(e.target.value)}
-                    placeholder="Nhập tin nhắn..."
-                    className="flex-1 bg-zinc-900 border border-zinc-800 rounded-full px-4 py-2 text-sm text-white focus:outline-none focus:border-blue-500 transition-colors"
-                />
-                <button type="button" className="p-2 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-full transition-colors"><Smile className="w-5 h-5" /></button>
-                {isCustomer && (
-                    <button type="button" className="p-2 text-green-400 hover:text-green-300 hover:bg-zinc-800 rounded-full transition-colors" title="Gửi tiền tip"><DollarSign className="w-5 h-5" /></button>
-                )}
-                <button 
-                    type="submit" 
-                    disabled={sending || !newMessage.trim()}
-                    className="p-2 bg-blue-600 hover:bg-blue-500 text-white rounded-full disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                    {sending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
-                </button>
-            </form>
-        </div>
-
       </div>
+
+      {/* Floating Chat Window */}
+      <ChatWindow 
+        orderId={id} 
+        currentUser={user} 
+        partner={partner} 
+        trigger="side" 
+      />
 
       {/* Dispute Modal */}
       {isDisputeModalOpen && (

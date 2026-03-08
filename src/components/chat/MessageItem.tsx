@@ -5,7 +5,7 @@ import { createPortal } from 'react-dom';
 import Image from 'next/image';
 import { formatDistanceToNow } from 'date-fns';
 import { vi } from 'date-fns/locale';
-import { User, Smile, Reply, Trash2, X } from 'lucide-react';
+import { User, Smile, Reply, Trash2, X, Check, CheckCheck } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n';
 import { useRouter } from 'next/navigation';
 
@@ -34,7 +34,7 @@ export default function MessageItem({ message, isMe, isSequence = false, searchT
 
   // Kiểm tra xem tin nhắn đã được xem chưa (bởi người khác)
   // Logic: readBy chứa ít nhất 1 ID khác người gửi (là mình)
-  const isSeen = isMe && message.readBy && message.readBy.length > 0;
+  const isSeen = isMe && message.readBy && message.readBy.some((id: string) => id !== message.sender_id?._id);
 
   const handleViewProfile = () => {
     if (message.sender_id?._id && message.sender_id.role === 'BOOSTER') {
@@ -42,24 +42,40 @@ export default function MessageItem({ message, isMe, isSequence = false, searchT
     }
   };
 
-  const timeAgo = message.created_at 
-    ? formatDistanceToNow(new Date(message.created_at), { addSuffix: true, locale: vi }) 
-    : '';
+  // FIX: Handle both created_at (DB) and createdAt (Optimistic/Mongoose)
+  const dateValue = message.createdAt || message.created_at;
+  const timeAgo = dateValue 
+    ? formatDistanceToNow(new Date(dateValue), { addSuffix: true, locale: vi }) 
+    : 'Vừa xong';
 
   // Hàm highlight từ khóa
   const highlightText = (text: string, highlight: string) => {
     if (!highlight.trim()) return text;
-    const regex = new RegExp(`(${highlight})`, 'gi');
+
+    const escaped = highlight.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp(`(${escaped})`, 'gi');
+
     const parts = text.split(regex);
-    return parts.map((part, i) => 
-      regex.test(part) ? <span key={i} className="bg-yellow-500/50 text-white font-bold rounded px-0.5">{part}</span> : part
-    );
+
+    return parts.map((part, i) => {
+      if (part.toLowerCase() === highlight.toLowerCase()) {
+        return (
+          <span
+            key={i}
+            className="bg-yellow-500/50 text-white font-bold rounded px-0.5"
+          >
+            {part}
+          </span>
+        );
+      }
+      return part;
+    });
   };
 
   return (
     <>
     <div
-      className={`group flex gap-3 ${isSequence ? 'mb-0.5' : 'mb-4'} ${isMe ? 'flex-row-reverse' : 'flex-row'}`}
+      className={`group flex gap-3 ${isSequence ? 'mb-1' : 'mb-4'} ${isMe ? 'flex-row-reverse' : 'flex-row'}`}
     >
       {/* Avatar */}
       <div className="flex-shrink-0 w-8 flex flex-col justify-end">
@@ -106,14 +122,14 @@ export default function MessageItem({ message, isMe, isSequence = false, searchT
           )}
 
           {/* Message Bubble */}
-          <div className={`rounded-2xl text-sm break-all shadow-sm ${
+          <div className={`rounded-2xl text-sm break-all whitespace-pre-wrap shadow-sm max-w-full relative group/bubble ${
             message.type === 'IMAGE' 
               ? 'bg-transparent p-0' // FIX: Không nền, không padding cho ảnh
               : message.type === 'COMMAND_RESULT'
               ? 'bg-zinc-800 border border-zinc-700 text-zinc-200 font-mono whitespace-pre-wrap'
               : isMe
-                ? `bg-blue-600 text-white px-3 py-2 ${isSequence ? 'rounded-tr-md' : 'rounded-tr-none'}`
-                : `bg-zinc-800 text-zinc-200 border border-zinc-700 px-3 py-2 ${isSequence ? 'rounded-tl-md' : 'rounded-tl-none'}`
+                ? `bg-blue-600 text-white px-4 py-2 ${isSequence ? 'rounded-tr-sm' : 'rounded-tr-2xl'}`
+                : `bg-zinc-800 text-zinc-200 border border-zinc-700 px-4 py-2 ${isSequence ? 'rounded-tl-sm' : 'rounded-tl-2xl'}`
           }`} title={timeAgo}>
               {message.type === 'IMAGE' ? (
                 <img
@@ -124,6 +140,11 @@ export default function MessageItem({ message, isMe, isSequence = false, searchT
                 />
               ) : (
                 highlightText(message.content, searchTerm)
+              )}
+              
+              {/* Hover Glow Effect */}
+              {!isMe && message.type === 'TEXT' && (
+                <div className="absolute inset-0 rounded-2xl bg-white/5 opacity-0 group-hover/bubble:opacity-100 transition-opacity pointer-events-none" />
               )}
           </div>
 
@@ -139,9 +160,11 @@ export default function MessageItem({ message, isMe, isSequence = false, searchT
             </div>
           )}
 
-          {/* Seen Indicator */}
-          {isSeen && !isSequence && (
-            <div className="text-[10px] text-zinc-500 text-right mt-1 mr-1">Đã xem</div>
+          {/* Read Status Indicator */}
+          {isMe && !isSequence && (
+            <div className="text-[10px] text-zinc-500 text-right mt-1 mr-1 flex justify-end items-center gap-1">
+               {isSeen ? <CheckCheck size={12} className="text-blue-400" /> : <Check size={12} />}
+            </div>
           )}
         </div>
 

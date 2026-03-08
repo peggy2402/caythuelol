@@ -23,8 +23,8 @@ export async function GET(req: Request) {
     } else if (filter === 'completed') {
       query.status = { $in: ['COMPLETED', 'DISPUTED', 'REFUNDED', 'REJECTED'] };
     } else {
-      // Exclude PAID (Pending Approval) from 'My Orders'
-      query.status = { $ne: 'PAID' };
+      // FIX: Chỉ lấy đơn đã được Approve hoặc đang làm. Tuyệt đối loại bỏ PAID (đơn chờ nhận)
+      query.status = { $in: ['APPROVED', 'IN_PROGRESS'] };
     }
 
     const orders = await Order.find(query).populate('customerId', 'username profile.avatar').sort({ updatedAt: -1 });

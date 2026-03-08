@@ -117,7 +117,7 @@ export default function BoosterDashboardPage() {
                             <User size={16} className="text-zinc-500" />
                           )}
                         </div>
-                        <span className="font-medium text-white">{order.customerId?.username || 'Unknown'}</span>
+                        <span className="font-medium text-white">{order.customerId?.username || 'Khách ẩn danh'}</span>
                       </div>
                     </td>
                     <td className="px-6 py-4 text-zinc-300">
@@ -132,7 +132,7 @@ export default function BoosterDashboardPage() {
                       </span>
                     </td>
                     <td className="px-6 py-4 text-zinc-500">
-                      {order.updatedAt ? format(new Date(order.updatedAt), 'dd/MM/yyyy') : 'N/A'}
+                      {order.createdAt ? format(new Date(order.createdAt), 'dd/MM/yyyy') : 'N/A'}
                     </td>
                   </tr>
                 ))

@@ -4,6 +4,7 @@ import dbConnect from '@/lib/db';
 import Order, { OrderStatus } from '@/models/Order';
 import User from '@/models/User';
 import Transaction, { TransactionType, TransactionStatus } from '@/models/Transaction';
+import Message from '@/models/Message';
 
 export async function POST(
   req: Request,
@@ -48,6 +49,18 @@ export async function POST(
             description: `Nhận tiền đơn hàng #${order._id.toString().slice(-6).toUpperCase()}`
         });
     }
+
+    // Đánh dấu đã quyết toán xong để ẩn nút xác nhận
+    order.pricing.settlement_status = 'SETTLED';
+    await order.save();
+
+    // TASK 3: Xóa chat messages sau khi hoàn thành đơn (Theo yêu cầu)
+    // Giữ lại Order Info, chỉ xóa Messages
+    try {
+        await Message.deleteMany({ order_id: order._id });
+        // Optional: Tạo 1 tin nhắn hệ thống báo đã xóa chat
+        await Message.create({ order_id: order._id, sender_id: session.user.id, content: 'Đơn hàng đã hoàn tất. Lịch sử chat đã được xóa để bảo mật.', type: 'SYSTEM', readBy: [] });
+    } catch (e) { console.error('Failed to clear chat', e); }
 
     // Update settlement status if needed, or just leave as COMPLETED
     return NextResponse.json({ success: true, message: 'Đã xác nhận hoàn thành. Cảm ơn bạn!' });

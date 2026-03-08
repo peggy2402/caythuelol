@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { MessageSquare, X, Minimize2, Maximize2, Loader2, ArrowDown, UploadCloud, MessageCircle, Search, User } from 'lucide-react';
+import { MessageSquare, X, Minimize2, Maximize2, Loader2, ArrowDown, UploadCloud, MessageCircle, Search, User, ChevronUp, ChevronDown, Minus, Square } from 'lucide-react';
 import Image from 'next/image';
 import { toast } from 'sonner';
 import MessageItem from './MessageItem';
@@ -15,11 +15,13 @@ interface ChatWindowProps {
   title?: string;
   initialMessages?: any[];
   partner?: any; // Thông tin người chat cùng
+  trigger?: 'default' | 'side'; // New prop
 }
 
-export default function ChatWindow({ orderId, currentUser, title, initialMessages = [], partner }: ChatWindowProps) {
+export default function ChatWindow({ orderId, currentUser, title, initialMessages = [], partner, trigger = 'default' }: ChatWindowProps) {
   const [isOpen, setIsOpen] = useState(true);
   const [isMinimized, setIsMinimized] = useState(false);
+  const [isMaximized, setIsMaximized] = useState(false);
   const [messages, setMessages] = useState<any[]>(initialMessages);
   
   // Refs & State cho Scroll
@@ -36,7 +38,6 @@ export default function ChatWindow({ orderId, currentUser, title, initialMessage
   const [isSearching, setIsSearching] = useState(false); // State bật/tắt tìm kiếm
   const [searchTerm, setSearchTerm] = useState(''); // Từ khóa tìm kiếm
   const [isPartnerOnline, setIsPartnerOnline] = useState(false); // Trạng thái Online của đối phương
-
   // Ref để theo dõi trạng thái mở/đóng trong useEffect của socket mà không cần re-render
   const stateRef = useRef({ isOpen, isMinimized });
   useEffect(() => {
@@ -160,7 +161,11 @@ export default function ChatWindow({ orderId, currentUser, title, initialMessage
     socket.on('connect', onConnect);
 
     const handleNewMessage = (msg: any) => {
-        setMessages(prev => [...prev, msg]);
+        // FIX: Chống trùng lặp tin nhắn (do Optimistic UI hoặc mạng lag)
+        setMessages(prev => {
+            if (prev.some(m => m._id === msg._id)) return prev;
+            return [...prev, msg];
+        });
         
         // Phát âm thanh nếu tin nhắn đến từ người khác (bất kể đang mở hay đóng chat)
         const isMe = msg.sender_id?._id === currentUser?._id || msg.sender_id === currentUser?._id;
@@ -171,7 +176,8 @@ export default function ChatWindow({ orderId, currentUser, title, initialMessage
         }
 
         // Nếu đang đóng hoặc thu nhỏ -> Bật thông báo chưa đọc
-        if (!stateRef.current.isOpen || stateRef.current.isMinimized) {
+        // FIX: Chỉ tăng count nếu tin nhắn KHÔNG PHẢI của mình
+        if (!isMe && (!stateRef.current.isOpen || stateRef.current.isMinimized)) {
             setUnreadCount(prev => prev + 1); // FIX: Tăng số lượng tin nhắn chưa đọc
         }
     };
@@ -189,9 +195,13 @@ export default function ChatWindow({ orderId, currentUser, title, initialMessage
         }
     };
 
+    // Typing indicator logic
     const handleTyping = (data: { userId: string, isTyping: boolean }) => {
         if (data.userId !== currentUser._id) {
             setIsTyping(data.isTyping);
+            
+            // Auto-hide typing indicator after 3s if no stop event received (safety fallback)
+            if (data.isTyping) { /* logic handled by sender's debounce usually, but could add timeout here */ }
         }
     };
 
@@ -325,43 +335,60 @@ export default function ChatWindow({ orderId, currentUser, title, initialMessage
   };
 
   const handleTypingEvent = (isTyping: boolean) => {
-      socket.emit('typing', { room: orderId, userId: currentUser._id, isTyping });
+      socket.emit('typing', { room: orderId, userId: currentUser._id, isTyping }); // Emit typing event
   };
 
-  if (!isOpen) return (
-      <>
-      {/* CSS Animation Shake */}
-      <style jsx>{`
-        @keyframes shake {
-          0%, 100% { transform: translateX(0); }
-          25% { transform: translateX(-4px) rotate(-4deg); }
-          75% { transform: translateX(4px) rotate(4deg); }
-        }
-        .animate-shake {
-          animation: shake 0.4s ease-in-out infinite;
-        }
-      `}</style>
-      <button
-        onClick={() => { setIsOpen(true); setIsFirstLoad(true); setUnreadCount(0); }}
-        className={`fixed bottom-4 right-4 text-white p-4 rounded-full shadow-2xl z-[60] transition-transform hover:scale-110 ${unreadCount > 0 ? 'bg-red-600 animate-shake' : 'bg-blue-600 hover:bg-blue-500'}`}
-      >
-          <MessageCircle size={24} />
-          {/* Chấm đỏ thông báo */}
-          {unreadCount > 0 && (
-            <span className="absolute -top-1 -right-1 min-w-[20px] h-5 bg-red-500 text-white text-xs font-bold flex items-center justify-center rounded-full px-1 border-2 border-zinc-900 animate-in zoom-in">
-              {unreadCount > 99 ? '99+' : unreadCount}
+    // Render Floating Button khi đóng chat
+    if (!isOpen) {
+    return (
+        <>
+        {/* CSS Animation Shake */}
+        <style jsx global>{`
+            @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-4px) rotate(-4deg); }
+            75% { transform: translateX(4px) rotate(4deg); }
+            }
+            .animate-shake {
+            animation: shake 0.4s ease-in-out infinite;
+            }
+        `}</style>
+
+        <button
+            onClick={() => {
+            setIsOpen(true);
+            setIsFirstLoad(true);
+            setUnreadCount(0);
+            }}
+            className={`fixed bottom-6 right-6 text-white p-4 rounded-full shadow-2xl z-[60] transition-all duration-300 hover:scale-110 group ${
+            unreadCount > 0
+                ? "bg-red-600 animate-shake shadow-[0_0_20px_rgba(220,38,38,0.6)]"
+                : "bg-blue-600 hover:bg-blue-500 shadow-[0_0_20px_rgba(37,99,235,0.5)]"
+            }`}
+        >
+            {/* hiệu ứng glow */}
+            <div className="absolute inset-0 rounded-full bg-white/20 animate-ping opacity-0 group-hover:opacity-30 duration-1000"></div>
+
+            <MessageCircle size={28} />
+
+            {/* Badge thông báo */}
+            {unreadCount > 0 && (
+            <span className="absolute -top-1 -right-1 min-w-[20px] h-5 bg-red-500 text-white text-xs font-bold flex items-center justify-center rounded-full px-1 border-2 border-zinc-900">
+                {unreadCount > 99 ? "99+" : unreadCount}
             </span>
-          )}
-      </button>
-      </>
-  );
+            )}
+        </button>
+        </>
+    );
+    }
 
   return (
+    <>
     <div
         className={`fixed z-[60] flex flex-col bg-zinc-900/95 backdrop-blur-xl border border-zinc-800 shadow-2xl transition-all duration-300 ease-in-out
-        ${isMinimized 
-            ? 'bottom-4 right-4 left-4 sm:left-auto sm:w-72 h-14 rounded-xl' 
-            : 'bottom-0 left-0 w-full h-[85dvh] rounded-t-2xl sm:left-auto sm:bottom-4 sm:right-4 sm:w-[400px] sm:h-[600px] sm:rounded-xl'}
+        ${isMinimized
+            ? 'bottom-0 right-4 w-72 h-12 rounded-t-xl border-b-0 cursor-pointer hover:bg-zinc-800'
+            : 'bottom-0 left-0 w-full h-[85dvh] rounded-t-2xl sm:left-auto sm:bottom-4 sm:right-4 sm:w-[400px] sm:h-[600px] sm:rounded-xl border-b-0 sm:border-b'}
         `}
         onDragEnter={handleDragEnter}
         onDragLeave={handleDragLeave}
@@ -378,16 +405,16 @@ export default function ChatWindow({ orderId, currentUser, title, initialMessage
 
       {/* Header */}
       <div
-        className="flex items-center justify-between p-3 border-b border-zinc-800 bg-zinc-900/50 rounded-t-xl cursor-pointer hover:bg-zinc-800/50 transition-colors"
+        className="flex items-center justify-between p-3 border-b border-zinc-800 bg-zinc-900/50 rounded-t-xl cursor-pointer hover:bg-zinc-800/80 transition-colors h-12 sm:h-auto"
         onClick={() => {
             setIsMinimized(!isMinimized);
             if (isMinimized) setUnreadCount(0); // FIX: Reset đếm khi mở lên
         }}
       >
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-1 min-w-0">
             <div className="relative">
                 {/* Hiển thị Avatar Partner nếu có, ngược lại dùng icon mặc định */}
-                {partner?.profile?.avatar ? (
+                {partner?.profile?.avatar || partner?.avatar ? (
                     <div className="w-8 h-8 rounded-full overflow-hidden border border-zinc-700">
                         <Image src={partner.profile.avatar} alt={partner.username} width={32} height={32} className="object-cover w-full h-full" />
                     </div>
@@ -398,23 +425,28 @@ export default function ChatWindow({ orderId, currentUser, title, initialMessage
                 )}
                 
                 {/* Chấm xanh Online */}
-                {isPartnerOnline && <div className="w-2.5 h-2.5 bg-green-500 rounded-full absolute bottom-0 right-0 ring-2 ring-zinc-900 animate-pulse"></div>}
+                {isPartnerOnline && <div className="w-2.5 h-2.5 bg-green-500 rounded-full absolute bottom-0 right-0 ring-2 ring-zinc-900 shadow-[0_0_8px_rgba(34,197,94,0.6)]"></div>}
             </div>
-            <div>
-                <h3 className="font-bold text-white text-sm">{partner?.username || title || t('chatTitle')}</h3>
-                {!isMinimized && <p className="text-[10px] text-zinc-400">{isPartnerOnline ? 'Đang hoạt động' : 'Ngoại tuyến'}</p>}
+            <div className="min-w-0">
+                <h3 className="font-bold text-white text-sm truncate">{partner?.username || title || t('chatTitle')}</h3>
+                {!isMinimized && <p className="text-[11px] text-zinc-400 truncate flex items-center gap-1">{isPartnerOnline ? <span className="text-green-400">● Online</span> : 'Offline'}</p>}
             </div>
         </div>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1 shrink-0">
             <button onClick={(e) => { e.stopPropagation(); setIsSearching(!isSearching); if(isSearching) setSearchTerm(''); }} className={`p-1.5 text-zinc-400 hover:text-white hover:bg-zinc-700 rounded-lg ${isSearching ? 'bg-zinc-800 text-white' : ''}`} title="Tìm kiếm tin nhắn">
                 <Search size={14} />
             </button>
-            <button onClick={(e) => { e.stopPropagation(); setIsMinimized(!isMinimized); }} className="p-1.5 text-zinc-400 hover:text-white hover:bg-zinc-700 rounded-lg">
-                {isMinimized ? <Maximize2 size={14} /> : <Minimize2 size={14} />}
+            <button onClick={(e) => { e.stopPropagation(); setIsMinimized(!isMinimized); setIsMaximized(false); }} className="p-1.5 text-zinc-400 hover:text-white hover:bg-zinc-700 rounded-lg" title={isMinimized ? "Mở rộng" : "Thu nhỏ"}>
+                {isMinimized ? <ChevronUp size={16} /> : <Minus size={16} />} 
             </button>
+            {!isMinimized && (
+                <button onClick={(e) => { e.stopPropagation(); setIsMaximized(!isMaximized); }} className="p-1.5 text-zinc-400 hover:text-white hover:bg-zinc-700 rounded-lg hidden sm:block" title={isMaximized ? "Khôi phục" : "Phóng to"}>
+                    {isMaximized ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
+                </button>
+            )}
             {/* FIX: Reset isFirstLoad = true khi đóng để lần sau mở lại sẽ cuộn tức thì (auto) thay vì trượt (smooth) */}
-            <button onClick={(e) => { e.stopPropagation(); setIsOpen(false); setIsFirstLoad(true); }} className="p-1.5 text-zinc-400 hover:text-red-500 hover:bg-zinc-700 rounded-lg">
-                <X size={14} />
+            <button onClick={(e) => { e.stopPropagation(); setIsOpen(false); setIsFirstLoad(true); }} className="p-1.5 text-zinc-400 hover:text-red-500 hover:bg-zinc-700 rounded-lg" title="Đóng chat">
+                <X size={16} />
             </button>
         </div>
       </div>
@@ -442,8 +474,8 @@ export default function ChatWindow({ orderId, currentUser, title, initialMessage
 
       {/* Body */}
       {/* FIX: Wrap toàn bộ body (Messages + Input) trong 1 div flex có min-h-0 để tránh bị đẩy input ra ngoài */}
-      <div className={`flex-1 flex flex-col min-h-0 bg-zinc-950/50 ${isMinimized ? 'hidden' : 'flex'}`}>
-            {/* CSS Animation cho hiệu ứng Typing mượt mà */}
+      <div className={`flex-1 flex flex-col min-h-0 bg-zinc-950/80 ${isMinimized ? 'hidden' : 'flex'}`}>
+            {/* CSS Animation cho hiệu ứng Typing mượt mà - Moved to global css or style tag */}
             <style jsx>{`
                 @keyframes typing {
                     0%, 100% { transform: translateY(0); opacity: 0.5; }
@@ -456,7 +488,7 @@ export default function ChatWindow({ orderId, currentUser, title, initialMessage
             <div 
                 ref={scrollViewportRef}
                 onScroll={handleScroll}
-                className="flex-1 overflow-y-auto p-4 scrollbar-thin scrollbar-thumb-zinc-700 scrollbar-track-transparent relative"
+                className="flex-1 overflow-y-auto p-4 relative [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-zinc-700 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-zinc-600"
             >
                 {filteredMessages.map((msg, index) => {
                     const isMe = msg.sender_id?._id === currentUser?._id;
@@ -483,13 +515,13 @@ export default function ChatWindow({ orderId, currentUser, title, initialMessage
                 )}
 
                 {isTyping && (
-                  <div className="flex items-center gap-2 ml-2 mb-2 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                    <div className="flex space-x-1.5 bg-zinc-800 p-3 rounded-2xl rounded-bl-none border border-zinc-700 items-center h-9">
-                      <div className="w-1.5 h-1.5 bg-zinc-400 rounded-full animate-typing [animation-delay:-0.32s]"></div>
-                      <div className="w-1.5 h-1.5 bg-zinc-400 rounded-full animate-typing [animation-delay:-0.16s]"></div>
-                      <div className="w-1.5 h-1.5 bg-zinc-400 rounded-full animate-typing"></div>
+                  <div className="flex items-center gap-2 mb-2 animate-in fade-in slide-in-from-bottom-2 duration-300 pl-1">
+                    <div className="flex space-x-1 bg-zinc-800 px-3 py-2.5 rounded-2xl rounded-bl-none border border-zinc-700 items-center h-8 shadow-sm">
+                      <div className="w-1.5 h-1.5 bg-zinc-400 rounded-full animate-typing [animation-delay:-0.32s]" />
+                      <div className="w-1.5 h-1.5 bg-zinc-400 rounded-full animate-typing [animation-delay:-0.16s]" />
+                      <div className="w-1.5 h-1.5 bg-zinc-400 rounded-full animate-typing" />
                     </div>
-                    <span className="text-xs text-zinc-500 italic">Đang nhập...</span>
+                    <span className="text-[10px] text-zinc-500 italic">Đang nhập...</span>
                   </div>
                 )}
                 
@@ -513,5 +545,6 @@ export default function ChatWindow({ orderId, currentUser, title, initialMessage
             />
       </div>
     </div>
+    </>
   );
 }

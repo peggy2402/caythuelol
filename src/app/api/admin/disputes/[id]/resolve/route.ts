@@ -47,7 +47,8 @@ export async function POST(
         }
         
         // FORCE DEDUCT: Nếu lúc Dispute chưa trừ tiền Booster (do lỗi nào đó), thì trừ ngay bây giờ
-        // FIX: Bỏ check order.payment?.booster_received_pending để xử lý cả các đơn cũ bị lỗi
+        // FIX: Bỏ check order.payment?.booster_received_pending để xử lý cả các đơn cũ bị lỗi.
+        // Lưu ý: Code này trừ vào pending_balance. Nếu đơn hàng cũ đã lỡ cộng vào wallet_balance do lỗi ở bước complete, bạn cần trừ thủ công hoặc chấp nhận lệch pending.
         // Chỉ cần có boosterId + có thu nhập + chưa bị trừ tiền là TRỪ LUÔN.
         if (order.boosterId && order.pricing.booster_earnings > 0 && !order.dispute?.fundsDeducted) {
              await User.findByIdAndUpdate(order.boosterId, {

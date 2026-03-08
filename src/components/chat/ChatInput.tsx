@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useRef } from 'react';
-import { Send, Smile, Plus, DollarSign, Loader2, X } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { Send, Smile, Plus, DollarSign, Loader2, X, Image as ImageIcon, Command, ChevronUp } from 'lucide-react';
 import { toast } from 'sonner';
 import EmojiPicker, { EmojiClickData, Theme } from 'emoji-picker-react';
 
@@ -25,42 +25,50 @@ const COMMANDS = [
 
 export default function ChatInput({ onSend, disabled, onTyping, replyingTo, onCancelReply }: ChatInputProps) {
   const [message, setMessage] = useState('');
-  const [showCommands, setShowCommands] = useState(false);
-  const [sending, setSending] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const [showTools, setShowTools] = useState(false);
   const [showEmoji, setShowEmoji] = useState(false);
+  const [sending, setSending] = useState(false);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [showTipModal, setShowTipModal] = useState(false);
   const [tipAmount, setTipAmount] = useState('');
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const val = e.target.value;
     setMessage(val);
     
-    // Command check
-    if (val.startsWith('/') || showCommands) {
-      setShowCommands(true);
-    } else {
-      setShowCommands(false);
+    // Auto-resize textarea
+    if (inputRef.current) {
+        inputRef.current.style.height = 'auto';
+        inputRef.current.style.height = `${Math.min(inputRef.current.scrollHeight, 120)}px`;
     }
 
     // Typing indicator
     if (onTyping) {
         onTyping(true);
         if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
-        typingTimeoutRef.current = setTimeout(() => onTyping(false), 2000);
+        typingTimeoutRef.current = setTimeout(() => onTyping(false), 3000);
     }
   };
 
   const handleSelectCommand = (cmd: string) => {
     setMessage(cmd + ' ');
-    setShowCommands(false);
+    setShowTools(false);
     inputRef.current?.focus();
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      // @ts-ignore
+      handleSubmit(e);
+    }
   };
 
   const onEmojiClick = (emojiData: EmojiClickData) => {
     setMessage((prev) => prev + emojiData.emoji);
-    setShowEmoji(false);
+    // setShowEmoji(false); // Giữ mở để spam emoji
     inputRef.current?.focus();
   };
 
@@ -88,8 +96,12 @@ export default function ChatInput({ onSend, disabled, onTyping, replyingTo, onCa
         await onSend(message, 'TEXT');
       }
       setMessage('');
+      if (inputRef.current) {
+          inputRef.current.style.height = 'auto'; // Reset height
+      }
       if (onTyping) onTyping(false);
-      setShowCommands(false); // Close menu after send
+      setShowEmoji(false);
+      setShowTools(false);
     } catch (error) {
       toast.error('Gửi tin nhắn thất bại');
     } finally {
@@ -109,11 +121,33 @@ export default function ChatInput({ onSend, disabled, onTyping, replyingTo, onCa
     setTipAmount('');
   };
 
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+        const file = e.target.files[0];
+        if (!file.type.startsWith('image/')) {
+            toast.error('Chỉ hỗ trợ file ảnh');
+            return;
+        }
+        
+        const uploadToast = toast.loading('Đang tải ảnh...');
+        try {
+            const formData = new FormData();
+            formData.append('file', file);
+            const res = await fetch('/api/upload', { method: 'POST', body: formData });
+            if (!res.ok) throw new Error('Upload failed');
+            const { url } = await res.json();
+            await onSend(url, 'IMAGE');
+            toast.success('Đã gửi ảnh', { id: uploadToast });
+            setShowTools(false);
+        } catch (e) { toast.error('Lỗi tải ảnh', { id: uploadToast }); }
+    }
+  };
+
   return (
     <div className="relative p-4 bg-zinc-900 border-t border-zinc-800 rounded-b-3xl">
       {/* Reply Preview */}
       {replyingTo && (
-        <div className="flex items-center justify-between bg-zinc-800/50 p-2 rounded-lg mb-2 border-l-2 border-blue-500">
+        <div className="flex items-center justify-between bg-zinc-800/50 p-2 rounded-lg mb-2 border-l-2 border-blue-500 animate-in slide-in-from-bottom-2">
             <div className="text-xs">
                 <div className="font-bold text-blue-400">Đang trả lời {replyingTo.sender_id?.username}</div>
                 <div className="text-zinc-400 truncate max-w-[200px]">{replyingTo.content}</div>
@@ -122,10 +156,27 @@ export default function ChatInput({ onSend, disabled, onTyping, replyingTo, onCa
         </div>
       )}
 
-      {/* Command Suggestions */}
-      {showCommands && (
-        <div className="absolute bottom-full left-4 mb-2 w-full max-w-[300px] bg-zinc-900 border border-zinc-800 rounded-xl shadow-2xl overflow-hidden z-[60] animate-in slide-in-from-bottom-2 max-h-60 overflow-y-auto scrollbar-thin scrollbar-thumb-zinc-700 scrollbar-track-transparent">
-          <div className="p-2 text-xs font-bold text-zinc-500 uppercase bg-zinc-950">Slash Commands</div>
+      {/* Tools Menu (Popup) */}
+      {showTools && (
+        <div className="absolute bottom-full left-0 mb-2 w-64 bg-zinc-900 border border-zinc-800 rounded-xl shadow-2xl overflow-hidden z-[60] animate-in slide-in-from-bottom-2">
+          <div className="p-2 grid gap-1">
+            <button onClick={() => fileInputRef.current?.click()} className="flex items-center gap-3 px-3 py-2.5 text-sm text-zinc-300 hover:bg-zinc-800 rounded-lg transition-colors w-full text-left">
+                <ImageIcon size={18} className="text-blue-400" /> 
+                <span>Gửi ảnh</span>
+                <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileSelect} />
+            </button>
+            <button onClick={() => setShowTipModal(true)} className="flex items-center gap-3 px-3 py-2.5 text-sm text-zinc-300 hover:bg-zinc-800 rounded-lg transition-colors w-full text-left">
+                <DollarSign size={18} className="text-yellow-400" /> 
+                <span>Gửi tiền Tip</span>
+            </button>
+            <button onClick={() => handleSelectCommand('/order')} className="flex items-center gap-3 px-3 py-2.5 text-sm text-zinc-300 hover:bg-zinc-800 rounded-lg transition-colors w-full text-left">
+                <Command size={18} className="text-purple-400" /> 
+                <span>Thông tin đơn hàng</span>
+            </button>
+          </div>
+          
+          {/* Slash Commands List */}
+          <div className="bg-zinc-950 px-3 py-2 text-[10px] font-bold text-zinc-500 uppercase border-t border-zinc-800">Lệnh nhanh</div>
           {COMMANDS.filter(c => c.cmd.startsWith(message.split(' ')[0])).map((c) => (
             <button
               key={c.cmd}
@@ -141,57 +192,53 @@ export default function ChatInput({ onSend, disabled, onTyping, replyingTo, onCa
 
       {/* Emoji Picker */}
       {showEmoji && (
-        <div className="absolute bottom-full left-0 mb-2 z-[60]">
+        <div className="absolute bottom-full right-0 mb-2 z-[60] shadow-2xl rounded-xl overflow-hidden animate-in zoom-in-95 duration-200 origin-bottom-right">
           <EmojiPicker onEmojiClick={onEmojiClick} theme={Theme.DARK} width={300} height={400} />
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="flex items-center gap-3">
-        <div className="flex items-center gap-1">
-            <button 
-                type="button" 
-                onClick={() => setShowCommands(!showCommands)}
-                className="p-2 text-zinc-400 hover:text-blue-400 hover:bg-zinc-800 rounded-full transition-colors"
-                title="Mở menu lệnh"
-            >
-                <Plus size={20} />
-            </button>
-            <button 
-                type="button" 
-                onClick={() => setShowTipModal(true)}
-                className="p-2 text-zinc-400 hover:text-yellow-400 hover:bg-zinc-800 rounded-full transition-colors" 
-                title="Gửi Tip"
-            >
-                <DollarSign size={20} />
-            </button>
-            <button 
-                type="button" 
-                onClick={() => setShowEmoji(!showEmoji)}
-                className="p-2 text-zinc-400 hover:text-yellow-500 hover:bg-zinc-800 rounded-full transition-colors"
-                title="Chọn Emoji"
-            >
-                <Smile size={20} />
-            </button>
-        </div>
+      <form onSubmit={handleSubmit} className="flex items-end gap-2">
+        {/* Tools Button */}
+        <button 
+            type="button"
+            onClick={() => setShowTools(!showTools)}
+            className={`p-3 rounded-full transition-all shrink-0 ${showTools ? 'bg-zinc-800 text-white rotate-45' : 'text-zinc-400 hover:text-white hover:bg-zinc-800'}`}
+            title="Mở rộng"
+        >
+            <Plus size={24} />
+        </button>
 
-        <div className="flex-1 relative">
-          <input
+        {/* Input Area */}
+        <div className="flex-1 bg-zinc-800/50 rounded-2xl flex items-end p-1.5 relative border border-zinc-700/50 focus-within:border-blue-500/50 focus-within:bg-zinc-800 transition-all">
+          <textarea
             ref={inputRef}
-            type="text"
             value={message}
             onChange={handleChange}
-            placeholder="Nhập tin nhắn hoặc gõ / để dùng lệnh..."
-            className="w-full bg-zinc-950 border border-zinc-800 rounded-full px-4 py-2.5 text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/50 transition-all placeholder:text-zinc-600"
+            onKeyDown={handleKeyDown}
+            placeholder="Nhập tin nhắn..."
+            className="w-full bg-transparent border-none text-white px-3 py-2 resize-none overflow-hidden min-h-[40px] max-h-[150px] text-sm leading-relaxed scrollbar-hide placeholder:text-zinc-500 focus:outline-none focus:ring-0"
             disabled={disabled || sending}
+            rows={1}
+            style={{ minHeight: '40px' }}
           />
+          
+          {/* Emoji Button inside Input */}
+          <button 
+            type="button" 
+            onClick={() => setShowEmoji(!showEmoji)}
+            className={`p-2 rounded-xl transition-colors shrink-0 mb-0.5 mr-0.5 ${showEmoji ? 'text-yellow-400 bg-zinc-700' : 'text-zinc-400 hover:text-yellow-400 hover:bg-zinc-700/50'}`}
+            title="Emoji"
+          >
+            <Smile size={20} />
+          </button>
         </div>
 
         <button
             type="submit"
             disabled={!message.trim() || disabled || sending}
-            className="p-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-full disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-blue-600/20"
+            className="p-3 bg-blue-600 hover:bg-blue-500 text-white rounded-full disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-blue-600/20 shrink-0 mb-0.5"
         >
-            {sending ? <Loader2 size={20} className="animate-spin" /> : <Send size={20} />}
+            {sending ? <Loader2 size={20} className="animate-spin" /> : <Send size={20} className={message.trim() ? 'ml-0.5' : ''} />}
         </button>
       </form>
 

@@ -2,8 +2,6 @@ import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import dbConnect from '@/lib/db';
 import Order, { OrderStatus } from '@/models/Order';
-import User from '@/models/User';
-import Transaction, { TransactionType, TransactionStatus } from '@/models/Transaction';
 
 export async function POST(
   req: Request,
@@ -28,31 +26,9 @@ export async function POST(
     // 1. Update Status
     order.status = OrderStatus.COMPLETED;
     
-    // 2. Release Funds
-    const boosterEarnings = order.pricing.booster_earnings;
-
-    // Move pending_balance to wallet_balance for Booster
-    await User.findByIdAndUpdate(session.user.id, {
-        $inc: { 
-            pending_balance: -boosterEarnings,
-            wallet_balance: boosterEarnings 
-        }
-    });
-
-    // Create Transaction for Booster
-    await Transaction.create({
-        userId: session.user.id,
-        orderId: order._id,
-        type: TransactionType.PAYMENT_RELEASE,
-        amount: boosterEarnings,
-        balanceAfter: 0, // Should fetch actual balance if needed
-        status: TransactionStatus.SUCCESS,
-        description: `Nhận tiền đơn hàng #${order._id.toString().slice(-6).toUpperCase()}`
-    });
-
     await order.save();
 
-    return NextResponse.json({ success: true, message: 'Order completed successfully' });
+    return NextResponse.json({ success: true, message: 'Đã báo cáo hoàn thành. Vui lòng chờ khách hàng xác nhận.' });
   } catch (error) {
     console.error('Complete Order Error:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
