@@ -62,7 +62,7 @@ function CheckoutContent() {
       const result = await res.json();
       if (!res.ok) throw new Error(result.error);
 
-      toast.success('Thanh toán cọc thành công!');
+      toast.success('Thanh toán thành công!');
       router.push(`/orders/${result.orderId}`);
 
     } catch (error: any) {

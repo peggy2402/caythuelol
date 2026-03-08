@@ -35,7 +35,7 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const user = await User.findById(userId).select('wallet_balance pending_balance profile.bank_info');
+    const user = await User.findById(userId).select('wallet_balance pending_balance profile.bank_info role');
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
@@ -62,6 +62,7 @@ export async function GET(req: Request) {
     return NextResponse.json({
       balance: user.wallet_balance,
       pending: user.pending_balance,
+      role: user.role, // Trả về Role mới nhất
       transactions,
       pagination: {
         total,

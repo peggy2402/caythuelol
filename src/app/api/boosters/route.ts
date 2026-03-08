@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import User from '@/models/User';
+import BoosterProfile from '@/models/BoosterProfile';
 
 export async function GET(req: Request) {
   try {
@@ -16,31 +17,73 @@ export async function GET(req: Request) {
     const skip = (page - 1) * limit;
 
     // 2. Build Query
-    const query: any = { role: 'BOOSTER' };
-
-    // Nếu có filter search, tìm kiếm username gần đúng
-    if (search) {
-      query.username = { $regex: search, $options: 'i' };
-    }
+    const query: any = {};
 
     // Nếu có filter server, kiểm tra xem booster có hỗ trợ server đó không
+    // Cấu trúc mới: games.servers (Array)
     if (server) {
-      query['booster_info.service_settings.servers'] = server;
+      query['games.servers'] = server;
     }
 
     // Nếu có filter service, kiểm tra xem booster có bật dịch vụ đó không
     if (service) {
-      query['booster_info.services'] = service;
+      query['services'] = service;
     }
 
-    // 3. Execute Query (Select fields tối ưu)
-    const boosters = await User.find(query)
-      .select('_id username profile.avatar booster_info.ranks booster_info.rating booster_info.completed_orders booster_info.bio booster_info.services booster_info.service_settings')
-      .skip(skip)
-      .limit(limit)
-      .lean(); // Dùng lean() để tăng tốc độ query
+    // 3. Execute Query với Aggregation để Join User
+    // Nếu có search text, chúng ta cần tìm User trước hoặc lookup xong mới filter
+    
+    const pipeline: any[] = [
+      { $match: query },
+      {
+        $lookup: {
+          from: 'users', // Tên collection User trong DB (thường là lowercase plural)
+          localField: 'userId',
+          foreignField: '_id',
+          as: 'userInfo'
+        }
+      },
+      { $unwind: { path: '$userInfo', preserveNullAndEmptyArrays: false } }, // Chỉ lấy profile có user hợp lệ
+      // Chỉ lấy user có role BOOSTER (đề phòng data rác)
+      { $match: { 'userInfo.role': 'BOOSTER' } }
+    ];
 
-    const total = await User.countDocuments(query);
+    // Filter theo tên (Search)
+    if (search) {
+      pipeline.push({
+        $match: {
+          $or: [
+            { 'userInfo.username': { $regex: search, $options: 'i' } },
+            { 'displayName': { $regex: search, $options: 'i' } }
+          ]
+        }
+      });
+    }
+
+    // Pagination
+    pipeline.push(
+      { $skip: skip },
+      { $limit: limit },
+      {
+        $project: {
+          _id: '$userInfo._id', // Trả về ID của User để frontend dùng làm link
+          username: '$userInfo.username',
+          avatar: '$userInfo.profile.avatar',
+          displayName: 1,
+          bio: 1,
+          games: 1, // Cấu trúc mới
+          services: 1,
+          rating: 1,
+          completedOrders: 1
+        }
+      }
+    );
+
+    const boosters = await BoosterProfile.aggregate(pipeline);
+    
+    // Đếm tổng số (cần query riêng hoặc dùng facet, ở đây query riêng cho đơn giản)
+    // Lưu ý: Count chính xác khi có search text sẽ phức tạp hơn, ở đây tạm tính count theo query gốc
+    const total = await BoosterProfile.countDocuments(query);
 
     return NextResponse.json({
       success: true,

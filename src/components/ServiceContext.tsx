@@ -40,6 +40,7 @@ export interface ServiceSettings {
   netWinPricesDuo?: Record<string, number>;
   netWinDepositPercent?: number;
   masteryPrices: Record<string, number>;
+  coachingPrices: Record<string, number>; // Thêm bảng giá Coaching
 
   // ✅ CHUẨN HÓA: Chỉ dùng 1 hệ thống modifier
   lpModifiers: {
@@ -111,6 +112,7 @@ export function ServiceProvider({ children }: { children: ReactNode }) {
     netWinPricesDuo: {},
     netWinDepositPercent: 50,
     masteryPrices: {},
+    coachingPrices: {},
 
     // ✅ Mặc định chuẩn marketplace
     lpModifiers: {
@@ -234,6 +236,7 @@ export function ServiceProvider({ children }: { children: ReactNode }) {
             placementPricesDuo: incoming.placementPricesDuo || {},
             levelingPrices: incoming.levelingPrices || {},
             netWinPrices: incoming.netWinPrices || {},
+            coachingPrices: incoming.coachingPrices || {},
             netWinPricesFlex: incoming.netWinPricesFlex || {},
             netWinPricesDuo: incoming.netWinPricesDuo || {},
             promotionPrices: incoming.promotionPrices || {},

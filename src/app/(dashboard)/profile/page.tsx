@@ -3,7 +3,7 @@
 import { useState, useEffect, ReactNode } from 'react';
 import { useLanguage } from '@/lib/i18n';
 import { useRouter } from 'next/navigation';
-import { User, Key, Trash2, Save, Camera, X, Loader2, Sparkles, ChevronsUpDown, Check, Search } from 'lucide-react';
+import { User, Key, Trash2, Save, Camera, X, Loader2, Sparkles, ChevronsUpDown, Check, Search, Copy, ExternalLink, Share2 } from 'lucide-react';
 import Image from 'next/image';
 import { toast } from 'sonner';
 import {
@@ -267,7 +267,12 @@ export default function ProfilePage() {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [otpExpiry, setOtpExpiry] = useState<number | null>(null);
 
+  // Short Link State
+  const [origin, setOrigin] = useState('');
+
   useEffect(() => {
+    if (typeof window !== 'undefined') setOrigin(window.location.origin);
+
     const userDataString = localStorage.getItem('user');
     if (userDataString) {
       const parsedUser: UserData = JSON.parse(userDataString);
@@ -471,6 +476,11 @@ export default function ProfilePage() {
     }
   };
 
+  const copyShortLink = () => {
+    navigator.clipboard.writeText(`${origin}/b/${username}`);
+    toast.success('Đã sao chép link hồ sơ!');
+  };
+
   if (loading) {
     // A simple skeleton loader
     return (
@@ -561,6 +571,27 @@ export default function ProfilePage() {
                     className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-4 py-2.5 text-white focus:border-blue-500 focus:ring-blue-500 transition-colors min-h-[100px]"
                     placeholder="Viết đôi lời về kinh nghiệm và kỹ năng của bạn..."
                     />
+                </div>
+              )}
+              
+              {/* Short Link Section for Boosters */}
+              {user.role === 'BOOSTER' && (
+                <div className="md:col-span-2 bg-blue-900/10 border border-blue-500/20 rounded-lg p-4 mt-2">
+                    <label className="block text-sm font-bold text-blue-400 mb-2 flex items-center gap-2">
+                        <Share2 className="w-4 h-4" /> Link hồ sơ rút gọn (Chia sẻ)
+                    </label>
+                    <div className="flex gap-2">
+                        <div className="flex-1 bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-zinc-400 text-sm font-mono truncate flex items-center">
+                            {origin}/b/{username}
+                        </div>
+                        <button onClick={copyShortLink} className="p-2 bg-zinc-800 hover:bg-zinc-700 text-white rounded-lg transition-colors" title="Sao chép">
+                            <Copy className="w-4 h-4" />
+                        </button>
+                        <a href={`/b/${username}`} target="_blank" rel="noreferrer" className="p-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg transition-colors" title="Xem thử">
+                            <ExternalLink className="w-4 h-4" />
+                        </a>
+                    </div>
+                    <p className="text-xs text-zinc-500 mt-2">Sử dụng link này để chia sẻ hồ sơ của bạn lên Facebook, Discord. Khách hàng sẽ thấy ảnh đại diện và Bio của bạn khi xem link.</p>
                 </div>
               )}
             </div>

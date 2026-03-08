@@ -19,7 +19,8 @@ import {
   LogOut,
   Home,
   CreditCard,
-  AlertTriangle
+  AlertTriangle,
+  Heart
 } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n';
 import { logout } from '@/lib/logout';
@@ -35,14 +36,25 @@ export default function Sidebar({ className = '', onLinkClick }: SidebarProps) {
   const { t } = useLanguage();
 
   useEffect(() => {
-    const userData = localStorage.getItem('user');
-    if (userData) {
-      try {
-        setUser(JSON.parse(userData));
-      } catch (e) {
-        console.error("Failed to parse user data", e);
+    const loadUser = () => {
+      const userData = localStorage.getItem('user');
+      if (userData) {
+        try {
+          setUser(JSON.parse(userData));
+        } catch (e) {
+          console.error("Failed to parse user data", e);
+        }
       }
-    }
+    };
+
+    loadUser();
+
+    // Lắng nghe sự kiện cập nhật user từ các component khác (Login, Profile, Admin approve...)
+    window.addEventListener('user-updated', loadUser);
+    
+    return () => {
+      window.removeEventListener('user-updated', loadUser);
+    };
   }, []);
 
   if (!user) return null;
@@ -83,12 +95,13 @@ export default function Sidebar({ className = '', onLinkClick }: SidebarProps) {
         <NavItem href="/" icon={Home} label={t('backToHome')} />
         
         {/* --- CUSTOMER MENU --- */}
-        {user.role === 'CUSTOMER' && (
+        {(user.role === 'CUSTOMER' || !user.role) && (
           <>
             <NavItem href="/dashboard" icon={LayoutDashboard} label={t('dashboard')} />
             <NavItem href="/services" icon={Zap} label={t('rentNow')} />
             <NavItem href="/orders" icon={FileText} label={t('orders')} />
             <NavItem href="/wallet" icon={Wallet} label={t('wallet')} />
+            <NavItem href="/favorites" icon={Heart} label="Yêu thích" />
             <NavItem href="/profile" icon={UserCircle} label={t('profile')} />
           </>
         )}

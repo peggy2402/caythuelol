@@ -17,13 +17,14 @@ const TABS_CONFIG = [
   { href: '/booster/services/lol/promotion', label: 'Chuỗi thăng hạng', icon: TrendingUp },
   { href: '/booster/services/lol/leveling', label: 'Cày Level', icon: Zap },
   { href: '/booster/services/lol/mastery', label: 'Cày Thông thạo', icon: Medal },
+  { href: '/booster/services/lol/coaching', label: 'Coaching 1-1', icon: Medal },
 ];
 
 function ServiceTabs() {
   const pathname = usePathname();
 
   return (
-    <div className="flex overflow-x-auto pb-2 gap-2 no-scrollbar border-b border-zinc-800">
+    <div className="flex flex-wrap gap-2 pb-2 border-b border-zinc-800">
       {TABS_CONFIG.map((tab) => {
         const isActive = tab.exact 
           ? pathname === tab.href 

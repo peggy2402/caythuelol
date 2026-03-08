@@ -20,7 +20,8 @@ import {
   ListTodo,
   Zap,
   Trophy,
-  Bell
+  Bell,
+  Heart
 } from 'lucide-react';
 import { useLanguage, Language } from '../lib/i18n';
 import { useRouter, usePathname } from 'next/navigation';
@@ -76,9 +77,16 @@ export default function Navbar() {
             .then(data => {
                 if (data.balance !== undefined) {
                     const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
-                    const updatedUser = { ...currentUser, wallet_balance: data.balance, pending_balance: data.pending };
+                    const updatedUser = { 
+                      ...currentUser, 
+                      wallet_balance: data.balance, 
+                      pending_balance: data.pending,
+                      role: data.role || currentUser.role // Cập nhật Role mới nhất từ server
+                    };
                     setUser(updatedUser);
                     localStorage.setItem('user', JSON.stringify(updatedUser));
+                    // Bắn sự kiện để Sidebar cập nhật lại menu ngay lập tức
+                    window.dispatchEvent(new Event('user-updated'));
                 }
             }).catch(() => {});
     }
@@ -208,6 +216,9 @@ export default function Navbar() {
           <NavLink href="/services" label={t('services')} />
           <NavLink href="/boosters" label={t('boosters')} />
           <NavLink href="/blogs" label={t('blog')} />
+          {user?.role === 'BOOSTER' && (
+             <NavLink href="/booster/jobs" label={t('jobMarket')} />
+          )}
           {user?.role === 'CUSTOMER' && (
             <Link href="/boosters/apply" className="text-yellow-500 hover:text-yellow-400 transition">
               {t('becomeBooster')}
@@ -313,13 +324,43 @@ export default function Navbar() {
                     {t('wallet')}
                   </Link>
 
-                  <Link
-                    href="/orders"
-                    className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/5"
-                  >
-                    <FileText className="h-4 w-4" />
-                    {t('orders')}
-                  </Link>
+                  {user.role === 'CUSTOMER' && (
+                    <>
+                      <Link
+                        href="/orders"
+                        className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/5"
+                      >
+                        <FileText className="h-4 w-4" />
+                        {t('orders')}
+                      </Link>
+                      <Link
+                        href="/favorites"
+                        className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/5"
+                      >
+                        <Heart className="h-4 w-4" />
+                        Yêu thích
+                      </Link>
+                    </>
+                  )}
+
+                  {user.role === 'BOOSTER' && (
+                    <>
+                      <Link
+                        href="/booster/jobs"
+                        className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/5"
+                      >
+                        <Briefcase className="h-4 w-4" />
+                        {t('jobMarket')}
+                      </Link>
+                      <Link
+                        href="/booster/my-orders"
+                        className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/5"
+                      >
+                        <ListTodo className="h-4 w-4" />
+                        {t('myActiveJobs')}
+                      </Link>
+                    </>
+                  )}
 
                   {/* Admin Link - Chỉ hiện khi role là ADMIN */}
                   {user.role === 'ADMIN' && (
@@ -437,6 +478,7 @@ export default function Navbar() {
                   <>
                     <Link href="/orders" onClick={closeMobileMenu} className="flex items-center gap-4 px-4 py-3 rounded-lg hover:bg-white/5 transition-colors"><FileText className="h-5 w-5 text-zinc-400" />{t('orders')}</Link>
                     <Link href="/wallet" onClick={closeMobileMenu} className="flex items-center gap-4 px-4 py-3 rounded-lg hover:bg-white/5 transition-colors"><Wallet className="h-5 w-5 text-zinc-400" />{t('wallet')}</Link>
+                    <Link href="/favorites" onClick={closeMobileMenu} className="flex items-center gap-4 px-4 py-3 rounded-lg hover:bg-white/5 transition-colors"><Heart className="h-5 w-5 text-zinc-400" />Yêu thích</Link>
                     <Link href="/boosters/apply" onClick={closeMobileMenu} className="flex items-center gap-4 px-4 py-3 rounded-lg hover:bg-white/5 transition-colors text-yellow-500"><Trophy className="h-5 w-5" />{t('becomeBooster')}</Link>
                   </>
                 )}

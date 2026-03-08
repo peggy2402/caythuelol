@@ -4,16 +4,20 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { User, Star, CheckCircle2, Loader2, Filter, ChevronRight, Search, X } from 'lucide-react';
+import Link from 'next/link';
 
 interface Booster {
   _id: string;
   username: string;
-  profile: { avatar?: string };
-  booster_info?: { 
-    ranks: string[]; 
-    rating: number; 
-    services?: string[];
-  };
+  avatar?: string; // API mới trả về avatar ở root level
+  displayName?: string;
+  rating: number;
+  services: string[];
+  games: {
+    gameCode: string;
+    ranks: string[];
+    servers: string[];
+  }[];
 }
 
 const SERVICE_OPTIONS = [
@@ -60,16 +64,13 @@ export default function BoosterPicker() {
     fetchBoosters();
   }, [debouncedSearch, filterService]);
 
-  const handleSelect = (boosterId: string) => {
+  const handleSelect = (booster: Booster) => {
     // Giữ lại các params hiện tại, chỉ update booster
     const params = new URLSearchParams(searchParams.toString());
-    if (currentBoosterId === boosterId) {
-        // Nếu click lại booster đang chọn -> bỏ chọn (optional)
-        // params.delete('booster'); 
-    } else {
-        params.set('booster', boosterId);
-    }
-    router.push(`?${params.toString()}`, { scroll: false });
+    const identifier = `@${booster.username}`;
+    
+    params.set('booster', identifier);
+    router.push(`?${params.toString().replace(/%40/g, '@')}`, { scroll: false });
   };
 
   return (
@@ -123,46 +124,72 @@ export default function BoosterPicker() {
         </div>
       ) : (
         <div className="flex overflow-x-auto pb-4 gap-4 snap-x snap-mandatory no-scrollbar md:grid md:grid-cols-2 lg:grid-cols-4 md:overflow-visible">
-          {boosters.map((booster) => (
+          {boosters.map((booster) => {
+            const isSelected = currentBoosterId === booster._id || currentBoosterId === `@${booster.username}`;
+            const rank = booster.games?.[0]?.ranks?.[0];
+            
+            return (
             <div 
               key={booster._id}
-              onClick={() => handleSelect(booster._id)}
+              onClick={() => handleSelect(booster)}
               className={`group relative cursor-pointer rounded-2xl border p-4 transition-all duration-300 hover:-translate-y-1 min-w-[260px] snap-center ${
-                currentBoosterId === booster._id
+                isSelected
                   ? 'border-blue-500 bg-blue-500/10 shadow-[0_0_30px_rgba(59,130,246,0.2)]'
-                  : 'border-white/10 bg-zinc-900/60 hover:border-white/20 hover:bg-zinc-900/80'
+                  : 'border-white/10 bg-transparent hover:border-white/20 hover:bg-white/5'
               }`}
             >
               <div className="flex items-center gap-4 mb-4">
                 <div className="relative w-12 h-12 rounded-full overflow-hidden border-2 border-white/10 group-hover:border-blue-500 transition-colors">
-                  {booster.profile.avatar ? (
-                    <img src={booster.profile.avatar} alt={booster.username} className="w-full h-full object-cover" />
+                  {booster.avatar ? (
+                    <img src={booster.avatar} alt={booster.username} className="w-full h-full object-cover" />
                   ) : (
                     <User className="w-full h-full p-2 bg-zinc-800 text-zinc-400" />
                   )}
                 </div>
                 <div>
-                  <h3 className="font-bold text-white group-hover:text-blue-400 transition-colors">{booster.username}</h3>
+                  <Link 
+                    href={`/b/${booster.username}`}
+                    target="_blank"
+                    onClick={(e) => e.stopPropagation()}
+                    className="block"
+                  >
+                    <h3 className="font-bold text-white group-hover:text-blue-400 transition-colors hover:underline">
+                      {booster.displayName || booster.username}
+                    </h3>
+                  </Link>
                   <div className="flex items-center gap-1 text-yellow-500 text-xs font-bold">
                     <Star className="w-3 h-3 fill-current" />
-                    {booster.booster_info?.rating.toFixed(1)}
+                    {booster.rating?.toFixed(1) || 5.0}
                   </div>
                 </div>
               </div>
               
               <div className="flex flex-wrap gap-2">
-                {booster.booster_info?.services?.slice(0, 2).map((svc, i) => (
+                {/* Hiển thị Rank cao nhất của game đầu tiên (thường là LOL) */}
+                {rank && (
+                   <span className="flex items-center gap-1.5 px-2 py-1 rounded bg-yellow-500/10 text-[10px] font-bold text-yellow-500 border border-yellow-500/20">
+                     {/* eslint-disable-next-line @next/next/no-img-element */}
+                     <img 
+                        src={`/images/ranks/${rank.split(/[_ ]/)[0].toLowerCase()}.png`} 
+                        alt={rank} 
+                        className="w-3.5 h-3.5 object-contain"
+                        onError={(e) => e.currentTarget.style.display = 'none'}
+                     />
+                     {rank.replace('_', ' ')}
+                   </span>
+                )}
+                {booster.services?.slice(0, 2).map((svc, i) => (
                   <span key={i} className="px-2 py-1 rounded bg-white/5 text-[10px] font-medium text-zinc-400 border border-white/5">{svc.replace('_', ' ')}</span>
                 ))}
               </div>
 
-              {currentBoosterId === booster._id && (
-                <div className="absolute top-4 right-4 text-blue-500">
+              {isSelected && (
+                <div className="absolute top-4 right-4 text-blue-500 z-10">
                   <CheckCircle2 className="w-5 h-5" />
                 </div>
               )}
             </div>
-          ))}
+          )})}
         </div>
       )}
     </div>

@@ -182,10 +182,9 @@ function RankBoostContent() {
     const fetchBoosterData = async () => {
         setLoadingConfig(true);
         try {
-            const res = await fetch(`/api/boosters`);
+            const res = await fetch(`/api/boosters/${boosterId}`);
             const data = await res.json();
-            const boosters = data.boosters || [];
-            const foundBooster = boosters.find((b: any) => b._id === boosterId);
+            const foundBooster = data.booster;
             
             if (foundBooster) {
                 setBoosterConfig(foundBooster);

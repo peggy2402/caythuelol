@@ -43,7 +43,18 @@ export default function DashboardPage() {
       return;
     }
     
-    setUser(JSON.parse(userData));
+    const parsedUser = JSON.parse(userData);
+    setUser(parsedUser);
+
+    // --- LOGIC ĐIỀU HƯỚNG THEO ROLE ---
+    if (parsedUser.role === 'BOOSTER') {
+      router.replace('/booster/dashboard');
+      return;
+    }
+    if (parsedUser.role === 'ADMIN') {
+      router.replace('/admin/dashboard');
+      return;
+    }
 
     // Fetch orders
     const fetchOrders = async () => {

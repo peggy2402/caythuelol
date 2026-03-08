@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
 import Navbar from '@/components/Navbar';
 import BoosterPicker from '@/components/BoosterPicker';
-import { Trophy, Target, TrendingUp, Swords, Zap, Medal } from 'lucide-react';
+import { Trophy, Target, TrendingUp, Swords, Zap, Medal, GraduationCap } from 'lucide-react';
 import { Suspense, useEffect, useState } from 'react';
 
 const TABS = [
@@ -15,12 +15,13 @@ const TABS = [
   { id: 'placements', label: 'Phân Hạng Đầu Mùa', href: '/services/lol/placements', icon: Swords, key: 'PLACEMENTS' },
   { id: 'leveling', label: 'Cày Level 30', href: '/services/lol/leveling', icon: Zap, key: 'LEVELING' },
   { id: 'mastery', label: 'Cày Thông Thạo Tướng', href: '/services/lol/mastery', icon: Medal, key: 'MASTERY' },
+  { id: 'coaching', label: 'Coaching 1-1', href: '/services/lol/coaching', icon: GraduationCap, key: 'COACHING' },
 ];
 
 function ServiceTabs() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const queryString = searchParams.toString();
+  const queryString = searchParams.toString().replace(/%40/g, '@');
   const query = queryString ? `?${queryString}` : '';
   const boosterId = searchParams.get('booster');
 
@@ -35,11 +36,10 @@ function ServiceTabs() {
 
     const fetchBoosterServices = async () => {
       try {
-        // Gọi API lấy list boosters (hoặc endpoint detail riêng nếu có)
-        // Ở đây dùng filter _id giả lập việc lấy detail
-        const res = await fetch(`/api/boosters`); 
+        // Gọi API chi tiết Booster
+        const res = await fetch(`/api/boosters/${boosterId}`); 
         const data = await res.json();
-        const booster = data.boosters?.find((b: any) => b._id === boosterId);
+        const booster = data.booster;
         
         if (booster && booster.booster_info?.services) {
           setAllowedServices(booster.booster_info.services);
