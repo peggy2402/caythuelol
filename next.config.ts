@@ -2,6 +2,7 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  serverExternalPackages: ["mongoose", "ws"],
 
   images: {
     remotePatterns: [
@@ -86,7 +87,20 @@ const nextConfig: NextConfig = {
         hostname: "pbs.twimg.com",
         pathname: "/**",
       },
+      // Bing 
+      {
+        protocol: "https",
+        hostname: "www.bing.com",
+        pathname: "/**",
+      },
     ],
+    
+    domains: [
+      "images.unsplash.com",
+      "i.imgur.com",
+      "cdn.discordapp.com",
+      "res.cloudinary.com"
+    ]
   },
 
   eslint: {

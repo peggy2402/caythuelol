@@ -11,9 +11,9 @@ import {
   Clock, 
   MoreHorizontal,
   Loader2,
-  Copy,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Download
 } from 'lucide-react';
 
 interface Transaction {
@@ -87,6 +87,48 @@ export default function AdminTransactionsPage() {
     }, 500);
     return () => clearTimeout(timer);
   }, [search, statusFilter, typeFilter]);
+
+  const handleExport = async () => {
+    toast.info('Đang chuẩn bị file export...');
+    try {
+      const params = new URLSearchParams({
+        limit: '10000', // Lấy tối đa 10000 dòng để export
+        status: statusFilter,
+        type: typeFilter,
+        search: search,
+      });
+      const res = await fetch(`/api/admin/transactions?${params.toString()}`);
+      const data = await res.json();
+      if (!res.ok) throw new Error('Failed to fetch data for export');
+
+      const headers = "ID,Username,Email,Loại,Số tiền,Trạng thái,Ngày tạo,Nội dung\n";
+      const csvContent = data.transactions.map((tx: Transaction) => {
+        const row = [
+          tx._id,
+          tx.userId?.username || '',
+          tx.userId?.email || '',
+          tx.type,
+          tx.amount,
+          tx.status,
+          new Date(tx.createdAt).toISOString(),
+          `"${(tx.metadata?.content || tx.description).replace(/"/g, '""')}"`
+        ].join(',');
+        return row;
+      }).join('\n');
+
+      const blob = new Blob([headers + csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement("a");
+      const url = URL.createObjectURL(blob);
+      link.setAttribute("href", url);
+      link.setAttribute("download", `transactions_${new Date().toISOString().split('T')[0]}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      toast.success('Export thành công!');
+    } catch (e) {
+      toast.error('Lỗi khi export dữ liệu');
+    }
+  };
 
   const handleReject = async (txId: string) => {
     const reason = prompt('Nhập lý do từ chối:');

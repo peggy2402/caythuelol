@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
-import { Loader2, AlertTriangle, CheckCircle2, XCircle, ExternalLink, Eye, Swords, Trophy, X } from 'lucide-react';
+import { Loader2, AlertTriangle, CheckCircle2, XCircle, ExternalLink, Eye, Swords, Trophy, X, StickyNote, Filter } from 'lucide-react';
 import Link from 'next/link';
 
 interface Dispute {
@@ -13,6 +13,7 @@ interface Dispute {
   dispute: {
     reason: string;
     status: string;
+    adminNote?: string;
   };
   pricing: {
     total_amount: number;
@@ -32,11 +33,12 @@ export default function AdminDisputesPage() {
   const [disputes, setDisputes] = useState<Dispute[]>([]);
   const [selectedDispute, setSelectedDispute] = useState<Dispute | null>(null);
   const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState('PENDING'); // ALL, PENDING, RESOLVED
 
   const fetchDisputes = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/admin/disputes');
+      const res = await fetch(`/api/admin/disputes?status=${filter}`);
       const data = await res.json();
       if (res.ok) {
         setDisputes(data.disputes);
@@ -50,7 +52,7 @@ export default function AdminDisputesPage() {
 
   useEffect(() => {
     fetchDisputes();
-  }, []);
+  }, [filter]);
 
   const handleResolve = async (id: string, decision: 'REFUND_CUSTOMER' | 'PAY_BOOSTER') => {
     if (!confirm(`Xác nhận giải quyết: ${decision === 'REFUND_CUSTOMER' ? 'Hoàn tiền cho Khách' : 'Thanh toán cho Booster'}?`)) return;
@@ -73,6 +75,25 @@ export default function AdminDisputesPage() {
     }
   };
 
+  const handleUpdateNote = async (id: string, currentNote: string = '') => {
+    const note = prompt('Nhập ghi chú nội bộ (Admin Note):', currentNote);
+    if (note === null) return;
+
+    try {
+      const res = await fetch('/api/admin/disputes/note', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderId: id, note }),
+      });
+      if (res.ok) {
+        toast.success('Đã cập nhật ghi chú');
+        fetchDisputes();
+      } else {
+        toast.error('Lỗi cập nhật');
+      }
+    } catch (e) { toast.error('Lỗi kết nối'); }
+  };
+
   if (loading) return <div className="flex justify-center p-20"><Loader2 className="animate-spin text-blue-500" /></div>;
 
   return (
@@ -80,6 +101,20 @@ export default function AdminDisputesPage() {
       <h1 className="text-2xl font-bold text-white flex items-center gap-2">
         <AlertTriangle className="text-red-500" /> Quản lý Khiếu nại
       </h1>
+
+      {/* Filter */}
+      <div className="flex items-center gap-2 bg-zinc-900 p-2 rounded-lg border border-zinc-800 w-fit">
+        <Filter className="w-4 h-4 text-zinc-500" />
+        <select 
+            value={filter} 
+            onChange={(e) => setFilter(e.target.value)}
+            className="bg-transparent text-sm text-white outline-none border-none cursor-pointer"
+        >
+            <option value="ALL">Tất cả trạng thái</option>
+            <option value="PENDING">Đang chờ xử lý</option>
+            <option value="RESOLVED">Đã giải quyết</option>
+        </select>
+      </div>
 
       <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
         <table className="w-full text-left text-sm">
@@ -110,17 +145,31 @@ export default function AdminDisputesPage() {
                   </td>
                   <td className="px-6 py-4 text-red-300 max-w-xs truncate" title={d.dispute.reason}>
                     {d.dispute.reason}
+                    {d.dispute.adminNote && (
+                        <div className="mt-1 text-xs text-yellow-500 flex items-center gap-1">
+                            <StickyNote size={10} /> {d.dispute.adminNote}
+                        </div>
+                    )}
                   </td>
                   <td className="px-6 py-4 font-mono text-yellow-500">
                     {d.pricing.deposit_amount.toLocaleString()} đ
                   </td>
                   <td className="px-6 py-4 text-right space-x-2">
                     <button
+                        onClick={() => handleUpdateNote(d._id, d.dispute.adminNote)}
+                        className="p-2 bg-zinc-800 text-zinc-400 hover:text-white rounded hover:bg-zinc-700 inline-flex items-center"
+                        title="Ghi chú nội bộ"
+                    >
+                        <StickyNote size={14} />
+                    </button>
+                    <button
                         onClick={() => setSelectedDispute(d)}
                         className="px-3 py-1.5 bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded hover:bg-blue-500/20 text-xs font-bold inline-flex items-center gap-1"
                     >
                         <Eye size={12} /> Xem bằng chứng
                     </button>
+                    {d.dispute.status === 'PENDING' && (
+                    <>
                     <button 
                         onClick={() => handleResolve(d._id, 'REFUND_CUSTOMER')}
                         className="px-3 py-1.5 bg-red-500/10 text-red-400 border border-red-500/20 rounded hover:bg-red-500/20 text-xs font-bold"
@@ -133,6 +182,8 @@ export default function AdminDisputesPage() {
                     >
                         Trả Booster
                     </button>
+                    </>
+                    )}
                   </td>
                 </tr>
               ))
@@ -182,18 +233,36 @@ export default function AdminDisputesPage() {
                     {/* 2. Lịch sử đấu */}
                     <div>
                         <h4 className="text-sm font-bold text-zinc-400 uppercase mb-3">Lịch sử trận đấu ({selectedDispute.match_history?.length || 0})</h4>
-                        <div className="space-y-2">
+                        <div className="space-y-3">
                             {selectedDispute.match_history && selectedDispute.match_history.length > 0 ? (
                                 selectedDispute.match_history.map((match, idx) => (
-                                    <div key={idx} className="flex items-center justify-between p-3 bg-zinc-950 border border-zinc-800 rounded-lg">
-                                        <div className="flex items-center gap-3">
-                                            <span className={`text-xs font-bold px-2 py-1 rounded ${match.result === 'WIN' ? 'bg-blue-500/20 text-blue-400' : 'bg-red-500/20 text-red-400'}`}>
-                                                {match.result}
-                                            </span>
-                                            <span className="text-white font-medium text-sm">{match.champion}</span>
+                                    <div key={idx} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-zinc-950 border border-zinc-800 rounded-xl gap-4">
+                                        {/* Left: Info */}
+                                        <div className="flex items-start gap-4">
+                                            <div className={`w-14 h-14 rounded-xl flex items-center justify-center shrink-0 border ${match.result === 'WIN' ? 'bg-blue-500/10 border-blue-500/20 text-blue-500' : 'bg-red-500/10 border-red-500/20 text-red-500'}`}>
+                                                <span className="font-black text-sm">{match.result}</span>
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <div className="text-sm font-bold text-white flex items-center gap-2">
+                                                    {match.champion}
+                                                </div>
+                                                <div className="text-xs text-zinc-400 mt-0.5">Chế độ: <span className="text-zinc-300">{match.mode || 'Rank Đơn/Đôi'}</span></div>
+                                                <div className="text-[10px] text-zinc-500 mt-1 flex items-center gap-1">
+                                                    {new Date(match.timestamp).toLocaleString('vi-VN')}
+                                                </div>
+                                            </div>
                                         </div>
-                                        <div className={`text-sm font-bold ${match.lp_change >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                                            {match.lp_change > 0 ? '+' : ''}{match.lp_change} LP
+
+                                        {/* Right: Stats */}
+                                        <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between gap-4 sm:gap-1 border-t sm:border-t-0 border-zinc-800 pt-3 sm:pt-0 pl-0 sm:pl-4">
+                                            <div className={`text-lg font-black ${match.lp_change >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                                                {match.lp_change > 0 ? '+' : ''}{match.lp_change} <span className="text-xs font-normal text-zinc-500">LP</span>
+                                            </div>
+                                            {match.reason && (
+                                                <div className="text-xs font-mono text-zinc-300 bg-zinc-900 px-2 py-1 rounded border border-zinc-800">
+                                                    {match.reason}
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 ))

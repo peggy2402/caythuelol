@@ -9,7 +9,7 @@ import { socket } from '@/lib/socket';
 import { 
   Loader2, CheckCircle2, AlertCircle, Clock, 
   Shield, DollarSign, CreditCard,
-  Play, CheckSquare, Lock, Flag, Swords, Trophy, Save, Crosshair, ArrowLeft, Search
+  Play, CheckSquare, Lock, Flag, Swords, Trophy, Save, Crosshair, ArrowLeft, Search, RefreshCw
 } from 'lucide-react';
 import { Pencil, Trash2, X, Plus, Eye } from 'lucide-react';
 import { toast } from 'sonner';
@@ -44,6 +44,7 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
   const [liveLeagueInfo, setLiveLeagueInfo] = useState<any>(null);
   const [editingMatchId, setEditingMatchId] = useState<string | null>(null);
   const [isMatchModalOpen, setIsMatchModalOpen] = useState(false);
+  const [isCheckingRank, setIsCheckingRank] = useState(false);
   const [fetchedMatchData, setFetchedMatchData] = useState<any>(null);
   const [selectedMatchDetail, setSelectedMatchDetail] = useState<any>(null);
 
@@ -292,31 +293,55 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
       finally { setIsUpdatingIngame(false); }
   };
 
-  // Hàm check Rank thủ công (hoặc gọi khi update ingame)
-  const handleCheckLiveRank = async () => {
-      const nameToCheck = ingameName || order.details.ingame_name || order.details.account_username;
-      if (!nameToCheck) return toast.error('Chưa có tên Ingame');
+  // Hàm check Rank và Lưu (Dùng chung cho cả nút Check & Lưu của Booster và nút Refresh)
+  const handleCheckAndSaveRank = async () => {
+      // Ưu tiên lấy từ input state (nếu booster đang nhập), nếu không thì lấy từ order details
+      const nameToCheck = (ingameName && ingameName.trim()) || order.details.ingame_name || order.details.account_username;
       
-      const toastId = toast.loading('Đang kiểm tra Rank...');
+      if (!nameToCheck) return toast.error('Vui lòng nhập tên Ingame');
+
+      setIsCheckingRank(true);
       try {
           const res = await fetch('/api/riot/player', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ server: order.details.server, name: nameToCheck })
+              body: JSON.stringify({ server: order.details.server, name: nameToCheck.trim() })
           });
           const data = await res.json();
           if (!res.ok) throw new Error(data.error);
 
           const queue = ['SOLO', 'SOLO_DUO'].includes(order.details.queueType) ? 'RANKED_SOLO_5x5' : 'RANKED_FLEX_SR';
           const league = data.leagues.find((l: any) => l.queueType === queue);
-          
+
           if (league) {
               setLiveLeagueInfo(league);
-              toast.success(`Đã tìm thấy: ${league.tier} ${league.rank} - ${league.leaguePoints} LP`, { id: toastId });
+              
+              // Tự động lưu vào DB luôn
+              const updateBody = {
+                  ingame_name: data.gameName ? `${data.gameName}#${data.tagLine}` : nameToCheck,
+                  current_rank: `${league.tier} ${league.rank}`,
+                  current_lp: league.leaguePoints
+              };
+
+              // Gọi API update details (tái sử dụng logic update)
+              await fetch(`/api/orders/${id}/details`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(updateBody) });
+              
+              toast.success(`Đã cập nhật & Lưu: ${league.tier} ${league.rank} - ${league.leaguePoints} LP`);
+              
+              // Cập nhật UI local (để hiển thị ngay lập tức)
+              setOrder((prev: any) => ({ 
+                  ...prev, 
+                  details: { ...prev.details, ...updateBody } 
+              }));
+              
+              // Nếu là Booster đang nhập, update luôn state input cho khớp
+              if (data.gameName) setIngameName(`${data.gameName}#${data.tagLine}`);
+
           } else {
-              toast.error('Chưa có thông tin Rank cho chế độ này', { id: toastId });
+              toast.error('Chưa có thông tin Rank cho chế độ này');
           }
-      } catch (e: any) { toast.error(e.message || 'Lỗi kiểm tra', { id: toastId }); }
+      } catch (e: any) { toast.error(e.message || 'Lỗi kiểm tra'); }
+      finally { setIsCheckingRank(false); }
   };
 
   const handleFetchRiotMatch = async () => {
@@ -494,11 +519,11 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                         </button>
                     )}
                     {isCustomer && order.status === 'COMPLETED' && order.pricing.settlement_status !== 'SETTLED' && (
-                        <div className="flex gap-2">
+                        <div className="flex flex-col sm:flex-row gap-2">
                             <button onClick={handleConfirmCompletion} className="flex-1 py-3 bg-green-600 hover:bg-green-500 text-white font-bold rounded-xl flex items-center justify-center gap-2 transition-colors">
                                 <CheckCircle2 className="w-4 h-4" /> Xác nhận hoàn thành
                             </button>
-                            <button onClick={() => setIsDisputeModalOpen(true)} className="px-4 py-3 bg-red-600/20 hover:bg-red-600/40 text-red-500 font-bold rounded-xl flex items-center justify-center gap-2 transition-colors">
+                            <button onClick={() => setIsDisputeModalOpen(true)} className="w-full sm:w-auto px-4 py-3 bg-red-600/20 hover:bg-red-600/40 text-red-500 font-bold rounded-xl flex items-center justify-center gap-2 transition-colors">
                                 <Flag className="w-4 h-4" /> Khiếu nại
                             </button>
                         </div>
@@ -520,35 +545,26 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                 <div className="p-6">
                     {activeTab === 'INFO' ? (
                         <div className="space-y-6">
-                            {/* Ingame Name Update (For Booster in Progress) */}
-                            {isBooster && order.status === 'IN_PROGRESS' && (
-                                <div className="bg-blue-900/10 border border-blue-500/20 p-4 rounded-xl flex items-end gap-3">
-                                    <div className="flex-1">
-                                        <label className="text-xs font-bold text-blue-400 uppercase mb-1 block">Cập nhật Tên Ingame</label>
-                                        <input 
-                                            type="text" 
-                                            value={ingameName}
-                                            onChange={(e) => setIngameName(e.target.value)}
-                                            className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white focus:border-blue-500 outline-none"
-                                            placeholder="Nhập tên nhân vật trong game..."
-                                        />
-                                    </div>
-                                    <button 
-                                        onClick={handleUpdateIngame} 
-                                        disabled={isUpdatingIngame}
-                                        className="bg-blue-600 hover:bg-blue-500 text-white p-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                    >
-                                        {isUpdatingIngame ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
-                                    </button>
-                                </div>
-                            )}
-
-                            {/* Live Rank Status (Visible to both if available) */}
-                            {(liveLeagueInfo || (order.details.current_lp !== undefined)) && (
-                                <div className="bg-zinc-900 border border-zinc-800 p-4 rounded-xl">
-                                    <h3 className="text-sm font-bold text-zinc-400 uppercase mb-3 flex items-center gap-2">
-                                        <Trophy className="w-4 h-4 text-yellow-500" /> Trạng thái hiện tại
+                            {/* Unified Game Profile & Rank Status Block */}
+                            <div className="bg-zinc-900 border border-zinc-800 p-4 rounded-xl animate-in fade-in duration-300">
+                                <div className="flex justify-between items-center mb-4">
+                                    <h3 className="text-sm font-bold text-zinc-400 uppercase flex items-center gap-2">
+                                        <Trophy className="w-4 h-4 text-yellow-500" /> Hồ sơ Game & Rank
                                     </h3>
+                                    {/* Nút Refresh cho cả Customer và Booster (khi không nhập liệu) */}
+                                    {order.details.ingame_name && (
+                                        <button 
+                                            onClick={handleCheckAndSaveRank} 
+                                            disabled={isCheckingRank} 
+                                            className="p-1.5 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-zinc-400 hover:text-white transition-colors disabled:opacity-50" 
+                                            title="Làm mới Rank từ Riot"
+                                        >
+                                            {isCheckingRank ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
+                                        </button>
+                                    )}
+                                </div>
+
+                                {/* Info Display */}
                                     <div className="flex items-center justify-between">
                                         <div>
                                             <div className="text-2xl font-black text-white">
@@ -559,15 +575,48 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                                             </div>
                                         </div>
                                         {liveLeagueInfo && (
-                                            <div className="text-right text-xs text-zinc-500">
+                                            <div className="text-right text-xs text-zinc-400 bg-zinc-950/50 p-2 rounded-lg border border-zinc-800">
                                                 <div>Thắng: <span className="text-green-400 font-bold">{liveLeagueInfo.wins}</span></div>
                                                 <div>Thua: <span className="text-red-400 font-bold">{liveLeagueInfo.losses}</span></div>
                                                 <div>Tỉ lệ: <span className="text-white">{Math.round((liveLeagueInfo.wins / (liveLeagueInfo.wins + liveLeagueInfo.losses)) * 100)}%</span></div>
                                             </div>
                                         )}
                                     </div>
-                                </div>
-                            )}
+
+                                {/* Booster Input Area */}
+                                {isBooster && ['IN_PROGRESS', 'APPROVED'].includes(order.status) && (
+                                    <div className="mt-4 pt-4 border-t border-zinc-800">
+                                        <label className="text-xs font-bold text-zinc-500 uppercase mb-2 block">Cập nhật Ingame & Check Rank</label>
+                                        <div className="flex flex-col sm:flex-row gap-2">
+                                            <input 
+                                                type="text" 
+                                                value={ingameName}
+                                                onChange={(e) => setIngameName(e.target.value)}
+                                                className="flex-1 bg-zinc-950 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white focus:border-blue-500 outline-none"
+                                                placeholder="Tên Ingame#Tag..."
+                                            />
+                                            <button 
+                                                onClick={handleCheckAndSaveRank} 
+                                                disabled={isCheckingRank}
+                                                className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-50 whitespace-nowrap w-full sm:w-auto"
+                                            >
+                                                {isCheckingRank ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Kiểm tra'}
+                                            </button>
+                                        </div>
+                                        <p className="text-[10px] text-zinc-500 mt-2">
+                                            * Nhập tên ingame chính xác để hệ thống tự động lấy Rank và LP từ Riot.
+                                        </p>
+                                    </div>
+                                )}
+                                
+                                {/* Customer View of Ingame Name */}
+                                {!isBooster && (
+                                    <div className="mt-4 pt-4 border-t border-zinc-800 flex justify-between items-center">
+                                        <span className="text-xs text-zinc-500">Ingame:</span>
+                                        <span className="text-sm font-medium text-white font-mono">{order.details.ingame_name || 'Chưa cập nhật'}</span>
+                                    </div>
+                                )}
+                            </div>
 
                             {/* Account Info */}
                             <div>
@@ -591,15 +640,6 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                                     <div>
                                         <span className="text-xs text-zinc-500 block">Chế độ</span>
                                         <span className="text-white">{['SOLO', 'SOLO_DUO'].includes(order.details.queueType) ? 'Đơn / Đôi' : order.details.queueType === 'FLEX' ? 'Linh Hoạt' : order.details.queueType || 'Mặc định'}</span>
-                                    </div>
-                                    <div>
-                                        <span className="text-xs text-zinc-500 block">Ingame (Nếu có)</span>
-                                        <div className="flex items-center gap-2">
-                                            <span className="text-white font-medium text-blue-300">{order.details.ingame_name || 'Chưa cập nhật'}</span>
-                                            {isBooster && order.details.ingame_name && (
-                                                <button onClick={handleCheckLiveRank} className="text-[10px] bg-zinc-800 px-2 py-1 rounded hover:bg-zinc-700 text-zinc-300">Check Rank</button>
-                                            )}
-                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -708,46 +748,62 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                                             animate={{ opacity: 1, y: 0 }}
                                             exit={{ opacity: 0, scale: 0.95 }}
                                             transition={{ duration: 0.3, delay: idx * 0.05 }}
-                                            className="flex items-center justify-between p-3 bg-zinc-950 border border-zinc-800 rounded-xl"
+                                            className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-zinc-950 border border-zinc-800 rounded-xl gap-4"
                                         >
-                                            <div className="flex items-center gap-3">
-                                                <div className={`w-10 h-10 rounded-lg flex items-center justify-center font-bold ${match.result === 'WIN' ? 'bg-blue-500/20 text-blue-500' : 'bg-red-500/20 text-red-500'}`}>
+                                            {/* Left: Result Image & Basic Info */}
+                                            <div className="flex items-start gap-4">
+                                                <div className={`w-16 h-16 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center shrink-0`}>
                                                     <img 
                                                         src={match.result === 'WIN' ? '/images/victory.png' : '/images/defeat.png'} 
                                                         alt={match.result} 
-                                                        className="w-300 h-300 object-contain"
+                                                        className="w-10 h-10 sm:w-8 sm:h-8 object-contain"
                                                     />
                                                 </div>
-                                                <div>
-                                                    <div className="text-sm font-bold text-white">{match.champion} <span className="text-zinc-500 font-normal">({match.mode})</span></div>
-                                                    <div className="text-xs text-zinc-500">{new Date(match.timestamp).toLocaleString('vi-VN')}</div>
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="text-base sm:text-sm font-bold text-white truncate">{match.champion}</div>
+                                                    <div className="text-xs text-zinc-400 mb-1">Chế độ: {match.mode}</div>
+                                                    <div className="text-[10px] text-zinc-500">{new Date(match.timestamp).toLocaleString('vi-VN')}</div>
+                                                    {match.reason && <div className="text-xs text-zinc-400 mt-1 italic line-clamp-1">{match.reason}</div>}
                                                 </div>
                                             </div>
-                                            <div className="text-right">
-                                                <div className={`font-bold ${match.lp_change >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                                                    {match.lp_change > 0 ? '+' : ''}{match.lp_change} LP
+
+                                            {/* Right: Stats & Actions */}
+                                            <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between gap-4 sm:gap-1 border-t sm:border-t-0 border-zinc-800 pt-3 sm:pt-0">
+                                                {/* LP Change */}
+                                                <div className={`text-lg sm:text-base font-black ${match.lp_change >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                                                    {match.lp_change > 0 ? '+' : ''}{match.lp_change} <span className="text-xs font-normal text-zinc-500">LP</span>
                                                 </div>
-                                                {match.reason && <div className="text-xs text-zinc-500">{match.reason}</div>}
+
+                                                {/* Action Buttons */}
+                                                <div className="flex items-center gap-2">
+                                                    {/* Eye Button */}
+                                                    {match.detail ? (
+                                                        <button 
+                                                            onClick={() => setSelectedMatchDetail(match.detail)} 
+                                                            className="p-2 bg-zinc-900 hover:bg-blue-600 hover:text-white text-blue-400 rounded-lg transition-colors border border-zinc-800" 
+                                                            title="Xem chi tiết"
+                                                        >
+                                                            <Eye size={16} />
+                                                        </button>
+                                                    ) : (
+                                                        <div className="p-2 text-zinc-700 border border-zinc-800 rounded-lg cursor-not-allowed">
+                                                            <Eye size={16} />
+                                                        </div>
+                                                    )}
+
+                                                    {/* Edit/Delete Buttons (Booster Only) */}
+                                                    {isBooster && order.status === 'IN_PROGRESS' && (
+                                                        <>
+                                                            <button onClick={() => handleEditMatch(match)} className="p-2 bg-zinc-900 hover:bg-yellow-600 hover:text-white text-zinc-400 rounded-lg transition-colors border border-zinc-800" title="Sửa">
+                                                                <Pencil size={16} />
+                                                            </button>
+                                                            <button onClick={() => handleDeleteMatch(match._id)} className="p-2 bg-zinc-900 hover:bg-red-600 hover:text-white text-zinc-400 rounded-lg transition-colors border border-zinc-800" title="Xóa">
+                                                                <Trash2 size={16} />
+                                                            </button>
+                                                        </>
+                                                    )}
+                                                </div>
                                             </div>
-                                            {match.detail ? (
-                                                <button onClick={() => setSelectedMatchDetail(match.detail)} className="p-2 bg-blue-500/10 text-blue-400 hover:bg-blue-500 hover:text-white rounded-lg transition-colors ml-auto mr-2 shrink-0" title="Xem chi tiết trận đấu">
-                                                    <Eye size={16} />
-                                                </button>
-                                            ) : (
-                                                <div className="p-2 text-zinc-800 ml-auto mr-2 shrink-0 cursor-not-allowed" title={isBooster ? "Chưa có dữ liệu chi tiết. Hãy Sửa -> Lấy Info -> Lưu lại." : "Không có dữ liệu chi tiết"}>
-                                                    <Eye size={16} />
-                                                </div>
-                                            )}
-                                            {isBooster && order.status === 'IN_PROGRESS' && (
-                                                <div className="flex gap-2 ml-4">
-                                                    <button onClick={() => handleEditMatch(match)} className="p-1.5 bg-zinc-900 hover:bg-blue-600 hover:text-white text-zinc-500 rounded transition-colors" title="Sửa">
-                                                        <Pencil size={14} />
-                                                    </button>
-                                                    <button onClick={() => handleDeleteMatch(match._id)} className="p-1.5 bg-zinc-900 hover:bg-red-600 hover:text-white text-zinc-500 rounded transition-colors" title="Xóa">
-                                                        <Trash2 size={14} />
-                                                    </button>
-                                                </div>
-                                            )}
                                         </motion.div>
                                     ))
                                 ) : (
@@ -823,9 +879,9 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                 
                 {/* Riot Match Fetcher (Only for new matches) */}
                 {!editingMatchId && (
-                    <div className="flex gap-2 mb-6">
+                    <div className="flex flex-col sm:flex-row gap-2 mb-6">
                         <input type="text" placeholder="Nhập Match ID (VD: 123456 hoặc VN2_123456)" className="flex-1 bg-zinc-950 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white font-mono" value={riotMatchId} onChange={e => setRiotMatchId(e.target.value)} />
-                        <button onClick={handleFetchRiotMatch} disabled={isFetchingRiot} className="bg-zinc-800 hover:bg-zinc-700 text-white px-3 py-2 rounded-lg text-sm font-bold flex items-center gap-2">
+                        <button onClick={handleFetchRiotMatch} disabled={isFetchingRiot} className="bg-zinc-800 hover:bg-zinc-700 text-white px-3 py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-2 w-full sm:w-auto">
                             {isFetchingRiot ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
                             Lấy Info
                         </button>

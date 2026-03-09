@@ -20,7 +20,9 @@ import {
   Home,
   CreditCard,
   AlertTriangle,
-  Heart
+  Heart,
+  DollarSign, 
+  ClipboardList 
 } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n';
 import { logout } from '@/lib/logout';
@@ -135,9 +137,10 @@ export default function Sidebar({ className = '', onLinkClick }: SidebarProps) {
             <NavItem href="/admin/boosters" icon={ShieldAlert} label={t('manageBoosters')} />
             <NavItem href="/admin/users" icon={Users} label={t('manageCustomers')} />
             <NavItem href="/admin/transactions" icon={CreditCard} label={t('manageTransactions')} />
-            <NavItem href="/admin/orders" icon={FileText} label={t('manageOrders')} />
+            <NavItem href="/admin/orders" icon={ClipboardList} label={t('manageOrders')} />
             <NavItem href="/admin/blogs" icon={Newspaper} label={t('manageBlogs')} />
             <NavItem href="/admin/withdrawals" icon={Wallet} label="Quản lý Rút tiền" />
+            <NavItem href="/admin/deposits" icon={DollarSign} label="Quản lý Tiền cọc" />
             <NavItem href="/admin/disputes" icon={AlertTriangle} label="Quản lý Tranh chấp" />
             <NavItem href="/admin/settings" icon={Settings} label={t('systemSettings')} />
             <NavItem href="/admin/audit-logs" icon={ListTodo} label={t('auditLogs')} />

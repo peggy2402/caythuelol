@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
-import { CheckCircle2, XCircle, Loader2, Settings, ChevronLeft, ChevronRight, Eye, Wallet, History } from 'lucide-react';
+import { CheckCircle2, XCircle, Loader2, Settings, ChevronLeft, ChevronRight, Eye, Wallet, History, AlertTriangle, TrendingUp, ArrowDownLeft } from 'lucide-react';
 
 interface Withdrawal {
   _id: string;
@@ -13,6 +13,7 @@ interface Withdrawal {
     role: string;
     wallet_balance: number;
     pending_balance: number;
+    createdAt: string;
   };
   amount: number;
   netAmount: number;
@@ -36,6 +37,7 @@ export default function AdminWithdrawalsPage() {
   const [limit, setLimit] = useState(10);
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [userTransactions, setUserTransactions] = useState<any[]>([]);
+  const [userStats, setUserStats] = useState<any>(null); // Thêm state cho thống kê user
   const [loadingStats, setLoadingStats] = useState(false);
 
   const fetchWithdrawals = async (page = 1, currentLimit = limit) => {
@@ -121,15 +123,21 @@ export default function AdminWithdrawalsPage() {
   const formatCurrency = (amount: number) => 
     new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
 
-  const handleViewUserStats = async (user: any) => {
+  const handleViewUserStats = async (user: any, withdrawalAmount: number) => {
     setSelectedUser(user);
     setLoadingStats(true);
     try {
-        // Lấy 5 giao dịch gần nhất của user này
-        const res = await fetch(`/api/admin/transactions?search=${user.username}&limit=5`);
+        // Gọi API mới để lấy thống kê chi tiết của User
+        const res = await fetch(`/api/admin/users/${user._id}/stats`);
         const data = await res.json();
+
         if (res.ok) {
-            setUserTransactions(data.transactions);
+            setUserStats(data.stats);
+            setUserTransactions(data.recentTransactions);
+            // Bạn có thể lưu recentOrders vào một state khác nếu muốn hiển thị
+        } else {
+            toast.error(data.error || 'Lỗi tải thống kê user');
+            setUserStats(null);
         }
     } catch (e) {
         toast.error('Lỗi tải lịch sử giao dịch');
@@ -198,7 +206,7 @@ export default function AdminWithdrawalsPage() {
                   <td className="px-6 py-4"><span className={`px-2 py-1 rounded-full text-xs font-bold ${w.status === 'PENDING' ? 'bg-yellow-500/10 text-yellow-500' : w.status === 'COMPLETED' ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>{w.status}</span></td>
                   <td className="px-6 py-4 text-right space-x-2">
                     <button 
-                      onClick={() => handleViewUserStats(w.userId)}
+                      onClick={() => handleViewUserStats(w.userId, w.amount)}
                       className="p-2 bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-white rounded-lg transition-colors"
                       title="Xem thông tin tài chính"
                     >
@@ -251,7 +259,7 @@ export default function AdminWithdrawalsPage() {
 
                   <div className="flex gap-2 pt-1">
                     <button 
-                      onClick={() => handleViewUserStats(w.userId)}
+                      onClick={() => handleViewUserStats(w.userId, w.amount)}
                       className="flex-1 py-2 bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-white rounded-lg transition-colors flex items-center justify-center gap-2 text-xs font-medium"
                     >
                       <Eye className="w-3 h-3" /> Chi tiết
@@ -313,17 +321,17 @@ export default function AdminWithdrawalsPage() {
       {/* User Stats Modal */}
       {selectedUser && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-2xl shadow-2xl animate-in zoom-in-95 duration-200">
+          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-3xl shadow-2xl animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b border-zinc-800 flex justify-between items-center bg-zinc-950 rounded-t-2xl">
               <div className="flex flex-col">
                 <div className="flex items-center gap-2 text-lg font-bold text-white">
                   <Wallet className="w-5 h-5 text-blue-500" />
-                  Thông tin tài chính
+                  Kiểm tra nguồn tiền (Audit)
                 </div>
 
-                <span className="text-blue-400 text-sm">
-                  Người dùng: {selectedUser.username} 
-                </span>
+                <div className="text-zinc-400 text-sm flex items-center gap-2">
+                  User: <span className="text-white font-bold">{selectedUser.username}</span>
+                </div>
                 <span className="text-blue-400 text-sm">
                   Vai trò: {selectedUser.role} 
                 </span>
@@ -334,15 +342,54 @@ export default function AdminWithdrawalsPage() {
             </div>
             
             <div className="p-6 space-y-6">
+              {/* Risk Analysis */}
+              <div className="bg-zinc-950 p-4 rounded-xl border border-zinc-800">
+                  <h4 className="text-sm font-bold text-zinc-400 uppercase mb-3 flex items-center gap-2">
+                      <AlertTriangle className="w-4 h-4 text-yellow-500" /> Phân tích rủi ro
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                      <div className="bg-zinc-900 p-3 rounded-lg border border-zinc-800">
+                          <span className="text-zinc-500 block mb-1">Ngày tham gia</span>
+                          <span className="text-white font-medium">{selectedUser.createdAt ? new Date(selectedUser.createdAt).toLocaleDateString('vi-VN') : 'N/A'}</span>
+                      </div>
+                      <div className="bg-zinc-900 p-3 rounded-lg border border-zinc-800">
+                          <span className="text-zinc-500 block mb-1">Tổng số dư hiện tại</span>
+                          <span className="text-emerald-400 font-bold font-mono">{formatCurrency(selectedUser.wallet_balance)}</span>
+                      </div>
+                      <div className="bg-zinc-900 p-3 rounded-lg border border-zinc-800">
+                          <span className="text-zinc-500 block mb-1">Đang chờ xử lý</span>
+                          <span className="text-yellow-500 font-bold font-mono">{formatCurrency(selectedUser.pending_balance)}</span>
+                      </div>
+                  </div>
+              </div>
+
               {/* Balances */}
               <div className="grid grid-cols-2 gap-4">
-                <div className="p-4 bg-zinc-950 rounded-xl border border-zinc-800">
-                  <div className="text-sm text-zinc-500 mb-1">Số dư khả dụng</div>
-                  <div className="font-bold text-2xl text-green-400">{formatCurrency(selectedUser.wallet_balance || 0)}</div>
+                <div className="p-4 bg-blue-900/10 rounded-xl border border-blue-500/20">
+                  <div className="text-sm text-blue-400 mb-1 font-bold flex items-center gap-2">
+                      <TrendingUp className="w-4 h-4" /> Nguồn thu (Credit)
+                  </div>
+                  <div className="text-xs text-zinc-400 mt-2 space-y-1">
+                      <p className="flex justify-between">
+                        <span>• Nạp tiền:</span> 
+                        <span className="text-white font-mono">{userStats ? formatCurrency(userStats.totalDeposit) : '...'}</span>
+                      </p>
+                      <p className="flex justify-between">
+                        <span>• Hoàn thành đơn:</span> 
+                        <span className="text-white font-mono">{userStats ? formatCurrency(userStats.totalEarned) : '...'}</span>
+                      </p>
+                  </div>
                 </div>
-                <div className="p-4 bg-zinc-950 rounded-xl border border-zinc-800">
-                  <div className="text-sm text-zinc-500 mb-1">Đang chờ xử lý</div>
-                  <div className="font-bold text-2xl text-yellow-500">{formatCurrency(selectedUser.pending_balance || 0)}</div>
+                <div className="p-4 bg-red-900/10 rounded-xl border border-red-500/20">
+                  <div className="text-sm text-red-400 mb-1 font-bold flex items-center gap-2">
+                      <ArrowDownLeft className="w-4 h-4" /> Đã chi (Debit)
+                  </div>
+                  <div className="text-xs text-zinc-400 mt-2 space-y-1">
+                      <p className="flex justify-between">
+                        <span>• Rút tiền:</span> <span className="text-white font-mono">{userStats ? formatCurrency(userStats.totalWithdrawal) : '...'}</span>
+                      </p>
+                      <p className="flex justify-between"><span>• Thuê Booster:</span> <span className="text-white font-mono">{userStats ? formatCurrency(userStats.totalSpent) : '...'}</span></p>
+                  </div>
                 </div>
               </div>
 
@@ -368,9 +415,12 @@ export default function AdminWithdrawalsPage() {
                       <tbody className="divide-y divide-zinc-800">
                         {userTransactions.map((tx: any) => (
                           <tr key={tx._id}>
-                            <td className="px-4 py-2 text-zinc-400">{new Date(tx.createdAt).toLocaleDateString('vi-VN')}</td>
-                            <td className="px-4 py-2 text-white">{tx.type}</td>
-                            <td className={`px-4 py-2 text-right font-bold ${['DEPOSIT', 'PAYMENT_RELEASE', 'REFUND'].includes(tx.type) ? 'text-green-500' : 'text-red-500'}`}>
+                            <td className="px-4 py-3 text-zinc-400">{new Date(tx.createdAt).toLocaleString('vi-VN')}</td>
+                            <td className="px-4 py-3">
+                                <div className="text-white font-medium text-xs">{tx.type}</div>
+                                <div className="text-[10px] text-zinc-500 truncate max-w-[200px]">{tx.description || tx.metadata?.content}</div>
+                            </td>
+                            <td className={`px-4 py-3 text-right font-bold font-mono ${['DEPOSIT', 'PAYMENT_RELEASE', 'REFUND', 'COMMISSION'].includes(tx.type) ? 'text-green-500' : 'text-red-500'}`}>
                               {['DEPOSIT', 'PAYMENT_RELEASE', 'REFUND'].includes(tx.type) ? '+' : ''}{formatCurrency(tx.amount)}
                             </td>
                           </tr>

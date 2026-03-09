@@ -51,7 +51,13 @@ export async function POST(req: Request) {
     const leagues = await leagueRes.json();
 
     // Return all leagues, frontend will filter
-    return NextResponse.json({ success: true, leagues, puuid: accountData.puuid });
+    return NextResponse.json({ 
+        success: true, 
+        leagues, 
+        puuid: accountData.puuid,
+        gameName: accountData.gameName,
+        tagLine: accountData.tagLine
+    });
 
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
