@@ -27,18 +27,14 @@ function LevelingContent() {
   const [gameUsername, setGameUsername] = useState('');
   const [gamePassword, setGamePassword] = useState('');
   const [selectedServer, setSelectedServer] = useState('');
-  const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
 
   // Extra Options State
-  const [extraOptions, setExtraOptions] = useState<Record<string, boolean>>({
+  const [extraOptions, setExtraOptions] = useState<Record<string, any>>({
     express: false,
     streaming: false,
     duo: false,
     schedule: false,
   });
-
-  // Schedule State
-  const [scheduleWindows, setScheduleWindows] = useState<TimeWindow[]>([]);
 
   // 1. Fetch Platform Fee
   useEffect(() => {
@@ -222,8 +218,6 @@ function LevelingContent() {
           <ExtraOptions 
               boosterConfig={boosterConfig}
               options={extraOptions} setOptions={setExtraOptions}
-              selectedRoles={selectedRoles} setSelectedRoles={setSelectedRoles}
-              scheduleWindows={scheduleWindows} setScheduleWindows={setScheduleWindows}
           />
         </div>
 
@@ -256,27 +250,6 @@ function LevelingContent() {
                                 <span className="text-zinc-400">Số level cần cày:</span>
                                 <span className="text-white font-medium">{priceDetails?.levelsToGrind || 0} levels</span>
                             </div>
-                            {/* Hiển thị thông tin bổ sung (Roles/Schedule) nếu có */}
-                            {(selectedRoles.length > 0 || (extraOptions.schedule && scheduleWindows.length > 0)) && (
-                                <div className="mt-2 pt-2 border-t border-zinc-800/50 text-xs text-zinc-500 space-y-1">
-                                    {selectedRoles.length > 0 && (
-                                        <div className="flex justify-between">
-                                            <span className="flex items-center gap-1"><Crosshair className="w-3 h-3"/> Vị trí:</span>
-                                            <span className="text-zinc-300 text-right max-w-[60%] truncate" title={selectedRoles.join(', ')}>{selectedRoles.join(', ')}</span>
-                                        </div>
-                                    )}
-                                    {extraOptions.schedule && scheduleWindows.length > 0 && (
-                                        <div className="flex justify-between items-start">
-                                            <span className="flex items-center gap-1 shrink-0"><Clock className="w-3 h-3"/> Cấm chơi {boosterConfig.booster_info.service_settings.options.scheduleFee > 0 ? `(+${boosterConfig.booster_info.service_settings.options.scheduleFee}%)` : ''}:</span>
-                                            <div className="text-right">
-                                                {scheduleWindows.map((w, i) => (
-                                                    <div key={i} className="text-red-400 font-mono">{w.start}-{w.end}</div>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-                            )}
                 </>
             </PaymentSummary>
         </div>
