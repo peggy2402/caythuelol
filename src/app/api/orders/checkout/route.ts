@@ -20,6 +20,11 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
+    // Prevent self-ordering
+    if (boosterId && boosterId === session.user.id) {
+      return NextResponse.json({ error: 'Bạn không thể tự thuê chính mình!' }, { status: 400 });
+    }
+
     await dbConnect();
 
     // 1. Check Balance

@@ -1,7 +1,7 @@
 // src/components/services/lol/PaymentSummary.tsx
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Flame, ArrowRight, CheckCircle2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
@@ -42,6 +42,16 @@ export default function PaymentSummary({
 }: PaymentSummaryProps) {
   const router = useRouter();
   const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const [currentUser, setCurrentUser] = useState<any>(null);
+
+  useEffect(() => {
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      try {
+        setCurrentUser(JSON.parse(userStr));
+      } catch (e) {}
+    }
+  }, []);
 
   // Đọc trực tiếp từ object `options` đã được hợp nhất
   const effectiveRoles = options?.roles || [];
@@ -145,6 +155,10 @@ export default function PaymentSummary({
             onClick={() => {
                 if (!boosterId) {
                     toast.error('Vui lòng chọn một Booster.');
+                    return;
+                }
+                if (currentUser && currentUser._id === boosterId) {
+                    toast.error('Bạn không thể tự thuê chính mình!');
                     return;
                 }
                 if (!priceDetails || priceDetails.totalPrice <= 0) {

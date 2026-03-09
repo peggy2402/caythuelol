@@ -1,7 +1,8 @@
 // src/components/services/lol/AccountInfo.tsx
 'use client';
 
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, Eye, EyeOff } from 'lucide-react';
+import { useState } from 'react';
 
 const ACCOUNT_TYPES = [
     { id: 'RIOT', name: 'Riot' },
@@ -33,6 +34,8 @@ export default function AccountInfo({
   servers = [],
   disabled = false
 }: AccountInfoProps) {
+  const [showPassword, setShowPassword] = useState(false);
+
   return (
     <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-zinc-900/60 backdrop-blur-xl p-6 shadow-xl">
         <h3 className="text-lg font-bold text-white mb-4">Thông tin tài khoản</h3>
@@ -62,7 +65,16 @@ export default function AccountInfo({
             </div>
             <div className="space-y-2">
                 <label className="text-xs font-bold uppercase text-zinc-500 tracking-wider">Mật khẩu</label>
-                <input type="password" value={password} onChange={e => setPassword(e.target.value)} className={`w-full bg-zinc-900/50 border rounded-xl px-4 py-3 text-white focus:border-blue-500/50 outline-none ${password && password.length < 3 ? 'border-red-500/50' : 'border-white/10'}`} placeholder="Mật khẩu game" />
+                <div className="relative">
+                    <input type={showPassword ? "text" : "password"} value={password} onChange={e => setPassword(e.target.value)} className={`w-full bg-zinc-900/50 border rounded-xl pl-4 pr-10 py-3 text-white focus:border-blue-500/50 outline-none ${password && password.length < 3 ? 'border-red-500/50' : 'border-white/10'}`} placeholder="Mật khẩu game" />
+                    <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white transition-colors"
+                    >
+                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                </div>
             </div>
         </div>
     </div>

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
-import { Loader2, ShieldCheck, Wallet, ArrowRight, AlertCircle, CheckCircle2, TicketPercent, X, Tag } from 'lucide-react';
+import { Loader2, ShieldCheck, Wallet, ArrowRight, AlertCircle, CheckCircle2, TicketPercent, X, Tag, User } from 'lucide-react';
 import { toast } from 'sonner';
 import Navbar from '@/components/Navbar';
 
@@ -55,6 +55,7 @@ function CheckoutContent() {
   }
 
   const isSufficient = walletBalance >= paymentAmount;
+  const isLoggedIn = !!user;
 
   const handleApplyCoupon = async () => {
     if (!couponCode.trim()) {
@@ -431,21 +432,33 @@ function CheckoutContent() {
                   <span className="text-zinc-300">{isDepositService ? 'Tiền cọc cần thanh toán:' : 'Thanh toán ngay:'}</span>
                   <span className="text-xl font-bold text-green-400">{paymentAmount.toLocaleString()} đ</span>
                 </div>
-                <div className="flex justify-between items-center text-xs text-zinc-500">
-                  <span>Số dư ví:</span>
-                  <span className={isSufficient ? 'text-blue-400' : 'text-red-500'}>
-                    {walletBalance.toLocaleString()} đ
-                  </span>
-                </div>
+                {isLoggedIn && (
+                  <div className="flex justify-between items-center text-xs text-zinc-500">
+                    <span>Số dư ví:</span>
+                    <span className={isSufficient ? 'text-blue-400' : 'text-red-500'}>
+                      {walletBalance.toLocaleString()} đ
+                    </span>
+                  </div>
+                )}
               </div>
 
-              {!isSufficient && (
+              {isLoggedIn && !isSufficient && (
                 <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-xs text-red-400 text-center">
                   Số dư không đủ. Vui lòng nạp thêm { (paymentAmount - walletBalance).toLocaleString() } đ
                 </div>
               )}
 
-              {isSufficient ? (
+              {!isLoggedIn ? (
+                <button
+                  onClick={() => router.push('/login')}
+                  className="w-full h-12 rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 
+                  text-white font-semibold flex items-center justify-center gap-2 
+                  shadow-lg shadow-blue-900/30 hover:shadow-blue-900/50 
+                  transition-all duration-200 active:scale-[0.98]"
+                >
+                  <span>Đăng nhập để thanh toán</span>
+                </button>
+              ) : isSufficient ? (
                 <button
                   onClick={handleConfirmPayment}
                   disabled={loading}
