@@ -2,9 +2,8 @@
 
 import { useState, useEffect, useMemo, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { Info, AlertCircle, Loader2, ChevronRight, Crosshair, Clock, CheckCircle2 } from 'lucide-react';
+import { Info, AlertCircle, Loader2, ChevronRight, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { TimeWindow } from '@/components/ScheduleModal';
 import AccountInfo from '@/components/services/lol/AccountInfo';
 import ExtraOptions from '@/components/services/lol/ExtraOptions';
 import PaymentSummary from '@/components/services/lol/net-wins/PaymentSummary';
@@ -60,17 +59,13 @@ function NetWinsContent() {
   }, [gameUsername, gamePassword]);
 
   // Extra Options State
-  const [extraOptions, setExtraOptions] = useState<Record<string, boolean>>({
+  const [extraOptions, setExtraOptions] = useState<Record<string, any>>({
     express: false,
     duo: false,
     streaming: false,
     specificChamps: false,
     schedule: false,
   });
-  const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
-
-  // Schedule State
-  const [scheduleWindows, setScheduleWindows] = useState<TimeWindow[]>([]);
 
   // 1. Fetch Platform Fee
   useEffect(() => {
@@ -174,7 +169,7 @@ function NetWinsContent() {
         optionDetails.push({ label: 'Streaming', value: val });
     }
     // Schedule Fee
-    if (extraOptions.schedule && boosterOptions.schedule && boosterOptions.scheduleFee > 0) {
+    if (extraOptions.schedule && Array.isArray(extraOptions.schedule) && extraOptions.schedule.length > 0 && boosterOptions.schedule && boosterOptions.scheduleFee > 0) {
         const val = base * (boosterOptions.scheduleFee / 100);
         optionsTotalValue += val;
         optionDetails.push({ label: 'Phí đặt lịch', percent: boosterOptions.scheduleFee, value: val });
@@ -394,8 +389,6 @@ function NetWinsContent() {
                 <ExtraOptions 
                     boosterConfig={boosterConfig}
                     options={extraOptions} setOptions={setExtraOptions}
-                    selectedRoles={selectedRoles} setSelectedRoles={setSelectedRoles}
-                    scheduleWindows={scheduleWindows} setScheduleWindows={setScheduleWindows}
                 />
             </div>
 
@@ -473,29 +466,6 @@ function NetWinsContent() {
                                         </span>
                                     </div>
                                 </div>
-
-                                {/* Hiển thị thông tin bổ sung (Roles/Schedule) nếu có */}
-                                {(selectedRoles.length > 0 || (extraOptions.schedule && scheduleWindows.length > 0)) && (
-                                    <div className="mt-2 pt-2 border-t border-zinc-800/50 text-xs text-zinc-500 space-y-1">
-                                        {selectedRoles.length > 0 && (
-                                            <div className="flex justify-between">
-                                                <span className="flex items-center gap-1"><Crosshair className="w-3 h-3"/> Vị trí:</span>
-                                                <span className="text-zinc-300 text-right max-w-[60%] truncate" title={selectedRoles.join(', ')}>{selectedRoles.join(', ')}</span>
-                                            </div>
-                                        )}
-                                        {extraOptions.schedule && scheduleWindows.length > 0 && (
-                                            <div className="flex justify-between items-start">
-                                                <span className="flex items-center gap-1 shrink-0"><Clock className="w-3 h-3"/> Cấm chơi {boosterConfig.booster_info.service_settings.options.scheduleFee > 0 ? `(+${boosterConfig.booster_info.service_settings.options.scheduleFee}%)` : ''}:</span>
-                                                <div className="text-right">
-                                                    {scheduleWindows.map((w, i) => (
-                                                        <div key={i} className="text-red-400 font-mono">{w.start}-{w.end}</div>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
-                                )}
-
                             <div className="mt-4 p-3 bg-blue-500/10 border border-blue-500/20 rounded-xl text-xs text-blue-200/80 leading-relaxed">
                               <div className="flex gap-2">
                                 <Info className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />

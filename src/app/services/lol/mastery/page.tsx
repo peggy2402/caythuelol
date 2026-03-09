@@ -3,9 +3,8 @@
 
 import { useState, useEffect, useMemo, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Loader2, Info, ChevronRight, Crosshair, Search, X, Clock, Flame } from 'lucide-react';
+import { Loader2, Info, ChevronRight, Crosshair, Search, X, Flame } from 'lucide-react';
 import { toast } from 'sonner';
-import ScheduleModal, { TimeWindow } from '@/components/ScheduleModal';
 import AccountInfo from '@/components/services/lol/AccountInfo';
 import ExtraOptions from '@/components/services/lol/ExtraOptions';
 import PaymentSummary from '@/components/services/lol/PaymentSummary';
@@ -47,19 +46,14 @@ function MasteryContent() {
   const [gameUsername, setGameUsername] = useState('');
   const [gamePassword, setGamePassword] = useState('');
   const [selectedServer, setSelectedServer] = useState('');
-  const [scheduleWindows, setScheduleWindows] = useState<TimeWindow[]>([]);
   // Extra Options State
-  const [extraOptions, setExtraOptions] = useState<Record<string, boolean>>({
+  const [extraOptions, setExtraOptions] = useState<Record<string, any>>({
     express: false,
     streaming: false,
     specificChamps: false, // Mặc định là true vì Mastery luôn cần chọn tướng, nhưng ở đây để toggle cho logic giá
     duo: false,
     schedule: false,
   });
-  const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
-
-  // Schedule Modal State
-  const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
 
   // 1. Fetch Platform Fee
   useEffect(() => {
@@ -151,7 +145,7 @@ function MasteryContent() {
     }
 
     // Schedule Fee
-    if (extraOptions.schedule && boosterOptions.schedule && boosterOptions.scheduleFee > 0) {
+    if (extraOptions.schedule && Array.isArray(extraOptions.schedule) && extraOptions.schedule.length > 0 && boosterOptions.schedule && boosterOptions.scheduleFee > 0) {
         const val = base * (boosterOptions.scheduleFee / 100);
         optionsTotalValue += val;
         optionDetails.push({ label: 'Phí đặt lịch', percent: boosterOptions.scheduleFee, value: val });
@@ -172,38 +166,6 @@ function MasteryContent() {
     };
   }, [boosterConfig, currentLevel, desiredLevel, extraOptions, platformFee]);
 
-  const handleOptionChange = (optionKey: string) => {
-    if (optionKey === 'express' && !extraOptions.express && extraOptions.schedule) {
-        toast.warning('Đã tắt "Đặt lịch" vì xung đột với "Cày siêu tốc".');
-        setExtraOptions(prev => ({ ...prev, express: true, schedule: false }));
-        return;
-    }
-    if (optionKey === 'schedule' && !extraOptions.schedule && extraOptions.express) {
-        toast.error('Không thể chọn "Đặt lịch" khi đang dùng "Cày siêu tốc".');
-        return;
-    }
-    if (optionKey === 'schedule') {
-        if (extraOptions.schedule) {
-            // Nếu đang bật -> Tắt và xóa lịch
-            setExtraOptions(prev => ({ ...prev, schedule: false }));
-            setScheduleWindows([]);
-        } else {
-            // Nếu đang tắt -> Mở Modal để cấu hình
-            setIsScheduleModalOpen(true);
-        }
-    } else {
-        setExtraOptions(prev => ({ ...prev, [optionKey]: !prev[optionKey] }));
-    }
-  };
-  
-  const handleSaveSchedule = (windows: TimeWindow[]) => {
-      if (windows.length > 0) {
-          setScheduleWindows(windows);
-          setExtraOptions(prev => ({ ...prev, schedule: true }));
-      } else {
-          setExtraOptions(prev => ({ ...prev, schedule: false }));
-      }
-  };
   // Filtered Champions for Modal
   const filteredChampions = useMemo(() => {
     let result = allChampions;
@@ -352,8 +314,6 @@ function MasteryContent() {
             <ExtraOptions 
                 boosterConfig={boosterConfig}
                 options={extraOptions} setOptions={setExtraOptions}
-                selectedRoles={selectedRoles} setSelectedRoles={setSelectedRoles}
-                scheduleWindows={scheduleWindows} setScheduleWindows={setScheduleWindows}
             />
         </div>
 
@@ -391,27 +351,6 @@ function MasteryContent() {
                                 <span className="text-zinc-400">Tướng:</span>
                                 <span className="text-white font-medium">{selectedChampion ? selectedChampion.name : 'Chưa chọn'}</span>
                             </div>
-                            {/* Hiển thị thông tin bổ sung (Roles/Schedule) nếu có */}
-                            {(selectedRoles.length > 0 || (extraOptions.schedule && scheduleWindows.length > 0)) && (
-                                <div className="mt-2 pt-2 border-t border-zinc-800/50 text-xs text-zinc-500 space-y-1">
-                                    {selectedRoles.length > 0 && (
-                                        <div className="flex justify-between">
-                                            <span className="flex items-center gap-1"><Crosshair className="w-3 h-3"/> Vị trí:</span>
-                                            <span className="text-zinc-300 text-right max-w-[60%] truncate" title={selectedRoles.join(', ')}>{selectedRoles.join(', ')}</span>
-                                        </div>
-                                    )}
-                                    {extraOptions.schedule && scheduleWindows.length > 0 && (
-                                        <div className="flex justify-between items-start">
-                                            <span className="flex items-center gap-1 shrink-0"><Clock className="w-3 h-3"/> Cấm chơi {boosterConfig.booster_info.service_settings.options.scheduleFee > 0 ? `(+${boosterConfig.booster_info.service_settings.options.scheduleFee}%)` : ''}:</span>
-                                            <div className="text-right">
-                                                {scheduleWindows.map((w, i) => (
-                                                    <div key={i} className="text-red-400 font-mono">{w.start}-{w.end}</div>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-                            )}
                 </>
             </PaymentSummary>
         </div>
@@ -465,13 +404,6 @@ function MasteryContent() {
                 </div>
             </div>
         )}
-
-      <ScheduleModal 
-        isOpen={isScheduleModalOpen} 
-        onClose={() => setIsScheduleModalOpen(false)} 
-        onSave={handleSaveSchedule}
-        initialWindows={scheduleWindows}
-      />
     </div>
   );
 }

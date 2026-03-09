@@ -3,13 +3,11 @@
 
 import { useState, useEffect, useMemo, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { ChevronRight, Loader2, Crosshair, Clock, CheckCircle2, ShieldCheck, TrendingUp, TrendingDown } from 'lucide-react';
+import { ChevronRight, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { TimeWindow } from '@/components/ScheduleModal';
 import AccountInfo from '@/components/services/lol/AccountInfo';
 import ExtraOptions from '@/components/services/lol/ExtraOptions';
 import PaymentSummary from '@/components/services/lol/PaymentSummary';
-import ScheduleModal from '@/components/ScheduleModal';
 
 const RANKS = ['Iron', 'Bronze', 'Silver', 'Gold', 'Platinum', 'Diamond', 'Master'];
 const DIVISIONS = ['IV', 'III', 'II', 'I'];
@@ -150,18 +148,13 @@ function RankBoostContent() {
   const [selectedServer, setSelectedServer] = useState('');
 
   // Extra Options State
-  const [extraOptions, setExtraOptions] = useState<Record<string, boolean>>({
+  const [extraOptions, setExtraOptions] = useState<Record<string, any>>({
     express: false,
     duo: false,
     streaming: false,
     specificChamps: false,
     schedule: false,
   });
-
-  const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
-  const [scheduleWindows, setScheduleWindows] = useState<TimeWindow[]>([]);
-  const [agreedToTerms, setAgreedToTerms] = useState(false);
-  const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
 
   // Config State
   const [platformFee, setPlatformFee] = useState(0);
@@ -266,7 +259,7 @@ function RankBoostContent() {
         optionDetails.push({ label: 'Streaming', value: boosterOptions.streaming });
     }
 
-    if (extraOptions.schedule && boosterOptions.scheduleFee > 0) {
+    if (extraOptions.schedule && Array.isArray(extraOptions.schedule) && extraOptions.schedule.length > 0 && boosterOptions.scheduleFee > 0) {
         const val = totalBase * (boosterOptions.scheduleFee / 100);
         optionsTotalValue += val;
         optionDetails.push({ label: 'Phí đặt lịch', percent: boosterOptions.scheduleFee, value: val });
@@ -351,8 +344,6 @@ function RankBoostContent() {
         <ExtraOptions 
             boosterConfig={boosterConfig}
             options={extraOptions} setOptions={setExtraOptions}
-            selectedRoles={selectedRoles} setSelectedRoles={setSelectedRoles}
-            scheduleWindows={scheduleWindows} setScheduleWindows={setScheduleWindows}
         />
       </div>
 
@@ -396,37 +387,10 @@ function RankBoostContent() {
                         </span>
                     </div>
                 )}
-
-                {(selectedRoles.length > 0 || (extraOptions.schedule && scheduleWindows.length > 0)) && (
-                    <div className="mt-2 pt-2 border-t border-zinc-800/50 text-xs text-zinc-500 space-y-1">
-                        {selectedRoles.length > 0 && (
-                            <div className="flex justify-between">
-                                <span className="flex items-center gap-1"><Crosshair className="w-3 h-3"/> Vị trí:</span>
-                                <span className="text-zinc-300 truncate max-w-[60%]">{selectedRoles.join(', ')}</span>
-                            </div>
-                        )}
-                        {extraOptions.schedule && scheduleWindows.length > 0 && (
-                            <div className="flex justify-between items-start">
-                                <span className="flex items-center gap-1 shrink-0"><Clock className="w-3 h-3"/> Khung giờ nghỉ:</span>
-                                <div className="text-right text-red-400 font-mono">
-                                    {scheduleWindows.map((w, i) => <div key={i}>{w.start}-{w.end}</div>)}
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                )}
-                
             </div>
 
         </PaymentSummary>
       </div>
-
-      <ScheduleModal 
-        isOpen={isScheduleModalOpen} 
-        onClose={() => setIsScheduleModalOpen(false)} 
-        onSave={(windows) => setScheduleWindows(windows)}
-        initialWindows={scheduleWindows}
-      />
     </div>
   );
 }
