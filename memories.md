@@ -634,3 +634,36 @@ caythuelol/
   - **Job Cards:** Hiển thị thông tin tóm tắt: Loại dịch vụ, Rank hiện tại/mong muốn, Server và Thu nhập dự kiến.
   - **Interaction:** Nút "Nhận Đơn" có xử lý loading và error handling (nếu đơn đã bị người khác nhận).
   - **Empty State:** Giao diện thân thiện khi không có đơn hàng nào.
+
+21. 2026-03-09 — Coupon System, UI Refactoring & Bug Fixes
+
+- **Coupon System (Mã giảm giá):**
+  - **Booster Config:** Thêm tính năng quản lý Coupon trong `GeneralSettingsPage` (Tạo mã, % giảm giá, Bật/Tắt).
+  - **Backend:**
+    - Cập nhật `ServiceSettings` schema để lưu mảng `coupons`.
+    - Cập nhật API `/api/boosters/services` để lưu/tải `coupons` từ `BoosterProfile.metadata`.
+    - Tạo API `/api/coupons/validate` để kiểm tra mã giảm giá khi thanh toán.
+  - **Checkout:** Tích hợp ô nhập mã giảm giá, tính toán lại tổng tiền và hiển thị chi tiết giảm giá.
+
+- **Refactoring & Fixes:**
+  - **ExtraOptions Refactor:** Hợp nhất logic `roles` và `schedule` (bao gồm time windows) vào object `options` chính. Cập nhật toàn bộ các trang dịch vụ (`Rank`, `NetWins`, `Placements`, `Promotion`, `Leveling`, `Mastery`) để sửa lỗi build và đồng bộ dữ liệu.
+  - **Booster Layout:** Redesign `services/lol/layout.tsx` với Sticky Header hiện đại, tối ưu responsive (horizontal scroll tabs trên mobile).
+  - **My Orders:**
+    - Sửa API `/api/boosters/my-orders` để trả về toàn bộ đơn hàng (bỏ hardcode filter).
+    - Cập nhật UI để phân chia đúng các tab: Đơn đã nhận (`APPROVED`), Đang làm (`IN_PROGRESS`), Hoàn thành (`COMPLETED`/`SETTLED`), Đã hủy.
+  - **Order Details:**
+    - Thêm nút "Quay lại danh sách".
+    - Fix lỗi `ingameName` bị reset khi đang gõ do Polling/Socket.
+    - Thêm trạng thái `isLoading` cho các nút hành động.
+  - **Payment Summary:** Cập nhật để hiển thị chi tiết "Vị trí" và "Khung giờ cấm chơi" từ cấu trúc dữ liệu mới.
+
+- **UI Polish:**
+  - Tối ưu hóa giao diện Mobile cho trang Checkout (Input mã giảm giá không bị vỡ layout).
+  - Cải thiện hiển thị trạng thái đơn hàng (Việt hóa, màu sắc chuẩn).
+
+22. 2026-03-09 — Email Notification System
+
+- **Email Service:**
+  - Tạo `src/lib/mail.ts` sử dụng `nodemailer` để gửi email giao dịch.
+  - Thiết kế template email HTML (Dark Mode) cho thông báo đơn hàng mới.
+  - Hỗ trợ gửi thông báo cho Booster khi được chỉ định đơn hàng trực tiếp.
