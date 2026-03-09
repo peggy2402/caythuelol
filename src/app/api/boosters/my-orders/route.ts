@@ -21,15 +21,14 @@ export async function GET(req: Request) {
     if (filter === 'active') {
       query.status = { $in: ['APPROVED', 'IN_PROGRESS'] };
     } else if (filter === 'completed') {
-      query.status = { $in: ['COMPLETED', 'DISPUTED', 'REFUNDED', 'REJECTED'] };
-    } else {
-      // FIX: Chỉ lấy đơn đã được Approve hoặc đang làm. Tuyệt đối loại bỏ PAID (đơn chờ nhận)
-      query.status = { $in: ['APPROVED', 'IN_PROGRESS'] };
+      query.status = { $in: ['COMPLETED', 'SETTLED', 'DISPUTED', 'REFUNDED', 'REJECTED', 'CANCELLED'] };
     }
+    // Mặc định (không có filter): Trả về tất cả đơn hàng của Booster để Frontend tự lọc
 
     const orders = await Order.find(query).populate('customerId', 'username profile.avatar').sort({ updatedAt: -1 });
     return NextResponse.json({ success: true, orders });
   } catch (error) {
+    console.error('Get My Orders Error:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

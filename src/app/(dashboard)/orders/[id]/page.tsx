@@ -3,12 +3,13 @@
 
 import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { useLanguage } from '@/lib/i18n';
 import { socket } from '@/lib/socket';
 import { 
   Loader2, CheckCircle2, AlertCircle, Clock, 
   Shield, DollarSign, CreditCard,
-  Play, CheckSquare, Lock, Flag, Swords, Trophy, Save, Crosshair
+  Play, CheckSquare, Lock, Flag, Swords, Trophy, Save, Crosshair, ArrowLeft
 } from 'lucide-react';
 import { toast } from 'sonner';
 import ChatWindow from '@/components/chat/ChatWindow';
@@ -28,6 +29,7 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
   const [isDisputeModalOpen, setIsDisputeModalOpen] = useState(false);
   const [disputeReason, setDisputeReason] = useState('');
   const [ingameName, setIngameName] = useState('');
+  const [isUpdatingIngame, setIsUpdatingIngame] = useState(false);
 
   // Match Update State
   const [matchForm, setMatchForm] = useState({
@@ -42,7 +44,6 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
         fetch(`/api/orders/${id}`).then(res => res.json()).then(data => {
             if (data.success) {
                 setOrder((prev: any) => ({ ...prev, ...data.order }));
-                if (data.order?.details?.ingame_name) setIngameName(data.order.details.ingame_name);
             }
         });
     }, 5000); // 5 giây
@@ -90,9 +91,6 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
     const handleOrderUpdate = (updatedData: any) => {
         console.log('Socket Order Update:', updatedData);
         setOrder((prev: any) => ({ ...prev, ...updatedData }));
-        if (updatedData.details?.ingame_name) {
-            setIngameName(updatedData.details.ingame_name);
-        }
     };
 
     socket.on('order_updated', handleOrderUpdate);
@@ -213,6 +211,7 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
   };
 
   const handleUpdateIngame = async () => {
+      setIsUpdatingIngame(true);
       try {
           const res = await fetch(`/api/orders/${id}/details`, {
               method: 'PATCH',
@@ -229,6 +228,7 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
               toast.error('Lỗi cập nhật');
           }
       } catch (e) { toast.error('Lỗi kết nối'); }
+      finally { setIsUpdatingIngame(false); }
   };
 
   // --- UI COMPONENTS ---
@@ -287,6 +287,15 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
   return (
     <div className="min-h-screen bg-zinc-950 text-white font-sans pt-24 pb-10 px-4">
       <div className="max-w-5xl mx-auto">
+        
+        <div className="mb-6">
+          <Link 
+            href={user?.role === 'BOOSTER' ? '/booster/my-orders' : user?.role === 'ADMIN' ? '/admin/orders' : '/orders'}
+            className="inline-flex items-center gap-2 text-zinc-500 hover:text-white transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" /> Quay lại danh sách đơn hàng
+          </Link>
+        </div>
         
         {/* Left Column: Order Info */}
         <div className="space-y-6">
@@ -368,7 +377,13 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                                             placeholder="Nhập tên nhân vật trong game..."
                                         />
                                     </div>
-                                    <button onClick={handleUpdateIngame} className="bg-blue-600 hover:bg-blue-500 text-white p-2 rounded-lg transition-colors"><Save className="w-5 h-5" /></button>
+                                    <button 
+                                        onClick={handleUpdateIngame} 
+                                        disabled={isUpdatingIngame}
+                                        className="bg-blue-600 hover:bg-blue-500 text-white p-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        {isUpdatingIngame ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
+                                    </button>
                                 </div>
                             )}
 

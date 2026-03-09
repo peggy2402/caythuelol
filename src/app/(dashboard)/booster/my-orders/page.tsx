@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useLanguage } from '@/lib/i18n';
 import Link from 'next/link';
-import { FileText, Loader2, Clock, CheckCircle2, AlertCircle, PlayCircle, XCircle, Search } from 'lucide-react';
+import { FileText, Loader2, Clock, CheckCircle2, AlertCircle, PlayCircle, XCircle, Search, Briefcase } from 'lucide-react';
 
 export default function BoosterOrdersPage() {
   const { t } = useLanguage();
@@ -16,23 +16,35 @@ export default function BoosterOrdersPage() {
     fetch('/api/boosters/my-orders')
       .then((res) => res.json())
       .then((data) => {
-        if (data.orders) setOrders(data.orders);
+        if (data.success && Array.isArray(data.orders)) {
+          setOrders(data.orders);
+        } else {
+          setOrders([]);
+        }
       })
-      .catch((err) => console.error(err))
+      .catch((err) => {
+        console.error(err);
+        setOrders([]);
+      })
       .finally(() => setLoading(false));
   }, []);
 
   // Logic lọc đơn hàng
   const filteredOrders = orders.filter(order => {
+    if (!order) return false;
+    
+    const status = order.status || '';
+    
     const matchesStatus =
       statusFilter === 'ALL' ? true :
-      statusFilter === 'ACTIVE' ? ['APPROVED', 'IN_PROGRESS'].includes(order.status) :
-      statusFilter === 'COMPLETED' ? order.status === 'COMPLETED' :
-      statusFilter === 'CANCELLED' ? ['REJECTED', 'REFUNDED', 'DISPUTED', 'CANCELLED'].includes(order.status) :
+      statusFilter === 'APPROVED' ? status === 'APPROVED' :
+      statusFilter === 'IN_PROGRESS' ? status === 'IN_PROGRESS' :
+      statusFilter === 'COMPLETED' ? ['COMPLETED', 'SETTLED'].includes(status) :
+      statusFilter === 'CANCELLED' ? ['REJECTED', 'REFUNDED', 'DISPUTED', 'CANCELLED'].includes(status) :
       true;
 
     const matchesSearch = search === '' ? true :
-      order._id.toLowerCase().includes(search.toLowerCase()) ||
+      (order._id || '').toLowerCase().includes(search.toLowerCase()) ||
       (order.serviceType || order.service_type || '').toLowerCase().includes(search.toLowerCase()) ||
       (order.customerId?.username || order.customer_id?.username || '').toLowerCase().includes(search.toLowerCase());
 
@@ -40,11 +52,26 @@ export default function BoosterOrdersPage() {
   });
 
   const filterOptions = [
-    { id: 'ALL', label: t('catAll') },
-    { id: 'ACTIVE', label: t('myActiveJobs') },
-    { id: 'COMPLETED', label: t('completedOrders') },
-    { id: 'CANCELLED', label: t('statusCancelled') },
+    { id: 'ALL', label: 'Tất cả' },
+    { id: 'APPROVED', label: 'Đơn đã nhận' },
+    { id: 'IN_PROGRESS', label: 'Đơn đang làm' },
+    { id: 'COMPLETED', label: 'Đơn hoàn thành' },
+    { id: 'CANCELLED', label: 'Đã hủy' },
   ];
+
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+        case 'APPROVED': return 'Đã nhận (Chờ cày)';
+        case 'IN_PROGRESS': return 'Đang làm';
+        case 'COMPLETED': return 'Hoàn thành';
+        case 'SETTLED': return 'Đã quyết toán';
+        case 'CANCELLED': return 'Đã hủy';
+        case 'REJECTED': return 'Đã từ chối';
+        case 'REFUNDED': return 'Đã hoàn tiền';
+        case 'DISPUTED': return 'Khiếu nại';
+        default: return status;
+    }
+  };
 
   if (loading) {
     return (
@@ -97,7 +124,9 @@ export default function BoosterOrdersPage() {
         <div className="text-center py-20 bg-zinc-900/50 rounded-xl border border-white/5">
           <FileText className="w-16 h-16 text-zinc-700 mx-auto mb-4" />
           <h3 className="text-lg font-bold text-white mb-2">{t('noOrders')}</h3>
-          <p className="text-zinc-400 mb-6 max-w-md mx-auto">Bạn chưa nhận đơn hàng nào.</p>
+          <p className="text-zinc-400 mb-6 max-w-md mx-auto">
+            {statusFilter === 'ALL' ? 'Bạn chưa nhận đơn hàng nào.' : `Không có đơn hàng nào trong mục "${filterOptions.find(o => o.id === statusFilter)?.label}".`}
+          </p>
           <Link
             href="/booster/jobs"
             className="text-blue-400 hover:text-blue-300 font-medium hover:underline"
@@ -116,12 +145,14 @@ export default function BoosterOrdersPage() {
               <div className="flex flex-col md:flex-row justify-between md:items-center gap-4">
                 <div className="flex items-start gap-4">
                   <div className={`p-3 rounded-lg ${
-                    order.status === 'COMPLETED' ? 'bg-green-500/10 text-green-500' :
+                    ['COMPLETED', 'SETTLED'].includes(order.status) ? 'bg-green-500/10 text-green-500' :
                     order.status === 'IN_PROGRESS' ? 'bg-blue-500/10 text-blue-500' :
+                    order.status === 'APPROVED' ? 'bg-purple-500/10 text-purple-500' :
                     'bg-zinc-800 text-zinc-400'
                   }`}>
-                    {order.status === 'COMPLETED' ? <CheckCircle2 className="w-6 h-6" /> :
+                    {['COMPLETED', 'SETTLED'].includes(order.status) ? <CheckCircle2 className="w-6 h-6" /> :
                      order.status === 'IN_PROGRESS' ? <PlayCircle className="w-6 h-6" /> :
+                     order.status === 'APPROVED' ? <Briefcase className="w-6 h-6" /> :
                      ['REJECTED', 'REFUNDED', 'DISPUTED', 'CANCELLED'].includes(order.status) ? <XCircle className="w-6 h-6" /> :
                      <Clock className="w-6 h-6" />} 
                   </div>
@@ -152,13 +183,13 @@ export default function BoosterOrdersPage() {
                     </p>
                   </div>
                   <div className={`px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider ${
-                    order.status === 'COMPLETED' ? 'bg-green-500/10 text-green-500 border border-green-500/20' :
+                    ['COMPLETED', 'SETTLED'].includes(order.status) ? 'bg-green-500/10 text-green-500 border border-green-500/20' :
                     order.status === 'IN_PROGRESS' ? 'bg-blue-500/10 text-blue-500 border border-blue-500/20' :
+                    order.status === 'APPROVED' ? 'bg-purple-500/10 text-purple-500 border border-purple-500/20' :
                     ['REJECTED', 'REFUNDED', 'DISPUTED', 'CANCELLED'].includes(order.status) ? 'bg-red-500/10 text-red-500 border border-red-500/20' :
-                    order.status === 'APPROVED' ? 'bg-yellow-500/10 text-yellow-500 border border-yellow-500/20' :
                     'bg-zinc-800 text-zinc-400 border border-zinc-700'
                   }`}>
-                    {order.status}
+                    {getStatusLabel(order.status)}
                   </div>
                 </div>
               </div>
