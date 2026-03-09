@@ -19,6 +19,7 @@ import {
 import { useLanguage } from '../../lib/i18n';
 import Sidebar from '@/components/Sidebar';
 import { socket } from '@/lib/socket';
+import { toast } from 'sonner';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -45,12 +46,49 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       const parsedUser = JSON.parse(userData);
       setUser(parsedUser);
 
+      // Hàm lấy dữ liệu mới nhất (Số dư + Thông báo) để đồng bộ
+      // *** FIX: Di chuyển khai báo lên đầu để tránh ReferenceError ***
+      const fetchFreshData = () => {
+        if (!token) return;
+
+        // 1. Notifications
+        // Thêm timestamp để tránh cache trình duyệt
+        fetch(`/api/notifications?t=${Date.now()}`, { headers: { Authorization: `Bearer ${token}` } })
+            .then(res => res.json())
+            .then(data => {
+                setNotifications(data.notifications || []);
+                setUnreadCount(data.unreadCount || 0);
+            })
+            .catch(err => console.error("Failed to fetch notifications", err));
+
+        // 2. Wallet Balance (Quan trọng: Đồng bộ số dư nếu localStorage bị cũ)
+        fetch(`/api/wallet?t=${Date.now()}`, { headers: { Authorization: `Bearer ${token}` } })
+            .then(res => res.json())
+            .then(data => {
+                if (data.balance !== undefined) {
+                    setUser((prev: any) => {
+                        const currentUserState = prev || parsedUser;
+                        const updated = { ...currentUserState, wallet_balance: data.balance };
+                        if (currentUserState.wallet_balance !== data.balance) {
+                            localStorage.setItem('user', JSON.stringify(updated));
+                        }
+                        return updated;
+                    });
+                }
+            })
+            .catch(() => {});
+      };
+
       // Socket: Lắng nghe thay đổi số dư toàn cục để cập nhật Header
       if (!socket.connected) socket.connect();
       
-      // FIX: Luôn join room user để đảm bảo nhận event wallet
-      // ChatContext có thể chưa mount hoặc bị unmount, layout luôn tồn tại
-      socket.emit('join_user_room', parsedUser._id);
+      // FIX: Định nghĩa hàm join room để dùng lại khi reconnect
+      const joinRoom = () => {
+        if (parsedUser._id) socket.emit('join_user_room', parsedUser._id);
+      };
+
+      joinRoom(); // Join ngay lập tức
+      socket.on('connect', joinRoom); // Join lại khi kết nối lại (fix lỗi rớt mạng/F5)
 
       const handleWalletUpdate = (data: { balance: number }) => {
         console.log('💰 Socket Wallet Update:', data);
@@ -76,24 +114,38 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         window.dispatchEvent(new CustomEvent('user-updated'));
       };
 
-      socket.on('wallet_update', handleWalletUpdate);
-      window.addEventListener('user-updated', updateUserData);
-
-      return () => { 
-        socket.off('wallet_update', handleWalletUpdate);
-        window.removeEventListener('user-updated', updateUserData);
+      // Xử lý thông báo Realtime (Match, Message, System)
+      const handleNotification = (data: any) => {
+        console.log('🔔 Notification:', data);
+        // Hiển thị Toast
+        toast(data.title, { description: data.message });
+        
+        // Cập nhật danh sách thông báo
+        setNotifications((prev) => [data, ...prev]);
+        setUnreadCount((prev) => prev + 1);
       };
 
-      // Fetch notifications
-      if (token) {
-        fetch('/api/notifications', { headers: { Authorization: `Bearer ${token}` } })
-            .then(res => res.json())
-            .then(data => {
-                setNotifications(data.notifications || []);
-                setUnreadCount(data.unreadCount || 0);
-            })
-            .catch(err => console.error("Failed to fetch notifications", err));
-      }
+      socket.on('wallet_update', handleWalletUpdate);
+      socket.on('notification', handleNotification);
+
+      window.addEventListener('user-updated', updateUserData);
+
+      // Gọi ngay khi mount và khi focus lại tab
+      fetchFreshData();
+      window.addEventListener('focus', fetchFreshData);
+
+      // POLLING: Tự động cập nhật mỗi 10 giây (Fallback cho Socket)
+      const intervalId = setInterval(fetchFreshData, 10000);
+      
+      // *** FIX: Gộp tất cả cleanup vào một return duy nhất ***
+      return () => { 
+        socket.off('connect', joinRoom);
+        socket.off('wallet_update', handleWalletUpdate);
+        socket.off('notification', handleNotification);
+        window.removeEventListener('user-updated', updateUserData);
+        window.removeEventListener('focus', fetchFreshData);
+        clearInterval(intervalId);
+      };
     }
   }, []);
 
@@ -315,7 +367,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 p-6 md:p-8">
+        <main className="flex-1 p-6 md:p-8 bg-zinc-900">
           {children}
         </main>
       </div>

@@ -83,7 +83,12 @@ export default function Sidebar({ className = '', onLinkClick }: SidebarProps) {
       <div className="flex h-20 items-center gap-3 px-6 border-b border-white/5 shrink-0">
         <Link href="/" className="flex items-center gap-3" suppressHydrationWarning>
             <div className="relative h-8 w-8 overflow-hidden rounded-lg">
-            <Image src="/logo-ver3.png" alt="Logo" fill className="object-cover" />
+            <Image
+              fill
+              src="/logo-ver3.png"
+              alt="Logo"
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+            />
             </div>
             <span className="text-lg font-bold tracking-tight text-white">
             CAYTHUE<span className="text-blue-500">LOL</span>

@@ -36,13 +36,17 @@ export default function PaymentSummary({
   isValid,
   serviceType = 'NET_WINS',
   details,
-  options,
+  options = {},
   queueType,
   children,
   validationMessage
 }: PaymentSummaryProps) {
   const router = useRouter();
   const [agreedToTerms, setAgreedToTerms] = useState(false);
+
+  // Đọc trực tiếp từ object `options` đã được hợp nhất
+  const effectiveRoles = options?.roles || [];
+  const effectiveSchedule = Array.isArray(options?.schedule) ? options.schedule : [];
 
   return (
     <div className="sticky top-24 rounded-2xl border border-white/10 bg-zinc-900/80 backdrop-blur-xl p-6 shadow-2xl">
@@ -68,6 +72,36 @@ export default function PaymentSummary({
                 <div className="space-y-2 pt-2 border-t border-white/10">
                     {children}
                     
+                    {/* Hiển thị chi tiết Tùy chọn thêm (Roles, Schedule) */}
+                    {(effectiveRoles.length > 0 || effectiveSchedule.length > 0) && (
+                        <div className="py-2 space-y-2 border-b border-white/5">
+                            {effectiveRoles.length > 0 && (
+                                <div>
+                                    <span className="text-zinc-500 text-xs block mb-1">Vị trí:</span>
+                                    <div className="flex flex-wrap gap-1">
+                                        {effectiveRoles.map((role: string) => (
+                                            <span key={role} className="text-xs font-medium px-1.5 py-0.5 bg-zinc-800 rounded text-zinc-300 border border-zinc-700">
+                                                {role}
+                                            </span>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                            {effectiveSchedule.length > 0 && (
+                                <div>
+                                    <span className="text-zinc-500 text-xs block mb-1">Khung giờ nghỉ:</span>
+                                    <div className="flex flex-wrap gap-1">
+                                        {effectiveSchedule.map((w: any, idx: number) => (
+                                            <span key={idx} className="text-xs font-medium px-1.5 py-0.5 bg-red-500/10 text-red-400 border border-red-500/20 rounded">
+                                                {w.start} - {w.end}
+                                            </span>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
                     <div className="border-t border-white/5 my-1"></div>
                     <div className="flex justify-between text-sm">
                         <span className="text-zinc-400">Giá gốc:</span>
@@ -132,7 +166,7 @@ export default function PaymentSummary({
                     serviceType,
                     booster: boosterConfig,
                     details,
-                    options,
+                    options: options, // Pass the unified options object directly
                     pricing: {
                         ...priceDetails,
                         deposit_amount: priceDetails?.depositAmount,

@@ -2,7 +2,7 @@
 'use client';
 
 import { useServiceContext } from '@/components/ServiceContext'; // Cập nhật đường dẫn import
-import { Globe, Zap, Clock, Crosshair, CheckCircle2, Users, Video, Download, Copy, Upload, Swords, Search, X, Shield, Target, Heart, Filter, Sparkles, Calculator, Trophy, TrendingUp, Medal, Power, Info } from 'lucide-react';
+import { Globe, Zap, Clock, Crosshair, CheckCircle2, Users, Video, Download, Copy, Upload, Swords, Search, X, Shield, Target, Heart, Filter, Sparkles, Calculator, Trophy, TrendingUp, Medal, Power, Info, TicketPercent, Plus, Trash2, RefreshCw } from 'lucide-react';
 import { useState, useEffect, useMemo } from 'react';
 import { toast } from 'sonner';
 
@@ -33,8 +33,8 @@ const ROLE_STYLES: Record<string, { label: string, icon: any, color: string, bg:
 
 // Danh sách dịch vụ hỗ trợ
 const SUPPORTED_SERVICES = [
-    { key: 'RANK_BOOST', label: 'Cày Rank (Elo Boost)', icon: Trophy, desc: 'Leo rank từ Sắt đến Thách Đấu' },
-    { key: 'NET_WINS', label: 'Cày Số Trận Thắng', icon: Target, desc: 'Đảm bảo số trận thắng (Net Wins)' },
+    { key: 'RANK_BOOST', label: 'Cày Rank/Elo', icon: Trophy, desc: 'Leo rank từ Sắt đến Thách Đấu' },
+    { key: 'NET_WINS', label: 'Cày Điểm Cao Thủ/ Thách Đấu', icon: Target, desc: 'Đảm bảo số trận thắng (Net Wins)' },
     { key: 'PLACEMENTS', label: 'Phân Hạng Đầu Mùa', icon: Swords, desc: 'Cày 5 trận đầu mùa giải' },
     { key: 'PROMOTION', label: 'Chuỗi Thăng Hạng', icon: TrendingUp, desc: 'Vượt qua chuỗi BO3/BO5' },
     { key: 'LEVELING', label: 'Cày Cấp Độ (Level)', icon: Zap, desc: 'Cày level 1-30 hoặc farm Tinh Hoa' },
@@ -53,6 +53,10 @@ export default function GeneralSettingsPage() {
   const [selectedRoleFilter, setSelectedRoleFilter] = useState<string | null>(null);
   const [activeRoleTab, setActiveRoleTab] = useState<string>('Fighter'); // Mặc định ưu tiên Đấu sĩ
   const [modifierInputs, setModifierInputs] = useState<Record<string, string>>({});
+  
+  // Coupon State
+  const [couponPercent, setCouponPercent] = useState<number>(10);
+  const [generatedCode, setGeneratedCode] = useState<string>('');
 
   useEffect(() => {
     fetch('/api/champions')
@@ -181,10 +185,45 @@ export default function GeneralSettingsPage() {
     }
   };
 
+  // --- COUPON LOGIC ---
+  const handleGenerateCode = () => {
+    const random = Math.random().toString(36).substring(2, 8).toUpperCase();
+    setGeneratedCode(`SALE-${random}`);
+  };
+
+  const handleAddCoupon = () => {
+    if (!generatedCode.trim()) return toast.error('Vui lòng nhập mã code');
+    if (couponPercent <= 0 || couponPercent > 100) return toast.error('Phần trăm không hợp lệ');
+    
+    const newCoupon = {
+        code: generatedCode.toUpperCase(),
+        value: couponPercent,
+        type: 'PERCENTAGE' as const,
+        isActive: true
+    };
+
+    setSettings(prev => ({
+        ...prev,
+        coupons: [...(prev.coupons || []), newCoupon]
+    }));
+    setGeneratedCode('');
+    toast.success('Đã thêm mã giảm giá');
+  };
+
+  const removeCoupon = (code: string) => {
+     setSettings(prev => ({ ...prev, coupons: (prev.coupons || []).filter(c => c.code !== code) }));
+  };
+
+  const toggleCoupon = (code: string) => {
+    setSettings(prev => ({
+        ...prev, coupons: (prev.coupons || []).map(c => c.code === code ? { ...c, isActive: !c.isActive } : c)
+    }));
+  };
+
   if (loading) return <div className="p-8 text-center text-zinc-400">Đang tải...</div>;
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 bg-zinc-900">
       {/* SERVICE MANAGEMENT (TOGGLE ON/OFF) */}
       <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
         <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
@@ -700,6 +739,98 @@ export default function GeneralSettingsPage() {
               </div>
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* Coupon Management */}
+      <section className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
+        <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
+          <TicketPercent className="w-6 h-6 text-pink-500" />
+          Mã giảm giá (Coupons)
+        </h2>
+        
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Generator */}
+            <div className="lg:col-span-1 space-y-4 bg-zinc-950 p-4 rounded-xl border border-zinc-800">
+                <h3 className="font-bold text-white">Tạo mã mới</h3>
+                
+                <div>
+                    <label className="text-xs text-zinc-500 font-bold uppercase">Mã Code</label>
+                    <div className="flex gap-2 mt-1">
+                        <input 
+                            type="text" 
+                            value={generatedCode}
+                            onChange={(e) => setGeneratedCode(e.target.value.toUpperCase())}
+                            placeholder="Nhập hoặc tạo tự động"
+                            className="flex-1 bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white font-mono text-sm focus:border-pink-500 outline-none"
+                        />
+                        <button onClick={handleGenerateCode} className="p-2 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-zinc-400 hover:text-white transition-colors" title="Tạo ngẫu nhiên">
+                            <RefreshCw size={18} />
+                        </button>
+                    </div>
+                </div>
+
+                <div>
+                    <label className="text-xs text-zinc-500 font-bold uppercase">Giảm giá (%)</label>
+                    <div className="relative mt-1">
+                        <input 
+                            type="number" 
+                            value={couponPercent}
+                            onChange={(e) => setCouponPercent(Number(e.target.value))}
+                            min="1" max="100"
+                            className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white focus:border-pink-500 outline-none"
+                        />
+                        <span className="absolute right-3 top-2 text-zinc-500">%</span>
+                    </div>
+                </div>
+
+                <button 
+                    onClick={handleAddCoupon}
+                    disabled={!generatedCode}
+                    className="w-full py-2 bg-pink-600 hover:bg-pink-500 text-white font-bold rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                    <Plus size={18} /> Thêm mã
+                </button>
+            </div>
+
+            {/* List */}
+            <div className="lg:col-span-2 space-y-3">
+                <h3 className="font-bold text-white flex justify-between items-center">
+                    Danh sách mã
+                    <span className="text-xs font-normal text-zinc-500">({settings.coupons?.length || 0})</span>
+                </h3>
+                
+                {!settings.coupons || settings.coupons.length === 0 ? (
+                    <div className="text-center py-8 text-zinc-500 border border-dashed border-zinc-800 rounded-xl">
+                        Chưa có mã giảm giá nào.
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+                        {settings.coupons.map((coupon, idx) => (
+                            <div key={idx} className={`flex items-center justify-between p-3 rounded-xl border transition-all ${coupon.isActive ? 'bg-zinc-900 border-zinc-700' : 'bg-zinc-950 border-zinc-800 opacity-60'}`}>
+                                <div>
+                                    <div className="font-mono font-bold text-white text-lg">{coupon.code}</div>
+                                    <div className="text-pink-500 font-bold text-sm">Giảm {coupon.value}%</div>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <label className="relative inline-flex items-center cursor-pointer">
+                                        <input 
+                                            type="checkbox" 
+                                            className="sr-only peer" 
+                                            checked={coupon.isActive}
+                                            onChange={() => toggleCoupon(coupon.code)}
+                                        />
+                                        <div className="w-9 h-5 bg-zinc-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-pink-600"></div>
+                                    </label>
+                                    <button onClick={() => removeCoupon(coupon.code)} className="p-1.5 text-zinc-500 hover:text-red-500 transition-colors">
+                                        <Trash2 size={16} />
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
         </div>
       </section>
 

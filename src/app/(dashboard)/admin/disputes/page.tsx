@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
-import { Loader2, AlertTriangle, CheckCircle2, XCircle, ExternalLink } from 'lucide-react';
+import { Loader2, AlertTriangle, CheckCircle2, XCircle, ExternalLink, Eye, Swords, Trophy, X } from 'lucide-react';
 import Link from 'next/link';
 
 interface Dispute {
@@ -18,11 +18,19 @@ interface Dispute {
     total_amount: number;
     deposit_amount: number;
   };
+  details: {
+    current_rank?: string;
+    desired_rank?: string;
+    current_level?: number;
+    desired_level?: number;
+  };
+  match_history: any[];
   createdAt: string;
 }
 
 export default function AdminDisputesPage() {
   const [disputes, setDisputes] = useState<Dispute[]>([]);
+  const [selectedDispute, setSelectedDispute] = useState<Dispute | null>(null);
   const [loading, setLoading] = useState(true);
 
   const fetchDisputes = async () => {
@@ -107,6 +115,12 @@ export default function AdminDisputesPage() {
                     {d.pricing.deposit_amount.toLocaleString()} đ
                   </td>
                   <td className="px-6 py-4 text-right space-x-2">
+                    <button
+                        onClick={() => setSelectedDispute(d)}
+                        className="px-3 py-1.5 bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded hover:bg-blue-500/20 text-xs font-bold inline-flex items-center gap-1"
+                    >
+                        <Eye size={12} /> Xem bằng chứng
+                    </button>
                     <button 
                         onClick={() => handleResolve(d._id, 'REFUND_CUSTOMER')}
                         className="px-3 py-1.5 bg-red-500/10 text-red-400 border border-red-500/20 rounded hover:bg-red-500/20 text-xs font-bold"
@@ -126,6 +140,78 @@ export default function AdminDisputesPage() {
           </tbody>
         </table>
       </div>
+
+      {/* Modal Xem Bằng Chứng (Proof of Work) */}
+      {selectedDispute && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+            <div className="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-2xl flex flex-col max-h-[90vh]">
+                <div className="flex justify-between items-center p-5 border-b border-zinc-800">
+                    <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                        <Swords className="text-blue-500" /> Bằng chứng công việc (Booster)
+                    </h3>
+                    <button onClick={() => setSelectedDispute(null)} className="text-zinc-400 hover:text-white">
+                        <X size={20} />
+                    </button>
+                </div>
+                
+                <div className="p-6 overflow-y-auto space-y-6">
+                    {/* 1. So sánh Tiến độ */}
+                    <div className="bg-zinc-950 p-4 rounded-xl border border-zinc-800">
+                        <h4 className="text-sm font-bold text-zinc-400 uppercase mb-3 flex items-center gap-2">
+                            <Trophy size={14} /> Tiến độ thực tế
+                        </h4>
+                        <div className="flex items-center justify-between text-sm">
+                            <div className="text-center">
+                                <div className="text-zinc-500 mb-1">Hiện tại</div>
+                                <div className="text-white font-bold text-lg">
+                                    {selectedDispute.details.current_rank || selectedDispute.details.current_level || 'N/A'}
+                                </div>
+                            </div>
+                            <div className="h-px flex-1 bg-zinc-800 mx-4 relative">
+                                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-zinc-600">➜</div>
+                            </div>
+                            <div className="text-center">
+                                <div className="text-zinc-500 mb-1">Mục tiêu</div>
+                                <div className="text-blue-400 font-bold text-lg">
+                                    {selectedDispute.details.desired_rank || selectedDispute.details.desired_level || 'N/A'}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* 2. Lịch sử đấu */}
+                    <div>
+                        <h4 className="text-sm font-bold text-zinc-400 uppercase mb-3">Lịch sử trận đấu ({selectedDispute.match_history?.length || 0})</h4>
+                        <div className="space-y-2">
+                            {selectedDispute.match_history && selectedDispute.match_history.length > 0 ? (
+                                selectedDispute.match_history.map((match, idx) => (
+                                    <div key={idx} className="flex items-center justify-between p-3 bg-zinc-950 border border-zinc-800 rounded-lg">
+                                        <div className="flex items-center gap-3">
+                                            <span className={`text-xs font-bold px-2 py-1 rounded ${match.result === 'WIN' ? 'bg-blue-500/20 text-blue-400' : 'bg-red-500/20 text-red-400'}`}>
+                                                {match.result}
+                                            </span>
+                                            <span className="text-white font-medium text-sm">{match.champion}</span>
+                                        </div>
+                                        <div className={`text-sm font-bold ${match.lp_change >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                                            {match.lp_change > 0 ? '+' : ''}{match.lp_change} LP
+                                        </div>
+                                    </div>
+                                ))
+                            ) : (
+                                <div className="text-center py-8 text-zinc-500 border border-dashed border-zinc-800 rounded-lg">
+                                    Booster chưa cập nhật trận đấu nào.
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+
+                <div className="p-5 border-t border-zinc-800 bg-zinc-900/50 rounded-b-2xl flex justify-end gap-3">
+                    <button onClick={() => setSelectedDispute(null)} className="px-4 py-2 text-zinc-400 hover:text-white text-sm font-medium">Đóng</button>
+                </div>
+            </div>
+        </div>
+      )}
     </div>
   );
 }

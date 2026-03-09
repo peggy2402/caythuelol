@@ -27,6 +27,7 @@ import { useLanguage, Language } from '../lib/i18n';
 import { useRouter, usePathname } from 'next/navigation';
 import { socket } from '@/lib/socket';
 import { logout } from '@/lib/logout';
+import { toast } from 'sonner';
 
 function LanguageSwitcher({
   language,
@@ -97,7 +98,39 @@ export default function Navbar() {
     const token = localStorage.getItem('token');
     if (userData) {
       try {
-        setUser(JSON.parse(userData));
+        const parsedUser = JSON.parse(userData);
+        setUser(parsedUser);
+
+        // --- SOCKET INTEGRATION FOR NAVBAR ---
+        if (!socket.connected) socket.connect();
+
+        const joinRoom = () => {
+            if (parsedUser._id) socket.emit('join_user_room', parsedUser._id);
+        };
+        joinRoom();
+        socket.on('connect', joinRoom);
+
+        // 1. Wallet Update
+        const handleWalletUpdate = (data: { balance: number }) => {
+            const newBalance = data.balance;
+            setUser((prev: any) => ({ ...prev, wallet_balance: newBalance }));
+            
+            // Sync localStorage
+            const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+            currentUser.wallet_balance = newBalance;
+            localStorage.setItem('user', JSON.stringify(currentUser));
+        };
+
+        // 2. Notification Update
+        const handleNotification = (data: any) => {
+            toast(data.title, { description: data.message });
+            setNotifications((prev) => [data, ...prev]);
+            setUnreadCount((prev) => prev + 1);
+        };
+
+        socket.on('wallet_update', handleWalletUpdate);
+        socket.on('notification', handleNotification);
+
         // Fetch notifications
         if (token) {
             fetch('/api/notifications', { headers: { Authorization: `Bearer ${token}` } })
@@ -110,6 +143,12 @@ export default function Navbar() {
         
         // Fetch fresh balance on mount to fix 0đ issue
         fetchUserData();
+
+        return () => {
+            socket.off('connect', joinRoom);
+            socket.off('wallet_update', handleWalletUpdate);
+            socket.off('notification', handleNotification);
+        };
       } catch (e) {
         console.error("Failed to parse user data", e);
       }

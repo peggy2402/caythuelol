@@ -13,7 +13,7 @@ export default function BoosterOrdersPage() {
   const [search, setSearch] = useState('');
 
   useEffect(() => {
-    fetch('/api/orders')
+    fetch('/api/boosters/my-orders')
       .then((res) => res.json())
       .then((data) => {
         if (data.orders) setOrders(data.orders);
@@ -33,8 +33,8 @@ export default function BoosterOrdersPage() {
 
     const matchesSearch = search === '' ? true :
       order._id.toLowerCase().includes(search.toLowerCase()) ||
-      order.service_type.toLowerCase().includes(search.toLowerCase()) ||
-      order.customer_id?.username?.toLowerCase().includes(search.toLowerCase());
+      (order.serviceType || order.service_type || '').toLowerCase().includes(search.toLowerCase()) ||
+      (order.customerId?.username || order.customer_id?.username || '').toLowerCase().includes(search.toLowerCase());
 
     return matchesStatus && matchesSearch;
   });
@@ -127,19 +127,19 @@ export default function BoosterOrdersPage() {
                   </div>
                   <div>
                     <h3 className="font-bold text-white text-lg group-hover:text-blue-400 transition-colors">
-                      {order.service_type}
+                      {order.serviceType || order.service_type}
                       <span className="ml-3 text-xs font-normal text-zinc-500 font-mono">#{order._id.slice(-6).toUpperCase()}</span>
                     </h3>
                     <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-zinc-400 mt-1">
                       <span className="flex items-center gap-1">
-                        Khách: <span className="text-white font-medium">{order.customer_id?.username || 'Unknown'}</span>
+                        Khách: <span className="text-white font-medium">{order.customerId?.username || order.customer_id?.username || 'Unknown'}</span>
                       </span>
                       <span className="w-1 h-1 rounded-full bg-zinc-700 self-center"></span>
                       <span className="flex items-center gap-1">
-                        {order.details?.current_rank} &rarr; {order.details?.desired_rank}
+                        {order.details?.current_rank || order.details?.current_level} &rarr; {order.details?.desired_rank || order.details?.desired_level}
                       </span>
                       <span className="w-1 h-1 rounded-full bg-zinc-700 self-center"></span>
-                      <span>{new Date(order.created_at).toLocaleDateString('vi-VN')}</span>
+                      <span>{new Date(order.createdAt || order.created_at).toLocaleDateString('vi-VN')}</span>
                     </div>
                   </div>
                 </div>

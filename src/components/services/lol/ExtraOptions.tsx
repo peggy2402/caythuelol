@@ -8,12 +8,8 @@ import ScheduleModal, { TimeWindow } from '@/components/ScheduleModal';
 
 interface ExtraOptionsProps {
   boosterConfig: any;
-  options: Record<string, boolean>;
-  setOptions: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
-  selectedRoles?: string[];
-  setSelectedRoles?: React.Dispatch<React.SetStateAction<string[]>>;
-  scheduleWindows: TimeWindow[];
-  setScheduleWindows: (windows: TimeWindow[]) => void;
+  options: Record<string, any>;
+  setOptions: React.Dispatch<React.SetStateAction<Record<string, any>>>;
 }
 
 const OptionCheckbox = ({ id, label, priceInfo, checked, onChange, disabled = false, tooltip }: { id: string, label: string, priceInfo: string, checked: boolean, onChange: () => void, disabled?: boolean, tooltip?: string }) => (
@@ -43,51 +39,50 @@ const OptionCheckbox = ({ id, label, priceInfo, checked, onChange, disabled = fa
 export default function ExtraOptions({
   boosterConfig,
   options,
-  setOptions,
-  selectedRoles,
-  setSelectedRoles,
-  scheduleWindows,
-  setScheduleWindows
+  setOptions
 }: ExtraOptionsProps) {
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
 
   const handleOptionChange = (optionKey: string) => {
     if (optionKey === 'express' && !options.express && options.schedule) {
         toast.warning('Đã tắt "Đặt lịch" vì xung đột với "Cày siêu tốc".');
-        setOptions(prev => ({ ...prev, express: true, schedule: false }));
+        setOptions(prev => ({ ...prev, express: true, schedule: false })); // schedule is now boolean false
         return;
     }
     if (optionKey === 'schedule' && !options.schedule && options.express) {
         toast.error('Không thể chọn "Đặt lịch" khi đang dùng "Cày siêu tốc".');
         return;
     }
+
     if (optionKey === 'schedule') {
-        if (options.schedule) {
-            setOptions(prev => ({ ...prev, schedule: false }));
-            setScheduleWindows([]);
+        // If it's already an array (meaning it's active), turn it off
+        if (Array.isArray(options.schedule) && options.schedule.length > 0) {
+            setOptions(prev => ({ ...prev, schedule: false })); // Set to boolean false
         } else {
-            setIsScheduleModalOpen(true);
+            setIsScheduleModalOpen(true); // Open modal to set the array value
         }
     } else {
+        // For simple boolean toggles
         setOptions(prev => ({ ...prev, [optionKey]: !prev[optionKey] }));
     }
   };
 
   const handleSaveSchedule = (windows: TimeWindow[]) => {
       if (windows.length > 0) {
-          setScheduleWindows(windows);
-          setOptions(prev => ({ ...prev, schedule: true }));
+          setOptions(prev => ({ ...prev, schedule: windows })); // Save the array of windows
       } else {
-          setOptions(prev => ({ ...prev, schedule: false }));
+          setOptions(prev => ({ ...prev, schedule: false })); // Or false if empty
       }
   };
 
   const toggleRole = (role: string) => {
-    if (setSelectedRoles) {
-        setSelectedRoles(prev => 
-          prev.includes(role) ? prev.filter(r => r !== role) : [...prev, role]
-        );
-    }
+    setOptions(prev => {
+        const currentRoles = prev.roles || [];
+        const newRoles = currentRoles.includes(role)
+            ? currentRoles.filter((r: string) => r !== role)
+            : [...currentRoles, role];
+        return { ...prev, roles: newRoles };
+    });
   };
 
   if (!boosterConfig) {
@@ -108,7 +103,7 @@ export default function ExtraOptions({
         <h3 className="text-lg font-bold text-white mb-4">Tùy chọn thêm</h3>
         <div className="space-y-4">
             {/* Role Selection */}
-            {settings.roles?.length > 0 && setSelectedRoles && selectedRoles && (
+            {settings.roles?.length > 0 && (
                 <div className="mb-4">
                     <label className="text-xs font-bold uppercase text-zinc-500 tracking-wider mb-2 block">Tùy chọn vị trí / đường</label>
                     <div className="flex flex-wrap gap-2">
@@ -117,7 +112,7 @@ export default function ExtraOptions({
                                 key={role}
                                 onClick={() => toggleRole(role)}
                                 className={`px-3 py-2 rounded-lg text-xs font-bold border transition-all flex items-center gap-2 ${
-                                    selectedRoles.includes(role) 
+                                    (options.roles || []).includes(role) 
                                         ? 'bg-blue-600 border-blue-500 text-white' 
                                         : 'bg-zinc-900 border-zinc-700 text-zinc-400 hover:border-zinc-500'
                                 }`}
@@ -142,7 +137,7 @@ export default function ExtraOptions({
                 <OptionCheckbox id="specificChamps" label="Chơi tướng chỉ định" priceInfo={`+${settings.specificChamps}%`} checked={options.specificChamps ?? false} onChange={() => handleOptionChange('specificChamps')} />
             )}
             {settings.schedule && (
-                <OptionCheckbox id="schedule" label="Đặt lịch cày mỗi ngày" priceInfo={settings.scheduleFee > 0 ? `+${settings.scheduleFee}%` : "Miễn phí"} checked={options.schedule ?? false} onChange={() => handleOptionChange('schedule')} tooltip="Chọn khung giờ bạn muốn chơi game. Booster sẽ tạm dừng cày trong thời gian này. Không thể dùng chung với Cày siêu tốc." />
+                <OptionCheckbox id="schedule" label="Đặt lịch cày mỗi ngày" priceInfo={settings.scheduleFee > 0 ? `+${settings.scheduleFee}%` : "Miễn phí"} checked={Array.isArray(options.schedule) && options.schedule.length > 0} onChange={() => handleOptionChange('schedule')} tooltip="Chọn khung giờ bạn muốn chơi game. Booster sẽ tạm dừng cày trong thời gian này. Không thể dùng chung với Cày siêu tốc." />
             )}
         </div>
 
@@ -150,7 +145,7 @@ export default function ExtraOptions({
             isOpen={isScheduleModalOpen} 
             onClose={() => setIsScheduleModalOpen(false)} 
             onSave={handleSaveSchedule}
-            initialWindows={scheduleWindows}
+            initialWindows={Array.isArray(options.schedule) ? options.schedule : []}
         />
     </div>
   );

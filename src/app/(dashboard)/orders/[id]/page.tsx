@@ -8,10 +8,11 @@ import { socket } from '@/lib/socket';
 import { 
   Loader2, CheckCircle2, AlertCircle, Clock, 
   Shield, DollarSign, CreditCard,
-  Play, CheckSquare, Lock, Flag, Swords, Trophy, Save
+  Play, CheckSquare, Lock, Flag, Swords, Trophy, Save, Crosshair
 } from 'lucide-react';
 import { toast } from 'sonner';
 import ChatWindow from '@/components/chat/ChatWindow';
+import { motion, AnimatePresence } from 'framer-motion';
 
 export default function OrderDetailsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -102,36 +103,42 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
     };
   }, [id]);
 
-  const handleUpdateStatus = async (status: string) => {
-    if (!confirm(`Bạn có chắc chắn muốn chuyển trạng thái thành ${status}?`)) return;
+  const handleUpdateStatus = (status: string) => {
+    const executeUpdate = async () => {
+        try {
+            const endpoint = status === 'COMPLETED' 
+                ? `/api/orders/${id}/complete` 
+                : `/api/orders/${id}/status`;
+                
+            const method = status === 'COMPLETED' ? 'POST' : 'PATCH';
+            const body = status === 'COMPLETED' ? {} : { status };
 
-    try {
-        const endpoint = status === 'COMPLETED' 
-            ? `/api/orders/${id}/complete` 
-            : `/api/orders/${id}/status`;
-            
-        const method = status === 'COMPLETED' ? 'POST' : 'PATCH';
-        const body = status === 'COMPLETED' ? {} : { status };
+            const res = await fetch(endpoint, {
+                method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
 
-        const res = await fetch(endpoint, {
-            method,
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(body)
-        });
-
-        if (res.ok) {
-            toast.success('Cập nhật trạng thái thành công');
-            setOrder((prev: any) => ({ ...prev, status }));
-            // Reload page to refresh data
-            // window.location.reload(); // No need to reload if we use socket
-            socket.emit('update_order', { room: id, data: { status } });
-        } else {
-            const err = await res.json();
-            toast.error(err.error || 'Lỗi cập nhật');
+            if (res.ok) {
+                toast.success('Cập nhật trạng thái thành công');
+                setOrder((prev: any) => ({ ...prev, status }));
+                // Reload page to refresh data
+                // window.location.reload(); // No need to reload if we use socket
+                socket.emit('update_order', { room: id, data: { status } });
+            } else {
+                const err = await res.json();
+                toast.error(err.error || 'Lỗi cập nhật');
+            }
+        } catch (e) {
+            toast.error('Lỗi kết nối');
         }
-    } catch (e) {
-        toast.error('Lỗi kết nối');
-    }
+    };
+
+    toast('Xác nhận thay đổi', {
+        description: `Bạn có chắc chắn muốn chuyển trạng thái thành ${status}?`,
+        action: { label: 'Đồng ý', onClick: executeUpdate },
+        cancel: { label: 'Hủy', onClick: () => {} }
+    });
   };
 
   const processConfirmCompletion = async () => {
@@ -248,6 +255,34 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
   const isBooster = user?.role === 'BOOSTER';
   const isCustomer = user?.role === 'CUSTOMER';
   const partner = isCustomer ? order.boosterId : order.customerId;
+
+  // Lọc các tùy chọn đã được kích hoạt (true hoặc mảng có phần tử)
+  const activeOptions = order.options 
+    ? Object.entries(order.options as Record<string, any>).filter(([_, val]) => {
+        if (Array.isArray(val)) return val.length > 0;
+        return !!val;
+    }) 
+    : [];
+
+  // Tách riêng các tùy chọn phức tạp (Mảng) và đơn giản (Boolean)
+  const scheduleOption = activeOptions.find(([k]) => k === 'schedule');
+  const rolesOption = activeOptions.find(([k]) => k === 'roles');
+  
+  const simpleOptions = activeOptions.filter(([k, v]) => {
+      if (k === 'schedule' && Array.isArray(v)) return false; // Nếu là mảng lịch -> ẩn khỏi list đơn giản
+      if (k === 'roles' && Array.isArray(v)) return false;    // Nếu là mảng roles -> ẩn khỏi list đơn giản
+      return true;
+  });
+
+  const optionLabels: Record<string, string> = {
+      express: 'Cày siêu tốc',
+      duo: 'Chơi cùng Booster',
+      streaming: 'Streaming',
+      specificChamps: 'Tướng chỉ định',
+      schedule: 'Đặt lịch',
+      priority: 'Ưu tiên',
+      roles: 'Vị trí'
+  };
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white font-sans pt-24 pb-10 px-4">
@@ -382,13 +417,54 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                                         </span>
                                     </div>
                                     {/* Extra Options */}
-                                    {order.options && Object.keys(order.options).length > 0 && (
+                                    {activeOptions.length > 0 && (
                                         <div className="pt-3 border-t border-zinc-800">
-                                            <span className="text-zinc-500 block mb-1">Tùy chọn thêm:</span>
-                                            <div className="flex flex-wrap gap-2">
-                                                {Object.entries(order.options as Record<string, any>).map(([key, val]) => (
-                                                    val ? <span key={key} className="px-2 py-1 bg-zinc-900 border border-zinc-700 rounded text-xs text-zinc-300">{key}</span> : null
-                                                ))}
+                                            <span className="text-zinc-500 block mb-2 text-xs font-bold uppercase tracking-wider">Tùy chọn thêm:</span>
+                                            
+                                            <div className="space-y-3">
+                                                {/* 1. Các tùy chọn đơn giản (Badges) */}
+                                                {simpleOptions.length > 0 && (
+                                                    <div className="flex flex-wrap gap-2">
+                                                        {simpleOptions.map(([key, val]) => (
+                                                            <span key={key} className="px-2.5 py-1 bg-zinc-900 border border-zinc-700 rounded-lg text-xs text-zinc-300 font-medium">
+                                                                {optionLabels[key] || key}
+                                                                {Array.isArray(val) && typeof val[0] !== 'object' ? `: ${val.join(', ')}` : ''}
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                )}
+
+                                                {/* 2. Vị trí (Roles Block) */}
+                                                {rolesOption && Array.isArray(rolesOption[1]) && rolesOption[1].length > 0 && (
+                                                    <div className="bg-zinc-900/50 rounded-lg p-3 border border-zinc-800/50">
+                                                        <span className="text-zinc-500 text-xs block mb-2 flex items-center gap-1.5 font-medium">
+                                                            <Crosshair size={12} /> Vị trí đi đường:
+                                                        </span>
+                                                        <div className="flex flex-wrap gap-2">
+                                                            {rolesOption[1].map((role: string) => (
+                                                                <span key={role} className="text-xs font-bold px-2 py-1 bg-zinc-800 border border-zinc-700 rounded text-zinc-300">
+                                                                    {role}
+                                                                </span>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {/* 3. Lịch cấm (Schedule Block) */}
+                                                {scheduleOption && Array.isArray(scheduleOption[1]) && scheduleOption[1].length > 0 && (
+                                                    <div className="bg-red-500/5 rounded-lg p-3 border border-red-500/10">
+                                                        <span className="text-red-400 text-xs block mb-2 flex items-center gap-1.5 font-medium">
+                                                            <Clock size={12} /> Khung giờ nghỉ (Cấm chơi):
+                                                        </span>
+                                                        <div className="flex flex-wrap gap-2">
+                                                            {scheduleOption[1].map((w: any, idx: number) => (
+                                                                <span key={idx} className="text-xs font-bold px-2.5 py-1 bg-red-500/10 text-red-400 border border-red-500/20 rounded-md flex items-center gap-1.5">
+                                                                    {w.start} - {w.end}
+                                                                </span>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
                                     )}
@@ -421,12 +497,24 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                         <div className="space-y-6">
                             {/* Match History List */}
                             <div className="space-y-3">
+                                <AnimatePresence mode="popLayout">
                                 {order.match_history?.length > 0 ? (
                                     order.match_history.map((match: any, idx: number) => (
-                                        <div key={idx} className="flex items-center justify-between p-3 bg-zinc-950 border border-zinc-800 rounded-xl">
+                                        <motion.div 
+                                            key={idx}
+                                            initial={{ opacity: 0, y: 20 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            exit={{ opacity: 0, scale: 0.95 }}
+                                            transition={{ duration: 0.3, delay: idx * 0.05 }}
+                                            className="flex items-center justify-between p-3 bg-zinc-950 border border-zinc-800 rounded-xl"
+                                        >
                                             <div className="flex items-center gap-3">
                                                 <div className={`w-10 h-10 rounded-lg flex items-center justify-center font-bold ${match.result === 'WIN' ? 'bg-blue-500/20 text-blue-500' : 'bg-red-500/20 text-red-500'}`}>
-                                                    {match.result === 'WIN' ? 'W' : 'L'}
+                                                    <img 
+                                                        src={match.result === 'WIN' ? '/images/victory.png' : '/images/defeat.png'} 
+                                                        alt={match.result} 
+                                                        className="w-300 h-300 object-contain"
+                                                    />
                                                 </div>
                                                 <div>
                                                     <div className="text-sm font-bold text-white">{match.champion} <span className="text-zinc-500 font-normal">({match.mode})</span></div>
@@ -439,13 +527,18 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                                                 </div>
                                                 {match.reason && <div className="text-xs text-zinc-500">{match.reason}</div>}
                                             </div>
-                                        </div>
+                                        </motion.div>
                                     ))
                                 ) : (
-                                    <div className="text-center py-8 text-zinc-500 border border-dashed border-zinc-800 rounded-xl">
+                                    <motion.div 
+                                        initial={{ opacity: 0 }} 
+                                        animate={{ opacity: 1 }}
+                                        className="text-center py-8 text-zinc-500 border border-dashed border-zinc-800 rounded-xl"
+                                    >
                                         Chưa có trận đấu nào được cập nhật.
-                                    </div>
+                                    </motion.div>
                                 )}
+                                </AnimatePresence>
                             </div>
 
                             {/* Add Match Form (Booster Only) */}

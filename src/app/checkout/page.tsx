@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
-import { Loader2, ShieldCheck, Wallet, ArrowRight, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Loader2, ShieldCheck, Wallet, ArrowRight, AlertCircle, CheckCircle2, TicketPercent, X, Tag } from 'lucide-react';
 import { toast } from 'sonner';
 import Navbar from '@/components/Navbar';
 
@@ -11,6 +11,9 @@ function CheckoutContent() {
   const [loading, setLoading] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [orderData, setOrderData] = useState<any>(null);
+  const [couponCode, setCouponCode] = useState('');
+  const [appliedCoupon, setAppliedCoupon] = useState<any>(null);
+  const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
 
   useEffect(() => {
     const userStr = localStorage.getItem('user');
@@ -35,8 +38,53 @@ function CheckoutContent() {
   const totalAmount = pricing.total_amount || 0;
   const walletBalance = user?.wallet_balance || 0;
   const isDepositService = serviceType === 'NET_WINS';
-  const paymentAmount = isDepositService ? depositAmount : totalAmount;
+  
+  // Calculate final price with discount
+  let paymentAmount = isDepositService ? depositAmount : totalAmount;
+  let discountValue = 0;
+  if (appliedCoupon) {
+      if (appliedCoupon.type === 'PERCENTAGE') {
+          // Discount is applied on the total order value, not the deposit amount
+          discountValue = (totalAmount * appliedCoupon.value) / 100;
+      } else { // FIXED
+          discountValue = appliedCoupon.value;
+      }
+      // Discount should not make price negative or exceed the payment amount
+      discountValue = Math.min(discountValue, paymentAmount);
+      paymentAmount -= discountValue;
+  }
+
   const isSufficient = walletBalance >= paymentAmount;
+
+  const handleApplyCoupon = async () => {
+    if (!couponCode.trim()) {
+      toast.error('Vui lòng nhập mã giảm giá.');
+      return;
+    }
+    setIsApplyingCoupon(true);
+    try {
+      // This API needs to be created.
+      const res = await fetch('/api/coupons/validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+            code: couponCode, 
+            orderValue: totalAmount,
+            boosterId: booster?._id // Gửi thêm ID của Booster để check mã của họ
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Mã giảm giá không hợp lệ hoặc không thể áp dụng.');
+
+      setAppliedCoupon(data.coupon);
+      toast.success(`Áp dụng mã giảm giá thành công!`);
+    } catch (error: any) {
+      toast.error(error.message);
+      setAppliedCoupon(null);
+    } finally {
+      setIsApplyingCoupon(false);
+    }
+  };
 
   const handleConfirmPayment = async () => {
     if (!isSufficient) {
@@ -54,7 +102,12 @@ function CheckoutContent() {
           boosterId: booster?._id,
           details: details,
           options: orderData.options,
-          pricing: pricing,
+          pricing: {
+            ...pricing,
+            total_amount: paymentAmount, // Send the final discounted price
+            coupon_code: appliedCoupon?.code,
+            discount_amount: discountValue,
+          },
           queueType: orderData.queueType
         }),
       });
@@ -166,8 +219,23 @@ function CheckoutContent() {
     streaming: 'Xem trực tiếp (Streaming)',
     specificChamps: 'Chơi tướng chỉ định',
     schedule: 'Đặt lịch cày',
+    roles: 'Vị trí đi đường'
   };
-  const selectedOptions = Object.entries(options || {}).filter(([, value]) => value === true);
+
+  // Lọc các tùy chọn đang kích hoạt (true hoặc mảng có dữ liệu)
+  const activeOptions = Object.entries(options || {}).filter(([_, value]) => {
+      if (Array.isArray(value)) return value.length > 0;
+      return !!value;
+  });
+
+  // Tách riêng các tùy chọn phức tạp
+  const scheduleOption = activeOptions.find(([k]) => k === 'schedule');
+  const rolesOption = activeOptions.find(([k]) => k === 'roles');
+  const simpleOptions = activeOptions.filter(([k, v]) => {
+      if (k === 'schedule' && Array.isArray(v)) return false;
+      if (k === 'roles' && Array.isArray(v)) return false;
+      return true;
+  });
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white font-sans pt-24 pb-20 px-4">
@@ -216,14 +284,39 @@ function CheckoutContent() {
             {/* Options Info */}
             <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
               <h2 className="text-xl font-bold mb-4 text-blue-400">Tùy chọn thêm</h2>
-              {selectedOptions.length > 0 ? (
+              {activeOptions.length > 0 ? (
                 <div className="space-y-4 text-sm">
-                  {selectedOptions.map(([key]) => (
+                  {/* 1. Các tùy chọn đơn giản */}
+                  {simpleOptions.map(([key]) => (
                     <div key={key} className="flex justify-between items-center py-2 border-b border-zinc-800 last:border-b-0">
                       <span className="text-zinc-300">{OPTION_LABELS[key] || key}</span>
                       <CheckCircle2 className="w-5 h-5 text-green-500" />
                     </div>
                   ))}
+
+                  {/* 2. Vị trí (Roles) */}
+                  {rolesOption && Array.isArray(rolesOption[1]) && (
+                    <div className="py-2 border-b border-zinc-800 last:border-b-0">
+                        <span className="text-zinc-300 block mb-2 font-medium">Vị trí đi đường:</span>
+                        <div className="flex flex-wrap gap-2">
+                            {rolesOption[1].map((role: string) => (
+                                <span key={role} className="px-2 py-1 bg-zinc-800 rounded text-xs text-zinc-300 border border-zinc-700 font-bold">{role}</span>
+                            ))}
+                        </div>
+                    </div>
+                  )}
+
+                  {/* 3. Lịch cấm (Schedule) */}
+                  {scheduleOption && Array.isArray(scheduleOption[1]) && (
+                    <div className="py-2 border-b border-zinc-800 last:border-b-0">
+                        <span className="text-zinc-300 block mb-2 font-medium">Khung giờ nghỉ (Cấm chơi):</span>
+                        <div className="flex flex-wrap gap-2">
+                            {scheduleOption[1].map((w: any, idx: number) => (
+                                <span key={idx} className="px-2 py-1 bg-red-500/10 text-red-400 border border-red-500/20 rounded text-xs font-bold">{w.start} - {w.end}</span>
+                            ))}
+                        </div>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <p className="text-zinc-500 text-sm text-center py-4">Không có tùy chọn thêm nào được chọn.</p>
@@ -252,6 +345,85 @@ function CheckoutContent() {
               <div className="mb-6">
                 <div className="text-zinc-400 text-sm mb-1">Tổng giá trị ước tính</div>
                 <div className="text-2xl font-bold text-white">{pricing.total_amount.toLocaleString()} đ</div>
+              </div>
+
+              {/* Coupon Section */}
+              <div className="mb-6 bg-zinc-950/50 rounded-xl border border-zinc-800 p-4">
+                <label className="text-zinc-400 text-xs font-bold uppercase tracking-wider mb-3 flex items-center gap-2">
+                  <Tag className="w-3 h-3" /> Mã giảm giá
+                </label>
+
+                <div
+                  className={`relative flex items-center bg-zinc-900 border rounded-lg transition-all overflow-hidden ${
+                    appliedCoupon
+                      ? "border-green-500/50 ring-1 ring-green-500/10"
+                      : "border-zinc-700 focus-within:border-blue-500"
+                  }`}
+                >
+                  <div className="pl-3 text-zinc-500 flex items-center shrink-0">
+                    <TicketPercent className="w-4 h-4" />
+                  </div>
+
+                  <input
+                    type="text"
+                    value={couponCode}
+                    onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                    placeholder="Nhập mã giảm giá..."
+                    disabled={!!appliedCoupon}
+                    className="flex-1 min-w-0 bg-transparent border-none px-3 py-2.5 text-sm text-white font-mono font-medium placeholder:text-zinc-600 focus:ring-0 focus:outline-none disabled:opacity-50 uppercase"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && !appliedCoupon && couponCode.trim()) {
+                        handleApplyCoupon();
+                      }
+                    }}
+                  />
+
+                  <div className="pr-1.5 flex items-center shrink-0">
+                    {appliedCoupon ? (
+                      <button
+                        onClick={() => {
+                          setAppliedCoupon(null);
+                          setCouponCode("");
+                        }}
+                        className="p-1.5 hover:bg-zinc-800 rounded-md text-zinc-400 hover:text-red-400 transition-colors"
+                        title="Xóa mã"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    ) : (
+                      <button
+                        onClick={handleApplyCoupon}
+                        disabled={isApplyingCoupon || !couponCode.trim()}
+                        className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-md text-xs font-bold disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-blue-900/20 flex items-center justify-center whitespace-nowrap"
+                      >
+                        {isApplyingCoupon ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          "Áp dụng"
+                        )}
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {appliedCoupon && (
+                  <div className="mt-3 flex items-center justify-between text-xs bg-green-500/10 border border-green-500/20 rounded-lg p-2">
+                    <span className="text-green-400 font-medium flex items-center gap-1.5">
+                      <CheckCircle2 className="w-3 h-3" />
+                      Mã hợp lệ:
+                      <span className="font-mono font-bold text-white">
+                        {appliedCoupon.code}
+                      </span>
+                    </span>
+
+                    <span className="text-white font-bold bg-green-500/20 px-2 py-0.5 rounded">
+                      -
+                      {appliedCoupon.type === "PERCENTAGE"
+                        ? `${appliedCoupon.value}%`
+                        : `${discountValue.toLocaleString()}đ`}
+                    </span>
+                  </div>
+                )}
               </div>
 
               <div className="border-t border-zinc-800 my-4 pt-4">

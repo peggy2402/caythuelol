@@ -57,6 +57,9 @@ export async function GET() {
         express: 35,
         duo: 50
       },
+      
+      // Coupons (Lưu trong metadata)
+      coupons: metadata.coupons || [],
 
       // Rank Boost
       rankPrices: rankBoostConfig?.prices?.rankPrices || {},
@@ -134,6 +137,7 @@ export async function POST(req: Request) {
         game.champions = body.playingChampions || [];
         if (!game.metadata) game.metadata = {};
         game.metadata.options = body.options || {};
+        game.metadata.coupons = body.coupons || []; // ✅ LƯU COUPONS VÀO ĐÂY
         
         profile.markModified('games');
     }

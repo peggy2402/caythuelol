@@ -21,6 +21,13 @@ export interface Rank {
   imageUrl: string;
 }
 
+export interface Coupon {
+  code: string;
+  value: number; // % giảm giá
+  type: 'PERCENTAGE';
+  isActive: boolean;
+}
+
 export interface ServiceSettings {
   enabledServices: string[]; // Danh sách dịch vụ đang bật (MỚI)
   servers: string[];
@@ -41,6 +48,7 @@ export interface ServiceSettings {
   netWinDepositPercent?: number;
   masteryPrices: Record<string, number>;
   coachingPrices: Record<string, number>; // Thêm bảng giá Coaching
+  coupons: Coupon[]; // Danh sách mã giảm giá
 
   // ✅ CHUẨN HÓA: Chỉ dùng 1 hệ thống modifier
   lpModifiers: {
@@ -113,6 +121,7 @@ export function ServiceProvider({ children }: { children: ReactNode }) {
     netWinDepositPercent: 50,
     masteryPrices: {},
     coachingPrices: {},
+    coupons: [],
 
     // ✅ Mặc định chuẩn marketplace
     lpModifiers: {
@@ -242,6 +251,7 @@ export function ServiceProvider({ children }: { children: ReactNode }) {
             promotionPrices: incoming.promotionPrices || {},
             promotionPricesFlex: incoming.promotionPricesFlex || {},
             promotionPricesDuo: incoming.promotionPricesDuo || {},
+            coupons: incoming.coupons || [],
             rankPricesFlex: incoming.rankPricesFlex || {},
             rankPricesDuo: incoming.rankPricesDuo || {},
             queueModifiers: incoming.queueModifiers || { SOLO_DUO: 0, FLEX: 0, TFT: 0 },

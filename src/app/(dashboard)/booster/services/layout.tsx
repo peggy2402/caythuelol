@@ -5,7 +5,7 @@ import { ReactNode } from 'react';
 
 export default function BoosterServicesLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="min-h-screen bg-[#050505] p-4 md:p-8">
+    <div className="min-h-screen bg-gradient-to-b from-zinc-950 to-zinc-900 p-4 md:p-8">
        {children}
     </div>
   );
