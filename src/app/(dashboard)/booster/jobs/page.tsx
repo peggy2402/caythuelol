@@ -13,7 +13,8 @@ import {
   Loader2,
   CheckCircle2,
   XCircle,
-  AlertCircle
+  AlertCircle,
+  RefreshCw
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
@@ -242,6 +243,15 @@ export default function JobMarketPage() {
           </h1>
           <p className="text-zinc-400 text-sm">Tìm kiếm và nhận các đơn hàng phù hợp với bạn.</p>
         </div>
+
+        <button 
+            onClick={fetchJobs} 
+            disabled={loading}
+            className="flex items-center gap-2 px-4 py-2 bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 text-white rounded-lg transition-colors text-sm font-medium disabled:opacity-50"
+        >
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            Làm mới
+        </button>
       </div>
 
       {loading ? (

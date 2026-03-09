@@ -96,7 +96,9 @@ const OrderSchema = new Schema<IOrder>(
       result: { type: String, enum: ['WIN', 'LOSS'] },
       lp_change: Number,
       reason: String,
-      timestamp: { type: Date, default: Date.now }
+      timestamp: { type: Date, default: Date.now },
+      riotMatchId: String, // ✅ Thêm trường này
+      detail: Schema.Types.Mixed // ✅ Thêm trường này để lưu full JSON từ Riot
     }],
     dispute: {
       reason: String,

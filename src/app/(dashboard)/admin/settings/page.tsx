@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
-import { Save, Settings, DollarSign, Loader2, AlertTriangle, Image as ImageIcon, Power } from 'lucide-react';
+import { Save, Settings, DollarSign, Loader2, AlertTriangle, Image as ImageIcon, Power, Key, RefreshCw } from 'lucide-react';
 
 interface SystemSetting {
   _id: string;
@@ -23,7 +23,8 @@ export default function AdminSettingsPage() {
   const [maintenanceMode, setMaintenanceMode] = useState<boolean>(false);
   // State cho Banner
   const [bannerConfig, setBannerConfig] = useState({ imageUrl: '', link: '', active: false });
-
+  // State cho Riot API Key
+  const [riotApiKey, setRiotApiKey] = useState('');
 
   useEffect(() => {
     fetchSettings();
@@ -31,7 +32,11 @@ export default function AdminSettingsPage() {
 
   const fetchSettings = async () => {
     try {
-      const res = await fetch('/api/admin/settings');
+      const [res, resRiot] = await Promise.all([
+        fetch('/api/admin/settings'),
+        fetch('/api/admin/settings/riot')
+      ]);
+
       if (res.ok) {
         const data = await res.json();
         
@@ -54,6 +59,11 @@ export default function AdminSettingsPage() {
             setBannerConfig(bc.value || { imageUrl: '', link: '', active: false });
           }
         }
+      }
+
+      if (resRiot.ok) {
+        const dataRiot = await resRiot.json();
+        if (dataRiot.apiKey) setRiotApiKey(dataRiot.apiKey);
       }
     } catch (error) {
       console.error(error);
@@ -80,7 +90,12 @@ export default function AdminSettingsPage() {
         saveSetting('PLATFORM_FEE', platformFee, 'Phí sàn (%) áp dụng cho các đơn hàng'),
         saveSetting('withdraw_fee', withdrawFee, 'Phí rút tiền cố định (VND)'),
         saveSetting('maintenance_mode', maintenanceMode, 'Chế độ bảo trì hệ thống'),
-        saveSetting('banner_config', bannerConfig, 'Cấu hình Banner trang chủ')
+        saveSetting('banner_config', bannerConfig, 'Cấu hình Banner trang chủ'),
+        fetch('/api/admin/settings/riot', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ apiKey: riotApiKey })
+        })
       ]);
       toast.success('Đã lưu tất cả cài đặt');
       fetchSettings();
@@ -94,10 +109,20 @@ export default function AdminSettingsPage() {
   if (loading) return <div className="flex justify-center p-10"><Loader2 className="animate-spin text-blue-500 w-8 h-8" /></div>;
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
-      <div>
-        <h1 className="text-3xl font-bold text-white mb-2">Cài đặt hệ thống</h1>
-        <p className="text-zinc-400">Quản lý các tham số vận hành của hệ thống.</p>
+    <div className="space-y-8 pb-24 animate-in fade-in duration-500 max-w-7xl mx-auto">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold text-white mb-1">Cài đặt hệ thống</h1>
+          <p className="text-sm text-zinc-400">Quản lý các tham số vận hành của hệ thống.</p>
+        </div>
+        <button 
+          onClick={fetchSettings} 
+          disabled={loading}
+          className="flex items-center justify-center gap-2 px-4 py-2.5 bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 text-zinc-300 hover:text-white rounded-xl transition-all text-sm font-medium disabled:opacity-50 shadow-sm w-full sm:w-auto"
+        >
+          <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+          <span>Làm mới</span>
+        </button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -219,18 +244,48 @@ export default function AdminSettingsPage() {
               </div>
             </div>
           </div>
+
+          {/* Riot API Key */}
+          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 hover:border-zinc-700 transition-colors">
+            <div className="flex items-center gap-3 mb-6">
+                <div className="p-3 bg-purple-500/10 rounded-xl text-purple-500 border border-purple-500/20">
+                    <Key className="w-6 h-6" />
+                </div>
+                <div>
+                    <h3 className="text-lg font-bold text-white">Riot API Key</h3>
+                    <p className="text-sm text-zinc-400">Kết nối Riot Games API.</p>
+                </div>
+            </div>
+
+            <div className="space-y-4">
+                <div>
+                    <label className="block text-xs text-zinc-500 mb-1">API Key (RGAPI-...)</label>
+                    <input 
+                        type="text" 
+                        value={riotApiKey}
+                        onChange={(e) => setRiotApiKey(e.target.value)}
+                        className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-white text-sm focus:border-purple-500 outline-none font-mono"
+                        placeholder="RGAPI-xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+                    />
+                    <p className="text-[10px] text-zinc-500 mt-2">
+                        Key development hết hạn sau 24h. Dùng để lấy thông tin trận đấu.
+                    </p>
+                </div>
+            </div>
+          </div>
         </div>
       </div>
 
       {/* Floating Save Button */}
-      <div className="fixed bottom-6 right-6 z-50">
+      <div className="fixed bottom-6 right-6 z-40 md:bottom-8 md:right-8">
         <button 
             onClick={handleSaveAll}
             disabled={saving}
-            className="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-8 rounded-full shadow-2xl shadow-blue-600/30 flex items-center gap-2 transition-all hover:scale-105 disabled:opacity-50 disabled:scale-100"
+            className="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-6 md:px-8 rounded-full shadow-2xl shadow-blue-600/30 flex items-center gap-2 transition-all hover:scale-105 disabled:opacity-50 disabled:scale-100 active:scale-95"
         >
             {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
-            Lưu Cấu Hình
+            <span className="hidden md:inline">Lưu Cấu Hình</span>
+            <span className="md:hidden">Lưu</span>
         </button>
       </div>
     </div>

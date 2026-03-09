@@ -9,11 +9,14 @@ import { socket } from '@/lib/socket';
 import { 
   Loader2, CheckCircle2, AlertCircle, Clock, 
   Shield, DollarSign, CreditCard,
-  Play, CheckSquare, Lock, Flag, Swords, Trophy, Save, Crosshair, ArrowLeft
+  Play, CheckSquare, Lock, Flag, Swords, Trophy, Save, Crosshair, ArrowLeft, Search
 } from 'lucide-react';
+import { Pencil, Trash2, X, Plus, Eye } from 'lucide-react';
 import { toast } from 'sonner';
 import ChatWindow from '@/components/chat/ChatWindow';
 import { motion, AnimatePresence } from 'framer-motion';
+
+const DDRAGON_VER = '16.5.1'; // Phiên bản DDragon mới nhất (có thể cập nhật động nếu cần)
 
 export default function OrderDetailsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -35,6 +38,14 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
   const [matchForm, setMatchForm] = useState({
       mode: 'Rank Đơn/Đôi', champion: '', result: 'WIN', lp_change: '', reason: ''
   });
+  const [isAddingMatch, setIsAddingMatch] = useState(false);
+  const [riotMatchId, setRiotMatchId] = useState('');
+  const [isFetchingRiot, setIsFetchingRiot] = useState(false);
+  const [liveLeagueInfo, setLiveLeagueInfo] = useState<any>(null);
+  const [editingMatchId, setEditingMatchId] = useState<string | null>(null);
+  const [isMatchModalOpen, setIsMatchModalOpen] = useState(false);
+  const [fetchedMatchData, setFetchedMatchData] = useState<any>(null);
+  const [selectedMatchDetail, setSelectedMatchDetail] = useState<any>(null);
 
   // --- POLLING FALLBACK (Cứ 5s tải lại data 1 lần để chắc chắn cập nhật) ---
   useEffect(() => {
@@ -189,25 +200,75 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
       }
   };
 
-  const handleAddMatch = async (e: React.FormEvent) => {
+  const handleSaveMatch = async (e: React.FormEvent) => {
       e.preventDefault();
+      setIsAddingMatch(true);
       try {
+          const method = editingMatchId ? 'PUT' : 'POST';
+          const body = {
+              ...matchForm,
+              matchId: editingMatchId, // Only for PUT
+              leagueInfo: liveLeagueInfo,
+              detail: fetchedMatchData, // Gửi chi tiết trận đấu lấy từ Riot
+              riotMatchId // Gửi ID trận đấu
+          };
+
           const res = await fetch(`/api/orders/${id}/matches`, {
-              method: 'POST',
+              method,
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(matchForm)
+              body: JSON.stringify(body)
           });
           if (res.ok) {
-              toast.success('Đã cập nhật trận đấu');
               const data = await res.json();
               setOrder((prev: any) => ({ ...prev, match_history: data.match_history }));
-              setMatchForm({ mode: 'Rank Đơn', champion: '', result: 'WIN', lp_change: '', reason: '' });
-              toast.success('Đã thêm trận đấu mới');
+              setMatchForm({ mode: 'Rank Đơn/Đôi', champion: '', result: 'WIN', lp_change: '', reason: '' });
+              setEditingMatchId(null);
+              toast.success(editingMatchId ? 'Đã cập nhật trận đấu' : 'Đã thêm trận đấu mới');
+              setIsMatchModalOpen(false); // Đóng modal sau khi lưu thành công
+              setLiveLeagueInfo(null); // Reset live info
+              setFetchedMatchData(null);
+              setRiotMatchId('');
               
               // Real-time broadcast
-              socket.emit('update_order', { room: id, data: { match_history: data.match_history } });
+              socket.emit('update_order', { room: id, data: { match_history: data.match_history, details: data.details } });
           }
       } catch (e) { toast.error('Lỗi cập nhật'); }
+      finally { setIsAddingMatch(false); }
+  };
+
+  const handleEditMatch = (match: any) => {
+      setMatchForm({
+          mode: match.mode || 'Rank Đơn/Đôi',
+          champion: match.champion,
+          result: match.result,
+          lp_change: match.lp_change?.toString() || '',
+          reason: match.reason || ''
+      });
+      setEditingMatchId(match._id);
+      setFetchedMatchData(match.detail); // Load existing detail if any
+      setRiotMatchId(match.riotMatchId || '');
+      setIsMatchModalOpen(true); // Mở modal thay vì scroll
+  };
+
+  const handleDeleteMatch = async (matchId: string) => {
+      if (!confirm('Bạn có chắc chắn muốn xóa trận đấu này?')) return;
+      try {
+          const res = await fetch(`/api/orders/${id}/matches?matchId=${matchId}`, { method: 'DELETE' });
+          if (res.ok) {
+              const data = await res.json();
+              setOrder((prev: any) => ({ ...prev, match_history: data.match_history }));
+              toast.success('Đã xóa trận đấu');
+              socket.emit('update_order', { room: id, data: { match_history: data.match_history } });
+          } else { toast.error('Lỗi xóa trận đấu'); }
+      } catch (e) { toast.error('Lỗi kết nối'); }
+  };
+
+  const handleCancelEdit = () => {
+      setMatchForm({ mode: 'Rank Đơn/Đôi', champion: '', result: 'WIN', lp_change: '', reason: '' });
+      setEditingMatchId(null);
+      setFetchedMatchData(null);
+      setRiotMatchId('');
+      setIsMatchModalOpen(false);
   };
 
   const handleUpdateIngame = async () => {
@@ -229,6 +290,101 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
           }
       } catch (e) { toast.error('Lỗi kết nối'); }
       finally { setIsUpdatingIngame(false); }
+  };
+
+  // Hàm check Rank thủ công (hoặc gọi khi update ingame)
+  const handleCheckLiveRank = async () => {
+      const nameToCheck = ingameName || order.details.ingame_name || order.details.account_username;
+      if (!nameToCheck) return toast.error('Chưa có tên Ingame');
+      
+      const toastId = toast.loading('Đang kiểm tra Rank...');
+      try {
+          const res = await fetch('/api/riot/player', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ server: order.details.server, name: nameToCheck })
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error);
+
+          const queue = ['SOLO', 'SOLO_DUO'].includes(order.details.queueType) ? 'RANKED_SOLO_5x5' : 'RANKED_FLEX_SR';
+          const league = data.leagues.find((l: any) => l.queueType === queue);
+          
+          if (league) {
+              setLiveLeagueInfo(league);
+              toast.success(`Đã tìm thấy: ${league.tier} ${league.rank} - ${league.leaguePoints} LP`, { id: toastId });
+          } else {
+              toast.error('Chưa có thông tin Rank cho chế độ này', { id: toastId });
+          }
+      } catch (e: any) { toast.error(e.message || 'Lỗi kiểm tra', { id: toastId }); }
+  };
+
+  const handleFetchRiotMatch = async () => {
+      if (!riotMatchId.trim()) return toast.error('Vui lòng nhập ID trận đấu (VD: VN2_123456)');
+      setIsFetchingRiot(true);
+      try {
+          const res = await fetch('/api/riot/match', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ 
+                  matchId: riotMatchId.trim(),
+                  server: order.details.server, // Gửi server để API tự thêm prefix (VN2, KR...)
+                  targetName: order.details.ingame_name || order.details.account_username // Gửi tên để tìm PUUID
+              })
+          });
+          const data = await res.json();
+          
+          if (!res.ok) throw new Error(data.error);
+          
+          const participant = data.participant;
+          const leagueInfo = data.leagueInfo;
+          setFetchedMatchData(data.match); // Lưu lại full data để gửi khi save
+          
+          if (participant) {
+              let calculatedLpChange = '';
+              
+              // Tự động tính LP Change nếu có dữ liệu League
+              if (leagueInfo) {
+                  const currentLpInOrder = parseInt(order.details.current_lp || '0');
+                  const realLp = leagueInfo.leaguePoints;
+                  const diff = realLp - currentLpInOrder;
+                  
+                  setLiveLeagueInfo(leagueInfo); // Lưu lại để gửi khi submit
+                  
+                  // Chỉ điền nếu chênh lệch hợp lý (tránh trường hợp mới lên hạng/rớt hạng làm âm quá lớn)
+                  if (Math.abs(diff) < 100) {
+                      calculatedLpChange = diff.toString();
+                  }
+                  toast.info(`Rank hiện tại: ${leagueInfo.tier} ${leagueInfo.rank} - ${realLp} LP`);
+              }
+
+              setMatchForm(prev => ({
+                  ...prev,
+                  champion: participant.championName,
+                  result: participant.win ? 'WIN' : 'LOSS',
+                  lp_change: calculatedLpChange,
+                  reason: `KDA: ${participant.kills}/${participant.deaths}/${participant.assists}`
+              }));
+              toast.success('Đã lấy thông tin trận đấu!');
+          } else {
+              toast.warning('Không tìm thấy người chơi. Hãy chắc chắn bạn đã cập nhật Tên Ingame đúng.');
+          }
+      } catch (e: any) { toast.error(e.message || 'Lỗi lấy thông tin trận đấu'); }
+      finally { setIsFetchingRiot(false); }
+  };
+
+  // Helper tính KDA
+  const calculateKDA = (k: number, d: number, a: number) => {
+      return ((k + a) / Math.max(1, d)).toFixed(1);
+  };
+
+  // Helper tính Team KDA
+  const calculateTeamStats = (participants: any[]) => {
+      const teams: Record<number, { kills: number, deaths: number, assists: number }> = { 100: { kills: 0, deaths: 0, assists: 0 }, 200: { kills: 0, deaths: 0, assists: 0 } };
+      participants.forEach(p => {
+          if (teams[p.teamId]) { teams[p.teamId].kills += p.kills; teams[p.teamId].deaths += p.deaths; teams[p.teamId].assists += p.assists; }
+      });
+      return teams;
   };
 
   // --- UI COMPONENTS ---
@@ -387,6 +543,32 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                                 </div>
                             )}
 
+                            {/* Live Rank Status (Visible to both if available) */}
+                            {(liveLeagueInfo || (order.details.current_lp !== undefined)) && (
+                                <div className="bg-zinc-900 border border-zinc-800 p-4 rounded-xl">
+                                    <h3 className="text-sm font-bold text-zinc-400 uppercase mb-3 flex items-center gap-2">
+                                        <Trophy className="w-4 h-4 text-yellow-500" /> Trạng thái hiện tại
+                                    </h3>
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <div className="text-2xl font-black text-white">
+                                                {liveLeagueInfo ? `${liveLeagueInfo.tier} ${liveLeagueInfo.rank}` : order.details.current_rank}
+                                            </div>
+                                            <div className="text-sm text-blue-400 font-bold">
+                                                {liveLeagueInfo ? liveLeagueInfo.leaguePoints : order.details.current_lp} LP
+                                            </div>
+                                        </div>
+                                        {liveLeagueInfo && (
+                                            <div className="text-right text-xs text-zinc-500">
+                                                <div>Thắng: <span className="text-green-400 font-bold">{liveLeagueInfo.wins}</span></div>
+                                                <div>Thua: <span className="text-red-400 font-bold">{liveLeagueInfo.losses}</span></div>
+                                                <div>Tỉ lệ: <span className="text-white">{Math.round((liveLeagueInfo.wins / (liveLeagueInfo.wins + liveLeagueInfo.losses)) * 100)}%</span></div>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+
                             {/* Account Info */}
                             <div>
                                 <h3 className="text-sm font-bold text-zinc-400 uppercase mb-3 flex items-center gap-2"><Shield className="w-4 h-4" /> Tài khoản Game</h3>
@@ -412,7 +594,12 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                                     </div>
                                     <div>
                                         <span className="text-xs text-zinc-500 block">Ingame (Nếu có)</span>
-                                        <span className="text-white font-medium text-blue-300">{order.details.ingame_name || 'Chưa cập nhật'}</span>
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-white font-medium text-blue-300">{order.details.ingame_name || 'Chưa cập nhật'}</span>
+                                            {isBooster && order.details.ingame_name && (
+                                                <button onClick={handleCheckLiveRank} className="text-[10px] bg-zinc-800 px-2 py-1 rounded hover:bg-zinc-700 text-zinc-300">Check Rank</button>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -542,6 +729,25 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                                                 </div>
                                                 {match.reason && <div className="text-xs text-zinc-500">{match.reason}</div>}
                                             </div>
+                                            {match.detail ? (
+                                                <button onClick={() => setSelectedMatchDetail(match.detail)} className="p-2 bg-blue-500/10 text-blue-400 hover:bg-blue-500 hover:text-white rounded-lg transition-colors ml-auto mr-2 shrink-0" title="Xem chi tiết trận đấu">
+                                                    <Eye size={16} />
+                                                </button>
+                                            ) : (
+                                                <div className="p-2 text-zinc-800 ml-auto mr-2 shrink-0 cursor-not-allowed" title={isBooster ? "Chưa có dữ liệu chi tiết. Hãy Sửa -> Lấy Info -> Lưu lại." : "Không có dữ liệu chi tiết"}>
+                                                    <Eye size={16} />
+                                                </div>
+                                            )}
+                                            {isBooster && order.status === 'IN_PROGRESS' && (
+                                                <div className="flex gap-2 ml-4">
+                                                    <button onClick={() => handleEditMatch(match)} className="p-1.5 bg-zinc-900 hover:bg-blue-600 hover:text-white text-zinc-500 rounded transition-colors" title="Sửa">
+                                                        <Pencil size={14} />
+                                                    </button>
+                                                    <button onClick={() => handleDeleteMatch(match._id)} className="p-1.5 bg-zinc-900 hover:bg-red-600 hover:text-white text-zinc-500 rounded transition-colors" title="Xóa">
+                                                        <Trash2 size={14} />
+                                                    </button>
+                                                </div>
+                                            )}
                                         </motion.div>
                                     ))
                                 ) : (
@@ -558,19 +764,16 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
 
                             {/* Add Match Form (Booster Only) */}
                             {isBooster && order.status === 'IN_PROGRESS' && (
-                                <div className="bg-zinc-900/50 p-4 rounded-xl border border-zinc-800">
-                                    <h4 className="font-bold text-white mb-3 flex items-center gap-2"><Swords className="w-4 h-4" /> Cập nhật trận đấu</h4>
-                                    <form onSubmit={handleAddMatch} className="grid grid-cols-2 gap-3">
-                                        <input type="text" placeholder="Tướng (VD: Lee Sin)" className="bg-zinc-950 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white" value={matchForm.champion} onChange={e => setMatchForm({...matchForm, champion: e.target.value})} required />
-                                        <select className="bg-zinc-950 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white" value={matchForm.result} onChange={e => setMatchForm({...matchForm, result: e.target.value})}>
-                                            <option value="WIN">Thắng (Win)</option>
-                                            <option value="LOSS">Thua (Loss)</option>
-                                        </select>
-                                        <input type="number" placeholder="Điểm (+/- LP)" className="bg-zinc-950 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white" value={matchForm.lp_change} onChange={e => setMatchForm({...matchForm, lp_change: e.target.value})} required />
-                                        <input type="text" placeholder="Ghi chú (Tùy chọn)" className="bg-zinc-950 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white" value={matchForm.reason} onChange={e => setMatchForm({...matchForm, reason: e.target.value})} />
-                                        <button type="submit" className="col-span-2 bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 rounded-lg transition-colors">Thêm trận đấu</button>
-                                    </form>
-                                </div>
+                                <button 
+                                    onClick={() => {
+                                        setMatchForm({ mode: 'Rank Đơn/Đôi', champion: '', result: 'WIN', lp_change: '', reason: '' });
+                                        setEditingMatchId(null);
+                                        setIsMatchModalOpen(true);
+                                    }}
+                                    className="w-full py-3 border-2 border-dashed border-zinc-800 rounded-xl text-zinc-500 hover:text-white hover:border-zinc-600 hover:bg-zinc-900 transition-all flex items-center justify-center gap-2 font-bold"
+                                >
+                                    <Plus className="w-5 h-5" /> Thêm trận đấu mới
+                                </button>
                             )}
                         </div>
                     )}
@@ -604,6 +807,150 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                   </div>
               </div>
           </div>
+      )}
+
+      {/* Match Update Modal */}
+      {isMatchModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+            <div className="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-lg p-6 shadow-2xl animate-in zoom-in-95 duration-200">
+                <div className="flex justify-between items-center mb-6">
+                    <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                        <Swords className="w-5 h-5 text-blue-500" /> 
+                        {editingMatchId ? 'Chỉnh sửa trận đấu' : 'Cập nhật trận đấu'}
+                    </h3>
+                    <button onClick={handleCancelEdit} className="text-zinc-500 hover:text-white"><X size={20}/></button>
+                </div>
+                
+                {/* Riot Match Fetcher (Only for new matches) */}
+                {!editingMatchId && (
+                    <div className="flex gap-2 mb-6">
+                        <input type="text" placeholder="Nhập Match ID (VD: 123456 hoặc VN2_123456)" className="flex-1 bg-zinc-950 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white font-mono" value={riotMatchId} onChange={e => setRiotMatchId(e.target.value)} />
+                        <button onClick={handleFetchRiotMatch} disabled={isFetchingRiot} className="bg-zinc-800 hover:bg-zinc-700 text-white px-3 py-2 rounded-lg text-sm font-bold flex items-center gap-2">
+                            {isFetchingRiot ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+                            Lấy Info
+                        </button>
+                    </div>
+                )}
+
+                <form onSubmit={handleSaveMatch} className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                        <input type="text" placeholder="Tướng (VD: Lee Sin)" className="bg-zinc-950 border border-zinc-700 rounded-lg px-3 py-3 text-sm text-white" value={matchForm.champion} onChange={e => setMatchForm({...matchForm, champion: e.target.value})} required />
+                        <select className="bg-zinc-950 border border-zinc-700 rounded-lg px-3 py-3 text-sm text-white" value={matchForm.result} onChange={e => setMatchForm({...matchForm, result: e.target.value})}>
+                            <option value="WIN">Thắng (Win)</option>
+                            <option value="LOSS">Thua (Loss)</option>
+                        </select>
+                    </div>
+                    <input type="number" placeholder="Điểm (+/- LP)" className="w-full bg-zinc-950 border border-zinc-700 rounded-lg px-3 py-3 text-sm text-white" value={matchForm.lp_change} onChange={e => setMatchForm({...matchForm, lp_change: e.target.value})} required />
+                    <input type="text" placeholder="Ghi chú (Tùy chọn)" className="w-full bg-zinc-950 border border-zinc-700 rounded-lg px-3 py-3 text-sm text-white" value={matchForm.reason} onChange={e => setMatchForm({...matchForm, reason: e.target.value})} />
+                    
+                    <button type="submit" disabled={isAddingMatch} className="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed mt-2">
+                        {isAddingMatch ? <Loader2 className="w-5 h-5 animate-spin" /> : (editingMatchId ? 'Lưu thay đổi' : 'Thêm trận đấu')}
+                    </button>
+                </form>
+            </div>
+        </div>
+      )}
+
+      {/* Match Detail Popup (Eye Icon) */}
+      {selectedMatchDetail && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/90 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+            <div className="bg-zinc-950 border border-zinc-800 rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
+                <div className="p-4 border-b border-zinc-800 flex justify-between items-center bg-zinc-900">
+                    <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                        <Swords className="w-5 h-5 text-yellow-500" /> Chi tiết trận đấu
+                    </h3>
+                    <button onClick={() => setSelectedMatchDetail(null)} className="text-zinc-400 hover:text-white"><X size={20}/></button>
+                </div>
+                
+                <div className="overflow-y-auto p-4 md:p-6 space-y-6">
+                    {(() => {
+                        const teams = calculateTeamStats(selectedMatchDetail.info.participants);
+                        const blueTeam = selectedMatchDetail.info.participants.filter((p: any) => p.teamId === 100);
+                        const redTeam = selectedMatchDetail.info.participants.filter((p: any) => p.teamId === 200);
+                        
+                        // Xác định tên người chơi để highlight (dựa trên Ingame hoặc Account)
+                        const targetName = (order.details.ingame_name || order.details.account_username || '').toLowerCase().replace(/\s/g, '').replace('#', '');
+
+                        const TeamBlock = ({ teamId, players, color, title }: any) => (
+                            <div className="space-y-3">
+                                <div className={`flex justify-between items-center pb-2 border-b ${color === 'blue' ? 'border-blue-500/30' : 'border-red-500/30'}`}>
+                                    <span className={`font-bold ${color === 'blue' ? 'text-blue-400' : 'text-red-400'}`}>{title}</span>
+                                    <span className="text-sm font-mono text-white">
+                                        {teams[teamId].kills} / <span className="text-red-400">{teams[teamId].deaths}</span> / {teams[teamId].assists}
+                                    </span>
+                                </div>
+                                <div className="space-y-2">
+                                    {players.map((p: any, idx: number) => {
+                                        // Logic so sánh tên để tìm "Tôi"
+                                        const pName = (p.riotIdGameName || p.summonerName || '').toLowerCase().replace(/\s/g, '');
+                                        const pTag = (p.riotIdTagline || '').toLowerCase();
+                                        const fullName = pName + pTag;
+                                        const isMe = targetName && (fullName.includes(targetName) || targetName.includes(pName));
+
+                                        return (
+                                        <div key={idx} className={`flex gap-3 p-3 rounded-xl border transition-colors ${isMe ? 'bg-yellow-500/10 border-yellow-500/50' : 'bg-zinc-900/50 border-zinc-800/50 hover:bg-zinc-900'}`}>
+                                            {/* Left: Avatar (Big) */}
+                                            <div className="relative w-12 h-12 sm:w-14 sm:h-14 shrink-0">
+                                                <img 
+                                                    src={`https://ddragon.leagueoflegends.com/cdn/${DDRAGON_VER}/img/champion/${p.championName}.png`} 
+                                                    alt={p.championName} 
+                                                    className={`w-full h-full rounded-lg object-cover border ${isMe ? 'border-yellow-500' : 'border-zinc-700'}`} 
+                                                />
+                                                <div className="absolute bottom-0 right-0 bg-black/80 text-[10px] text-white px-1 rounded-tl border-t border-l border-zinc-700 font-mono">
+                                                    {p.champLevel}
+                                                </div>
+                                            </div>
+
+                                            {/* Right: Info Column */}
+                                            <div className="flex-1 min-w-0 flex flex-col justify-between gap-1.5">
+                                                {/* Top Row: Name & KDA */}
+                                                <div className="flex justify-between items-start">
+                                                    <div className="min-w-0 pr-2">
+                                                        <div className={`text-sm font-bold truncate leading-tight ${isMe ? 'text-yellow-400' : 'text-white'}`}>
+                                                            {p.riotIdGameName || p.summonerName} {isMe && '(Tôi)'}
+                                                        </div>
+                                                        <div className="text-[10px] text-zinc-500 truncate leading-tight">
+                                                            {p.championName}
+                                                        </div>
+                                                    </div>
+                                                    <div className="text-right shrink-0">
+                                                        <div className={`text-sm font-mono font-bold leading-tight ${isMe ? 'text-yellow-200' : 'text-white'}`}>
+                                                            {p.kills}/<span className="text-red-400">{p.deaths}</span>/{p.assists}
+                                                        </div>
+                                                        <div className="text-[10px] font-bold text-zinc-500 leading-tight">
+                                                            {calculateKDA(p.kills, p.deaths, p.assists)} KDA
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                {/* Bottom Row: Items */}
+                                                <div className="flex gap-1 overflow-x-auto no-scrollbar">
+                                                    {[p.item0, p.item1, p.item2, p.item3, p.item4, p.item5].map((itemId, i) => (
+                                                        <div key={i} className={`w-6 h-6 sm:w-7 sm:h-7 rounded bg-zinc-800 border overflow-hidden shrink-0 ${isMe ? 'border-yellow-500/30' : 'border-zinc-700'}`}>
+                                                            {itemId > 0 && <img src={`https://ddragon.leagueoflegends.com/cdn/${DDRAGON_VER}/img/item/${itemId}.png`} alt="Item" className="w-full h-full object-cover" />}
+                                                        </div>
+                                                    ))}
+                                                    <div className={`w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-zinc-800 border overflow-hidden ml-1 shrink-0 ${isMe ? 'border-yellow-500/30' : 'border-zinc-700'}`}>
+                                                        {p.item6 > 0 && <img src={`https://ddragon.leagueoflegends.com/cdn/${DDRAGON_VER}/img/item/${p.item6}.png`} alt="Trinket" className="w-full h-full object-cover" />}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )})}
+                                </div>
+                            </div>
+                        );
+
+                        return (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                <TeamBlock teamId={100} players={blueTeam} color="blue" title="Blue Team" />
+                                <TeamBlock teamId={200} players={redTeam} color="red" title="Red Team" />
+                            </div>
+                        );
+                    })()}
+                </div>
+            </div>
+        </div>
       )}
     </div>
   );
