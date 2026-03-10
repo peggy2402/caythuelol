@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useEffect, useMemo, Suspense } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useSearchParams } from 'next/navigation';
-import { Zap, Loader2, Crosshair, Clock } from 'lucide-react';
+import { Zap, Loader2, Crosshair, Clock, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
 import { TimeWindow } from '@/components/ScheduleModal';
 import AccountInfo from '@/components/services/lol/AccountInfo';
@@ -35,6 +36,12 @@ function LevelingContent() {
     duo: false,
     schedule: false,
   });
+
+  // State for collapsible sections
+  const [openSections, setOpenSections] = useState({
+    service: true, account: true, options: true
+  });
+  const toggleSection = (section: keyof typeof openSections) => { setOpenSections(prev => ({ ...prev, [section]: !prev[section] })); };
 
   // 1. Fetch Platform Fee
   useEffect(() => {
@@ -150,79 +157,143 @@ function LevelingContent() {
   }, [gameUsername, gamePassword]);
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-x-8">
         {/* Left Column */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="lg:col-span-2 space-y-6 pb-48 lg:pb-0">
             {/* Service Config */}
-            <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-zinc-900/60 backdrop-blur-xl p-6 shadow-xl">
-                <h3 className="text-lg font-bold text-white mb-4 flex items-center justify-between">
-                    <span>Thông tin dịch vụ</span>
-                    {loadingConfig && <Loader2 className="w-4 h-4 animate-spin text-blue-500" />}
-                </h3>
-                <div className="space-y-6">
-                    {/* Level Sliders */}
-                    <div>
-                        <div className="flex justify-between items-center mb-2">
-                            <label className="text-xs font-bold uppercase text-zinc-500 tracking-wider">Level hiện tại</label>
-                            <span className="px-3 py-1 text-sm font-bold bg-zinc-950 border border-zinc-800 rounded-lg text-white">{currentLevel}</span>
-                        </div>
-                        <input 
-                            type="range"
-                            min="1"
-                            max="29"
-                            value={currentLevel}
-                            onChange={(e) => {
-                                const val = Number(e.target.value);
-                                setCurrentLevel(val);
-                                if (val >= desiredLevel) {
-                                    setDesiredLevel(val + 1);
-                                }
-                            }}
-                            className="w-full h-2 bg-zinc-800 rounded-lg appearance-none cursor-pointer range-thumb:bg-blue-500"
-                        />
-                    </div>
-                    <div>
-                        <div className="flex justify-between items-center mb-2">
-                            <label className="text-xs font-bold uppercase text-zinc-500 tracking-wider">Level mong muốn</label>
-                            <span className="px-3 py-1 text-sm font-bold bg-zinc-950 border border-zinc-800 rounded-lg text-white">{desiredLevel}</span>
-                        </div>
-                        <input 
-                            type="range"
-                            min="2"
-                            max="30"
-                            value={desiredLevel}
-                            onChange={(e) => {
-                                const val = Number(e.target.value);
-                                setDesiredLevel(val);
-                                if (val <= currentLevel) {
-                                    setCurrentLevel(val - 1);
-                                }
-                            }}
-                            className="w-full h-2 bg-zinc-800 rounded-lg appearance-none cursor-pointer range-thumb:bg-blue-500"
-                        />
+            <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-zinc-900/60 backdrop-blur-xl shadow-xl">
+                <div className="flex items-center justify-between p-6 cursor-pointer" onClick={() => toggleSection('service')}>
+                    <h3 className="text-lg font-bold text-white flex items-center gap-3">
+                        <span className="w-8 h-8 flex items-center justify-center bg-blue-500/10 rounded-lg text-blue-400 font-bold">1</span>
+                        <span>Thông tin dịch vụ</span>
+                    </h3>
+                    <div className="flex items-center gap-4">
+                        {loadingConfig && <Loader2 className="w-4 h-4 animate-spin text-blue-500" />}
+                        <ChevronDown className={`w-5 h-5 text-zinc-400 transition-transform ${openSections.service ? 'rotate-180' : ''}`} />
                     </div>
                 </div>
+                <AnimatePresence>
+                    {openSections.service && (
+                        <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: 'auto', opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.3, ease: 'easeInOut' }}
+                            className="overflow-hidden"
+                        >
+                            <div className="px-6 pb-6 pt-0 space-y-6">
+                                {/* Level Sliders */}
+                                <div>
+                                    <div className="flex justify-between items-center mb-2">
+                                        <label className="text-xs font-bold uppercase text-zinc-500 tracking-wider">Level hiện tại</label>
+                                        <span className="px-3 py-1 text-sm font-bold bg-zinc-950 border border-zinc-800 rounded-lg text-white">{currentLevel}</span>
+                                    </div>
+                                    <input 
+                                        type="range"
+                                        min="1"
+                                        max="29"
+                                        value={currentLevel}
+                                        onChange={(e) => {
+                                            const val = Number(e.target.value);
+                                            setCurrentLevel(val);
+                                            if (val >= desiredLevel) {
+                                                setDesiredLevel(val + 1);
+                                            }
+                                        }}
+                                        className="w-full h-2 bg-zinc-800 rounded-lg appearance-none cursor-pointer range-thumb:bg-blue-500"
+                                    />
+                                </div>
+                                <div>
+                                    <div className="flex justify-between items-center mb-2">
+                                        <label className="text-xs font-bold uppercase text-zinc-500 tracking-wider">Level mong muốn</label>
+                                        <span className="px-3 py-1 text-sm font-bold bg-zinc-950 border border-zinc-800 rounded-lg text-white">{desiredLevel}</span>
+                                    </div>
+                                    <input 
+                                        type="range"
+                                        min="2"
+                                        max="30"
+                                        value={desiredLevel}
+                                        onChange={(e) => {
+                                            const val = Number(e.target.value);
+                                            setDesiredLevel(val);
+                                            if (val <= currentLevel) {
+                                                setCurrentLevel(val - 1);
+                                            }
+                                        }}
+                                        className="w-full h-2 bg-zinc-800 rounded-lg appearance-none cursor-pointer range-thumb:bg-blue-500"
+                                    />
+                                </div>
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
             </div>
 
             {/* Account Info */}
-            <AccountInfo 
-                accountType={accountType} setAccountType={setAccountType}
-                server={selectedServer} setServer={setSelectedServer}
-                username={gameUsername} setUsername={setGameUsername}
-                password={gamePassword} setPassword={setGamePassword}
-                servers={boosterConfig?.booster_info?.service_settings?.servers}
-                disabled={!boosterId}
-            />
+            <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-zinc-900/60 backdrop-blur-xl shadow-xl">
+                <div className="flex items-center justify-between p-6 cursor-pointer" onClick={() => toggleSection('account')}>
+                    <h3 className="text-lg font-bold text-white flex items-center gap-3">
+                        <span className="w-8 h-8 flex items-center justify-center bg-blue-500/10 rounded-lg text-blue-400 font-bold">2</span>
+                        <span>Thông tin tài khoản</span>
+                    </h3>
+                    <ChevronDown className={`w-5 h-5 text-zinc-400 transition-transform ${openSections.account ? 'rotate-180' : ''}`} />
+                </div>
+                <AnimatePresence>
+                    {openSections.account && (
+                        <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: 'auto', opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.3, ease: 'easeInOut' }}
+                            className="overflow-hidden"
+                        >
+                            <div className="px-6 pb-6 pt-0">
+                                <AccountInfo 
+                                    accountType={accountType} setAccountType={setAccountType}
+                                    server={selectedServer} setServer={setSelectedServer}
+                                    username={gameUsername} setUsername={setGameUsername}
+                                    password={gamePassword} setPassword={setGamePassword}
+                                    servers={boosterConfig?.booster_info?.service_settings?.servers}
+                                    disabled={!boosterId}
+                                />
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+            </div>
 
-          {/* Options Section */}
-          <ExtraOptions 
-              boosterConfig={boosterConfig}
-              options={extraOptions} setOptions={setExtraOptions}
-          />
+            {/* Options Section */}
+            <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-zinc-900/60 backdrop-blur-xl shadow-xl">
+                <div className="flex items-center justify-between p-6 cursor-pointer" onClick={() => toggleSection('options')}>
+                    <h3 className="text-lg font-bold text-white flex items-center gap-3">
+                        <span className="w-8 h-8 flex items-center justify-center bg-blue-500/10 rounded-lg text-blue-400 font-bold">3</span>
+                        <span>Tùy chọn thêm</span>
+                    </h3>
+                    <ChevronDown className={`w-5 h-5 text-zinc-400 transition-transform ${openSections.options ? 'rotate-180' : ''}`} />
+                </div>
+                <AnimatePresence>
+                    {openSections.options && (
+                        <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: 'auto', opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.3, ease: 'easeInOut' }}
+                            className="overflow-hidden"
+                        >
+                            <div className="px-6 pb-6 pt-0">
+                                <ExtraOptions 
+                                    boosterConfig={boosterConfig}
+                                    options={extraOptions} setOptions={setExtraOptions}
+                                />
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+            </div>
         </div>
 
         {/* Right Column */}
-        <div className="lg:col-span-1">
+        <div className="fixed bottom-0 left-0 right-0 z-30 lg:sticky lg:top-24 lg:col-span-1 lg:h-fit">
             <PaymentSummary
                 boosterConfig={boosterConfig}
                 boosterId={boosterId}

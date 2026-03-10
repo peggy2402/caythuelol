@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useEffect, useMemo, Suspense } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useSearchParams } from 'next/navigation';
-import { Loader2 } from 'lucide-react';
+import { Loader2, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
 import AccountInfo from '@/components/services/lol/AccountInfo';
 import ExtraOptions from '@/components/services/lol/ExtraOptions';
@@ -49,6 +50,12 @@ function PlacementsContent() {
     specificChamps: false,
     schedule: false,
   });
+
+  // State for collapsible sections
+  const [openSections, setOpenSections] = useState({
+    service: true, account: true, options: true
+  });
+  const toggleSection = (section: keyof typeof openSections) => { setOpenSections(prev => ({ ...prev, [section]: !prev[section] })); };
 
   // 1. Fetch Platform Fee
   useEffect(() => {
@@ -157,104 +164,167 @@ function PlacementsContent() {
   }, [gameUsername, gamePassword]);
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-x-8">
             {/* LEFT: Configuration Form */}
-            <div className="lg:col-span-2 space-y-6">
+            <div className="lg:col-span-2 space-y-6 pb-48 lg:pb-0">
                 
                 {/* Service Selection */}
-                <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-zinc-900/60 backdrop-blur-xl p-6 shadow-xl">
-                    <h3 className="text-lg font-bold text-white mb-4 flex items-center justify-between">
-                        <span>Thông tin dịch vụ</span>
-                        {loadingConfig && <Loader2 className="w-4 h-4 animate-spin text-blue-500" />}
-                    </h3>
-                    
-                    <div className="space-y-6">
-                        {/* Queue Type */}
-                        <div>
-                            <label className="text-xs font-bold uppercase text-zinc-500 tracking-wider mb-2 block">Loại hàng chờ</label>
-                            <div className="flex bg-zinc-900/50 p-1 rounded-xl border border-white/10">
-                                {['SOLO', 'FLEX'].map((type) => (
-                                    <button
-                                        key={type}
-                                        onClick={() => setQueueType(type as any)}
-                                        className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${
-                                            queueType === type 
-                                                ? 'bg-blue-600 text-white shadow-md' 
-                                                : 'text-zinc-400 hover:text-white hover:bg-zinc-800'
-                                        }`}
-                                    >
-                                        {type === 'SOLO' ? 'Đơn / Đôi' : 'Linh Hoạt'}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-
-                        {/* Rank Selection */}
-                        <div>
-                            <label className="text-xs font-bold uppercase text-zinc-500 tracking-wider mb-2 block">Rank mùa trước</label>
-                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
-                                {PLACEMENT_RANKS.map((rank) => {
-                                    const isSelected = selectedRank === rank.id;
-                                    return (
-                                        <button
-                                            key={rank.id}
-                                            onClick={() => setSelectedRank(rank.id)}
-                                            className={`relative p-3 rounded-xl border transition-all flex flex-col items-center gap-2 ${
-                                                isSelected 
-                                                    ? 'bg-blue-600/10 border-blue-500 shadow-lg' 
-                                                    : 'bg-zinc-900/50 border-zinc-800 hover:border-zinc-700'
-                                            }`}
-                                        >
-                                            <img src={rank.image} alt={rank.label} className="w-10 h-10 object-contain" />
-                                            <span className={`text-xs font-bold ${isSelected ? 'text-white' : 'text-zinc-400'}`}>{rank.label}</span>
-                                            {isSelected && <div className="absolute top-2 right-2 w-2 h-2 bg-blue-500 rounded-full shadow-[0_0_8px_rgba(59,130,246,0.8)]" />}
-                                        </button>
-                                    );
-                                })}
-                            </div>
-                        </div>
-
-                        {/* Number of Games */}
-                        <div>
-                            <label className="text-xs font-bold uppercase text-zinc-500 tracking-wider mb-2 block">Số trận muốn cày</label>
-                            <div className="flex gap-2">
-                                {[1, 2, 3, 4, 5].map((num) => (
-                                    <button
-                                        key={num}
-                                        onClick={() => setNumGames(num)}
-                                        className={`flex-1 py-3 rounded-xl font-bold border transition-all ${
-                                            numGames === num 
-                                                ? 'bg-blue-600 border-blue-500 text-white shadow-lg' 
-                                                : 'bg-zinc-900/50 border-zinc-800 text-zinc-400 hover:border-zinc-600'
-                                        }`}
-                                    >
-                                        {num} Trận
-                                    </button>
-                                ))}
-                            </div>
+                <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-zinc-900/60 backdrop-blur-xl shadow-xl">
+                    <div className="flex items-center justify-between p-6 cursor-pointer" onClick={() => toggleSection('service')}>
+                        <h3 className="text-lg font-bold text-white flex items-center gap-3">
+                            <span className="w-8 h-8 flex items-center justify-center bg-blue-500/10 rounded-lg text-blue-400 font-bold">1</span>
+                            <span>Thông tin dịch vụ</span>
+                        </h3>
+                        <div className="flex items-center gap-4">
+                            {loadingConfig && <Loader2 className="w-4 h-4 animate-spin text-blue-500" />}
+                            <ChevronDown className={`w-5 h-5 text-zinc-400 transition-transform ${openSections.service ? 'rotate-180' : ''}`} />
                         </div>
                     </div>
+                    <AnimatePresence>
+                        {openSections.service && (
+                            <motion.div
+                                initial={{ height: 0, opacity: 0 }}
+                                animate={{ height: 'auto', opacity: 1 }}
+                                exit={{ height: 0, opacity: 0 }}
+                                transition={{ duration: 0.3, ease: 'easeInOut' }}
+                                className="overflow-hidden"
+                            >
+                                <div className="px-6 pb-6 pt-0 space-y-6">
+                                    {/* Queue Type */}
+                                    <div>
+                                        <label className="text-xs font-bold uppercase text-zinc-500 tracking-wider mb-2 block">Loại hàng chờ</label>
+                                        <div className="flex bg-zinc-900/50 p-1 rounded-xl border border-white/10">
+                                            {['SOLO', 'FLEX'].map((type) => (
+                                                <button
+                                                    key={type}
+                                                    onClick={() => setQueueType(type as any)}
+                                                    className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${
+                                                        queueType === type 
+                                                            ? 'bg-blue-600 text-white shadow-md' 
+                                                            : 'text-zinc-400 hover:text-white hover:bg-zinc-800'
+                                                    }`}
+                                                >
+                                                    {type === 'SOLO' ? 'Đơn / Đôi' : 'Linh Hoạt'}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* Rank Selection */}
+                                    <div>
+                                        <label className="text-xs font-bold uppercase text-zinc-500 tracking-wider mb-2 block">Rank mùa trước</label>
+                                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+                                            {PLACEMENT_RANKS.map((rank) => {
+                                                const isSelected = selectedRank === rank.id;
+                                                return (
+                                                    <button
+                                                        key={rank.id}
+                                                        onClick={() => setSelectedRank(rank.id)}
+                                                        className={`relative p-3 rounded-xl border transition-all flex flex-col items-center gap-2 ${
+                                                            isSelected 
+                                                                ? 'bg-blue-600/10 border-blue-500 shadow-lg' 
+                                                                : 'bg-zinc-900/50 border-zinc-800 hover:border-zinc-700'
+                                                        }`}
+                                                    >
+                                                        <img src={rank.image} alt={rank.label} className="w-10 h-10 object-contain" />
+                                                        <span className={`text-xs font-bold ${isSelected ? 'text-white' : 'text-zinc-400'}`}>{rank.label}</span>
+                                                        {isSelected && <div className="absolute top-2 right-2 w-2 h-2 bg-blue-500 rounded-full shadow-[0_0_8px_rgba(59,130,246,0.8)]" />}
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+
+                                    {/* Number of Games */}
+                                    <div>
+                                        <label className="text-xs font-bold uppercase text-zinc-500 tracking-wider mb-2 block">Số trận muốn cày</label>
+                                        <div className="flex gap-2">
+                                            {[1, 2, 3, 4, 5].map((num) => (
+                                                <button
+                                                    key={num}
+                                                    onClick={() => setNumGames(num)}
+                                                    className={`flex-1 py-3 rounded-xl font-bold border transition-all ${
+                                                        numGames === num 
+                                                            ? 'bg-blue-600 border-blue-500 text-white shadow-lg' 
+                                                            : 'bg-zinc-900/50 border-zinc-800 text-zinc-400 hover:border-zinc-600'
+                                                    }`}
+                                                >
+                                                    {num} Trận
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
                 </div>
 
                 {/* Account Info Section */}
-                <AccountInfo 
-                    accountType={accountType} setAccountType={setAccountType}
-                    server={selectedServer} setServer={setSelectedServer}
-                    username={gameUsername} setUsername={setGameUsername}
-                    password={gamePassword} setPassword={setGamePassword}
-                    servers={boosterConfig?.booster_info?.service_settings?.servers}
-                    disabled={!boosterId}
-                />
+                <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-zinc-900/60 backdrop-blur-xl shadow-xl">
+                    <div className="flex items-center justify-between p-6 cursor-pointer" onClick={() => toggleSection('account')}>
+                        <h3 className="text-lg font-bold text-white flex items-center gap-3">
+                            <span className="w-8 h-8 flex items-center justify-center bg-blue-500/10 rounded-lg text-blue-400 font-bold">2</span>
+                            <span>Thông tin tài khoản</span>
+                        </h3>
+                        <ChevronDown className={`w-5 h-5 text-zinc-400 transition-transform ${openSections.account ? 'rotate-180' : ''}`} />
+                    </div>
+                    <AnimatePresence>
+                        {openSections.account && (
+                            <motion.div
+                                initial={{ height: 0, opacity: 0 }}
+                                animate={{ height: 'auto', opacity: 1 }}
+                                exit={{ height: 0, opacity: 0 }}
+                                transition={{ duration: 0.3, ease: 'easeInOut' }}
+                                className="overflow-hidden"
+                            >
+                                <div className="px-6 pb-6 pt-0">
+                                    <AccountInfo 
+                                        accountType={accountType} setAccountType={setAccountType}
+                                        server={selectedServer} setServer={setSelectedServer}
+                                        username={gameUsername} setUsername={setGameUsername}
+                                        password={gamePassword} setPassword={setGamePassword}
+                                        servers={boosterConfig?.booster_info?.service_settings?.servers}
+                                        disabled={!boosterId}
+                                    />
+                                </div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+                </div>
 
                 {/* Options Section */}
-                <ExtraOptions 
-                    boosterConfig={boosterConfig}
-                    options={extraOptions} setOptions={setExtraOptions}
-                />
+                <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-zinc-900/60 backdrop-blur-xl shadow-xl">
+                    <div className="flex items-center justify-between p-6 cursor-pointer" onClick={() => toggleSection('options')}>
+                        <h3 className="text-lg font-bold text-white flex items-center gap-3">
+                            <span className="w-8 h-8 flex items-center justify-center bg-blue-500/10 rounded-lg text-blue-400 font-bold">3</span>
+                            <span>Tùy chọn thêm</span>
+                        </h3>
+                        <ChevronDown className={`w-5 h-5 text-zinc-400 transition-transform ${openSections.options ? 'rotate-180' : ''}`} />
+                    </div>
+                    <AnimatePresence>
+                        {openSections.options && (
+                            <motion.div
+                                initial={{ height: 0, opacity: 0 }}
+                                animate={{ height: 'auto', opacity: 1 }}
+                                exit={{ height: 0, opacity: 0 }}
+                                transition={{ duration: 0.3, ease: 'easeInOut' }}
+                                className="overflow-hidden"
+                            >
+                                <div className="px-6 pb-6 pt-0">
+                                    <ExtraOptions 
+                                        boosterConfig={boosterConfig}
+                                        options={extraOptions} setOptions={setExtraOptions}
+                                    />
+                                </div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+                </div>
             </div>
 
             {/* RIGHT: Summary & Checkout */}
-            <div className="lg:col-span-1">
+            <div className="fixed bottom-0 left-0 right-0 z-30 lg:sticky lg:top-24 lg:col-span-1 lg:h-fit">
                 <PaymentSummary
                     boosterConfig={boosterConfig}
                     boosterId={boosterId}

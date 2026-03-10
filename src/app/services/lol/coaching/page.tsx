@@ -138,9 +138,9 @@ function CoachingContent() {
   }, [gameUsername]);
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-x-8">
         {/* Left Column */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="lg:col-span-2 space-y-6 pb-48 lg:pb-0">
             {/* Service Config */}
             <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-zinc-900/60 backdrop-blur-xl p-6 shadow-xl">
                 <h3 className="text-lg font-bold text-white mb-4 flex items-center justify-between">
@@ -245,7 +245,7 @@ function CoachingContent() {
         </div>
 
         {/* Right Column */}
-        <div className="lg:col-span-1">
+        <div className="fixed bottom-0 left-0 right-0 z-30 lg:sticky lg:top-24 lg:col-span-1 lg:h-fit">
             <PaymentSummary
                 boosterConfig={boosterConfig}
                 boosterId={boosterId}

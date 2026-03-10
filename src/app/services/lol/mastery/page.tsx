@@ -2,13 +2,13 @@
 'use client';
 
 import { useState, useEffect, useMemo, Suspense } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useSearchParams } from 'next/navigation';
-import { Loader2, Info, ChevronRight, Crosshair, Search, X, Flame } from 'lucide-react';
+import { Loader2, Info, ChevronRight, Crosshair, Search, X, Flame, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
 import AccountInfo from '@/components/services/lol/AccountInfo';
 import ExtraOptions from '@/components/services/lol/ExtraOptions';
 import PaymentSummary from '@/components/services/lol/PaymentSummary';
-import { is } from 'zod/v4/locales';
 
 const MASTERY_LEVELS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 
@@ -54,6 +54,12 @@ function MasteryContent() {
     duo: false,
     schedule: false,
   });
+
+  // State for collapsible sections
+  const [openSections, setOpenSections] = useState({
+    service: true, account: true, options: true
+  });
+  const toggleSection = (section: keyof typeof openSections) => { setOpenSections(prev => ({ ...prev, [section]: !prev[section] })); };
 
   // 1. Fetch Platform Fee
   useEffect(() => {
@@ -104,10 +110,35 @@ function MasteryContent() {
     fetchBoosterData();
   }, [boosterId]);
 
+  // --- HELPER: Normalize Config (Support both Old & New Schema) ---
+  const lolConfig = useMemo(() => {
+    if (!boosterConfig) return null;
+    
+    // 1. New Schema (User.games array)
+    if (boosterConfig.games && Array.isArray(boosterConfig.games)) {
+        const game = boosterConfig.games.find((g: any) => g.gameCode === 'LOL');
+        if (game) return {
+            servers: game.servers || [],
+            settings: game.metadata || {}, // metadata contains prices, options
+            champions: game.champions || []
+        };
+    }
+
+    // 2. Old Schema (User.booster_info)
+    if (boosterConfig.booster_info?.service_settings) {
+        return {
+            servers: boosterConfig.booster_info.service_settings.servers || [],
+            settings: boosterConfig.booster_info.service_settings,
+            champions: boosterConfig.booster_info.service_settings.playingChampions || []
+        };
+    }
+    return null;
+  }, [boosterConfig]);
+
   // --- PRICING LOGIC ---
   const priceDetails = useMemo(() => {
-    if (!boosterConfig?.booster_info?.service_settings || currentLevel >= desiredLevel) return null;
-    const settings = boosterConfig.booster_info.service_settings;
+    if (!lolConfig?.settings || currentLevel >= desiredLevel) return null;
+    const settings = lolConfig.settings;
     const priceMap = settings.masteryPrices || {};
 
     let base = 0;
@@ -164,7 +195,7 @@ function MasteryContent() {
         platformFeeValue,
         depositAmount: 0 // Fix type error
     };
-  }, [boosterConfig, currentLevel, desiredLevel, extraOptions, platformFee]);
+  }, [lolConfig, currentLevel, desiredLevel, extraOptions, platformFee]);
 
   // Filtered Champions for Modal
   const filteredChampions = useMemo(() => {
@@ -181,144 +212,208 @@ function MasteryContent() {
 
   // Booster's Signature Champions
   const boosterChampions = useMemo(() => {
-    if (!boosterConfig?.booster_info?.service_settings?.playingChampions || !allChampions.length) return [];
-    const ids = boosterConfig.booster_info.service_settings.playingChampions;
+    if (!lolConfig?.champions || !allChampions.length) return [];
     // Map IDs to full champion objects
-    return allChampions.filter(c => ids.includes(c.id));
-  }, [boosterConfig, allChampions]);
+    return allChampions.filter(c => lolConfig.champions.includes(c.id));
+  }, [lolConfig, allChampions]);
 
   const isAccountValid = useMemo(() => {
     return gameUsername.trim().length >= 3 && gamePassword.trim().length >= 3;
   }, [gameUsername, gamePassword]);
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-x-8">
         {/* Left Column */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="lg:col-span-2 space-y-6 pb-48 lg:pb-0">
             {/* Service Config */}
-            <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-zinc-900/60 backdrop-blur-xl p-6 shadow-xl">
-                <h3 className="text-lg font-bold text-white mb-4 flex items-center justify-between">
-                    <span>Thông tin dịch vụ</span>
-                    {loadingConfig && <Loader2 className="w-4 h-4 animate-spin text-blue-500" />}
-                </h3>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                        <label className="text-xs font-bold uppercase text-zinc-500 tracking-wider mb-2 block">Cấp độ hiện tại</label>
-                        <div className="relative">
-                            <select 
-                                value={currentLevel} 
-                                onChange={(e) => {
-                                    const val = Number(e.target.value);
-                                    setCurrentLevel(val);
-                                    if (val >= desiredLevel) setDesiredLevel(val + 1);
-                                }}
-                                className="w-full appearance-none bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white outline-none focus:border-blue-500"
-                            >
-                                {MASTERY_LEVELS.slice(0, 9).map(lvl => (
-                                    <option key={lvl} value={lvl}>Cấp {lvl}</option>
-                                ))}
-                            </select>
-                            <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-500"><ChevronRight className="w-4 h-4 rotate-90" /></div>
-                        </div>
-                    </div>
-                    <div>
-                        <label className="text-xs font-bold uppercase text-zinc-500 tracking-wider mb-2 block">Cấp độ mong muốn</label>
-                        <div className="relative">
-                            <select 
-                                value={desiredLevel} 
-                                onChange={(e) => setDesiredLevel(Number(e.target.value))}
-                                className="w-full appearance-none bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white outline-none focus:border-blue-500"
-                            >
-                                {MASTERY_LEVELS.map(lvl => (
-                                    <option key={lvl} value={lvl} disabled={lvl <= currentLevel}>Cấp {lvl}</option>
-                                ))}
-                            </select>
-                            <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-500"><ChevronRight className="w-4 h-4 rotate-90" /></div>
-                        </div>
+            <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-zinc-900/60 backdrop-blur-xl shadow-xl">
+                <div className="flex items-center justify-between p-6 cursor-pointer" onClick={() => toggleSection('service')}>
+                    <h3 className="text-lg font-bold text-white flex items-center gap-3">
+                        <span className="w-8 h-8 flex items-center justify-center bg-blue-500/10 rounded-lg text-blue-400 font-bold">1</span>
+                        <span>Thông tin dịch vụ</span>
+                    </h3>
+                    <div className="flex items-center gap-4">
+                        {loadingConfig && <Loader2 className="w-4 h-4 animate-spin text-blue-500" />}
+                        <ChevronDown className={`w-5 h-5 text-zinc-400 transition-transform ${openSections.service ? 'rotate-180' : ''}`} />
                     </div>
                 </div>
+                <AnimatePresence>
+                    {openSections.service && (
+                        <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: 'auto', opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.3, ease: 'easeInOut' }}
+                            className="overflow-hidden"
+                        >
+                            <div className="px-6 pb-6 pt-0 space-y-6">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div>
+                                        <label className="text-xs font-bold uppercase text-zinc-500 tracking-wider mb-2 block">Cấp độ hiện tại</label>
+                                        <div className="relative">
+                                            <select 
+                                                value={currentLevel} 
+                                                onChange={(e) => {
+                                                    const val = Number(e.target.value);
+                                                    setCurrentLevel(val);
+                                                    if (val >= desiredLevel) setDesiredLevel(val + 1);
+                                                }}
+                                                className="w-full appearance-none bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white outline-none focus:border-blue-500"
+                                            >
+                                                {MASTERY_LEVELS.slice(0, 9).map(lvl => (
+                                                    <option key={lvl} value={lvl}>Cấp {lvl}</option>
+                                                ))}
+                                            </select>
+                                            <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-500"><ChevronRight className="w-4 h-4 rotate-90" /></div>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="text-xs font-bold uppercase text-zinc-500 tracking-wider mb-2 block">Cấp độ mong muốn</label>
+                                        <div className="relative">
+                                            <select 
+                                                value={desiredLevel} 
+                                                onChange={(e) => setDesiredLevel(Number(e.target.value))}
+                                                className="w-full appearance-none bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-white outline-none focus:border-blue-500"
+                                            >
+                                                {MASTERY_LEVELS.map(lvl => (
+                                                    <option key={lvl} value={lvl} disabled={lvl <= currentLevel}>Cấp {lvl}</option>
+                                                ))}
+                                            </select>
+                                            <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-500"><ChevronRight className="w-4 h-4 rotate-90" /></div>
+                                        </div>
+                                    </div>
+                                </div>
 
-                {/* Champion Selection */}
-                <div>
-                    <label className="text-xs font-bold uppercase text-zinc-500 tracking-wider mb-2 block">Tướng cần cày</label>
-                    
-                    {/* Selected Champion Display */}
-                    {selectedChampion ? (
-                        <div className="flex items-center justify-between p-3 bg-blue-600/10 border border-blue-500/50 rounded-xl">
-                            <div className="flex items-center gap-3">
-                                <img src={selectedChampion.imageUrl} alt={selectedChampion.name} className="w-10 h-10 rounded-lg object-cover border border-blue-500/30" />
+                                {/* Champion Selection */}
                                 <div>
-                                    <div className="text-sm font-bold text-white">{selectedChampion.name}</div>
-                                    <div className="text-xs text-blue-400">Đã chọn</div>
+                                    <label className="text-xs font-bold uppercase text-zinc-500 tracking-wider mb-2 block">Tướng cần cày</label>
+                                    
+                                    {/* Selected Champion Display */}
+                                    {selectedChampion ? (
+                                        <div className="flex items-center justify-between p-3 bg-blue-600/10 border border-blue-500/50 rounded-xl">
+                                            <div className="flex items-center gap-3">
+                                                <img src={selectedChampion.imageUrl} alt={selectedChampion.name} className="w-10 h-10 rounded-lg object-cover border border-blue-500/30" />
+                                                <div>
+                                                    <div className="text-sm font-bold text-white">{selectedChampion.name}</div>
+                                                    <div className="text-xs text-blue-400">Đã chọn</div>
+                                                </div>
+                                            </div>
+                                            <button onClick={() => { setSelectedChampion(null); setChampionQuery(''); }} className="p-2 hover:bg-white/10 rounded-lg transition-colors">
+                                                <X className="w-4 h-4 text-zinc-400 hover:text-white" />
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <button 
+                                            onClick={() => setIsChampModalOpen(true)}
+                                            className="w-full flex items-center justify-center gap-2 p-4 rounded-xl border border-dashed border-zinc-700 bg-zinc-900/50 text-zinc-400 hover:text-white hover:border-zinc-500 hover:bg-zinc-900 transition-all"
+                                        >
+                                            <Search className="w-5 h-5" />
+                                            <span>Bấm vào đây để chọn tướng</span>
+                                        </button>
+                                    )}
+
+                                    {/* Booster's Signature Champions */}
+                                    {!selectedChampion && boosterChampions.length > 0 && (
+                                        <div className="mt-3">
+                                            <div className="text-[10px] uppercase font-bold text-zinc-500 mb-2 flex items-center gap-1"><Flame className="w-3 h-3 text-orange-500" /> Tướng sở trường của Booster</div>
+                                            <div className="flex flex-wrap gap-2">
+                                                {boosterChampions.map(champ => (
+                                                    <button 
+                                                        key={champ.id} 
+                                                        onClick={() => setSelectedChampion(champ)}
+                                                        className="group relative w-10 h-10 rounded-lg overflow-hidden border border-zinc-700 hover:border-orange-500 transition-all"
+                                                        title={champ.name}
+                                                    >
+                                                        <img src={champ.imageUrl} alt={champ.name} className="w-full h-full object-cover opacity-70 group-hover:opacity-100 transition-opacity" />
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div className="mt-4 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-xl text-xs text-yellow-200/80 leading-relaxed flex gap-2">
+                                    <Info className="w-4 h-4 shrink-0 mt-0.5" />
+                                    <div>
+                                        <strong>Lưu ý về Thông Thạo:</strong>
+                                        <ul className="list-disc list-inside mt-1 space-y-1 text-zinc-400">
+                                            <li>Cấp 1-4: Chỉ cần cày điểm.</li>
+                                            <li>Cấp 5-9: Cần điểm + 1 Dấu Ấn (Rank A- trở lên).</li>
+                                            <li>Cấp 10: Cần điểm + 3 Dấu Ấn (Rank S- trở lên).</li>
+                                        </ul>
+                                    </div>
                                 </div>
                             </div>
-                            <button onClick={() => { setSelectedChampion(null); setChampionQuery(''); }} className="p-2 hover:bg-white/10 rounded-lg transition-colors">
-                                <X className="w-4 h-4 text-zinc-400 hover:text-white" />
-                            </button>
-                        </div>
-                    ) : (
-                        <button 
-                            onClick={() => setIsChampModalOpen(true)}
-                            className="w-full flex items-center justify-center gap-2 p-4 rounded-xl border border-dashed border-zinc-700 bg-zinc-900/50 text-zinc-400 hover:text-white hover:border-zinc-500 hover:bg-zinc-900 transition-all"
-                        >
-                            <Search className="w-5 h-5" />
-                            <span>Bấm vào đây để chọn tướng</span>
-                        </button>
+                        </motion.div>
                     )}
-
-                    {/* Booster's Signature Champions */}
-                    {!selectedChampion && boosterChampions.length > 0 && (
-                        <div className="mt-3">
-                            <div className="text-[10px] uppercase font-bold text-zinc-500 mb-2 flex items-center gap-1"><Flame className="w-3 h-3 text-orange-500" /> Tướng sở trường của Booster</div>
-                            <div className="flex flex-wrap gap-2">
-                                {boosterChampions.map(champ => (
-                                    <button 
-                                        key={champ.id} 
-                                        onClick={() => setSelectedChampion(champ)}
-                                        className="group relative w-10 h-10 rounded-lg overflow-hidden border border-zinc-700 hover:border-orange-500 transition-all"
-                                        title={champ.name}
-                                    >
-                                        <img src={champ.imageUrl} alt={champ.name} className="w-full h-full object-cover opacity-70 group-hover:opacity-100 transition-opacity" />
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                    )}
-                </div>
-
-                <div className="mt-4 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-xl text-xs text-yellow-200/80 leading-relaxed flex gap-2">
-                    <Info className="w-4 h-4 shrink-0 mt-0.5" />
-                    <div>
-                        <strong>Lưu ý về Thông Thạo:</strong>
-                        <ul className="list-disc list-inside mt-1 space-y-1 text-zinc-400">
-                            <li>Cấp 1-4: Chỉ cần cày điểm.</li>
-                            <li>Cấp 5-9: Cần điểm + 1 Dấu Ấn (Rank A- trở lên).</li>
-                            <li>Cấp 10: Cần điểm + 3 Dấu Ấn (Rank S- trở lên).</li>
-                        </ul>
-                    </div>
-                </div>
+                </AnimatePresence>
             </div>
 
             {/* Account Info Component */}
-            <AccountInfo 
-                accountType={accountType} setAccountType={setAccountType}
-                server={selectedServer} setServer={setSelectedServer}
-                username={gameUsername} setUsername={setGameUsername}
-                password={gamePassword} setPassword={setGamePassword}
-                servers={boosterConfig?.booster_info?.service_settings?.servers}
-                disabled={!boosterId}
-            />
+            <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-zinc-900/60 backdrop-blur-xl shadow-xl">
+                <div className="flex items-center justify-between p-6 cursor-pointer" onClick={() => toggleSection('account')}>
+                    <h3 className="text-lg font-bold text-white flex items-center gap-3">
+                        <span className="w-8 h-8 flex items-center justify-center bg-blue-500/10 rounded-lg text-blue-400 font-bold">2</span>
+                        <span>Thông tin tài khoản</span>
+                    </h3>
+                    <ChevronDown className={`w-5 h-5 text-zinc-400 transition-transform ${openSections.account ? 'rotate-180' : ''}`} />
+                </div>
+                <AnimatePresence>
+                    {openSections.account && (
+                        <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: 'auto', opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.3, ease: 'easeInOut' }}
+                            className="overflow-hidden"
+                        >
+                            <div className="px-6 pb-6 pt-0">
+                                <AccountInfo 
+                                    accountType={accountType} setAccountType={setAccountType}
+                                    server={selectedServer} setServer={setSelectedServer}
+                                    username={gameUsername} setUsername={setGameUsername}
+                                    password={gamePassword} setPassword={setGamePassword}
+                                    servers={lolConfig?.servers}
+                                    disabled={!boosterId}
+                                />
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+            </div>
 
             {/* Extra Options Component */}
-            <ExtraOptions 
-                boosterConfig={boosterConfig}
-                options={extraOptions} setOptions={setExtraOptions}
-            />
+            <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-zinc-900/60 backdrop-blur-xl shadow-xl">
+                <div className="flex items-center justify-between p-6 cursor-pointer" onClick={() => toggleSection('options')}>
+                    <h3 className="text-lg font-bold text-white flex items-center gap-3">
+                        <span className="w-8 h-8 flex items-center justify-center bg-blue-500/10 rounded-lg text-blue-400 font-bold">3</span>
+                        <span>Tùy chọn thêm</span>
+                    </h3>
+                    <ChevronDown className={`w-5 h-5 text-zinc-400 transition-transform ${openSections.options ? 'rotate-180' : ''}`} />
+                </div>
+                <AnimatePresence>
+                    {openSections.options && (
+                        <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: 'auto', opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.3, ease: 'easeInOut' }}
+                            className="overflow-hidden"
+                        >
+                            <div className="px-6 pb-6 pt-0">
+                                <ExtraOptions 
+                                    boosterConfig={boosterConfig}
+                                    options={extraOptions} setOptions={setExtraOptions}
+                                />
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+            </div>
         </div>
 
         {/* Right Column */}
-        <div className="lg:col-span-1">
+        <div className="fixed bottom-0 left-0 right-0 z-30 lg:sticky lg:top-24 lg:col-span-1 lg:h-fit">
             <PaymentSummary
                 boosterConfig={boosterConfig}
                 boosterId={boosterId}
