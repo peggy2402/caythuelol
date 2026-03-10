@@ -146,6 +146,123 @@ export default function JobMarketPage() {
     });
   };
 
+  // Helper: Render thông tin chi tiết dựa trên loại dịch vụ
+  const renderJobInfo = (job: Job) => {
+    const { serviceType, details } = job;
+    
+    if (serviceType === 'RANK_BOOST') {
+        return (
+            <div className="flex items-center justify-between p-3 bg-black/20 rounded-lg border border-white/5">
+                <span className="text-zinc-400 text-xs">Mục tiêu</span>
+                <div className="flex items-center gap-2 font-bold text-white text-sm">
+                    {details?.current_rank} <ArrowRight className="w-3 h-3 text-zinc-600" /> <span className="text-blue-400">{details?.desired_rank}</span>
+                </div>
+            </div>
+        );
+    }
+    
+    if (serviceType === 'NET_WINS') {
+        return (
+            <div className="flex items-center justify-between p-3 bg-black/20 rounded-lg border border-white/5">
+                <span className="text-zinc-400 text-xs">Mục tiêu</span>
+                <div className="text-right">
+                    <div className="font-bold text-white text-sm">
+                        {details?.current_rank || details?.rank}
+                        {(details?.current_lp !== undefined && details?.current_lp !== '') && (
+                            <span className="text-zinc-400 font-normal ml-1">({details.current_lp} LP)</span>
+                        )}
+                    </div>
+                    <div className="text-xs text-blue-400 font-bold">
+                        {details?.calc_mode === 'BY_GAMES' ? `+${details?.num_games} Trận thắng` : `Lên ${details?.target_lp} LP`}
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    if (serviceType === 'PLACEMENTS') {
+        return (
+            <div className="flex items-center justify-between p-3 bg-black/20 rounded-lg border border-white/5">
+                <span className="text-zinc-400 text-xs">Yêu cầu</span>
+                <div className="text-right">
+                    <div className="font-bold text-white text-sm">{details?.prev_rank}</div>
+                    <div className="text-xs text-blue-400 font-bold">{details?.num_games} Trận đầu mùa</div>
+                </div>
+            </div>
+        );
+    }
+
+    if (serviceType === 'PROMOTION') {
+        return (
+            <div className="flex items-center justify-between p-3 bg-black/20 rounded-lg border border-white/5">
+                <span className="text-zinc-400 text-xs">Chuỗi</span>
+                <div className="flex items-center gap-2 font-bold text-white text-sm">
+                    {details?.promo_from} <ArrowRight className="w-3 h-3 text-zinc-600" /> <span className="text-blue-400">{details?.promo_to}</span>
+                </div>
+            </div>
+        );
+    }
+
+    if (serviceType === 'LEVELING') {
+        return (
+            <div className="flex items-center justify-between p-3 bg-black/20 rounded-lg border border-white/5">
+                <span className="text-zinc-400 text-xs">Level</span>
+                <div className="flex items-center gap-2 font-bold text-white text-sm">
+                    {details?.current_level} <ArrowRight className="w-3 h-3 text-zinc-600" /> <span className="text-blue-400">{details?.desired_level}</span>
+                </div>
+            </div>
+        );
+    }
+
+    if (serviceType === 'MASTERY') {
+        return (
+            <div className="flex items-center justify-between p-3 bg-black/20 rounded-lg border border-white/5">
+                <span className="text-zinc-400 text-xs">Thông thạo</span>
+                <div className="text-right">
+                    <div className="font-bold text-white text-sm">{details?.champion}</div>
+                    <div className="text-xs text-blue-400 font-bold">Cấp {details?.current_mastery} ➜ {details?.desired_mastery}</div>
+                </div>
+            </div>
+        );
+    }
+
+    if (serviceType === 'COACHING') {
+        return (
+            <div className="flex items-center justify-between p-3 bg-black/20 rounded-lg border border-white/5">
+                <span className="text-zinc-400 text-xs">Khóa học</span>
+                <div className="text-right">
+                    <div className="font-bold text-white text-sm">{details?.coaching_type}</div>
+                    <div className="text-xs text-blue-400 font-bold">{details?.hours} Giờ</div>
+                </div>
+            </div>
+        );
+    }
+
+    if (serviceType === 'ONBET') {
+        return (
+            <div className="flex items-center justify-between p-3 bg-black/20 rounded-lg border border-white/5">
+                <span className="text-zinc-400 text-xs">Sự kiện</span>
+                <div className="text-right">
+                    <div className="font-bold text-white text-sm">{details?.rank_label}</div>
+                    <div className="text-xs text-blue-400 font-bold">{details?.game_count} Trận</div>
+                </div>
+            </div>
+        );
+    }
+
+    // Default fallback
+    return (
+        <div className="flex items-center justify-between p-3 bg-black/20 rounded-lg border border-white/5">
+          <span className="text-zinc-400 text-xs">Mục tiêu</span>
+          <div className="flex items-center gap-2 font-bold text-white text-sm">
+            {details?.current_rank || details?.current_level || 'Start'} 
+            <ArrowRight className="w-3 h-3 text-zinc-600" /> 
+            <span className="text-blue-400">{details?.desired_rank || details?.desired_level || 'Target'}</span>
+          </div>
+        </div>
+    );
+  };
+
   const JobCard = ({ job, type }: { job: Job, type: 'DIRECT' | 'PUBLIC' }) => (
     <div className={`group border rounded-xl p-5 transition-all hover:shadow-lg flex flex-col ${type === 'DIRECT' ? 'bg-blue-900/10 border-blue-500/30 hover:border-blue-500/50' : 'bg-zinc-900 border-zinc-800 hover:border-zinc-700'}`}>
       {/* Header */}
@@ -172,14 +289,7 @@ export default function JobMarketPage() {
 
       {/* Details */}
       <div className="flex-1 space-y-3 mb-6">
-        <div className="flex items-center justify-between p-3 bg-black/20 rounded-lg border border-white/5">
-          <span className="text-zinc-400 text-xs">Mục tiêu</span>
-          <div className="flex items-center gap-2 font-bold text-white text-sm">
-            {job.details?.current_rank || job.details?.current_level || 'Start'} 
-            <ArrowRight className="w-3 h-3 text-zinc-600" /> 
-            <span className="text-blue-400">{job.details?.desired_rank || job.details?.desired_level || 'Target'}</span>
-          </div>
-        </div>
+        {renderJobInfo(job)}
         {type === 'DIRECT' && (
             <div className="flex items-center gap-2 text-xs text-yellow-500 bg-yellow-500/10 p-2 rounded border border-yellow-500/20">
                 <AlertCircle className="w-3 h-3" />
@@ -265,7 +375,7 @@ export default function JobMarketPage() {
                 <div className="space-y-4">
                     <h2 className="text-lg font-bold text-white flex items-center gap-2">
                         <AlertCircle className="w-5 h-5 text-yellow-500" /> 
-                        Đơn hàng chỉ định ({directJobs.length})
+                        Bạn đang có {directJobs.length} đơn hàng
                     </h2>
                     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                         {directJobs.map(job => <JobCard key={job._id} job={job} type="DIRECT" />)}

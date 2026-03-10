@@ -427,7 +427,11 @@ function NetWinsContent() {
                         rank: selectedRank,
                         server: selectedServer,
                         account_username: gameUsername,
-                        account_password: gamePassword // Note: Should encrypt in real app before URL
+                        account_password: gamePassword,
+                        // Fields for Settlement Logic
+                        start_lp: currentLP, // Snapshot LP lúc đặt đơn
+                        unit_price_per_lp: priceDetails?.pricePerWin, // Giá mỗi LP
+                        modifier_pct: priceDetails?.modifierPct // Hệ số Elo
                     }}
                     options={extraOptions}
                     queueType={queueType}

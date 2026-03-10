@@ -15,6 +15,7 @@ import { Pencil, Trash2, X, Plus, Eye } from 'lucide-react';
 import { toast } from 'sonner';
 import ChatWindow from '@/components/chat/ChatWindow';
 import { motion, AnimatePresence } from 'framer-motion';
+import NetWinsOrderView from '@/components/orders/NetWinsOrderView';
 
 const DDRAGON_VER = '16.5.1'; // Phiên bản DDragon mới nhất (có thể cập nhật động nếu cần)
 
@@ -650,12 +651,32 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                                 <div className="bg-zinc-950 p-4 rounded-xl border border-zinc-800 space-y-3 text-sm">
                                     <div className="flex justify-between">
                                         <span className="text-zinc-500">Loại dịch vụ:</span>
-                                        <span className="text-white font-medium">{order.serviceType}</span>
+                                        <span className="text-white font-medium">{order.serviceType.replace('_', ' ')}</span>
                                     </div>
                                     <div className="flex justify-between">
                                         <span className="text-zinc-500">Mục tiêu:</span>
-                                        <span className="text-blue-400 font-bold">
-                                            {order.details.current_rank || order.details.current_level} ➜ {order.details.desired_rank || order.details.desired_level}
+                                        <span className="text-blue-400 font-bold text-right">
+                                            {(() => {
+                                                if (order.serviceType === 'NET_WINS') {
+                                                    return order.details.calc_mode === 'BY_GAMES' 
+                                                        ? `+${order.details.num_games} Trận thắng (${order.details.current_rank || order.details.rank})`
+                                                        : `${order.details.start_lp ?? order.details.current_lp} LP ➜ ${order.details.target_lp} LP (${order.details.current_rank || order.details.rank})`;
+                                                }
+                                                if (order.serviceType === 'PLACEMENTS') {
+                                                    return `${order.details.num_games} Trận (Rank cũ: ${order.details.prev_rank})`;
+                                                }
+                                                if (order.serviceType === 'MASTERY') {
+                                                    return `${order.details.champion} (Lv.${order.details.current_mastery} ➜ Lv.${order.details.desired_mastery})`;
+                                                }
+                                                if (order.serviceType === 'ONBET') {
+                                                    return `${order.details.game_count} Trận (${order.details.rank_label})`;
+                                                }
+                                                if (order.serviceType === 'COACHING') {
+                                                    return `${order.details.coaching_type} (${order.details.hours} Giờ)`;
+                                                }
+                                                // Default (Rank Boost, Leveling, Promotion)
+                                                return `${order.details.current_rank || order.details.current_level} ➜ ${order.details.desired_rank || order.details.desired_level}`;
+                                            })()}
                                         </span>
                                     </div>
                                     {/* Extra Options */}
@@ -713,6 +734,11 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                                 </div>
                             </div>
 
+                            {/* NET WINS SPECIAL VIEW */}
+                            {order.serviceType === 'NET_WINS' && (
+                                <NetWinsOrderView order={order} isBooster={isBooster} isCustomer={isCustomer} />
+                            )}
+
                             {/* Payment Info */}
                             <div>
                                 <h3 className="text-sm font-bold text-zinc-400 uppercase mb-3 flex items-center gap-2"><DollarSign className="w-4 h-4" /> Thanh toán</h3>
@@ -720,10 +746,14 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                                     <div className="flex justify-between">
                                         <span className="text-zinc-500">Tổng giá trị:</span>
                                         <span className="text-white font-bold">{order.pricing.total_amount.toLocaleString()} đ</span>
-                                    </div>
+                                    </div>                                    
                                     {order.pricing.deposit_amount < order.pricing.total_amount ? (
                                         <div className="flex justify-between">
-                                            <span className="text-zinc-500">Đã cọc:</span>
+                                            <span className="text-zinc-500">
+                                                {['NET_WINS', 'ONBET'].includes(order.serviceType) 
+                                                    ? `Đã cọc (${Math.round((order.pricing.deposit_amount / order.pricing.total_amount) * 100)}%):` 
+                                                    : 'Đã cọc:'}
+                                            </span>
                                             <span className="text-yellow-400 font-bold">{order.pricing.deposit_amount.toLocaleString()} đ</span>
                                         </div>
                                     ) : (
