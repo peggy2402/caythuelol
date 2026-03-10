@@ -209,9 +209,9 @@ function NetWinsContent() {
   }, [calcMode, currentLP, targetLP]);
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-x-8">
             {/* LEFT: Configuration Form */}
-            <div className="lg:col-span-2 space-y-6">
+            <div className="lg:col-span-2 space-y-6 pb-48 lg:pb-0">
                 
                 {/* Rank Selection */}
                 <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-zinc-900/60 backdrop-blur-xl p-6 shadow-xl">
@@ -393,7 +393,7 @@ function NetWinsContent() {
             </div>
 
             {/* RIGHT: Summary & Checkout */}
-            <div className="lg:col-span-1">
+            <div className="fixed bottom-0 left-0 right-0 z-30 lg:sticky lg:top-24 lg:col-span-1 lg:h-fit">
                 <PaymentSummary
                     boosterConfig={boosterConfig}
                     boosterId={boosterId}
