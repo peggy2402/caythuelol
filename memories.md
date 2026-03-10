@@ -738,3 +738,15 @@ caythuelol/
 
 - **Navigation Updates:**
   - Updated `Sidebar`, `Navbar`, and `DashboardLayout` to include "Resign" action for Boosters.
+
+26. 2026-03-10 — Build Fixes & Logic Refinements
+
+- **Next.js 15 Compatibility:**
+  - **Issue:** Build failed due to `params` in API Routes being treated as synchronous objects.
+  - **Fix:** Updated dynamic API routes (e.g., `/api/admin/boosters/[id]`) to type `params` as `Promise` and `await` it before usage.
+
+- **Booster Approval Logic:**
+  - **Automation:** When an application is `approved`, the system now automatically sets `depositStatus` to `'paid'`. This ensures approved boosters appear in the "Paid Deposit" filters immediately.
+
+- **Code Cleanup:**
+  - **Sidebar:** Removed accidental code duplication in `Sidebar.tsx` that caused syntax errors.
