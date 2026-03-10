@@ -18,7 +18,7 @@ export async function GET(
 
     const order = await Order.findById(id)
       .populate('customerId', 'username profile.avatar')
-      .populate('boosterId', 'username profile.avatar');
+      .populate('boosterId');
 
     if (!order) {
       return NextResponse.json({ error: 'Order not found' }, { status: 404 });

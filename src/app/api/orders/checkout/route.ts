@@ -46,6 +46,9 @@ export async function POST(req: Request) {
       status: OrderStatus.PAID, // Paid deposit/full
       pricing: {
         ...pricing,
+        // FIX: Map camelCase từ frontend sang snake_case của DB
+        base_price: pricing.basePrice || pricing.base_price,
+        option_fees: pricing.optionFees || pricing.option_fees,
         settlement_status: 'PENDING'
       },
       payment: {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { CheckCircle2, AlertCircle, TrendingUp, DollarSign, Info } from 'lucide-react';
 import { motion } from 'framer-motion';
 
@@ -13,6 +13,28 @@ interface NetWinsOrderViewProps {
 export default function NetWinsOrderView({ order, isBooster, isCustomer }: NetWinsOrderViewProps) {
   const { details, pricing, match_history } = order;
   const { calc_mode, start_lp, target_lp, num_games, unit_price_per_lp, modifier_pct } = details;
+  
+  // State để lưu thông tin Booster đầy đủ (bao gồm config)
+  const [boosterData, setBoosterData] = useState<any>(order.boosterId);
+
+  // Effect: Đảm bảo luôn có boosterData đầy đủ
+  useEffect(() => {
+      const bId = order.boosterId;
+      // Kiểm tra xem đã có config chưa (booster_info hoặc games)
+      const hasConfig = bId && typeof bId === 'object' && (bId.booster_info || bId.games);
+      
+      if (!hasConfig && bId) {
+          const id = typeof bId === 'string' ? bId : bId._id;
+          if (id) {
+              fetch(`/api/boosters/${id}`)
+                  .then(res => res.json())
+                  .then(data => { if (data.booster) setBoosterData(data.booster); })
+                  .catch(err => console.error("Failed to fetch booster config", err));
+          }
+      } else {
+          setBoosterData(bId);
+      }
+  }, [order.boosterId]);
 
   // --- LOGIC TÍNH TOÁN THỰC TẾ (REAL-TIME SETTLEMENT) ---
   const settlement = useMemo(() => {
@@ -52,8 +74,16 @@ export default function NetWinsOrderView({ order, isBooster, isCustomer }: NetWi
     // 2. Options Fee
     let actualOptionsFee = 0;
     const originalOptions = order.options || {};
-    // Lấy config options từ boosterId được populate
-    const boosterOptionsConfig = order.boosterId?.booster_info?.service_settings?.options || {}; 
+    
+    // --- ROBUST CONFIG RETRIEVAL ---
+    // Tìm cấu hình options trong cả booster_info (cũ) và games (mới)
+    let boosterOptionsConfig = boosterData?.booster_info?.service_settings?.options;
+    if (!boosterOptionsConfig && boosterData?.games) {
+        const lolGame = boosterData.games.find((g: any) => g.gameCode === 'LOL');
+        boosterOptionsConfig = lolGame?.metadata?.options || {};
+    }
+    boosterOptionsConfig = boosterOptionsConfig || {};
+    // -------------------------------
 
     // Phí theo %
     if (originalOptions.express && boosterOptionsConfig.express > 0) {
@@ -74,19 +104,28 @@ export default function NetWinsOrderView({ order, isBooster, isCustomer }: NetWi
         actualOptionsFee += boosterOptionsConfig.streaming;
     }
 
-    // 3. Platform Fee (B = (A + EloFee) * %Fee)
-    // Tính % phí sàn từ đơn gốc để tránh lỗi chia cho 0
-    const platformFeePercent = (pricing.base_price > 0) ? (pricing.platform_fee / pricing.base_price) : 0;
+    // 3. Platform Fee
+    // Fallback: Nếu pricing.base_price thiếu (do lỗi checkout cũ), tự tính lại originalBase từ details
+    const originalBase = pricing.base_price || (
+        calc_mode === 'BY_LP' 
+            ? Math.max(0, (parseInt(target_lp)||0) - (parseInt(start_lp)||0)) * (unit_price_per_lp||0)
+            : (num_games||0) * (unit_price_per_lp||0)
+    );
+
+    // Tính % phí sàn (Nếu originalBase = 0 thì fee% = 0 để tránh NaN)
+    const platformFeePercent = (originalBase > 0) ? (pricing.platform_fee / originalBase) : 0;
     const actualPlatformFee = (actualBasePrice + eloFeeValue) * platformFeePercent;
 
     // 4. Actual Total (D = A + EloFee + C + B)
     const actualTotal = Math.round(actualBasePrice + eloFeeValue + actualOptionsFee + actualPlatformFee);
-
     const paidDeposit = pricing.deposit_amount || 0;
     const remaining = Math.round(actualTotal - paidDeposit);
 
     return {
         actualBasePrice,
+        eloFeeValue,
+        actualOptionsFee,
+        actualPlatformFee,
         actualTotal,
         paidDeposit,
         remaining,
@@ -94,7 +133,7 @@ export default function NetWinsOrderView({ order, isBooster, isCustomer }: NetWi
         progressPercent,
         status: remaining > 0 ? 'OWE' : remaining < 0 ? 'REFUND' : 'SETTLED'
     };
-  }, [details, pricing, match_history, calc_mode, order.options, order.boosterId]);
+  }, [details, pricing, match_history, calc_mode, order.options, boosterData]);
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -164,7 +203,28 @@ export default function NetWinsOrderView({ order, isBooster, isCustomer }: NetWi
 
                 <div className="flex justify-between items-center p-3 bg-blue-900/10 rounded-xl border border-blue-500/20">
                     <span className="text-blue-200 font-medium">Giá trị thực tế (Hiện tại):</span>
-                    <span className="text-blue-400 font-bold text-lg">{settlement.actualTotal.toLocaleString()} đ</span>
+                    <div className="text-right group relative cursor-help">
+                        <span className="text-blue-400 font-bold text-lg">{settlement.actualTotal.toLocaleString()} đ</span>
+                        {/* Tooltip Breakdown */}
+                        <div className="absolute bottom-full right-0 mb-2 w-64 p-3 bg-zinc-800 border border-zinc-700 rounded-xl shadow-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 text-xs text-zinc-300 space-y-1">
+                            <div className="font-bold text-white border-b border-zinc-700 pb-1 mb-1">Chi tiết tính toán:</div>
+                            <div className="flex justify-between"><span>Giá cày (A):</span> <span>{settlement.actualBasePrice.toLocaleString('vi-VN')} đ</span></div>
+                            {settlement.eloFeeValue !== 0 && (
+                                <div className="flex justify-between">
+                                    <span>Hệ số Elo:</span> 
+                                    <span className={settlement.eloFeeValue > 0 ? 'text-red-400' : 'text-green-400'}>{settlement.eloFeeValue > 0 ? '+' : ''}{settlement.eloFeeValue.toLocaleString('vi-VN')} đ</span>
+                                </div>
+                            )}
+                            {settlement.actualOptionsFee > 0 && (
+                                <div className="flex justify-between text-yellow-400">
+                                    <span>Options (C):</span> 
+                                    <span>+{settlement.actualOptionsFee.toLocaleString('vi-VN')} đ</span>
+                                </div>
+                            )}
+                            <div className="flex justify-between text-zinc-500"><span>Phí sàn (B):</span> <span>+{settlement.actualPlatformFee.toLocaleString('vi-VN')} đ</span></div>
+                            <div className="border-t border-zinc-700 pt-1 mt-1 font-bold text-right text-blue-400">= {settlement.actualTotal.toLocaleString('vi-VN')} đ</div>
+                        </div>
+                    </div>
                 </div>
 
                 <div className="flex justify-between items-center p-3 bg-zinc-950/50 rounded-xl border border-zinc-800">
