@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useLanguage } from '@/lib/i18n';
 import { 
   Wallet, 
@@ -15,6 +16,7 @@ import { format } from 'date-fns';
 
 export default function BoosterDashboardPage() {
   const { t } = useLanguage();
+  const router = useRouter();
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
@@ -107,7 +109,11 @@ export default function BoosterDashboardPage() {
             <tbody className="divide-y divide-zinc-800">
               {activeOrdersList.length > 0 ? (
                 activeOrdersList.map((order: any) => (
-                  <tr key={order._id} className="hover:bg-zinc-800/30 transition-colors">
+                  <tr
+                    key={order._id}
+                    className="hover:bg-zinc-800/30 transition-colors cursor-pointer"
+                    onClick={() => router.push(`/orders/${order._id}`)}
+                  >
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center overflow-hidden">

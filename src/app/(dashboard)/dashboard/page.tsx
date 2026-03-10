@@ -14,6 +14,7 @@ import {
   AlertCircle,
   Globe
 } from 'lucide-react';
+import Link from 'next/link';
 import { useLanguage } from '@/lib/i18n';
 
 interface Order {
@@ -191,9 +192,9 @@ export default function DashboardPage() {
       <div className="rounded-xl border border-white/5 bg-zinc-900/50 backdrop-blur-sm">
         <div className="flex items-center justify-between border-b border-white/5 p-6">
           <h3 className="text-lg font-bold text-white">{t('recentOrders')}</h3>
-          <button className="flex items-center gap-1 text-sm font-medium text-blue-400 hover:text-blue-300">
+          <Link href="/orders" className="flex items-center gap-1 text-sm font-medium text-blue-400 hover:text-blue-300">
             {t('viewAll')} <ArrowUpRight className="h-4 w-4" />
-          </button>
+          </Link>
         </div>
         
         <div className="overflow-x-auto">
@@ -219,7 +220,11 @@ export default function DashboardPage() {
               </thead>
               <tbody className="divide-y divide-white/5">
                 {orders.slice(0, 5).map((order) => (
-                  <tr key={order._id} className="group transition-colors hover:bg-white/5">
+                  <tr 
+                    key={order._id} 
+                    className="group cursor-pointer transition-colors hover:bg-white/5"
+                    onClick={() => router.push(`/orders/${order._id}`)}
+                  >
                     <td className="px-6 py-4 font-medium text-white">#{order._id.slice(-6).toUpperCase()}</td>
                     <td className="px-6 py-4 text-zinc-300">{t(order.serviceType as any) || order.serviceType}</td>
                     <td className="px-6 py-4">
