@@ -40,6 +40,8 @@ export async function PATCH(
     application.reviewedBy = new mongoose.Types.ObjectId(session.user.id);
     if (status === 'approved') {
         application.boosterLevel = 'new'; // Level khởi điểm
+        // Tự động chuyển trạng thái cọc thành "paid" khi duyệt
+        application.depositStatus = 'paid';
     }
     await application.save();
 
