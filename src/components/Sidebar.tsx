@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { 
@@ -22,10 +23,15 @@ import {
   AlertTriangle,
   Heart,
   DollarSign, 
-  ClipboardList 
+  ClipboardList, 
+  UserMinus,
+  DoorOpen
 } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n';
 import { logout } from '@/lib/logout';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
 
 interface SidebarProps {
   className?: string;
@@ -34,8 +40,10 @@ interface SidebarProps {
 
 export default function Sidebar({ className = '', onLinkClick }: SidebarProps) {
   const [user, setUser] = useState<any>(null);
+  const [showResignModal, setShowResignModal] = useState(false);
   const pathname = usePathname();
   const { t } = useLanguage();
+  const router = useRouter();
 
   useEffect(() => {
     const loadUser = () => {
@@ -58,6 +66,28 @@ export default function Sidebar({ className = '', onLinkClick }: SidebarProps) {
       window.removeEventListener('user-updated', loadUser);
     };
   }, []);
+
+  const handleResign = async () => {
+    try {
+      const res = await fetch('/api/boosters/resign', { method: 'POST' });
+      if (res.ok) {
+        toast.success("Đã hủy tư cách Booster thành công.");
+        const userStr = localStorage.getItem('user');
+        if (userStr) {
+          const user = JSON.parse(userStr);
+          user.role = 'CUSTOMER';
+          localStorage.setItem('user', JSON.stringify(user));
+          window.dispatchEvent(new Event('user-updated'));
+        }
+        router.push('/dashboard');
+      } else {
+        throw new Error();
+      }
+    } catch {
+      toast.error("Lỗi khi thực hiện yêu cầu.");
+    }
+    setShowResignModal(false);
+  };
 
   if (!user) return null;
 
@@ -124,6 +154,13 @@ export default function Sidebar({ className = '', onLinkClick }: SidebarProps) {
             <div className="my-2 border-t border-white/5" />
             <NavItem href="/wallet" icon={Wallet} label={t('wallet')} />
             <NavItem href="/profile" icon={UserCircle} label={t('profile')} />
+            <button
+              onClick={() => setShowResignModal(true)}
+              className="flex w-full items-center gap-3 px-4 py-3 rounded-xl text-red-400 hover:bg-red-500/10 transition-all duration-200 group"
+            >
+              <DoorOpen className="w-5 h-5" />
+              <span className="font-medium">Gỡ Quyền Booster</span>
+            </button>
           </>
         )}
 
@@ -157,6 +194,35 @@ export default function Sidebar({ className = '', onLinkClick }: SidebarProps) {
           <span className="font-medium">{t('logout')}</span>
         </button>
       </div>
+
+      {/* Resign Confirmation Modal */}
+      <Dialog open={showResignModal} onOpenChange={setShowResignModal}>
+        <DialogContent className="bg-zinc-900 border-red-500/20 text-white sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle className="text-xl text-red-500 flex items-center gap-2">
+              <AlertTriangle /> Gỡ quyền Booster
+            </DialogTitle>
+            <DialogDescription className="text-zinc-300 pt-4 text-base font-medium">
+              Bạn có chắc muốn ngừng làm Booster?
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="bg-zinc-950/50 p-4 rounded-lg border border-white/5 text-sm text-zinc-400 space-y-2">
+            <p className="font-semibold text-zinc-300">Sau khi xác nhận:</p>
+            <ul className="list-disc pl-5 space-y-1">
+              <li>Bạn sẽ được hoàn lại tiền cọc</li>
+              <li>Bạn sẽ không nhận được đơn mới</li>
+              <li>Các đơn đang làm vẫn phải hoàn thành</li>
+              <li>Bạn sẽ trở lại tài khoản Khách hàng</li>
+            </ul>
+          </div>
+
+          <DialogFooter className="mt-4 flex gap-2">
+            <Button variant="ghost" onClick={() => setShowResignModal(false)} className="flex-1 bg-zinc-800 hover:bg-zinc-700 text-white">Hủy</Button>
+            <Button onClick={handleResign} className="flex-1 bg-red-600 hover:bg-red-500 text-white font-bold">Xác nhận</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </aside>
   );
 }

@@ -19,6 +19,8 @@ const applySchema = z.object({
   bankAccountName: z.string().min(1),
   bankAccountNumber: z.string().min(1),
   agreementSigned_name: z.string().min(2),
+  contractUrl: z.string().optional(), // Thêm trường này để lưu link PDF
+  billImageUrl: z.string().optional(), // Ảnh bill chuyển khoản
 });
 
 export async function POST(req: Request) {
@@ -43,21 +45,37 @@ export async function POST(req: Request) {
 
     await dbConnect();
 
-    // 3. Check existing application
+    // 3. Check for an existing application to either update or block.
     const existingApp = await BoosterApplication.findOne({ userId: session.user.id });
-    if (existingApp && existingApp.status === 'pending') {
-      return NextResponse.json({ error: "Bạn đã có đơn đăng ký đang chờ duyệt." }, { status: 409 });
+
+    if (existingApp) {
+      // User has an existing application record.
+      if (existingApp.status === 'pending') {
+        return NextResponse.json({ error: "Bạn đã có một đơn đăng ký đang chờ duyệt." }, { status: 409 });
+      }
+      if (existingApp.status === 'approved') {
+        return NextResponse.json({ error: "Tài khoản của bạn đã là Booster." }, { status: 409 });
+      }
+
+      // If the application was 'rejected', we update it with the new data for re-submission.
+      Object.assign(existingApp, validatedData.data);
+      existingApp.status = 'pending'; // Reset status for re-evaluation
+      existingApp.reviewedAt = undefined;
+      existingApp.reviewedBy = undefined;
+      existingApp.note = undefined; // Clear previous admin notes
+      
+      await existingApp.save();
+      return NextResponse.json({ success: true, applicationId: existingApp._id, updated: true });
+    } else {
+      // 4. Create a new application if none exists.
+      const newApp = await BoosterApplication.create({
+        userId: session.user.id,
+        ...validatedData.data,
+        ipAddress: req.headers.get("x-forwarded-for") || "unknown",
+        userAgent: req.headers.get("user-agent") || "unknown",
+      });
+      return NextResponse.json({ success: true, applicationId: newApp._id, created: true });
     }
-
-    // 4. Create Application
-    const newApp = await BoosterApplication.create({
-      userId: session.user.id,
-      ...validatedData.data,
-      ipAddress: req.headers.get("x-forwarded-for") || "unknown",
-      userAgent: req.headers.get("user-agent") || "unknown",
-    });
-
-    return NextResponse.json({ success: true, applicationId: newApp._id });
 
   } catch (error) {
     console.error("Apply Booster Error:", error);

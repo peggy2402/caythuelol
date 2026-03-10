@@ -21,13 +21,17 @@ import {
   Zap,
   Trophy,
   Bell,
-  Heart
+  Heart,
+  AlertTriangle,
+  DoorOpen
 } from 'lucide-react';
 import { useLanguage, Language } from '../lib/i18n';
 import { useRouter, usePathname } from 'next/navigation';
 import { socket } from '@/lib/socket';
 import { logout } from '@/lib/logout';
 import { toast } from 'sonner';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
 
 function LanguageSwitcher({
   language,
@@ -65,6 +69,7 @@ export default function Navbar() {
   const [notifications, setNotifications] = useState<any[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isNotiOpen, setIsNotiOpen] = useState(false);
+  const [showResignModal, setShowResignModal] = useState(false);
 
   const { t, language, setLanguage } = useLanguage();
   const router = useRouter();
@@ -190,6 +195,28 @@ export default function Navbar() {
   //   setUser(null);
   //   router.push('/');
   // };
+
+  const handleResign = async () => {
+    try {
+      const res = await fetch('/api/boosters/resign', { method: 'POST' });
+      if (res.ok) {
+        toast.success("Đã hủy tư cách Booster thành công.");
+        const userStr = localStorage.getItem('user');
+        if (userStr) {
+          const user = JSON.parse(userStr);
+          user.role = 'CUSTOMER';
+          localStorage.setItem('user', JSON.stringify(user));
+          window.dispatchEvent(new Event('user-updated'));
+        }
+        router.push('/dashboard');
+      } else {
+        throw new Error();
+      }
+    } catch {
+      toast.error("Lỗi khi thực hiện yêu cầu.");
+    }
+    setShowResignModal(false);
+  };
 
   const closeMobileMenu = () => setIsMobileMenuOpen(false);
 
@@ -398,6 +425,12 @@ export default function Navbar() {
                         <ListTodo className="h-4 w-4" />
                         {t('myActiveJobs')}
                       </Link>
+                      <button
+                        onClick={() => setShowResignModal(true)}
+                        className="flex w-full items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/5 text-red-400"
+                      >
+                        <DoorOpen className="h-4 w-4" /> Gỡ Quyền Booster
+                      </button>
                     </>
                   )}
 
@@ -529,6 +562,7 @@ export default function Navbar() {
                     <Link href="/booster/my-orders" onClick={closeMobileMenu} className="flex items-center gap-4 px-4 py-3 rounded-lg hover:bg-white/5 transition-colors"><ListTodo className="h-5 w-5 text-zinc-400" />{t('myActiveJobs')}</Link>
                     <Link href="/booster/services" onClick={closeMobileMenu} className="flex items-center gap-4 px-4 py-3 rounded-lg hover:bg-white/5 transition-colors"><Zap className="h-5 w-5 text-zinc-400" />{t('manageServices')}</Link>
                     <Link href="/wallet" onClick={closeMobileMenu} className="flex items-center gap-4 px-4 py-3 rounded-lg hover:bg-white/5 transition-colors"><Wallet className="h-5 w-5 text-zinc-400" />{t('wallet')}</Link>
+                    <button onClick={() => { setShowResignModal(true); closeMobileMenu(); }} className="flex w-full items-center gap-4 px-4 py-3 rounded-lg hover:bg-white/5 transition-colors text-red-400"><DoorOpen className="h-5 w-5" /> Gỡ Quyền Booster</button>
                   </>
                 )}
 
@@ -580,6 +614,35 @@ export default function Navbar() {
           </div>
         </nav>
       </div>
+
+      {/* Resign Confirmation Modal */}
+      <Dialog open={showResignModal} onOpenChange={setShowResignModal}>
+        <DialogContent className="bg-zinc-900 border-red-500/20 text-white sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle className="text-xl text-red-500 flex items-center gap-2">
+              <AlertTriangle /> Gỡ quyền Booster
+            </DialogTitle>
+            <DialogDescription className="text-zinc-300 pt-4 text-base font-medium">
+              Bạn có chắc muốn ngừng làm Booster?
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="bg-zinc-950/50 p-4 rounded-lg border border-white/5 text-sm text-zinc-400 space-y-2">
+            <p className="font-semibold text-zinc-300">Sau khi xác nhận:</p>
+            <ul className="list-disc pl-5 space-y-1">
+              <li>Bạn sẽ được hoàn lại tiền cọc</li>
+              <li>Bạn sẽ không nhận được đơn mới</li>
+              <li>Các đơn đang làm vẫn phải hoàn thành</li>
+              <li>Bạn sẽ trở lại tài khoản Khách hàng</li>
+            </ul>
+          </div>
+
+          <DialogFooter className="mt-4 flex gap-2">
+            <Button variant="ghost" onClick={() => setShowResignModal(false)} className="flex-1 bg-zinc-800 hover:bg-zinc-700 text-white">Hủy</Button>
+            <Button onClick={handleResign} className="flex-1 bg-red-600 hover:bg-red-500 text-white font-bold">Xác nhận</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

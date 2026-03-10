@@ -93,14 +93,17 @@ const nextConfig: NextConfig = {
         hostname: "www.bing.com",
         pathname: "/**",
       },
+      {
+        protocol: "https",
+        hostname: "images.unsplash.com",
+        pathname: "/**"
+      },
+      {
+        protocol: "https",
+        hostname: "res.cloudinary.com",
+        pathname: "/**"
+      }
     ],
-    
-    domains: [
-      "images.unsplash.com",
-      "i.imgur.com",
-      "cdn.discordapp.com",
-      "res.cloudinary.com"
-    ]
   },
 
   eslint: {

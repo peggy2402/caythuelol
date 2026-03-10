@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { usePathname } from 'next/navigation';
 import Image from 'next/image';
 import {
@@ -14,12 +15,16 @@ import {
   Bell,
   Briefcase,
   X,
-  Settings2
+  Settings2,
+  AlertTriangle,
+  DoorOpen
 } from 'lucide-react';
 import { useLanguage } from '../../lib/i18n';
 import Sidebar from '@/components/Sidebar';
 import { socket } from '@/lib/socket';
 import { toast } from 'sonner';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -29,8 +34,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [notifications, setNotifications] = useState<any[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isNotiOpen, setIsNotiOpen] = useState(false);
+  const [showResignModal, setShowResignModal] = useState(false);
   const pathname = usePathname();
   const { t, language, setLanguage } = useLanguage();
+  const router = useRouter();
   
   useEffect(() => {
     const updateUserData = () => {
@@ -155,6 +162,28 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         await fetch('/api/notifications', { method: 'PATCH' });
         setUnreadCount(0);
     }
+  };
+
+  const handleResign = async () => {
+    try {
+      const res = await fetch('/api/boosters/resign', { method: 'POST' });
+      if (res.ok) {
+        toast.success("Đã hủy tư cách Booster thành công.");
+        const userStr = localStorage.getItem('user');
+        if (userStr) {
+          const user = JSON.parse(userStr);
+          user.role = 'CUSTOMER';
+          localStorage.setItem('user', JSON.stringify(user));
+          window.dispatchEvent(new Event('user-updated'));
+        }
+        router.push('/dashboard');
+      } else {
+        throw new Error();
+      }
+    } catch {
+      toast.error("Lỗi khi thực hiện yêu cầu.");
+    }
+    setShowResignModal(false);
   };
 
   // Danh sách tất cả các trang để hiển thị tiêu đề (Breadcrumb)
@@ -345,6 +374,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                       <Wallet className="w-4 h-4" />
                       {t('wallet')}
                     </Link>
+
+                    {user?.role === 'BOOSTER' && (
+                      <button 
+                        onClick={() => { setShowResignModal(true); setIsUserMenuOpen(false); }}
+                        className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-red-400 hover:bg-red-500/10 transition-colors"
+                      >
+                        <DoorOpen className="w-4 h-4" /> Gỡ Quyền Booster
+                      </button>
+                    )}
                     
                     <div className="border-t border-white/5 my-1" />
                     

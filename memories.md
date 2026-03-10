@@ -667,3 +667,74 @@ caythuelol/
   - Tạo `src/lib/mail.ts` sử dụng `nodemailer` để gửi email giao dịch.
   - Thiết kế template email HTML (Dark Mode) cho thông báo đơn hàng mới.
   - Hỗ trợ gửi thông báo cho Booster khi được chỉ định đơn hàng trực tiếp.
+
+23. 2026-03-09 — Blog System & Advanced Comment Threading
+
+- **Blog System Implementation:**
+  - **Models:** Created `Blog` (slug, content, tags, views) and `Comment` (nested structure) schemas.
+  - **Public Pages:**
+    - **Listing (`/blogs`):** Implemented with search (debounce + dropdown), category filtering, and pagination. Added "Featured Post" hero section.
+    - **Detail (`/blogs/[slug]`):** SEO-friendly pages using `generateMetadata`. Features sidebar with "Most Viewed" and "Related Posts" based on tags.
+  - **Admin Portal (`/admin/blogs`):**
+    - Built CRUD interface with **Quill Editor** integration for rich text editing.
+    - Features: Image thumbnail support, Tag management, Publish/Draft toggle.
+  - **APIs:**
+    - `/api/blogs`: Public listing with filters.
+    - `/api/blogs/search`: Optimized live search endpoint.
+    - `/api/blogs/popular`: Aggregation for trending posts.
+
+- **Reddit-style Comment System:**
+  - **Architecture:** Recursive `CommentItem` component handling infinite nesting depth.
+  - **Visual Engineering:**
+    - **Thread Lines:** Implemented "Segmented Vertical Lines" logic. The vertical line stops exactly where the last reply branches off, preventing "dangling" lines.
+    - **Branch Connectors:** Created curved "Hook" lines (`border-b` + `border-l` + `rounded-bl`) connecting parent vertical lines to child avatars.
+  - **Features:**
+    - **Collapsible Threads:** Interactive thread lines and buttons to collapse/expand entire comment branches.
+    - **Rich Interaction:** Like, Reply, and optimistic UI updates.
+    - **Layout:** Responsive flex layout ensuring avatars and content align perfectly across nesting levels.
+
+24. 2026-03-10 — Booster Onboarding & Admin Tools
+
+- **Admin Settings (`/admin/settings`):**
+  - **Bank Configuration:** Added settings for Admin Bank Account (Bank Name, Acc Num, Holder) using VietQR API for bank lookup.
+  - **Deposit Configuration:** Added toggle for "Require Deposit" and "Deposit Amount" for new boosters.
+  - **Public API:** Created `/api/settings/public` to safely expose these settings to the frontend without auth (fixing 403 Forbidden).
+
+- **Booster Application Flow (`/boosters/apply`):**
+  - **Smart Deposit:** Displays Admin's Bank Info & QR Code (VietQR) with dynamic content (`BOOSTERAPPLY [Phone]`) if deposit is enabled.
+  - **Digital Contract:** Implemented client-side PDF generation (`jspdf`, `html2canvas`) for the "Cooperation Agreement", signed electronically by the user, and uploaded to Cloudinary.
+  - **Evidence Upload:** Added "Bill Upload" for deposit receipts and improved Rank Proof upload UI (Drag & Drop).
+  - **Race Condition Handling:** Added "Sync Check" to verify admin settings haven't changed (e.g., Deposit toggled ON/OFF) before submitting.
+
+- **Admin Management (`/admin/boosters`):**
+  - **Detailed Review:** Enhanced "Applications" tab with a modal displaying full profile, Bank Info, Rank Proof, **Bill Image**, and **Contract PDF**.
+  - **Workflow:** Added "Internal Notes" for Admin to log reasons for approval/rejection.
+  - **Automation:**
+    - **Role Upgrade:** Automatically promotes User to `BOOSTER` role upon approval.
+    - **Email Notifications:** Integrated `nodemailer` to send acceptance/rejection emails to applicants.
+
+- **Schema Updates:**
+  - `BoosterApplication`: Added `billImageUrl`, `contractUrl`, `note`, `depositStatus`.
+
+25. 2026-03-10 — Booster Resignation & Demotion Flow
+
+- **Booster Resignation (Self-Service):**
+  - **Feature:** Boosters can voluntarily resign via a "Resign" button in Sidebar, Navbar, and Dashboard Header.
+  - **Flow:** User clicks "Resign" -> Confirmation Modal (warns about active orders) -> API Call -> Role reverts to `CUSTOMER` -> Admin notified via System Notification.
+  - **API:** `POST /api/boosters/resign` handles role demotion and application status update.
+
+- **Admin Demotion (Force Removal):**
+  - **Feature:** Admins can strip a user's Booster status from the `/admin/boosters` (Active List) page.
+  - **Flow:** Admin selects "Demote" -> Enters Reason -> API Call -> Role reverts to `CUSTOMER` -> Audit Log recorded.
+  - **API:** `POST /api/admin/boosters/demote` handles logic and logging.
+
+- **Booster Approval Automation:**
+  - **Sync:** Upon approval, system automatically copies Bank Information from the application to User's profile (`profile.bank_info`).
+
+- **Contract & Upload Fixes:**
+  - **Cloudinary PDF:** Fixed "We can't open this file" errors by standardizing `resource_type: 'raw'` and `public_id` handling in `/api/upload`.
+  - **UX:** Added "Refresh" button to Admin Boosters list. Improved Contract View Modal with fallback download links.
+  - **Apply Flow:** Enforced "Download Contract" step before submission.
+
+- **Navigation Updates:**
+  - Updated `Sidebar`, `Navbar`, and `DashboardLayout` to include "Resign" action for Boosters.

@@ -15,6 +15,7 @@ export interface IBoosterApplication {
   bankAccountName: string;
   bankAccountNumber: string;
   qrImageUrl?: string;
+  billImageUrl?: string; // Ảnh bill chuyển khoản
   depositAmount: number;
   depositStatus: "unpaid" | "paid" | "refunded" | "forfeited";
   status: "pending" | "testing" | "approved" | "rejected";
@@ -25,8 +26,10 @@ export interface IBoosterApplication {
   agreementSigned_name: string;
   agreementSigned_at: Date;
   agreementVersion: string;
+  contractUrl?: string;
   ipAddress?: string;
   userAgent?: string;
+  note?: string; // Ghi chú nội bộ của Admin
   createdAt: Date;
   updatedAt: Date;
 }
@@ -48,6 +51,7 @@ const BoosterApplicationSchema = new Schema<IBoosterApplication>(
     bankAccountName: { type: String, required: true },
     bankAccountNumber: { type: String, required: true },
     qrImageUrl: { type: String },
+    billImageUrl: { type: String },
 
     depositAmount: { type: Number, default: 200000 },
     depositStatus: { 
@@ -75,9 +79,11 @@ const BoosterApplicationSchema = new Schema<IBoosterApplication>(
     agreementSigned_name: { type: String, required: true },
     agreementSigned_at: { type: Date, default: Date.now },
     agreementVersion: { type: String, default: "v1.0" },
+    contractUrl: { type: String },
     
     ipAddress: String,
     userAgent: String,
+    note: String,
   },
   { timestamps: true }
 );
