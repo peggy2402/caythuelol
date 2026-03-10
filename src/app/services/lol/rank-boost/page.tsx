@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 import AccountInfo from '@/components/services/lol/AccountInfo';
 import ExtraOptions from '@/components/services/lol/ExtraOptions';
 import PaymentSummary from '@/components/services/lol/PaymentSummary';
+import { detectUserServer } from '@/lib/geo';
 
 const RANKS = ['Iron', 'Bronze', 'Silver', 'Gold', 'Platinum', 'Diamond', 'Master'];
 const DIVISIONS = ['IV', 'III', 'II', 'I'];
@@ -188,7 +189,16 @@ function RankBoostContent() {
             
             if (foundBooster) {
                 setBoosterConfig(foundBooster);
-                setSelectedServer(foundBooster.booster_info?.service_settings?.servers?.[0] || '');
+                
+                // Auto-detect server
+                const boosterServers = foundBooster.booster_info?.service_settings?.servers || [];
+                detectUserServer().then(detected => {
+                    if (detected && boosterServers.includes(detected)) {
+                        setSelectedServer(detected);
+                    } else {
+                        setSelectedServer(boosterServers[0] || '');
+                    }
+                });
             } else {
                 toast.error('Không tìm thấy thông tin Booster này');
             }

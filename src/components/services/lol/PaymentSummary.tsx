@@ -16,6 +16,8 @@ interface PaymentSummaryProps {
     optionDetails: { label: string; percent?: number; value: number }[];
     platformFeeValue: number;
     depositAmount?: number; // Thêm trường này để tương thích với các trang dịch vụ
+    rewardValue?: number; // Cho ONBET
+    boosterPercent?: number; // Cho ONBET
   } | null;
   platformFee: number;
   isValid: boolean;

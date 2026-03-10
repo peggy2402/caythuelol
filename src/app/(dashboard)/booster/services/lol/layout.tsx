@@ -5,8 +5,8 @@ import { ReactNode } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { ServiceProvider, useServiceContext } from '@/components/ServiceContext'; // Ensure this path is correct
-import { Save, History, RotateCcw, Trophy, TrendingUp, Medal, Zap, Target, Swords, Settings, ArrowLeft, Loader2 } from 'lucide-react';
-import { Suspense } from 'react';
+import { Save, History, RotateCcw, Trophy, TrendingUp, Medal, Zap, Target, Swords, Settings, ArrowLeft, Loader2, ChevronLeft, ChevronRight, Banknote } from 'lucide-react';
+import { Suspense, useRef, useState, useEffect } from 'react';
 
 // Đưa tabs ra ngoài để tránh khởi tạo lại khi render
 const TABS_CONFIG = [
@@ -18,14 +18,41 @@ const TABS_CONFIG = [
   { href: '/booster/services/lol/leveling', label: 'Cày Level', icon: Zap },
   { href: '/booster/services/lol/mastery', label: 'Cày Thông thạo', icon: Medal },
   { href: '/booster/services/lol/coaching', label: 'Coaching 1-1', icon: Medal },
+  { href: '/booster/services/lol/onbet', label: 'Cày Sự kiện', icon: Banknote },
 ];
 
 function ServiceTabs() {
   const pathname = usePathname();
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [showLeftArrow, setShowLeftArrow] = useState(false);
+  const [showRightArrow, setShowRightArrow] = useState(false);
+
+  const checkScroll = () => {
+    if (scrollContainerRef.current) {
+      const { scrollLeft, scrollWidth, clientWidth } = scrollContainerRef.current;
+      setShowLeftArrow(scrollLeft > 0);
+      setShowRightArrow(scrollLeft < scrollWidth - clientWidth - 2);
+    }
+  };
+
+  const scroll = (direction: 'left' | 'right') => {
+    if (scrollContainerRef.current) {
+      const scrollAmount = 200;
+      scrollContainerRef.current.scrollBy({ left: direction === 'left' ? -scrollAmount : scrollAmount, behavior: 'smooth' });
+    }
+  };
+
+  useEffect(() => {
+    checkScroll();
+    window.addEventListener('resize', checkScroll);
+    return () => window.removeEventListener('resize', checkScroll);
+  }, []);
 
   return (
-    <div className="w-full overflow-x-auto no-scrollbar pb-0 -mx-4 px-4 md:mx-0 md:px-0">
-      <div className="flex min-w-max gap-4 md:gap-8 px-1">
+    <div className="relative w-full group">
+      {showLeftArrow && <button onClick={() => scroll('left')} className="absolute left-0 top-1/2 -translate-y-1/2 z-10 p-1.5 bg-zinc-900/90 border border-zinc-700 rounded-full text-white shadow-lg hover:bg-zinc-800 hidden md:flex"><ChevronLeft className="w-4 h-4" /></button>}
+      <div ref={scrollContainerRef} onScroll={checkScroll} className="w-full overflow-x-auto no-scrollbar pb-0 -mx-4 px-4 md:mx-0 md:px-0 scroll-smooth">
+        <div className="flex min-w-max gap-4 md:gap-8 px-1">
         {TABS_CONFIG.map((tab) => {
           const isActive = tab.exact 
             ? pathname === tab.href 
@@ -52,6 +79,8 @@ function ServiceTabs() {
           );
         })}
       </div>
+      </div>
+      {showRightArrow && <button onClick={() => scroll('right')} className="absolute right-0 top-1/2 -translate-y-1/2 z-10 p-1.5 bg-zinc-900/90 border border-zinc-700 rounded-full text-white shadow-lg hover:bg-zinc-800 hidden md:flex"><ChevronRight className="w-4 h-4" /></button>}
     </div>
   );
 }

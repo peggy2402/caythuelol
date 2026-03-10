@@ -2,9 +2,9 @@
 
 import { useState, useEffect, useMemo, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { Loader2, Clock, Video, Users, MonitorPlay, CalendarDays } from 'lucide-react';
+import { Loader2, Clock, Video, Users, MonitorPlay, CalendarDays, Pencil } from 'lucide-react';
 import { toast } from 'sonner';
-import ScheduleModal, { TimeWindow } from '@/components/ScheduleModal';
+import CoachingScheduleModal, { TimeWindow } from '@/components/services/lol/CoachingScheduleModal';
 import AccountInfo from '@/components/services/lol/AccountInfo';
 import PaymentSummary from '@/components/services/lol/PaymentSummary';
 
@@ -202,7 +202,7 @@ function CoachingContent() {
 
                     {/* Schedule */}
                     <div>
-                        <label className="text-xs font-bold uppercase text-zinc-500 tracking-wider mb-3 block">Lịch học mong muốn</label>
+                        <label className="text-xs font-bold uppercase text-zinc-500 tracking-wider mb-3 block">Lịch học mong muốn theo ngày</label>
                         {scheduleWindows.length > 0 ? (
                             <div className="space-y-2">
                                 {scheduleWindows.map((w, i) => (
@@ -217,7 +217,7 @@ function CoachingContent() {
                                     onClick={() => setIsScheduleModalOpen(true)}
                                     className="text-xs text-blue-400 hover:text-blue-300 font-medium mt-2 flex items-center gap-1"
                                 >
-                                    <Clock className="w-3 h-3" /> Chỉnh sửa lịch
+                                    <Pencil className="w-3 h-3" /> Chỉnh sửa lịch
                                 </button>
                             </div>
                         ) : (
@@ -226,7 +226,7 @@ function CoachingContent() {
                                 className="w-full p-4 border border-dashed border-zinc-700 rounded-xl text-zinc-400 hover:text-white hover:border-zinc-500 hover:bg-zinc-900/50 transition-all flex flex-col items-center gap-2"
                             >
                                 <CalendarDays className="w-6 h-6" />
-                                <span>Bấm để chọn khung giờ bạn rảnh</span>
+                                <span>Bấm để chọn khung giờ bạn rảnh trong ngày</span>
                             </button>
                         )}
                     </div>
@@ -305,7 +305,7 @@ function CoachingContent() {
             </PaymentSummary>
         </div>
 
-        <ScheduleModal 
+        <CoachingScheduleModal 
             isOpen={isScheduleModalOpen} 
             onClose={() => setIsScheduleModalOpen(false)} 
             onSave={setScheduleWindows}

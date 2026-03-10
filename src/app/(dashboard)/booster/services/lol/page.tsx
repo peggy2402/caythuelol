@@ -2,16 +2,28 @@
 'use client';
 
 import { useServiceContext } from '@/components/ServiceContext'; // Cập nhật đường dẫn import
-import { Globe, Zap, Clock, Crosshair, CheckCircle2, Users, Video, Download, Copy, Upload, Swords, Search, X, Shield, Target, Heart, Filter, Sparkles, Calculator, Trophy, TrendingUp, Medal, Power, Info, TicketPercent, Plus, Trash2, RefreshCw } from 'lucide-react';
+import { Globe, Zap, Clock, Crosshair, CheckCircle2, Users, Video, Download, Copy, Upload, Swords, Search, X, Shield, Target, Heart, Filter, Sparkles, Calculator, Trophy, TrendingUp, Medal, Power, Info, TicketPercent, Plus, Trash2, RefreshCw, Banknote } from 'lucide-react';
 import { useState, useEffect, useMemo } from 'react';
 import { toast } from 'sonner';
 
 const AVAILABLE_SERVERS = [
   { code: 'VN', name: 'Việt Nam' },
-  { code: 'KR', name: 'Korea' },
-  { code: 'JP', name: 'Japan' },
-  { code: 'EU', name: 'Europe' },
-  { code: 'NA', name: 'North America' },
+  { code: 'KR', name: 'Hàn Quốc' },
+  { code: 'JP', name: 'Nhật Bản' },
+  { code: 'NA', name: 'Bắc Mỹ' },
+  { code: 'EUW', name: 'Tây Âu' },
+  { code: 'EUNE', name: 'Đông – Bắc Âu' },
+  { code: 'OCE', name: 'Châu Đại Dương' },
+  { code: 'RU', name: 'Nga' },
+  { code: 'TR', name: 'Thổ Nhĩ Kỳ' },
+  { code: 'BR', name: 'Brasil' },
+  { code: 'LAN', name: 'Bắc Mỹ La-tinh' },
+  { code: 'LAS', name: 'Nam Mỹ La-tinh' },
+  { code: 'PH', name: 'Philippines' },
+  { code: 'SG', name: 'Singapore, Malaysia, Indonesia' },
+  { code: 'TH', name: 'Thái Lan' },
+  { code: 'TW', name: 'Đài Bắc Trung Hoa' },
+  { code: 'ME', name: 'Trung Đông' },
 ];
 
 const AVAILABLE_LANES = [
@@ -39,6 +51,8 @@ const SUPPORTED_SERVICES = [
     { key: 'PROMOTION', label: 'Chuỗi Thăng Hạng', icon: TrendingUp, desc: 'Vượt qua chuỗi BO3/BO5' },
     { key: 'LEVELING', label: 'Cày Cấp Độ (Level)', icon: Zap, desc: 'Cày level 1-30 hoặc farm Tinh Hoa' },
     { key: 'MASTERY', label: 'Cày Thông Thạo', icon: Medal, desc: 'Cày điểm thông thạo tướng' },
+    { key: 'COACHING', label: 'Coaching 1-1', icon: Users, desc: 'Huấn luyện kỹ năng, tư duy chiến thuật' },
+    { key: 'ONBET', label: 'Cày Sự Kiện', icon: Banknote, desc: 'Cày số trận để nhận thưởng Sự kiện' },
 ];
 
 export default function GeneralSettingsPage() {

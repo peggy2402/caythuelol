@@ -5,8 +5,8 @@ import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
 import Navbar from '@/components/Navbar';
 import BoosterPicker from '@/components/BoosterPicker';
-import { Trophy, Target, TrendingUp, Swords, Zap, Medal, GraduationCap } from 'lucide-react';
-import { Suspense, useEffect, useState } from 'react';
+import { Trophy, Target, TrendingUp, Swords, Zap, Medal, GraduationCap, ChevronLeft, ChevronRight, Banknote } from 'lucide-react';
+import { Suspense, useEffect, useState, useRef } from 'react';
 
 const TABS = [
   { id: 'rank-boost', label: 'Cày Rank/Elo', href: '/services/lol/rank-boost', icon: Trophy, key: 'RANK_BOOST' },
@@ -16,6 +16,7 @@ const TABS = [
   { id: 'leveling', label: 'Cày Level 30', href: '/services/lol/leveling', icon: Zap, key: 'LEVELING' },
   { id: 'mastery', label: 'Cày Thông Thạo Tướng', href: '/services/lol/mastery', icon: Medal, key: 'MASTERY' },
   { id: 'coaching', label: 'Coaching 1-1', href: '/services/lol/coaching', icon: GraduationCap, key: 'COACHING' },
+  { id: 'onbet', label: 'Cày Rank Sự Kiện', href: '/services/lol/onbet', icon: Banknote, key: 'ONBET' },
 ];
 
 function ServiceTabs() {
@@ -26,6 +27,24 @@ function ServiceTabs() {
   const boosterId = searchParams.get('booster');
 
   const [allowedServices, setAllowedServices] = useState<string[] | null>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [showLeftArrow, setShowLeftArrow] = useState(false);
+  const [showRightArrow, setShowRightArrow] = useState(false);
+
+  const checkScroll = () => {
+    if (scrollContainerRef.current) {
+      const { scrollLeft, scrollWidth, clientWidth } = scrollContainerRef.current;
+      setShowLeftArrow(scrollLeft > 0);
+      setShowRightArrow(scrollLeft < scrollWidth - clientWidth - 2);
+    }
+  };
+
+  const scroll = (direction: 'left' | 'right') => {
+    if (scrollContainerRef.current) {
+      const scrollAmount = 300;
+      scrollContainerRef.current.scrollBy({ left: direction === 'left' ? -scrollAmount : scrollAmount, behavior: 'smooth' });
+    }
+  };
 
   // Fetch thông tin services của Booster khi boosterId thay đổi
   useEffect(() => {
@@ -52,9 +71,26 @@ function ServiceTabs() {
     fetchBoosterServices();
   }, [boosterId]);
 
+  useEffect(() => {
+    checkScroll();
+    window.addEventListener('resize', checkScroll);
+    return () => window.removeEventListener('resize', checkScroll);
+  }, [allowedServices]);
+
   return (
-    <div className="mb-8 overflow-x-auto pb-2 no-scrollbar">
-      <div className="flex gap-2 min-w-max">
+    <div className="relative group mb-8">
+      {showLeftArrow && (
+        <button onClick={() => scroll('left')} className="absolute left-0 top-1/2 -translate-y-1/2 z-20 p-2 bg-zinc-900/90 border border-zinc-700 rounded-full text-white shadow-xl hover:bg-zinc-800 transition-all -ml-3 md:-ml-5 hidden md:flex">
+          <ChevronLeft className="w-5 h-5" />
+        </button>
+      )}
+      
+      <div 
+        ref={scrollContainerRef}
+        onScroll={checkScroll}
+        className="overflow-x-auto pb-2 no-scrollbar scroll-smooth"
+      >
+        <div className="flex gap-2 min-w-max px-1">
         {TABS.map((tab) => {
           // Logic ẩn hiện: Nếu đã chọn booster và booster đó KHÔNG có service này -> Ẩn
           if (allowedServices && tab.key && !allowedServices.includes(tab.key)) return null;
@@ -77,6 +113,13 @@ function ServiceTabs() {
           );
         })}
       </div>
+      </div>
+
+      {showRightArrow && (
+        <button onClick={() => scroll('right')} className="absolute right-0 top-1/2 -translate-y-1/2 z-20 p-2 bg-zinc-900/90 border border-zinc-700 rounded-full text-white shadow-xl hover:bg-zinc-800 transition-all -mr-3 md:-mr-5 hidden md:flex">
+          <ChevronRight className="w-5 h-5" />
+        </button>
+      )}
     </div>
   );
 }

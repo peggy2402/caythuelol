@@ -13,6 +13,26 @@ const ACCOUNT_TYPES = [
     { id: 'PLAYSTATION', name: 'PlayStation' }
 ];
 
+const SERVER_NAMES: Record<string, string> = {
+  'VN': 'Việt Nam',
+  'KR': 'Hàn Quốc',
+  'JP': 'Nhật Bản',
+  'NA': 'Bắc Mỹ',
+  'EUW': 'Tây Âu',
+  'EUNE': 'Đông – Bắc Âu',
+  'OCE': 'Châu Đại Dương',
+  'RU': 'Nga',
+  'TR': 'Thổ Nhĩ Kỳ',
+  'BR': 'Brasil',
+  'LAN': 'Bắc Mỹ La-tinh',
+  'LAS': 'Nam Mỹ La-tinh',
+  'PH': 'Philippines',
+  'SG': 'Singapore, Malaysia, Indonesia',
+  'TH': 'Thái Lan',
+  'TW': 'Đài Bắc Trung Hoa',
+  'ME': 'Trung Đông'
+};
+
 interface AccountInfoProps {
   accountType: string;
   setAccountType: (val: string) => void;
@@ -54,7 +74,9 @@ export default function AccountInfo({
                 <div className="relative">
                     <select value={server} onChange={e => setServer(e.target.value)} disabled={disabled} className="w-full appearance-none bg-zinc-900/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-blue-500/50 outline-none transition-all font-medium disabled:opacity-50">
                         <option value="" disabled>-- Chọn server --</option>
-                        {servers.map((s: string) => <option key={s} value={s} className="bg-zinc-900">{s}</option>)}
+                        {servers.map((s: string) => (
+                            <option key={s} value={s} className="bg-zinc-900">{SERVER_NAMES[s] || s}</option>
+                        ))}
                     </select>
                     <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-500"><ChevronRight className="w-4 h-4 rotate-90" /></div>
                 </div>

@@ -204,6 +204,23 @@ function CheckoutContent() {
             </div>
           </>
         );
+      case 'ONBET':
+        return (
+          <>
+            <div className="flex justify-between py-2 border-b border-zinc-800">
+              <span className="text-zinc-400">Rank</span>
+              <span className="font-bold text-white">{details.rank_label}</span>
+            </div>
+            <div className="flex justify-between py-2 border-b border-zinc-800">
+              <span className="text-zinc-400">Số trận</span>
+              <span className="font-bold text-yellow-400">{details.game_count} Trận</span>
+            </div>
+            <div className="flex justify-between py-2 border-b border-zinc-800">
+              <span className="text-zinc-400">Thưởng ONBET dự kiến</span>
+              <span className="font-bold text-green-400">{new Intl.NumberFormat('vi-VN').format(details.reward_value)} đ</span>
+            </div>
+          </>
+        );
       default:
         return (
             <div className="flex justify-between py-2 border-b border-zinc-800">

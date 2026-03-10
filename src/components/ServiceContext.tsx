@@ -47,6 +47,7 @@ export interface ServiceSettings {
   netWinPricesDuo?: Record<string, number>;
   netWinDepositPercent?: number;
   masteryPrices: Record<string, number>;
+  onbetPricePercent?: number; // Thêm cấu hình cho ONBET
   coachingPrices: Record<string, number>; // Thêm bảng giá Coaching
   coupons: Coupon[]; // Danh sách mã giảm giá
 
