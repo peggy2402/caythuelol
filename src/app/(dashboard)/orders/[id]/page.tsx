@@ -11,7 +11,7 @@ import {
   Shield, DollarSign, CreditCard,
   Play, CheckSquare, Lock, Flag, Swords, Trophy, Save, Crosshair, ArrowLeft, Search, RefreshCw
 } from 'lucide-react';
-import { Pencil, Trash2, X, Plus, Eye, History, ArrowUpRight, ArrowDownLeft } from 'lucide-react';
+import { Pencil, Trash2, X, Plus, Eye, EyeOff, History, ArrowUpRight, ArrowDownLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import ChatWindow from '@/components/chat/ChatWindow';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -55,6 +55,7 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
   // Coaching VOD state
   const [vodLink, setVodLink] = useState('');
   const [isUpdatingVod, setIsUpdatingVod] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   // Match Update State
   const [matchForm, setMatchForm] = useState({
@@ -721,15 +722,30 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                                 <h3 className="text-sm font-bold text-zinc-400 uppercase mb-3 flex items-center gap-2"><Shield className="w-4 h-4" /> Tài khoản Game</h3>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-zinc-950 p-4 rounded-xl border border-zinc-800">
                                     <div>
+                                        <span className="text-xs text-zinc-500 block">Loại tài khoản</span>
+                                        <span className="font-medium text-white">{order.details.account_type || 'RIOT'}</span>
+                                    </div>
+                                    <div>
                                         <span className="text-xs text-zinc-500 block">Tài khoản</span>
                                         <span className="font-mono text-white">{order.details.account_username}</span>
                                     </div>
                                     <div>
                                         <span className="text-xs text-zinc-500 block">Mật khẩu</span>
-                                        <span className="font-mono text-white flex items-center gap-2">
-                                            {isBooster ? order.details.account_password : '••••••••'}
-                                            {!isBooster && <Lock className="w-3 h-3 text-zinc-600" />}
-                                        </span>
+                                        <div className="font-mono text-white flex items-center gap-2">
+                                            {isBooster ? (
+                                                <>
+                                                    <span>{showPassword ? order.details.account_password : '••••••••'}</span>
+                                                    <button onClick={() => setShowPassword(!showPassword)} className="text-zinc-400 hover:text-white">
+                                                        {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                                                    </button>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <span>••••••••</span>
+                                                    <Lock className="w-3 h-3 text-zinc-600" />
+                                                </>
+                                            )}
+                                        </div>
                                     </div>
                                     <div>
                                         <span className="text-xs text-zinc-500 block">Server</span>
