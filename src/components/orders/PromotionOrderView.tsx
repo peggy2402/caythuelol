@@ -2,7 +2,7 @@
 'use client';
 
 import { useMemo } from 'react';
-import { CheckCircle2, XCircle, MinusCircle, Trophy, Target, ShieldCheck } from 'lucide-react';
+import { CheckCircle2, XCircle, TrendingUp, Target, ShieldCheck } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 interface PromotionOrderViewProps {
@@ -30,8 +30,8 @@ export default function PromotionOrderView({ order }: PromotionOrderViewProps) {
             
             <div className="flex justify-between items-start mb-6 relative z-10">
                 <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                    <Trophy className="w-5 h-5 text-yellow-500" /> 
-                    Tiến độ Chuỗi Thăng Hạng
+                    <TrendingUp className="w-5 h-5 text-yellow-500" /> 
+                    Tiến độ Thăng Hạng
                 </h3>
                 <div className="flex gap-2">
                     <span className="px-3 py-1 bg-green-500/10 text-green-400 border border-green-500/20 rounded-full text-xs font-bold">
@@ -43,10 +43,11 @@ export default function PromotionOrderView({ order }: PromotionOrderViewProps) {
                 </div>
             </div>
 
-            {/* Visual Series Display (O O O O O) */}
-            <div className="flex justify-center items-center gap-4 mb-8">
+            {/* Visual Matches List (Infinite scroll basically) */}
+            <div className="flex flex-wrap justify-center items-center gap-3 mb-8">
                 {/* Render Matches (Win/Loss) */}
-                {seriesState.matches.map((match: any, idx: number) => (
+                {seriesState.matches.length > 0 ? (
+                    seriesState.matches.map((match: any, idx: number) => (
                     <motion.div 
                         key={idx}
                         initial={{ scale: 0 }}
@@ -61,14 +62,10 @@ export default function PromotionOrderView({ order }: PromotionOrderViewProps) {
                     >
                         {match.result === 'WIN' ? <CheckCircle2 size={24} /> : <XCircle size={24} />}
                     </motion.div>
-                ))}
-                
-                {/* Render Empty Slots (Placeholder - tối đa 5 trận cho chuỗi Bo5) */}
-                {[...Array(Math.max(0, 5 - seriesState.matches.length))].map((_, i) => (
-                    <div key={`empty-`} className="w-12 h-12 rounded-full flex items-center justify-center border-2 border-zinc-800 bg-zinc-900/50 text-zinc-700">
-                        <MinusCircle size={24} />
-                    </div>
-                ))}
+                    ))
+                ) : (
+                    <div className="text-zinc-500 text-sm italic">Chưa có trận đấu nào</div>
+                )}
             </div>
 
             {/* From -> To Info */}
@@ -97,7 +94,7 @@ export default function PromotionOrderView({ order }: PromotionOrderViewProps) {
         <div className="flex items-center gap-3 p-4 rounded-xl bg-blue-900/10 border border-blue-500/20 text-blue-200">
             <ShieldCheck className="w-5 h-5 shrink-0 text-blue-400" />
             <p className="text-sm">
-                Dịch vụ Chuỗi Thăng Hạng đảm bảo Booster sẽ thi đấu hết mình để bạn vượt qua chuỗi. Nếu thất bại, Booster sẽ cày lại miễn phí.
+                Dịch vụ Thăng Hạng đảm bảo Booster sẽ cày đủ điểm (100 LP) để bạn lên bậc rank mới. Nếu rớt hạng, Booster sẽ cày lại miễn phí.
             </p>
         </div>
     </div>

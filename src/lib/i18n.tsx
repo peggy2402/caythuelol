@@ -306,7 +306,7 @@ const dictionaries = {
     servicePageTitle: 'Dịch vụ Cày Thuê',
     servicePageDesc: 'Chọn dịch vụ phù hợp để nâng tầm đẳng cấp của bạn.',
     svcRankBoost: 'Cày Rank / ELO',
-    svcPromotion: 'Chuỗi Thăng Hạng',
+    svcPromotion: 'Thăng Hạng (Promotion)',
     svcMastery: 'Thông Thạo Tướng',
     svcLeveling: 'Cày Level 30',
     svcNetWins: 'Cày Điểm (Rank)',
@@ -314,7 +314,7 @@ const dictionaries = {
 
     // Service Explanations
     descRankBoost: 'Dịch vụ tăng rank từ rank hiện tại lên rank mong muốn. Đội ngũ Booster sẽ cày trực tiếp trên tài khoản của bạn.',
-    descPromotion: 'Cày thắng chuỗi thăng hạng để lên bậc mới (Ví dụ: Sắt I lên Đồng IV). Chỉ áp dụng cho bậc I của các Rank.',
+    descPromotion: 'Cày từ bậc I (Ví dụ: Bạc I) lên bậc mới (Vàng IV). Hệ thống đảm bảo cày đủ 100 LP để thăng hạng ngay lập tức.',
     descMastery: 'Tăng cấp thông thạo tướng. Giúp bạn mở khóa biểu cảm và khẳng định kỹ năng với vị tướng yêu thích.',
     descLeveling: 'Cày cấp độ tài khoản lên Level 30 để mở khóa chế độ Xếp hạng.',
     descNetWins: 'Cày số lượng điểm cộng (LP) cụ thể. Nếu lên rank trong quá trình cày, điểm sẽ được reset và cộng dồn.',
