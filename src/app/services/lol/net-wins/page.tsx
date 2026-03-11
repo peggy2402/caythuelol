@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { Info, AlertCircle, Loader2, ChevronRight, CheckCircle2 } from 'lucide-react';
+import { Info, AlertCircle, Loader2, ChevronRight, CheckCircle2, Search } from 'lucide-react';
 import { toast } from 'sonner';
 import AccountInfo from '@/components/services/lol/AccountInfo';
 import ExtraOptions from '@/components/services/lol/ExtraOptions';
@@ -48,6 +48,11 @@ function NetWinsContent() {
   const [lpGain, setLpGain] = useState<string>('20');
   const [wins, setWins] = useState<string>('1');
   const [queueType, setQueueType] = useState<'SOLO' | 'FLEX'>('SOLO');
+
+  // Validation State
+  const [checkIngame, setCheckIngame] = useState('');
+  const [isChecking, setIsChecking] = useState(false);
+  const [isRankVerified, setIsRankVerified] = useState(false);
 
   // Account Info State
   const [accountType, setAccountType] = useState('RIOT');
@@ -117,6 +122,55 @@ function NetWinsContent() {
 
     fetchBoosterData();
   }, [boosterId]);
+
+  // --- CHECK RANK FUNCTION ---
+  const handleCheckRank = async () => {
+      if (!checkIngame.trim()) return toast.error('Vui lòng nhập Riot ID (VD: Hide on bush#KR1)');
+      if (!selectedServer) return toast.error('Vui lòng chọn Server trước khi check');
+      
+      setIsChecking(true);
+      try {
+          const res = await fetch('/api/riot/player', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ server: selectedServer, name: checkIngame.trim() })
+          });
+          const data = await res.json();
+          
+          if (!res.ok) throw new Error(data.error);
+
+          const qType = queueType === 'SOLO' ? 'RANKED_SOLO_5x5' : 'RANKED_FLEX_SR';
+          const league = data.leagues.find((l: any) => l.queueType === qType);
+
+          if (league) {
+              // Map Riot Tier to our Ranks (Master+)
+              const tierKey = league.tier.charAt(0).toUpperCase() + league.tier.slice(1).toLowerCase(); // e.g. "Master"
+              
+              // Chỉ chấp nhận Master+ cho Net Wins (nếu logic yêu cầu thế, hoặc cho phép tất cả nhưng auto-select)
+              // Ở đây ta giả sử Net Wins hỗ trợ Master+ là chủ yếu, nhưng nếu rank thấp hơn vẫn cho phép thì cần map thêm.
+              // Tuy nhiên, RANKS constant chỉ có Master, GM, Challenger.
+              const rankExists = RANKS.some(r => r.id === tierKey);
+
+              if (rankExists) {
+                  setSelectedRank(tierKey);
+                  setCurrentLP(league.leaguePoints.toString());
+                  setIsRankVerified(true);
+                  toast.success(`Đã xác thực: ${league.tier} ${league.rank} (${league.leaguePoints} LP)`);
+                  if (!gameUsername) setGameUsername(checkIngame.trim());
+              } else {
+                  toast.warning(`Rank hiện tại là ${league.tier}. Dịch vụ này được tối ưu cho Master+. Vui lòng kiểm tra lại hoặc liên hệ hỗ trợ.`);
+                  setIsRankVerified(false); // Hoặc true nếu muốn cho phép nhưng cảnh báo
+              }
+          } else {
+              toast.warning(`Tài khoản chưa có rank ${queueType === 'SOLO' ? 'Đơn/Đôi' : 'Linh Hoạt'}. Không thể xác thực.`);
+              setIsRankVerified(false);
+          }
+      } catch (e: any) {
+          toast.error(e.message || 'Không tìm thấy người chơi');
+      } finally {
+          setIsChecking(false);
+      }
+  };
 
   // --- PRICING LOGIC ---
   const priceDetails = useMemo(() => {
@@ -230,6 +284,32 @@ function NetWinsContent() {
                         {loadingConfig && <Loader2 className="w-4 h-4 animate-spin text-blue-500" />}
                     </h3>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        {/* Input Check Rank */}
+                        <div className="sm:col-span-3 bg-blue-900/10 border border-blue-500/20 p-4 rounded-xl mb-2">
+                            <label className="text-xs font-bold uppercase text-blue-400 tracking-wider mb-2 block flex items-center gap-2">
+                                <Search className="w-3 h-3" /> Kiểm tra Rank hiện tại (Bắt buộc)
+                            </label>
+                            <div className="flex gap-2">
+                                <input 
+                                    type="text" 
+                                    placeholder="Nhập Riot ID (VD: Faker#KR1)..." 
+                                    className="flex-1 bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white focus:border-blue-500 outline-none"
+                                    value={checkIngame}
+                                    onChange={(e) => setCheckIngame(e.target.value)}
+                                />
+                                <button 
+                                    onClick={handleCheckRank}
+                                    disabled={isChecking}
+                                    className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-bold disabled:opacity-50 flex items-center gap-2"
+                                >
+                                    {isChecking ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Check'}
+                                </button>
+                            </div>
+                            <p className="text-[10px] text-zinc-500 mt-2 italic">
+                                * Hệ thống sẽ tự động cập nhật Rank và LP hiện tại để tính toán chính xác.
+                            </p>
+                        </div>
+
                         {RANKS.map((rank) => {
                             const isSelected = selectedRank === rank.id;
                             const Image = rank.image;
@@ -237,10 +317,11 @@ function NetWinsContent() {
                                 <button
                                     key={rank.id}
                                     onClick={() => setSelectedRank(rank.id)}
+                                    disabled={!isRankVerified} // Khóa chọn tay nếu chưa verify (tùy chọn)
                                     className={`relative p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-3 ${
                                         isSelected 
                                             ? `${rank.bg} ${rank.border} shadow-lg` 
-                                            : 'bg-zinc-950/50 border-zinc-800 hover:border-zinc-700'
+                                            : 'bg-zinc-900/50 border-zinc-800 hover:border-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed'
                                     }`}
                                 >
                                     <img src={Image} alt={rank.label} width={40} height={40} />
@@ -409,9 +490,11 @@ function NetWinsContent() {
                     boosterId={boosterId}
                     priceDetails={priceDetails}
                     platformFee={platformFee}
-                    isValid={isAccountValid && !isLpInvalid}
+                isValid={isAccountValid && !isLpInvalid && isRankVerified}
                     validationMessage={
-                        !isAccountValid && (gameUsername || gamePassword) 
+                    !isRankVerified
+                        ? "Vui lòng nhập Riot ID và bấm 'Check' để xác thực Rank hiện tại."
+                        : !isAccountValid && (gameUsername || gamePassword) 
                             ? "Vui lòng nhập đầy đủ thông tin tài khoản (tối thiểu 3 ký tự)." 
                             : isLpInvalid 
                                 ? "Điểm mong muốn phải lớn hơn điểm hiện tại." 

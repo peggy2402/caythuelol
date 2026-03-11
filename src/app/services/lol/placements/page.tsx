@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useMemo, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useSearchParams } from 'next/navigation';
-import { Loader2, ChevronDown } from 'lucide-react';
+import { useSearchParams, useRouter } from 'next/navigation';
+import { Loader2, ChevronDown, Search } from 'lucide-react';
 import { toast } from 'sonner';
 import AccountInfo from '@/components/services/lol/AccountInfo';
 import ExtraOptions from '@/components/services/lol/ExtraOptions';
@@ -25,6 +25,7 @@ const PLACEMENT_RANKS = [
 function PlacementsContent() {
   const searchParams = useSearchParams();
   const boosterId = searchParams.get('booster');
+  const router = useRouter();
 
   // --- STATE ---
   const [boosterConfig, setBoosterConfig] = useState<any>(null);
@@ -32,9 +33,14 @@ function PlacementsContent() {
   const [platformFee, setPlatformFee] = useState(0);
   
   // Service State
-  const [selectedRank, setSelectedRank] = useState('Silver');
+  const [prevRank, setPrevRank] = useState('Silver');
   const [numGames, setNumGames] = useState(5);
   const [queueType, setQueueType] = useState<'SOLO' | 'FLEX'>('SOLO');
+
+  // Validation State
+  const [checkIngame, setCheckIngame] = useState('');
+  const [isChecking, setIsChecking] = useState(false);
+  const [isRankVerified, setIsRankVerified] = useState(false);
 
   // Account Info State
   const [accountType, setAccountType] = useState('RIOT');
@@ -107,10 +113,9 @@ function PlacementsContent() {
     let priceMap = settings.placementPrices;
     if (queueType === 'FLEX') priceMap = settings.placementPricesFlex || settings.placementPrices;
 
-    // 2. Get Base Price
-    // Key format: P_{RANK}_{GAMES} (e.g., P_SILVER_5)
-    const key = `P_${selectedRank.toUpperCase()}_${numGames}`;
-    const base = priceMap?.[key] ?? settings.placementPrices?.[key] ?? 0;
+    // 2. Get Base Price (Giá mỗi trận dựa trên Rank mùa trước)
+    const pricePerGame = priceMap?.[prevRank] ?? settings.placementPrices?.[prevRank] ?? 0;
+    const base = pricePerGame * numGames;
 
     // 3. Options
     const boosterOptions = settings.options || {};
@@ -157,11 +162,56 @@ function PlacementsContent() {
         platformFeeValue,
         depositAmount: 0 // Fix type error
     };
-  }, [boosterConfig, selectedRank, numGames, queueType, extraOptions, platformFee]);
+  }, [boosterConfig, prevRank, numGames, queueType, extraOptions, platformFee]);
 
   const isAccountValid = useMemo(() => {
     return gameUsername.trim().length >= 3 && gamePassword.trim().length >= 3;
   }, [gameUsername, gamePassword]);
+
+  const handleCheckRank = async () => {
+      if (!checkIngame.trim()) return toast.error('Vui lòng nhập Riot ID (VD: Hide on bush#KR1)');
+      if (!selectedServer) return toast.error('Vui lòng chọn Server trước khi check');
+      
+      setIsChecking(true);
+      try {
+          const res = await fetch('/api/riot/player', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ server: selectedServer, name: checkIngame.trim() })
+          });
+          const data = await res.json();
+          
+          if (!res.ok) throw new Error(data.error);
+
+          const qType = queueType === 'SOLO' ? 'RANKED_SOLO_5x5' : 'RANKED_FLEX_SR';
+          const league = data.leagues.find((l: any) => l.queueType === qType);
+
+          if (league) {
+              // Nếu có rank, tự động chọn rank đó làm "Rank mùa trước"
+              const tierKey = league.tier.charAt(0).toUpperCase() + league.tier.slice(1).toLowerCase();
+              const rankExists = PLACEMENT_RANKS.some(r => r.id === tierKey);
+              if (rankExists) {
+                  setPrevRank(tierKey);
+                  toast.success(`Đã xác thực: ${league.tier} ${league.rank}. Hệ thống đã tự động chọn Rank mùa trước.`);
+              } else {
+                  toast.info(`Rank hiện tại là ${league.tier}, chọn Unranked làm mặc định.`);
+                  setPrevRank('Unranked');
+              }
+          } else {
+              // Nếu chưa có rank -> Đây là tài khoản mới, hoàn hảo cho placements
+              toast.success('Tài khoản hợp lệ để cày phân hạng (Chưa có rank).');
+              setPrevRank('Unranked');
+          }
+
+          setIsRankVerified(true);
+          if (!gameUsername) setGameUsername(checkIngame.trim());
+
+      } catch (e: any) {
+          toast.error(e.message || 'Không tìm thấy người chơi');
+      } finally {
+          setIsChecking(false);
+      }
+  };
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-x-8">
@@ -190,7 +240,34 @@ function PlacementsContent() {
                                 className="overflow-hidden"
                             >
                                 <div className="px-6 pb-6 pt-0 space-y-6">
-                                    {/* Queue Type */}
+                                    {/* Input Check Rank */}
+                                    <div className="bg-blue-900/10 border border-blue-500/20 p-4 rounded-xl">
+                                        <label className="text-xs font-bold uppercase text-blue-400 tracking-wider mb-2 block flex items-center gap-2">
+                                            <Search className="w-3 h-3" /> Kiểm tra tài khoản (Bắt buộc)
+                                        </label>
+                                        <div className="flex gap-2">
+                                            <input 
+                                                type="text" 
+                                                placeholder="Nhập Riot ID (VD: Faker#KR1)..." 
+                                                className="flex-1 bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white focus:border-blue-500 outline-none"
+                                                value={checkIngame}
+                                                onChange={(e) => setCheckIngame(e.target.value)}
+                                            />
+                                            <button 
+                                                onClick={handleCheckRank}
+                                                disabled={isChecking}
+                                                className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-bold disabled:opacity-50 flex items-center gap-2"
+                                            >
+                                                {isChecking ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Check'}
+                                            </button>
+                                        </div>
+                                        <p className="text-[10px] text-zinc-500 mt-2 italic">
+                                            * Hệ thống sẽ tự động chọn Rank mùa trước dựa trên thông tin tài khoản của bạn.
+                                        </p>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        {/* Queue Type */}
                                     <div>
                                         <label className="text-xs font-bold uppercase text-zinc-500 tracking-wider mb-2 block">Loại hàng chờ</label>
                                         <div className="flex bg-zinc-900/50 p-1 rounded-xl border border-white/10">
@@ -209,33 +286,6 @@ function PlacementsContent() {
                                             ))}
                                         </div>
                                     </div>
-
-                                    {/* Rank Selection */}
-                                    <div>
-                                        <label className="text-xs font-bold uppercase text-zinc-500 tracking-wider mb-2 block">Rank mùa trước</label>
-                                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
-                                            {PLACEMENT_RANKS.map((rank) => {
-                                                const isSelected = selectedRank === rank.id;
-                                                return (
-                                                    <button
-                                                        key={rank.id}
-                                                        onClick={() => setSelectedRank(rank.id)}
-                                                        className={`relative p-3 rounded-xl border transition-all flex flex-col items-center gap-2 ${
-                                                            isSelected 
-                                                                ? 'bg-blue-600/10 border-blue-500 shadow-lg' 
-                                                                : 'bg-zinc-900/50 border-zinc-800 hover:border-zinc-700'
-                                                        }`}
-                                                    >
-                                                        <img src={rank.image} alt={rank.label} className="w-10 h-10 object-contain" />
-                                                        <span className={`text-xs font-bold ${isSelected ? 'text-white' : 'text-zinc-400'}`}>{rank.label}</span>
-                                                        {isSelected && <div className="absolute top-2 right-2 w-2 h-2 bg-blue-500 rounded-full shadow-[0_0_8px_rgba(59,130,246,0.8)]" />}
-                                                    </button>
-                                                );
-                                            })}
-                                        </div>
-                                    </div>
-
-                                    {/* Number of Games */}
                                     <div>
                                         <label className="text-xs font-bold uppercase text-zinc-500 tracking-wider mb-2 block">Số trận muốn cày</label>
                                         <div className="flex gap-2">
@@ -252,6 +302,33 @@ function PlacementsContent() {
                                                     {num} Trận
                                                 </button>
                                             ))}
+                                        </div>
+                                    </div>
+                                    </div>
+
+                                    {/* Rank Selection */}
+                                    <div>
+                                        <label className="text-xs font-bold uppercase text-zinc-500 tracking-wider mb-2 block">Rank mùa trước</label>
+                                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+                                            {PLACEMENT_RANKS.map((rank) => {
+                                                const isSelected = prevRank === rank.id;
+                                                return (
+                                                    <button
+                                                        key={rank.id}
+                                                        onClick={() => { if(isRankVerified) setPrevRank(rank.id) }}
+                                                        disabled={!isRankVerified}
+                                                        className={`relative p-3 rounded-xl border transition-all flex flex-col items-center gap-2 ${
+                                                            isSelected 
+                                                                ? 'bg-blue-600/10 border-blue-500 shadow-lg' 
+                                                                : 'bg-zinc-900/50 border-zinc-800 hover:border-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed'
+                                                        }`}
+                                                    >
+                                                        <img src={rank.image} alt={rank.label} className="w-10 h-10 object-contain" />
+                                                        <span className={`text-xs font-bold ${isSelected ? 'text-white' : 'text-zinc-400'}`}>{rank.label}</span>
+                                                        {isSelected && <div className="absolute top-2 right-2 w-2 h-2 bg-blue-500 rounded-full shadow-[0_0_8px_rgba(59,130,246,0.8)]" />}
+                                                    </button>
+                                                );
+                                            })}
                                         </div>
                                     </div>
                                 </div>
@@ -330,11 +407,15 @@ function PlacementsContent() {
                     boosterId={boosterId}
                     priceDetails={priceDetails}
                     platformFee={platformFee}
-                    isValid={isAccountValid}
-                    validationMessage={!isAccountValid && (gameUsername || gamePassword) ? "Vui lòng nhập đầy đủ thông tin tài khoản (tối thiểu 3 ký tự)." : undefined}
+                    isValid={isAccountValid && isRankVerified}
+                    validationMessage={
+                        !isRankVerified
+                            ? "Vui lòng nhập Riot ID và bấm 'Check' để xác thực tài khoản."
+                            : (!isAccountValid ? "Vui lòng nhập đầy đủ thông tin tài khoản." : undefined)
+                    }
                     serviceType="PLACEMENTS"
                     details={{
-                        prev_rank: PLACEMENT_RANKS.find(r => r.id === selectedRank)?.label,
+                        prev_rank: PLACEMENT_RANKS.find(r => r.id === prevRank)?.label,
                         num_games: numGames,
                         server: selectedServer,
                         account_username: gameUsername,
@@ -351,7 +432,7 @@ function PlacementsContent() {
                                 </div>
                                 <div className="flex justify-between text-sm">
                                     <span className="text-zinc-400">Rank mùa trước:</span>
-                                    <span className="text-white font-medium">{PLACEMENT_RANKS.find(r => r.id === selectedRank)?.label}</span>
+                                    <span className="text-white font-medium">{PLACEMENT_RANKS.find(r => r.id === prevRank)?.label}</span>
                                 </div>
                                 <div className="flex justify-between text-sm">
                                     <span className="text-zinc-400">Số trận:</span>

@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useMemo, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useSearchParams } from 'next/navigation';
-import { Loader2, ArrowRight, ChevronDown } from 'lucide-react';
+import { useSearchParams, useRouter } from 'next/navigation';
+import { Loader2, ArrowRight, ChevronDown, Search } from 'lucide-react';
 import { toast } from 'sonner';
 import AccountInfo from '@/components/services/lol/AccountInfo';
 import ExtraOptions from '@/components/services/lol/ExtraOptions';
@@ -23,6 +23,7 @@ const PROMOTION_STEPS = [
 function PromotionContent() {
   const searchParams = useSearchParams();
   const boosterId = searchParams.get('booster');
+  const router = useRouter();
 
   // --- STATE ---
   const [boosterConfig, setBoosterConfig] = useState<any>(null);
@@ -32,6 +33,11 @@ function PromotionContent() {
   // Service State
   const [selectedPromo, setSelectedPromo] = useState(PROMOTION_STEPS[2].id); // Default Silver -> Gold
   const [queueType, setQueueType] = useState<'SOLO' | 'FLEX'>('SOLO');
+
+  // Validation State
+  const [checkIngame, setCheckIngame] = useState('');
+  const [isChecking, setIsChecking] = useState(false);
+  const [isRankVerified, setIsRankVerified] = useState(false);
 
   // Account Info State
   const [accountType, setAccountType] = useState('RIOT');
@@ -158,6 +164,49 @@ function PromotionContent() {
     return gameUsername.trim().length >= 3 && gamePassword.trim().length >= 3;
   }, [gameUsername, gamePassword]);
 
+  const handleCheckRank = async () => {
+      if (!checkIngame.trim()) return toast.error('Vui lòng nhập Riot ID (VD: Hide on bush#KR1)');
+      if (!selectedServer) return toast.error('Vui lòng chọn Server trước khi check');
+      
+      setIsChecking(true);
+      try {
+          const res = await fetch('/api/riot/player', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ server: selectedServer, name: checkIngame.trim() })
+          });
+          const data = await res.json();
+          
+          if (!res.ok) throw new Error(data.error);
+
+          const qType = queueType === 'SOLO' ? 'RANKED_SOLO_5x5' : 'RANKED_FLEX_SR';
+          const league = data.leagues.find((l: any) => l.queueType === qType);
+
+          if (league) {
+              // Map Riot Tier to our Key (e.g. Gold_I)
+              const key = `${league.tier}_${league.rank}`;
+              const promoStep = PROMOTION_STEPS.find(p => p.id === key);
+              
+              if (promoStep) {
+                  setSelectedPromo(key);
+                  setIsRankVerified(true);
+                  toast.success(`Đã xác thực: ${league.tier} ${league.rank}. Hệ thống đã tự động chọn chuỗi phù hợp.`);
+                  if (!gameUsername) setGameUsername(checkIngame.trim());
+              } else {
+                  toast.error(`Rank hiện tại (${league.tier} ${league.rank}) không phải là bậc I. Dịch vụ này chỉ dành cho chuỗi thăng hạng từ bậc I.`);
+                  setIsRankVerified(false);
+              }
+          } else {
+              toast.warning(`Tài khoản chưa có rank ${queueType === 'SOLO' ? 'Đơn/Đôi' : 'Linh Hoạt'}. Không thể xác thực.`);
+              setIsRankVerified(false);
+          }
+      } catch (e: any) {
+          toast.error(e.message || 'Không tìm thấy người chơi');
+      } finally {
+          setIsChecking(false);
+      }
+  };
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-x-8">
             {/* LEFT: Configuration Form */}
@@ -185,6 +234,32 @@ function PromotionContent() {
                                 className="overflow-hidden"
                             >
                                 <div className="px-6 pb-6 pt-0 space-y-6">
+                                    {/* Input Check Rank */}
+                                    <div className="bg-blue-900/10 border border-blue-500/20 p-4 rounded-xl">
+                                        <label className="text-xs font-bold uppercase text-blue-400 tracking-wider mb-2 block flex items-center gap-2">
+                                            <Search className="w-3 h-3" /> Kiểm tra Rank hiện tại (Bắt buộc)
+                                        </label>
+                                        <div className="flex gap-2">
+                                            <input 
+                                                type="text" 
+                                                placeholder="Nhập Riot ID (VD: Faker#KR1)..." 
+                                                className="flex-1 bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white focus:border-blue-500 outline-none"
+                                                value={checkIngame}
+                                                onChange={(e) => setCheckIngame(e.target.value)}
+                                            />
+                                            <button 
+                                                onClick={handleCheckRank}
+                                                disabled={isChecking}
+                                                className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-bold disabled:opacity-50 flex items-center gap-2"
+                                            >
+                                                {isChecking ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Check'}
+                                            </button>
+                                        </div>
+                                        <p className="text-[10px] text-zinc-500 mt-2 italic">
+                                            * Hệ thống sẽ tự động chọn chuỗi thăng hạng phù hợp với Rank của bạn.
+                                        </p>
+                                    </div>
+
                                     {/* Queue Type */}
                                     <div>
                                         <label className="text-xs font-bold uppercase text-zinc-500 tracking-wider mb-2 block">Loại hàng chờ</label>
@@ -214,11 +289,12 @@ function PromotionContent() {
                                                 return (
                                                     <button
                                                         key={step.id}
-                                                        onClick={() => setSelectedPromo(step.id)}
+                                                        onClick={() => { if(isRankVerified) setSelectedPromo(step.id) }}
+                                                        disabled={!isRankVerified}
                                                         className={`relative p-3 sm:p-4 rounded-xl border transition-all flex items-center justify-between group ${
                                                             isSelected 
                                                                 ? 'bg-blue-600/10 border-blue-500 shadow-[0_0_20px_rgba(37,99,235,0.15)]' 
-                                                                : 'bg-zinc-900/40 border-white/5 hover:border-white/10 hover:bg-zinc-900/60'
+                                                                : 'bg-zinc-900/40 border-white/5 hover:border-white/10 hover:bg-zinc-900/60 disabled:opacity-50 disabled:cursor-not-allowed'
                                                         }`}
                                                     >
                                                         <div className="flex items-center gap-3 sm:gap-4">
@@ -315,8 +391,12 @@ function PromotionContent() {
                     boosterId={boosterId}
                     priceDetails={priceDetails}
                     platformFee={platformFee}
-                    isValid={isAccountValid}
-                    validationMessage={!isAccountValid && (gameUsername || gamePassword) ? "Vui lòng nhập đầy đủ thông tin tài khoản (tối thiểu 3 ký tự)." : undefined}
+                    isValid={isAccountValid && isRankVerified}
+                    validationMessage={
+                        !isRankVerified
+                            ? "Vui lòng nhập Riot ID và bấm 'Check' để xác thực Rank."
+                            : (!isAccountValid ? "Vui lòng nhập đầy đủ thông tin tài khoản." : undefined)
+                    }
                     serviceType="PROMOTION"
                     details={{
                         promo_from: PROMOTION_STEPS.find(s => s.id === selectedPromo)?.from,

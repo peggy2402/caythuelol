@@ -301,9 +301,12 @@ function RankBoostContent() {
     };
   }, [currentTier, desiredTier, lpGain, queueType, boosterConfig, platformFee, extraOptions]);
 
+  // Validation Logic: Account + Rank Check
   const isAccountValid = useMemo(() => {
     return gameUsername.trim().length >= 3 && gamePassword.trim().length >= 3;
   }, [gameUsername, gamePassword]);
+
+  const isRankVerified = verifiedRankIndex > -1; // Bắt buộc phải Check Rank thành công (index >= 0)
 
   const currentTierIndex = FLAT_TIERS.findIndex(t => t.key === currentTier);
 
@@ -459,8 +462,12 @@ function RankBoostContent() {
                 depositAmount: priceDetails.depositAmount
             } : null}
             platformFee={platformFee}
-            isValid={isAccountValid}
-            validationMessage={!isAccountValid && (gameUsername || gamePassword) ? "Vui lòng nhập đầy đủ thông tin tài khoản." : undefined}
+            isValid={isAccountValid && isRankVerified}
+            validationMessage={
+                !isRankVerified 
+                    ? "Vui lòng nhập Riot ID và bấm 'Check' để xác thực Rank hiện tại trước khi thuê."
+                    : (!isAccountValid ? "Vui lòng nhập đầy đủ thông tin tài khoản." : undefined)
+            }
             serviceType="RANK_BOOST"
             details={{
                 current_rank: FLAT_TIERS.find(t => t.key === currentTier)?.label,
