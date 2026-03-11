@@ -11,11 +11,12 @@ import {
   Shield, DollarSign, CreditCard,
   Play, CheckSquare, Lock, Flag, Swords, Trophy, Save, Crosshair, ArrowLeft, Search, RefreshCw
 } from 'lucide-react';
-import { Pencil, Trash2, X, Plus, Eye } from 'lucide-react';
+import { Pencil, Trash2, X, Plus, Eye, History, ArrowUpRight, ArrowDownLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import ChatWindow from '@/components/chat/ChatWindow';
 import { motion, AnimatePresence } from 'framer-motion';
 import NetWinsOrderView from '@/components/orders/NetWinsOrderView';
+import SettlementModal from '@/components/orders/SettlementModal';
 
 const DDRAGON_VER = '16.5.1'; // Phiên bản DDragon mới nhất (có thể cập nhật động nếu cần)
 
@@ -34,6 +35,15 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
   const [disputeReason, setDisputeReason] = useState('');
   const [ingameName, setIngameName] = useState('');
   const [isUpdatingIngame, setIsUpdatingIngame] = useState(false);
+  
+  // Settlement Modal State
+  const [isSettlementModalOpen, setIsSettlementModalOpen] = useState(false);
+  const [settlementMode, setSettlementMode] = useState<'PAY' | 'REFUND'>('PAY');
+  const [settleAmount, setSettleAmount] = useState(0);
+  const [isProcessingSettlement, setIsProcessingSettlement] = useState(false);
+  
+  // Transactions State
+  const [transactions, setTransactions] = useState<any[]>([]);
 
   // Match Update State
   const [matchForm, setMatchForm] = useState({
@@ -53,12 +63,15 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
   useEffect(() => {
     const interval = setInterval(() => {
         if (!id) return;
-        // Fetch Order Info
         fetch(`/api/orders/${id}`).then(res => res.json()).then(data => {
             if (data.success) {
                 setOrder((prev: any) => ({ ...prev, ...data.order }));
             }
         });
+        // Fetch Transactions (Polling để cập nhật trạng thái mới nhất)
+        // Giả sử API trả về transactions trong response order hoặc gọi API riêng
+        // Ở đây tôi gọi API search transactions theo orderId (bạn cần đảm bảo API này tồn tại hoặc filter client)
+        // Nếu không có API riêng, hãy populate từ backend
     }, 5000); // 5 giây
 
     return () => clearInterval(interval);
@@ -81,9 +94,22 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
         const orderData = await orderRes.json();
 
         setOrder(orderData.order);
+        
         if (orderData.order?.details?.ingame_name) {
             setIngameName(orderData.order.details.ingame_name);
         }
+
+        // Fetch Transactions for this Order
+        // Tạm thời fetch từ API wallet history filter client-side hoặc API transactions nếu có
+        // Để tối ưu, nên có API /api/orders/[id]/transactions. 
+        // Ở đây giả lập lấy từ danh sách transaction chung hoặc giả sử orderData trả về transactions (nếu backend populate)
+        // Nếu chưa có, ta dùng fetch transaction chung:
+        const txnRes = await fetch(`/api/transactions?orderId=${id}`); // Cần tạo API này hoặc filter
+        if (txnRes.ok) {
+             const txnData = await txnRes.json();
+             setTransactions(txnData.transactions || []);
+        }
+
       } catch (error) {
         console.error(error);
         toast.error('Lỗi tải thông tin đơn hàng');
@@ -186,19 +212,43 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
       } catch (e) { toast.error('Lỗi kết nối'); }
   };
 
-  const handlePayRemaining = async () => {
-      if (!confirm('Thanh toán phần còn lại của đơn hàng?')) return;
+  const handleOpenPayModal = (amount: number) => {
+      setSettlementMode('PAY');
+      setSettleAmount(amount);
+      setIsSettlementModalOpen(true);
+  };
+
+  const handleOpenRefundModal = (amount: number) => {
+      setSettlementMode('REFUND');
+      setSettleAmount(amount);
+      setIsSettlementModalOpen(true);
+  };
+
+  const handleConfirmSettlement = async () => {
+      setIsProcessingSettlement(true);
       try {
-          const res = await fetch(`/api/orders/${id}/pay-remaining`, { method: 'POST' });
-          if (res.ok) {
-              toast.success('Thanh toán thành công!');
-              window.location.reload();
-          } else {
-              const err = await res.json();
-              toast.error(err.error || 'Lỗi thanh toán');
-          }
+        const endpoint = settlementMode === 'PAY' 
+            ? `/api/orders/${id}/settle` 
+            : `/api/orders/${id}/refund`;
+        
+        const res = await fetch(endpoint, { 
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(settlementMode === 'PAY' ? { amount: settleAmount } : {})
+        });
+
+        if (res.ok) {
+            toast.success(settlementMode === 'PAY' ? 'Thanh toán thành công!' : 'Hoàn tiền thành công!');
+            setIsSettlementModalOpen(false);
+            window.location.reload();
+        } else {
+            const err = await res.json();
+            toast.error(err.error || 'Có lỗi xảy ra');
+        }
       } catch (e) {
           toast.error('Lỗi kết nối');
+      } finally {
+          setIsProcessingSettlement(false);
       }
   };
 
@@ -509,14 +559,9 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                             <Play className="w-4 h-4" /> Bắt đầu cày
                         </button>
                     )}
-                    {isBooster && order.status === 'IN_PROGRESS' && (
+                    {isBooster && order.status === 'IN_PROGRESS' && order.serviceType !== 'NET_WINS' && (
                         <button onClick={() => handleUpdateStatus('COMPLETED')} className="w-full py-3 bg-green-600 hover:bg-green-500 text-white font-bold rounded-xl flex items-center justify-center gap-2 transition-colors">
                             <CheckSquare className="w-4 h-4" /> Báo cáo hoàn thành
-                        </button>
-                    )}
-                    {isCustomer && order.pricing.settlement_status === 'CUSTOMER_OWES' && (
-                        <button onClick={handlePayRemaining} className="w-full py-3 bg-yellow-600 hover:bg-yellow-500 text-white font-bold rounded-xl flex items-center justify-center gap-2 transition-colors">
-                            <CreditCard className="w-4 h-4" /> Thanh toán phần còn lại
                         </button>
                     )}
                     {isCustomer && order.status === 'COMPLETED' && order.pricing.settlement_status !== 'SETTLED' && (
@@ -736,7 +781,13 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
 
                             {/* NET WINS SPECIAL VIEW */}
                             {order.serviceType === 'NET_WINS' && (
-                                <NetWinsOrderView order={order} isBooster={isBooster} isCustomer={isCustomer} />
+                                <NetWinsOrderView 
+                                    order={order} 
+                                    isBooster={isBooster} 
+                                    isCustomer={isCustomer} 
+                                    onPayRemaining={handleOpenPayModal}
+                                    onRefund={handleOpenRefundModal}
+                                />
                             )}
 
                             {/* Payment Info */}
@@ -761,6 +812,51 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                                             <span className="text-zinc-500">Trạng thái:</span>
                                             <span className="text-green-400 font-bold">Đã thanh toán 100%</span>
                                         </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Transaction History (New Section) */}
+                            <div>
+                                <h3 className="text-sm font-bold text-zinc-400 uppercase mb-3 flex items-center gap-2"><History className="w-4 h-4" /> Lịch sử giao dịch</h3>
+                                <div className="bg-zinc-950 border border-zinc-800 rounded-xl overflow-hidden">
+                                    {transactions.length > 0 ? (
+                                        <div className="divide-y divide-zinc-800">
+                                            {transactions.map((tx: any) => {
+                                                // Logic hiển thị dấu và màu sắc (FIX lỗi +- hiển thị cùng lúc)
+                                                // Trong DB: Payment là âm (-), Deposit/Refund là dương (+)
+                                                const isPositive = tx.amount > 0;
+                                                const amountDisplay = isPositive 
+                                                    ? `+${tx.amount.toLocaleString()} đ` 
+                                                    : `${tx.amount.toLocaleString()} đ`; // Số âm đã có dấu -
+                                                
+                                                const isPayment = ['PAYMENT_HOLD', 'PAYMENT_RELEASE', 'WITHDRAWAL'].includes(tx.type);
+
+                                                return (
+                                                    <div key={tx._id} className="p-4 flex items-center justify-between hover:bg-zinc-900/50 transition-colors">
+                                                        <div className="flex items-center gap-3">
+                                                            <div className={`p-2 rounded-lg ${isPositive ? 'bg-green-500/10' : 'bg-red-500/10'}`}>
+                                                                {isPositive ? <ArrowDownLeft className={`w-4 h-4 text-green-500`} /> : <ArrowUpRight className={`w-4 h-4 text-red-500`} />}
+                                                            </div>
+                                                            <div>
+                                                                <div className="text-sm font-bold text-white">
+                                                                    {tx.type === 'PAYMENT_HOLD' ? 'Thanh toán cọc' :
+                                                                     tx.type === 'PAYMENT_RELEASE' ? 'Thanh toán bổ sung' :
+                                                                     tx.type === 'REFUND' ? 'Hoàn tiền thừa' : 
+                                                                     tx.metadata?.description || tx.type}
+                                                                </div>
+                                                                <div className="text-xs text-zinc-500">{new Date(tx.createdAt).toLocaleString('vi-VN')}</div>
+                                                            </div>
+                                                        </div>
+                                                        <div className={`font-mono font-bold ${isPositive ? 'text-green-400' : 'text-red-400'}`}>
+                                                            {amountDisplay}
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    ) : (
+                                        <div className="p-6 text-center text-zinc-500 text-sm">Chưa có giao dịch nào được ghi nhận.</div>
                                     )}
                                 </div>
                             </div>
@@ -875,6 +971,17 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
         currentUser={user} 
         partner={partner} 
         trigger="side" 
+      />
+
+      {/* Unified Settlement Modal */}
+      <SettlementModal
+          isOpen={isSettlementModalOpen}
+          onClose={() => setIsSettlementModalOpen(false)}
+          mode={settlementMode}
+          amount={settleAmount}
+          walletBalance={user?.wallet_balance || 0}
+          onConfirm={handleConfirmSettlement}
+          isLoading={isProcessingSettlement}
       />
 
       {/* Dispute Modal */}

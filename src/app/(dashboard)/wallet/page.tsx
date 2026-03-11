@@ -416,23 +416,27 @@ export default function WalletPage() {
                  ))
               ) : transactions.length > 0 ? (
                 transactions.map((tx) => (
-                  <tr key={tx._id} className="hover:bg-zinc-800/50 transition-colors">
+                  <tr key={tx._id} className="hover:bg-zinc-800/50 transition-colors group">
                     <td className="px-6 py-4 text-zinc-400">
                       {new Date(tx.createdAt).toLocaleDateString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
                     </td>
                     <td className="px-6 py-4 text-white font-medium">
-                      {tx.description}
+                      {/* Ưu tiên hiển thị description từ metadata, nếu không có thì lấy description gốc hoặc type */}
+                      {tx.metadata?.description || tx.description || tx.type}
                       {tx.type === 'WITHDRAWAL' && (
                         <div className="text-xs text-zinc-500 mt-1">
                           Thực nhận: <span className="text-zinc-300">{formatCurrency(Math.abs(tx.amount) - (tx.metadata?.fee || 0))}</span> • Phí: <span className="text-zinc-300">{formatCurrency(tx.metadata?.fee || 0)}</span>
                         </div>
                       )}
                     </td>
-                    <td className={`px-6 py-4 font-bold ${
-                      tx.type === 'DEPOSIT' || tx.type === 'PAYMENT_RELEASE' || tx.type === 'REFUND' ? 'text-green-500' : 'text-red-500'
-                    }`}>
-                      {['DEPOSIT', 'PAYMENT_RELEASE', 'REFUND'].includes(tx.type) ? '+' : ''}{formatCurrency(tx.amount)}
+                    
+                    {/* LOGIC HIỂN THỊ SỐ TIỀN & MÀU SẮC CHUẨN XÁC */}
+                    <td className="px-6 py-4">
+                      <span className={`font-bold font-mono ${tx.amount > 0 ? 'text-green-500' : 'text-red-500'}`}>
+                        {tx.amount > 0 ? '+' : ''}{formatCurrency(tx.amount)}
+                      </span>
                     </td>
+
                     <td className="px-6 py-4">
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                         tx.status === 'SUCCESS' ? 'bg-green-500/10 text-green-500' :
@@ -481,7 +485,9 @@ export default function WalletPage() {
                 <div key={tx._id} className="p-4 border-b border-zinc-800 last:border-0 hover:bg-zinc-800/50 transition-colors">
                   <div className="flex justify-between items-start gap-3">
                     <div className="flex-1">
-                      <div className="text-sm font-bold text-white mb-1 break-words">{tx.description}</div>
+                      <div className="text-sm font-bold text-white mb-1 break-words">
+                          {tx.metadata?.description || tx.description || tx.type}
+                      </div>
                       <div className="text-xs text-zinc-500 mb-1">
                         {new Date(tx.createdAt).toLocaleDateString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
                       </div>
@@ -492,10 +498,8 @@ export default function WalletPage() {
                       )}
                     </div>
                     <div className="text-right shrink-0">
-                      <div className={`text-sm font-bold mb-1 ${
-                        ['DEPOSIT', 'PAYMENT_RELEASE', 'REFUND'].includes(tx.type) ? 'text-green-500' : 'text-red-500'
-                      }`}>
-                        {['DEPOSIT', 'PAYMENT_RELEASE', 'REFUND'].includes(tx.type) ? '+' : ''}{formatCurrency(tx.amount)}
+                      <div className={`text-sm font-bold mb-1 font-mono ${tx.amount > 0 ? 'text-green-500' : 'text-red-500'}`}>
+                        {tx.amount > 0 ? '+' : ''}{formatCurrency(tx.amount)}
                       </div>
                       <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium ${
                         tx.status === 'SUCCESS' ? 'bg-green-500/10 text-green-500' :

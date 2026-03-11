@@ -1,16 +1,18 @@
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
-import { CheckCircle2, AlertCircle, TrendingUp, DollarSign, Info } from 'lucide-react';
+import { CheckCircle2, AlertCircle, TrendingUp, DollarSign, Info, AlertTriangle, Wallet, RefreshCcw } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 interface NetWinsOrderViewProps {
   order: any;
   isBooster: boolean;
   isCustomer: boolean;
+  onPayRemaining?: (amount: number) => void;
+  onRefund?: (amount: number) => void;
 }
 
-export default function NetWinsOrderView({ order, isBooster, isCustomer }: NetWinsOrderViewProps) {
+export default function NetWinsOrderView({ order, isBooster, isCustomer, onPayRemaining, onRefund }: NetWinsOrderViewProps) {
   const { details, pricing, match_history } = order;
   const { calc_mode, start_lp, target_lp, num_games, unit_price_per_lp, modifier_pct } = details;
   
@@ -120,6 +122,7 @@ export default function NetWinsOrderView({ order, isBooster, isCustomer }: NetWi
     const actualTotal = Math.round(actualBasePrice + eloFeeValue + actualOptionsFee + actualPlatformFee);
     const paidDeposit = pricing.deposit_amount || 0;
     const remaining = Math.round(actualTotal - paidDeposit);
+    const boosterReceive = Math.round(actualBasePrice + eloFeeValue + actualOptionsFee); // Thu nhập thực của Booster (Trước khi trừ tạm ứng)
 
     return {
         actualBasePrice,
@@ -127,13 +130,27 @@ export default function NetWinsOrderView({ order, isBooster, isCustomer }: NetWi
         actualOptionsFee,
         actualPlatformFee,
         actualTotal,
+        boosterReceive,
         paidDeposit,
         remaining,
         progressText,
         progressPercent,
-        status: remaining > 0 ? 'OWE' : remaining < 0 ? 'REFUND' : 'SETTLED'
+        status: remaining > 0 ? 'OWE' : remaining < 0 ? 'REFUND' : 'SETTLED',
+        isLowEarnings: boosterReceive <= 0 // Cảnh báo nếu thu nhập <= 0
     };
   }, [details, pricing, match_history, calc_mode, order.options, boosterData]);
+
+  const handlePayRemaining = () => {
+      if (onPayRemaining) {
+          onPayRemaining(settlement.remaining);
+      }
+  };
+
+  const handleRefund = () => {
+      if (onRefund) {
+          onRefund(Math.abs(settlement.remaining));
+      }
+  };
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -227,6 +244,27 @@ export default function NetWinsOrderView({ order, isBooster, isCustomer }: NetWi
                     </div>
                 </div>
 
+                {/* Hiển thị Thực nhận dành riêng cho Booster */}
+                {isBooster && (
+                    <div className="flex justify-between items-center p-3 bg-emerald-900/10 rounded-xl border border-emerald-500/20">
+                        <span className="text-emerald-200 font-medium">Số tiền về ví:</span>
+                        <span className="text-emerald-400 font-bold text-lg">{settlement.boosterReceive.toLocaleString()} đ</span>
+                    </div>
+                )}
+
+                {/* Cảnh báo thu nhập thấp cho Booster */}
+                {isBooster && settlement.isLowEarnings && (
+                    <div className="flex gap-3 p-3 bg-orange-900/20 rounded-xl border border-orange-500/50">
+                        <AlertTriangle className="w-5 h-5 text-orange-500 shrink-0" />
+                        <div className="text-sm">
+                            <span className="text-orange-200 font-bold block mb-1">Cảnh báo thu nhập thấp!</span>
+                            <span className="text-orange-300/80">
+                                Do số trận thua (Loss) quá nhiều, thu nhập thực tế của bạn đang ở mức thấp hoặc âm ({settlement.boosterReceive.toLocaleString()} đ).
+                            </span>
+                        </div>
+                    </div>
+                )}
+
                 <div className="flex justify-between items-center p-3 bg-zinc-950/50 rounded-xl border border-zinc-800">
                     <span className="text-zinc-400">Đã đặt cọc ({Math.round((pricing.deposit_amount / pricing.total_amount) * 100)}%):</span>
                     <span className="text-yellow-500 font-bold">- {settlement.paidDeposit.toLocaleString()} đ</span>
@@ -235,22 +273,54 @@ export default function NetWinsOrderView({ order, isBooster, isCustomer }: NetWi
                 <div className="border-t border-zinc-800 my-2"></div>
 
                 {settlement.status === 'OWE' && (
-                    <div className="flex justify-between items-center p-4 bg-red-900/10 rounded-xl border border-red-500/30 animate-pulse">
-                        <div className="flex items-center gap-2">
-                            <AlertCircle className="w-5 h-5 text-red-500" />
-                            <span className="text-red-200 font-bold">Khách cần thanh toán thêm:</span>
+                    <div className="flex flex-col gap-3 p-4 bg-red-900/10 rounded-xl border border-red-500/30 animate-pulse">
+                        <div className="flex justify-between items-center">
+                            <div className="flex items-center gap-2">
+                                <AlertCircle className="w-5 h-5 text-red-500" />
+                                <span className="text-red-200 font-bold">
+                                    {isCustomer ? 'Bạn cần trả thêm:' : 'Khách cần thanh toán thêm:'}
+                                </span>
+                            </div>
+                            <span className="text-red-400 font-black text-xl">{settlement.remaining.toLocaleString()} đ</span>
                         </div>
-                        <span className="text-red-400 font-black text-xl">{settlement.remaining.toLocaleString()} đ</span>
+                        
+                        {/* Nút thanh toán dành cho khách hàng */}
+                        {isCustomer && (
+                            <button 
+                                onClick={handlePayRemaining}
+                                className="w-full mt-1 py-2.5 px-4 bg-red-600 hover:bg-red-500 text-white font-bold rounded-lg flex items-center justify-center gap-2 transition-all shadow-lg shadow-red-900/20 active:scale-[0.98]"
+                            >
+                                <Wallet className="w-4 h-4" />
+                                Thanh toán ngay
+                            </button>
+                        )}
                     </div>
                 )}
 
                 {settlement.status === 'REFUND' && (
-                    <div className="flex justify-between items-center p-4 bg-green-900/10 rounded-xl border border-green-500/30">
-                        <div className="flex items-center gap-2">
-                            <CheckCircle2 className="w-5 h-5 text-green-500" />
-                            <span className="text-green-200 font-bold">Hoàn lại cho khách:</span>
+                    <div className="flex flex-col gap-3 p-4 bg-green-900/10 rounded-xl border border-green-500/30">
+                        <div className="flex justify-between items-center">
+                            <div className="flex items-center gap-2">
+                                <CheckCircle2 className="w-5 h-5 text-green-500" />
+                                <span className="text-green-200 font-bold">
+                                    {isCustomer 
+                                        ? 'Bạn được hoàn lại:' 
+                                        : (isBooster ? 'Bạn cần hoàn lại:' : 'Hoàn lại cho khách:')}
+                                </span>
+                            </div>
+                            <span className="text-green-400 font-black text-xl">{Math.abs(settlement.remaining).toLocaleString()} đ</span>
                         </div>
-                        <span className="text-green-400 font-black text-xl">{Math.abs(settlement.remaining).toLocaleString()} đ</span>
+                        
+                        {/* Nút hoàn tiền dành cho Booster */}
+                        {isBooster && (
+                            <button 
+                                onClick={handleRefund}
+                                className="w-full mt-1 py-2.5 px-4 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-lg flex items-center justify-center gap-2 transition-all shadow-lg shadow-emerald-900/20 active:scale-[0.98]"
+                            >
+                                <RefreshCcw className="w-4 h-4" />
+                                Xác nhận hoàn tiền
+                            </button>
+                        )}
                     </div>
                 )}
 

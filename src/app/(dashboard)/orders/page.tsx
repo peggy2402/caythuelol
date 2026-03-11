@@ -111,6 +111,7 @@ export default function OrdersPage() {
                   <div className={`p-3 rounded-lg ${
                     order.status === 'COMPLETED' ? 'bg-green-500/10 text-green-500' :
                     order.status === 'IN_PROGRESS' ? 'bg-blue-500/10 text-blue-500' :
+                    order.status === 'APPROVED' ? 'bg-purple-500/10 text-purple-500' :
                     'bg-zinc-800 text-zinc-400'
                   }`}>
                     {order.status === 'COMPLETED' ? <CheckCircle2 className="w-6 h-6" /> :
@@ -145,6 +146,7 @@ export default function OrdersPage() {
                   <div className={`px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider ${
                     order.status === 'COMPLETED' ? 'bg-green-500/10 text-green-500 border border-green-500/20' :
                     order.status === 'IN_PROGRESS' ? 'bg-blue-500/10 text-blue-500 border border-blue-500/20' :
+                    order.status === 'APPROVED' ? 'bg-purple-500/10 text-purple-500 border border-purple-500/20' :
                     ['REJECTED', 'REFUNDED', 'DISPUTED'].includes(order.status) ? 'bg-red-500/10 text-red-500 border border-red-500/20' :
                     order.status === 'PENDING_PAYMENT' ? 'bg-yellow-500/10 text-yellow-500 border border-yellow-500/20' :
                     'bg-zinc-800 text-zinc-400 border border-zinc-700'
