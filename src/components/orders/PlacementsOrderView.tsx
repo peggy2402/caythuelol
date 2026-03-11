@@ -3,6 +3,7 @@
 import { useMemo } from 'react';
 import { CheckCircle2, XCircle, Gamepad2, ShieldCheck } from 'lucide-react';
 import { motion } from 'framer-motion';
+import SparklineChart from '@/components/SparklineChart';
 
 interface PlacementsOrderViewProps {
   order: any;
@@ -18,6 +19,17 @@ export default function PlacementsOrderView({ order }: PlacementsOrderViewProps)
     const wins = matches.filter((m: any) => m.result === 'WIN').length;
     const losses = matches.filter((m: any) => m.result === 'LOSS').length;
     return { wins, losses, matches };
+  }, [match_history]);
+
+  // --- Dữ liệu cho biểu đồ Win Rate ---
+  const winRateTrend = useMemo(() => {
+      if (!match_history || match_history.length === 0) return [];
+      let wins = 0;
+      return match_history.map((m: any, idx: number) => {
+          if (m.result === 'WIN') wins++;
+          const total = idx + 1;
+          return Math.round((wins / total) * 100);
+      });
   }, [match_history]);
 
   return (
@@ -85,6 +97,17 @@ export default function PlacementsOrderView({ order }: PlacementsOrderViewProps)
                     </div>
                 </div>
             </div>
+
+            {/* Win Rate Sparkline */}
+            {winRateTrend.length > 1 && (
+                <div className="mt-6 pt-4 border-t border-zinc-800">
+                    <div className="flex justify-between items-center mb-2">
+                        <span className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Tỉ lệ thắng (Win Rate)</span>
+                        <span className="text-xs font-bold text-purple-400">{winRateTrend[winRateTrend.length - 1]}%</span>
+                    </div>
+                    <SparklineChart data={winRateTrend} color="#a855f7" height={40} />
+                </div>
+            )}
         </div>
 
         {/* Commitment Badge */}

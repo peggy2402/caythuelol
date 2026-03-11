@@ -5,6 +5,7 @@ import { useMemo, useEffect, useState } from 'react';
 import { CheckCircle2, XCircle, TrendingUp, Target, ShieldCheck, PartyPopper, AlertTriangle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import confetti from 'canvas-confetti';
+import SparklineChart from '@/components/SparklineChart';
 
 interface PromotionOrderViewProps {
   order: any;
@@ -60,6 +61,17 @@ export default function PromotionOrderView({ order }: PromotionOrderViewProps) {
     const wins = matches.filter((m: any) => m.result === 'WIN').length;
     const losses = matches.filter((m: any) => m.result === 'LOSS').length;
     return { wins, losses, matches };
+  }, [match_history]);
+
+  // --- Dữ liệu Momentum (Net Wins Trend) ---
+  // Thắng +1, Thua -1. Để xem đà tâm lý.
+  const momentumData = useMemo(() => {
+      if (!match_history || match_history.length === 0) return [];
+      let score = 0;
+      return match_history.map((m: any) => {
+          score += (m.result === 'WIN' ? 1 : -1);
+          return score;
+      });
   }, [match_history]);
 
   return (
@@ -163,6 +175,16 @@ export default function PromotionOrderView({ order }: PromotionOrderViewProps) {
                     <div className="text-lg font-black text-yellow-400 mt-1 text-center">{promo_to || 'N/A'}</div>
                 </div>
             </div>
+
+            {/* Momentum Chart */}
+            {momentumData.length > 1 && (
+                <div className="mt-6 pt-4 border-t border-zinc-800">
+                    <div className="flex justify-between items-center mb-2">
+                        <span className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Phong độ (Momentum)</span>
+                    </div>
+                    <SparklineChart data={momentumData} color="#eab308" height={40} />
+                </div>
+            )}
         </div>
 
         {/* Commitment Badge */}

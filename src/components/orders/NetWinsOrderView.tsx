@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { CheckCircle2, AlertCircle, TrendingUp, DollarSign, Info, AlertTriangle, Wallet, RefreshCcw } from 'lucide-react';
 import { motion } from 'framer-motion';
+import SparklineChart from '@/components/SparklineChart';
 
 interface NetWinsOrderViewProps {
   order: any;
@@ -159,6 +160,19 @@ export default function NetWinsOrderView({ order, isBooster, isCustomer, onPayRe
       }
   };
 
+  // --- Dữ liệu cho biểu đồ Sparkline ---
+  const lpTrendData = useMemo(() => {
+      if (!match_history || match_history.length === 0) return [];
+      let cumulative = 0;
+      // Bắt đầu từ 0
+      const data = [0];
+      match_history.forEach((m: any) => {
+          cumulative += (parseInt(m.lp_change) || 0);
+          data.push(cumulative);
+      });
+      return data;
+  }, [match_history]);
+
   // Logic: Chỉ hiển thị quyết toán khi đã có trận đấu (để tránh hiển thị phí Streaming/Options khi chưa cày)
   const hasMatches = order.match_history && order.match_history.length > 0;
 
@@ -226,6 +240,19 @@ export default function NetWinsOrderView({ order, isBooster, isCustomer, onPayRe
                     </div>
                 </div>
             </div>
+            
+            {/* Sparkline Chart */}
+            {hasMatches && lpTrendData.length > 1 && (
+                <div className="mt-6 pt-4 border-t border-zinc-800">
+                    <div className="flex justify-between items-center mb-2">
+                        <span className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Biểu đồ tích lũy LP</span>
+                        <span className={`text-xs font-bold ${lpTrendData[lpTrendData.length - 1] >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                            {lpTrendData[lpTrendData.length - 1] > 0 ? '+' : ''}{lpTrendData[lpTrendData.length - 1]} LP
+                        </span>
+                    </div>
+                    <SparklineChart data={lpTrendData} color={lpTrendData[lpTrendData.length - 1] >= 0 ? '#4ade80' : '#f87171'} height={50} />
+                </div>
+            )}
         </div>
 
         {/* 2. Settlement Preview (Real-time Money) */}

@@ -16,6 +16,7 @@ import { toast } from 'sonner';
 import ChatWindow from '@/components/chat/ChatWindow';
 import { motion, AnimatePresence } from 'framer-motion';
 import NetWinsOrderView from '@/components/orders/NetWinsOrderView';
+import RankBoostOrderView from '@/components/orders/RankBoostOrderView';
 import PromotionOrderView from '@/components/orders/PromotionOrderView';
 import PlacementsOrderView from '@/components/orders/PlacementsOrderView';
 import MasteryOrderView from '@/components/orders/MasteryOrderView';
@@ -839,6 +840,11 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                                     onPayRemaining={handleOpenPayModal}
                                     onRefund={handleOpenRefundModal}
                                 />
+                            )}
+
+                            {/* RANK BOOST SPECIAL VIEW (NEW) */}
+                            {order.serviceType === 'RANK_BOOST' && (
+                                <RankBoostOrderView order={order} />
                             )}
 
                             {/* PROMOTION SPECIAL VIEW */}
