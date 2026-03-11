@@ -750,3 +750,26 @@ caythuelol/
 
 - **Code Cleanup:**
   - **Sidebar:** Removed accidental code duplication in `Sidebar.tsx` that caused syntax errors.
+
+27. 2026-03-11 — Booster Profile Refactor, Order Visuals & Validation
+
+- **Booster Profile Overhaul:**
+  - **Refactoring:** Tách `BoosterProfileView` ra khỏi `page.tsx` thành component riêng (`src/components/BoosterProfileView.tsx`) để khắc phục lỗi build Next.js (Export named export from page).
+  - **Public Profile (`/b/[username]`):** Nâng cấp trang hồ sơ công khai với Server Components:
+    - **SEO:** Metadata động (Title, Description, OpenGraph) dựa trên thông tin Booster.
+    - **Features:** Tích hợp `BoosterReviewList` (Danh sách đánh giá), `RelatedBoosters` (Booster tương tự), và biểu đồ Win Rate.
+    - **Data:** Serialize dữ liệu Mongoose (`lean()`) trước khi truyền xuống Client Components để tránh lỗi "Plain object".
+
+- **Order Management & Visualization:**
+  - **Specific Order Views:** Xây dựng các component hiển thị chi tiết riêng biệt cho từng loại dịch vụ trong trang `OrderDetails`:
+    - `NetWinsOrderView`, `RankBoostOrderView`, `PromotionOrderView`, `PlacementsOrderView`, `MasteryOrderView`, `LevelingOrderView`, `OnBetOrderView`, `CoachingOrderView`.
+  - **Visuals:** Thêm `SparklineChart` để vẽ biểu đồ biến động LP, Tỉ lệ thắng, và Phong độ (Momentum) ngay trong chi tiết đơn hàng.
+  - **Net Wins Logic:** Cập nhật lại logic tính toán quyết toán cho chế độ "Cày theo trận" (BY_GAMES): Tính tiền dựa trên tổng LP thực tế đạt được thay vì ước tính trung bình.
+
+- **Service Booking Validation:**
+  - **Rank Verification:** Triển khai tính năng "Kiểm tra Rank" (Riot ID) bắt buộc tại các trang dịch vụ (`Rank Boost`, `Promotion`, `Placements`, `Net Wins`).
+  - **Logic:** Chặn đặt đơn nếu khách hàng chưa xác thực Rank hoặc chọn Rank thấp hơn thực tế (đối với Rank Boost).
+
+- **Wallet & Realtime:**
+  - **Socket.io:** Tối ưu hóa kết nối Socket trong `Navbar` và `WalletPage` để cập nhật số dư và thông báo ngay lập tức.
+  - **Wallet Page:** Fix lỗi hiển thị trùng lặp giao dịch và cải thiện UI/UX (Skeleton loading).
