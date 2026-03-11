@@ -11,13 +11,13 @@ import PaymentSummary from '@/components/services/lol/PaymentSummary';
  
 
 const PROMOTION_STEPS = [
-  { id: 'Iron_I', label: 'Sắt I ➜ Đồng IV', from: 'Sắt I', to: 'Đồng IV', color: 'text-zinc-400', image: '/images/ranks/iron.png' },
-  { id: 'Bronze_I', label: 'Đồng I ➜ Bạc IV', from: 'Đồng I', to: 'Bạc IV', color: 'text-orange-700', image: '/images/ranks/bronze.png' },
-  { id: 'Silver_I', label: 'Bạc I ➜ Vàng IV', from: 'Bạc I', to: 'Vàng IV', color: 'text-zinc-300', image: '/images/ranks/silver.png' },
-  { id: 'Gold_I', label: 'Vàng I ➜ Bạch Kim IV', from: 'Vàng I', to: 'Bạch Kim IV', color: 'text-yellow-400', image: '/images/ranks/gold.png' },
-  { id: 'Platinum_I', label: 'Bạch Kim I ➜ Lục Bảo IV', from: 'Bạch Kim I', to: 'Lục Bảo IV', color: 'text-cyan-400', image: '/images/ranks/platinum.png' },
-  { id: 'Emerald_I', label: 'Lục Bảo I ➜ Kim Cương IV', from: 'Lục Bảo I', to: 'Kim Cương IV', color: 'text-emerald-400', image: '/images/ranks/emerald.png' },
-  { id: 'Diamond_I', label: 'Kim Cương I ➜ Cao Thủ', from: 'Kim Cương I', to: 'Cao Thủ', color: 'text-blue-400', image: '/images/ranks/diamond.png' },
+  { id: 'IRON_I', label: 'Sắt I ➜ Đồng IV', from: 'Sắt I', to: 'Đồng IV', color: 'text-zinc-400', image: '/images/ranks/iron.png' },
+  { id: 'BRONZE_I', label: 'Đồng I ➜ Bạc IV', from: 'Đồng I', to: 'Bạc IV', color: 'text-orange-700', image: '/images/ranks/bronze.png' },
+  { id: 'SILVER_I', label: 'Bạc I ➜ Vàng IV', from: 'Bạc I', to: 'Vàng IV', color: 'text-zinc-300', image: '/images/ranks/silver.png' },
+  { id: 'GOLD_I', label: 'Vàng I ➜ Bạch Kim IV', from: 'Vàng I', to: 'Bạch Kim IV', color: 'text-yellow-400', image: '/images/ranks/gold.png' },
+  { id: 'PLATINUM_I', label: 'Bạch Kim I ➜ Lục Bảo IV', from: 'Bạch Kim I', to: 'Lục Bảo IV', color: 'text-cyan-400', image: '/images/ranks/platinum.png' },
+  { id: 'EMERALD_I', label: 'Lục Bảo I ➜ Kim Cương IV', from: 'Lục Bảo I', to: 'Kim Cương IV', color: 'text-emerald-400', image: '/images/ranks/emerald.png' },
+  { id: 'DIAMOND_I', label: 'Kim Cương I ➜ Cao Thủ', from: 'Kim Cương I', to: 'Cao Thủ', color: 'text-blue-400', image: '/images/ranks/diamond.png' },
 ];
 
 function PromotionContent() {
@@ -184,7 +184,7 @@ function PromotionContent() {
 
           if (league) {
               // Map Riot Tier to our Key (e.g. Gold_I)
-              const key = `${league.tier}_${league.rank}`;
+              const key = `${league.tier.toUpperCase()}_${league.rank}`;
               const promoStep = PROMOTION_STEPS.find(p => p.id === key);
               
               if (promoStep) {
