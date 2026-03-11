@@ -18,6 +18,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import NetWinsOrderView from '@/components/orders/NetWinsOrderView';
 import PromotionOrderView from '@/components/orders/PromotionOrderView';
 import PlacementsOrderView from '@/components/orders/PlacementsOrderView';
+import MasteryOrderView from '@/components/orders/MasteryOrderView';
+import LevelingOrderView from '@/components/orders/LevelingOrderView';
+import OnBetOrderView from '@/components/orders/OnBetOrderView';
+import CoachingOrderView from '@/components/orders/CoachingOrderView';
 import SettlementModal from '@/components/orders/SettlementModal';
 
 const DDRAGON_VER = '16.5.1'; // Phiên bản DDragon mới nhất (có thể cập nhật động nếu cần)
@@ -46,6 +50,10 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
   
   // Transactions State
   const [transactions, setTransactions] = useState<any[]>([]);
+
+  // Coaching VOD state
+  const [vodLink, setVodLink] = useState('');
+  const [isUpdatingVod, setIsUpdatingVod] = useState(false);
 
   // Match Update State
   const [matchForm, setMatchForm] = useState({
@@ -99,6 +107,9 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
         
         if (orderData.order?.details?.ingame_name) {
             setIngameName(orderData.order.details.ingame_name);
+        }
+        if (orderData.order?.details?.vod_link) {
+            setVodLink(orderData.order.details.vod_link);
         }
 
         // Fetch Transactions for this Order
@@ -252,6 +263,28 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
       } finally {
           setIsProcessingSettlement(false);
       }
+  };
+
+  const handleUpdateVodLink = async () => {
+    if (!vodLink.trim()) return toast.error('Vui lòng nhập link VOD');
+    setIsUpdatingVod(true);
+    try {
+        const res = await fetch(`/api/orders/${id}/details`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ vod_link: vodLink })
+        });
+        if (res.ok) {
+            const data = await res.json();
+            toast.success('Cập nhật link VOD thành công');
+            setOrder((prev: any) => ({ ...prev, details: data.details }));
+            socket.emit('update_order', { room: id, data: { details: data.details } });
+        } else {
+            const err = await res.json();
+            toast.error(err.error || 'Lỗi cập nhật');
+        }
+    } catch (e) { toast.error('Lỗi kết nối'); }
+    finally { setIsUpdatingVod(false); }
   };
 
   const handleSaveMatch = async (e: React.FormEvent) => {
@@ -816,6 +849,33 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                             {/* PLACEMENTS SPECIAL VIEW */}
                             {order.serviceType === 'PLACEMENTS' && (
                                 <PlacementsOrderView order={order} />
+                            )}
+
+                            {/* MASTERY SPECIAL VIEW */}
+                            {order.serviceType === 'MASTERY' && (
+                                <MasteryOrderView order={order} />
+                            )}
+
+                            {/* LEVELING SPECIAL VIEW */}
+                            {order.serviceType === 'LEVELING' && (
+                                <LevelingOrderView order={order} />
+                            )}
+
+                            {/* ONBET SPECIAL VIEW */}
+                            {order.serviceType === 'ONBET' && (
+                                <OnBetOrderView order={order} />
+                            )}
+
+                            {/* COACHING SPECIAL VIEW */}
+                            {order.serviceType === 'COACHING' && (
+                                <CoachingOrderView 
+                                    order={order}
+                                    isBooster={isBooster}
+                                    vodLink={vodLink}
+                                    setVodLink={setVodLink}
+                                    onUpdateVodLink={handleUpdateVodLink}
+                                    isUpdatingVod={isUpdatingVod}
+                                />
                             )}
 
                             {/* Payment Info */}

@@ -309,7 +309,7 @@ function PromotionContent() {
             </div>
 
             {/* RIGHT: Summary & Checkout */}
-            <div className="fixed bottom-0 left-0 right-0 z-30 lg:sticky lg:top-24 lg:col-span-1 lg:h-fit">
+            <div className="fixed bottom-0 left-0 right-0 z-[60] lg:sticky lg:top-24 lg:col-span-1 lg:h-fit">
                 <PaymentSummary
                     boosterConfig={boosterConfig}
                     boosterId={boosterId}

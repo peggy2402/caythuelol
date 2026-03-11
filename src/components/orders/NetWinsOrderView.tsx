@@ -152,6 +152,9 @@ export default function NetWinsOrderView({ order, isBooster, isCustomer, onPayRe
       }
   };
 
+  // Logic: Chỉ hiển thị quyết toán khi đã có trận đấu (để tránh hiển thị phí Streaming/Options khi chưa cày)
+  const hasMatches = order.match_history && order.match_history.length > 0;
+
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
         {/* 1. Progress Card */}
@@ -218,34 +221,41 @@ export default function NetWinsOrderView({ order, isBooster, isCustomer, onPayRe
                     <span className="text-zinc-500 line-through decoration-zinc-600">{pricing.total_amount.toLocaleString()} đ</span>
                 </div>
 
-                <div className="flex justify-between items-center p-3 bg-blue-900/10 rounded-xl border border-blue-500/20">
-                    <span className="text-blue-200 font-medium">Giá trị thực tế (Hiện tại):</span>
-                    <div className="text-right group relative cursor-help">
-                        <span className="text-blue-400 font-bold text-lg">{settlement.actualTotal.toLocaleString()} đ</span>
-                        {/* Tooltip Breakdown */}
-                        <div className="absolute bottom-full right-0 mb-2 w-64 p-3 bg-zinc-800 border border-zinc-700 rounded-xl shadow-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 text-xs text-zinc-300 space-y-1">
-                            <div className="font-bold text-white border-b border-zinc-700 pb-1 mb-1">Chi tiết tính toán:</div>
-                            <div className="flex justify-between"><span>Giá cày (A):</span> <span>{settlement.actualBasePrice.toLocaleString('vi-VN')} đ</span></div>
-                            {settlement.eloFeeValue !== 0 && (
-                                <div className="flex justify-between">
-                                    <span>Hệ số Elo:</span> 
-                                    <span className={settlement.eloFeeValue > 0 ? 'text-red-400' : 'text-green-400'}>{settlement.eloFeeValue > 0 ? '+' : ''}{settlement.eloFeeValue.toLocaleString('vi-VN')} đ</span>
-                                </div>
-                            )}
-                            {settlement.actualOptionsFee > 0 && (
-                                <div className="flex justify-between text-yellow-400">
-                                    <span>Options (C):</span> 
-                                    <span>+{settlement.actualOptionsFee.toLocaleString('vi-VN')} đ</span>
-                                </div>
-                            )}
-                            <div className="flex justify-between text-zinc-500"><span>Phí sàn (B):</span> <span>+{settlement.actualPlatformFee.toLocaleString('vi-VN')} đ</span></div>
-                            <div className="border-t border-zinc-700 pt-1 mt-1 font-bold text-right text-blue-400">= {settlement.actualTotal.toLocaleString('vi-VN')} đ</div>
+                {hasMatches ? (
+                    <div className="flex justify-between items-center p-3 bg-blue-900/10 rounded-xl border border-blue-500/20">
+                        <span className="text-blue-200 font-medium">Giá trị thực tế (Hiện tại):</span>
+                        <div className="text-right group relative cursor-help">
+                            <span className="text-blue-400 font-bold text-lg">{settlement.actualTotal.toLocaleString()} đ</span>
+                            {/* Tooltip Breakdown */}
+                            <div className="absolute bottom-full right-0 mb-2 w-64 p-3 bg-zinc-800 border border-zinc-700 rounded-xl shadow-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 text-xs text-zinc-300 space-y-1">
+                                <div className="font-bold text-white border-b border-zinc-700 pb-1 mb-1">Chi tiết tính toán:</div>
+                                <div className="flex justify-between"><span>Giá cày (A):</span> <span>{settlement.actualBasePrice.toLocaleString('vi-VN')} đ</span></div>
+                                {settlement.eloFeeValue !== 0 && (
+                                    <div className="flex justify-between">
+                                        <span>Hệ số Elo:</span> 
+                                        <span className={settlement.eloFeeValue > 0 ? 'text-red-400' : 'text-green-400'}>{settlement.eloFeeValue > 0 ? '+' : ''}{settlement.eloFeeValue.toLocaleString('vi-VN')} đ</span>
+                                    </div>
+                                )}
+                                {settlement.actualOptionsFee > 0 && (
+                                    <div className="flex justify-between text-yellow-400">
+                                        <span>Options (C):</span> 
+                                        <span>+{settlement.actualOptionsFee.toLocaleString('vi-VN')} đ</span>
+                                    </div>
+                                )}
+                                <div className="flex justify-between text-zinc-500"><span>Phí sàn (B):</span> <span>+{settlement.actualPlatformFee.toLocaleString('vi-VN')} đ</span></div>
+                                <div className="border-t border-zinc-700 pt-1 mt-1 font-bold text-right text-blue-400">= {settlement.actualTotal.toLocaleString('vi-VN')} đ</div>
+                            </div>
                         </div>
                     </div>
-                </div>
+                ) : (
+                    <div className="flex justify-between items-center p-3 bg-zinc-950/30 rounded-xl border border-zinc-800 border-dashed">
+                        <span className="text-zinc-500">Giá trị thực tế:</span>
+                        <span className="text-zinc-500 italic">Đang chờ cập nhật trận đấu...</span>
+                    </div>
+                )}
 
                 {/* Hiển thị Thực nhận dành riêng cho Booster */}
-                {isBooster && (
+                {isBooster && hasMatches && (
                     <div className="flex justify-between items-center p-3 bg-emerald-900/10 rounded-xl border border-emerald-500/20">
                         <span className="text-emerald-200 font-medium">Số tiền về ví:</span>
                         <span className="text-emerald-400 font-bold text-lg">{settlement.boosterReceive.toLocaleString()} đ</span>
@@ -253,7 +263,7 @@ export default function NetWinsOrderView({ order, isBooster, isCustomer, onPayRe
                 )}
 
                 {/* Cảnh báo thu nhập thấp cho Booster */}
-                {isBooster && settlement.isLowEarnings && (
+                {isBooster && hasMatches && settlement.isLowEarnings && (
                     <div className="flex gap-3 p-3 bg-orange-900/20 rounded-xl border border-orange-500/50">
                         <AlertTriangle className="w-5 h-5 text-orange-500 shrink-0" />
                         <div className="text-sm">
@@ -272,7 +282,7 @@ export default function NetWinsOrderView({ order, isBooster, isCustomer, onPayRe
 
                 <div className="border-t border-zinc-800 my-2"></div>
 
-                {settlement.status === 'OWE' && (
+                {hasMatches && settlement.status === 'OWE' && (
                     <div className="flex flex-col gap-3 p-4 bg-red-900/10 rounded-xl border border-red-500/30 animate-pulse">
                         <div className="flex justify-between items-center">
                             <div className="flex items-center gap-2">
@@ -297,7 +307,7 @@ export default function NetWinsOrderView({ order, isBooster, isCustomer, onPayRe
                     </div>
                 )}
 
-                {settlement.status === 'REFUND' && (
+                {hasMatches && settlement.status === 'REFUND' && (
                     <div className="flex flex-col gap-3 p-4 bg-green-900/10 rounded-xl border border-green-500/30">
                         <div className="flex justify-between items-center">
                             <div className="flex items-center gap-2">
@@ -324,13 +334,19 @@ export default function NetWinsOrderView({ order, isBooster, isCustomer, onPayRe
                     </div>
                 )}
 
-                {settlement.status === 'SETTLED' && (
+                {hasMatches && settlement.status === 'SETTLED' && (
                     <div className="flex justify-between items-center p-4 bg-zinc-800 rounded-xl border border-zinc-700">
                         <div className="flex items-center gap-2">
                             <CheckCircle2 className="w-5 h-5 text-zinc-400" />
                             <span className="text-zinc-300 font-bold">Đã thanh toán đủ</span>
                         </div>
                         <span className="text-zinc-400 font-bold">0 đ</span>
+                    </div>
+                )}
+
+                {!hasMatches && (
+                    <div className="text-center py-2 text-zinc-500 text-xs italic">
+                        Hệ thống sẽ tự động tính toán quyết toán sau khi có trận đấu đầu tiên.
                     </div>
                 )}
             </div>

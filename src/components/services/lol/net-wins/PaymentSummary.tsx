@@ -91,7 +91,7 @@ export default function PaymentSummary({
                             <span>Vui lòng chọn <b>Booster</b> ở phía trên để xem giá chính xác.</span>
                         </div>
                     ) : (
-                        <div className="space-y-2 mb-4">
+                        <div className="space-y-2 mb-4 max-h-[60vh] lg:max-h-none overflow-y-auto pr-1 custom-scrollbar">
                             <div className="flex items-center gap-3 mb-4 p-3 bg-zinc-950 rounded-xl border border-white/5">
                                 <div className="w-10 h-10 rounded-full bg-zinc-800 overflow-hidden">
                                     {boosterConfig?.profile?.avatar && <img src={boosterConfig.profile.avatar} alt="Avatar" className="w-full h-full object-cover" />}

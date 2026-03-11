@@ -45,7 +45,7 @@ function NetWinsContent() {
   const [selectedRank, setSelectedRank] = useState('Master');
   const [currentLP, setCurrentLP] = useState<string>('');
   const [targetLP, setTargetLP] = useState<string>('');
-  const [lpGain, setLpGain] = useState<string>('19');
+  const [lpGain, setLpGain] = useState<string>('20');
   const [wins, setWins] = useState<string>('1');
   const [queueType, setQueueType] = useState<'SOLO' | 'FLEX'>('SOLO');
 
@@ -403,7 +403,7 @@ function NetWinsContent() {
             </div>
 
             {/* RIGHT: Summary & Checkout */}
-            <div className="fixed bottom-0 left-0 right-0 z-30 lg:sticky lg:top-24 lg:col-span-1 lg:h-fit">
+            <div className="fixed bottom-0 left-0 right-0 z-[100] lg:sticky lg:top-24 lg:col-span-1 lg:h-fit">
                 <PaymentSummary
                     boosterConfig={boosterConfig}
                     boosterId={boosterId}
@@ -448,8 +448,18 @@ function NetWinsContent() {
                                 </div>
                                 <div className="flex justify-between text-sm">
                                     <span className="text-zinc-400">Đơn giá:</span>
-                                    <span className="text-white font-medium">{priceDetails?.pricePerWin.toLocaleString('vi-VN')} đ / {calcMode === 'BY_LP' ? 'LP' : 'trận'}</span>
+                                    <span className="text-white font-medium">
+                                        {calcMode === 'BY_LP' 
+                                            ? `${priceDetails?.pricePerWin.toLocaleString('vi-VN')} đ / LP`
+                                            : `${Math.round((priceDetails?.pricePerWin || 0) * (parseInt(lpGain) || 0)).toLocaleString('vi-VN')} đ / trận`
+                                        }
+                                    </span>
                                 </div>
+                                {calcMode === 'BY_GAMES' && (
+                                    <div className="flex justify-between text-xs text-zinc-500 italic pb-1">
+                                        <span>*Ước tính dựa trên {lpGain} LP/trận</span>
+                                    </div>
+                                )}
                                 {calcMode === 'BY_GAMES' ? (
                                     <div className="flex justify-between text-sm">
                                         <span className="text-zinc-400">Số lượng:</span>
