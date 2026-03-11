@@ -70,7 +70,25 @@ export default function WalletPage() {
       if (res.ok) {
         setBalance(data.balance);
         setPendingBalance(data.pending_balance || 0);
-        setTransactions(data.transactions);
+        
+        // --- LOGIC LỌC TRÙNG LẶP ---
+        // Nếu có đơn SUCCESS (do Webhook tạo) và đơn PENDING (do Khách tạo) cùng số tiền trong thời gian ngắn -> Ẩn đơn PENDING
+        const rawTx = data.transactions;
+        const successDeposits = rawTx.filter((t: any) => t.type === 'DEPOSIT' && t.status === 'SUCCESS');
+
+        const cleanedTransactions = rawTx.filter((t: any) => {
+          if (t.type === 'DEPOSIT' && t.status === 'PENDING') {
+            // Kiểm tra xem có đơn thành công nào trùng khớp trong vòng 1 giờ không
+            const isDuplicate = successDeposits.some((st: any) => 
+              st.amount === t.amount && 
+              Math.abs(new Date(st.createdAt).getTime() - new Date(t.createdAt).getTime()) < 60 * 60 * 1000
+            );
+            return !isDuplicate; // Nếu trùng (isDuplicate = true) thì lọc bỏ (return false)
+          }
+          return true;
+        });
+
+        setTransactions(cleanedTransactions);
         setBankConfig(data.bankInfo);
         setUserBankInfo(data.userBankInfo);
         if (data.pagination) {

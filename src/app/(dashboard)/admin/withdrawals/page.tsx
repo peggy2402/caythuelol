@@ -127,20 +127,34 @@ export default function AdminWithdrawalsPage() {
     setSelectedUser(user);
     setLoadingStats(true);
     try {
-        // Gọi API mới để lấy thống kê chi tiết của User
-        const res = await fetch(`/api/admin/users/${user._id}/stats`);
-        const data = await res.json();
+        // Gọi song song 2 API: Lấy thống kê giao dịch & Lấy thông tin User chi tiết (để fix lỗi thiếu ngày tham gia/số dư)
+        const [resStats, resUser] = await Promise.all([
+            fetch(`/api/admin/users/${user._id}/stats`),
+            fetch(`/api/admin/users/${user._id}`) 
+        ]);
 
-        if (res.ok) {
-            setUserStats(data.stats);
-            setUserTransactions(data.recentTransactions);
-            // Bạn có thể lưu recentOrders vào một state khác nếu muốn hiển thị
+        const dataStats = await resStats.json();
+
+        if (resStats.ok) {
+            setUserStats(dataStats.stats);
+            setUserTransactions(dataStats.recentTransactions);
         } else {
-            toast.error(data.error || 'Lỗi tải thống kê user');
+            toast.error(dataStats.error || 'Lỗi tải thống kê user');
             setUserStats(null);
         }
+
+        // Cập nhật selectedUser với thông tin đầy đủ nhất từ server (có createdAt, wallet_balance)
+        if (resUser.ok) {
+            const dataUser = await resUser.json();
+            if (dataUser.user) {
+                // Merge dữ liệu cũ và mới để đảm bảo không bị mất các field
+                setSelectedUser((prev: any) => ({ ...prev, ...dataUser.user }));
+            } else {
+                console.warn('API User details returned empty user object');
+            }
+        }
     } catch (e) {
-        toast.error('Lỗi tải lịch sử giao dịch');
+        toast.error('Lỗi tải dữ liệu chi tiết');
     } finally {
         setLoadingStats(false);
     }
@@ -417,11 +431,14 @@ export default function AdminWithdrawalsPage() {
                           <tr key={tx._id}>
                             <td className="px-4 py-3 text-zinc-400">{new Date(tx.createdAt).toLocaleString('vi-VN')}</td>
                             <td className="px-4 py-3">
-                                <div className="text-white font-medium text-xs">{tx.type}</div>
-                                <div className="text-[10px] text-zinc-500 truncate max-w-[200px]">{tx.description || tx.metadata?.content}</div>
+                                <div className="text-white font-medium text-xs">{tx.metadata?.description || tx.description || tx.type}</div>
+                                <div className="text-[10px] text-zinc-500 font-mono">{tx.type}</div>
                             </td>
-                            <td className={`px-4 py-3 text-right font-bold font-mono ${['DEPOSIT', 'PAYMENT_RELEASE', 'REFUND', 'COMMISSION'].includes(tx.type) ? 'text-green-500' : 'text-red-500'}`}>
-                              {['DEPOSIT', 'PAYMENT_RELEASE', 'REFUND'].includes(tx.type) ? '+' : ''}{formatCurrency(tx.amount)}
+                            {/* SỬA LỖI HIỂN THỊ +- : Dùng logic check amount > 0 */}
+                            <td className="px-4 py-3 text-right">
+                                <span className={`font-bold font-mono ${tx.amount > 0 ? 'text-green-500' : 'text-red-500'}`}>
+                                    {tx.amount > 0 ? '+' : ''}{formatCurrency(tx.amount)}
+                                </span>
                             </td>
                           </tr>
                         ))}

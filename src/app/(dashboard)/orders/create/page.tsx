@@ -287,7 +287,7 @@ function CreateOrderContent() {
       if (!res.ok) {
         if (res.status === 402) {
             toast.error(t('insufficientBalance'));
-            setTimeout(() => router.push('/dashboard/wallet'), 2000);
+            setTimeout(() => router.push('/wallet'), 2000);
         } else {
             throw new Error(data.error);
         }

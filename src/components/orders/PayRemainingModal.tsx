@@ -82,7 +82,7 @@ export default function PayRemainingModal({
                         
                         {isInsufficient ? (
                             <button 
-                                onClick={() => router.push('/dashboard/wallet')}
+                                onClick={() => router.push('/wallet')}
                                 className="flex-1 py-2.5 bg-yellow-600 hover:bg-yellow-500 text-white font-bold rounded-xl transition-colors flex items-center justify-center gap-2"
                             >
                                 Nạp tiền ngay <ArrowRight size={16} />
