@@ -16,6 +16,7 @@ import { toast } from 'sonner';
 import ChatWindow from '@/components/chat/ChatWindow';
 import { motion, AnimatePresence } from 'framer-motion';
 import NetWinsOrderView from '@/components/orders/NetWinsOrderView';
+import PromotionOrderView from '@/components/orders/PromotionOrderView';
 import SettlementModal from '@/components/orders/SettlementModal';
 
 const DDRAGON_VER = '16.5.1'; // Phiên bản DDragon mới nhất (có thể cập nhật động nếu cần)
@@ -788,6 +789,11 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                                     onPayRemaining={handleOpenPayModal}
                                     onRefund={handleOpenRefundModal}
                                 />
+                            )}
+
+                            {/* PROMOTION SPECIAL VIEW */}
+                            {order.serviceType === 'PROMOTION' && (
+                                <PromotionOrderView order={order} />
                             )}
 
                             {/* Payment Info */}
