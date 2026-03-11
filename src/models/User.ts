@@ -24,6 +24,13 @@ export interface IUser extends Document {
       accountHolder: string;
     };
   };
+  booster_info?: {
+    bio?: string;
+    services?: string[];
+    rating?: number;
+    completed_orders?: number;
+    service_settings?: any;
+  };
   createdAt: Date;
   updatedAt: Date;
 }
@@ -63,6 +70,7 @@ const UserSchema: Schema = new Schema(
         accountHolder: { type: String },
       }
     },
+    booster_info: { type: Schema.Types.Mixed },
     bookmarks: [{ type: Schema.Types.ObjectId, ref: 'User' }],
   },
   { timestamps: true }

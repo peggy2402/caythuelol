@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
-import { User, Star, CheckCircle2, Loader2, Filter, ChevronRight, Search, X } from 'lucide-react';
+import { User, Star, CheckCircle2, Loader2, Filter, ChevronRight, Search, X, ArrowUpDown } from 'lucide-react';
 import Link from 'next/link';
 
 interface Booster {
@@ -41,6 +41,7 @@ export default function BoosterPicker() {
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [filterService, setFilterService] = useState('');
+  const [sortBy, setSortBy] = useState('');
 
   // State for mobile view expansion
   const [showAll, setShowAll] = useState(false);
@@ -55,7 +56,7 @@ export default function BoosterPicker() {
     const fetchBoosters = async () => {
       try {
         setLoading(true);
-        const query = new URLSearchParams({ search: debouncedSearch, service: filterService });
+        const query = new URLSearchParams({ search: debouncedSearch, service: filterService, sort: sortBy });
         const res = await fetch(`/api/boosters?${query.toString()}`);
         const data = await res.json();
         setBoosters(data.boosters || []);
@@ -66,7 +67,7 @@ export default function BoosterPicker() {
       }
     };
     fetchBoosters();
-  }, [debouncedSearch, filterService]);
+  }, [debouncedSearch, filterService, sortBy]);
 
   const handleSelect = (booster: Booster) => {
     // Giữ lại các params hiện tại, chỉ update booster
@@ -117,6 +118,20 @@ export default function BoosterPicker() {
           <ChevronRight className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 rotate-90 text-zinc-500 pointer-events-none" />
         </div>
 
+        {/* 3. Sort By */}
+        <div className="relative min-w-[180px]">
+          <ArrowUpDown className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+          <select 
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value)}
+            className="w-full appearance-none bg-zinc-950 border border-zinc-800 rounded-xl pl-10 pr-8 py-2.5 text-sm text-white focus:border-blue-500 outline-none transition-all cursor-pointer"
+          >
+            <option value="">Sắp xếp mặc định</option>
+            <option value="rating_desc">Đánh giá cao nhất</option>
+            <option value="orders_desc">Nhiều đơn nhất</option>
+          </select>
+          <ChevronRight className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 rotate-90 text-zinc-500 pointer-events-none" />
+        </div>
       </div>
 
       {loading ? (
