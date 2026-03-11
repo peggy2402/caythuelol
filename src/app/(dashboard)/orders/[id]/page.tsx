@@ -17,6 +17,7 @@ import ChatWindow from '@/components/chat/ChatWindow';
 import { motion, AnimatePresence } from 'framer-motion';
 import NetWinsOrderView from '@/components/orders/NetWinsOrderView';
 import PromotionOrderView from '@/components/orders/PromotionOrderView';
+import PlacementsOrderView from '@/components/orders/PlacementsOrderView';
 import SettlementModal from '@/components/orders/SettlementModal';
 
 const DDRAGON_VER = '16.5.1'; // Phiên bản DDragon mới nhất (có thể cập nhật động nếu cần)
@@ -362,8 +363,20 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
           const data = await res.json();
           if (!res.ok) throw new Error(data.error);
 
-          const queue = ['SOLO', 'SOLO_DUO'].includes(order.details.queueType) ? 'RANKED_SOLO_5x5' : 'RANKED_FLEX_SR';
-          const league = data.leagues.find((l: any) => l.queueType === queue);
+          const isSoloOrder = ['SOLO', 'SOLO_DUO'].includes(order.details.queueType);
+          const primaryQueue = isSoloOrder ? 'RANKED_SOLO_5x5' : 'RANKED_FLEX_SR';
+          const secondaryQueue = isSoloOrder ? 'RANKED_FLEX_SR' : 'RANKED_SOLO_5x5';
+          
+          let league = data.leagues.find((l: any) => l.queueType === primaryQueue);
+          let usedSecondary = false;
+
+          // If primary queue rank not found, try finding secondary
+          if (!league) {
+              league = data.leagues.find((l: any) => l.queueType === secondaryQueue);
+              if (league) {
+                  usedSecondary = true;
+              }
+          }
 
           if (league) {
               setLiveLeagueInfo(league);
@@ -378,7 +391,11 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
               // Gọi API update details (tái sử dụng logic update)
               await fetch(`/api/orders/${id}/details`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(updateBody) });
               
-              toast.success(`Đã cập nhật & Lưu: ${league.tier} ${league.rank} - ${league.leaguePoints} LP`);
+              if (usedSecondary) {
+                  toast.warning(`Không tìm thấy rank cho chế độ đã chọn. Đã cập nhật theo rank ${league.queueType === 'RANKED_SOLO_5x5' ? 'Đơn/Đôi' : 'Linh Hoạt'}.`);
+              } else {
+                  toast.success(`Đã cập nhật & Lưu: ${league.tier} ${league.rank} - ${league.leaguePoints} LP`);
+              }
               
               // Cập nhật UI local (để hiển thị ngay lập tức)
               setOrder((prev: any) => ({ 
@@ -794,6 +811,11 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                             {/* PROMOTION SPECIAL VIEW */}
                             {order.serviceType === 'PROMOTION' && (
                                 <PromotionOrderView order={order} />
+                            )}
+
+                            {/* PLACEMENTS SPECIAL VIEW */}
+                            {order.serviceType === 'PLACEMENTS' && (
+                                <PlacementsOrderView order={order} />
                             )}
 
                             {/* Payment Info */}

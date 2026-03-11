@@ -1,9 +1,10 @@
 // src/components/orders/PromotionOrderView.tsx
 'use client';
 
-import { useMemo } from 'react';
-import { CheckCircle2, XCircle, TrendingUp, Target, ShieldCheck } from 'lucide-react';
+import { useMemo, useEffect, useState } from 'react';
+import { CheckCircle2, XCircle, TrendingUp, Target, ShieldCheck, PartyPopper, AlertTriangle } from 'lucide-react';
 import { motion } from 'framer-motion';
+import confetti from 'canvas-confetti';
 
 interface PromotionOrderViewProps {
   order: any;
@@ -11,7 +12,47 @@ interface PromotionOrderViewProps {
 
 export default function PromotionOrderView({ order }: PromotionOrderViewProps) {
   const { details, match_history } = order;
-  const { promo_from, promo_to } = details || {};
+  const { promo_from, promo_to, current_rank } = details || {};
+
+  // --- HELPER: Rank Comparison Logic ---
+  const getRankValue = (rankStr: string) => {
+    if (!rankStr) return -1;
+    const normalized = rankStr.toUpperCase();
+    
+    const TIERS_EN = ['IRON', 'BRONZE', 'SILVER', 'GOLD', 'PLATINUM', 'EMERALD', 'DIAMOND', 'MASTER', 'GRANDMASTER', 'CHALLENGER'];
+    const TIERS_VN = ['SẮT', 'ĐỒNG', 'BẠC', 'VÀNG', 'BẠCH KIM', 'LỤC BẢO', 'KIM CƯƠNG', 'CAO THỦ', 'ĐẠI CAO THỦ', 'THÁCH ĐẤU'];
+    
+    let tierIndex = TIERS_EN.findIndex(t => normalized.includes(t));
+    if (tierIndex === -1) tierIndex = TIERS_VN.findIndex(t => normalized.includes(t));
+    if (tierIndex === -1) return -1;
+
+    // Divisions: I > II > III > IV (Value: 4 > 3 > 2 > 1)
+    // Master+ treated as having division 0 (value 0) but base tier value is high
+    let div = 0;
+    if (normalized.includes(' I') || normalized.endsWith(' 1')) div = 4;
+    else if (normalized.includes(' II') || normalized.endsWith(' 2')) div = 3;
+    else if (normalized.includes(' III') || normalized.endsWith(' 3')) div = 2;
+    else if (normalized.includes(' IV') || normalized.endsWith(' 4')) div = 1;
+
+    return tierIndex * 10 + div;
+  };
+
+  const promoStatus = useMemo(() => {
+    const currentVal = getRankValue(current_rank);
+    const targetVal = getRankValue(promo_to);
+    const startVal = getRankValue(promo_from);
+
+    if (currentVal >= targetVal && targetVal > 0) return 'PROMOTED';
+    if (currentVal < startVal && startVal > 0 && currentVal > 0) return 'DEMOTED';
+    return 'IN_PROGRESS';
+  }, [current_rank, promo_to, promo_from]);
+
+  // Confetti Effect on Promotion
+  useEffect(() => {
+    if (promoStatus === 'PROMOTED') {
+      confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+    }
+  }, [promoStatus]);
 
   // Tính toán số trận thắng/thua từ lịch sử đấu
   const seriesState = useMemo(() => {
@@ -27,6 +68,37 @@ export default function PromotionOrderView({ order }: PromotionOrderViewProps) {
         <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 relative overflow-hidden">
             {/* Background Glow Effect */}
             <div className="absolute top-0 right-0 w-32 h-32 bg-yellow-500/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
+
+            {/* STATUS BANNER */}
+            {promoStatus === 'PROMOTED' && (
+                <motion.div 
+                    initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}
+                    className="mb-6 p-4 bg-green-500/10 border border-green-500/20 rounded-xl flex items-center gap-4"
+                >
+                    <div className="p-3 bg-green-500/20 rounded-full text-green-500">
+                        <PartyPopper size={24} />
+                    </div>
+                    <div>
+                        <h4 className="text-green-400 font-bold text-lg">Thăng Hạng Thành Công!</h4>
+                        <p className="text-green-500/80 text-sm">Chúc mừng bạn đã đạt được mục tiêu <strong>{promo_to}</strong>.</p>
+                    </div>
+                </motion.div>
+            )}
+
+            {promoStatus === 'DEMOTED' && (
+                <motion.div 
+                    initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}
+                    className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl flex items-center gap-4"
+                >
+                    <div className="p-3 bg-red-500/20 rounded-full text-red-500">
+                        <AlertTriangle size={24} />
+                    </div>
+                    <div>
+                        <h4 className="text-red-400 font-bold text-lg">Cảnh báo Rớt Hạng</h4>
+                        <p className="text-red-500/80 text-sm">Tài khoản đã bị tụt xuống dưới mức Rank ban đầu (<strong>{current_rank}</strong>).</p>
+                    </div>
+                </motion.div>
+            )}
             
             <div className="flex justify-between items-start mb-6 relative z-10">
                 <h3 className="text-lg font-bold text-white flex items-center gap-2">
@@ -78,7 +150,10 @@ export default function PromotionOrderView({ order }: PromotionOrderViewProps) {
                 <div className="flex-1 flex justify-center">
                     <div className="h-0.5 w-full bg-zinc-800 relative">
                         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-zinc-900 p-2 rounded-full border border-zinc-700">
-                            <Target className="w-4 h-4 text-blue-500" />
+                            {promoStatus === 'PROMOTED' 
+                                ? <CheckCircle2 className="w-5 h-5 text-green-500" />
+                                : <Target className="w-4 h-4 text-blue-500" />
+                            }
                         </div>
                     </div>
                 </div>
