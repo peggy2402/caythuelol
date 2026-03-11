@@ -1,6 +1,7 @@
 'use client';
 
 import { BrainCircuit, Clock, Video, ShieldCheck, Save, Loader2 } from 'lucide-react';
+import CoachingTimeline from '@/components/orders/CoachingTimeline';
 
 interface CoachingOrderViewProps {
   order: any;
@@ -51,6 +52,13 @@ export default function CoachingOrderView({
                         </div>
                     </div>
                 </div>
+
+                {/* Timeline Visualization */}
+                {details?.schedule && details.schedule.length > 0 && (
+                    <div className="mt-6">
+                        <CoachingTimeline schedule={details.schedule} />
+                    </div>
+                )}
 
                 {/* VOD Link Section */}
                 {details?.vod_link && (

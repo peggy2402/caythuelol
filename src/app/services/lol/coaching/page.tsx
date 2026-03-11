@@ -209,7 +209,9 @@ function CoachingContent() {
                                     <div key={i} className="flex justify-between items-center p-3 bg-blue-900/20 border border-blue-500/30 rounded-xl">
                                         <div className="flex items-center gap-3">
                                             <CalendarDays className="w-5 h-5 text-blue-400" />
-                                            <span className="text-white font-medium">Khung giờ {i + 1}: <span className="text-blue-300">{w.start} - {w.end}</span></span>
+                                            <span className="text-white font-medium">
+                                                {w.day}: <span className="text-blue-300 font-mono">{w.start} - {w.end}</span>
+                                            </span>
                                         </div>
                                     </div>
                                 ))}
@@ -295,7 +297,7 @@ function CoachingContent() {
                                 <span className="flex items-center gap-1 shrink-0"><CalendarDays className="w-3 h-3"/> Lịch học:</span>
                                 <div className="text-right text-blue-400 font-mono">
                                     {scheduleWindows.map((w, i) => (
-                                        <div key={i}>{w.start}-{w.end}</div>
+                                        <div key={i}>{w.day}: {w.start}-{w.end}</div>
                                     ))}
                                 </div>
                             </div>
@@ -310,6 +312,7 @@ function CoachingContent() {
             onClose={() => setIsScheduleModalOpen(false)} 
             onSave={setScheduleWindows}
             initialWindows={scheduleWindows}
+            duration={hours} // Truyền thời lượng để tính giờ kết thúc
         />
     </div>
   );

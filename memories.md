@@ -773,3 +773,17 @@ caythuelol/
 - **Wallet & Realtime:**
   - **Socket.io:** Tối ưu hóa kết nối Socket trong `Navbar` và `WalletPage` để cập nhật số dư và thông báo ngay lập tức.
   - **Wallet Page:** Fix lỗi hiển thị trùng lặp giao dịch và cải thiện UI/UX (Skeleton loading).
+
+28. 2026-03-11 — Coaching Schedule & Timeline Upgrade
+
+- **Coaching Scheduling System:**
+  - **Logic Upgrade:** Nâng cấp `CoachingScheduleModal` cho phép chọn **Ngày trong tuần** (Thứ 2 - Chủ Nhật) cho từng khung giờ.
+  - **Automation:** Tự động tính toán giờ kết thúc dựa trên thời lượng khóa học (Input giờ bắt đầu -> Auto giờ kết thúc).
+  - **Validation:** Bỏ logic chặn trùng giờ để tăng tính linh hoạt, giới hạn tối đa 7 khung giờ.
+  - **Sorting:** Tự động sắp xếp danh sách lịch học theo thứ tự ngày trong tuần và giờ bắt đầu.
+  - **Bug Fix:** Sửa lỗi hiển thị dropdown ngày luôn bị reset về giá trị mặc định (Thứ 2) bằng cách bind đúng value cho từng item trong list.
+
+- **Visual Timeline:**
+  - **New Component:** Tạo `CoachingTimeline.tsx` để hiển thị lịch học dưới dạng biểu đồ timeline ngang trực quan.
+  - **Features:** Hiển thị ngày tháng cụ thể (VD: Thứ 2 (12/03)) để tránh nhầm lẫn.
+  - **Integration:** Tích hợp Timeline vào `CoachingOrderView` trong trang chi tiết đơn hàng.
