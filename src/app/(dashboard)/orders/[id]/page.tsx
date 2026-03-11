@@ -11,7 +11,7 @@ import {
   Shield, DollarSign, CreditCard,
   Play, CheckSquare, Lock, Flag, Swords, Trophy, Save, Crosshair, ArrowLeft, Search, RefreshCw
 } from 'lucide-react';
-import { Pencil, Trash2, X, Plus, Eye, EyeOff, History, ArrowUpRight, ArrowDownLeft } from 'lucide-react';
+import { Pencil, Trash2, X, Plus, Eye, EyeOff, History, ArrowUpRight, ArrowDownLeft, Star } from 'lucide-react';
 import { toast } from 'sonner';
 import ChatWindow from '@/components/chat/ChatWindow';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -24,6 +24,7 @@ import LevelingOrderView from '@/components/orders/LevelingOrderView';
 import OnBetOrderView from '@/components/orders/OnBetOrderView';
 import CoachingOrderView from '@/components/orders/CoachingOrderView';
 import SettlementModal from '@/components/orders/SettlementModal';
+import RatingModal from '@/components/orders/RatingModal';
 
 const DDRAGON_VER = '16.5.1'; // Phiên bản DDragon mới nhất (có thể cập nhật động nếu cần)
 
@@ -48,6 +49,7 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
   const [settlementMode, setSettlementMode] = useState<'PAY' | 'REFUND'>('PAY');
   const [settleAmount, setSettleAmount] = useState(0);
   const [isProcessingSettlement, setIsProcessingSettlement] = useState(false);
+  const [isRatingModalOpen, setIsRatingModalOpen] = useState(false);
   
   // Transactions State
   const [transactions, setTransactions] = useState<any[]>([]);
@@ -1092,6 +1094,14 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
           walletBalance={user?.wallet_balance || 0}
           onConfirm={handleConfirmSettlement}
           isLoading={isProcessingSettlement}
+      />
+
+      {/* Rating Modal */}
+      <RatingModal
+          isOpen={isRatingModalOpen}
+          onClose={() => setIsRatingModalOpen(false)}
+          orderId={id}
+          onSuccess={() => window.location.reload()}
       />
 
       {/* Dispute Modal */}
