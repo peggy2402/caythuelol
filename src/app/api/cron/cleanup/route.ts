@@ -6,10 +6,10 @@ import Message from '@/models/Message';
 export async function GET(req: Request) {
   try {
     // Verify secret if needed (e.g. CRON_SECRET)
-    // const authHeader = req.headers.get('authorization');
-    // if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-    //   return new NextResponse('Unauthorized', { status: 401 });
-    // }
+    const authHeader = req.headers.get('authorization');
+    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+      return new NextResponse('Unauthorized', { status: 401 });
+    }
 
     await dbConnect();
 

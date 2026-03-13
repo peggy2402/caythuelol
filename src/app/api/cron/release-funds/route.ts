@@ -6,7 +6,7 @@ import Order from '@/models/Order'; // Assuming Order tracks the completion date
 import Transaction from '@/models/Transaction';
 
 // Security: Check for a secret key in headers
-const CRON_SECRET = process.env.CRON_SECRET || 'my-secret-key';
+const CRON_SECRET = process.env.CRON_SECRET;
 
 export async function GET(req: Request) {
   const authHeader = req.headers.get('authorization');
