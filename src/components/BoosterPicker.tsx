@@ -18,7 +18,8 @@ interface Booster {
     ranks: string[];
     servers: string[];
   }[];
-  booster_info?: { isReady?: boolean };
+  // Thêm kiểu cho booster_info để TypeScript không báo lỗi khi truy cập ranks cũ
+  booster_info?: { isReady?: boolean; ranks?: string[] };
 }
 
 const SERVICE_OPTIONS = [
@@ -150,8 +151,11 @@ export default function BoosterPicker() {
             {displayedBoosters.map((booster) => {
               const isSelected = currentBoosterId === booster._id || currentBoosterId === `@${booster.username}`;
               
-              // Tìm rank của game LOL, nếu không có thì lấy game đầu tiên làm fallback
-              const rank = booster.games?.find(g => g.gameCode === 'LOL')?.ranks?.[0] || booster.games?.[0]?.ranks?.[0];
+              // 1. Tìm rank từ games (Cấu trúc mới)
+              let rank = booster.games?.find(g => g.gameCode === 'LOL')?.ranks?.[0] || booster.games?.[0]?.ranks?.[0];
+              // 2. Nếu không có, tìm từ booster_info (Cấu trúc cũ)
+              if (!rank && booster.booster_info?.ranks?.length) rank = booster.booster_info.ranks[0];
+
               const isReady = booster.booster_info?.isReady ?? true;
               
               return (

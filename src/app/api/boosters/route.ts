@@ -37,7 +37,13 @@ export async function GET(req: Request) {
           // Lấy avatar từ user profile gốc
           avatar: '$profile.avatar',
           // Merge data từ profileDoc và legacy booster_info
-          services: { $ifNull: ['$profileDoc.services', '$booster_info.services', []] },
+          services: { 
+            $setUnion: [
+              { $ifNull: ['$profileDoc.services', []] }, 
+              { $ifNull: ['$booster_info.services', []] },
+              { $ifNull: ['$booster_info.service_settings.enabledServices', []] }
+            ] 
+          },
           rating: { $ifNull: ['$profileDoc.rating', '$booster_info.rating', 5.0] },
           completedOrders: { $ifNull: ['$profileDoc.completedOrders', '$booster_info.completed_orders', 0] },
           games: { $ifNull: ['$profileDoc.games', []] },
