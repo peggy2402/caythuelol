@@ -68,9 +68,25 @@ export default function PaymentSummary({
   const effectiveSchedule = Array.isArray(options?.schedule) ? options.schedule : [];
 
   return (
-    <div className="sticky top-24 rounded-2xl border border-white/10 bg-zinc-900/80 backdrop-blur-xl p-6 shadow-2xl">
+    <div className="rounded-t-2xl lg:rounded-2xl border-t lg:border border-white/10 bg-zinc-900/95 lg:bg-zinc-900/80 backdrop-blur-xl p-4 lg:p-6 shadow-[0_-10px_40px_rgba(0,0,0,0.5)] lg:shadow-2xl">
+        {/* Mobile Toggle Handle */}
         <div 
-            className="flex items-center justify-between mb-4 border-b border-white/10 pb-4 cursor-pointer"
+            className="flex lg:hidden w-full justify-center -mt-2 pb-2 cursor-pointer active:opacity-70"
+            onClick={() => setIsExpanded(!isExpanded)}
+        >
+            {isExpanded ? (
+                <ChevronDown className="text-zinc-500 w-6 h-6" />
+            ) : (
+                <div className="flex flex-col items-center gap-1">
+                    <ChevronUp className="text-zinc-500 w-6 h-6 animate-bounce" />
+                    <span className="text-[10px] text-zinc-500 uppercase font-bold tracking-wider">Chi tiết thanh toán</span>
+                </div>
+            )}
+        </div>
+
+        {/* Desktop Header */}
+        <div 
+            className="hidden lg:flex items-center justify-between mb-4 border-b border-white/10 pb-4 cursor-pointer"
             onClick={() => setIsExpanded(!isExpanded)}
         >
             <h3 className="text-lg font-bold text-white">Thanh toán</h3>
@@ -160,8 +176,9 @@ export default function PaymentSummary({
             )}
         </AnimatePresence>
 
+        {/* Desktop Price Display */}
         {boosterId && (
-            <div className="flex justify-between items-end pt-4 border-t-2 border-white/10 mt-4 mb-6">
+            <div className="hidden lg:flex justify-between items-end pt-4 border-t-2 border-white/10 mt-4 mb-6">
                 <span className="text-zinc-400 font-medium">Tổng cộng:</span>
                 <span className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">
                     {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(priceDetails?.totalPrice || 0)}
@@ -169,12 +186,13 @@ export default function PaymentSummary({
             </div>
         )}
 
+        {/* Terms Checkbox */}
         <div className="flex items-center gap-2 sm:gap-3 mt-3 sm:mt-4 mb-3 sm:mb-4 px-1">
             <button 
                 onClick={() => setAgreedToTerms(!agreedToTerms)}
-                className={`w-4 h-4 sm:w-5 sm:h-5 rounded border flex items-center justify-center transition-all shrink-0 ${agreedToTerms ? 'bg-blue-600 border-blue-600' : 'border-zinc-600 hover:border-zinc-500'}`}
+                className={`w-5 h-5 rounded border flex items-center justify-center transition-all shrink-0 ${agreedToTerms ? 'bg-blue-600 border-blue-600' : 'border-zinc-600 hover:border-zinc-500'}`}
             >
-                {agreedToTerms && <CheckCircle2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-white" />}
+                {agreedToTerms && <CheckCircle2 className="w-3.5 h-3.5 text-white" />}
             </button>
             <span className="text-xs sm:text-sm text-zinc-400 select-none cursor-pointer" onClick={() => setAgreedToTerms(!agreedToTerms)}>
                 Tôi đồng ý với <span className="text-blue-400 hover:underline">Điều khoản & Chính sách</span>
@@ -223,9 +241,19 @@ export default function PaymentSummary({
                 router.push('/checkout');
             }}
             disabled={!boosterId || !priceDetails || priceDetails.totalPrice <= 0}
-            className="w-full py-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-lg shadow-lg shadow-blue-600/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            className="w-full py-3 lg:py-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-lg shadow-lg shadow-blue-600/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 relative overflow-hidden group"
         >
-            {priceDetails && priceDetails.totalPrice > 0 ? 'Bắt đầu thuê' : 'Vui lòng cấu hình'} <ArrowRight className="w-5 h-5" />
+            <div className="flex flex-col items-center leading-tight">
+                <span className="text-sm lg:text-lg uppercase">
+                    {priceDetails && priceDetails.totalPrice > 0 ? 'Bắt đầu thuê' : 'Vui lòng cấu hình'}
+                </span>
+                {priceDetails && priceDetails.totalPrice > 0 && (
+                    <span className="lg:hidden text-xs font-normal opacity-90 text-blue-100">
+                        {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(priceDetails.totalPrice)}
+                    </span>
+                )}
+            </div>
+            <ArrowRight className="hidden lg:block w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
         </button>
         {!isValid && validationMessage && (
             <div className="text-center mt-2 text-xs text-red-400">

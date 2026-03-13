@@ -269,7 +269,7 @@ function CheckoutContent() {
   });
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-white font-sans pt-24 pb-20 px-4">
+    <div className="min-h-screen bg-zinc-950 text-white font-sans pt-24 pb-80 md:pb-20 px-4">
       <Navbar />
       
       <div className="max-w-4xl mx-auto">
@@ -403,14 +403,14 @@ function CheckoutContent() {
 
           {/* Right: Payment Action */}
           <div className="md:col-span-1">
-            <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 sticky top-24">
-              <div className="mb-6">
+            <div className="fixed bottom-0 left-0 right-0 z-50 p-4 bg-zinc-900/95 border-t border-white/10 backdrop-blur-xl rounded-t-2xl shadow-[0_-10px_40px_rgba(0,0,0,0.5)] md:relative md:z-auto md:bg-zinc-900 md:border md:border-zinc-800 md:rounded-2xl md:p-6 md:sticky md:top-24 md:shadow-none">
+              <div className="mb-6 hidden md:block">
                 <div className="text-zinc-400 text-sm mb-1">Tổng giá trị ước tính</div>
                 <div className="text-2xl font-bold text-white">{pricing.total_amount.toLocaleString()} đ</div>
               </div>
 
               {/* Coupon Section */}
-              <div className="mb-6 bg-zinc-950/50 rounded-xl border border-zinc-800 p-4">
+              <div className="mb-4 bg-zinc-950/50 rounded-xl border border-zinc-800 p-3 md:mb-6 md:p-4">
                 <label className="text-zinc-400 text-xs font-bold uppercase tracking-wider mb-3 flex items-center gap-2">
                   <Tag className="w-3 h-3" /> Mã giảm giá
                 </label>
@@ -488,7 +488,7 @@ function CheckoutContent() {
                 )}
               </div>
 
-              <div className="border-t border-zinc-800 my-4 pt-4">
+              <div className="border-t border-zinc-800 my-4 pt-4 hidden md:block">
                 <div className="flex justify-between items-center mb-2">
                   <span className="text-zinc-300">{isDepositService ? 'Tiền cọc cần thanh toán:' : 'Thanh toán ngay:'}</span>
                   <span className="text-xl font-bold text-green-400">{paymentAmount.toLocaleString()} đ</span>
@@ -502,6 +502,15 @@ function CheckoutContent() {
                   </div>
                 )}
               </div>
+              
+              {isLoggedIn && (
+                  <div className="flex justify-between items-center text-xs text-zinc-500 mb-3 md:hidden">
+                    <span>Số dư ví:</span>
+                    <span className={isSufficient ? 'text-blue-400' : 'text-red-500'}>
+                      {walletBalance.toLocaleString()} đ
+                    </span>
+                  </div>
+              )}
 
               {isLoggedIn && !isSufficient && (
                 <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-xs text-red-400 text-center">
@@ -523,10 +532,15 @@ function CheckoutContent() {
                 <button
                   onClick={handleConfirmPayment}
                   disabled={loading}
-                  className="w-full py-3 bg-green-600 hover:bg-green-500 text-white font-bold rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg shadow-green-600/20"
+                  className="w-full py-3 bg-green-600 hover:bg-green-500 text-white font-bold rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg shadow-green-600/20 group"
                 >
-                  {loading ? <Loader2 className="animate-spin" /> : <CheckCircle2 />}
-                  {isDepositService ? 'Xác nhận & Đặt cọc' : 'Thanh toán ngay'}
+                  {loading ? <Loader2 className="animate-spin" /> : <CheckCircle2 className="hidden md:block" />}
+                  <div className="flex flex-col items-center leading-tight">
+                    <span className="uppercase text-sm">{isDepositService ? 'Xác nhận & Đặt cọc' : 'Thanh toán ngay'}</span>
+                    <span className="md:hidden text-xs font-normal opacity-90 text-green-100">
+                        {paymentAmount.toLocaleString()} đ
+                    </span>
+                  </div>
                 </button>
               ) : (
                 <button
@@ -537,7 +551,7 @@ function CheckoutContent() {
                 </button>
               )}
 
-              <p className="text-[10px] text-zinc-600 text-center mt-4">
+              <p className="text-[10px] text-zinc-600 text-center mt-4 hidden md:block">
                 Bằng việc xác nhận, bạn đồng ý với điều khoản dịch vụ của chúng tôi.
               </p>
             </div>
