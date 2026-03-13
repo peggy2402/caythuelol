@@ -54,7 +54,7 @@ export default function CoachingOrderView({
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
         {/* Main Card */}
-        <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 relative overflow-hidden">
+        <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 sm:p-6 relative overflow-hidden">
             <div className="absolute top-0 left-0 w-32 h-32 bg-sky-500/5 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2 pointer-events-none"></div>
 
             <div className="relative z-10">
@@ -128,21 +128,22 @@ export default function CoachingOrderView({
                             {scheduleState.map((session: any, idx: number) => (
                                 <div 
                                     key={session.id || idx} 
-                                    className={`flex items-center justify-between p-3 rounded-lg border transition-all ${
+                                    className={`flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-lg border transition-all gap-3 ${
                                         session.isCompleted 
                                             ? 'bg-green-900/10 border-green-500/20' 
                                             : 'bg-zinc-950 border-zinc-800'
                                     }`}
                                 >
-                                    <div className="flex items-center gap-3">
+                                    <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
                                         <div className={`text-sm font-bold ${session.isCompleted ? 'text-green-400' : 'text-white'}`}>
                                             {session.displayDate}
                                         </div>
-                                        <div className="text-xs font-mono text-zinc-500 bg-zinc-900 px-2 py-0.5 rounded border border-zinc-800">
+                                        <div className="text-xs font-mono text-zinc-500 bg-zinc-900 px-2 py-0.5 rounded border border-zinc-800 self-start sm:self-center">
                                             {session.start} - {session.end}
                                         </div>
                                     </div>
                                     
+                                    <div className="w-full sm:w-auto flex justify-end">
                                     {isBooster && (
                                         <button 
                                             onClick={() => toggleSession(idx)}
@@ -165,6 +166,7 @@ export default function CoachingOrderView({
                                             {session.isCompleted ? 'Đã hoàn thành' : 'Chưa diễn ra'}
                                         </span>
                                     )}
+                                    </div>
                                 </div>
                             ))}
                         </div>
@@ -210,7 +212,7 @@ export default function CoachingOrderView({
                 {isBooster && ['IN_PROGRESS', 'COMPLETED'].includes(order.status) && (
                     <div className="mt-6">
                         <h4 className="text-sm font-bold text-zinc-400 uppercase mb-2">Cập nhật Link VOD</h4>
-                        <div className="flex gap-2">
+                        <div className="flex flex-col sm:flex-row gap-2">
                             <input 
                                 type="text" 
                                 value={vodLink} 

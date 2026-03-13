@@ -197,7 +197,7 @@ export default function DashboardPage() {
           </Link>
         </div>
         
-        <div className="overflow-x-auto">
+        <div>
           {orders.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <div className="mb-4 rounded-full bg-zinc-800 p-4">
@@ -207,45 +207,86 @@ export default function DashboardPage() {
               <p className="mt-1 text-sm text-zinc-500">{t('startRank')}</p>
             </div>
           ) : (
-            <table className="w-full text-left text-sm">
-              <thead className="bg-white/5 text-zinc-400">
-                <tr>
-                  <th className="px-6 py-4 font-medium">{t('colId')}</th>
-                  <th className="px-6 py-4 font-medium">{t('colService')}</th>
-                  <th className="px-6 py-4 font-medium">{t('colStatus')}</th>
-                  <th className="px-6 py-4 font-medium">{t('colPrice')}</th>
-                  <th className="px-6 py-4 font-medium">{t('colDate')}</th>
-                  <th className="relative px-6 py-4"><span className="sr-only">Actions</span></th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/5">
+            <>
+              {/* Mobile View: Card List */}
+              <div className="grid gap-3 p-4 md:hidden">
                 {orders.slice(0, 5).map((order) => (
-                  <tr 
+                  <div 
                     key={order._id} 
-                    className="group cursor-pointer transition-colors hover:bg-white/5"
+                    className="flex flex-col gap-3 rounded-xl border border-white/5 bg-zinc-800/30 p-4 active:scale-[0.98] transition-transform"
                     onClick={() => router.push(`/orders/${order._id}`)}
                   >
-                    <td className="px-6 py-4 font-medium text-white">#{order._id.slice(-6).toUpperCase()}</td>
-                    <td className="px-6 py-4 text-zinc-300">{t(order.serviceType as any) || order.serviceType}</td>
-                    <td className="px-6 py-4">
-                      <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ${statusStyles[order.status]?.bg || 'bg-gray-500/10'}`}>
+                    <div className="flex items-center justify-between">
+                      <span className="font-mono font-bold text-white text-sm">#{order._id.slice(-6).toUpperCase()}</span>
+                      <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${statusStyles[order.status]?.bg || 'bg-gray-500/10'}`}>
                         <span className={`h-1.5 w-1.5 rounded-full ${statusStyles[order.status]?.dot || 'bg-gray-400'}`} />
                         <span className={statusStyles[order.status]?.text || 'text-gray-400'}>{t(order.status as any) || order.status}</span>
                       </span>
-                    </td>
-                    <td className="px-6 py-4 font-medium text-white">
-                      {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(order.pricing.total_amount)}
-                    </td>
-                    <td className="px-6 py-4 text-zinc-500">{new Date(order.createdAt).toLocaleDateString(language.startsWith('vi') ? 'vi-VN' : language)}</td>
-                    <td className="px-6 py-4 text-right">
-                      <button className="rounded p-1 text-zinc-500 hover:bg-white/10 hover:text-white">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </button>
-                    </td>
-                  </tr>
+                    </div>
+                    
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-zinc-400">{t('colService')}</span>
+                      <span className="font-medium text-zinc-200">{t(order.serviceType as any) || order.serviceType}</span>
+                    </div>
+
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-zinc-400">{t('colPrice')}</span>
+                      <span className="font-bold text-emerald-400">
+                        {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(order.pricing.total_amount)}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between text-xs text-zinc-500 pt-3 border-t border-white/5 mt-1">
+                      <span>{new Date(order.createdAt).toLocaleDateString(language.startsWith('vi') ? 'vi-VN' : language)}</span>
+                      <span className="flex items-center gap-1 text-blue-400">Chi tiết <ArrowUpRight className="w-3 h-3" /></span>
+                    </div>
+                  </div>
                 ))}
-              </tbody>
-            </table>
+              </div>
+
+              {/* Desktop View: Table */}
+              <div className="hidden md:block overflow-x-auto">
+                <table className="w-full text-left text-sm">
+                  <thead className="bg-white/5 text-zinc-400">
+                    <tr>
+                      <th className="px-6 py-4 font-medium">{t('colId')}</th>
+                      <th className="px-6 py-4 font-medium">{t('colService')}</th>
+                      <th className="px-6 py-4 font-medium">{t('colStatus')}</th>
+                      <th className="px-6 py-4 font-medium">{t('colPrice')}</th>
+                      <th className="px-6 py-4 font-medium">{t('colDate')}</th>
+                      <th className="relative px-6 py-4"><span className="sr-only">Actions</span></th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/5">
+                    {orders.slice(0, 5).map((order) => (
+                      <tr 
+                        key={order._id} 
+                        className="group cursor-pointer transition-colors hover:bg-white/5"
+                        onClick={() => router.push(`/orders/${order._id}`)}
+                      >
+                        <td className="px-6 py-4 font-medium text-white">#{order._id.slice(-6).toUpperCase()}</td>
+                        <td className="px-6 py-4 text-zinc-300">{t(order.serviceType as any) || order.serviceType}</td>
+                        <td className="px-6 py-4">
+                          <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ${statusStyles[order.status]?.bg || 'bg-gray-500/10'}`}>
+                            <span className={`h-1.5 w-1.5 rounded-full ${statusStyles[order.status]?.dot || 'bg-gray-400'}`} />
+                            <span className={statusStyles[order.status]?.text || 'text-gray-400'}>{t(order.status as any) || order.status}</span>
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 font-medium text-white">
+                          {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(order.pricing.total_amount)}
+                        </td>
+                        <td className="px-6 py-4 text-zinc-500">{new Date(order.createdAt).toLocaleDateString(language.startsWith('vi') ? 'vi-VN' : language)}</td>
+                        <td className="px-6 py-4 text-right">
+                          <button className="rounded p-1 text-zinc-500 hover:bg-white/10 hover:text-white">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
           )}
         </div>
       </div>
