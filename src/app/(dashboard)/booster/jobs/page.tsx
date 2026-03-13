@@ -14,7 +14,8 @@ import {
   CheckCircle2,
   XCircle,
   AlertCircle,
-  RefreshCw
+  RefreshCw,
+  PlusCircle
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
@@ -41,6 +42,7 @@ export default function JobMarketPage() {
   const [publicJobs, setPublicJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState<string | null>(null);
+  const [seeding, setSeeding] = useState(false);
 
   const fetchJobs = async () => {
     try {
@@ -263,6 +265,24 @@ export default function JobMarketPage() {
     );
   };
 
+  // const handleSeedJob = async () => {
+  //   setSeeding(true);
+  //   try {
+  //       const res = await fetch('/api/debug/seed-job', { method: 'POST' });
+  //       const data = await res.json();
+  //       if (res.ok) {
+  //           toast.success('Đã tạo đơn hàng ảo thành công! Hãy thử nhận đơn.');
+  //           fetchJobs(); // Tải lại danh sách để thấy đơn mới
+  //       } else {
+  //           toast.error(data.error);
+  //       }
+  //   } catch (e) {
+  //       toast.error('Lỗi khi tạo đơn ảo');
+  //   } finally {
+  //       setSeeding(false);
+  //   }
+  // };
+
   const JobCard = ({ job, type }: { job: Job, type: 'DIRECT' | 'PUBLIC' }) => (
     <div className={`group border rounded-xl p-5 transition-all hover:shadow-lg flex flex-col ${type === 'DIRECT' ? 'bg-blue-900/10 border-blue-500/30 hover:border-blue-500/50' : 'bg-zinc-900 border-zinc-800 hover:border-zinc-700'}`}>
       {/* Header */}
@@ -354,14 +374,24 @@ export default function JobMarketPage() {
           <p className="text-zinc-400 text-sm">Tìm kiếm và nhận các đơn hàng phù hợp với bạn.</p>
         </div>
 
-        <button 
-            onClick={fetchJobs} 
-            disabled={loading}
-            className="flex items-center gap-2 px-4 py-2 bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 text-white rounded-lg transition-colors text-sm font-medium disabled:opacity-50"
-        >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-            Làm mới
-        </button>
+        <div className="flex gap-2">
+            {/* <button 
+                onClick={handleSeedJob} 
+                disabled={seeding}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg transition-colors text-sm font-medium disabled:opacity-50"
+            >
+                {seeding ? <Loader2 className="w-4 h-4 animate-spin" /> : <PlusCircle className="w-4 h-4" />}
+                Tạo đơn Test
+            </button> */}
+            <button 
+                onClick={fetchJobs} 
+                disabled={loading}
+                className="flex items-center gap-2 px-4 py-2 bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 text-white rounded-lg transition-colors text-sm font-medium disabled:opacity-50"
+            >
+                <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                Làm mới
+            </button>
+        </div>
       </div>
 
       {loading ? (
@@ -387,7 +417,7 @@ export default function JobMarketPage() {
             <div className="space-y-4">
                 <h2 className="text-lg font-bold text-white flex items-center gap-2">
                     <Briefcase className="w-5 h-5 text-zinc-400" /> 
-                    Sàn việc làm ({publicJobs.length})
+                    Đơn hàng công khai ({publicJobs.length})
                 </h2>
                 {publicJobs.length === 0 ? (
                     <div className="text-center py-12 bg-zinc-900/30 border border-dashed border-zinc-800 rounded-xl">
