@@ -45,6 +45,18 @@ const DEFAULT_PRICES = {
   'DUO_COACHING': 200000
 };
 
+// --- HELPERS CHO VIỆC TÍNH TOÁN LẠI GIỜ ---
+const timeToMinutes = (time: string) => {
+  const [h, m] = time.split(':').map(Number);
+  return h * 60 + m;
+};
+
+const minutesToTime = (totalMinutes: number) => {
+  const h = Math.floor(totalMinutes / 60) % 24;
+  const m = totalMinutes % 60;
+  return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+};
+
 function CoachingContent() {
   const searchParams = useSearchParams();
   const boosterId = searchParams.get('booster');
@@ -106,6 +118,21 @@ function CoachingContent() {
 
     fetchBoosterData();
   }, [boosterId]);
+
+  // 3. Auto-update schedule end times when duration (hours) changes
+  // Khi khách hàng kéo thanh thời lượng, tự động cập nhật lại giờ kết thúc của các lịch đã chọn
+  useEffect(() => {
+    if (scheduleWindows.length === 0) return;
+
+    setScheduleWindows(prev => prev.map(w => {
+        const startMins = timeToMinutes(w.start);
+        const endMins = startMins + (hours * 60);
+        return {
+            ...w,
+            end: minutesToTime(endMins)
+        };
+    }));
+  }, [hours]);
 
   // --- PRICING LOGIC ---
   const priceDetails = useMemo(() => {
@@ -209,8 +236,8 @@ function CoachingContent() {
                                     <div key={i} className="flex justify-between items-center p-3 bg-blue-900/20 border border-blue-500/30 rounded-xl">
                                         <div className="flex items-center gap-3">
                                             <CalendarDays className="w-5 h-5 text-blue-400" />
-                                            <span className="text-white font-medium">
-                                                {w.day}: <span className="text-blue-300 font-mono">{w.start} - {w.end}</span>
+                                            <span className="text-white font-medium text-sm">
+                                                {w.displayDate} <span className="text-zinc-500 mx-1">|</span> <span className="text-blue-300 font-mono">{w.start} - {w.end}</span>
                                             </span>
                                         </div>
                                     </div>
@@ -297,7 +324,9 @@ function CoachingContent() {
                                 <span className="flex items-center gap-1 shrink-0"><CalendarDays className="w-3 h-3"/> Lịch học:</span>
                                 <div className="text-right text-blue-400 font-mono">
                                     {scheduleWindows.map((w, i) => (
-                                        <div key={i}>{w.day}: {w.start}-{w.end}</div>
+                                        <div key={i} className="truncate max-w-[200px]" title={w.displayDate}>
+                                            {w.displayDate.split(',')[0]}, {w.dateStr.split('-').slice(1).reverse().join('/')}: {w.start}-{w.end}
+                                        </div>
                                     ))}
                                 </div>
                             </div>
