@@ -149,7 +149,9 @@ export default function BoosterPicker() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {displayedBoosters.map((booster) => {
               const isSelected = currentBoosterId === booster._id || currentBoosterId === `@${booster.username}`;
-              const rank = booster.games?.[0]?.ranks?.[0];
+              
+              // Tìm rank của game LOL, nếu không có thì lấy game đầu tiên làm fallback
+              const rank = booster.games?.find(g => g.gameCode === 'LOL')?.ranks?.[0] || booster.games?.[0]?.ranks?.[0];
               const isReady = booster.booster_info?.isReady ?? true;
               
               return (

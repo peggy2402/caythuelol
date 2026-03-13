@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import User from '@/models/User';
-import BoosterProfile from '@/models/BoosterProfile';
 
 export async function GET(req: Request) {
   try {
@@ -16,74 +15,90 @@ export async function GET(req: Request) {
     const limit = parseInt(searchParams.get('limit') || '12');
     const skip = (page - 1) * limit;
 
-    // 2. Build Query
-    const query: any = {};
-
-    // Nếu có filter server, kiểm tra xem booster có hỗ trợ server đó không
-    // Cấu trúc mới: games.servers (Array)
-    if (server) {
-      query['games.servers'] = server;
-    }
-
-    // Nếu có filter service, kiểm tra xem booster có bật dịch vụ đó không
-    if (service) {
-      query['services'] = service;
-    }
-
-    // 3. Execute Query với Aggregation để Join User
-    // Nếu có search text, chúng ta cần tìm User trước hoặc lookup xong mới filter
-    
     const pipeline: any[] = [
-      { $match: query },
+      // 1. Bắt đầu từ User có role BOOSTER
+      { $match: { role: 'BOOSTER' } },
+      
+      // 2. Lookup BoosterProfile (để lấy thông tin chi tiết nếu có)
       {
         $lookup: {
-          from: 'users', // Tên collection User trong DB (thường là lowercase plural)
-          localField: 'userId',
-          foreignField: '_id',
-          as: 'userInfo'
+          from: 'boosterprofiles', // Tên collection trong MongoDB (lowercase plural)
+          localField: '_id',
+          foreignField: 'userId',
+          as: 'profileDoc'
         }
       },
-      { $unwind: { path: '$userInfo', preserveNullAndEmptyArrays: false } }, // Chỉ lấy profile có user hợp lệ
-      // Chỉ lấy user có role BOOSTER (đề phòng data rác)
-      { $match: { 'userInfo.role': 'BOOSTER' } }
+      { $unwind: { path: '$profileDoc', preserveNullAndEmptyArrays: true } }, // Giữ lại User kể cả khi chưa có Profile
+
+      // 3. Chuẩn hóa dữ liệu (Ưu tiên lấy từ ProfileDoc, nếu không có lấy từ User)
+      {
+        $addFields: {
+          displayName: { $ifNull: ['$profileDoc.displayName', '$username'] },
+          // Lấy avatar từ user profile gốc
+          avatar: '$profile.avatar',
+          // Merge data từ profileDoc và legacy booster_info
+          services: { $ifNull: ['$profileDoc.services', '$booster_info.services', []] },
+          rating: { $ifNull: ['$profileDoc.rating', '$booster_info.rating', 5.0] },
+          completedOrders: { $ifNull: ['$profileDoc.completedOrders', '$booster_info.completed_orders', 0] },
+          games: { $ifNull: ['$profileDoc.games', []] },
+          bio: { $ifNull: ['$profileDoc.bio', '$booster_info.bio', ''] },
+          // Giữ lại booster_info để check isReady
+          booster_info: '$booster_info'
+        }
+      }
     ];
+
+    // 4. Apply Filters
+    const matchStage: any = {};
+
+    if (server) {
+      matchStage['games.servers'] = server;
+    }
+
+    if (service) {
+      matchStage['services'] = service;
+    }
 
     // Filter theo tên (Search)
     if (search) {
-      pipeline.push({
-        $match: {
-          $or: [
-            { 'userInfo.username': { $regex: search, $options: 'i' } },
-            { 'displayName': { $regex: search, $options: 'i' } }
-          ]
-        }
-      });
+      matchStage['$or'] = [
+        { 'username': { $regex: search, $options: 'i' } },
+        { 'displayName': { $regex: search, $options: 'i' } }
+      ];
     }
 
-    // Pagination
-    pipeline.push(
-      { $skip: skip },
-      { $limit: limit },
-      {
-        $project: {
-          _id: '$userInfo._id', // Trả về ID của User để frontend dùng làm link
-          username: '$userInfo.username',
-          avatar: '$userInfo.profile.avatar',
-          displayName: 1,
-          bio: 1,
-          games: 1, // Cấu trúc mới
-          services: 1,
-          rating: 1,
-          completedOrders: 1
-        }
-      }
-    );
+    if (Object.keys(matchStage).length > 0) {
+      pipeline.push({ $match: matchStage });
+    }
 
-    const boosters = await BoosterProfile.aggregate(pipeline);
+    // 5. Facet for Pagination & Data
+    pipeline.push({
+      $facet: {
+        metadata: [{ $count: "total" }],
+        data: [
+          { $skip: skip },
+          { $limit: limit },
+          {
+            $project: {
+              _id: 1,
+              username: 1,
+              avatar: 1,
+              displayName: 1,
+              bio: 1,
+              games: 1,
+              services: 1,
+              rating: 1,
+              completedOrders: 1,
+              booster_info: 1
+            }
+          }
+        ]
+      }
+    });
     
-    // Đếm tổng số (cần query riêng hoặc dùng facet, ở đây query riêng cho đơn giản)
-    // Lưu ý: Count chính xác khi có search text sẽ phức tạp hơn, ở đây tạm tính count theo query gốc
-    const total = await BoosterProfile.countDocuments(query);
+    const result = await User.aggregate(pipeline);
+    const boosters = result[0].data;
+    const total = result[0].metadata[0]?.total || 0;
 
     return NextResponse.json({
       success: true,
