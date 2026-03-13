@@ -179,8 +179,10 @@ export default function Sidebar({ className = '', onLinkClick }: SidebarProps) {
             <NavItem href="/admin/withdrawals" icon={Wallet} label="Quản lý Rút tiền" />
             <NavItem href="/admin/deposits" icon={DollarSign} label="Quản lý Tiền cọc" />
             <NavItem href="/admin/disputes" icon={AlertTriangle} label="Quản lý Tranh chấp" />
+            <NavItem href="/admin/cron" icon={ListTodo} label="Quản Lý Cron" />
             <NavItem href="/admin/settings" icon={Settings} label={t('systemSettings')} />
             <NavItem href="/admin/audit-logs" icon={ListTodo} label={t('auditLogs')} />
+
           </>
         )}
       </div>

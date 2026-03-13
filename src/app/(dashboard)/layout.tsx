@@ -17,7 +17,8 @@ import {
   X,
   Settings2,
   AlertTriangle,
-  DoorOpen
+  DoorOpen,
+  Power
 } from 'lucide-react';
 import { useLanguage } from '../../lib/i18n';
 import Sidebar from '@/components/Sidebar';
@@ -186,6 +187,29 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     setShowResignModal(false);
   };
 
+  const toggleAvailability = async () => {
+    if (!user || user.role !== 'BOOSTER') return;
+    
+    // Default to true if undefined
+    const currentStatus = user.booster_info?.isReady ?? true;
+    const newStatus = !currentStatus;
+
+    // Optimistic update
+    const updatedUser = { ...user, booster_info: { ...user.booster_info, isReady: newStatus } };
+    setUser(updatedUser);
+    localStorage.setItem('user', JSON.stringify(updatedUser));
+
+    try {
+        await fetch('/api/boosters/availability', {
+            method: 'POST',
+            body: JSON.stringify({ isReady: newStatus })
+        });
+        toast.success(newStatus ? 'Đã bật trạng thái Sẵn sàng nhận đơn' : 'Đã chuyển sang trạng thái Tạm nghỉ');
+    } catch (e) {
+        toast.error('Lỗi cập nhật trạng thái');
+    }
+  };
+
   // Danh sách tất cả các trang để hiển thị tiêu đề (Breadcrumb)
   const allNavItems = [
     // Common
@@ -211,6 +235,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { href: '/admin/withdrawals', label: 'Quản lý Rút tiền' },
     { href: '/admin/audit-logs', label: t('auditLogs') },
     { href: '/admin/disputes', label: 'Quản lý Tranh chấp' },
+    { href: '/admin/cron', label: 'System Cron' },
   ];
 
   // Tìm item khớp với URL hiện tại (ưu tiên khớp chính xác hoặc khớp phần đầu)
@@ -375,6 +400,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                       {t('wallet')}
                     </Link>
 
+                    {user?.role === 'BOOSTER' && (
+                      <button 
+                        onClick={() => { toggleAvailability(); setIsUserMenuOpen(false); }}
+                        className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
+                          (user.booster_info?.isReady ?? true) ? 'text-green-400 hover:bg-white/5' : 'text-zinc-500 hover:bg-white/5'
+                        }`}
+                      >
+                        <Power className="w-4 h-4" /> 
+                        {(user.booster_info?.isReady ?? true) ? 'Đang Sẵn Sàng' : 'Đang Tạm Nghỉ'}
+                      </button>
+                    )}
                     {user?.role === 'BOOSTER' && (
                       <button 
                         onClick={() => { setShowResignModal(true); setIsUserMenuOpen(false); }}

@@ -195,6 +195,19 @@ function CheckoutContent() {
             </div>
           </>
         );
+      case 'COACHING':
+        return (
+          <>
+            <div className="flex justify-between py-2 border-b border-zinc-800">
+              <span className="text-zinc-400">Hình thức</span>
+              <span className="font-bold text-white">{details.coaching_type}</span>
+            </div>
+            <div className="flex justify-between py-2 border-b border-zinc-800">
+              <span className="text-zinc-400">Thời lượng</span>
+              <span className="font-bold text-yellow-400">{details.hours} Giờ</span>
+            </div>
+          </>
+        );
        case 'PROMOTION':
         return (
           <>
@@ -291,14 +304,37 @@ function CheckoutContent() {
             </div>
 
             {/* Account Info */}
-            <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
-              <h2 className="text-xl font-bold mb-4 text-blue-400">Thông tin tài khoản</h2>
-              <div className="space-y-4 text-sm">
-                <div className="flex justify-between py-2 border-b border-zinc-800"><span className="text-zinc-400">Tài khoản</span><span className="font-mono">{details.account_username}</span></div>
-                <div className="flex justify-between py-2 border-b border-zinc-800"><span className="text-zinc-400">Mật khẩu</span><span>••••••••</span></div>
-                <div className="flex justify-between py-2 border-b border-zinc-800"><span className="text-zinc-400">Server</span><span className="font-bold">{details.server}</span></div>
+            {serviceType === 'COACHING' ? (
+              <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
+                <h2 className="text-xl font-bold mb-4 text-blue-400">Thông tin bổ sung</h2>
+                <div className="space-y-4 text-sm">
+                  {details.discord_id && (
+                    <div className="flex justify-between py-2 border-b border-zinc-800"><span className="text-zinc-400">Discord ID</span><span className="font-mono">{details.discord_id}</span></div>
+                  )}
+                  {details.riot_id && (
+                    <div className="flex justify-between py-2 border-b border-zinc-800"><span className="text-zinc-400">Riot ID</span><span className="font-mono">{details.riot_id}</span></div>
+                  )}
+                  {details.vod_link && (
+                    <div className="flex justify-between py-2 border-b border-zinc-800"><span className="text-zinc-400">Link VOD</span><span className="font-mono truncate max-w-[200px]">{details.vod_link}</span></div>
+                  )}
+                  {details.note && (
+                     <div className="py-2 border-b border-zinc-800">
+                        <span className="text-zinc-400 block mb-1">Ghi chú</span>
+                        <p className="text-white text-xs italic bg-zinc-800/50 p-2 rounded-md">{details.note}</p>
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
+                <h2 className="text-xl font-bold mb-4 text-blue-400">Thông tin tài khoản</h2>
+                <div className="space-y-4 text-sm">
+                  <div className="flex justify-between py-2 border-b border-zinc-800"><span className="text-zinc-400">Tài khoản</span><span className="font-mono">{details.account_username}</span></div>
+                  <div className="flex justify-between py-2 border-b border-zinc-800"><span className="text-zinc-400">Mật khẩu</span><span>••••••••</span></div>
+                  <div className="flex justify-between py-2 border-b border-zinc-800"><span className="text-zinc-400">Server</span><span className="font-bold">{details.server}</span></div>
+                </div>
+              </div>
+            )}
             {/* Options Info */}
             <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
               <h2 className="text-xl font-bold mb-4 text-blue-400">Tùy chọn thêm</h2>
@@ -327,10 +363,18 @@ function CheckoutContent() {
                   {/* 3. Lịch cấm (Schedule) */}
                   {scheduleOption && Array.isArray(scheduleOption[1]) && (
                     <div className="py-2 border-b border-zinc-800 last:border-b-0">
-                        <span className="text-zinc-300 block mb-2 font-medium">Khung giờ nghỉ (Cấm chơi):</span>
+                        <span className="text-zinc-300 block mb-2 font-medium">
+                          {serviceType === 'COACHING' ? 'Lịch học đã chọn:' : 'Khung giờ nghỉ (Cấm chơi):'}
+                        </span>
                         <div className="flex flex-wrap gap-2">
                             {scheduleOption[1].map((w: any, idx: number) => (
-                                <span key={idx} className="px-2 py-1 bg-red-500/10 text-red-400 border border-red-500/20 rounded text-xs font-bold">{w.start} - {w.end}</span>
+                                <span key={idx} className={`px-2 py-1 rounded text-xs font-bold ${
+                                  serviceType === 'COACHING' 
+                                    ? 'bg-blue-500/10 text-blue-300 border border-blue-500/20'
+                                    : 'bg-red-500/10 text-red-400 border border-red-500/20'
+                                }`}>
+                                  {w.displayDate ? `${w.displayDate.split(',')[0]}: ${w.start}-${w.end}` : `${w.start} - ${w.end}`}
+                                </span>
                             ))}
                         </div>
                     </div>

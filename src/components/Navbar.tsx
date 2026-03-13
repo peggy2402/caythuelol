@@ -23,7 +23,8 @@ import {
   Bell,
   Heart,
   AlertTriangle,
-  DoorOpen
+  DoorOpen,
+  Power
 } from 'lucide-react';
 import { useLanguage, Language } from '../lib/i18n';
 import { useRouter, usePathname } from 'next/navigation';
@@ -216,6 +217,29 @@ export default function Navbar() {
       toast.error("Lỗi khi thực hiện yêu cầu.");
     }
     setShowResignModal(false);
+  };
+
+  const toggleAvailability = async () => {
+    if (!user || user.role !== 'BOOSTER') return;
+    
+    // Default to true if undefined
+    const currentStatus = user.booster_info?.isReady ?? true;
+    const newStatus = !currentStatus;
+
+    // Optimistic update
+    const updatedUser = { ...user, booster_info: { ...user.booster_info, isReady: newStatus } };
+    setUser(updatedUser);
+    localStorage.setItem('user', JSON.stringify(updatedUser));
+
+    try {
+        await fetch('/api/boosters/availability', {
+            method: 'POST',
+            body: JSON.stringify({ isReady: newStatus })
+        });
+        toast.success(newStatus ? 'Đã bật trạng thái Sẵn sàng nhận đơn' : 'Đã chuyển sang trạng thái Tạm nghỉ');
+    } catch (e) {
+        toast.error('Lỗi cập nhật trạng thái');
+    }
   };
 
   const closeMobileMenu = () => setIsMobileMenuOpen(false);
@@ -425,6 +449,15 @@ export default function Navbar() {
                         <ListTodo className="h-4 w-4" />
                         {t('myActiveJobs')}
                       </Link>
+                      <button 
+                        onClick={() => { toggleAvailability(); setIsDropdownOpen(false); }}
+                        className={`flex w-full items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/5 transition-colors ${
+                          (user.booster_info?.isReady ?? true) ? 'text-green-400' : 'text-zinc-500'
+                        }`}
+                      >
+                        <Power className="h-4 w-4" /> 
+                        {(user.booster_info?.isReady ?? true) ? 'Đang Sẵn Sàng' : 'Đang Tạm Nghỉ'}
+                      </button>
                       <button
                         onClick={() => setShowResignModal(true)}
                         className="flex w-full items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/5 text-red-400"
@@ -562,6 +595,15 @@ export default function Navbar() {
                     <Link href="/booster/my-orders" onClick={closeMobileMenu} className="flex items-center gap-4 px-4 py-3 rounded-lg hover:bg-white/5 transition-colors"><ListTodo className="h-5 w-5 text-zinc-400" />{t('myActiveJobs')}</Link>
                     <Link href="/booster/services" onClick={closeMobileMenu} className="flex items-center gap-4 px-4 py-3 rounded-lg hover:bg-white/5 transition-colors"><Zap className="h-5 w-5 text-zinc-400" />{t('manageServices')}</Link>
                     <Link href="/wallet" onClick={closeMobileMenu} className="flex items-center gap-4 px-4 py-3 rounded-lg hover:bg-white/5 transition-colors"><Wallet className="h-5 w-5 text-zinc-400" />{t('wallet')}</Link>
+                    <button 
+                        onClick={() => { toggleAvailability(); closeMobileMenu(); }}
+                        className={`flex w-full items-center gap-4 px-4 py-3 rounded-lg hover:bg-white/5 transition-colors ${
+                          (user.booster_info?.isReady ?? true) ? 'text-green-400' : 'text-zinc-500'
+                        }`}
+                      >
+                        <Power className="h-5 w-5" /> 
+                        {(user.booster_info?.isReady ?? true) ? 'Đang Sẵn Sàng' : 'Đang Tạm Nghỉ'}
+                    </button>
                     <button onClick={() => { setShowResignModal(true); closeMobileMenu(); }} className="flex w-full items-center gap-4 px-4 py-3 rounded-lg hover:bg-white/5 transition-colors text-red-400"><DoorOpen className="h-5 w-5" /> Gỡ Quyền Booster</button>
                   </>
                 )}

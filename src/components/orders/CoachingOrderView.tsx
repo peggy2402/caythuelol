@@ -1,6 +1,8 @@
 'use client';
 
-import { BrainCircuit, Clock, Video, ShieldCheck, Save, Loader2 } from 'lucide-react';
+import { BrainCircuit, Clock, Video, ShieldCheck, Save, Loader2, MessageSquare, Gamepad2, FileText, CheckSquare, Square } from 'lucide-react';
+import { useState } from 'react';
+import { toast } from 'sonner';
 import CoachingTimeline from '@/components/orders/CoachingTimeline';
 
 interface CoachingOrderViewProps {
@@ -22,6 +24,32 @@ export default function CoachingOrderView({
 }: CoachingOrderViewProps) {
   const { details } = order;
   const { coaching_type, hours } = details || {};
+
+  const [scheduleState, setScheduleState] = useState(details.schedule || []);
+  const [isUpdatingSchedule, setIsUpdatingSchedule] = useState(false);
+
+  const toggleSession = async (index: number) => {
+    if (!isBooster) return;
+    
+    const newSchedule = [...scheduleState];
+    newSchedule[index] = { ...newSchedule[index], isCompleted: !newSchedule[index].isCompleted };
+    setScheduleState(newSchedule);
+    
+    setIsUpdatingSchedule(true);
+    try {
+        const res = await fetch(`/api/orders/${order._id}/schedule`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ schedule: newSchedule })
+        });
+        if (!res.ok) throw new Error();
+        toast.success('Cập nhật trạng thái buổi học thành công');
+    } catch (e) {
+        toast.error('Lỗi khi cập nhật trạng thái');
+        setScheduleState(details.schedule || []); // Revert on error
+    }
+    setIsUpdatingSchedule(false);
+  };
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -52,6 +80,96 @@ export default function CoachingOrderView({
                         </div>
                     </div>
                 </div>
+
+                {/* Additional Info Section */}
+                <div className="mt-6 p-4 bg-zinc-950/50 rounded-xl border border-zinc-800 space-y-3">
+                    <h4 className="text-xs font-bold text-zinc-500 uppercase tracking-wider flex items-center gap-2">
+                        Thông tin bổ sung
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {details.discord_id && (
+                            <div className="flex items-center gap-3 p-3 bg-zinc-900 rounded-lg border border-zinc-800">
+                                <div className="p-2 bg-indigo-500/10 rounded-lg"><MessageSquare className="w-4 h-4 text-indigo-400" /></div>
+                                <div>
+                                    <div className="text-[10px] text-zinc-500 uppercase">Discord ID</div>
+                                    <div className="font-mono text-sm text-white select-all">{details.discord_id}</div>
+                                </div>
+                            </div>
+                        )}
+                        {details.riot_id && (
+                            <div className="flex items-center gap-3 p-3 bg-zinc-900 rounded-lg border border-zinc-800">
+                                <div className="p-2 bg-red-500/10 rounded-lg"><Gamepad2 className="w-4 h-4 text-red-400" /></div>
+                                <div>
+                                    <div className="text-[10px] text-zinc-500 uppercase">Riot ID</div>
+                                    <div className="font-mono text-sm text-white select-all">{details.riot_id}</div>
+                                </div>
+                            </div>
+                        )}
+                        {details.note && (
+                            <div className="col-span-1 md:col-span-2 flex gap-3 p-3 bg-zinc-900 rounded-lg border border-zinc-800">
+                                <div className="p-2 bg-zinc-700/10 rounded-lg h-fit"><FileText className="w-4 h-4 text-zinc-400" /></div>
+                                <div>
+                                    <div className="text-[10px] text-zinc-500 uppercase">Ghi chú từ học viên</div>
+                                    <div className="text-sm text-zinc-300 italic">{details.note}</div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* Session Checklist Status */}
+                {scheduleState.length > 0 && (
+                    <div className="mt-6">
+                         <div className="flex justify-between items-center mb-2">
+                            <h4 className="text-sm font-bold text-zinc-400 uppercase">Trạng thái buổi học</h4>
+                            {isUpdatingSchedule && <Loader2 className="w-3 h-3 animate-spin text-zinc-500" />}
+                        </div>
+                        <div className="space-y-2">
+                            {scheduleState.map((session: any, idx: number) => (
+                                <div 
+                                    key={session.id || idx} 
+                                    className={`flex items-center justify-between p-3 rounded-lg border transition-all ${
+                                        session.isCompleted 
+                                            ? 'bg-green-900/10 border-green-500/20' 
+                                            : 'bg-zinc-950 border-zinc-800'
+                                    }`}
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <div className={`text-sm font-bold ${session.isCompleted ? 'text-green-400' : 'text-white'}`}>
+                                            {session.displayDate}
+                                        </div>
+                                        <div className="text-xs font-mono text-zinc-500 bg-zinc-900 px-2 py-0.5 rounded border border-zinc-800">
+                                            {session.start} - {session.end}
+                                        </div>
+                                    </div>
+                                    
+                                    {isBooster && (
+                                        <button 
+                                            onClick={() => toggleSession(idx)}
+                                            className={`flex items-center gap-2 text-xs font-bold px-3 py-1.5 rounded-md transition-colors ${
+                                                session.isCompleted 
+                                                    ? 'bg-green-500/20 text-green-400 hover:bg-green-500/30' 
+                                                    : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-white'
+                                            }`}
+                                        >
+                                            {session.isCompleted ? (
+                                                <><CheckSquare className="w-4 h-4" /> Đã xong</>
+                                            ) : (
+                                                <><Square className="w-4 h-4" /> Đánh dấu xong</>
+                                            )}
+                                        </button>
+                                    )}
+                                    
+                                    {!isBooster && (
+                                        <span className={`text-xs font-bold px-2 py-1 rounded ${session.isCompleted ? 'text-green-400 bg-green-500/10' : 'text-zinc-500 bg-zinc-800'}`}>
+                                            {session.isCompleted ? 'Đã hoàn thành' : 'Chưa diễn ra'}
+                                        </span>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
 
                 {/* Timeline Visualization */}
                 {details?.schedule && details.schedule.length > 0 && (

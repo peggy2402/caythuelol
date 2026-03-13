@@ -13,7 +13,10 @@ export default function RelatedBoosters({ currentBooster, relatedBoosters }: { c
     <div className="mt-12">
       <h2 className="text-2xl font-bold text-white mb-6">Booster tương tự</h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-        {relatedBoosters.map((booster) => (
+        {relatedBoosters.map((booster) => {
+          const isReady = booster.booster_info?.isReady ?? true;
+          
+          return (
           <Link
             href={`/b/${booster.username}`}
             key={booster._id}
@@ -28,6 +31,8 @@ export default function RelatedBoosters({ currentBooster, relatedBoosters }: { c
                     <User className="w-6 h-6 text-zinc-500" />
                   </div>
                 )}
+                {/* Status Dot */}
+                <div className={`absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full border-2 border-zinc-800 ${isReady ? 'bg-green-500' : 'bg-zinc-500'}`} />
               </div>
               <div className="flex-1">
                 <h4 className="font-bold text-white group-hover:text-blue-400 transition-colors">{booster.displayName || booster.username}</h4>
@@ -45,7 +50,7 @@ export default function RelatedBoosters({ currentBooster, relatedBoosters }: { c
               Giá từ: <span className="font-bold text-green-400">50.000 đ</span>
             </div>
           </Link>
-        ))}
+        )})}
       </div>
     </div>
   );

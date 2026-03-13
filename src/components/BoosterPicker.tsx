@@ -18,6 +18,7 @@ interface Booster {
     ranks: string[];
     servers: string[];
   }[];
+  booster_info?: { isReady?: boolean };
 }
 
 const SERVICE_OPTIONS = [
@@ -149,6 +150,7 @@ export default function BoosterPicker() {
             {displayedBoosters.map((booster) => {
               const isSelected = currentBoosterId === booster._id || currentBoosterId === `@${booster.username}`;
               const rank = booster.games?.[0]?.ranks?.[0];
+              const isReady = booster.booster_info?.isReady ?? true;
               
               return (
               <div 
@@ -167,6 +169,9 @@ export default function BoosterPicker() {
                     ) : (
                       <User className="w-full h-full p-2 bg-zinc-800 text-zinc-400" />
                     )}
+                    
+                    {/* Status Indicator */}
+                    <div className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-zinc-900 ${isReady ? 'bg-green-500' : 'bg-zinc-500'}`} title={isReady ? 'Sẵn sàng' : 'Tạm nghỉ'} />
                   </div>
                   <div>
                     <Link 

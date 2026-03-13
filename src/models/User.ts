@@ -30,6 +30,7 @@ export interface IUser extends Document {
     rating?: number;
     completed_orders?: number;
     service_settings?: any;
+    isReady?: boolean;
   };
   createdAt: Date;
   updatedAt: Date;

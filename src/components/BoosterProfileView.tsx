@@ -57,6 +57,7 @@ export default function BoosterProfileView({ id }: { id: string }) {
   // Ensure identifier has @ if it's a username based lookup, or just use username for display
   const identifier = `@${booster.username}`;
   const ratingStats = info.rating_stats || {};
+  const isReady = info.isReady ?? true;
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white font-sans selection:bg-blue-500/30 pb-20">
@@ -83,7 +84,7 @@ export default function BoosterProfileView({ id }: { id: string }) {
                     <User className="w-full h-full p-6 text-zinc-500" />
                   )}
                 </div>
-                <div className="absolute bottom-1 right-1 bg-green-500 w-6 h-6 rounded-full border-4 border-zinc-950" title="Online" />
+                <div className={`absolute bottom-1 right-1 w-6 h-6 rounded-full border-4 border-zinc-950 ${isReady ? 'bg-green-500' : 'bg-zinc-500'}`} title={isReady ? 'Online / Sẵn sàng' : 'Tạm nghỉ'} />
               </div>
 
               <div className="text-center mb-6">
