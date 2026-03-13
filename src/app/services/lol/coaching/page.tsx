@@ -5,7 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { Loader2, Clock, Video, Users, MonitorPlay, CalendarDays, Pencil } from 'lucide-react';
 import { toast } from 'sonner';
 import CoachingScheduleModal, { TimeWindow } from '@/components/services/lol/CoachingScheduleModal';
-import AccountInfo from '@/components/services/lol/AccountInfo';
+import CoachingAdditionalInfo from '@/components/services/lol/CoachingAdditionalInfo';
 import PaymentSummary from '@/components/services/lol/PaymentSummary';
 
 const COACHING_TYPES = [
@@ -70,11 +70,12 @@ function CoachingContent() {
   const [coachingType, setCoachingType] = useState('LIVE_COACHING');
   const [hours, setHours] = useState(1);
 
-  // Account Info State
-  const [accountType, setAccountType] = useState('RIOT');
-  const [gameUsername, setGameUsername] = useState('');
-  const [gamePassword, setGamePassword] = useState('');
-  const [selectedServer, setSelectedServer] = useState('');
+  // Additional Info State
+  const [riotId, setRiotId] = useState('');
+  const [discordId, setDiscordId] = useState('');
+  const [vodLink, setVodLink] = useState('');
+  const [note, setNote] = useState('');
+  const [selectedServer, setSelectedServer] = useState(''); // Vẫn giữ server để Booster biết khu vực
 
   // Schedule State
   const [scheduleWindows, setScheduleWindows] = useState<TimeWindow[]>([]);
@@ -159,10 +160,15 @@ function CoachingContent() {
     };
   }, [boosterConfig, coachingType, hours, platformFee]);
 
-  const isAccountValid = useMemo(() => {
-    // Với VOD Review có thể không cần pass, nhưng cứ bắt nhập cho đồng bộ hoặc tùy logic
-    return gameUsername.trim().length >= 3; 
-  }, [gameUsername]);
+  // --- VALIDATION LOGIC ---
+  const isInfoValid = useMemo(() => {
+    if (!discordId || discordId.trim().length < 3) return false;
+
+    if (coachingType === 'VOD_REVIEW') return vodLink.trim().length > 5;
+    if (['LIVE_COACHING', 'DUO_COACHING'].includes(coachingType)) return riotId.trim().length > 3;
+    
+    return true;
+  }, [coachingType, riotId, discordId, vodLink]);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-x-8">
@@ -229,7 +235,7 @@ function CoachingContent() {
 
                     {/* Schedule */}
                     <div>
-                        <label className="text-xs font-bold uppercase text-zinc-500 tracking-wider mb-3 block">Lịch học mong muốn theo ngày</label>
+                        <label className="text-xs font-bold uppercase text-zinc-500 tracking-wider mb-3 block">Lịch học mong muốn</label>
                         {scheduleWindows.length > 0 ? (
                             <div className="space-y-2">
                                 {scheduleWindows.map((w, i) => (
@@ -255,21 +261,20 @@ function CoachingContent() {
                                 className="w-full p-4 border border-dashed border-zinc-700 rounded-xl text-zinc-400 hover:text-white hover:border-zinc-500 hover:bg-zinc-900/50 transition-all flex flex-col items-center gap-2"
                             >
                                 <CalendarDays className="w-6 h-6" />
-                                <span>Bấm để chọn khung giờ bạn rảnh trong ngày</span>
+                                <span>Bấm để chọn khung giờ bạn rảnh</span>
                             </button>
                         )}
                     </div>
                 </div>
             </div>
 
-            {/* Account Info */}
-            <AccountInfo 
-                accountType={accountType} setAccountType={setAccountType}
-                server={selectedServer} setServer={setSelectedServer}
-                username={gameUsername} setUsername={setGameUsername}
-                password={gamePassword} setPassword={setGamePassword}
-                servers={boosterConfig?.booster_info?.service_settings?.servers}
-                disabled={!boosterId}
+            {/* Additional Info (Thay thế AccountInfo) */}
+            <CoachingAdditionalInfo
+                coachingType={coachingType}
+                riotId={riotId} setRiotId={setRiotId}
+                discordId={discordId} setDiscordId={setDiscordId}
+                vodLink={vodLink} setVodLink={setVodLink}
+                note={note} setNote={setNote}
             />
         </div>
 
@@ -280,10 +285,10 @@ function CoachingContent() {
                 boosterId={boosterId}
                 priceDetails={priceDetails}
                 platformFee={platformFee}
-                isValid={isAccountValid && scheduleWindows.length > 0}
+                isValid={isInfoValid && scheduleWindows.length > 0}
                 validationMessage={
-                    !isAccountValid 
-                        ? "Vui lòng nhập thông tin tài khoản." 
+                    !isInfoValid 
+                        ? "Vui lòng nhập đầy đủ thông tin bổ sung." 
                         : scheduleWindows.length === 0 
                             ? "Vui lòng chọn lịch học mong muốn." 
                             : undefined
@@ -294,8 +299,11 @@ function CoachingContent() {
                     hours: hours,
                     schedule: scheduleWindows,
                     server: selectedServer,
-                    account_username: gameUsername,
-                    account_password: gamePassword
+                    // Mapping các trường mới vào details đơn hàng
+                    riot_id: riotId,
+                    discord_id: discordId,
+                    vod_link: vodLink,
+                    note: note
                 }}
                 options={{}} // Coaching không có extra options phức tạp
             >
