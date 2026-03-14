@@ -3,13 +3,13 @@
 import { useState, useEffect } from 'react';
 import Link from "next/link";
 import Image from "next/image";
-import { Shield, Zap, Trophy, Star, CheckCircle, ArrowRight, Users, Clock, Target, ChevronRight, CreditCard, TrendingUp, Activity, Sparkles, MessageSquarePlus, Lightbulb, Bug, X, Loader2, UploadCloud } from "lucide-react";
+import { Shield, Zap, Trophy, Star, CheckCircle, ArrowRight, Users, Clock, Target, ChevronRight, CreditCard, TrendingUp, Activity, Sparkles, MessageSquarePlus, Lightbulb, Bug, X, Loader2, UploadCloud, Facebook, Youtube, MessageCircle, Mail, Phone } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import { useLanguage } from "@/lib/i18n";
 import { motion, useScroll, useTransform, Variants, AnimatePresence } from "framer-motion";
 import CountUp from 'react-countup';
 import { toast } from "sonner";
-
+import { FaDiscord, FaFacebookMessenger } from "react-icons/fa";
 // Lightweight Custom Typewriter Hook
 const Typewriter = ({ words }: { words: string[] }) => {
   const [index, setIndex] = useState(0);
@@ -558,72 +558,92 @@ export default function Home() {
       </AnimatePresence>
 
       {/* Footer */}
-      <footer className="bg-[#020202] border-t border-white/10 pt-20 pb-10">
-        <div className="container mx-auto px-6">
-          <div className="grid md:grid-cols-4 gap-12 mb-16">
-            <div className="col-span-1 md:col-span-1">
+      <footer className="relative bg-[#030303] border-t border-white/5 pt-20 pb-10 overflow-hidden">
+        {/* Glow Line & Ambient Background */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 h-px bg-gradient-to-r from-transparent via-blue-500/30 to-transparent" />
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-blue-600/5 blur-[100px] rounded-full pointer-events-none" />
+
+        <div className="container mx-auto px-6 relative z-10">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-12 lg:gap-8 mb-16">
+            <div className="lg:col-span-2">
               <div className="flex items-center gap-3 mb-6">
                 <div className="relative h-10 w-10">
-                   <Image src="/logo.png" alt="Logo" fill className="object-contain" />
+                   <Image src="/logo-ver3.png" alt="Logo" fill className="object-contain" />
                 </div>
                 <span className="text-2xl font-bold text-white tracking-tighter">CAYTHUE<span className="text-blue-500">LOL</span></span>
               </div>
-              <p className="text-zinc-500 text-sm leading-relaxed mb-6">
+              <p className="text-zinc-400 text-sm leading-relaxed mb-8 max-w-sm">
                 {t("footerDesc")}
               </p>
               <div className="flex gap-4">
-                {/* Social Icons placeholders */}
-                <div className="w-10 h-10 rounded-full bg-zinc-900 flex items-center justify-center text-zinc-400 hover:bg-blue-600 hover:text-white transition-all cursor-pointer">F</div>
-                <div className="w-10 h-10 rounded-full bg-zinc-900 flex items-center justify-center text-zinc-400 hover:bg-blue-600 hover:text-white transition-all cursor-pointer">Y</div>
-                <div className="w-10 h-10 rounded-full bg-zinc-900 flex items-center justify-center text-zinc-400 hover:bg-blue-600 hover:text-white transition-all cursor-pointer">D</div>
+                <a 
+                  href="https://www.facebook.com/boostking.official/" 
+                  className="w-10 h-10 rounded-full bg-zinc-900 border border-white/5 flex items-center justify-center text-zinc-400 hover:bg-[#1877F2] hover:text-white hover:border-[#1877F2] transition-all shadow-lg hover:shadow-[#1877F2]/25"
+                >
+                  <Facebook size={18} />
+                </a>
+
+                <a 
+                  href="https://discord.gg/yourserver" 
+                  className="w-10 h-10 rounded-full bg-zinc-900 border border-white/5 flex items-center justify-center text-zinc-400 hover:bg-[#5865F2] hover:text-white hover:border-[#5865F2] transition-all shadow-lg hover:shadow-[#5865F2]/25"
+                >
+                  <FaDiscord size={18} />
+                </a>
+
+                <a 
+                  href="https://www.messenger.com/t/1067718439753127/" 
+                  className="w-10 h-10 rounded-full bg-zinc-900 border border-white/5 flex items-center justify-center text-zinc-400 hover:bg-[#0084FF] hover:text-white hover:border-[#0084FF] transition-all shadow-lg hover:shadow-[#0084FF]/25"
+                >
+                  <FaFacebookMessenger size={18} />
+                </a>
               </div>
             </div>
 
             <div>
               <h4 className="text-white font-bold mb-6 uppercase tracking-wider text-sm">{t("services")}</h4>
-              <ul className="space-y-4 text-sm text-zinc-400">
-                <li><Link href="#" className="hover:text-blue-400 transition-colors hover:underline decoration-blue-500/50 underline-offset-4">{t("serviceList.boostRank")}</Link></li>
-                <li><Link href="#" className="hover:text-blue-400 transition-colors hover:underline decoration-blue-500/50 underline-offset-4">{t("serviceList.placement")}</Link></li>
-                <li><Link href="#" className="hover:text-blue-400 transition-colors hover:underline decoration-blue-500/50 underline-offset-4">{t("serviceList.mastery")}</Link></li>
-                <li><Link href="#" className="hover:text-blue-400 transition-colors hover:underline decoration-blue-500/50 underline-offset-4">{t("serviceList.coaching")}</Link></li>
+              <ul className="space-y-3 text-sm text-zinc-400">
+                <li><Link href="/services/lol/rank-boost" className="hover:text-blue-400 transition-colors flex items-center gap-2 group"><ChevronRight className="w-3 h-3 text-zinc-600 group-hover:text-blue-500 transition-colors" /> {t("serviceList.boostRank")}</Link></li>
+                <li><Link href="/services/lol/placements" className="hover:text-blue-400 transition-colors flex items-center gap-2 group"><ChevronRight className="w-3 h-3 text-zinc-600 group-hover:text-blue-500 transition-colors" /> {t("serviceList.placement")}</Link></li>
+                <li><Link href="/services/lol/mastery" className="hover:text-blue-400 transition-colors flex items-center gap-2 group"><ChevronRight className="w-3 h-3 text-zinc-600 group-hover:text-blue-500 transition-colors" /> {t("serviceList.mastery")}</Link></li>
+                <li><Link href="/services/lol/coaching" className="hover:text-blue-400 transition-colors flex items-center gap-2 group"><ChevronRight className="w-3 h-3 text-zinc-600 group-hover:text-blue-500 transition-colors" /> {t("serviceList.coaching")}</Link></li>
               </ul>
             </div>
 
             <div>
               <h4 className="text-white font-bold mb-6 uppercase tracking-wider text-sm">{t("support")}</h4>
-              <ul className="space-y-4 text-sm text-zinc-400">
-                <li><Link href="#" className="hover:text-blue-400 transition-colors hover:underline decoration-blue-500/50 underline-offset-4">{t("supportList.helpCenter")}</Link></li>
-                <li><Link href="#" className="hover:text-blue-400 transition-colors hover:underline decoration-blue-500/50 underline-offset-4">{t("supportList.terms")}</Link></li>
-                <li><Link href="#" className="hover:text-blue-400 transition-colors hover:underline decoration-blue-500/50 underline-offset-4">{t("supportList.privacy")}</Link></li>
-                <li><Link href="#" className="hover:text-blue-400 transition-colors hover:underline decoration-blue-500/50 underline-offset-4">{t("supportList.contact")}</Link></li>
+              <ul className="space-y-3 text-sm text-zinc-400">
+                <li><Link href="/help" className="hover:text-blue-400 transition-colors flex items-center gap-2 group"><ChevronRight className="w-3 h-3 text-zinc-600 group-hover:text-blue-500 transition-colors" /> {t("supportList.helpCenter")}</Link></li>
+                <li><Link href="/terms" className="hover:text-blue-400 transition-colors flex items-center gap-2 group"><ChevronRight className="w-3 h-3 text-zinc-600 group-hover:text-blue-500 transition-colors" /> {t("supportList.terms")}</Link></li>
+                <li><Link href="/privacy" className="hover:text-blue-400 transition-colors flex items-center gap-2 group"><ChevronRight className="w-3 h-3 text-zinc-600 group-hover:text-blue-500 transition-colors" /> {t("supportList.privacy")}</Link></li>
+                <li><Link href="/contact" className="hover:text-blue-400 transition-colors flex items-center gap-2 group"><ChevronRight className="w-3 h-3 text-zinc-600 group-hover:text-blue-500 transition-colors" /> {t("supportList.contact")}</Link></li>
               </ul>
             </div>
 
             <div>
               <h4 className="text-white font-bold mb-6 uppercase tracking-wider text-sm">{t("contact")}</h4>
-              <ul className="space-y-4 text-sm text-zinc-400">
+              <ul className="space-y-4 text-sm text-zinc-400 mt-2">
                 <li className="flex items-center gap-3">
-                  <span className="w-8 h-8 rounded-full bg-zinc-900 flex items-center justify-center text-blue-500"><Users size={16}/></span>
-                  support@caythuelol.com
+                  <div className="w-8 h-8 rounded-full bg-zinc-900 border border-white/5 flex items-center justify-center text-blue-500 shrink-0"><Mail size={14}/></div>
+                  <a href="mailto:support@caythuelol.com" className="hover:text-blue-400 transition-colors">support@caythuelol.com</a>
                 </li>
                 <li className="flex items-center gap-3">
-                  <span className="w-8 h-8 rounded-full bg-zinc-900 flex items-center justify-center text-blue-500"><Zap size={16}/></span>
-                  0862.587.229
+                  <div className="w-8 h-8 rounded-full bg-zinc-900 border border-white/5 flex items-center justify-center text-blue-500 shrink-0"><Phone size={14}/></div>
+                  <span className="font-mono">0862.587.229</span>
                 </li>
                 {/* Thời gian hoạt động */}
                 <li className="flex items-center gap-3">
-                  <span className="w-8 h-8 rounded-full bg-zinc-900 flex items-center justify-center text-blue-500"><Clock size={16}/></span>
+                  <div className="w-8 h-8 rounded-full bg-zinc-900 border border-white/5 flex items-center justify-center text-blue-500 shrink-0"><Clock size={14}/></div>
                   {t("contactHours")}
                 </li>
               </ul>
             </div>
           </div>
 
-          <div className="border-t border-white/5 pt-8 text-center text-sm text-zinc-600 flex flex-col md:flex-row justify-between items-center gap-4">
-            <span>&copy; 2026 CAYTHUELOL. All rights reserved.</span>
-            <div className="flex gap-6">
-              <span>Privacy Policy</span>
-              <span>Terms of Service</span>
+          <div className="border-t border-white/5 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
+            <span className="text-sm text-zinc-500">&copy; {new Date().getFullYear()} CAYTHUELOL. All rights reserved.</span>
+            <div className="flex gap-6 text-sm text-zinc-500">
+              <Link href="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link>
+              <Link href="/terms" className="hover:text-white transition-colors">Terms of Service</Link>
             </div>
           </div>
         </div>
