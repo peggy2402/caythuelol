@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
         }
 
         const body = await req.json();
-        const { type, message } = body;
+        const { type, message, imageUrl } = body;
 
         if (!message) {
             return NextResponse.json({ error: 'Nội dung là bắt buộc' }, { status: 400 });
@@ -44,15 +44,22 @@ export async function POST(req: NextRequest) {
         const session = await auth();
         const userInfo = session?.user ? `${session.user.username} (${session.user.email})` : 'Khách vãng lai (Chưa đăng nhập)';
 
+        const embedToDiscord: any = {
+            title: type === 'BUG' ? "🐛 BÁO LỖI HỆ THỐNG" : "💡 GÓP Ý CẢI TIẾN",
+            description: message,
+            color: type === 'BUG' ? 16711680 : 16766720,
+            fields: [{ name: "Người gửi", value: userInfo }],
+            timestamp: new Date().toISOString(),
+        };
+
+        // Nếu có gửi kèm link ảnh và bắt đầu bằng http, chèn thuộc tính image vào embed
+        if (imageUrl && typeof imageUrl === 'string' && imageUrl.startsWith('http')) {
+            embedToDiscord.image = { url: imageUrl };
+        }
+
         const payload = {
             username: "Hệ thống Feedback",
-            embeds: [{
-                title: type === 'BUG' ? "🐛 BÁO LỖI HỆ THỐNG" : "💡 GÓP Ý CẢI TIẾN",
-                description: message,
-                color: type === 'BUG' ? 16711680 : 16766720,
-                fields: [{ name: "Người gửi", value: userInfo }],
-                timestamp: new Date().toISOString(),
-            }]
+            embeds: [embedToDiscord]
         };
 
         const res = await fetch(webhookUrl, {

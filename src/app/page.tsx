@@ -49,6 +49,7 @@ export default function Home() {
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
   const [feedbackType, setFeedbackType] = useState<'BUG' | 'SUGGESTION'>('BUG');
   const [feedbackText, setFeedbackText] = useState('');
+  const [feedbackImage, setFeedbackImage] = useState('');
   const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
 
   useEffect(() => {
@@ -89,7 +90,8 @@ export default function Home() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
                 type: feedbackType, 
-                message: feedbackText 
+                message: feedbackText,
+                imageUrl: feedbackImage
             })
         });
 
@@ -100,6 +102,7 @@ export default function Home() {
         toast.success("Cảm ơn bạn đã đóng góp ý kiến!");
         setIsFeedbackOpen(false);
         setFeedbackText('');
+        setFeedbackImage('');
     } catch (error: any) {
         toast.error(error.message || "Có lỗi xảy ra, vui lòng thử lại sau.");
     } finally {
@@ -480,9 +483,17 @@ export default function Home() {
                 </div>
 
                 <textarea
+                  autoFocus
                   value={feedbackText} onChange={(e) => setFeedbackText(e.target.value)}
                   placeholder={feedbackType === 'BUG' ? 'Mô tả chi tiết lỗi bạn gặp phải (Ví dụ: Không nạp được tiền, Web bị giật...)' : 'Bạn muốn hệ thống có thêm tính năng gì?'}
-                  className="w-full h-32 bg-zinc-950 border border-zinc-800 rounded-xl p-3 text-sm text-white focus:border-blue-500 outline-none resize-none placeholder:text-zinc-600"
+                  className="w-full h-28 bg-zinc-950 border border-zinc-800 rounded-xl p-3 text-sm text-white focus:border-blue-500 outline-none resize-none placeholder:text-zinc-600"
+                />
+
+                <input
+                  type="url"
+                  value={feedbackImage} onChange={(e) => setFeedbackImage(e.target.value)}
+                  placeholder="Link ảnh đính kèm (Ví dụ: https://imgur.com/...)"
+                  className="w-full bg-zinc-950 border border-zinc-800 rounded-xl p-3 text-sm text-white focus:border-blue-500 outline-none placeholder:text-zinc-600"
                 />
 
                 <button onClick={handleSubmitFeedback} disabled={isSubmittingFeedback} className="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl transition-colors flex items-center justify-center gap-2 disabled:opacity-50">
