@@ -1184,10 +1184,20 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                         // Xác định tên người chơi để highlight (dựa trên Ingame hoặc Account)
                         const targetName = (order.details.ingame_name || order.details.account_username || '').toLowerCase().replace(/\s/g, '').replace('#', '');
 
-                        const TeamBlock = ({ teamId, players, color, title }: any) => (
-                            <div className="space-y-3">
+                        const TeamBlock = ({ teamId, players, color, title }: any) => {
+                            const isWin = players.length > 0 ? players[0].win : false;
+                            
+                            return (
+                                <div className="space-y-3">
                                 <div className={`flex justify-between items-center pb-2 border-b ${color === 'blue' ? 'border-blue-500/30' : 'border-red-500/30'}`}>
-                                    <span className={`font-bold ${color === 'blue' ? 'text-blue-400' : 'text-red-400'}`}>{title}</span>
+                                    <div className="flex items-center gap-2">
+                                        <span className={`font-bold ${color === 'blue' ? 'text-blue-400' : 'text-red-400'}`}>{title}</span>
+                                        {players.length > 0 && (
+                                            <span className={`px-2 py-0.5 text-[10px] font-bold uppercase rounded border ${isWin ? 'bg-green-500/10 text-green-400 border-green-500/20' : 'bg-red-500/10 text-red-400 border-red-500/20'}`}>
+                                                {isWin ? 'Chiến Thắng' : 'Thất Bại'}
+                                            </span>
+                                        )}
+                                    </div>
                                     <span className="text-sm font-mono text-white">
                                         {teams[teamId].kills} / <span className="text-red-400">{teams[teamId].deaths}</span> / {teams[teamId].assists}
                                     </span>
@@ -1252,7 +1262,8 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                                     )})}
                                 </div>
                             </div>
-                        );
+                            );
+                        };
 
                         return (
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
