@@ -128,7 +128,8 @@ export default function NetWinsOrderView({ order, isBooster, isCustomer, onPayRe
 
     // 4. Actual Total (D = A + EloFee + C + B)
     const actualTotal = Math.round(actualBasePrice + eloFeeValue + actualOptionsFee + actualPlatformFee);
-    const paidDeposit = pricing.deposit_amount || 0;
+    // Fallback cho đơn hàng cũ: Nếu chưa có tính năng cọc, khách đã trả 100% total_amount
+    const paidDeposit = pricing.deposit_amount || pricing.total_amount || 0;
     const remaining = Math.round(actualTotal - paidDeposit);
     const boosterReceive = Math.round(actualBasePrice + eloFeeValue + actualOptionsFee); // Thu nhập thực của Booster (Trước khi trừ tạm ứng)
 
@@ -140,6 +141,7 @@ export default function NetWinsOrderView({ order, isBooster, isCustomer, onPayRe
         actualTotal,
         boosterReceive,
         paidDeposit,
+        depositPercent: pricing.deposit_amount ? Math.round((pricing.deposit_amount / pricing.total_amount) * 100) : 100,
         remaining,
         progressText,
         progressPercent,
@@ -337,7 +339,7 @@ export default function NetWinsOrderView({ order, isBooster, isCustomer, onPayRe
                 )}
 
                 <div className="flex flex-col justify-between items-center p-3 bg-zinc-950/50 rounded-xl border border-zinc-800">
-                    <span className="text-zinc-400">Đã đặt cọc ({Math.round((pricing.deposit_amount / pricing.total_amount) * 100)}%):</span>
+                    <span className="text-zinc-400">Đã thanh toán trước ({settlement.depositPercent}%):</span>
                     <span className="text-yellow-500 font-bold">- {settlement.paidDeposit.toLocaleString()} đ</span>
                 </div>
 

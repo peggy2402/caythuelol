@@ -146,7 +146,8 @@ export async function POST(
             } else if (mode === 'REFUND') {
                 if (!isBooster && !isAdmin) throw new Error('Chỉ Booster mới có thể xác nhận hoàn tiền.');
 
-                const deposit = order.pricing.deposit_amount || 0;
+                // Fallback cho đơn hàng cũ (trước khi có tính năng cọc)
+                const deposit = order.pricing.deposit_amount || order.pricing.total_amount || 0;
                 const refundAmount = amount; 
                 
                 let systemRefund = 0; // Trích từ cọc Admin giữ
