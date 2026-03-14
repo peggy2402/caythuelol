@@ -31,7 +31,12 @@ export async function POST(
         const order = await Order.findById(id);
         if (!order) return NextResponse.json({ error: 'Order not found' }, { status: 404 });
         
-        if (order.customerId.toString() !== customerId && session.user.role !== 'ADMIN') {
+        const userId = session.user.id;
+        const isCustomer = order.customerId.toString() === userId;
+        const isBooster = order.boosterId?.toString() === userId;
+        const isAdmin = session.user.role === 'ADMIN';
+
+        if (!isCustomer && !isBooster && !isAdmin) {
             return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
         }
 
@@ -70,9 +75,10 @@ export async function POST(
         // Giả sử logic update order status OWE đã chuẩn, ta tin vào con số logic:
         
         const body = await req.json();
-        const amountToPay = body.amount; // Client gửi số tiền hiển thị
+        const amount = body.amount; // Tiền khách thanh toán HOẶC tiền Booster hoàn lại
+        const mode = body.mode || 'PAY'; // 'PAY' (Khách thanh toán) | 'REFUND' (Booster hoàn)
 
-        if (!amountToPay || amountToPay <= 0) {
+        if (!amount || amount <= 0) {
              return NextResponse.json({ error: 'Invalid amount' }, { status: 400 });
         }
 
@@ -81,102 +87,179 @@ export async function POST(
         dbSession.startTransaction();
 
         try {
-            const user = await User.findById(customerId).session(dbSession);
-            if (user.wallet_balance < amountToPay) {
-                throw new Error('Số dư ví không đủ. Vui lòng nạp thêm.');
-            }
+            if (mode === 'PAY') {
+                if (!isCustomer && !isAdmin) throw new Error('Chỉ khách hàng mới có thể thực hiện thanh toán này.');
 
-            // Trừ tiền khách
-            user.wallet_balance -= amountToPay;
-            await user.save({ session: dbSession });
+                const customer = await User.findById(order.customerId).session(dbSession);
+                if (!customer) throw new Error('Không tìm thấy thông tin khách hàng.');
+                if (customer.wallet_balance < amount) {
+                    throw new Error('Số dư ví không đủ. Vui lòng nạp thêm.');
+                }
 
-            // Tạo Transaction Payment
-            await Transaction.create([{
-                userId: customerId,
-                order_id: id,
-                type: 'PAYMENT_RELEASE', // Hoặc type riêng SETTLEMENT
-                amount: -amountToPay,
-                balanceAfter: user.wallet_balance,
-                status: 'SUCCESS',
-                metadata: { description: `Thanh toán phần còn thiếu cho đơn #${id.slice(-6)}` }
-            }], { session: dbSession });
+                // Trừ tiền khách
+                customer.wallet_balance -= amount;
+                await customer.save({ session: dbSession });
 
-            // --- NEW: Create transaction for Booster for visibility ---
-            if (order.boosterId) {
-                const booster = await User.findById(order.boosterId).session(dbSession);
-                if (booster) {
-                    // Calculate booster's share of this specific payment based on the original order's profit margin
-                    const originalTotal = order.pricing.total_amount > 0 ? order.pricing.total_amount : 1;
-                    const originalBoosterShare = order.pricing.booster_earnings || 0;
-                    const boosterSharePercent = originalBoosterShare / originalTotal;
+                // Tạo Transaction Payment cho khách
+                await Transaction.create([{
+                    userId: customer._id,
+                    order_id: id,
+                    type: 'PAYMENT_RELEASE', // Hoặc type riêng SETTLEMENT
+                    amount: -amount,
+                    balanceAfter: customer.wallet_balance,
+                    status: 'SUCCESS',
+                    metadata: { description: `Thanh toán phần còn thiếu cho đơn #${id.slice(-6).toUpperCase()}` }
+                }], { session: dbSession });
+
+                // Cộng tiền cho Booster
+                if (order.boosterId) {
+                    const booster = await User.findById(order.boosterId).session(dbSession);
+                    if (booster) {
+                        // Calculate booster's share of this specific payment based on the original order's profit margin
+                        const originalTotal = order.pricing.total_amount > 0 ? order.pricing.total_amount : 1;
+                        const originalBoosterShare = order.pricing.booster_earnings || 0;
+                        const boosterSharePercent = originalBoosterShare / originalTotal;
+                        
+                        const boosterAmountFromThisPayment = Math.round(amount * boosterSharePercent);
+                        
+                        booster.wallet_balance = (booster.wallet_balance || 0) + boosterAmountFromThisPayment;
+                        await booster.save({ session: dbSession });
+
+                        await Transaction.create([{
+                            userId: booster._id, 
+                            order_id: id,
+                            type: 'PAYMENT_RELEASE', 
+                            amount: boosterAmountFromThisPayment,
+                            balanceAfter: booster.wallet_balance, 
+                            status: 'SUCCESS',
+                            metadata: { description: `Nhận tiền thanh toán bổ sung từ đơn #${id.slice(-6).toUpperCase()}` }
+                        }], { session: dbSession });
+                    }
+                }
+
+                // Cập nhật Order
+                order.pricing.deposit_amount += amount; 
+                order.pricing.settlement_status = 'SETTLED';
+                order.status = 'COMPLETED' as any;
+                await order.save({ session: dbSession });
+
+            } else if (mode === 'REFUND') {
+                if (!isBooster && !isAdmin) throw new Error('Chỉ Booster mới có thể xác nhận hoàn tiền.');
+
+                const deposit = order.pricing.deposit_amount || 0;
+                const refundAmount = amount; 
+                
+                let systemRefund = 0; // Trích từ cọc Admin giữ
+                let boosterDeduction = 0; // Trừ từ ví Booster (phạt âm điểm)
+                
+                if (refundAmount > deposit) {
+                    systemRefund = deposit;
+                    boosterDeduction = refundAmount - deposit;
+                } else {
+                    systemRefund = refundAmount;
+                }
+                
+                const customer = await User.findById(order.customerId).session(dbSession);
+                if (!customer) throw new Error('Không tìm thấy thông tin khách hàng.');
+
+                // Xử lý trừ tiền phạt từ ví Booster (nếu có)
+                if (boosterDeduction > 0) {
+                    const booster = await User.findById(order.boosterId).session(dbSession);
+                    if (!booster) throw new Error('Không tìm thấy thông tin Booster.');
                     
-                    const boosterAmountFromThisPayment = Math.round(amountToPay * boosterSharePercent);
+                    if (booster.wallet_balance < boosterDeduction) {
+                        throw new Error('Số dư ví của bạn không đủ để đền bù khoản âm điểm!');
+                    }
                     
-                    // --- SỬA LẠI: CỘNG THẲNG VÀO VÍ CHÍNH (WALLET BALANCE) ---
-                    // Tiền nằm trong Ví Web được coi là "Hold" cho đến khi Rút về Bank
-                    booster.wallet_balance = (booster.wallet_balance || 0) + boosterAmountFromThisPayment;
+                    booster.wallet_balance -= boosterDeduction;
                     await booster.save({ session: dbSession });
-
-                    // Create a transaction record for the booster.
-                    // Type là 'PAYMENT_RELEASE' để hiển thị màu xanh và cộng tiền trong lịch sử
+                    
                     await Transaction.create([{
-                        userId: order.boosterId, // Lưu ý: Schema có thể là booster_id hoặc boosterId tùy lúc populate, dùng biến booster._id cho chắc chắn
+                        userId: booster._id,
                         order_id: id,
-                        type: 'PAYMENT_RELEASE', 
-                        amount: boosterAmountFromThisPayment,
-                        // Hiển thị số dư Ví chính sau khi cộng
-                        balanceAfter: booster.wallet_balance, 
+                        type: 'REFUND', // Coi như giao dịch chi ra
+                        amount: -boosterDeduction,
+                        balanceAfter: booster.wallet_balance,
                         status: 'SUCCESS',
-                        // Đảm bảo có description rõ ràng
-                        metadata: { description: `Nhận tiền thanh toán bổ sung từ đơn #${id.slice(-6).toUpperCase()}` }
+                        metadata: { description: `Trừ tiền phạt âm điểm đền cho khách (Đơn #${id.slice(-6).toUpperCase()})` }
                     }], { session: dbSession });
                 }
-            }
 
-            // Update Order
-            order.pricing.deposit_amount += amountToPay; // Coi như đã trả thêm vào cọc/tổng
-            order.pricing.settlement_status = 'SETTLED';
-            order.status = 'COMPLETED' as any; // Chốt đơn (Cast as any to fix Type error)
-            await order.save({ session: dbSession });
+                // Trả tiền cho khách
+                customer.wallet_balance += refundAmount;
+                await customer.save({ session: dbSession });
+                
+                // Ghi nhận log nhận hoàn cọc
+                if (systemRefund > 0) {
+                    await Transaction.create([{
+                        userId: customer._id,
+                        order_id: id,
+                        type: 'REFUND',
+                        amount: systemRefund,
+                        balanceAfter: customer.wallet_balance - boosterDeduction, // Số dư trước khi nhận phần đền bù
+                        status: 'SUCCESS',
+                        metadata: { description: `Hoàn tiền cọc từ đơn #${id.slice(-6).toUpperCase()}` }
+                    }], { session: dbSession });
+                }
+                
+                // Ghi nhận log nhận đền bù
+                if (boosterDeduction > 0) {
+                    await Transaction.create([{
+                        userId: customer._id,
+                        order_id: id,
+                        type: 'REFUND',
+                        amount: boosterDeduction,
+                        balanceAfter: customer.wallet_balance, // Số dư cuối cùng
+                        status: 'SUCCESS',
+                        metadata: { description: `Nhận tiền đền bù âm điểm từ Booster (Đơn #${id.slice(-6).toUpperCase()})` }
+                    }], { session: dbSession });
+                }
+
+                // Cập nhật Order (Trường hợp hoàn tiền coi như đã xử lý xong)
+                order.pricing.settlement_status = 'SETTLED';
+                order.status = 'COMPLETED' as any;
+                await order.save({ session: dbSession });
+            }
 
             await dbSession.commitTransaction();
             
             // --- 5. Notification Logic (After Transaction Commit) ---
             try {
-                // Thông báo cho Booster: Khách đã thanh toán bù
-                if (order.boosterId || order.boosterId) {
+                if (mode === 'PAY' && order.boosterId) {
                     await Notification.create({
-                        userId: order.boosterId || order.boosterId,
+                        userId: order.boosterId,
                         title: 'Đơn hàng đã được thanh toán',
-                        message: `Khách hàng đã thanh toán số tiền còn thiếu (${amountToPay.toLocaleString()} đ) cho đơn #${id.slice(-6).toUpperCase()}. Bạn có thể kiểm tra ví.`,
+                        message: `Khách hàng đã thanh toán số tiền còn thiếu (${amount.toLocaleString()} đ) cho đơn #${id.slice(-6).toUpperCase()}. Bạn có thể kiểm tra ví.`,
                         type: 'PAYMENT',
                         link: `/orders/${id}`
                     });
                 }
                 
-                // Thông báo cho Khách hàng: Xác nhận thanh toán thành công
                 await Notification.create({
-                    userId: customerId,
-                    title: 'Thanh toán thành công',
-                    message: `Bạn đã thanh toán ${amountToPay.toLocaleString()} đ cho đơn #${id.slice(-6).toUpperCase()}. Đơn hàng đã hoàn tất.`,
+                    userId: order.customerId,
+                    title: mode === 'PAY' ? 'Thanh toán thành công' : 'Hoàn tiền thành công',
+                    message: mode === 'PAY' 
+                        ? `Bạn đã thanh toán ${amount.toLocaleString()} đ cho đơn #${id.slice(-6).toUpperCase()}. Đơn hàng đã hoàn tất.`
+                        : `Bạn đã nhận được ${amount.toLocaleString()} đ hoàn tiền cho đơn #${id.slice(-6).toUpperCase()}.`,
                     type: 'PAYMENT',
                     link: `/orders/${id}`
                 });
 
                 // --- 6. Send Email Invoice (New Feature) ---
-                if (user.email) {
+                const customer = await User.findById(order.customerId);
+                if (customer && customer.email) {
                     const orderCode = id.slice(-6).toUpperCase();
                     const paymentDate = new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' });
                     
                     await sendEmail(
-                        user.email,
-                        `[CAYTHUELOL] Hóa đơn thanh toán #${orderCode}`,
+                        customer.email,
+                        mode === 'PAY' ? `[CAYTHUELOL] Hóa đơn thanh toán #${orderCode}` : `[CAYTHUELOL] Thông báo hoàn tiền #${orderCode}`,
                         `
                             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #f4f4f5; padding: 20px;">
                                 <div style="background-color: #ffffff; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
                                     <div style="text-align: center; margin-bottom: 20px;">
                                         <h2 style="color: #2563eb; margin: 0;">CAYTHUE<span style="color: #000;">LOL</span></h2>
-                                        <p style="color: #71717a; font-size: 14px;">Xác nhận thanh toán thành công</p>
+                                        <p style="color: #71717a; font-size: 14px;">${mode === 'PAY' ? 'Xác nhận thanh toán thành công' : 'Hoàn tiền thành công'}</p>
                                     </div>
                                     
                                     <div style="border-top: 1px solid #e4e4e7; border-bottom: 1px solid #e4e4e7; padding: 20px 0; margin: 20px 0;">
@@ -194,9 +277,9 @@ export async function POST(
                                                 <td style="text-align: right;">${paymentDate}</td>
                                             </tr>
                                             <tr>
-                                                <td style="color: #71717a; padding-top: 10px; border-top: 1px dashed #e4e4e7;">Số tiền thanh toán:</td>
-                                                <td style="text-align: right; font-size: 18px; color: #dc2626; font-weight: bold; padding-top: 10px; border-top: 1px dashed #e4e4e7;">
-                                                    ${amountToPay.toLocaleString('vi-VN')} đ
+                                                <td style="color: #71717a; padding-top: 10px; border-top: 1px dashed #e4e4e7;">${mode === 'PAY' ? 'Số tiền thanh toán:' : 'Số tiền hoàn lại:'}</td>
+                                                <td style="text-align: right; font-size: 18px; color: ${mode === 'PAY' ? '#dc2626' : '#10b981'}; font-weight: bold; padding-top: 10px; border-top: 1px dashed #e4e4e7;">
+                                                    ${amount.toLocaleString('vi-VN')} đ
                                                 </td>
                                             </tr>
                                         </table>

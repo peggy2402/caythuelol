@@ -9,6 +9,7 @@ interface SettlementModalProps {
     onClose: () => void;
     mode: 'PAY' | 'REFUND'; // Chế độ: Thanh toán thêm hoặc Hoàn tiền
     amount: number;
+    depositAmount?: number; // Truyền thêm tiền cọc vào để phân tích
     walletBalance?: number; // Chỉ cần cho mode PAY
     onConfirm: () => Promise<void>;
     isLoading: boolean;
@@ -19,13 +20,19 @@ export default function SettlementModal({
     onClose,
     mode,
     amount,
+    depositAmount = 0,
     walletBalance = 0,
     onConfirm,
     isLoading
 }: SettlementModalProps) {
     const router = useRouter();
     const isPay = mode === 'PAY';
-    const isInsufficient = isPay && walletBalance < amount;
+    
+    // Tính toán khoản phạt Booster phải tự bỏ tiền túi ra trả (nếu số tiền hoàn > tiền cọc)
+    const boosterPenalty = !isPay ? Math.max(0, amount - depositAmount) : 0;
+    
+    // Thiếu tiền khi: Đang là mode PAY, HOẶC mode REFUND nhưng khoản phạt lớn hơn số dư ví
+    const isInsufficient = (isPay && walletBalance < amount) || (!isPay && boosterPenalty > 0 && walletBalance < boosterPenalty);
 
     if (!isOpen) return null;
 
@@ -61,10 +68,33 @@ export default function SettlementModal({
                                 </div>
                             )}
 
+                            {!isPay && (
+                                <>
+                                    <div className="flex justify-between text-xs text-zinc-500">
+                                        <span>Trích từ tiền cọc Admin giữ:</span>
+                                        <span>{Math.min(amount, depositAmount).toLocaleString()} đ</span>
+                                    </div>
+                                    {boosterPenalty > 0 && (
+                                        <div className="flex justify-between text-sm pt-2 border-t border-zinc-800">
+                                            <span className="text-zinc-400">Trừ vào ví của bạn (Phạt âm điểm):</span>
+                                            <span className="text-red-400 font-bold">-{boosterPenalty.toLocaleString()} đ</span>
+                                        </div>
+                                    )}
+                                    {boosterPenalty > 0 && (
+                                        <div className="flex justify-between text-sm pt-1">
+                                            <span className="text-zinc-400">Số dư ví hiện tại:</span>
+                                            <span className={`font-bold ${walletBalance < boosterPenalty ? 'text-red-500' : 'text-green-500'}`}>
+                                                {walletBalance.toLocaleString()} đ
+                                            </span>
+                                        </div>
+                                    )}
+                                </>
+                            )}
+
                             {isInsufficient && (
                                 <div className="pt-2 border-t border-zinc-800 text-xs text-red-400 flex items-center gap-1.5">
                                     <AlertCircle size={12} />
-                                    Bạn thiếu {(amount - walletBalance).toLocaleString()} đ. Vui lòng nạp thêm.
+                                    Bạn thiếu {(isPay ? amount - walletBalance : boosterPenalty - walletBalance).toLocaleString()} đ. Vui lòng nạp thêm.
                                 </div>
                             )}
                         </div>
@@ -72,7 +102,9 @@ export default function SettlementModal({
                         <p className="text-sm text-zinc-500 leading-relaxed">
                             {isPay 
                                 ? 'Sau khi thanh toán, tiền sẽ được chuyển ngay vào ví của Booster và đơn hàng được cập nhật trạng thái "Đã thanh toán đủ".'
-                                : 'Số tiền này sẽ được trừ từ khoản Tiền Cọc đang giữ và trả về ví của khách hàng.'
+                                : boosterPenalty > 0 
+                                    ? 'Hệ thống sẽ hoàn cọc cho khách, đồng thời trừ tiền phạt từ ví của bạn để trả cho khách hàng.' 
+                                    : 'Số tiền này sẽ được trích từ khoản Tiền Cọc đang giữ để trả về ví của khách hàng. Khách không cần thanh toán thêm.'
                             }
                         </p>
                     </div>
