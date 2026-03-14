@@ -93,13 +93,15 @@ export default function Home() {
             })
         });
 
-        if (!res.ok) throw new Error("Lỗi khi gửi Webhook");
+        const data = await res.json();
+
+        if (!res.ok) throw new Error(data.error || "Lỗi khi gửi phản hồi");
 
         toast.success("Cảm ơn bạn đã đóng góp ý kiến!");
         setIsFeedbackOpen(false);
         setFeedbackText('');
-    } catch (error) {
-        toast.error("Có lỗi xảy ra, vui lòng thử lại sau.");
+    } catch (error: any) {
+        toast.error(error.message || "Có lỗi xảy ra, vui lòng thử lại sau.");
     } finally {
         setIsSubmittingFeedback(false);
     }
