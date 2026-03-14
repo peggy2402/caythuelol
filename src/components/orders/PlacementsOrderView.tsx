@@ -38,7 +38,7 @@ export default function PlacementsOrderView({ order }: PlacementsOrderViewProps)
         <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 relative overflow-hidden">
             <div className="absolute top-0 left-0 w-32 h-32 bg-purple-500/5 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2 pointer-events-none"></div>
 
-            <div className="flex justify-between items-start mb-6 relative z-10">
+            <div className="flex flex-col justify-between items-start mb-6 relative z-10">
                 <h3 className="text-lg font-bold text-white flex items-center gap-2">
                     <Gamepad2 className="w-5 h-5 text-purple-500" />
                     Tiến độ Phân Hạng
@@ -82,17 +82,17 @@ export default function PlacementsOrderView({ order }: PlacementsOrderViewProps)
             </div>
 
             {/* Info Bar */}
-            <div className="grid grid-cols-2 gap-4">
-                <div className="bg-zinc-950/50 p-3 rounded-xl border border-zinc-800 text-center">
-                    <div className="text-[10px] text-zinc-500 uppercase font-bold tracking-wider">Rank Mùa Trước</div>
-                    <div className="text-lg font-bold text-zinc-400 mt-1">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                <div className="bg-zinc-950/50 p-3 rounded-xl border border-zinc-800 text-center min-w-0">
+                    <div className="text-[11px] sm:text-[10px] text-zinc-500 uppercase font-bold tracking-wider truncate">Rank Mùa Trước</div>
+                    <div className="text-base sm:text-lg font-bold text-zinc-400 mt-1 truncate">
                         {prev_rank || 'N/A'}
                     </div>
                 </div>
-                <div className="bg-zinc-950/50 p-3 rounded-xl border border-zinc-800 text-center relative overflow-hidden">
+                <div className="bg-zinc-950/50 p-3 rounded-xl border border-zinc-800 text-center relative overflow-hidden min-w-0">
                     <div className="absolute inset-0 bg-purple-500/5"></div>
-                    <div className="text-[10px] text-zinc-500 uppercase font-bold tracking-wider relative z-10">Rank Tạm Tính</div>
-                    <div className="text-lg font-bold text-purple-400 mt-1 relative z-10">
+                    <div className="text-[11px] sm:text-[10px] text-zinc-500 uppercase font-bold tracking-wider relative z-10 truncate">Rank Tạm Tính</div>
+                    <div className="text-base sm:text-lg font-bold text-purple-400 mt-1 relative z-10 truncate">
                         {current_rank || 'Đang cập nhật...'}
                     </div>
                 </div>

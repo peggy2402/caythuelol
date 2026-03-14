@@ -201,16 +201,28 @@ export default function NetWinsOrderView({ order, isBooster, isCustomer, onPayRe
             </div>
 
             {/* Chi tiết thông số */}
-            <div className="grid grid-cols-3 gap-4">
-                <div className="bg-zinc-950/50 p-3 rounded-xl border border-zinc-800 text-center">
-                    <div className="text-[10px] text-zinc-500 uppercase font-bold tracking-wider">Bắt đầu</div>
-                    <div className="text-lg font-bold text-white mt-1">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+                <div className="bg-zinc-950/50 p-3 rounded-xl border border-zinc-800 flex sm:block justify-between items-center sm:text-center min-w-0">
+                    <div className="text-[11px] sm:text-[10px] text-zinc-500 uppercase font-bold tracking-wider truncate">Bắt đầu</div>
+                    <div className="text-base sm:text-lg font-bold text-white sm:mt-1 truncate">
                         {calc_mode === 'BY_GAMES' ? '0' : `${start_lp || 0} LP`}
                     </div>
                 </div>
-                <div className="bg-zinc-950/50 p-3 rounded-xl border border-zinc-800 text-center relative">
-                    <div className="text-[10px] text-zinc-500 uppercase font-bold tracking-wider">Hiện tại</div>
-                    <div className="text-lg font-bold text-blue-400 mt-1">
+                <div className="bg-zinc-950/50 p-3 rounded-xl border border-zinc-800 flex sm:block justify-between items-center sm:text-center relative min-w-0">
+                    <div className="text-[11px] sm:text-[10px] text-zinc-500 uppercase font-bold tracking-wider truncate flex items-center gap-2">
+                        Hiện tại
+                        {/* Indicator for LP Gain (Mobile inline) */}
+                        <span className="sm:hidden bg-blue-500/20 text-blue-400 text-[10px] font-bold px-1.5 py-0.5 rounded-full border border-blue-500/30 whitespace-nowrap">
+                            {calc_mode === 'BY_GAMES' 
+                                ? 'Net' 
+                                : (() => {
+                                    const diff = (parseInt(details.current_lp) || 0) - (parseInt(start_lp) || 0);
+                                    return diff > 0 ? `+${diff}` : diff;
+                                })()
+                            }
+                        </span>
+                    </div>
+                    <div className="text-base sm:text-lg font-bold text-blue-400 sm:mt-1 truncate">
                         {calc_mode === 'BY_GAMES' ? (
                             (() => {
                                 const wins = match_history?.filter((m: any) => m.result === 'WIN').length || 0;
@@ -222,8 +234,8 @@ export default function NetWinsOrderView({ order, isBooster, isCustomer, onPayRe
                         )}
                         {calc_mode === 'BY_GAMES' ? '' : ' LP'}
                     </div>
-                    {/* Indicator for LP Gain */}
-                    <div className="absolute -top-2 -right-2 bg-blue-500/20 text-blue-400 text-[10px] font-bold px-1.5 py-0.5 rounded-full border border-blue-500/30">
+                    {/* Indicator for LP Gain (Desktop absolute) */}
+                    <div className="hidden sm:block absolute -top-2 -right-2 bg-blue-500/20 text-blue-400 text-[10px] font-bold px-1.5 py-0.5 rounded-full border border-blue-500/30 whitespace-nowrap">
                         {calc_mode === 'BY_GAMES' 
                             ? 'Net' 
                             : (() => {
@@ -233,9 +245,9 @@ export default function NetWinsOrderView({ order, isBooster, isCustomer, onPayRe
                         }
                     </div>
                 </div>
-                <div className="bg-zinc-950/50 p-3 rounded-xl border border-zinc-800 text-center">
-                    <div className="text-[10px] text-zinc-500 uppercase font-bold tracking-wider">Mục tiêu</div>
-                    <div className="text-lg font-bold text-yellow-400 mt-1">
+                <div className="bg-zinc-950/50 p-3 rounded-xl border border-zinc-800 flex sm:block justify-between items-center sm:text-center min-w-0">
+                    <div className="text-[11px] sm:text-[10px] text-zinc-500 uppercase font-bold tracking-wider truncate">Mục tiêu</div>
+                    <div className="text-base sm:text-lg font-bold text-yellow-400 sm:mt-1 truncate">
                         {calc_mode === 'BY_LP' ? `${target_lp} LP` : `${num_games} Trận`}
                     </div>
                 </div>
@@ -265,13 +277,13 @@ export default function NetWinsOrderView({ order, isBooster, isCustomer, onPayRe
             </h3>
             
             <div className="space-y-3 text-sm relative z-10">
-                <div className="flex justify-between items-center p-3 bg-zinc-950/50 rounded-xl border border-zinc-800">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-1 sm:gap-0 p-3 bg-zinc-950/50 rounded-xl border border-zinc-800">
                     <span className="text-zinc-400">Giá trị đơn gốc (Dự kiến):</span>
                     <span className="text-zinc-500 line-through decoration-zinc-600">{pricing.total_amount.toLocaleString()} đ</span>
                 </div>
 
                 {hasMatches ? (
-                    <div className="flex justify-between items-center p-3 bg-blue-900/10 rounded-xl border border-blue-500/20">
+                    <div className="flex flex-col justify-between items-center p-3 bg-blue-900/10 rounded-xl border border-blue-500/20">
                         <span className="text-blue-200 font-medium">Giá trị thực tế (Hiện tại):</span>
                         <div className="text-right group relative cursor-help">
                             <span className="text-blue-400 font-bold text-lg">{settlement.actualTotal.toLocaleString()} đ</span>
@@ -305,7 +317,7 @@ export default function NetWinsOrderView({ order, isBooster, isCustomer, onPayRe
 
                 {/* Hiển thị Thực nhận dành riêng cho Booster */}
                 {isBooster && hasMatches && (
-                    <div className="flex justify-between items-center p-3 bg-emerald-900/10 rounded-xl border border-emerald-500/20">
+                    <div className="flex flex-col justify-between items-center p-3 bg-emerald-900/10 rounded-xl border border-emerald-500/20">
                         <span className="text-emerald-200 font-medium">Số tiền về ví:</span>
                         <span className="text-emerald-400 font-bold text-lg">{settlement.boosterReceive.toLocaleString()} đ</span>
                     </div>
@@ -324,7 +336,7 @@ export default function NetWinsOrderView({ order, isBooster, isCustomer, onPayRe
                     </div>
                 )}
 
-                <div className="flex justify-between items-center p-3 bg-zinc-950/50 rounded-xl border border-zinc-800">
+                <div className="flex flex-col justify-between items-center p-3 bg-zinc-950/50 rounded-xl border border-zinc-800">
                     <span className="text-zinc-400">Đã đặt cọc ({Math.round((pricing.deposit_amount / pricing.total_amount) * 100)}%):</span>
                     <span className="text-yellow-500 font-bold">- {settlement.paidDeposit.toLocaleString()} đ</span>
                 </div>
@@ -332,53 +344,55 @@ export default function NetWinsOrderView({ order, isBooster, isCustomer, onPayRe
                 <div className="border-t border-zinc-800 my-2"></div>
 
                 {hasMatches && settlement.status === 'OWE' && (
-                    <div className="flex flex-col gap-3 p-4 bg-red-900/10 rounded-xl border border-red-500/30 animate-pulse">
-                        <div className="flex justify-between items-center">
-                            <div className="flex items-center gap-2">
-                                <AlertCircle className="w-5 h-5 text-red-500" />
-                                <span className="text-red-200 font-bold">
-                                    {isCustomer ? 'Bạn cần trả thêm:' : 'Khách cần thanh toán thêm:'}
-                                </span>
-                            </div>
-                            <span className="text-red-400 font-black text-xl">{settlement.remaining.toLocaleString()} đ</span>
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 p-3 sm:p-4 bg-red-900/10 rounded-xl border border-red-500/30 animate-pulse">
+                        <div className="flex items-center gap-2 min-w-0">
+                            <AlertCircle className="w-5 h-5 text-red-500 shrink-0" />
+                            <span className="text-red-200 font-bold text-sm sm:text-base truncate">
+                                {isCustomer ? 'Cần trả thêm:' : 'Khách trả thêm:'}
+                            </span>
                         </div>
                         
-                        {/* Nút thanh toán dành cho khách hàng */}
-                        {isCustomer && (
+                        {isCustomer ? (
                             <button 
                                 onClick={handlePayRemaining}
-                                className="w-full mt-1 py-2.5 px-4 bg-red-600 hover:bg-red-500 text-white font-bold rounded-lg flex items-center justify-center gap-2 transition-all shadow-lg shadow-red-900/20 active:scale-[0.98]"
+                                className="w-full sm:w-auto py-2.5 px-4 bg-red-600 hover:bg-red-500 text-white font-bold rounded-lg flex items-center justify-center gap-2 transition-all shadow-lg shadow-red-900/20 active:scale-[0.98]"
+                                title="Thanh toán ngay"
                             >
-                                <Wallet className="w-4 h-4" />
-                                Thanh toán ngay
+                                <Wallet className="w-4 h-4 shrink-0" />
+                                <span>Thanh toán {settlement.remaining.toLocaleString()} đ</span>
                             </button>
+                        ) : (
+                            <span className="text-red-400 font-black text-lg sm:text-xl whitespace-nowrap w-full sm:w-auto text-left sm:text-right">
+                                {settlement.remaining.toLocaleString()} đ
+                            </span>
                         )}
                     </div>
                 )}
 
                 {hasMatches && settlement.status === 'REFUND' && (
-                    <div className="flex flex-col gap-3 p-4 bg-green-900/10 rounded-xl border border-green-500/30">
-                        <div className="flex justify-between items-center">
-                            <div className="flex items-center gap-2">
-                                <CheckCircle2 className="w-5 h-5 text-green-500" />
-                                <span className="text-green-200 font-bold">
-                                    {isCustomer 
-                                        ? 'Bạn được hoàn lại:' 
-                                        : (isBooster ? 'Bạn cần hoàn lại:' : 'Hoàn lại cho khách:')}
-                                </span>
-                            </div>
-                            <span className="text-green-400 font-black text-xl">{Math.abs(settlement.remaining).toLocaleString()} đ</span>
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 p-3 sm:p-4 bg-green-900/10 rounded-xl border border-green-500/30">
+                        <div className="flex items-center gap-2 min-w-0">
+                            <CheckCircle2 className="w-5 h-5 text-green-500 shrink-0" />
+                            <span className="text-green-200 font-bold text-sm sm:text-base truncate">
+                                {isCustomer 
+                                    ? 'Hoàn lại:' 
+                                    : (isBooster ? 'Cần hoàn lại:' : 'Hoàn lại khách:')}
+                            </span>
                         </div>
                         
-                        {/* Nút hoàn tiền dành cho Booster */}
-                        {isBooster && (
+                        {isBooster ? (
                             <button 
                                 onClick={handleRefund}
-                                className="w-full mt-1 py-2.5 px-4 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-lg flex items-center justify-center gap-2 transition-all shadow-lg shadow-emerald-900/20 active:scale-[0.98]"
+                                className="w-full sm:w-auto py-2.5 px-4 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-lg flex items-center justify-center gap-2 transition-all shadow-lg shadow-emerald-900/20 active:scale-[0.98]"
+                                title="Xác nhận hoàn tiền"
                             >
-                                <RefreshCcw className="w-4 h-4" />
-                                Xác nhận hoàn tiền
+                                <RefreshCcw className="w-4 h-4 shrink-0" />
+                                <span>Xác nhận hoàn {Math.abs(settlement.remaining).toLocaleString()} đ</span>
                             </button>
+                        ) : (
+                            <span className="text-green-400 font-black text-lg sm:text-xl whitespace-nowrap w-full sm:w-auto text-left sm:text-right">
+                                {Math.abs(settlement.remaining).toLocaleString()} đ
+                            </span>
                         )}
                     </div>
                 )}

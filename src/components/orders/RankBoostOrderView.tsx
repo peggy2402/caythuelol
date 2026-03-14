@@ -61,7 +61,7 @@ export default function RankBoostOrderView({ order }: RankBoostOrderViewProps) {
             {/* Background Glow */}
             <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
             
-            <div className="flex justify-between items-start mb-8 relative z-10">
+            <div className="flex flex-col justify-between items-start mb-8 relative z-10">
                 <h3 className="text-lg font-bold text-white flex items-center gap-2">
                     <Trophy className="w-5 h-5 text-blue-500" /> 
                     Tiến độ Leo Rank

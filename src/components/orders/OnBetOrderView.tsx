@@ -26,7 +26,7 @@ export default function OnBetOrderView({ order }: OnBetOrderViewProps) {
         <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 relative overflow-hidden">
             <div className="absolute top-0 left-0 w-32 h-32 bg-yellow-500/5 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2 pointer-events-none"></div>
 
-            <div className="flex justify-between items-start mb-6 relative z-10">
+            <div className="flex flex-col justify-between items-start mb-6 relative z-10">
                 <h3 className="text-lg font-bold text-white flex items-center gap-2">
                     <Gamepad2 className="w-5 h-5 text-yellow-500" />
                     Tiến độ Sự kiện ONBET

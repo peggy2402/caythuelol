@@ -1,6 +1,6 @@
 Project: LOL Boosting Platform
 Date started: 2026-02-25
-Last updated: 2026-03-06
+Last updated: 2026-03-13
 
 Purpose:
 
@@ -787,3 +787,35 @@ caythuelol/
   - **New Component:** Tạo `CoachingTimeline.tsx` để hiển thị lịch học dưới dạng biểu đồ timeline ngang trực quan.
   - **Features:** Hiển thị ngày tháng cụ thể (VD: Thứ 2 (12/03)) để tránh nhầm lẫn.
   - **Integration:** Tích hợp Timeline vào `CoachingOrderView` trong trang chi tiết đơn hàng.
+
+29. 2026-03-13 — Mobile UX Overhaul, Cron Jobs & API Optimization
+
+- **Mobile Experience (Shopee-style UX):**
+  - **Sticky Footers:** Triển khai thanh thanh toán bám đáy (Sticky Bottom) cho trang `Checkout` và `PaymentSummary` trên mobile, hiển thị giá tiền và nút hành động chính, ẩn các chi tiết rườm rà.
+  - **Card Layouts:** Chuyển đổi giao diện danh sách đơn hàng (`/dashboard`, `/booster/my-orders`) từ dạng Bảng (Table) sang dạng Thẻ (Card List) trên mobile để dễ đọc hơn.
+  - **Pull-to-Refresh:** Thêm tính năng "Kéo để làm mới" cho danh sách đơn hàng của Booster.
+  - **Responsive Fixes:** Tối ưu hóa `CoachingOrderView` và `CoachingTimeline` để các phần tử xếp chồng (stack) hợp lý trên màn hình nhỏ, tránh bị vỡ layout.
+
+- **Booster System Upgrades:**
+  - **Availability Toggle:** Thêm nút "Sẵn sàng / Tạm nghỉ" trên Navbar cho Booster để bật/tắt khả năng nhận đơn (`isReady`).
+  - **API Optimization:** Viết lại hoàn toàn `/api/boosters` sử dụng Aggregation Pipeline để:
+    - Join dữ liệu từ `User` và `BoosterProfile`.
+    - Gộp (Merge) thông tin `services` và `ranks` từ cả cấu trúc cũ (`booster_info`) và mới (`games`) để đảm bảo không sót dữ liệu.
+    - Hỗ trợ bộ lọc nâng cao (Service, Server, Search).
+  - **Booster Picker:** Cập nhật UI để hiển thị Rank chính xác từ dữ liệu đã được chuẩn hóa, thêm Skeleton loading.
+
+- **System Automation (Cron Jobs):**
+  - **Admin Dashboard:** Xây dựng trang `/admin/cron` cho phép Admin kích hoạt thủ công các tác vụ nền.
+  - **Auto-Cancel:** API `/api/cron/orders/expire` tự động hủy đơn hàng đã thanh toán (`PAID`) nhưng không có Booster nhận sau 3 ngày và hoàn tiền cho khách.
+  - **Reminders:** API `/api/cron/reminders/coaching` gửi email nhắc nhở Booster 1 giờ trước khi buổi Coaching bắt đầu.
+  - **Security:** Bảo vệ các route Cron bằng `CRON_SECRET` hoặc quyền Admin.
+
+- **Refactoring & Performance:**
+  - **ServiceTabs:** Tách thành component riêng (`src/components/services/lol/ServiceTabs.tsx`) và thêm hiệu ứng chuyển tab mượt mà với `Framer Motion`.
+  - **Seed Data:** Thêm API `/api/debug/seed-job` để tạo đơn hàng giả lập phục vụ testing tính năng Sàn việc làm.
+  - **Context:** Cập nhật `ServiceContext` để quản lý trạng thái bật/tắt dịch vụ tốt hơn.
+
+- **Bug Fixes:**
+  - Sửa lỗi hiển thị Rank không đúng trên `BoosterPicker`.
+  - Sửa lỗi API trả về `undefined` khi log.
+  - Fix lỗi hiển thị nút "Nhận đơn" cho các đơn hàng Direct (Chỉ định) ở trạng thái `PAID`.

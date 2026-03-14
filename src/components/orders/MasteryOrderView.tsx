@@ -32,7 +32,7 @@ export default function MasteryOrderView({ order }: MasteryOrderViewProps) {
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
         {/* Main Card */}
-        <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 relative overflow-hidden">
+        <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 sm:p-6 relative overflow-hidden">
             {/* Champion Splash Art Background */}
             {champion && (
                 <div className="absolute inset-0 opacity-10 pointer-events-none">
@@ -47,47 +47,47 @@ export default function MasteryOrderView({ order }: MasteryOrderViewProps) {
             )}
 
             <div className="relative z-10">
-                <div className="flex flex-col sm:flex-row justify-between items-start mb-6">
-                    <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                <div className="flex flex-col sm:flex-row justify-between items-start mb-4 sm:mb-6">
+                    <h3 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
                         <Star className="w-5 h-5 text-yellow-500" /> 
                         Tiến độ Cày Thông Thạo
                     </h3>
-                    <div className="text-2xl font-black text-white mt-2 sm:mt-0">
+                    <div className="text-xl sm:text-2xl font-black text-white mt-1 sm:mt-0">
                         {champion || 'N/A'}
                     </div>
                 </div>
 
                 {/* Mastery Level Progress Bar */}
-                 <div className="flex items-center gap-4 mb-8">
+                 <div className="flex items-center gap-2 sm:gap-4 mb-6 sm:mb-8">
                     <div className="flex flex-col items-center">
-                        <div className={`w-16 h-16 rounded-full flex items-center justify-center border-4 bg-zinc-800 border-zinc-700`}>
-                            <Star size={32} className={getMasteryInfo(startLevel).color} />
+                        <div className={`w-12 h-12 sm:w-16 sm:h-16 rounded-full flex items-center justify-center border-2 sm:border-4 bg-zinc-800 border-zinc-700`}>
+                            <Star className={`w-6 h-6 sm:w-8 sm:h-8 ${getMasteryInfo(startLevel).color}`} />
                         </div>
-                        <span className="text-sm font-bold mt-2">{getMasteryInfo(startLevel).name}</span>
-                        <span className="text-xs text-zinc-500">Bắt đầu</span>
+                        <span className="text-xs sm:text-sm font-bold mt-1 sm:mt-2">{getMasteryInfo(startLevel).name}</span>
+                        <span className="text-[10px] sm:text-xs text-zinc-500">Bắt đầu</span>
                     </div>
 
                     <div className="flex-1 h-1 bg-zinc-800 rounded-full"></div>
 
                     <div className="flex flex-col items-center">
-                        <div className={`w-16 h-16 rounded-full flex items-center justify-center border-4 bg-yellow-500/10 border-yellow-500`}>
-                            <Star size={32} className="text-yellow-400" />
+                        <div className={`w-12 h-12 sm:w-16 sm:h-16 rounded-full flex items-center justify-center border-2 sm:border-4 bg-yellow-500/10 border-yellow-500`}>
+                            <Star className="w-6 h-6 sm:w-8 sm:h-8 text-yellow-400" />
                         </div>
-                        <span className="text-sm font-bold mt-2">{getMasteryInfo(endLevel).name}</span>
-                        <span className="text-xs text-zinc-500">Mục tiêu</span>
+                        <span className="text-xs sm:text-sm font-bold mt-1 sm:mt-2">{getMasteryInfo(endLevel).name}</span>
+                        <span className="text-[10px] sm:text-xs text-zinc-500">Mục tiêu</span>
                     </div>
                 </div>
 
                 {/* Points Info */}
                 {(current_points || desired_points) && (
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="bg-zinc-950/50 p-3 rounded-xl border border-zinc-800 text-center">
-                            <div className="text-[10px] text-zinc-500 uppercase font-bold tracking-wider">Điểm hiện tại</div>
-                            <div className="text-lg font-bold text-zinc-400 mt-1">{parseInt(current_points || '0').toLocaleString()}</div>
+                    <div className="grid grid-cols-2 gap-2 sm:gap-4">
+                        <div className="bg-zinc-950/50 p-2 sm:p-3 rounded-xl border border-zinc-800 text-center min-w-0">
+                            <div className="text-[9px] sm:text-[10px] text-zinc-500 uppercase font-bold tracking-wider truncate">Điểm hiện tại</div>
+                            <div className="text-sm sm:text-lg font-bold text-zinc-400 mt-1 truncate">{parseInt(current_points || '0').toLocaleString()}</div>
                         </div>
-                        <div className="bg-zinc-950/50 p-3 rounded-xl border border-zinc-800 text-center">
-                            <div className="text-[10px] text-zinc-500 uppercase font-bold tracking-wider">Điểm mục tiêu</div>
-                            <div className="text-lg font-bold text-yellow-400 mt-1">{parseInt(desired_points || '0').toLocaleString()}</div>
+                        <div className="bg-zinc-950/50 p-2 sm:p-3 rounded-xl border border-zinc-800 text-center min-w-0">
+                            <div className="text-[9px] sm:text-[10px] text-zinc-500 uppercase font-bold tracking-wider truncate">Điểm mục tiêu</div>
+                            <div className="text-sm sm:text-lg font-bold text-yellow-400 mt-1 truncate">{parseInt(desired_points || '0').toLocaleString()}</div>
                         </div>
                     </div>
                 )}

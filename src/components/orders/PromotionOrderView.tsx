@@ -112,7 +112,7 @@ export default function PromotionOrderView({ order }: PromotionOrderViewProps) {
                 </motion.div>
             )}
             
-            <div className="flex justify-between items-start mb-6 relative z-10">
+            <div className="flex flex-col justify-between items-start mb-6 relative z-10">
                 <h3 className="text-lg font-bold text-white flex items-center gap-2">
                     <TrendingUp className="w-5 h-5 text-yellow-500" /> 
                     Tiến độ Thăng Hạng
@@ -153,26 +153,26 @@ export default function PromotionOrderView({ order }: PromotionOrderViewProps) {
             </div>
 
             {/* From -> To Info */}
-            <div className="flex items-center justify-between p-4 bg-zinc-950/50 rounded-xl border border-zinc-800">
-                <div className="flex flex-col items-center w-1/3">
-                    <span className="text-[10px] text-zinc-500 uppercase font-bold tracking-wider">Hiện tại</span>
-                    <div className="text-lg font-bold text-zinc-300 mt-1 text-center">{promo_from || 'N/A'}</div>
+            <div className="flex items-center justify-between p-3 sm:p-4 bg-zinc-950/50 rounded-xl border border-zinc-800">
+                <div className="flex flex-col items-center w-1/3 min-w-0 px-1">
+                    <span className="text-[9px] sm:text-[10px] text-zinc-500 uppercase font-bold tracking-wider truncate w-full text-center">Hiện tại</span>
+                    <div className="text-sm sm:text-lg font-bold text-zinc-300 mt-1 text-center w-full leading-tight">{promo_from || 'N/A'}</div>
                 </div>
                 
-                <div className="flex-1 flex justify-center">
+                <div className="flex-1 flex justify-center px-2">
                     <div className="h-0.5 w-full bg-zinc-800 relative">
-                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-zinc-900 p-2 rounded-full border border-zinc-700">
+                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-zinc-900 p-1.5 sm:p-2 rounded-full border border-zinc-700">
                             {promoStatus === 'PROMOTED' 
-                                ? <CheckCircle2 className="w-5 h-5 text-green-500" />
-                                : <Target className="w-4 h-4 text-blue-500" />
+                                ? <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 text-green-500" />
+                                : <Target className="w-3 h-3 sm:w-4 sm:h-4 text-blue-500" />
                             }
                         </div>
                     </div>
                 </div>
 
-                <div className="flex flex-col items-center w-1/3">
-                    <span className="text-[10px] text-zinc-500 uppercase font-bold tracking-wider">Mục tiêu</span>
-                    <div className="text-lg font-black text-yellow-400 mt-1 text-center">{promo_to || 'N/A'}</div>
+                <div className="flex flex-col items-center w-1/3 min-w-0 px-1">
+                    <span className="text-[9px] sm:text-[10px] text-zinc-500 uppercase font-bold tracking-wider truncate w-full text-center">Mục tiêu</span>
+                    <div className="text-sm sm:text-lg font-black text-yellow-400 mt-1 text-center w-full leading-tight">{promo_to || 'N/A'}</div>
                 </div>
             </div>
 

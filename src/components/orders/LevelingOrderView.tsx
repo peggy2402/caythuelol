@@ -50,17 +50,17 @@ export default function LevelingOrderView({ order }: LevelingOrderViewProps) {
                 </div>
 
                 {/* From -> To Info */}
-                <div className="flex items-center justify-between p-4 bg-zinc-950/50 rounded-xl border border-zinc-800">
+                <div className="flex items-center justify-between p-3 sm:p-4 bg-zinc-950/50 rounded-xl border border-zinc-800">
                     <div className="flex flex-col items-center w-1/3">
-                        <span className="text-[10px] text-zinc-500 uppercase font-bold tracking-wider">Bắt đầu</span>
-                        <div className="text-2xl font-bold text-zinc-300 mt-1">Lv. {startLevel}</div>
+                        <span className="text-[9px] sm:text-[10px] text-zinc-500 uppercase font-bold tracking-wider truncate">Bắt đầu</span>
+                        <div className="text-lg sm:text-2xl font-bold text-zinc-300 mt-1 truncate">Lv. {startLevel}</div>
                     </div>
                     
-                    <div className="flex-1 h-1 bg-zinc-800 rounded-full"></div>
+                    <div className="flex-1 h-1 bg-zinc-800 rounded-full mx-2 sm:mx-4"></div>
 
                     <div className="flex flex-col items-center w-1/3">
-                        <span className="text-[10px] text-zinc-500 uppercase font-bold tracking-wider">Mục tiêu</span>
-                        <div className="text-2xl font-black text-green-400 mt-1">Lv. {endLevel}</div>
+                        <span className="text-[9px] sm:text-[10px] text-zinc-500 uppercase font-bold tracking-wider truncate">Mục tiêu</span>
+                        <div className="text-lg sm:text-2xl font-black text-green-400 mt-1 truncate">Lv. {endLevel}</div>
                     </div>
                 </div>
             </div>
