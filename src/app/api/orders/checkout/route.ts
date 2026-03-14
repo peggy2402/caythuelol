@@ -38,8 +38,12 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Insufficient balance' }, { status: 400 });
     }
 
+    // Generate Custom Order Code (VD: CTL-4F8A9X)
+    const customCode = 'BK-' + Math.random().toString(36).substring(2, 8).toUpperCase();
+
     // 2. Create Order
     const newOrder = new Order({
+      orderCode: customCode,
       customerId: user._id,
       boosterId: boosterId || undefined, // If null/undefined, it's a public job
       serviceType,
@@ -86,7 +90,8 @@ export async function POST(req: Request) {
 
     // 4. Notify (Socket.io) - Optional here, usually handled by client or separate trigger
 
-    return NextResponse.json({ success: true, orderId: newOrder._id });
+    // Trả về mã custom mới để Frontend redirect tới URL đẹp
+    return NextResponse.json({ success: true, orderId: newOrder.orderCode });
 
   } catch (error: any) {
     console.error('Checkout Error:', error);

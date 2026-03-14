@@ -13,6 +13,7 @@ export enum OrderStatus {
 }
 
 export interface IOrder {
+  orderCode?: string; // Mã đơn hàng custom (VD: CTL-X8A9B2)
   customerId: mongoose.Types.ObjectId;
   boosterId?: mongoose.Types.ObjectId;
   serviceType: string;
@@ -63,6 +64,7 @@ export interface IOrder {
 
 const OrderSchema = new Schema<IOrder>(
   {
+    orderCode: { type: String, unique: true, sparse: true },
     customerId: { type: Schema.Types.ObjectId, ref: "User", required: true },
     boosterId: { type: Schema.Types.ObjectId, ref: "User" },
     serviceType: { type: String, required: true },
