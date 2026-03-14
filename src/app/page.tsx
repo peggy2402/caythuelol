@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from "next/link";
 import Image from "next/image";
-import { Shield, Zap, Trophy, Star, CheckCircle, ArrowRight, Users, Clock, Target, ChevronRight, CreditCard, TrendingUp, Activity, Sparkles, MessageSquarePlus, Lightbulb, Bug, X, Loader2 } from "lucide-react";
+import { Shield, Zap, Trophy, Star, CheckCircle, ArrowRight, Users, Clock, Target, ChevronRight, CreditCard, TrendingUp, Activity, Sparkles, MessageSquarePlus, Lightbulb, Bug, X, Loader2, UploadCloud } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import { useLanguage } from "@/lib/i18n";
 import { motion, useScroll, useTransform, Variants, AnimatePresence } from "framer-motion";
@@ -51,6 +51,7 @@ export default function Home() {
   const [feedbackText, setFeedbackText] = useState('');
   const [feedbackImage, setFeedbackImage] = useState('');
   const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -80,6 +81,34 @@ export default function Home() {
     "Đội ngũ Thách Đấu 1000LP+",
     "Hỗ trợ nhiệt tình 24/7"
   ];
+
+  // Hàm xử lý Upload file lên Cloudinary
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+
+      // Giới hạn dung lượng 5MB
+      if (file.size > 5 * 1024 * 1024) {
+          return toast.error("Kích thước ảnh tối đa là 5MB!");
+      }
+
+      setIsUploadingImage(true);
+      try {
+          const formData = new FormData();
+          formData.append('file', file);
+          
+          const res = await fetch('/api/upload', { method: 'POST', body: formData });
+          const data = await res.json();
+          
+          if (!res.ok) throw new Error(data.error || "Tải ảnh thất bại");
+          
+          setFeedbackImage(data.url || data.secure_url);
+      } catch (error: any) {
+          toast.error(error.message);
+      } finally {
+          setIsUploadingImage(false);
+      }
+  };
 
   const handleSubmitFeedback = async () => {
     if (!feedbackText.trim()) return toast.error("Vui lòng nhập nội dung!");
@@ -453,12 +482,12 @@ export default function Home() {
       {/* Feedback Modal */}
       <AnimatePresence>
         {isFeedbackOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xl">
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-md overflow-hidden shadow-2xl"
+              className="bg-zinc-900/90 border border-zinc-800 rounded-2xl w-full max-w-md overflow-hidden shadow-[0_30px_60px_rgba(0,0,0,0.5)] backdrop-blur-md"
             >
               <div className="p-4 border-b border-zinc-800 flex justify-between items-center bg-zinc-950/50">
                 <h3 className="font-bold text-white flex items-center gap-2">
@@ -489,12 +518,35 @@ export default function Home() {
                   className="w-full h-28 bg-zinc-950 border border-zinc-800 rounded-xl p-3 text-sm text-white focus:border-blue-500 outline-none resize-none placeholder:text-zinc-600"
                 />
 
-                <input
-                  type="url"
-                  value={feedbackImage} onChange={(e) => setFeedbackImage(e.target.value)}
-                  placeholder="Link ảnh đính kèm (Ví dụ: https://imgur.com/...)"
-                  className="w-full bg-zinc-950 border border-zinc-800 rounded-xl p-3 text-sm text-white focus:border-blue-500 outline-none placeholder:text-zinc-600"
-                />
+                {/* Vùng tải ảnh đính kèm */}
+                {!feedbackImage ? (
+                  <div className="relative">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      disabled={isUploadingImage}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
+                    />
+                    <div className={`w-full border-2 border-dashed rounded-xl p-4 flex flex-col items-center justify-center gap-2 text-sm transition-colors ${isUploadingImage ? 'border-blue-500/50 bg-blue-500/10 text-blue-400' : 'border-zinc-800 bg-zinc-950/50 text-zinc-500 hover:border-zinc-600 hover:bg-zinc-900'}`}>
+                      {isUploadingImage ? (
+                        <><Loader2 className="w-5 h-5 animate-spin" /> Đang tải ảnh lên...</>
+                      ) : (
+                        <><UploadCloud className="w-5 h-5" /> Tải lên ảnh màn hình (Tùy chọn)</>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="relative w-full h-28 rounded-xl overflow-hidden border border-zinc-800 group">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={feedbackImage} alt="Preview" className="w-full h-full object-cover opacity-80 group-hover:opacity-60 transition-opacity" />
+                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button onClick={() => setFeedbackImage('')} className="px-3 py-1.5 bg-red-600 hover:bg-red-500 text-white font-bold rounded-lg text-sm flex items-center gap-2 shadow-lg shadow-red-900/20">
+                        <X className="w-4 h-4" /> Gỡ ảnh
+                      </button>
+                    </div>
+                  </div>
+                )}
 
                 <button onClick={handleSubmitFeedback} disabled={isSubmittingFeedback} className="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl transition-colors flex items-center justify-center gap-2 disabled:opacity-50">
                   {isSubmittingFeedback ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Gửi phản hồi'}
