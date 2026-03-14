@@ -819,3 +819,99 @@ caythuelol/
   - Sửa lỗi hiển thị Rank không đúng trên `BoosterPicker`.
   - Sửa lỗi API trả về `undefined` khi log.
   - Fix lỗi hiển thị nút "Nhận đơn" cho các đơn hàng Direct (Chỉ định) ở trạng thái `PAID`.
+
+30. 2026-03-14 — Static Pages, Feedback System & UI/UX Polish
+
+- **Static Pages:**
+  - **Creation:** Xây dựng các trang tĩnh quan trọng: `/help` (Trung tâm trợ giúp), `/terms` (Điều khoản), `/privacy` (Bảo mật), và `/contact` (Liên hệ).
+  - **UI/UX:** Thiết kế đồng bộ với phong cách Dark Mode / Glassmorphism của toàn trang. Trang `/help` có giao diện FAQ (Accordion). Trang `/contact` có form liên hệ và bản đồ Google Maps nhúng.
+  - **Navigation:** Thêm component `BackButton` để cải thiện trải nghiệm điều hướng. Cập nhật link ở `Footer` để trỏ đến các trang mới.
+
+- **Feedback & Reporting System:**
+  - **Order Issue:** Thêm nút "Báo lỗi / Có vấn đề" trong trang chi tiết đơn hàng, cho phép khách và booster tạo `dispute` khi đơn hàng đang chạy.
+  - **System Feedback:** Triển khai nút "Góp ý & Báo lỗi" dạng Floating Button trên trang chủ.
+    - **UI:** Modal Glassmorphism cho phép chọn loại phản hồi (Báo lỗi / Góp ý) và đính kèm ảnh (Upload lên Cloudinary).
+    - **Backend:** Tạo API Route `/api/feedback` để nhận phản hồi và gửi trực tiếp về kênh Discord của Admin qua Webhook.
+    - **Security:** API được bảo vệ bằng Rate Limiting (chặn spam theo IP) và giấu kín URL Webhook ở phía server.
+
+- **Booster Profile & Onboarding:**
+  - **UX Improvement:** Tách `BoosterCard` thành component riêng và thêm `loading.tsx` cho các trang (`/boosters`, `/b/[username]`, `/services`, `/blogs`) để khắc phục tình trạng "đơ" khi chuyển trang.
+  - **Custom Order Code:** Nâng cấp hệ thống để sử dụng mã đơn hàng tùy chỉnh (VD: `CTL-A1B2C3`) thay vì `_id` của MongoDB trên URL, tăng tính chuyên nghiệp và bảo mật.
+
+- **Rating System:**
+  - **Time Limit:** Giới hạn khách hàng chỉ có thể đánh giá đơn hàng trong vòng 7 ngày sau khi hoàn thành.
+  - **Reminder:** Tự động gửi thông báo "Đừng quên đánh giá Booster" cho khách hàng khi đơn hàng được quyết toán (settled).
+  - **Display:** Hiển thị chi tiết đánh giá (sao và bình luận) trong trang chi tiết đơn hàng sau khi khách đã đánh giá.
+
+- **UI/UX Polish:**
+  - **Footer:** Nâng cấp giao diện Footer với hiệu ứng ánh sáng, icon mạng xã hội thực tế và bố cục 5 cột thoáng đãng hơn.
+  - **Mobile Responsiveness:** Tối ưu hóa hiển thị các khối thông tin trên trang chi tiết đơn hàng (`PromotionOrderView`, `LevelingOrderView`, `MasteryOrderView`, `PlacementsOrderView`) để không bị vỡ layout trên điện thoại.
+  - **Typewriter Effect:** Thêm hiệu ứng chữ chạy trên Hero Section của trang chủ.
+  - **CountUp Effect:** Tích hợp `react-countup` để tạo hiệu ứng số nhảy cho phần thống kê.
+
+- **Booster Profile Overhaul:**
+  - **Refactoring:** Tách `BoosterProfileView` ra khỏi `page.tsx` thành component riêng (`src/components/BoosterProfileView.tsx`) để khắc phục lỗi build Next.js (Export named export from page).
+  - **Public Profile (`/b/[username]`):** Nâng cấp trang hồ sơ công khai với Server Components:
+    - **SEO:** Metadata động (Title, Description, OpenGraph) dựa trên thông tin Booster.
+    - **Features:** Tích hợp `BoosterReviewList` (Danh sách đánh giá), `RelatedBoosters` (Booster tương tự), và biểu đồ Win Rate.
+    - **Data:** Serialize dữ liệu Mongoose (`lean()`) trước khi truyền xuống Client Components để tránh lỗi "Plain object".
+
+- **Order Management & Visualization:**
+  - **Specific Order Views:** Xây dựng các component hiển thị chi tiết riêng biệt cho từng loại dịch vụ trong trang `OrderDetails`:
+    - `NetWinsOrderView`, `RankBoostOrderView`, `PromotionOrderView`, `PlacementsOrderView`, `MasteryOrderView`, `LevelingOrderView`, `OnBetOrderView`, `CoachingOrderView`.
+  - **Visuals:** Thêm `SparklineChart` để vẽ biểu đồ biến động LP, Tỉ lệ thắng, và Phong độ (Momentum) ngay trong chi tiết đơn hàng.
+  - **Net Wins Logic:** Cập nhật lại logic tính toán quyết toán cho chế độ "Cày theo trận" (BY_GAMES): Tính tiền dựa trên tổng LP thực tế đạt được thay vì ước tính trung bình.
+
+- **Service Booking Validation:**
+  - **Rank Verification:** Triển khai tính năng "Kiểm tra Rank" (Riot ID) bắt buộc tại các trang dịch vụ (`Rank Boost`, `Promotion`, `Placements`, `Net Wins`).
+  - **Logic:** Chặn đặt đơn nếu khách hàng chưa xác thực Rank hoặc chọn Rank thấp hơn thực tế (đối với Rank Boost).
+
+- **Wallet & Realtime:**
+  - **Socket.io:** Tối ưu hóa kết nối Socket trong `Navbar` và `WalletPage` để cập nhật số dư và thông báo ngay lập tức.
+  - **Wallet Page:** Fix lỗi hiển thị trùng lặp giao dịch và cải thiện UI/UX (Skeleton loading).
+
+28. 2026-03-11 — Coaching Schedule & Timeline Upgrade
+
+- **Coaching Scheduling System:**
+  - **Logic Upgrade:** Nâng cấp `CoachingScheduleModal` cho phép chọn **Ngày trong tuần** (Thứ 2 - Chủ Nhật) cho từng khung giờ.
+  - **Automation:** Tự động tính toán giờ kết thúc dựa trên thời lượng khóa học (Input giờ bắt đầu -> Auto giờ kết thúc).
+  - **Validation:** Bỏ logic chặn trùng giờ để tăng tính linh hoạt, giới hạn tối đa 7 khung giờ.
+  - **Sorting:** Tự động sắp xếp danh sách lịch học theo thứ tự ngày trong tuần và giờ bắt đầu.
+  - **Bug Fix:** Sửa lỗi hiển thị dropdown ngày luôn bị reset về giá trị mặc định (Thứ 2) bằng cách bind đúng value cho từng item trong list.
+
+- **Visual Timeline:**
+  - **New Component:** Tạo `CoachingTimeline.tsx` để hiển thị lịch học dưới dạng biểu đồ timeline ngang trực quan.
+  - **Features:** Hiển thị ngày tháng cụ thể (VD: Thứ 2 (12/03)) để tránh nhầm lẫn.
+  - **Integration:** Tích hợp Timeline vào `CoachingOrderView` trong trang chi tiết đơn hàng.
+
+29. 2026-03-13 — Mobile UX Overhaul, Cron Jobs & API Optimization
+
+- **Mobile Experience (Shopee-style UX):**
+  - **Sticky Footers:** Triển khai thanh thanh toán bám đáy (Sticky Bottom) cho trang `Checkout` và `PaymentSummary` trên mobile, hiển thị giá tiền và nút hành động chính, ẩn các chi tiết rườm rà.
+  - **Card Layouts:** Chuyển đổi giao diện danh sách đơn hàng (`/dashboard`, `/booster/my-orders`) từ dạng Bảng (Table) sang dạng Thẻ (Card List) trên mobile để dễ đọc hơn.
+  - **Pull-to-Refresh:** Thêm tính năng "Kéo để làm mới" cho danh sách đơn hàng của Booster.
+  - **Responsive Fixes:** Tối ưu hóa `CoachingOrderView` và `CoachingTimeline` để các phần tử xếp chồng (stack) hợp lý trên màn hình nhỏ, tránh bị vỡ layout.
+
+- **Booster System Upgrades:**
+  - **Availability Toggle:** Thêm nút "Sẵn sàng / Tạm nghỉ" trên Navbar cho Booster để bật/tắt khả năng nhận đơn (`isReady`).
+  - **API Optimization:** Viết lại hoàn toàn `/api/boosters` sử dụng Aggregation Pipeline để:
+    - Join dữ liệu từ `User` và `BoosterProfile`.
+    - Gộp (Merge) thông tin `services` và `ranks` từ cả cấu trúc cũ (`booster_info`) và mới (`games`) để đảm bảo không sót dữ liệu.
+    - Hỗ trợ bộ lọc nâng cao (Service, Server, Search).
+  - **Booster Picker:** Cập nhật UI để hiển thị Rank chính xác từ dữ liệu đã được chuẩn hóa, thêm Skeleton loading.
+
+- **System Automation (Cron Jobs):**
+  - **Admin Dashboard:** Xây dựng trang `/admin/cron` cho phép Admin kích hoạt thủ công các tác vụ nền.
+  - **Auto-Cancel:** API `/api/cron/orders/expire` tự động hủy đơn hàng đã thanh toán (`PAID`) nhưng không có Booster nhận sau 3 ngày và hoàn tiền cho khách.
+  - **Reminders:** API `/api/cron/reminders/coaching` gửi email nhắc nhở Booster 1 giờ trước khi buổi Coaching bắt đầu.
+  - **Security:** Bảo vệ các route Cron bằng `CRON_SECRET` hoặc quyền Admin.
+
+- **Refactoring & Performance:**
+  - **ServiceTabs:** Tách thành component riêng (`src/components/services/lol/ServiceTabs.tsx`) và thêm hiệu ứng chuyển tab mượt mà với `Framer Motion`.
+  - **Seed Data:** Thêm API `/api/debug/seed-job` để tạo đơn hàng giả lập phục vụ testing tính năng Sàn việc làm.
+  - **Context:** Cập nhật `ServiceContext` để quản lý trạng thái bật/tắt dịch vụ tốt hơn.
+
+- **Bug Fixes:**
+  - Sửa lỗi hiển thị Rank không đúng trên `BoosterPicker`.
+  - Sửa lỗi API trả về `undefined` khi log.
+  - Fix lỗi hiển thị nút "Nhận đơn" cho các đơn hàng Direct (Chỉ định) ở trạng thái `PAID`.
