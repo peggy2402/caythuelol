@@ -9,7 +9,7 @@ import { socket } from '@/lib/socket';
 import { 
   Loader2, CheckCircle2, AlertCircle, Clock, 
   Shield, DollarSign, CreditCard,
-  Play, CheckSquare, Lock, Flag, Swords, Trophy, Save, Crosshair, ArrowLeft, Search, RefreshCw
+  Play, CheckSquare, Lock, Flag, Swords, Trophy, Save, Crosshair, ArrowLeft, Search, RefreshCw, AlertTriangle
 } from 'lucide-react';
 import { Pencil, Trash2, X, Plus, Eye, EyeOff, History, ArrowUpRight, ArrowDownLeft, Star } from 'lucide-react';
 import { toast } from 'sonner';
@@ -629,6 +629,13 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                             </button>
                         </div>
                     )}
+                    
+                    {/* Nút báo lỗi chung cho các trạng thái đang chạy */}
+                    {['PAID', 'APPROVED', 'IN_PROGRESS'].includes(order.status) && (
+                        <button onClick={() => setIsDisputeModalOpen(true)} className="w-full py-3 bg-red-900/20 hover:bg-red-900/40 text-red-400 font-bold rounded-xl flex items-center justify-center gap-2 transition-colors border border-red-500/20">
+                            <AlertTriangle className="w-4 h-4" /> Báo lỗi / Có vấn đề
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -1108,15 +1115,15 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
       {isDisputeModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
               <div className="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-md p-6">
-                  <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2"><AlertCircle className="w-6 h-6 text-red-500" /> Khiếu nại đơn hàng</h3>
+                  <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2"><AlertCircle className="w-6 h-6 text-red-500" /> Báo lỗi / Khiếu nại</h3>
                   <textarea 
                       className="w-full bg-zinc-950 border border-zinc-700 rounded-xl p-3 text-white mb-4 h-32" 
-                      placeholder="Mô tả vấn đề của bạn..." 
+                      placeholder="Mô tả vấn đề của bạn (VD: Tài khoản sai mật khẩu, bị khóa, Booster vi phạm...)" 
                       value={disputeReason} onChange={e => setDisputeReason(e.target.value)}
                   />
                   <div className="flex gap-3 justify-end">
                       <button onClick={() => setIsDisputeModalOpen(false)} className="px-4 py-2 text-zinc-400 hover:text-white">Hủy</button>
-                      <button onClick={handleDispute} className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-lg font-bold">Gửi khiếu nại</button>
+                      <button onClick={handleDispute} className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-lg font-bold">Gửi yêu cầu</button>
                   </div>
               </div>
           </div>

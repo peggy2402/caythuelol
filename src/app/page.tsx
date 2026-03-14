@@ -3,13 +3,53 @@
 import { useState, useEffect } from 'react';
 import Link from "next/link";
 import Image from "next/image";
-import { Shield, Zap, Trophy, Star, CheckCircle, ArrowRight, Users, Clock, Target, ChevronRight, CreditCard, TrendingUp } from "lucide-react";
+import { Shield, Zap, Trophy, Star, CheckCircle, ArrowRight, Users, Clock, Target, ChevronRight, CreditCard, TrendingUp, Activity, Sparkles, MessageSquarePlus, Lightbulb, Bug, X, Loader2 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import { useLanguage } from "@/lib/i18n";
+import { motion, useScroll, useTransform, Variants, AnimatePresence } from "framer-motion";
+import CountUp from 'react-countup';
+import { toast } from "sonner";
+
+// Lightweight Custom Typewriter Hook
+const Typewriter = ({ words }: { words: string[] }) => {
+  const [index, setIndex] = useState(0);
+  const [subIndex, setSubIndex] = useState(0);
+  const [reverse, setReverse] = useState(false);
+
+  useEffect(() => {
+    if (subIndex === words[index].length + 1 && !reverse) {
+      const timeout = setTimeout(() => setReverse(true), 2500);
+      return () => clearTimeout(timeout);
+    }
+    if (subIndex === 0 && reverse) {
+      setReverse(false);
+      setIndex((prev) => (prev + 1) % words.length);
+      return;
+    }
+    const timeout = setTimeout(() => {
+      setSubIndex((prev) => prev + (reverse ? -1 : 1));
+    }, reverse ? 40 : 80);
+    return () => clearTimeout(timeout);
+  }, [subIndex, index, reverse, words]);
+
+  return <span className="inline-block min-w-[20px]">{words[index].substring(0, subIndex)}<span className="animate-pulse">|</span></span>;
+};
 
 export default function Home() {
   const { t } = useLanguage();
   const [scrollY, setScrollY] = useState(0);
+
+  // Parallax effects
+  const { scrollYProgress } = useScroll();
+  const y1 = useTransform(scrollYProgress, [0, 1], [0, 200]);
+  const y2 = useTransform(scrollYProgress, [0, 1], [0, -100]);
+  const opacityHero = useTransform(scrollYProgress, [0, 0.2], [1, 0]);
+
+  // Feedback Modal State
+  const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
+  const [feedbackType, setFeedbackType] = useState<'BUG' | 'SUGGESTION'>('BUG');
+  const [feedbackText, setFeedbackText] = useState('');
+  const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -19,113 +59,268 @@ export default function Home() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  // Animation Variants
+  const containerVariants: Variants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: { staggerChildren: 0.15, delayChildren: 0.2 }
+    }
+  };
+
+  const itemVariants: Variants = {
+    hidden: { opacity: 0, y: 30 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.8, ease: [0.25, 0.4, 0.25, 1] } }
+  };
+
+  const typewriterWords = [
+    "Boost rank siêu tốc",
+    "Bảo mật tài khoản tuyệt đối",
+    "Đội ngũ Thách Đấu 1000LP+",
+    "Hỗ trợ nhiệt tình 24/7"
+  ];
+
+  const handleSubmitFeedback = async () => {
+    if (!feedbackText.trim()) return toast.error("Vui lòng nhập nội dung!");
+    setIsSubmittingFeedback(true);
+    try {
+        const res = await fetch('/api/feedback', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                type: feedbackType, 
+                message: feedbackText 
+            })
+        });
+
+        if (!res.ok) throw new Error("Lỗi khi gửi Webhook");
+
+        toast.success("Cảm ơn bạn đã đóng góp ý kiến!");
+        setIsFeedbackOpen(false);
+        setFeedbackText('');
+    } catch (error) {
+        toast.error("Có lỗi xảy ra, vui lòng thử lại sau.");
+    } finally {
+        setIsSubmittingFeedback(false);
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-[#050505] text-zinc-100 font-sans selection:bg-blue-500/30 overflow-x-hidden" suppressHydrationWarning>
+    <div className="min-h-screen bg-[#030303] text-zinc-100 font-sans selection:bg-blue-500/30 overflow-x-hidden" suppressHydrationWarning>
       <Navbar />
 
       <main className="relative">
         {/* Ambient Background Noise/Texture */}
-        <div className="fixed inset-0 z-0 pointer-events-none opacity-[0.03]" style={{ backgroundImage: 'url("/noise.png")' }}></div>
+        <div className="fixed inset-0 z-0 pointer-events-none opacity-[0.02] mix-blend-overlay" style={{ backgroundImage: 'url("/noise.png")' }}></div>
         
         {/* Hero Section */}
-        <section className="relative pt-32 pb-20 md:pt-48 md:pb-40 overflow-hidden">
+        <section className="relative pt-32 pb-20 md:pt-40 md:pb-32 overflow-hidden min-h-[90vh] flex items-center">
           {/* Dynamic Background Glows */}
-          <div className="absolute top-[-10%] left-1/2 -translate-x-1/2 w-[80vw] h-[500px] bg-blue-600/20 blur-[120px] rounded-full pointer-events-none mix-blend-screen animate-pulse-slow" style={{ transform: `translateY(${scrollY * 0.5}px)` }} />
-          <div className="absolute top-[20%] right-[-10%] w-[600px] h-[600px] bg-purple-600/10 blur-[100px] rounded-full pointer-events-none mix-blend-screen" style={{ transform: `translateY(${scrollY * 0.3}px)` }} />
-          <div className="absolute bottom-[-10%] left-[-10%] w-[600px] h-[600px] bg-cyan-600/10 blur-[100px] rounded-full pointer-events-none mix-blend-screen" style={{ transform: `translateY(${scrollY * 0.2}px)` }} />
+          <div className="absolute top-[-20%] left-[-10%] w-[50vw] h-[50vw] bg-blue-600/10 blur-[120px] rounded-full pointer-events-none mix-blend-screen" />
+          <div className="absolute top-[10%] right-[-10%] w-[40vw] h-[40vw] bg-purple-600/10 blur-[120px] rounded-full pointer-events-none mix-blend-screen" />
 
-          <div className="container mx-auto px-6 relative z-10">
-            <div className="flex flex-col items-center text-center max-w-5xl mx-auto" style={{ transform: `translateY(${scrollY * 0.1}px)` }}>
+          <motion.div style={{ opacity: opacityHero, y: y1 }} className="container mx-auto px-6 relative z-10">
+            <div className="grid lg:grid-cols-2 gap-16 lg:gap-8 items-center">
               
-              {/* Badge */}
-              <div className="inline-flex items-center gap-2 rounded-full border border-blue-500/30 bg-blue-500/5 px-4 py-1.5 text-sm font-semibold text-blue-400 mb-8 backdrop-blur-md shadow-[0_0_15px_rgba(59,130,246,0.2)] hover:shadow-[0_0_25px_rgba(59,130,246,0.4)] transition-all duration-300 cursor-default">
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
-                </span>
-                <span className="tracking-wide uppercase text-xs">{t('heroBadge')}</span>
-              </div>
-
-              {/* Headline */}
-              <h1 className="text-5xl md:text-7xl lg:text-8xl font-black tracking-tighter text-white mb-8 leading-[1.1] animate-in fade-in slide-in-from-bottom-8 duration-700">
-                {t('heroTitle1')} <br className="hidden md:block" />
-                <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-cyan-400 bg-clip-text text-transparent bg-[length:200%_auto] animate-gradient">
-                  {t('heroTitle2')}
-                </span>
-              </h1>
-
-              {/* Subheadline */}
-              <p className="text-lg md:text-xl text-zinc-400 mb-12 max-w-2xl leading-relaxed font-medium animate-in fade-in slide-in-from-bottom-8 duration-700 delay-150">
-                {t('heroDesc')}
-              </p>
-
-              {/* CTA Buttons */}
-              <div className="flex flex-col sm:flex-row items-center gap-5 w-full sm:w-auto animate-in fade-in slide-in-from-bottom-8 duration-700 delay-300">
-                <Link
-                  href="/dashboard"
-                  suppressHydrationWarning
-                  className="group relative flex h-14 w-full sm:w-auto items-center justify-center gap-3 overflow-hidden rounded-xl bg-blue-600 px-8 text-lg font-bold text-white shadow-[0_0_20px_rgba(37,99,235,0.3)] transition-all hover:bg-blue-500 hover:scale-105 hover:shadow-[0_0_40px_rgba(37,99,235,0.5)]"
-                >
-                  <span className="relative z-10">{t('startNow')}</span>
-                  <ArrowRight className="relative z-10 h-5 w-5 transition-transform group-hover:translate-x-1" />
-                  <div className="absolute inset-0 -translate-x-full group-hover:translate-x-0 bg-gradient-to-r from-transparent via-white/20 to-transparent transition-transform duration-500 skew-x-12" />
-                </Link>
+              {/* Left Content */}
+              <motion.div variants={containerVariants} initial="hidden" animate="visible" className="flex flex-col items-start text-left max-w-2xl">
                 
-                <Link
-                  href="/services"
-                  suppressHydrationWarning
-                  className="group flex h-14 w-full sm:w-auto items-center justify-center gap-2 rounded-xl border border-zinc-700 bg-zinc-900/50 px-8 text-lg font-bold text-zinc-300 transition-all hover:bg-zinc-800 hover:text-white hover:border-zinc-500 backdrop-blur-sm"
+                {/* Badge */}
+                <motion.div variants={itemVariants} className="inline-flex items-center gap-2 rounded-full border border-blue-500/20 bg-blue-500/10 px-4 py-2 text-sm font-semibold text-blue-300 mb-6 backdrop-blur-md">
+                  <Sparkles className="w-4 h-4" />
+                  <span className="tracking-wide">{t('heroBadge')}</span>
+                </motion.div>
+
+                {/* Headline */}
+                <motion.h1 variants={itemVariants} className="text-5xl md:text-6xl lg:text-7xl font-black tracking-tighter text-white mb-6 leading-[1.15]">
+                  {t('heroTitle1')} <br />
+                  <span className="bg-gradient-to-r from-blue-400 via-indigo-400 to-cyan-400 bg-clip-text text-transparent animate-gradient bg-[length:200%_auto]">
+                    {t('heroTitle2')}
+                  </span>
+                </motion.h1>
+
+                {/* Typewriter Effect */}
+                <motion.div variants={itemVariants} className="h-8 mb-6 text-xl md:text-2xl font-medium text-zinc-300 flex items-center gap-2">
+                  <ChevronRight className="w-5 h-5 text-blue-500" />
+                  <Typewriter words={typewriterWords} />
+                </motion.div>
+
+                {/* Subheadline */}
+                <motion.p variants={itemVariants} className="text-lg text-zinc-400 mb-10 max-w-xl leading-relaxed">
+                  {t('heroDesc')}
+                </motion.p>
+
+                {/* CTA Buttons */}
+                <motion.div variants={itemVariants} className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto">
+                  <div className="relative group w-full sm:w-auto">
+                    <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-xl blur opacity-30 group-hover:opacity-60 transition duration-500"></div>
+                    <Link
+                      href="/dashboard"
+                      className="relative flex h-14 w-full sm:w-auto items-center justify-center gap-3 rounded-xl bg-zinc-950 px-8 text-lg font-bold text-white border border-white/10 transition-all hover:bg-zinc-900"
+                    >
+                      <span>{t('startNow')}</span>
+                      <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
+                    </Link>
+                  </div>
+                  
+                  <Link
+                    href="/services"
+                    className="group flex h-14 w-full sm:w-auto items-center justify-center gap-2 rounded-xl bg-transparent px-8 text-lg font-bold text-zinc-400 transition-all hover:text-white hover:bg-white/5"
+                  >
+                    <span>{t('viewPricing')}</span>
+                  </Link>
+                </motion.div>
+              </motion.div>
+
+              {/* Right Visual - SaaS Dashboard Mockup style */}
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 1, delay: 0.4 }}
+                className="relative lg:h-[600px] w-full flex items-center justify-center"
+              >
+                {/* Main Abstract Window */}
+                <div className="relative w-full max-w-[500px] aspect-[4/3] rounded-2xl bg-[#0a0a0a]/80 backdrop-blur-2xl border border-white/10 shadow-[0_0_80px_rgba(37,99,235,0.15)] overflow-hidden">
+                  {/* macOS style header */}
+                  <div className="h-10 border-b border-white/5 bg-white/[0.02] flex items-center px-4 gap-2">
+                    <div className="w-3 h-3 rounded-full bg-red-500/50"></div>
+                    <div className="w-3 h-3 rounded-full bg-yellow-500/50"></div>
+                    <div className="w-3 h-3 rounded-full bg-green-500/50"></div>
+                  </div>
+                  
+                  {/* Dashboard Content Mock */}
+                  <div className="p-6 relative h-full">
+                     <div className="absolute top-0 right-0 w-64 h-64 bg-cyan-500/10 blur-[60px] rounded-full" />
+                     <div className="flex justify-between items-center mb-6">
+                        <div className="space-y-1">
+                           <div className="h-2 w-16 bg-zinc-800 rounded"></div>
+                           <div className="text-xl font-bold text-white tracking-tight">Win Rate</div>
+                        </div>
+                        <Activity className="text-cyan-400" />
+                     </div>
+                     
+                     {/* Graph Lines */}
+                     <svg className="w-full h-24 mb-6" viewBox="0 0 100 40" preserveAspectRatio="none">
+                        <motion.path 
+                          d="M0 30 Q 20 35, 40 20 T 70 10 T 100 5" 
+                          fill="none" 
+                          stroke="url(#gradient)" 
+                          strokeWidth="2"
+                          initial={{ pathLength: 0 }}
+                          animate={{ pathLength: 1 }}
+                          transition={{ duration: 2, ease: "easeInOut", delay: 0.8 }}
+                        />
+                        <defs>
+                          <linearGradient id="gradient" x1="0" y1="0" x2="1" y2="0">
+                            <stop offset="0%" stopColor="#3b82f6" />
+                            <stop offset="100%" stopColor="#22d3ee" />
+                          </linearGradient>
+                        </defs>
+                     </svg>
+
+                     <div className="space-y-3">
+                        <div className="h-10 w-full bg-zinc-900/50 rounded-lg border border-white/5"></div>
+                        <div className="h-10 w-[80%] bg-zinc-900/50 rounded-lg border border-white/5"></div>
+                     </div>
+                  </div>
+                </div>
+
+                {/* Floating Glassmorphism UI Card */}
+                <motion.div
+                  animate={{ y: [-15, 10, -15] }}
+                  transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+                  className="absolute -bottom-8 -left-6 z-20 w-[280px] p-5 rounded-2xl bg-zinc-900/60 backdrop-blur-xl border border-white/10 shadow-[0_30px_60px_rgba(0,0,0,0.4)]"
                 >
-                  <span>{t('viewPricing')}</span>
-                  <ChevronRight className="h-4 w-4 text-zinc-500 group-hover:text-white transition-colors" />
-                </Link>
-              </div>
+                  <div className="flex items-center gap-4 mb-4">
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-600 to-cyan-500 flex items-center justify-center shadow-inner">
+                      <Trophy className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <div className="text-white font-bold text-sm">Booster Pro</div>
+                      <div className="text-cyan-400 text-[10px] font-mono tracking-wider uppercase">Thách Đấu 1200 LP</div>
+                    </div>
+                  </div>
+                  <div className="flex justify-between items-center text-xs mb-2">
+                    <span className="text-zinc-400">Tỉ lệ thắng:</span>
+                    <span className="text-green-400 font-bold">92%</span>
+                  </div>
+                  <div className="h-1.5 w-full bg-zinc-950 rounded-full overflow-hidden">
+                    <motion.div 
+                      initial={{ width: 0 }}
+                      animate={{ width: '92%' }}
+                      transition={{ duration: 1.5, delay: 1 }}
+                      className="h-full bg-gradient-to-r from-blue-500 to-cyan-400" 
+                    />
+                  </div>
+                </motion.div>
+
+              </motion.div>
             </div>
-          </div>
+          </motion.div>
         </section>
 
         {/* Stats Section - Floating Cards */}
-        <section className="py-12 border-y border-white/5 bg-white/[0.02] backdrop-blur-sm relative z-20 animate-in fade-in slide-in-from-bottom-12 duration-1000 delay-500">
+        <section className="py-16 relative z-20">
           <div className="container mx-auto px-6">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-12">
+            <motion.div 
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, margin: "-100px" }}
+              variants={containerVariants}
+              className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8"
+            >
               {[
-                { label: t('statsCompleted'), value: "15,000+", icon: CheckCircle, color: "text-green-400", glow: "group-hover:shadow-green-500/20" },
-                { label: t('statsBooster'), value: "500+", icon: Users, color: "text-yellow-400", glow: "group-hover:shadow-yellow-500/20" },
-                { label: t('statsCustomer'), value: "12,000+", icon: Shield, color: "text-blue-400", glow: "group-hover:shadow-blue-500/20" },
-                { label: t('statsRating'), value: "4.9/5", icon: Star, color: "text-purple-400", glow: "group-hover:shadow-purple-500/20" },
+                { label: t('statsCompleted'), num: 15000, suffix: "+", icon: CheckCircle, color: "text-green-400", glow: "group-hover:shadow-green-500/20" },
+                { label: t('statsBooster'), num: 500, suffix: "+", icon: Users, color: "text-yellow-400", glow: "group-hover:shadow-yellow-500/20" },
+                { label: t('statsCustomer'), num: 12000, suffix: "+", icon: Shield, color: "text-blue-400", glow: "group-hover:shadow-blue-500/20" },
+                { label: t('statsRating'), num: 4.9, decimals: 1, suffix: "/5", icon: Star, color: "text-purple-400", glow: "group-hover:shadow-purple-500/20" },
               ].map((stat, idx) => (
-                <div key={idx} className={`group flex flex-col items-center justify-center p-6 rounded-2xl bg-zinc-900/40 border border-white/5 transition-all duration-300 hover:-translate-y-2 hover:bg-zinc-800/60 hover:border-white/10 ${stat.glow} hover:shadow-xl`}>
-                  <div className={`mb-4 p-3 rounded-xl bg-zinc-950 border border-white/10 ${stat.color} shadow-lg`}>
-                    <stat.icon className="h-8 w-8" />
+                <motion.div variants={itemVariants} key={idx} className="relative group">
+                  <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent rounded-2xl blur-sm transition-all duration-300 group-hover:bg-white/10" />
+                  <div className={`relative flex flex-col items-center justify-center p-8 rounded-2xl bg-[#0a0a0a]/90 backdrop-blur-sm border border-white/5 transition-all duration-500 hover:-translate-y-2 hover:border-white/10 ${stat.glow} shadow-xl overflow-hidden`}>
+                    <div className="absolute top-0 w-1/2 h-[1px] bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                    <div className={`mb-5 p-3.5 rounded-xl bg-zinc-900/50 border border-white/5 ${stat.color} shadow-inner`}>
+                      <stat.icon className="h-7 w-7" />
+                    </div>
+                    <div className="text-3xl md:text-4xl font-black text-white mb-2 tracking-tight">
+                      <CountUp 
+                        end={stat.num} 
+                        decimals={stat.decimals || 0} 
+                        duration={2.5} 
+                        separator="," 
+                        enableScrollSpy 
+                        scrollSpyOnce 
+                      />
+                      {stat.suffix}
+                    </div>
+                    <div className="text-xs text-zinc-500 font-bold uppercase tracking-wider">{stat.label}</div>
                   </div>
-                  <div className="text-3xl md:text-4xl font-black text-white mb-1 tracking-tight">{stat.value}</div>
-                  <div className="text-sm text-zinc-500 font-semibold uppercase tracking-wider">{stat.label}</div>
-                </div>
+                </motion.div>
               ))}
-            </div>
+            </motion.div>
           </div>
         </section>
 
         {/* Why Choose Us */}
-        <section className="py-32 relative">
+        <section className="py-32 relative overflow-hidden">
           <div className="container mx-auto px-6 relative z-10">
-            <div className="text-center mb-20">
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="text-center mb-20"
+            >
               <h2 className="text-4xl md:text-6xl font-black text-white mb-6 tracking-tight">
                 {t('whyChoose')} <span className="text-blue-500">{t('whyChooseUs')}</span>
               </h2>
               <p className="text-zinc-400 max-w-2xl mx-auto text-lg">
                 {t('whyDesc')}
               </p>
-            </div>
+            </motion.div>
 
             <div className="grid md:grid-cols-3 gap-8">
               {[
-                {
-                  title: t('secSecurity'),
-                  desc: t('descSecurity'),
-                  icon: Shield,
-                  gradient: "from-blue-500 to-cyan-500"
-                },
+                { title: t('secSecurity'), desc: t('descSecurity'), icon: Shield, gradient: "from-blue-500 to-cyan-500" },
                 {
                   title: t('secSpeed'),
                   desc: t('descSpeed'),
@@ -139,10 +334,17 @@ export default function Home() {
                   gradient: "from-purple-500 to-pink-500"
                 }
               ].map((item, idx) => (
-                <div key={idx} className="group relative p-1 rounded-3xl bg-gradient-to-b from-white/10 to-white/0 hover:from-blue-500/50 hover:to-purple-500/50 transition-all duration-500">
-                  <div className="relative h-full p-8 rounded-[22px] bg-[#0a0a0a] border border-white/5 overflow-hidden">
+                <motion.div 
+                  key={idx} 
+                  initial={{ opacity: 0, y: 30 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: idx * 0.1 }}
+                  className="group relative rounded-3xl bg-gradient-to-b from-white/5 to-transparent p-[1px] hover:from-white/20 transition-all duration-500"
+                >
+                  <div className="relative h-full p-8 rounded-[23px] bg-[#080808] overflow-hidden">
                     {/* Hover Gradient Blob */}
-                    <div className={`absolute -top-20 -right-20 w-40 h-40 bg-gradient-to-br ${item.gradient} opacity-0 group-hover:opacity-20 blur-[60px] transition-opacity duration-500`} />
+                    <div className={`absolute -top-20 -right-20 w-48 h-48 bg-gradient-to-br ${item.gradient} opacity-0 group-hover:opacity-10 blur-[60px] transition-opacity duration-700`} />
                     
                     <div className="relative z-10">
                       <div className={`h-16 w-16 rounded-2xl bg-gradient-to-br ${item.gradient} flex items-center justify-center mb-8 shadow-lg shadow-black/50 group-hover:scale-110 transition-transform duration-300`}>
@@ -152,38 +354,45 @@ export default function Home() {
                       <p className="text-zinc-400 leading-relaxed group-hover:text-zinc-300 transition-colors">{item.desc}</p>
                     </div>
                   </div>
-                </div>
+                </motion.div>
               ))}
             </div>
           </div>
         </section>
 
         {/* Process Steps */}
-        <section className="py-32 bg-zinc-900/30 border-y border-white/5 relative overflow-hidden">
-          <div className="absolute inset-0 bg-white/[0.02] backdrop-blur-sm opacity-[0.05]" />
+        <section className="py-32 relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-b from-[#0a0a0a] to-black" />
           
           <div className="container mx-auto px-6 relative z-10">
-            <div className="text-center mb-20">
+            <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} className="text-center mb-20">
               <h2 className="text-4xl md:text-6xl font-black text-white mb-6 tracking-tight">{t('processTitle')}</h2>
               <p className="text-zinc-400 text-lg">{t('processDesc')}</p>
-            </div>
+            </motion.div>
 
             <div className="grid md:grid-cols-3 gap-12 relative">
               {/* Connector Line (Desktop) */}
-              <div className="hidden md:block absolute top-16 left-[16%] right-[16%] h-0.5 bg-gradient-to-r from-blue-600/0 via-blue-600/30 to-blue-600/0" />
+              <div className="hidden md:block absolute top-12 left-[16%] right-[16%] h-[1px] bg-gradient-to-r from-transparent via-zinc-700 to-transparent" />
 
               {[
                 { step: "01", title: t('step1'), desc: t('step1Desc'), icon: Target },
                 { step: "02", title: t('step2'), desc: t('step2Desc'), icon: CreditCard },
                 { step: "03", title: t('step3'), desc: t('step3Desc'), icon: TrendingUp }
               ].map((item, idx) => (
-                <div key={idx} className="relative flex flex-col items-center text-center group">
-                  <div className="w-32 h-32 rounded-full bg-zinc-950 border-4 border-zinc-800 flex items-center justify-center mb-8 z-10 shadow-[0_0_30px_rgba(0,0,0,0.5)] group-hover:border-blue-500/50 group-hover:shadow-[0_0_30px_rgba(59,130,246,0.3)] transition-all duration-500">
-                    <div className="text-4xl font-black text-zinc-700 group-hover:text-blue-500 transition-colors duration-300">{item.step}</div>
+                <motion.div 
+                  key={idx} 
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: idx * 0.15 }}
+                  className="relative flex flex-col items-center text-center group"
+                >
+                  <div className="w-24 h-24 rounded-2xl bg-zinc-900/80 border border-white/10 flex items-center justify-center mb-8 z-10 backdrop-blur-md shadow-xl group-hover:border-blue-500/50 group-hover:shadow-[0_0_30px_rgba(59,130,246,0.2)] transition-all duration-500 rotate-3 group-hover:rotate-0">
+                    <div className="text-3xl font-black text-zinc-600 group-hover:text-blue-400 transition-colors duration-300">{item.step}</div>
                   </div>
                   <h3 className="text-2xl font-bold text-white mb-4 group-hover:text-blue-400 transition-colors">{item.title}</h3>
-                  <p className="text-zinc-400 max-w-xs">{item.desc}</p>
-                </div>
+                  <p className="text-zinc-400 max-w-xs text-sm leading-relaxed">{item.desc}</p>
+                </motion.div>
               ))}
             </div>
           </div>
@@ -192,14 +401,21 @@ export default function Home() {
         {/* Reviews */}
         <section className="py-32 relative">
           <div className="container mx-auto px-6">
-            <h2 className="text-4xl md:text-6xl font-black text-white mb-16 text-center tracking-tight">{t('reviewsTitle')}</h2>
+            <motion.h2 
+              initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }}
+              className="text-4xl md:text-5xl lg:text-6xl font-black text-white mb-16 text-center tracking-tight"
+            >
+              {t('reviewsTitle')}
+            </motion.h2>
             <div className="grid md:grid-cols-3 gap-8">
               {[
                 { name: "Minh Hoàng", rank: "Kim Cương I", comment: "Dịch vụ quá tốt, booster đánh nhiệt tình, win streak 10 trận liền. Sẽ ủng hộ tiếp!", avatar: "M" },
                 { name: "Tuấn Anh", rank: "Cao Thủ", comment: "Hỗ trợ nhiệt tình 24/7. Giá cả hợp lý so với chất lượng. Uy tín số 1.", avatar: "T" },
                 { name: "Đức Thắng", rank: "Bạch Kim II", comment: "Cày siêu tốc, mới đặt sáng chiều đã xong. Giao diện web dễ dùng, tracking tiện lợi.", avatar: "Đ" }
               ].map((review, idx) => (
-                <div key={idx} className="p-8 rounded-3xl bg-zinc-900/50 border border-white/5 hover:border-blue-500/30 hover:bg-zinc-800/50 transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl">
+                <motion.div key={idx} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: idx * 0.1 }} 
+                  className="p-8 rounded-3xl bg-[#080808] border border-white/5 hover:border-white/10 transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl flex flex-col justify-between"
+                >
                   <div className="flex gap-1 text-yellow-500 mb-6">
                     {[...Array(5)].map((_, i) => <Star key={i} className="h-5 w-5 fill-current" />)}
                   </div>
@@ -213,12 +429,68 @@ export default function Home() {
                       <div className="text-sm text-blue-400 font-medium">{review.rank}</div>
                     </div>
                   </div>
-                </div>
+                </motion.div>
               ))}
             </div>
           </div>
         </section>
       </main>
+
+      {/* Floating Feedback Button (Góc dưới bên trái để tránh đụng Chat Widget nếu có) */}
+      <button
+        onClick={() => setIsFeedbackOpen(true)}
+        className="fixed bottom-6 left-6 z-40 p-3 bg-zinc-900/80 backdrop-blur-md border border-zinc-700 hover:border-blue-500 rounded-full shadow-[0_0_20px_rgba(0,0,0,0.5)] hover:shadow-[0_0_20px_rgba(59,130,246,0.3)] transition-all group"
+        title="Góp ý & Báo lỗi"
+      >
+        <MessageSquarePlus className="w-6 h-6 text-zinc-400 group-hover:text-blue-400 transition-colors" />
+      </button>
+
+      {/* Feedback Modal */}
+      <AnimatePresence>
+        {isFeedbackOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-md overflow-hidden shadow-2xl"
+            >
+              <div className="p-4 border-b border-zinc-800 flex justify-between items-center bg-zinc-950/50">
+                <h3 className="font-bold text-white flex items-center gap-2">
+                  <MessageSquarePlus className="w-5 h-5 text-blue-500" />
+                  Góp ý & Báo lỗi hệ thống
+                </h3>
+                <button onClick={() => setIsFeedbackOpen(false)} className="text-zinc-500 hover:text-white transition-colors">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="p-6 space-y-4">
+                <div className="grid grid-cols-2 gap-3">
+                  <button onClick={() => setFeedbackType('BUG')} className={`p-3 rounded-xl border flex flex-col items-center gap-2 transition-all ${feedbackType === 'BUG' ? 'bg-red-500/10 border-red-500/50 text-red-400' : 'bg-zinc-950 border-zinc-800 text-zinc-500 hover:bg-zinc-900'}`}>
+                    <Bug className="w-5 h-5" />
+                    <span className="text-sm font-bold">Báo lỗi</span>
+                  </button>
+                  <button onClick={() => setFeedbackType('SUGGESTION')} className={`p-3 rounded-xl border flex flex-col items-center gap-2 transition-all ${feedbackType === 'SUGGESTION' ? 'bg-yellow-500/10 border-yellow-500/50 text-yellow-400' : 'bg-zinc-950 border-zinc-800 text-zinc-500 hover:bg-zinc-900'}`}>
+                    <Lightbulb className="w-5 h-5" />
+                    <span className="text-sm font-bold">Góp ý cải tiến</span>
+                  </button>
+                </div>
+
+                <textarea
+                  value={feedbackText} onChange={(e) => setFeedbackText(e.target.value)}
+                  placeholder={feedbackType === 'BUG' ? 'Mô tả chi tiết lỗi bạn gặp phải (Ví dụ: Không nạp được tiền, Web bị giật...)' : 'Bạn muốn hệ thống có thêm tính năng gì?'}
+                  className="w-full h-32 bg-zinc-950 border border-zinc-800 rounded-xl p-3 text-sm text-white focus:border-blue-500 outline-none resize-none placeholder:text-zinc-600"
+                />
+
+                <button onClick={handleSubmitFeedback} disabled={isSubmittingFeedback} className="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl transition-colors flex items-center justify-center gap-2 disabled:opacity-50">
+                  {isSubmittingFeedback ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Gửi phản hồi'}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* Footer */}
       <footer className="bg-[#020202] border-t border-white/10 pt-20 pb-10">
