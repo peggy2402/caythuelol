@@ -555,6 +555,11 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
   const scheduleOption = activeOptions.find(([k]) => k === 'schedule');
   const rolesOption = activeOptions.find(([k]) => k === 'roles');
   
+  // Kiểm tra giới hạn 7 ngày đánh giá
+  const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
+  const isRatingExpired = order.status === 'COMPLETED' && (new Date().getTime() - new Date(order.updatedAt).getTime() > SEVEN_DAYS_MS);
+  const canRate = isCustomer && order.status === 'COMPLETED' && !order.rating && !isRatingExpired;
+
   const simpleOptions = activeOptions.filter(([k, v]) => {
       if (k === 'schedule' && Array.isArray(v)) return false; // Nếu là mảng lịch -> ẩn khỏi list đơn giản
       if (k === 'roles' && Array.isArray(v)) return false;    // Nếu là mảng roles -> ẩn khỏi list đơn giản
@@ -635,6 +640,20 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                         <button onClick={() => setIsDisputeModalOpen(true)} className="w-full py-3 bg-red-900/20 hover:bg-red-900/40 text-red-400 font-bold rounded-xl flex items-center justify-center gap-2 transition-colors border border-red-500/20">
                             <AlertTriangle className="w-4 h-4" /> Báo lỗi / Có vấn đề
                         </button>
+                    )}
+
+                    {/* Nút Đánh giá Booster */}
+                    {canRate && (
+                        <button onClick={() => setIsRatingModalOpen(true)} className="w-full py-3 bg-yellow-600 hover:bg-yellow-500 text-white font-bold rounded-xl flex items-center justify-center gap-2 transition-colors shadow-lg shadow-yellow-600/20">
+                            <Star className="w-4 h-4 fill-current" /> Đánh giá Booster
+                        </button>
+                    )}
+
+                    {/* Thông báo quá hạn đánh giá */}
+                    {isCustomer && order.status === 'COMPLETED' && !order.rating && isRatingExpired && (
+                        <div className="w-full py-3 bg-zinc-900/50 text-zinc-500 font-medium rounded-xl flex items-center justify-center gap-2 border border-zinc-800">
+                            <Clock className="w-4 h-4" /> Đã hết hạn đánh giá (Quá 7 ngày)
+                        </div>
                     )}
                 </div>
             </div>
@@ -979,6 +998,31 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                                     )}
                                 </div>
                             </div>
+                            
+                            {/* Hiển thị chi tiết Đánh giá (Nếu đã đánh giá) */}
+                            {order.rating && (
+                                <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                                    <h3 className="text-sm font-bold text-zinc-400 uppercase mb-3 flex items-center gap-2"><Star className="w-4 h-4" /> Đánh giá của bạn</h3>
+                                    <div className="bg-zinc-950 p-4 rounded-xl border border-zinc-800 space-y-3">
+                                        <div className="flex items-center gap-2 text-yellow-400">
+                                            {[...Array(5)].map((_, i) => (
+                                                <Star key={i} size={18} className={i < order.rating.stars ? "fill-current" : "text-zinc-700"} />
+                                            ))}
+                                            <span className="text-white font-bold ml-2">
+                                                {order.rating.stars === 5 ? 'Tuyệt vời' : order.rating.stars === 4 ? 'Rất tốt' : order.rating.stars === 3 ? 'Bình thường' : order.rating.stars === 2 ? 'Tệ' : 'Rất tệ'}
+                                            </span>
+                                        </div>
+                                        {(order.rating.comment || order.review) && (
+                                            <div className="p-3 bg-zinc-900 rounded-lg text-sm text-zinc-300 italic border border-zinc-800 break-words whitespace-pre-wrap">
+                                                "{order.rating.comment || order.review}"
+                                            </div>
+                                        )}
+                                        <div className="text-[10px] text-zinc-500 font-mono">
+                                            Gửi lúc: {new Date(order.rating.createdAt || order.updatedAt).toLocaleString('vi-VN')}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     ) : (
                         <div className="space-y-6">

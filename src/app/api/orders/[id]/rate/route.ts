@@ -39,9 +39,15 @@ export async function POST(
         return NextResponse.json({ error: 'Đơn hàng này đã được đánh giá' }, { status: 400 });
     }
 
-    // 1. Cập nhật Order
-    order.rating = rating;
-    (order as any).review = comment; // FIX: Cast to any. Recommended: Add 'review: string' to Order schema.
+    // Giới hạn thời gian đánh giá: Tối đa 7 ngày sau khi hoàn thành
+    const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
+    if (new Date().getTime() - new Date(order.updatedAt).getTime() > SEVEN_DAYS_MS) {
+        return NextResponse.json({ error: 'Đã quá 7 ngày kể từ khi đơn hàng hoàn thành. Bạn không thể đánh giá nữa.' }, { status: 400 });
+    }
+
+    // 1. Cập nhật Order (Lưu đúng cấu trúc Object)
+    order.rating = { stars: rating, comment: comment, createdAt: new Date() } as any;
+    (order as any).review = comment; // Giữ lại field review ở root để tương thích ngược với code cũ
     await order.save();
 
     // 2. Cập nhật Rating trung bình của Booster

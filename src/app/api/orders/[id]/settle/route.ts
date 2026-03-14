@@ -246,6 +246,17 @@ export async function POST(
                     link: `/orders/${id}`
                 });
 
+                // --- THÔNG BÁO NHẮC ĐÁNH GIÁ CHO KHÁCH HÀNG ---
+                const boosterInfo = await User.findById(order.boosterId);
+                const boosterName = boosterInfo ? boosterInfo.username : 'Booster';
+                await Notification.create({
+                    userId: order.customerId,
+                    title: 'Đừng quên đánh giá!',
+                    message: `Bạn đừng quên đánh giá Booster @${boosterName} nhé!`,
+                    type: 'RATE_REMINDER',
+                    link: `/orders/${id}`
+                });
+
                 // --- 6. Send Email Invoice (New Feature) ---
                 const customer = await User.findById(order.customerId);
                 if (customer && customer.email) {

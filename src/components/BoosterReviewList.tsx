@@ -43,9 +43,9 @@ export default function BoosterReviewList({ reviews }: { reviews: any[] }) {
                 </div>
                 <RatingStars rating={review.rating.stars} />
               </div>
-              {review.review && (
+              {(review.rating?.comment || review.review) && (
                 <p className="text-sm text-zinc-300 italic bg-zinc-950/50 p-3 rounded-lg border border-zinc-800/50">
-                  "{review.review}"
+                  "{review.rating?.comment || review.review}"
                 </p>
               )}
               <div className="text-right text-[10px] text-zinc-600 mt-2 font-mono">
