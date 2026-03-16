@@ -3,6 +3,7 @@ import { auth } from '@/lib/auth';
 import dbConnect from '@/lib/db';
 import Order from '@/models/Order';
 import User from '@/models/User';
+import BoosterProfile from '@/models/BoosterProfile';
 
 export async function POST(
   req: NextRequest,
@@ -35,7 +36,8 @@ export async function POST(
         return NextResponse.json({ error: 'Đơn hàng phải hoàn thành mới được đánh giá' }, { status: 400 });
     }
     
-    if (order.rating) {
+    // Check chính xác xem đã có số sao chưa (Mongoose có thể tự khởi tạo Object {} cho các field lồng nhau)
+    if (order.rating && order.rating.stars) {
         return NextResponse.json({ error: 'Đơn hàng này đã được đánh giá' }, { status: 400 });
     }
 
@@ -54,23 +56,45 @@ export async function POST(
     if (order.boosterId) {
         const booster = await User.findById(order.boosterId);
         if (booster) {
-            // FIX: Correct aggregation pipeline syntax
+            // TÍNH TỔNG SỐ SAO VÀ ĐƠN HOÀN THÀNH
             const stats = await Order.aggregate([
-                { $match: { boosterId: order.boosterId, rating: { $exists: true, $ne: null } } },
-                { $group: { _id: null, avgRating: { $avg: '$rating' }, count: { $sum: 1 } } }
+                { $match: { boosterId: order.boosterId, 'rating.stars': { $exists: true, $ne: null } } },
+                { $group: { _id: null, avgRating: { $avg: '$rating.stars' }, count: { $sum: 1 } } }
             ]);
             
+            let newAvgRating = rating;
+            let newCount = 1;
+
+            if (stats.length > 0) {
+                newAvgRating = Math.round(stats[0].avgRating * 10) / 10; // Làm tròn 1 chữ số thập phân
+                newCount = stats[0].count;
+            }
+
+            // TÍNH ĐÁNH GIÁ THEO TỪNG DỊCH VỤ (Để hiển thị tiến trình trên Profile Booster)
+            const serviceStats = await Order.aggregate([
+                { $match: { boosterId: order.boosterId, 'rating.stars': { $exists: true, $ne: null } } },
+                { $group: { _id: '$serviceType', avg: { $avg: '$rating.stars' }, count: { $sum: 1 } } }
+            ]);
+
+            const rating_stats: any = {};
+            serviceStats.forEach(stat => {
+                rating_stats[stat._id] = { avg: Math.round(stat.avg * 10) / 10, count: stat.count };
+            });
+
             // Cập nhật vào thông tin Booster
             if (!booster.booster_info) booster.booster_info = {};
+            booster.booster_info.rating = newAvgRating;
+            booster.booster_info.completed_orders = newCount;
+            booster.booster_info.rating_stats = rating_stats;
             
-            if (stats.length > 0) {
-                booster.booster_info.rating = Math.round(stats[0].avgRating * 10) / 10; // Làm tròn 1 chữ số thập phân
-                booster.booster_info.completed_orders = stats[0].count; // Cập nhật luôn số đơn (nếu cần)
-            } else {
-                booster.booster_info.rating = rating;
-            }
-            
+            booster.markModified('booster_info'); // Quan trọng: Báo cho Mongoose lưu data kiểu Mixed
             await booster.save();
+
+            // Đồng bộ cả với collection BoosterProfile
+            await BoosterProfile.findOneAndUpdate(
+                { userId: order.boosterId },
+                { rating: newAvgRating, completedOrders: newCount }
+            );
         }
     }
 
