@@ -58,6 +58,8 @@ export default function BoosterProfileView({ id }: { id: string }) {
   const identifier = `@${booster.username}`;
   const ratingStats = info.rating_stats || {};
   const isReady = info.isReady ?? true;
+  
+  const activeServices = booster.services || info.services || [];
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white font-sans selection:bg-blue-500/30 pb-20">
@@ -165,7 +167,7 @@ export default function BoosterProfileView({ id }: { id: string }) {
                 <Star className="w-5 h-5 text-purple-500" /> Services
               </h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {info.services?.map((service: string) => (
+                {activeServices.map((service: string) => (
                   <div key={service} className="flex items-center gap-3 p-4 rounded-xl bg-zinc-950/50 border border-white/5">
                     <div className="w-2 h-2 rounded-full bg-green-500" />
                     <span className="font-medium text-zinc-200">{t(service as any) || service}</span>

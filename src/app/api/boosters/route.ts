@@ -11,6 +11,7 @@ export async function GET(req: Request) {
     const search = searchParams.get('search'); // Filter theo tên booster
     const server = searchParams.get('server'); // Filter theo server (VN, KR...)
     const service = searchParams.get('service'); // Filter theo loại dịch vụ (RANK_BOOST, NET_WINS...)
+    const sort = searchParams.get('sort'); // Sort theo rating_desc, orders_desc
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '12');
     const skip = (page - 1) * limit;
@@ -55,29 +56,44 @@ export async function GET(req: Request) {
     ];
 
     // 4. Apply Filters
-    const matchStage: any = {};
+    const andConditions: any[] = [];
 
     if (server) {
-      matchStage['games.servers'] = server;
+      andConditions.push({ 'games.servers': server });
     }
 
     if (service) {
-      matchStage['services'] = service;
+      // Đảm bảo quét qua mọi nơi có thể lưu dịch vụ để tránh sót dữ liệu
+      andConditions.push({
+        $or: [
+          { 'services': service }, // Field ảo được tạo từ $setUnion
+          { 'booster_info.services': service }, // Dữ liệu cấu trúc cũ
+          { 'profileDoc.services': service } // Dữ liệu cấu trúc mới
+        ]
+      });
     }
 
     // Filter theo tên (Search)
     if (search) {
-      matchStage['$or'] = [
-        { 'username': { $regex: search, $options: 'i' } },
-        { 'displayName': { $regex: search, $options: 'i' } }
-      ];
+      andConditions.push({
+        $or: [
+          { 'username': { $regex: search, $options: 'i' } },
+          { 'displayName': { $regex: search, $options: 'i' } }
+        ]
+      });
     }
 
-    if (Object.keys(matchStage).length > 0) {
-      pipeline.push({ $match: matchStage });
+    if (andConditions.length > 0) {
+      pipeline.push({ $match: { $and: andConditions } });
     }
 
-    // 5. Facet for Pagination & Data
+    // 5. Apply Sort
+    let sortStage: any = { rating: -1, completedOrders: -1, _id: 1 }; // Mặc định
+    if (sort === 'rating_desc') sortStage = { rating: -1, completedOrders: -1, _id: 1 };
+    else if (sort === 'orders_desc') sortStage = { completedOrders: -1, rating: -1, _id: 1 };
+    pipeline.push({ $sort: sortStage });
+
+    // 6. Facet for Pagination & Data
     pipeline.push({
       $facet: {
         metadata: [{ $count: "total" }],

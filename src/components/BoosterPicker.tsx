@@ -19,7 +19,7 @@ interface Booster {
     servers: string[];
   }[];
   // Thêm kiểu cho booster_info để TypeScript không báo lỗi khi truy cập ranks cũ
-  booster_info?: { isReady?: boolean; ranks?: string[] };
+  booster_info?: { isReady?: boolean; ranks?: string[]; services?: string[] };
 }
 
 const SERVICE_OPTIONS = [
@@ -28,6 +28,9 @@ const SERVICE_OPTIONS = [
   { value: 'PLACEMENTS', label: 'Phân Hạng đầu mùa' },
   { value: 'LEVELING', label: 'Cày Level 30' },
   { value: 'MASTERY', label: 'Thông Thạo tướng' },
+  { value: 'PROMOTION', label: 'Chuỗi thăng hạng' },
+  { value: 'COACHING', label: 'Coaching 1-1' },
+  { value: 'ONBET', label: 'Cày Sự kiện' },
 ];
 
 export default function BoosterPicker() {
@@ -59,6 +62,7 @@ export default function BoosterPicker() {
       try {
         setLoading(true);
         const query = new URLSearchParams({ search: debouncedSearch, service: filterService, sort: sortBy });
+        console.log("Check query: " + query);
         const res = await fetch(`/api/boosters?${query.toString()}`);
         const data = await res.json();
         setBoosters(data.boosters || []);
@@ -209,7 +213,7 @@ export default function BoosterPicker() {
                        {rank.replace('_', ' ')}
                      </span>
                   )}
-                  {booster.services?.slice(0, 2).map((svc, i) => (
+                  {(booster.services || booster.booster_info?.services || []).slice(0, 3).map((svc, i) => (
                     <span key={i} className="px-2 py-1 rounded bg-white/5 text-[10px] font-medium text-zinc-400 border border-white/5">{svc.replace('_', ' ')}</span>
                   ))}
                 </div>

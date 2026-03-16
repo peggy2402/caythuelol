@@ -57,8 +57,8 @@ export default function ServiceTabs() {
         const data = await res.json();
         const booster = data.booster;
         
-        if (booster && booster.booster_info?.services) {
-          setAllowedServices(booster.booster_info.services);
+        if (booster) {
+          setAllowedServices(booster.services || booster.booster_info?.services || []);
         }
       } catch (error) {
         console.error("Failed to fetch booster services", error);

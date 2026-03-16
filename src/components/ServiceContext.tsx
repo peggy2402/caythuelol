@@ -120,6 +120,7 @@ export function ServiceProvider({ children }: { children: ReactNode }) {
     netWinPricesFlex: {},
     netWinPricesDuo: {},
     netWinDepositPercent: 50,
+    onbetPricePercent: 0,
     masteryPrices: {},
     coachingPrices: {},
     coupons: [],
@@ -239,13 +240,16 @@ export function ServiceProvider({ children }: { children: ReactNode }) {
           return {
             ...prev,
             ...incoming,
-            enabledServices: data.services || [], // Map từ API response vào state
+            enabledServices: incoming.enabledServices !== undefined 
+              ? incoming.enabledServices 
+              : (data.services || []), // Ưu tiên cấu hình settings.enabledServices mới nhất
             playingChampions: incoming.playingChampions || [],
             placementPrices: incoming.placementPrices || {},
             placementPricesFlex: incoming.placementPricesFlex || {},
             placementPricesDuo: incoming.placementPricesDuo || {},
             levelingPrices: incoming.levelingPrices || {},
             netWinPrices: incoming.netWinPrices || {},
+            onbetPricePercent: incoming.onbetPricePercent || 0,
             coachingPrices: incoming.coachingPrices || {},
             netWinPricesFlex: incoming.netWinPricesFlex || {},
             netWinPricesDuo: incoming.netWinPricesDuo || {},
@@ -358,7 +362,7 @@ export function ServiceProvider({ children }: { children: ReactNode }) {
     _setSettings(prev => ({
         ...prev,
         enabledServices: enabled 
-            ? [...prev.enabledServices, key] 
+            ? Array.from(new Set([...prev.enabledServices, key]))
             : prev.enabledServices.filter(s => s !== key)
     }));
 

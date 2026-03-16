@@ -3,6 +3,7 @@ import dbConnect from '@/lib/db';
 import BoosterProfile from '@/models/BoosterProfile';
 import BoosterService from '@/models/BoosterService';
 import Rank from '@/models/Rank';
+import User from '@/models/User';
 import { auth } from '@/lib/auth';
 
 // GET: Lấy cấu hình để hiển thị lên ServiceContext
@@ -23,8 +24,10 @@ export async function GET() {
       Rank.find({}).sort({ order: 1 }).lean()
     ]);
 
+    const enabledServices = services.filter(s => s.isEnabled).map(s => s.serviceType);
+
     if (!profile) {
-      return NextResponse.json({ settings: {}, services: [], ranks: ranks || [] });
+      return NextResponse.json({ settings: { enabledServices }, services: enabledServices, ranks: ranks || [] });
     }
 
     // 2. Gom nhóm dữ liệu từ các BoosterService documents thành 1 object "settings" khổng lồ
@@ -37,12 +40,14 @@ export async function GET() {
     const levelingConfig = services.find(s => s.serviceType === 'LEVELING');
     const masteryConfig = services.find(s => s.serviceType === 'MASTERY');
     const coachingConfig = services.find(s => s.serviceType === 'COACHING');
+    const onbetConfig = services.find(s => s.serviceType === 'ONBET');
 
     // Lấy thông tin chung từ Profile (Game LOL mặc định là phần tử đầu tiên hoặc tìm theo code)
     const lolProfile = profile.games.find(g => g.gameCode === 'LOL');
     const metadata = lolProfile?.metadata || {};
 
     const settings = {
+      enabledServices,
       // General
       servers: lolProfile?.servers || ['VN'],
       playingChampions: lolProfile?.champions || [],
@@ -88,11 +93,14 @@ export async function GET() {
       levelingPrices: levelingConfig?.prices?.levelingPrices || {},
       masteryPrices: masteryConfig?.prices?.masteryPrices || {},
       coachingPrices: coachingConfig?.prices?.coachingPrices || {},
+      
+      // Onbet
+      onbetPricePercent: onbetConfig?.settings?.onbetPricePercent || 0,
     };
 
     return NextResponse.json({
       settings,
-      services: profile.services || [], // Danh sách các dịch vụ đang bật
+      services: enabledServices, // Luôn lấy source of truth chính xác nhất từ BoosterService
       ranks: ranks || []
     });
 
@@ -115,10 +123,11 @@ export async function POST(req: Request) {
     const body = await req.json(); // Đây là object settings khổng lồ từ ServiceContext
 
     // 1. Cập nhật BoosterProfile (Thông tin chung)
-    const profile = await BoosterProfile.findOne({ userId });
+    let profile = await BoosterProfile.findOne({ userId });
     if (!profile) {
-        return NextResponse.json({ error: 'Profile not found' }, { status: 404 });
+        profile = new BoosterProfile({ userId, games: [], services: [] });
     }
+    if (body.enabledServices) profile.services = body.enabledServices; // Cập nhật list vào Profile
 
     // Tìm game LOL để update, nếu chưa có thì thêm mới
     let gameIndex = profile.games.findIndex(g => g.gameCode === 'LOL');
@@ -142,6 +151,13 @@ export async function POST(req: Request) {
         profile.markModified('games');
     }
     await profile.save();
+
+    // Cập nhật đồng bộ vào User model (để các trang public lấy được data)
+    if (body.enabledServices) {
+        await User.findByIdAndUpdate(userId, {
+            $set: { 'booster_info.services': body.enabledServices }
+        });
+    }
 
     // 2. Cập nhật từng BoosterService riêng biệt
 
@@ -213,7 +229,14 @@ export async function POST(req: Request) {
     // --- COACHING ---
     await BoosterService.findOneAndUpdate(
       { userId, serviceType: 'COACHING' },
-      { $set: { prices: { coachingPrices: body.coachingPrices } } },
+      { $set: { prices: { coachingPrices: body.coachingPrices || {} } } },
+      { upsert: true }
+    );
+
+    // --- ONBET ---
+    await BoosterService.findOneAndUpdate(
+      { userId, serviceType: 'ONBET' },
+      { $set: { settings: { onbetPricePercent: body.onbetPricePercent || 0 } } },
       { upsert: true }
     );
 
@@ -247,8 +270,14 @@ export async function PATCH(req: Request) {
     const updatedProfile = await BoosterProfile.findOneAndUpdate(
       { userId },
       updateQuery,
-      { new: true }
+      { new: true, upsert: true }
     );
+
+    // Đồng bộ sang User (đảm bảo public API luôn đọc được khi bật/tắt nhanh)
+    const userUpdateQuery = enabled
+      ? { $addToSet: { 'booster_info.services': serviceKey } }
+      : { $pull: { 'booster_info.services': serviceKey } };
+    await User.findByIdAndUpdate(userId, userUpdateQuery);
 
     // 2. Cập nhật trạng thái isEnabled trong BoosterService tương ứng
     await BoosterService.findOneAndUpdate(
