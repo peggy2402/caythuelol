@@ -154,10 +154,23 @@ export default function PaymentSummary({
                                 )}
 
                                 <div className="border-t border-white/5 my-1"></div>
-                                <div className="flex justify-between text-sm">
-                                    <span className="text-zinc-400">Giá gốc:</span>
-                                    <span className="text-white font-medium">{priceDetails?.basePrice.toLocaleString('vi-VN')} đ</span>
-                                </div>
+                                {priceDetails?.rewardValue !== undefined && priceDetails?.boosterPercent !== undefined ? (
+                                    <>
+                                        <div className="flex justify-between text-sm">
+                                            <span className="text-zinc-400">Phần thưởng sự kiện:</span>
+                                            <span className="text-white font-medium">{priceDetails.rewardValue.toLocaleString('vi-VN')} đ</span>
+                                        </div>
+                                        <div className="flex justify-between text-sm">
+                                            <span className="text-zinc-400">Tiền công Booster ({priceDetails.boosterPercent}%):</span>
+                                            <span className="text-white font-medium">{priceDetails.basePrice.toLocaleString('vi-VN')} đ</span>
+                                        </div>
+                                    </>
+                                ) : (
+                                    <div className="flex justify-between text-sm">
+                                        <span className="text-zinc-400">Giá gốc:</span>
+                                        <span className="text-white font-medium">{priceDetails?.basePrice.toLocaleString('vi-VN')} đ</span>
+                                    </div>
+                                )}
                                 {priceDetails?.optionDetails.map((opt, idx) => (
                                     <div key={idx} className="flex justify-between text-sm">
                                         <span className="text-zinc-400">{opt.label} {opt.percent ? `(${opt.percent}%)` : ''}:</span>

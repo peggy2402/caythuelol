@@ -54,8 +54,8 @@ export default function AdminDisputesPage() {
     fetchDisputes();
   }, [filter]);
 
-  const handleResolve = async (id: string, decision: 'REFUND_CUSTOMER' | 'PAY_BOOSTER') => {
-    if (!confirm(`Xác nhận giải quyết: ${decision === 'REFUND_CUSTOMER' ? 'Hoàn tiền cho Khách' : 'Thanh toán cho Booster'}?`)) return;
+  const handleResolve = async (id: string, decision: 'REFUND_CUSTOMER' | 'PAY_BOOSTER' | 'RESUME') => {
+    if (!confirm(`Xác nhận giải quyết: ${decision === 'REFUND_CUSTOMER' ? 'Hoàn tiền cho Khách' : decision === 'PAY_BOOSTER' ? 'Thanh toán cho Booster' : 'Tiếp tục cày'}?`)) return;
 
     try {
       const res = await fetch('/api/admin/disputes/resolve', {
@@ -170,6 +170,12 @@ export default function AdminDisputesPage() {
                     </button>
                     {d.dispute.status === 'PENDING' && (
                     <>
+                    <button 
+                        onClick={() => handleResolve(d._id, 'RESUME')}
+                        className="px-3 py-1.5 bg-zinc-700/50 text-zinc-300 border border-zinc-600 rounded hover:bg-zinc-700 text-xs font-bold"
+                    >
+                        Tiếp tục cày
+                    </button>
                     <button 
                         onClick={() => handleResolve(d._id, 'REFUND_CUSTOMER')}
                         className="px-3 py-1.5 bg-red-500/10 text-red-400 border border-red-500/20 rounded hover:bg-red-500/20 text-xs font-bold"

@@ -66,6 +66,10 @@ export async function POST(req: Request) {
         order.status = OrderStatus.COMPLETED;
         order.dispute!.status = 'REJECTED'; // Dispute rejected, booster paid
         order.dispute!.adminNote = 'Admin quyết định thanh toán cho Booster';
+    } else if (decision === 'RESUME') {
+        order.status = OrderStatus.IN_PROGRESS; // Sử dụng đúng Enum để fix lỗi Typescript
+        order.dispute!.status = 'REJECTED';
+        order.dispute!.adminNote = 'Admin bác bỏ khiếu nại, yêu cầu tiếp tục cày';
     }
 
     await order.save({ session });

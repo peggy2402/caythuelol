@@ -915,3 +915,23 @@ caythuelol/
   - Sửa lỗi hiển thị Rank không đúng trên `BoosterPicker`.
   - Sửa lỗi API trả về `undefined` khi log.
   - Fix lỗi hiển thị nút "Nhận đơn" cho các đơn hàng Direct (Chỉ định) ở trạng thái `PAID`.
+
+31. 2026-03-16 — Dispute Management System & Service Sync Fixes
+
+- **Admin Dispute Management (`/admin/disputes`):**
+  - **UI:** Xây dựng giao diện quản lý khiếu nại/báo lỗi từ người dùng với bộ lọc trạng thái (ALL, PENDING, RESOLVED).
+  - **Features:**
+    - Xem chi tiết bằng chứng (Proof of Work Modal) bao gồm tiến độ rank và lịch sử đấu.
+    - Thêm tính năng "Ghi chú nội bộ" (Admin Note) cho từng khiếu nại.
+    - Xử lý khiếu nại với 3 quyết định: Hoàn tiền cho Khách (`REFUND_CUSTOMER`), Thanh toán cho Booster (`PAY_BOOSTER`), hoặc Bác bỏ khiếu nại & Tiếp tục cày (`RESUME`).
+  - **Backend:** Cập nhật API `/api/admin/disputes/resolve` sử dụng Enum `OrderStatus` chuẩn, xử lý logic Transaction hoàn tiền/thanh toán và cập nhật trạng thái đơn hàng an toàn qua `mongoose.startSession`.
+
+- **Booster Services & Data Sync:**
+  - **Synchronization:** Sửa lỗi không đồng bộ dữ liệu dịch vụ giữa `BoosterProfile`, `BoosterService` và `User.booster_info`. Đảm bảo khi Booster bật/tắt dịch vụ, thay đổi được phản ánh ngay lập tức trên các trang public.
+  - **Missing Services:** Cập nhật API `/api/boosters/services` để lưu và trả về đầy đủ các dịch vụ mới (`ONBET`, `COACHING`). Cập nhật `ServiceContext` để quản lý state mặc định an toàn.
+  - **Filter Fix:** Nâng cấp Aggregation Pipeline trong API `/api/boosters` với logic `$and` và `$or` đa tầng, đảm bảo bộ lọc dịch vụ (Service Filter) hoạt động chính xác 100% với cả cấu trúc dữ liệu cũ và mới. Hỗ trợ đúng chức năng Sort (Đánh giá, Số đơn).
+
+- **UI/UX Fixes:**
+  - **Payment Summary (ONBET):** Cập nhật `PaymentSummary` để hiển thị rõ "Phần thưởng sự kiện" và "Tiền công Booster" thay vì "Giá gốc" gây nhầm lẫn.
+  - **Booster Picker:** Tăng số lượng tag dịch vụ hiển thị trên thẻ Booster, cập nhật hiển thị chính xác Rank.
+  - **TypeScript:** Củng cố các types bị thiếu và sửa lỗi gán giá trị String vào Enum `OrderStatus`.
