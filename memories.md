@@ -935,3 +935,24 @@ caythuelol/
   - **Payment Summary (ONBET):** Cập nhật `PaymentSummary` để hiển thị rõ "Phần thưởng sự kiện" và "Tiền công Booster" thay vì "Giá gốc" gây nhầm lẫn.
   - **Booster Picker:** Tăng số lượng tag dịch vụ hiển thị trên thẻ Booster, cập nhật hiển thị chính xác Rank.
   - **TypeScript:** Củng cố các types bị thiếu và sửa lỗi gán giá trị String vào Enum `OrderStatus`.
+
+32. 2026-03-16 — Order Completion Flow, Debt System & Rating Polish
+
+- **Financial Flow Refactor:**
+  - **Thay đổi luồng:** Bỏ bước khách hàng phải bấm "Xác nhận hoàn thành". Khi Booster bấm "Báo cáo hoàn thành" (`/api/orders/[id]/complete`), tiền sẽ được giải ngân ngay lập tức vào `wallet_balance` của Booster.
+  - Khách hàng chỉ còn 2 lựa chọn tại giao diện đơn hàng hoàn thành: Đánh giá Booster hoặc Báo lỗi / Khiếu nại.
+
+- **Debt & Penalty System (Hệ thống phạt ví âm):**
+  - **User Schema:** Cập nhật thêm `debt_info` (để theo dõi trạng thái nợ, số lần nhắc nhở, deadline cấm túc) và `isBanned` (trạng thái khóa tài khoản).
+  - **Transaction Schema:** Thêm `DISPUTE_PENALTY` để ghi nhận lịch sử trừ tiền phạt.
+  - **Dispute Logic:** Khi Admin phân xử Khách thắng khiếu nại (`REFUND_CUSTOMER`), hệ thống sẽ hoàn trả tiền cọc cho khách, đồng thời truy thu tiền từ ví của Booster. Trường hợp Booster đã rút hết tiền, số dư ví sẽ rơi xuống mức ÂM (< 0) và tự động bật cờ nợ `is_in_debt`.
+
+- **Cron Jobs Automation:**
+  - **Debt Collection (`/api/cron/debt-collection`):** Endpoint chạy ngầm tự động (được bảo vệ bằng header `CRON_SECRET`).
+  - **Logic Nhắc nợ:** Hệ thống quét các tài khoản âm ví, tự động nhắc nhở (tối đa 5 lần, giãn cách mỗi 30 phút).
+  - **Logic Cấm túc:** Nếu Booster không nạp bù tiền để thanh toán nợ trước hạn `ban_deadline` (7 ngày), tài khoản sẽ bị tự động khóa (`isBanned: true`) trong 1 tuần.
+
+- **Rating System Polish:**
+  - **Bug Fix:** Xử lý triệt để lỗi Mongoose tự khởi tạo object `rating` rỗng `{}` gây ra lỗi chặn đánh giá ("Đơn hàng đã được đánh giá").
+  - **Aggregation Fix:** Sửa cú pháp MongoDB Aggregation (từ `$avg: '$rating'` thành `$avg: '$rating.stars'`) để tính chính xác số sao trung bình.
+  - **Data Sync:** Thêm bước `BoosterProfile.findOneAndUpdate` để đảm bảo dữ liệu Đánh giá và Số đơn hoàn thành luôn đồng nhất giữa `User` và bảng `BoosterProfile` public.
