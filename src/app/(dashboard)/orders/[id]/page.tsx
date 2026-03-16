@@ -195,27 +195,6 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
     });
   };
 
-  const processConfirmCompletion = async () => {
-    try {
-        const res = await fetch(`/api/orders/${id}/confirm`, { method: 'POST' });
-        if (res.ok) {
-            toast.success('Đã xác nhận hoàn thành!');
-            // Cập nhật UI ngay lập tức: Ẩn nút, đổi trạng thái (nếu cần thiết kế riêng)
-            // Tuy nhiên, logic backend confirm xong thường giữ status COMPLETED hoặc đổi sang SETTLED
-            // Ở đây ta reload để đồng bộ dữ liệu mới nhất (ví dụ settlement_status)
-            window.location.reload();
-        }
-    } catch (e) { toast.error('Lỗi kết nối'); }
-  };
-
-  const handleConfirmCompletion = () => {
-      toast('🎉 Xác nhận hoàn thành đơn hàng?', {
-          description: 'Bạn xác nhận đã nhận được kết quả như mong muốn? Tiền sẽ được giải ngân cho Booster ngay lập tức.',
-          action: { label: 'Xác nhận & Trả tiền', onClick: processConfirmCompletion },
-          cancel: { label: 'Hủy', onClick: () => {} }
-      });
-  };
-
   const handleDispute = async () => {
       if (!disputeReason.trim()) return toast.error('Vui lòng nhập lý do');
       try {
@@ -624,19 +603,9 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                             <CheckSquare className="w-4 h-4" /> Báo cáo hoàn thành
                         </button>
                     )}
-                    {isCustomer && order.status === 'COMPLETED' && order.pricing.settlement_status !== 'SETTLED' && (
-                        <div className="flex flex-col sm:flex-row gap-2">
-                            <button onClick={handleConfirmCompletion} className="flex-1 py-3 bg-green-600 hover:bg-green-500 text-white font-bold rounded-xl flex items-center justify-center gap-2 transition-colors">
-                                <CheckCircle2 className="w-4 h-4" /> Xác nhận hoàn thành
-                            </button>
-                            <button onClick={() => setIsDisputeModalOpen(true)} className="w-full sm:w-auto px-4 py-3 bg-red-600/20 hover:bg-red-600/40 text-red-500 font-bold rounded-xl flex items-center justify-center gap-2 transition-colors">
-                                <Flag className="w-4 h-4" /> Khiếu nại
-                            </button>
-                        </div>
-                    )}
                     
                     {/* Nút báo lỗi chung cho các trạng thái đang chạy */}
-                    {['PAID', 'APPROVED', 'IN_PROGRESS'].includes(order.status) && (
+                    {['PAID', 'APPROVED', 'IN_PROGRESS', 'COMPLETED'].includes(order.status) && (
                         <button onClick={() => setIsDisputeModalOpen(true)} className="w-full py-3 bg-red-900/20 hover:bg-red-900/40 text-red-400 font-bold rounded-xl flex items-center justify-center gap-2 transition-colors border border-red-500/20">
                             <AlertTriangle className="w-4 h-4" /> Báo lỗi / Có vấn đề
                         </button>

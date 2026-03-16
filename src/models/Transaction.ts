@@ -6,7 +6,8 @@ export enum TransactionType {
   PAYMENT_HOLD = 'PAYMENT_HOLD',
   PAYMENT_RELEASE = 'PAYMENT_RELEASE',
   REFUND = 'REFUND',
-  COMMISSION = 'COMMISSION'
+  COMMISSION = 'COMMISSION',
+  DISPUTE_PENALTY = 'DISPUTE_PENALTY'
 }
 
 export enum TransactionStatus {

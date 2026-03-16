@@ -65,7 +65,7 @@ export const sendNewOrderNotification = async (
         </div>
 
         <div style="text-align: center; margin-top: 32px;">
-          <a href="${process.env.NEXTAUTH_URL}/orders/${orderId}" style="background-color: #2563eb; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">Xem Chi Tiết Đơn Hàng</a>
+          <a href="${process.env.NEXT_PUBLIC_APP_URL}/orders/${orderId}" style="background-color: #2563eb; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">Xem Chi Tiết Đơn Hàng</a>
         </div>
       </div>
       

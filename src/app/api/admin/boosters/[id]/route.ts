@@ -82,7 +82,7 @@ export async function PATCH(
           <p>Từ bây giờ, bạn có thể truy cập vào Bảng điều khiển Booster để bắt đầu cấu hình dịch vụ và nhận những đơn hàng đầu tiên.</p>
           <p>Chào mừng bạn đến với đội ngũ!</p>
           <br/>
-          <a href="${process.env.NEXTAUTH_URL}/dashboard" style="display: inline-block; padding: 12px 24px; font-size: 16px; font-weight: bold; color: #ffffff; background-color: #2563eb; text-decoration: none; border-radius: 8px;">Truy cập Dashboard</a>
+          <a href="${process.env.NEXT_PUBLIC_APP_URL}/dashboard" style="display: inline-block; padding: 12px 24px; font-size: 16px; font-weight: bold; color: #ffffff; background-color: #2563eb; text-decoration: none; border-radius: 8px;">Truy cập Dashboard</a>
         `,
       );
     } else if (status === "rejected") {

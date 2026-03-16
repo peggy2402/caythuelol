@@ -4,11 +4,14 @@ import dbConnect from '@/lib/db';
 import Order, { OrderStatus } from '@/models/Order';
 import User from '@/models/User';
 import Transaction, { TransactionType, TransactionStatus } from '@/models/Transaction';
+import mongoose from 'mongoose';
 
 export async function POST(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const sessionDb = await mongoose.startSession();
+  sessionDb.startTransaction();
   try {
     const session = await auth();
     if (!session || session.user.role !== 'BOOSTER') {
@@ -18,12 +21,14 @@ export async function POST(
     const { id } = await params;
     await dbConnect();
 
-    const order = await Order.findOne({ _id: id, boosterId: session.user.id });
+    const order = await Order.findOne({ _id: id, boosterId: session.user.id }).session(sessionDb);
     if (!order) return NextResponse.json({ error: 'Order not found' }, { status: 404 });
 
     if (order.status !== OrderStatus.IN_PROGRESS && order.status !== OrderStatus.APPROVED) {
         return NextResponse.json({ error: 'Order cannot be completed in current status' }, { status: 400 });
     }
+
+    let actualTotal = order.pricing.total_amount;
 
     // --- NET WINS SETTLEMENT LOGIC ---
     if (order.serviceType === 'NET_WINS') {
@@ -55,7 +60,7 @@ export async function POST(
         const originalBase = order.pricing.base_price;
         const originalTotal = order.pricing.total_amount;
         
-        let actualTotal = originalTotal;
+        actualTotal = originalTotal;
         if (originalBase > 0) {
             actualTotal = Math.round((actualBasePrice / originalBase) * originalTotal);
         }
@@ -81,14 +86,42 @@ export async function POST(
         }
     }
 
-    // 1. Update Status
-    order.status = OrderStatus.COMPLETED;
-    
-    await order.save();
+    // --- TÍNH TOÁN & CỘNG TIỀN BOOSTER ---
+    let boosterEarnings = order.pricing.booster_earnings || 0;
+    if (order.serviceType === 'NET_WINS' && order.pricing.total_amount > 0) {
+        boosterEarnings = Math.round((actualTotal / order.pricing.total_amount) * boosterEarnings);
+    }
 
-    return NextResponse.json({ success: true, message: 'Đã báo cáo hoàn thành. Vui lòng chờ khách hàng xác nhận.' });
-  } catch (error) {
+    if (!order.payment.booster_received_pending) {
+        order.payment.booster_received_pending = true;
+
+        const booster = await User.findByIdAndUpdate(
+            order.boosterId,
+            { $inc: { wallet_balance: boosterEarnings } },
+            { new: true, session: sessionDb }
+        );
+
+        await Transaction.create([{
+            userId: order.boosterId,
+            orderId: order._id,
+            type: TransactionType.PAYMENT_RELEASE,
+            amount: boosterEarnings,
+            balanceAfter: booster!.wallet_balance,
+            status: TransactionStatus.SUCCESS,
+            description: `Nhận tiền công cày thuê đơn #${order._id.toString().slice(-6)}`,
+        }], { session: sessionDb });
+    }
+
+    order.status = OrderStatus.COMPLETED;
+    await order.save({ session: sessionDb });
+    await sessionDb.commitTransaction();
+
+    return NextResponse.json({ success: true, message: 'Báo cáo hoàn thành và nhận tiền thành công!' });
+  } catch (error: any) {
+    await sessionDb.abortTransaction();
     console.error('Complete Order Error:', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
+  } finally {
+    sessionDb.endSession();
   }
 }

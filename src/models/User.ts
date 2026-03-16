@@ -15,6 +15,13 @@ export interface IUser extends Document {
   isEmailVerified: boolean;
   wallet_balance: number;
   pending_balance: number;
+  isBanned?: boolean;
+  debt_info?: {
+    is_in_debt: boolean;
+    reminder_count: number;
+    last_reminded_at?: Date;
+    ban_deadline?: Date;
+  };
   profile: {
     avatar?: string;
     discord_id?: string;
@@ -62,6 +69,13 @@ const UserSchema: Schema = new Schema(
     },
     wallet_balance: { type: Number, default: 0 },
     pending_balance: { type: Number, default: 0 },
+    isBanned: { type: Boolean, default: false },
+    debt_info: {
+      is_in_debt: { type: Boolean, default: false },
+      reminder_count: { type: Number, default: 0 },
+      last_reminded_at: { type: Date },
+      ban_deadline: { type: Date }
+    },
     profile: {
       avatar: { type: String, default: '' },
       discord_id: { type: String },

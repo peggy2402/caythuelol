@@ -79,7 +79,7 @@ caythuelol/
 
     # Auth
     JWT_SECRET=your_super_secret_key
-    NEXTAUTH_URL=http://localhost:3000
+    NEXT_PUBLIC_APP_URL=http://localhost:3000
 
     # Google OAuth
     GOOGLE_CLIENT_ID=...

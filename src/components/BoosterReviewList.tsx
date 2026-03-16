@@ -41,7 +41,7 @@ export default function BoosterReviewList({ reviews }: { reviews: any[] }) {
                     <div className="text-xs text-zinc-500">{new Date(review.createdAt).toLocaleDateString('vi-VN')}</div>
                   </div>
                 </div>
-                <RatingStars rating={review.rating.stars} />
+                <RatingStars rating={review.rating?.stars || 5} />
               </div>
               {(review.rating?.comment || review.review) && (
                 <p className="text-sm text-zinc-300 italic bg-zinc-950/50 p-3 rounded-lg border border-zinc-800/50">

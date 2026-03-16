@@ -73,7 +73,7 @@ export async function GET(req: Request) {
                   <li><strong>Mã đơn:</strong> #${order._id.toString().slice(-6).toUpperCase()}</li>
                 </ul>
                 <p>Vui lòng chuẩn bị sẵn sàng trước giờ học.</p>
-                <a href="${process.env.NEXTAUTH_URL}/orders/${order._id}" style="display: inline-block; background: #2563eb; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Xem đơn hàng</a>
+                <a href="${process.env.NEXT_PUBLIC_APP_URL}/orders/${order._id}" style="display: inline-block; background: #2563eb; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Xem đơn hàng</a>
               </div>
             `
           );
