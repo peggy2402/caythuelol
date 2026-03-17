@@ -147,7 +147,7 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
         // Để tối ưu, nên có API /api/orders/[id]/transactions. 
         // Ở đây giả lập lấy từ danh sách transaction chung hoặc giả sử orderData trả về transactions (nếu backend populate)
         // Nếu chưa có, ta dùng fetch transaction chung:
-        const txnRes = await fetch(`/api/transactions?orderId=${id}`); // Cần tạo API này hoặc filter
+        const txnRes = await fetch(`/api/transactions?orderId=${orderData.order._id}`); // Dùng ID thật
         if (txnRes.ok) {
              const txnData = await txnRes.json();
              setTransactions(txnData.transactions || []);
@@ -166,9 +166,10 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
 
   // Socket.io Integration
   useEffect(() => {
+    if (!order?._id) return;
     if (!socket.connected) socket.connect();
 
-    socket.emit('join_order', id);
+    socket.emit('join_order', order._id);
 
     const handleOrderUpdate = (updatedData: any) => {
         console.log('Socket Order Update:', updatedData);
@@ -179,16 +180,16 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
 
     return () => {
       socket.off('order_updated', handleOrderUpdate);
-      socket.emit('leave_order', id);
+      socket.emit('leave_order', order._id);
     };
-  }, [id]);
+  }, [order?._id]);
 
   const handleUpdateStatus = (status: string) => {
     const executeUpdate = async () => {
         try {
             const endpoint = status === 'COMPLETED' 
-                ? `/api/orders/${id}/complete` 
-                : `/api/orders/${id}/status`;
+                ? `/api/orders/${order._id}/complete` 
+                : `/api/orders/${order._id}/status`;
                 
             const method = status === 'COMPLETED' ? 'POST' : 'PATCH';
             const body = status === 'COMPLETED' ? {} : { status };
@@ -204,7 +205,7 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                 setOrder((prev: any) => ({ ...prev, status }));
                 // Reload page to refresh data
                 // window.location.reload(); // No need to reload if we use socket
-                socket.emit('update_order', { room: id, data: { status } });
+                socket.emit('update_order', { room: order._id, data: { status } });
             } else {
                 const err = await res.json();
                 toast.error(err.error || 'Lỗi cập nhật');
@@ -225,7 +226,7 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
       if (!disputeReason.trim()) return toast.error('Vui lòng nhập lý do');
       setIsSubmittingDispute(true);
       try {
-          const res = await fetch(`/api/orders/${id}/dispute`, {
+          const res = await fetch(`/api/orders/${order._id}/dispute`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ reason: disputeReason })
@@ -256,8 +257,8 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
       setIsProcessingSettlement(true);
       try {
         const endpoint = settlementMode === 'PAY' 
-            ? `/api/orders/${id}/settle` 
-            : `/api/orders/${id}/refund`;
+            ? `/api/orders/${order._id}/settle` 
+            : `/api/orders/${order._id}/refund`;
         
         const res = await fetch(endpoint, { 
             method: 'POST',
@@ -284,7 +285,7 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
     if (!vodLink.trim()) return toast.error('Vui lòng nhập link VOD');
     setIsUpdatingVod(true);
     try {
-        const res = await fetch(`/api/orders/${id}/details`, {
+        const res = await fetch(`/api/orders/${order._id}/details`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ vod_link: vodLink })
@@ -293,7 +294,7 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
             const data = await res.json();
             toast.success('Cập nhật link VOD thành công');
             setOrder((prev: any) => ({ ...prev, details: data.details }));
-            socket.emit('update_order', { room: id, data: { details: data.details } });
+            socket.emit('update_order', { room: order._id, data: { details: data.details } });
         } else {
             const err = await res.json();
             toast.error(err.error || 'Lỗi cập nhật');
@@ -315,7 +316,7 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
               riotMatchId // Gửi ID trận đấu
           };
 
-          const res = await fetch(`/api/orders/${id}/matches`, {
+          const res = await fetch(`/api/orders/${order._id}/matches`, {
               method,
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(body)
@@ -332,7 +333,7 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
               setRiotMatchId('');
               
               // Real-time broadcast
-              socket.emit('update_order', { room: id, data: { match_history: data.match_history, details: data.details } });
+              socket.emit('update_order', { room: order._id, data: { match_history: data.match_history, details: data.details } });
           }
       } catch (e) { toast.error('Lỗi cập nhật'); }
       finally { setIsAddingMatch(false); }
@@ -355,12 +356,12 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
   const handleDeleteMatch = async (matchId: string) => {
       if (!confirm('Bạn có chắc chắn muốn xóa trận đấu này?')) return;
       try {
-          const res = await fetch(`/api/orders/${id}/matches?matchId=${matchId}`, { method: 'DELETE' });
+          const res = await fetch(`/api/orders/${order._id}/matches?matchId=${matchId}`, { method: 'DELETE' });
           if (res.ok) {
               const data = await res.json();
               setOrder((prev: any) => ({ ...prev, match_history: data.match_history }));
               toast.success('Đã xóa trận đấu');
-              socket.emit('update_order', { room: id, data: { match_history: data.match_history } });
+              socket.emit('update_order', { room: order._id, data: { match_history: data.match_history } });
           } else { toast.error('Lỗi xóa trận đấu'); }
       } catch (e) { toast.error('Lỗi kết nối'); }
   };
@@ -376,7 +377,7 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
   const handleUpdateIngame = async () => {
       setIsUpdatingIngame(true);
       try {
-          const res = await fetch(`/api/orders/${id}/details`, {
+          const res = await fetch(`/api/orders/${order._id}/details`, {
               method: 'PATCH',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ ingame_name: ingameName })
@@ -386,7 +387,7 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
               toast.success('Cập nhật Ingame thành công');
               setOrder((prev: any) => ({ ...prev, details: data.details }));
               // Real-time broadcast
-              socket.emit('update_order', { room: id, data: { details: data.details } });
+              socket.emit('update_order', { room: order._id, data: { details: data.details } });
           } else {
               toast.error('Lỗi cập nhật');
           }
@@ -437,7 +438,7 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
               };
 
               // Gọi API update details (tái sử dụng logic update)
-              await fetch(`/api/orders/${id}/details`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(updateBody) });
+              await fetch(`/api/orders/${order._id}/details`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(updateBody) });
               
               if (usedSecondary) {
                   toast.warning(`Không tìm thấy rank cho chế độ đã chọn. Đã cập nhật theo rank ${league.queueType === 'RANKED_SOLO_5x5' ? 'Đơn/Đôi' : 'Linh Hoạt'}.`);
@@ -1131,7 +1132,7 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
 
       {/* Floating Chat Window */}
       <ChatWindow 
-        orderId={id} 
+        orderId={order._id} 
         currentUser={user} 
         partner={partner} 
         trigger="side" 
@@ -1152,7 +1153,7 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
       <RatingModal
           isOpen={isRatingModalOpen}
           onClose={() => setIsRatingModalOpen(false)}
-          orderId={id}
+          orderId={order._id}
           onSuccess={() => window.location.reload()}
       />
 
