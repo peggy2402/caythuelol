@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation'; // Already exists
 import { 
   TrendingUp, 
   Clock, 
@@ -10,12 +10,24 @@ import {
   ArrowUpRight, 
   MoreHorizontal,
   Gamepad2,
+  Globe,
+  // Modal Icons
+  Loader2,
+  QrCode,
+  Copy,
+  Check,
+  X,
+  RefreshCw,
+  XCircle,
   CheckCircle2,
-  AlertCircle,
-  Globe
+  ShieldCheck,
+  AlertCircle
 } from 'lucide-react';
 import Link from 'next/link';
 import { useLanguage } from '@/lib/i18n';
+import { toast } from 'sonner';
+import { socket } from '@/lib/socket';
+import confetti from 'canvas-confetti';
 
 interface Order {
   _id: string;
@@ -27,12 +39,34 @@ interface Order {
   createdAt: string;
 }
 
+interface PaymentInfo {
+  bankId: string;
+  accountNo: string;
+  accountName: string;
+  content: string;
+  amount: number;
+}
+
 export default function DashboardPage() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const { t, language, setLanguage } = useLanguage();
+
+  // --- MODAL STATES (Copied from WalletPage) ---
+  const [isDepositModalOpen, setIsDepositModalOpen] = useState(false);
+  const [depositAmount, setDepositAmount] = useState('');
+  const [isDepositing, setIsDepositing] = useState(false);
+  const [bankConfig, setBankConfig] = useState<any>(null);
+  
+  const [isWaitingForPayment, setIsWaitingForPayment] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
+  const [isFailed, setIsFailed] = useState(false);
+  const [failReason, setFailReason] = useState('');
+  
+  const [pendingTx, setPendingTx] = useState<{ qrUrl: string, info: PaymentInfo } | null>(null);
+  // ---------------------------------------------
 
   useEffect(() => {
     // Kiểm tra đăng nhập từ localStorage
@@ -58,7 +92,7 @@ export default function DashboardPage() {
     }
 
     // Fetch orders
-    const fetchOrders = async () => {
+    const fetchData = async () => {
       try {
         const res = await fetch('/api/orders', {
           headers: { Authorization: `Bearer ${token}` },
@@ -67,6 +101,13 @@ export default function DashboardPage() {
           const data = await res.json();
           setOrders(data.orders);
         }
+
+        // Fetch bank config for deposit modal
+        const walletRes = await fetch('/api/wallet');
+        const walletData = await walletRes.json();
+        if (walletRes.ok) {
+          setBankConfig(walletData.bankInfo);
+        }
       } catch (error) {
         console.error('Failed to fetch orders', error);
       } finally {
@@ -74,8 +115,83 @@ export default function DashboardPage() {
       }
     };
 
-    fetchOrders();
+    fetchData();
   }, [router]);
+
+  // --- SOCKET.IO EFFECT (Copied from WalletPage) ---
+  useEffect(() => {
+    if (user && user._id && isDepositModalOpen) {
+      if (!socket.connected) {
+        socket.connect();
+      }
+      socket.emit('join_user_room', user._id);
+
+      const handleWalletUpdate = async (data: { balance: number, message: string, type?: string }) => {
+        if (data.type === 'REJECT') {
+          setIsWaitingForPayment(false);
+          setIsFailed(true);
+          setFailReason(data.message);
+          return;
+        }
+
+        setUser((prev: any) => ({ ...prev, wallet_balance: data.balance }));
+        setIsWaitingForPayment(false);
+        setIsSuccess(true);
+
+        try {
+          const audio = new Audio('/sounds/coins.mp3');
+          await audio.play();
+        } catch (e) { console.error("Sound play error:", e); }
+
+        const end = Date.now() + 3000;
+        (function frame() {
+          confetti({ particleCount: 5, angle: 60, spread: 55, origin: { x: 0 } });
+          confetti({ particleCount: 5, angle: 120, spread: 55, origin: { x: 1 } });
+          if (Date.now() < end) requestAnimationFrame(frame);
+        }());
+
+        setTimeout(() => {
+          setIsDepositModalOpen(false);
+          setIsSuccess(false);
+          setPendingTx(null);
+          setDepositAmount('');
+        }, 3000);
+      };
+
+      socket.on('wallet_update', handleWalletUpdate);
+
+      return () => {
+        socket.off('wallet_update', handleWalletUpdate);
+      };
+    }
+  }, [user, isDepositModalOpen]);
+
+  // --- HELPER FUNCTIONS (Copied from WalletPage) ---
+  const formatCurrency = (amount: number) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast.success('Đã sao chép!');
+  };
+
+  const handleShowQR = (e: React.FormEvent) => {
+    e.preventDefault();
+    const amount = parseInt(depositAmount.replace(/,/g, ''));
+    if (isNaN(amount) || amount < 10000) { toast.error(t('minDeposit')); return; }
+    if (!bankConfig || !user) { toast.error(t('loadingBankInfo')); return; }
+    const transferContent = `ZT${user.username.toUpperCase().replace(/\s/g, '')}`;
+    const qrUrl = `https://qr.sepay.vn/img?acc=${encodeURIComponent(bankConfig.accountNo)}&bank=${encodeURIComponent(bankConfig.bankId)}&amount=${amount}&des=${encodeURIComponent(transferContent)}`;
+    setPendingTx({ qrUrl, info: { ...bankConfig, content: transferContent, amount } });
+  };
+
+  const handleConfirmTransfer = async () => {
+    if (!pendingTx) return;
+    setIsDepositing(true);
+    try {
+      const res = await fetch('/api/wallet', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ amount: pendingTx.info.amount }) });
+      if (!res.ok) throw new Error((await res.json()).error);
+      setIsWaitingForPayment(true);
+    } catch (error: any) { toast.error(error.message || t('serverError')); } finally { setIsDepositing(false); }
+  };
 
   if (loading) return <div className="flex h-96 items-center justify-center text-blue-500">Loading...</div>;
 
@@ -158,10 +274,10 @@ export default function DashboardPage() {
             </div>
           </div>
           <div className="mt-8 flex gap-3">
-             <button className="rounded-lg bg-white px-5 py-2.5 text-sm font-bold text-blue-600 shadow-lg transition-transform hover:scale-105 hover:bg-blue-50">
+             <Link href="/orders/create" className="rounded-lg bg-white px-5 py-2.5 text-sm font-bold text-blue-600 shadow-lg transition-transform hover:scale-105 hover:bg-blue-50">
                + {t('createOrder')}
-             </button>
-             <button className="rounded-lg bg-blue-700/50 px-5 py-2.5 text-sm font-bold text-white backdrop-blur-sm transition-colors hover:bg-blue-700">
+             </Link>
+             <button onClick={() => setIsDepositModalOpen(true)} className="rounded-lg bg-blue-700/50 px-5 py-2.5 text-sm font-bold text-white backdrop-blur-sm transition-colors hover:bg-blue-700">
                {t('depositNow')}
              </button>
           </div>
@@ -290,6 +406,140 @@ export default function DashboardPage() {
           )}
         </div>
       </div>
+
+      {/* --- DEPOSIT MODAL (Copied from WalletPage) --- */}
+      {isDepositModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-md shadow-2xl animate-in zoom-in-95 duration-200 overflow-hidden">
+            <div className="p-4 border-b border-zinc-800 flex justify-between items-center bg-zinc-950">
+              <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                <CreditCard className="w-5 h-5 text-red-500" />
+                {t('deposit')}
+              </h3>
+              <button 
+                onClick={() => {
+                  setIsDepositModalOpen(false);
+                  setPendingTx(null);
+                  setDepositAmount('');
+                  setIsWaitingForPayment(false);
+                  setIsSuccess(false);
+                  setIsFailed(false);
+                }}
+                className="text-zinc-400 hover:text-white transition-colors"
+              >
+                <XCircle className="w-6 h-6" />
+              </button>
+            </div>
+
+            <div className="p-6">
+              {isSuccess ? (
+                <div className="flex flex-col items-center justify-center py-8 space-y-4 animate-in zoom-in duration-300">
+                  <div className="w-20 h-20 bg-green-500/20 rounded-full flex items-center justify-center mb-2">
+                    <CheckCircle2 className="w-12 h-12 text-green-500" />
+                  </div>
+                  <h3 className="text-2xl font-bold text-white text-center">Nạp tiền thành công!</h3>
+                  <p className="text-zinc-400 text-center">Số dư của bạn đã được cập nhật.</p>
+                  <div className="text-3xl font-bold text-green-500 mt-2">
+                    +{formatCurrency(pendingTx?.info.amount || 0)}
+                  </div>
+                </div>
+              ) : isFailed ? (
+                <div className="flex flex-col items-center justify-center py-8 space-y-4 animate-in zoom-in duration-300">
+                  <div className="w-20 h-20 bg-red-500/20 rounded-full flex items-center justify-center mb-2">
+                    <AlertCircle className="w-12 h-12 text-red-500" />
+                  </div>
+                  <h3 className="text-2xl font-bold text-white text-center">Giao dịch thất bại</h3>
+                  <p className="text-zinc-400 text-center px-4">{failReason || 'Giao dịch đã bị từ chối.'}</p>
+                  <button onClick={() => setIsFailed(false)} className="mt-4 bg-zinc-800 hover:bg-zinc-700 text-white px-6 py-2 rounded-lg font-medium transition-colors">
+                    Thử lại
+                  </button>
+                </div>
+              ) : isWaitingForPayment ? (
+                <div className="flex flex-col items-center justify-center py-8 space-y-6 animate-in fade-in duration-300">
+                  <div className="relative">
+                    <div className="w-20 h-20 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin"></div>
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <ShieldCheck className="w-8 h-8 text-blue-500" />
+                    </div>
+                  </div>
+                  <div className="text-center space-y-2">
+                    <h3 className="text-xl font-bold text-white">Đang kiểm tra giao dịch...</h3>
+                    <p className="text-sm text-zinc-400 max-w-[250px] mx-auto">
+                      Hệ thống đang xác nhận khoản tiền của bạn. Vui lòng không tắt trình duyệt.
+                    </p>
+                  </div>
+                </div>
+              ) : !pendingTx ? (
+                <form onSubmit={handleShowQR} className="space-y-5">
+                  <div>
+                    <label className="block text-sm font-medium text-zinc-400 mb-2">{t('enterAmount')}</label>
+                    <div className="relative">
+                      <input
+                        type="number"
+                        value={depositAmount}
+                        onChange={(e) => setDepositAmount(e.target.value)}
+                        placeholder="50000"
+                        className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-white text-lg font-bold focus:outline-none focus:border-red-500 transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                        min="10000"
+                        autoFocus
+                      />
+                      <span className="absolute right-4 top-3.5 text-zinc-500 font-medium">VND</span>
+                    </div>
+                    <p className="text-xs text-zinc-500 mt-2 flex items-center gap-1">
+                      <span className="w-1 h-1 rounded-full bg-zinc-500"></span>
+                      {t('minDeposit')}
+                    </p>
+                  </div>
+                  <button type="submit" className="w-full bg-white text-black hover:bg-zinc-200 font-bold py-3.5 rounded-xl transition-colors flex justify-center items-center gap-2 shadow-lg shadow-white/10">
+                    {t('confirmDeposit')} <ArrowUpRight className="w-4 h-4" />
+                  </button>
+                </form>
+              ) : (
+                <div className="space-y-5 animate-fade-in">
+                  <div className="bg-white p-4 rounded-xl flex justify-center shadow-inner">
+                    <img src={pendingTx.qrUrl} alt="VietQR" className="w-full max-w-[220px] object-contain" />
+                  </div>
+                  <div className="space-y-3 text-sm">
+                    <div className="flex justify-between items-center p-3 bg-zinc-950 rounded-lg border border-zinc-800">
+                      <span className="text-zinc-400">Ngân hàng</span>
+                      <span className="font-bold text-white">MB Bank</span>
+                    </div>
+                    <div className="flex justify-between items-center p-3 bg-zinc-950 rounded-lg border border-zinc-800">
+                      <span className="text-zinc-400">Số tài khoản</span>
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-white">{pendingTx.info.accountNo}</span>
+                        <Copy onClick={() => copyToClipboard(pendingTx.info.accountNo)} className="w-4 h-4 text-zinc-500 cursor-pointer hover:text-white" />
+                      </div>
+                    </div>
+                    <div className="flex justify-between items-center p-3 bg-blue-900/20 rounded-lg border border-blue-500/30">
+                      <span className="text-blue-200 font-medium">Nội dung CK</span>
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono font-bold text-lg text-blue-400 tracking-wide select-all">{pendingTx.info.content}</span>
+                        <Copy onClick={() => copyToClipboard(pendingTx.info.content)} className="w-5 h-5 text-blue-500 cursor-pointer hover:text-white" />
+                      </div>
+                    </div>
+                    <div className="flex justify-between items-center p-3 bg-zinc-950 rounded-lg border border-zinc-800">
+                      <span className="text-zinc-400">Số tiền</span>
+                      <span className="font-bold text-green-500 text-lg">{formatCurrency(pendingTx.info.amount)}</span>
+                    </div>
+                  </div>
+                  <p className="text-xs text-red-400 text-center italic bg-red-500/10 p-2 rounded-lg border border-red-500/20">
+                    *Lưu ý: Nhập chính xác nội dung chuyển khoản để được cộng tiền tự động.
+                  </p>
+                  <div className="flex gap-3 pt-2">
+                    <button onClick={() => setPendingTx(null)} className="flex-1 bg-zinc-800 hover:bg-zinc-700 text-white py-3 rounded-xl font-medium transition-colors">
+                      Quay lại
+                    </button>
+                    <button onClick={handleConfirmTransfer} disabled={isDepositing} className="flex-1 bg-blue-600 hover:bg-blue-500 text-white py-3 rounded-xl font-bold transition-colors shadow-lg shadow-blue-600/20">
+                      {isDepositing ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : 'Đã chuyển khoản'}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
