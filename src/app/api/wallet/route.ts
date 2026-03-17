@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import User from '@/models/User';
 import Transaction, { TransactionType, TransactionStatus } from '@/models/Transaction';
+import Order from '@/models/Order';
+import SystemSetting from '@/models/SystemSetting';
 import { jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
 
@@ -35,11 +37,29 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const user = await User.findById(userId).select('wallet_balance pending_balance profile.bank_info role');
+    const user = await User.findById(userId).select('wallet_balance pending_balance profile.bank_info role isBanned');
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
+    // --- TÍNH TOÁN SỐ DƯ TẠM GIỮ (LOCKED BALANCE 24H) ---
+    const lockHoursSetting = await SystemSetting.findOne({ key: 'WITHDRAWAL_LOCK_HOURS' });
+    const lockHours = lockHoursSetting ? Number(lockHoursSetting.value) : 24; // Mặc định 24h nếu chưa cấu hình
+
+    const lockPeriodAgo = new Date(Date.now() - lockHours * 60 * 60 * 1000);
+    const recentOrders = await Order.aggregate([
+      { 
+        $match: { 
+          boosterId: user._id, 
+          status: 'COMPLETED', 
+          updatedAt: { $gte: lockPeriodAgo } 
+        } 
+      },
+      { $group: { _id: null, lockedAmount: { $sum: '$pricing.booster_earnings' } } }
+    ]);
+    const lockedBalance = recentOrders[0]?.lockedAmount || 0;
+    const availableBalance = user.wallet_balance - lockedBalance;
+    // ---------------------------------------------------
 
     // Phân trang
     const { searchParams } = new URL(req.url);
@@ -62,6 +82,9 @@ export async function GET(req: Request) {
     return NextResponse.json({
       balance: user.wallet_balance,
       pending: user.pending_balance,
+      isBanned: user.isBanned,
+      availableBalance,
+      lockedBalance,
       role: user.role, // Trả về Role mới nhất
       transactions,
       pagination: {

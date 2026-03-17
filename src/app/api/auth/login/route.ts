@@ -26,6 +26,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ message: 'Invalid credentials' }, { status: 401 });
     }
 
+    if (user.isBanned) {
+      return NextResponse.json({ message: 'Tài khoản của bạn đã bị khóa do vi phạm hoặc nợ cước. Vui lòng liên hệ Admin.', isBanned: true }, { status: 403 });
+    }
+
     const isMatch = await bcrypt.compare(password, user.password_hash);
 
     if (!isMatch) {

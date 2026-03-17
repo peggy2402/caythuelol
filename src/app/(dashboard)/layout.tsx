@@ -73,6 +73,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         fetch(`/api/wallet?t=${Date.now()}`, { headers: { Authorization: `Bearer ${token}` } })
             .then(res => res.json())
             .then(data => {
+                // KIỂM TRA BỊ KHÓA TÀI KHOẢN
+                if (data.isBanned) {
+                    toast.error("Tài khoản của bạn đã bị khóa do vi phạm hoặc nợ cước.");
+                    localStorage.removeItem('token');
+                    localStorage.removeItem('user');
+                    window.location.href = '/banned';
+                    return;
+                }
                 if (data.balance !== undefined) {
                     setUser((prev: any) => {
                         const currentUserState = prev || parsedUser;

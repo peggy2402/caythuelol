@@ -60,7 +60,13 @@ export default function LoginPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.error || t('loginToastError'));
+        // Nếu API báo tài khoản bị khóa -> Chuyển sang trang báo lỗi
+        if (data.isBanned) {
+          toast.error(data.message);
+          router.push('/banned');
+          return;
+        }
+        throw new Error(data.message || data.error || t('loginToastError'));
       }
 
       // Lưu token vào localStorage

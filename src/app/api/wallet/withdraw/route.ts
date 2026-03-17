@@ -3,6 +3,7 @@ import { auth } from '@/lib/auth';
 import dbConnect from '@/lib/db';
 import User from '@/models/User';
 import Withdrawal from '@/models/Withdrawal';
+import Order from '@/models/Order';
 import Transaction from '@/models/Transaction';
 import SystemSetting from '@/models/SystemSetting';
 
@@ -39,9 +40,31 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Vui lòng cập nhật thông tin ngân hàng trước' }, { status: 400 });
     }
 
-    if (user.wallet_balance < withdrawAmount) {
-      return NextResponse.json({ error: 'Số dư không đủ' }, { status: 400 });
+    // --- LOGIC CHẶN RÚT TIỀN TRONG THỜI GIAN BẢO LÃNH (24H) ---
+    const lockHoursSetting = await SystemSetting.findOne({ key: 'WITHDRAWAL_LOCK_HOURS' });
+    const lockHours = lockHoursSetting ? Number(lockHoursSetting.value) : 24; // Mặc định 24h nếu chưa cấu hình
+
+    const lockPeriodAgo = new Date(Date.now() - lockHours * 60 * 60 * 1000);
+    const recentOrders = await Order.aggregate([
+      { 
+        $match: { 
+          boosterId: user._id, 
+          status: 'COMPLETED', 
+          updatedAt: { $gte: lockPeriodAgo } 
+        } 
+      },
+      { $group: { _id: null, lockedAmount: { $sum: '$pricing.booster_earnings' } } }
+    ]);
+    
+    const lockedAmount = recentOrders[0]?.lockedAmount || 0;
+    const availableBalance = user.wallet_balance - lockedAmount;
+
+    if (withdrawAmount > availableBalance) {
+      return NextResponse.json({ 
+        error: `Số dư khả dụng để rút: ${new Intl.NumberFormat('vi-VN').format(availableBalance)} đ. (Có ${new Intl.NumberFormat('vi-VN').format(lockedAmount)} đ đang trong ${lockHours}h bảo lãnh chờ khách xác nhận)` 
+      }, { status: 400 });
     }
+    // ---------------------------------------------------------
 
     const startOfDay = new Date();
     startOfDay.setHours(0, 0, 0, 0);

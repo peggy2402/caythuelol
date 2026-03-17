@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import User from '@/models/User';
+import Notification from '@/models/Notification';
 
 export async function GET(req: Request) {
   // Protect cron route using CRON_SECRET from .env
@@ -24,9 +25,17 @@ export async function GET(req: Request) {
   });
 
   for (const user of debtorsToRemind) {
-    // TODO: Tích hợp logic gửi Email/Socket thông báo nhắc nợ ở đây
     console.log(`[DEBT] Nhắc nợ User ${user.username}. Lần: ${user.debt_info!.reminder_count + 1}`);
     
+    // Tạo thông báo vào chuông (Bell)
+    await Notification.create({
+      userId: user._id,
+      title: '⚠️ Cảnh báo: Ví âm tiền',
+      message: `Tài khoản của bạn đang âm ${Math.abs(user.wallet_balance).toLocaleString('vi-VN')} đ. Vui lòng nạp bù trước ngày ${new Date(user.debt_info!.ban_deadline).toLocaleDateString('vi-VN')} để tránh bị khóa tài khoản (Lần nhắc ${user.debt_info!.reminder_count + 1}/5).`,
+      type: 'SYSTEM',
+      link: '/wallet'
+    });
+
     user.debt_info!.reminder_count += 1;
     user.debt_info!.last_reminded_at = now;
     await user.save();
@@ -41,6 +50,16 @@ export async function GET(req: Request) {
 
   for (const user of debtorsToBan) {
     console.log(`[DEBT] BAN User ${user.username} 1 tuần do trốn nợ.`);
+    
+    // Tạo thông báo vào chuông (Bell)
+    await Notification.create({
+      userId: user._id,
+      title: '⛔ Tài khoản bị tạm khóa',
+      message: `Tài khoản của bạn đã bị khóa tạm thời 1 tuần do chưa thanh toán khoản nợ ${Math.abs(user.wallet_balance).toLocaleString('vi-VN')} đ đúng hạn. Vui lòng nạp bù để được mở khóa.`,
+      type: 'SYSTEM',
+      link: '/wallet'
+    });
+
     user.isBanned = true;
     // Gia hạn deadline thêm 1 tuần để nếu mở ban lại mà vẫn nợ thì ban tiếp
     user.debt_info!.ban_deadline = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000); 

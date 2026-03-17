@@ -6,7 +6,7 @@ import { useLanguage } from '@/lib/i18n';
 import { toast } from 'sonner';
 import { socket } from '@/lib/socket';
 import confetti from 'canvas-confetti';
-import { Wallet, ArrowUpRight, ArrowDownLeft, History, CreditCard, Loader2, QrCode, Copy, Check, X, RefreshCw, XCircle, CheckCircle2, ShieldCheck, AlertCircle, ChevronLeft, ChevronRight, Clock } from 'lucide-react';
+import { Wallet, ArrowUpRight, ArrowDownLeft, History, CreditCard, Loader2, QrCode, Copy, Check, X, RefreshCw, XCircle, CheckCircle2, ShieldCheck, AlertCircle, ChevronLeft, ChevronRight, Clock, Lock } from 'lucide-react';
 
 interface Transaction {
   _id: string;
@@ -34,6 +34,8 @@ export default function WalletPage() {
   const { t } = useLanguage();
   const router = useRouter();
   const [balance, setBalance] = useState(0);
+  const [availableBalance, setAvailableBalance] = useState(0);
+  const [lockedBalance, setLockedBalance] = useState(0);
   const [pendingBalance, setPendingBalance] = useState(0);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
@@ -69,6 +71,8 @@ export default function WalletPage() {
       const data = await res.json();
       if (res.ok) {
         setBalance(data.balance);
+        setAvailableBalance(data.availableBalance ?? data.balance);
+        setLockedBalance(data.lockedBalance || 0);
         setPendingBalance(data.pending_balance || 0);
         
         // --- LOGIC LỌC TRÙNG LẶP ---
@@ -325,8 +329,8 @@ export default function WalletPage() {
       toast.error('Số tiền rút tối thiểu là 50,000 VNĐ');
       return;
     }
-    if (amount > balance) {
-      toast.error('Số dư không đủ');
+    if (amount > availableBalance) {
+      toast.error('Số dư khả dụng không đủ');
       return;
     }
 
@@ -372,16 +376,24 @@ export default function WalletPage() {
           
           <div className="relative z-10">
             <p className="text-zinc-400 font-medium mb-1">{t('currentBalance')}</p>
-            <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
+            <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">
               {formatCurrency(balance)}
             </h2>
             
-            {pendingBalance > 0 && (
-              <div className="mb-6 flex items-center gap-2 text-yellow-500 bg-yellow-500/10 px-3 py-1.5 rounded-lg w-fit border border-yellow-500/20">
-                <Clock className="w-4 h-4" />
-                <span className="text-sm font-medium">Đang chờ duyệt/giữ: {formatCurrency(pendingBalance)}</span>
-              </div>
-            )}
+            <div className="space-y-2 mb-6">
+              {lockedBalance > 0 && (
+                <div className="flex items-center gap-2 text-orange-400 bg-orange-500/10 px-3 py-1.5 rounded-lg w-fit border border-orange-500/20">
+                  <Lock className="w-4 h-4" />
+                  <span className="text-sm font-medium">Tạm giữ 24h chờ khiếu nại: {formatCurrency(lockedBalance)}</span>
+                </div>
+              )}
+              {pendingBalance > 0 && (
+                <div className="flex items-center gap-2 text-yellow-500 bg-yellow-500/10 px-3 py-1.5 rounded-lg w-fit border border-yellow-500/20">
+                  <Clock className="w-4 h-4" />
+                  <span className="text-sm font-medium">Đang chờ duyệt/giữ: {formatCurrency(pendingBalance)}</span>
+                </div>
+              )}
+            </div>
             
             <div className="flex gap-3">
               <button 
@@ -781,14 +793,14 @@ export default function WalletPage() {
                     className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-white text-lg font-bold focus:outline-none focus:border-blue-500 transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                   />
                   <button 
-                    onClick={() => setWithdrawAmount(balance.toString())}
+                    onClick={() => setWithdrawAmount(availableBalance.toString())}
                     className="absolute right-3 top-2.5 text-xs bg-zinc-800 hover:bg-zinc-700 text-blue-400 px-2 py-1.5 rounded transition-colors"
                   >
                     Rút hết
                   </button>
                 </div>
                 <div className="flex justify-between text-xs text-zinc-500 mt-2">
-                  <span>Số dư khả dụng: {formatCurrency(balance)}</span>
+                  <span>Khả dụng để rút: <strong className="text-white">{formatCurrency(availableBalance)}</strong></span>
                   <span>Phí rút: {formatCurrency(withdrawFee)}</span>
                 </div>
                 {withdrawAmountNum > 0 && (

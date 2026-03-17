@@ -30,6 +30,8 @@ export default function AdminSettingsPage() {
   const [platformFee, setPlatformFee] = useState<number>(5);
   // State cho Phí rút tiền (Mặc định 5000)
   const [withdrawFee, setWithdrawFee] = useState<number>(5000);
+  // State cho thời gian khóa tiền rút (Mặc định 24h)
+  const [withdrawalLockHours, setWithdrawalLockHours] = useState<number>(24);
   // State cho Bảo trì
   const [maintenanceMode, setMaintenanceMode] = useState<boolean>(false);
   // State cho Banner
@@ -82,6 +84,10 @@ export default function AdminSettingsPage() {
           const wf = data.find((s: SystemSetting) => s.key === 'withdraw_fee');
           if (wf) setWithdrawFee(Number(wf.value));
 
+          // Tìm setting thời gian khóa tiền
+          const wlh = data.find((s: SystemSetting) => s.key === 'WITHDRAWAL_LOCK_HOURS');
+          if (wlh) setWithdrawalLockHours(Number(wlh.value));
+
           // Tìm setting bảo trì
           const mm = data.find((s: SystemSetting) => s.key === 'maintenance_mode');
           if (mm) setMaintenanceMode(Boolean(mm.value));
@@ -132,6 +138,7 @@ export default function AdminSettingsPage() {
       await Promise.all([
         saveSetting('PLATFORM_FEE', platformFee, 'Phí sàn (%) áp dụng cho các đơn hàng'),
         saveSetting('withdraw_fee', withdrawFee, 'Phí rút tiền cố định (VND)'),
+        saveSetting('WITHDRAWAL_LOCK_HOURS', withdrawalLockHours, 'Thời gian (giờ) tạm giữ tiền sau khi hoàn thành đơn'),
         saveSetting('maintenance_mode', maintenanceMode, 'Chế độ bảo trì hệ thống'),
         saveSetting('banner_config', bannerConfig, 'Cấu hình Banner trang chủ'),
         saveSetting('ADMIN_BANK_INFO', adminBankInfo, 'Tài khoản ngân hàng của Admin'),
@@ -223,6 +230,23 @@ export default function AdminSettingsPage() {
                         />
                         <span className="absolute right-4 top-4 text-zinc-500 font-bold">VND</span>
                     </div>
+                </div>
+
+                <div className="pt-4 border-t border-zinc-800">
+                    <label className="block text-sm font-medium text-zinc-300 mb-2">Thời gian tạm giữ tiền (giờ)</label>
+                    <div className="relative">
+                        <input 
+                            type="number" 
+                            value={withdrawalLockHours}
+                            onChange={(e) => setWithdrawalLockHours(Number(e.target.value))}
+                            className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-white focus:border-green-500 focus:ring-1 focus:ring-green-500/20 outline-none transition-all font-bold text-lg"
+                            min="0"
+                        />
+                        <span className="absolute right-4 top-4 text-zinc-500 font-bold">Giờ</span>
+                    </div>
+                    <p className="text-xs text-zinc-500 mt-2 bg-zinc-950/50 p-2 rounded border border-zinc-800/50">
+                        ℹ️ Tiền Booster nhận được sẽ bị tạm giữ trong khoảng thời gian này để chờ khiếu nại từ khách hàng.
+                    </p>
                 </div>
             </div>
         </div>
