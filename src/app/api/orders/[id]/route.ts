@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import dbConnect from '@/lib/db';
+import mongoose from 'mongoose';
 import Order from '@/models/Order';
 
 export async function GET(
@@ -16,9 +17,20 @@ export async function GET(
     const { id } = await params;
     await dbConnect();
 
-    const order = await Order.findById(id)
-      .populate('customerId', 'username profile.avatar')
-      .populate('boosterId');
+    let order;
+    // Kiểm tra xem `id` có phải là ObjectId hợp lệ hay không
+    if (mongoose.Types.ObjectId.isValid(id)) {
+      // Nếu hợp lệ, tìm bằng _id
+      order = await Order.findById(id)
+        .populate('customerId', 'username profile.avatar')
+        .populate('boosterId');
+    } else {
+      // Nếu không, giả sử đó là mã đơn hàng tùy chỉnh (ví dụ: BK-BB02SZ)
+      // **Lưu ý:** Mình đang giả sử trường lưu mã này là `orderCode`. Bạn hãy thay đổi nếu tên trường của bạn khác.
+      order = await Order.findOne({ orderCode: id })
+        .populate('customerId', 'username profile.avatar')
+        .populate('boosterId');
+    }
 
     if (!order) {
       return NextResponse.json({ error: 'Order not found' }, { status: 404 });

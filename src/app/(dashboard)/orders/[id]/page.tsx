@@ -26,8 +26,6 @@ import CoachingOrderView from '@/components/orders/CoachingOrderView';
 import SettlementModal from '@/components/orders/SettlementModal';
 import RatingModal from '@/components/orders/RatingModal';
 
-const DDRAGON_VER = '16.5.1'; // Phiên bản DDragon mới nhất (có thể cập nhật động nếu cần)
-
 export default function OrderDetailsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const { t } = useLanguage();
@@ -36,11 +34,13 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
   const [order, setOrder] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
+  const [dDragonVersion, setDDragonVersion] = useState('16.5.1'); // Phiên bản dự phòng
   
   // UI States
   const [activeTab, setActiveTab] = useState<'INFO' | 'PROGRESS'>('INFO');
   const [isDisputeModalOpen, setIsDisputeModalOpen] = useState(false);
   const [disputeReason, setDisputeReason] = useState('');
+  const [isSubmittingDispute, setIsSubmittingDispute] = useState(false);
   const [ingameName, setIngameName] = useState('');
   const [isUpdatingIngame, setIsUpdatingIngame] = useState(false);
   
@@ -95,6 +95,32 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
   useEffect(() => {
     const userStr = localStorage.getItem('user');
     if (userStr) setUser(JSON.parse(userStr));
+  }, []);
+
+  // Tự động lấy phiên bản DDragon mới nhất
+  useEffect(() => {
+    const fetchDDragonVersion = async () => {
+      try {
+        // Kiểm tra cache trong localStorage (hiệu lực 1 giờ) để giảm request
+        const cachedVersion = localStorage.getItem('ddragon_version');
+        const cacheTime = localStorage.getItem('ddragon_version_time');
+        const now = new Date().getTime();
+
+        if (cachedVersion && cacheTime && (now - parseInt(cacheTime) < 3600000)) {
+          setDDragonVersion(cachedVersion);
+          return;
+        }
+
+        const res = await fetch('https://ddragon.leagueoflegends.com/api/versions.json');
+        const versions = await res.json();
+        if (versions && versions.length > 0) {
+          setDDragonVersion(versions[0]);
+          localStorage.setItem('ddragon_version', versions[0]);
+          localStorage.setItem('ddragon_version_time', now.toString());
+        }
+      } catch (error) { console.error("Lỗi tải phiên bản DDragon, dùng bản dự phòng.", error); }
+    };
+    fetchDDragonVersion();
   }, []);
 
   // Fetch Order & Messages
@@ -197,15 +223,21 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
 
   const handleDispute = async () => {
       if (!disputeReason.trim()) return toast.error('Vui lòng nhập lý do');
+      setIsSubmittingDispute(true);
       try {
           const res = await fetch(`/api/orders/${id}/dispute`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ reason: disputeReason })
           });
-          if (res.ok) { toast.success('Đã gửi khiếu nại'); window.location.reload(); }
-          else { toast.error('Lỗi gửi khiếu nại'); }
-      } catch (e) { toast.error('Lỗi kết nối'); }
+          if (res.ok) { 
+            toast.success('Đã gửi khiếu nại'); 
+            window.location.reload(); 
+          } else { 
+            const err = await res.json();
+            toast.error(err.error || 'Lỗi gửi khiếu nại'); 
+          }
+      } catch (e) { toast.error('Lỗi kết nối'); } finally { setIsSubmittingDispute(false); }
   };
 
   const handleOpenPayModal = (amount: number) => {
@@ -1136,7 +1168,12 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                   />
                   <div className="flex gap-3 justify-end">
                       <button onClick={() => setIsDisputeModalOpen(false)} className="px-4 py-2 text-zinc-400 hover:text-white">Hủy</button>
-                      <button onClick={handleDispute} className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-lg font-bold">Gửi yêu cầu</button>
+                      <button onClick={handleDispute} disabled={isSubmittingDispute} className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-lg font-bold flex items-center justify-center w-32 disabled:opacity-50">
+                        {isSubmittingDispute 
+                            ? <Loader2 className="w-5 h-5 animate-spin" /> 
+                            : 'Gửi yêu cầu'
+                        }
+                      </button>
                   </div>
               </div>
           </div>
@@ -1235,7 +1272,7 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                                             {/* Left: Avatar (Big) */}
                                             <div className="relative w-12 h-12 sm:w-14 sm:h-14 shrink-0">
                                                 <img 
-                                                    src={`https://ddragon.leagueoflegends.com/cdn/${DDRAGON_VER}/img/champion/${p.championName}.png`} 
+                                                    src={`https://ddragon.leagueoflegends.com/cdn/${dDragonVersion}/img/champion/${p.championName}.png`} 
                                                     alt={p.championName} 
                                                     className={`w-full h-full rounded-lg object-cover border ${isMe ? 'border-yellow-500' : 'border-zinc-700'}`} 
                                                 />
@@ -1270,11 +1307,11 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                                                 <div className="flex gap-1 overflow-x-auto no-scrollbar">
                                                     {[p.item0, p.item1, p.item2, p.item3, p.item4, p.item5].map((itemId, i) => (
                                                         <div key={i} className={`w-6 h-6 sm:w-7 sm:h-7 rounded bg-zinc-800 border overflow-hidden shrink-0 ${isMe ? 'border-yellow-500/30' : 'border-zinc-700'}`}>
-                                                            {itemId > 0 && <img src={`https://ddragon.leagueoflegends.com/cdn/${DDRAGON_VER}/img/item/${itemId}.png`} alt="Item" className="w-full h-full object-cover" />}
+                                                            {itemId > 0 && <img src={`https://ddragon.leagueoflegends.com/cdn/${dDragonVersion}/img/item/${itemId}.png`} alt="Item" className="w-full h-full object-cover" />}
                                                         </div>
                                                     ))}
                                                     <div className={`w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-zinc-800 border overflow-hidden ml-1 shrink-0 ${isMe ? 'border-yellow-500/30' : 'border-zinc-700'}`}>
-                                                        {p.item6 > 0 && <img src={`https://ddragon.leagueoflegends.com/cdn/${DDRAGON_VER}/img/item/${p.item6}.png`} alt="Trinket" className="w-full h-full object-cover" />}
+                                                        {p.item6 > 0 && <img src={`https://ddragon.leagueoflegends.com/cdn/${dDragonVersion}/img/item/${p.item6}.png`} alt="Trinket" className="w-full h-full object-cover" />}
                                                     </div>
                                                 </div>
                                             </div>

@@ -35,13 +35,12 @@ export async function POST(
         fundsDeducted: false
     };
 
-    // Thu hồi tiền từ pending_balance của Booster (Đóng băng quỹ)
+    // Thu hồi tiền từ pending_balance của Booster nếu đơn ĐANG CHẠY
     if (order.boosterId && order.pricing.booster_earnings > 0) {
-        // Check if booster actually received pending funds
-        // FIX: Kiểm tra lỏng hơn để bắt được cả các đơn cũ.
-        // Nếu trạng thái trước đó là APPROVED, IN_PROGRESS hoặc COMPLETED thì tức là Booster đã nhận đơn và được cộng pending -> Trừ tiền.
+        // Nếu đã COMPLETED, tiền đã vào thẳng ví chính rồi, không được trừ pending nữa (sẽ làm âm pending).
+        // Chỉ đóng băng pending nếu đơn chưa hoàn thành.
         const hasBoosterReceivedFunds = order.payment?.booster_received_pending || 
-                                      ['APPROVED', 'IN_PROGRESS', 'COMPLETED'].includes(previousStatus);
+                                      ['APPROVED', 'IN_PROGRESS'].includes(previousStatus);
         
         if (hasBoosterReceivedFunds) {
              await User.findByIdAndUpdate(order.boosterId, {
