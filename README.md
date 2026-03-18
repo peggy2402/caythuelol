@@ -1,10 +1,10 @@
-# Cày Thuê LOL - League of Legends Boosting Platform
+# BOOSTING PLATFORM - HỆ THỐNG KẾT NỐI KHÁCH HÀNG & NHÀ CUNG CẤP DỊCH VỤ
 
-Nền tảng kết nối Khách hàng và Booster uy tín, tự động hóa quy trình đặt đơn, thanh toán và quản lý tiến độ cày thuê Liên Minh Huyền Thoại.
+Nền tảng kết nối Khách hàng và Booster uy tín, tự động hóa quy trình đặt đơn, thanh toán và quản lý tiến độ cày thuê (All-Games).
 
-## 🚀 Tech Stack
+## 🚀 Tech Stack Summary
 
-- **Framework:** Next.js 14 (App Router)
+- **Framework:** Next.js 15 (App Router)
 - **Language:** TypeScript
 - **Styling:** Tailwind CSS 4 + Shadcn UI
 - **Database:** MongoDB Atlas (Mongoose ODM)
@@ -15,26 +15,26 @@ Nền tảng kết nối Khách hàng và Booster uy tín, tự động hóa quy
 
 ## ✨ Tính năng chính
 
-### 👤 Khách hàng (Customer)
+### 👤 Khách hàng (Customer) Summary
 
 - **Đặt đơn đa dạng:** Cày Rank, Net Wins, Phân hạng (Placements), Thông thạo (Mastery), Cày cấp (Leveling).
 - **Tính giá tự động:** Hệ thống tính giá minh bạch dựa trên Rank hiện tại/mong muốn, LP Gain, và các tùy chọn thêm (Tốc độ, Tướng, Duo...).
 - **Ví điện tử:** Nạp tiền tự động qua QR Code (SePay), lịch sử giao dịch realtime.
 - **Tìm kiếm Booster:** Lọc Booster theo đánh giá, số đơn hoàn thành, tướng sở trường.
 
-### 🎮 Booster
+### 🎮 Booster Summary
 
 - **Quản lý dịch vụ:** Tự cấu hình bảng giá, bật/tắt dịch vụ, thiết lập hệ số Elo (Dễ/Khó).
 - **Dashboard:** Thống kê thu nhập, đơn hàng đang chạy, lịch sử rút tiền.
 - **Nhận đơn:** Xem chi tiết yêu cầu, chat với khách hàng, cập nhật tiến độ.
 
-### 🛡️ Admin
+### 🛡️ Admin Summary
 
 - **Quản lý người dùng:** Duyệt hồ sơ Booster, quản lý Customer.
 - **Quản lý tài chính:** Duyệt lệnh rút tiền, kiểm soát dòng tiền (Escrow), cấu hình phí sàn.
 - **Cấu hình hệ thống:** Cài đặt tham số chung, banner, thông báo.
 
-## 📂 Cấu trúc dự án
+## 📂 Cấu trúc dự án Summary
 
 ```bash
 caythuelol/
