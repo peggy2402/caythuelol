@@ -3,16 +3,16 @@ import { ShieldCheck } from 'lucide-react';
 import BackButton from '@/components/BackButton';
 
 export const metadata = {
-  title: 'Chính sách bảo mật | CAYTHUELOL',
+  title: 'Chính sách bảo mật | LEORANK',
 };
 
 export default function PrivacyPage() {
   return (
     <div className="min-h-screen bg-zinc-950 text-white font-sans selection:bg-blue-500/30 pb-20 relative">
       <Navbar />
-      
+
       <div className="fixed top-0 right-0 w-[600px] h-[600px] bg-purple-600/5 blur-[120px] rounded-full pointer-events-none" />
-      
+
       <div className="max-w-4xl mx-auto px-6 pt-32 relative z-10">
         <div className="mb-8">
           <BackButton />
@@ -23,7 +23,7 @@ export default function PrivacyPage() {
             <ShieldCheck className="w-4 h-4" /> Cam kết an toàn 100%
           </div>
           <h1 className="text-4xl md:text-5xl font-black mb-6">Chính sách bảo mật</h1>
-          <p className="text-zinc-400 text-lg">CAYTHUELOL cam kết bảo vệ dữ liệu cá nhân và tài khoản game của bạn bằng các tiêu chuẩn bảo mật cao nhất.</p>
+          <p className="text-zinc-400 text-lg">LEORANK cam kết bảo vệ dữ liệu cá nhân và tài khoản game của bạn bằng các tiêu chuẩn bảo mật cao nhất.</p>
         </div>
 
         <div className="prose prose-invert prose-blue max-w-none space-y-8 text-zinc-300">
@@ -44,7 +44,7 @@ export default function PrivacyPage() {
 
           <section className="bg-zinc-900/50 p-6 md:p-8 rounded-2xl border border-white/5">
             <h2 className="text-2xl font-bold text-white mb-4">Chia sẻ thông tin</h2>
-            <p>CAYTHUELOL cam kết <strong>tuyệt đối không bán, trao đổi hoặc chia sẻ</strong> thông tin cá nhân của người dùng cho bất kỳ bên thứ 3 nào vì mục đích thương mại.</p>
+            <p>LEORANK cam kết <strong>tuyệt đối không bán, trao đổi hoặc chia sẻ</strong> thông tin cá nhân của người dùng cho bất kỳ bên thứ 3 nào vì mục đích thương mại.</p>
           </section>
         </div>
       </div>

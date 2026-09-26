@@ -84,58 +84,58 @@ export default function Home() {
 
   // Hàm xử lý Upload file lên Cloudinary
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0];
-      if (!file) return;
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-      // Giới hạn dung lượng 5MB
-      if (file.size > 5 * 1024 * 1024) {
-          return toast.error("Kích thước ảnh tối đa là 5MB!");
-      }
+    // Giới hạn dung lượng 5MB
+    if (file.size > 5 * 1024 * 1024) {
+      return toast.error("Kích thước ảnh tối đa là 5MB!");
+    }
 
-      setIsUploadingImage(true);
-      try {
-          const formData = new FormData();
-          formData.append('file', file);
-          
-          const res = await fetch('/api/upload', { method: 'POST', body: formData });
-          const data = await res.json();
-          
-          if (!res.ok) throw new Error(data.error || "Tải ảnh thất bại");
-          
-          setFeedbackImage(data.url || data.secure_url);
-      } catch (error: any) {
-          toast.error(error.message);
-      } finally {
-          setIsUploadingImage(false);
-      }
+    setIsUploadingImage(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const res = await fetch('/api/upload', { method: 'POST', body: formData });
+      const data = await res.json();
+
+      if (!res.ok) throw new Error(data.error || "Tải ảnh thất bại");
+
+      setFeedbackImage(data.url || data.secure_url);
+    } catch (error: any) {
+      toast.error(error.message);
+    } finally {
+      setIsUploadingImage(false);
+    }
   };
 
   const handleSubmitFeedback = async () => {
     if (!feedbackText.trim()) return toast.error("Vui lòng nhập nội dung!");
     setIsSubmittingFeedback(true);
     try {
-        const res = await fetch('/api/feedback', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-                type: feedbackType, 
-                message: feedbackText,
-                imageUrl: feedbackImage
-            })
-        });
+      const res = await fetch('/api/feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: feedbackType,
+          message: feedbackText,
+          imageUrl: feedbackImage
+        })
+      });
 
-        const data = await res.json();
+      const data = await res.json();
 
-        if (!res.ok) throw new Error(data.error || "Lỗi khi gửi phản hồi");
+      if (!res.ok) throw new Error(data.error || "Lỗi khi gửi phản hồi");
 
-        toast.success("Cảm ơn bạn đã đóng góp ý kiến!");
-        setIsFeedbackOpen(false);
-        setFeedbackText('');
-        setFeedbackImage('');
+      toast.success("Cảm ơn bạn đã đóng góp ý kiến!");
+      setIsFeedbackOpen(false);
+      setFeedbackText('');
+      setFeedbackImage('');
     } catch (error: any) {
-        toast.error(error.message || "Có lỗi xảy ra, vui lòng thử lại sau.");
+      toast.error(error.message || "Có lỗi xảy ra, vui lòng thử lại sau.");
     } finally {
-        setIsSubmittingFeedback(false);
+      setIsSubmittingFeedback(false);
     }
   };
 
@@ -146,7 +146,7 @@ export default function Home() {
       <main className="relative">
         {/* Ambient Background Noise/Texture */}
         <div className="fixed inset-0 z-0 pointer-events-none opacity-[0.02] mix-blend-overlay" style={{ backgroundImage: 'url("/noise.png")' }}></div>
-        
+
         {/* Hero Section */}
         <section className="relative pt-32 pb-20 md:pt-40 md:pb-32 overflow-hidden min-h-[90vh] flex items-center">
           {/* Dynamic Background Glows */}
@@ -155,10 +155,10 @@ export default function Home() {
 
           <motion.div style={{ opacity: opacityHero, y: y1 }} className="container mx-auto px-6 relative z-10">
             <div className="grid lg:grid-cols-2 gap-16 lg:gap-8 items-center">
-              
+
               {/* Left Content */}
               <motion.div variants={containerVariants} initial="hidden" animate="visible" className="flex flex-col items-start text-left max-w-2xl">
-                
+
                 {/* Badge */}
                 <motion.div variants={itemVariants} className="inline-flex items-center gap-2 rounded-full border border-blue-500/20 bg-blue-500/10 px-4 py-2 text-sm font-semibold text-blue-300 mb-6 backdrop-blur-md">
                   <Sparkles className="w-4 h-4" />
@@ -196,7 +196,7 @@ export default function Home() {
                       <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
                     </Link>
                   </div>
-                  
+
                   <Link
                     href="/services"
                     className="group flex h-14 w-full sm:w-auto items-center justify-center gap-2 rounded-xl bg-transparent px-8 text-lg font-bold text-zinc-400 transition-all hover:text-white hover:bg-white/5"
@@ -207,7 +207,7 @@ export default function Home() {
               </motion.div>
 
               {/* Right Visual - SaaS Dashboard Mockup style */}
-              <motion.div 
+              <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 1, delay: 0.4 }}
@@ -221,41 +221,41 @@ export default function Home() {
                     <div className="w-3 h-3 rounded-full bg-yellow-500/50"></div>
                     <div className="w-3 h-3 rounded-full bg-green-500/50"></div>
                   </div>
-                  
+
                   {/* Dashboard Content Mock */}
                   <div className="p-6 relative h-full">
-                     <div className="absolute top-0 right-0 w-64 h-64 bg-cyan-500/10 blur-[60px] rounded-full" />
-                     <div className="flex justify-between items-center mb-6">
-                        <div className="space-y-1">
-                           <div className="h-2 w-16 bg-zinc-800 rounded"></div>
-                           <div className="text-xl font-bold text-white tracking-tight">Win Rate</div>
-                        </div>
-                        <Activity className="text-cyan-400" />
-                     </div>
-                     
-                     {/* Graph Lines */}
-                     <svg className="w-full h-24 mb-6" viewBox="0 0 100 40" preserveAspectRatio="none">
-                        <motion.path 
-                          d="M0 30 Q 20 35, 40 20 T 70 10 T 100 5" 
-                          fill="none" 
-                          stroke="url(#gradient)" 
-                          strokeWidth="2"
-                          initial={{ pathLength: 0 }}
-                          animate={{ pathLength: 1 }}
-                          transition={{ duration: 2, ease: "easeInOut", delay: 0.8 }}
-                        />
-                        <defs>
-                          <linearGradient id="gradient" x1="0" y1="0" x2="1" y2="0">
-                            <stop offset="0%" stopColor="#3b82f6" />
-                            <stop offset="100%" stopColor="#22d3ee" />
-                          </linearGradient>
-                        </defs>
-                     </svg>
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-cyan-500/10 blur-[60px] rounded-full" />
+                    <div className="flex justify-between items-center mb-6">
+                      <div className="space-y-1">
+                        <div className="h-2 w-16 bg-zinc-800 rounded"></div>
+                        <div className="text-xl font-bold text-white tracking-tight">Win Rate</div>
+                      </div>
+                      <Activity className="text-cyan-400" />
+                    </div>
 
-                     <div className="space-y-3">
-                        <div className="h-10 w-full bg-zinc-900/50 rounded-lg border border-white/5"></div>
-                        <div className="h-10 w-[80%] bg-zinc-900/50 rounded-lg border border-white/5"></div>
-                     </div>
+                    {/* Graph Lines */}
+                    <svg className="w-full h-24 mb-6" viewBox="0 0 100 40" preserveAspectRatio="none">
+                      <motion.path
+                        d="M0 30 Q 20 35, 40 20 T 70 10 T 100 5"
+                        fill="none"
+                        stroke="url(#gradient)"
+                        strokeWidth="2"
+                        initial={{ pathLength: 0 }}
+                        animate={{ pathLength: 1 }}
+                        transition={{ duration: 2, ease: "easeInOut", delay: 0.8 }}
+                      />
+                      <defs>
+                        <linearGradient id="gradient" x1="0" y1="0" x2="1" y2="0">
+                          <stop offset="0%" stopColor="#3b82f6" />
+                          <stop offset="100%" stopColor="#22d3ee" />
+                        </linearGradient>
+                      </defs>
+                    </svg>
+
+                    <div className="space-y-3">
+                      <div className="h-10 w-full bg-zinc-900/50 rounded-lg border border-white/5"></div>
+                      <div className="h-10 w-[80%] bg-zinc-900/50 rounded-lg border border-white/5"></div>
+                    </div>
                   </div>
                 </div>
 
@@ -279,11 +279,11 @@ export default function Home() {
                     <span className="text-green-400 font-bold">92%</span>
                   </div>
                   <div className="h-1.5 w-full bg-zinc-950 rounded-full overflow-hidden">
-                    <motion.div 
+                    <motion.div
                       initial={{ width: 0 }}
                       animate={{ width: '92%' }}
                       transition={{ duration: 1.5, delay: 1 }}
-                      className="h-full bg-gradient-to-r from-blue-500 to-cyan-400" 
+                      className="h-full bg-gradient-to-r from-blue-500 to-cyan-400"
                     />
                   </div>
                 </motion.div>
@@ -296,7 +296,7 @@ export default function Home() {
         {/* Stats Section - Floating Cards */}
         <section className="py-16 relative z-20">
           <div className="container mx-auto px-6">
-            <motion.div 
+            <motion.div
               initial="hidden"
               whileInView="visible"
               viewport={{ once: true, margin: "-100px" }}
@@ -317,13 +317,13 @@ export default function Home() {
                       <stat.icon className="h-7 w-7" />
                     </div>
                     <div className="text-3xl md:text-4xl font-black text-white mb-2 tracking-tight">
-                      <CountUp 
-                        end={stat.num} 
-                        decimals={stat.decimals || 0} 
-                        duration={2.5} 
-                        separator="," 
-                        enableScrollSpy 
-                        scrollSpyOnce 
+                      <CountUp
+                        end={stat.num}
+                        decimals={stat.decimals || 0}
+                        duration={2.5}
+                        separator=","
+                        enableScrollSpy
+                        scrollSpyOnce
                       />
                       {stat.suffix}
                     </div>
@@ -338,7 +338,7 @@ export default function Home() {
         {/* Why Choose Us */}
         <section className="py-32 relative overflow-hidden">
           <div className="container mx-auto px-6 relative z-10">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
@@ -368,8 +368,8 @@ export default function Home() {
                   gradient: "from-purple-500 to-pink-500"
                 }
               ].map((item, idx) => (
-                <motion.div 
-                  key={idx} 
+                <motion.div
+                  key={idx}
                   initial={{ opacity: 0, y: 30 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
@@ -379,7 +379,7 @@ export default function Home() {
                   <div className="relative h-full p-8 rounded-[23px] bg-[#080808] overflow-hidden">
                     {/* Hover Gradient Blob */}
                     <div className={`absolute -top-20 -right-20 w-48 h-48 bg-gradient-to-br ${item.gradient} opacity-0 group-hover:opacity-10 blur-[60px] transition-opacity duration-700`} />
-                    
+
                     <div className="relative z-10">
                       <div className={`h-16 w-16 rounded-2xl bg-gradient-to-br ${item.gradient} flex items-center justify-center mb-8 shadow-lg shadow-black/50 group-hover:scale-110 transition-transform duration-300`}>
                         <item.icon className="h-8 w-8 text-white" />
@@ -397,7 +397,7 @@ export default function Home() {
         {/* Process Steps */}
         <section className="py-32 relative overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-b from-[#0a0a0a] to-black" />
-          
+
           <div className="container mx-auto px-6 relative z-10">
             <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} className="text-center mb-20">
               <h2 className="text-4xl md:text-6xl font-black text-white mb-6 tracking-tight">{t('processTitle')}</h2>
@@ -413,8 +413,8 @@ export default function Home() {
                 { step: "02", title: t('step2'), desc: t('step2Desc'), icon: CreditCard },
                 { step: "03", title: t('step3'), desc: t('step3Desc'), icon: TrendingUp }
               ].map((item, idx) => (
-                <motion.div 
-                  key={idx} 
+                <motion.div
+                  key={idx}
                   initial={{ opacity: 0, y: 20 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
@@ -435,7 +435,7 @@ export default function Home() {
         {/* Reviews */}
         <section className="py-32 relative">
           <div className="container mx-auto px-6">
-            <motion.h2 
+            <motion.h2
               initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }}
               className="text-4xl md:text-5xl lg:text-6xl font-black text-white mb-16 text-center tracking-tight"
             >
@@ -447,7 +447,7 @@ export default function Home() {
                 { name: "Tuấn Anh", rank: "Cao Thủ", comment: "Hỗ trợ nhiệt tình 24/7. Giá cả hợp lý so với chất lượng. Uy tín số 1.", avatar: "T" },
                 { name: "Đức Thắng", rank: "Bạch Kim II", comment: "Cày siêu tốc, mới đặt sáng chiều đã xong. Giao diện web dễ dùng, tracking tiện lợi.", avatar: "Đ" }
               ].map((review, idx) => (
-                <motion.div key={idx} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: idx * 0.1 }} 
+                <motion.div key={idx} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: idx * 0.1 }}
                   className="p-8 rounded-3xl bg-[#080808] border border-white/5 hover:border-white/10 transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl flex flex-col justify-between"
                 >
                   <div className="flex gap-1 text-yellow-500 mb-6">
@@ -568,30 +568,30 @@ export default function Home() {
             <div className="lg:col-span-2">
               <div className="flex items-center gap-3 mb-6">
                 <div className="relative h-10 w-10">
-                   <Image src="/logo-ver3.png" alt="Logo" fill className="object-contain" />
+                  <Image src="/logo.png" alt="Logo" fill className="object-contain" />
                 </div>
-                <span className="text-2xl font-bold text-white tracking-tighter">CAYTHUE<span className="text-blue-500">LOL</span></span>
+                <span className="text-2xl font-bold text-white tracking-tighter">LEO<span className="text-blue-500">RANK</span></span>
               </div>
               <p className="text-zinc-400 text-sm leading-relaxed mb-8 max-w-sm">
                 {t("footerDesc")}
               </p>
               <div className="flex gap-4">
-                <a 
-                  href="https://www.facebook.com/boostking.official/" 
+                <a
+                  href="https://www.facebook.com/boostking.official/"
                   className="w-10 h-10 rounded-full bg-zinc-900 border border-white/5 flex items-center justify-center text-zinc-400 hover:bg-[#1877F2] hover:text-white hover:border-[#1877F2] transition-all shadow-lg hover:shadow-[#1877F2]/25"
                 >
                   <Facebook size={18} />
                 </a>
 
-                <a 
-                  href="https://discord.gg/yourserver" 
+                <a
+                  href="https://discord.gg/yourserver"
                   className="w-10 h-10 rounded-full bg-zinc-900 border border-white/5 flex items-center justify-center text-zinc-400 hover:bg-[#5865F2] hover:text-white hover:border-[#5865F2] transition-all shadow-lg hover:shadow-[#5865F2]/25"
                 >
                   <FaDiscord size={18} />
                 </a>
 
-                <a 
-                  href="https://www.messenger.com/t/1067718439753127/" 
+                <a
+                  href="https://www.messenger.com/t/1067718439753127/"
                   className="w-10 h-10 rounded-full bg-zinc-900 border border-white/5 flex items-center justify-center text-zinc-400 hover:bg-[#0084FF] hover:text-white hover:border-[#0084FF] transition-all shadow-lg hover:shadow-[#0084FF]/25"
                 >
                   <FaFacebookMessenger size={18} />
@@ -623,16 +623,16 @@ export default function Home() {
               <h4 className="text-white font-bold mb-6 uppercase tracking-wider text-sm">{t("contact")}</h4>
               <ul className="space-y-4 text-sm text-zinc-400 mt-2">
                 <li className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-zinc-900 border border-white/5 flex items-center justify-center text-blue-500 shrink-0"><Mail size={14}/></div>
-                  <a href="mailto:support@caythuelol.com" className="hover:text-blue-400 transition-colors">support@caythuelol.com</a>
+                  <div className="w-8 h-8 rounded-full bg-zinc-900 border border-white/5 flex items-center justify-center text-blue-500 shrink-0"><Mail size={14} /></div>
+                  <a href="mailto:support@leorank.site" className="hover:text-blue-400 transition-colors">support@leorank.site</a>
                 </li>
                 <li className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-zinc-900 border border-white/5 flex items-center justify-center text-blue-500 shrink-0"><Phone size={14}/></div>
+                  <div className="w-8 h-8 rounded-full bg-zinc-900 border border-white/5 flex items-center justify-center text-blue-500 shrink-0"><Phone size={14} /></div>
                   <span className="font-mono">0862.587.229</span>
                 </li>
                 {/* Thời gian hoạt động */}
                 <li className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-zinc-900 border border-white/5 flex items-center justify-center text-blue-500 shrink-0"><Clock size={14}/></div>
+                  <div className="w-8 h-8 rounded-full bg-zinc-900 border border-white/5 flex items-center justify-center text-blue-500 shrink-0"><Clock size={14} /></div>
                   {t("contactHours")}
                 </li>
               </ul>
@@ -640,7 +640,7 @@ export default function Home() {
           </div>
 
           <div className="border-t border-white/5 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
-            <span className="text-sm text-zinc-500">&copy; {new Date().getFullYear()} CAYTHUELOL. All rights reserved.</span>
+            <span className="text-sm text-zinc-500">&copy; {new Date().getFullYear()} LEORANK. All rights reserved.</span>
             <div className="flex gap-6 text-sm text-zinc-500">
               <Link href="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link>
               <Link href="/terms" className="hover:text-white transition-colors">Terms of Service</Link>

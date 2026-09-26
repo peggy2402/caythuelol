@@ -262,7 +262,7 @@ export default function VerifyOtpForm({ email }: VerifyOtpFormProps) {
         </div>
         
         <div className="absolute bottom-8 left-12 right-12 text-xs text-zinc-500 flex justify-between">
-            <span>© 2026 {t('securityFooter')}</span>
+            <span>© {new Date().getFullYear()} {t('securityFooter')}</span>
             <span>{t('privacyTerms')}</span>
         </div>
       </div>

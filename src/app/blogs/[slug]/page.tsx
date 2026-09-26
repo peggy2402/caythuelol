@@ -9,11 +9,11 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     // Cần thay thế bằng URL production của bạn
     const res = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/blogs/${slug}`);
     if (!res.ok) return { title: 'Bài viết không tồn tại' };
-    
+
     const { blog } = await res.json();
-    
+
     return {
-      title: `${blog.title} | CAYTHUELOL Blog`,
+      title: `${blog.title} | LEORANK Blog`,
       description: blog.excerpt,
     };
   } catch (error) {

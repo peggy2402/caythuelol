@@ -5,16 +5,16 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import {
-  Mail, 
-  Lock, 
-  Eye, 
-  EyeOff, 
-  ArrowRight, 
+  Mail,
+  Lock,
+  Eye,
+  EyeOff,
+  ArrowRight,
   ArrowLeft,
   User,
-  Loader2, 
-  ShieldCheck, 
-  Trophy, 
+  Loader2,
+  ShieldCheck,
+  Trophy,
   Zap,
   AlertCircle
 } from 'lucide-react';
@@ -28,7 +28,7 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  
+
   const handleGoogleLogin = () => {
     window.location.href = '/api/auth/google';
   };
@@ -99,12 +99,12 @@ export default function LoginPage() {
         {/* Content */}
         <div className="relative z-10 animate-in slide-in-from-left-8 fade-in duration-700">
           <Link href="/" className="flex items-center gap-3 mb-12">
-             <div className="relative h-10 w-10">
-                <Image src="/logo-ver3.png" alt="Logo" fill className="object-contain" />
-             </div>
-             <span className="text-2xl font-bold tracking-tighter">
-               CAYTHUE<span className="text-blue-500">LOL</span>
-             </span>
+            <div className="relative h-10 w-10">
+              <Image src="/logo.png" alt="Logo" fill className="object-contain" />
+            </div>
+            <span className="text-2xl font-bold tracking-tighter">
+              LEO<span className="text-blue-500">RANK</span>
+            </span>
           </Link>
 
           <div className="space-y-6 max-w-lg">
@@ -134,17 +134,17 @@ export default function LoginPage() {
             </div>
           ))}
         </div>
-        
+
         <div className="relative z-10 text-sm text-zinc-500">
-          © 2026 CAYTHUELOL. All rights reserved.
+          © {new Date().getFullYear()} LEORANK. All rights reserved.
         </div>
       </div>
 
       {/* Right Side - Login Form */}
       <div className="w-full lg:w-1/2 flex items-center justify-center p-6 relative">
         {/* Mobile Background Glow */}
-        <Link 
-          href="/" 
+        <Link
+          href="/"
           className="absolute top-6 left-6 z-20 flex items-center gap-2 text-zinc-500 hover:text-zinc-900 transition-colors"
         >
           <ArrowLeft className="w-5 h-5" />
@@ -161,7 +161,7 @@ export default function LoginPage() {
                 <Image src="/logo.png" alt="Logo" fill className="object-contain" />
               </div>
               <span className="text-2xl font-bold tracking-tighter">
-                CAYTHUE<span className="text-blue-500">LOL</span>
+                LEO<span className="text-blue-500">RANK</span>
               </span>
             </Link>
           </div>

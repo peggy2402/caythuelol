@@ -5,16 +5,16 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
-import { 
-  LayoutDashboard, 
-  Users, 
-  Zap, 
-  FileText, 
-  Settings, 
-  ShieldAlert, 
-  Briefcase, 
-  ListTodo, 
-  Wallet, 
+import {
+  LayoutDashboard,
+  Users,
+  Zap,
+  FileText,
+  Settings,
+  ShieldAlert,
+  Briefcase,
+  ListTodo,
+  Wallet,
   UserCircle,
   Newspaper,
   LogOut,
@@ -22,8 +22,8 @@ import {
   CreditCard,
   AlertTriangle,
   Heart,
-  DollarSign, 
-  ClipboardList, 
+  DollarSign,
+  ClipboardList,
   UserMinus,
   DoorOpen
 } from 'lucide-react';
@@ -61,7 +61,7 @@ export default function Sidebar({ className = '', onLinkClick }: SidebarProps) {
 
     // Lắng nghe sự kiện cập nhật user từ các component khác (Login, Profile, Admin approve...)
     window.addEventListener('user-updated', loadUser);
-    
+
     return () => {
       window.removeEventListener('user-updated', loadUser);
     };
@@ -97,11 +97,10 @@ export default function Sidebar({ className = '', onLinkClick }: SidebarProps) {
       <Link
         href={href}
         onClick={onLinkClick}
-        className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${
-          isActive 
-            ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' 
-            : 'text-zinc-400 hover:bg-white/5 hover:text-white'
-        }`}
+        className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${isActive
+          ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20'
+          : 'text-zinc-400 hover:bg-white/5 hover:text-white'
+          }`}
       >
         <Icon className={`w-5 h-5 ${isActive ? 'text-white' : 'text-zinc-500 group-hover:text-white'}`} />
         <span className="font-medium">{label}</span>
@@ -114,23 +113,23 @@ export default function Sidebar({ className = '', onLinkClick }: SidebarProps) {
       {/* Logo Area */}
       <div className="flex h-20 items-center gap-3 px-6 border-b border-white/5 shrink-0">
         <Link href="/" className="flex items-center gap-3" suppressHydrationWarning>
-            <div className="relative h-8 w-8 overflow-hidden rounded-lg">
+          <div className="relative h-8 w-8 overflow-hidden rounded-lg">
             <Image
               fill
-              src="/logo-ver3.png"
+              src="/logo.png"
               alt="Logo"
               sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
             />
-            </div>
-            <span className="text-lg font-bold tracking-tight text-white">
-            CAYTHUE<span className="text-blue-500">LOL</span>
-            </span>
+          </div>
+          <span className="text-lg font-bold tracking-tight text-white">
+            LEO<span className="text-blue-500">RANK</span>
+          </span>
         </Link>
       </div>
 
       <div className="space-y-1 p-4 flex-1">
         <NavItem href="/" icon={Home} label={t('backToHome')} />
-        
+
         {/* --- CUSTOMER MENU --- */}
         {(user.role === 'CUSTOMER' || !user.role) && (
           <>
@@ -208,7 +207,7 @@ export default function Sidebar({ className = '', onLinkClick }: SidebarProps) {
               Bạn có chắc muốn ngừng làm Booster?
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="bg-zinc-950/50 p-4 rounded-lg border border-white/5 text-sm text-zinc-400 space-y-2">
             <p className="font-semibold text-zinc-300">Sau khi xác nhận:</p>
             <ul className="list-disc pl-5 space-y-1">

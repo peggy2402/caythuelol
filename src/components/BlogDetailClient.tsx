@@ -42,7 +42,7 @@ export default function BlogDetailClient({ initialPost, initialComments, initial
       if (res.ok) {
         setComments([data.comment, ...comments]);
         if (!parentId) setCommentText(''); // Only clear main input
-        // toast.success('Đã gửi bình luận');
+        toast.success(parentId ? 'Đã gửi phản hồi thành công!' : 'Đã gửi bình luận thành công!');
       } else {
         toast.error('Gửi thất bại');
       }

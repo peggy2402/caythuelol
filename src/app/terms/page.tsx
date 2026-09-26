@@ -1,18 +1,32 @@
+import type { Metadata } from 'next';
 import Navbar from '@/components/Navbar';
 import { FileText } from 'lucide-react';
 import BackButton from '@/components/BackButton';
 
-export const metadata = {
-  title: 'Điều khoản dịch vụ | CAYTHUELOL',
+export const metadata: Metadata = {
+  title: 'Điều Khoản Dịch Vụ',
+  description: 'Điều khoản và quy định sử dụng dịch vụ cày thuê, kéo rank tại LEORANK. Quy định về quyền lợi khách hàng, trách nhiệm của booster và chính sách hoàn tiền an toàn.',
+  openGraph: {
+    title: 'Điều Khoản Dịch Vụ | LEORANK',
+    description: 'Điều khoản và quy định sử dụng dịch vụ cày thuê, kéo rank tại LEORANK. Quy định về quyền lợi khách hàng, trách nhiệm của booster và chính sách hoàn tiền an toàn.',
+    url: '/terms',
+  },
 };
 
 export default function TermsPage() {
+  const currentDate = new Intl.DateTimeFormat('vi-VN', {
+    timeZone: 'Asia/Ho_Chi_Minh',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  }).format(new Date());
+
   return (
     <div className="min-h-screen bg-zinc-950 text-white font-sans selection:bg-blue-500/30 pb-20 relative">
       <Navbar />
-      
+
       <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-blue-600/5 blur-[120px] rounded-full pointer-events-none" />
-      
+
       <div className="max-w-4xl mx-auto px-6 pt-32 relative z-10">
         <div className="mb-8">
           <BackButton />
@@ -20,16 +34,16 @@ export default function TermsPage() {
 
         <div className="mb-12">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-zinc-900 border border-zinc-800 text-zinc-400 text-xs font-bold uppercase tracking-wider mb-6">
-            <FileText className="w-4 h-4" /> Cập nhật lần cuối: 10/03/2026
+            <FileText className="w-4 h-4" /> Cập nhật lần cuối: {currentDate}
           </div>
           <h1 className="text-4xl md:text-5xl font-black mb-6">Điều khoản dịch vụ</h1>
-          <p className="text-zinc-400 text-lg">Vui lòng đọc kỹ các điều khoản dưới đây trước khi sử dụng hệ thống CAYTHUELOL.</p>
+          <p className="text-zinc-400 text-lg">Vui lòng đọc kỹ các điều khoản dưới đây trước khi sử dụng hệ thống LEORANK.</p>
         </div>
 
         <div className="prose prose-invert prose-blue max-w-none space-y-8 text-zinc-300">
           <section className="bg-zinc-900/50 p-6 md:p-8 rounded-2xl border border-white/5">
             <h2 className="text-2xl font-bold text-white mb-4">1. Chấp nhận điều khoản</h2>
-            <p>Bằng việc đăng ký tài khoản và sử dụng dịch vụ tại CAYTHUELOL, bạn đồng ý tuân thủ toàn bộ các quy định và điều khoản của chúng tôi. Nếu không đồng ý, vui lòng ngừng sử dụng dịch vụ.</p>
+            <p>Bằng việc đăng ký tài khoản và sử dụng dịch vụ tại LEORANK, bạn đồng ý tuân thủ toàn bộ các quy định và điều khoản của chúng tôi. Nếu không đồng ý, vui lòng ngừng sử dụng dịch vụ.</p>
           </section>
 
           <section className="bg-zinc-900/50 p-6 md:p-8 rounded-2xl border border-white/5">

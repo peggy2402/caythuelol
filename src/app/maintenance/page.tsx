@@ -7,9 +7,9 @@ export default function MaintenancePage() {
         <div className="w-24 h-24 bg-red-500/10 rounded-full flex items-center justify-center mx-auto border border-red-500/20">
           <AlertTriangle className="w-12 h-12 text-red-500" />
         </div>
-        
+
         <h1 className="text-3xl font-bold">Hệ thống đang bảo trì</h1>
-        
+
         <p className="text-zinc-400">
           Chúng tôi đang thực hiện nâng cấp hệ thống để mang lại trải nghiệm tốt hơn.
           <br />
@@ -17,7 +17,7 @@ export default function MaintenancePage() {
         </p>
 
         <div className="pt-8 text-sm text-zinc-600">
-          &copy; {new Date().getFullYear()} CAYTHUELOL. All rights reserved.
+          &copy; {new Date().getFullYear()} LEORANK. All rights reserved.
         </div>
       </div>
     </div>

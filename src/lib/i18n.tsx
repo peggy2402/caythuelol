@@ -27,6 +27,8 @@ interface LanguageContextType {
 /*         DICTIONARIES          */
 /* ============================= */
 
+const currentYear = new Date().getFullYear();
+
 const dictionaries = {
   vi: {
     services: 'Dịch vụ',
@@ -109,26 +111,26 @@ const dictionaries = {
     colPrice: 'Giá trị',
     colDate: 'Ngày tạo',
     statusCancelled: 'Đã hủy',
-    introService: 'Hệ thống cày thuê Liên Minh Huyền Thoại chuyên nghiệp số 1 Việt Nam. Đội ngũ Thách Đấu sẵn sàng hỗ trợ bạn 24/7. An toàn, bảo mật, và nhanh chóng với quy trình đơn giản.',
-    footerDesc: "Hệ thống cày thuê Liên Minh Huyền Thoại chuyên nghiệp, uy tín hàng đầu Việt Nam. Nâng tầm đẳng cấp game thủ.",
+    introService: 'Hệ thống cày thuê game chuyên nghiệp số 1 Việt Nam. Đội ngũ Booster đỉnh cao sẵn sàng hỗ trợ bạn 24/7. An toàn, bảo mật, và nhanh chóng với quy trình đơn giản.',
+    footerDesc: "Hệ thống cày thuê game chuyên nghiệp, uy tín hàng đầu Việt Nam. Nâng tầm đẳng cấp game thủ.",
     support: "Hỗ trợ",
     contact: "Liên hệ",
 
     serviceList: {
-        boostRank: "Cày Rank/Elo",
-        placement: "Phân hạng đầu mùa",
-        mastery: "Cày Thông Thạo",
-        coaching: "Coaching 1-1",
+      boostRank: "Cày Rank/Elo",
+      placement: "Phân hạng đầu mùa",
+      mastery: "Cày Thông Thạo",
+      coaching: "Coaching 1-1",
     },
 
     supportList: {
-        helpCenter: "Trung tâm trợ giúp",
-        terms: "Điều khoản dịch vụ",
-        privacy: "Chính sách bảo mật",
-        contact: "Liên hệ",
+      helpCenter: "Trung tâm trợ giúp",
+      terms: "Điều khoản dịch vụ",
+      privacy: "Chính sách bảo mật",
+      contact: "Liên hệ",
     },
 
-    copyright: "© 2026 CAYTHUELOL. All rights reserved.",
+    copyright: `© ${currentYear} LEORANK. All rights reserved.`,
     privacyPolicy: "Privacy Policy",
     termsOfService: "Terms of Service",
     shieldCheck: "Bảo mật tài khoản tuyệt đối 100%",
@@ -174,7 +176,7 @@ const dictionaries = {
     instantVerifyDesc: 'Mã OTP được gửi ngay lập tức đến email của bạn.',
     secureTrans: 'An toàn giao dịch',
     secureTransDesc: 'Đảm bảo an toàn cho mọi giao dịch trong hệ thống.',
-    securityFooter: 'CAYTHUELOL Security',
+    securityFooter: 'LEORANK Security',
     privacyTerms: 'Privacy Policy & Terms',
     didntReceive: 'Bạn chưa nhận được mã?',
     registerToastSuccess: 'Đăng ký thành công! Vui lòng kiểm tra email.',
@@ -240,7 +242,7 @@ const dictionaries = {
     emailIsRequired: 'Vui lòng nhập email.',
     socialAccountResetError: 'Tài khoản này được đăng ký qua {platform}. Vui lòng đăng nhập bằng phương thức tương ứng.',
     accountAlreadyVerified: 'Tài khoản này đã được xác thực.',
-    
+
     // Wallet
     walletTitle: 'Ví của tôi',
     currentBalance: 'Số dư hiện tại',
@@ -287,7 +289,7 @@ const dictionaries = {
     myActiveJobs: 'Đơn đang làm',
     acceptJob: 'Nhận đơn',
     acceptJobConfirm: 'Bạn có chắc chắn muốn nhận đơn này?',
-    
+
     // Booster Services Management
     manageServices: 'Quản lý dịch vụ',
     manageServicesDesc: 'Cấu hình các dịch vụ bạn cung cấp và đơn giá.',
@@ -301,6 +303,17 @@ const dictionaries = {
     typeMessage: 'Nhập tin nhắn...',
     send: 'Gửi',
     systemMessage: 'Tin nhắn hệ thống',
+
+    // Game Selection Hub
+    chooseGameTitlePre: 'CHỌN',
+    chooseGameTitleHighlight: 'GAME',
+    chooseGameTitlePost: 'CẦN CÀY THUÊ',
+    chooseGameDesc: 'Hệ thống hỗ trợ đa dạng các tựa game Esports hàng đầu hiện nay. Chọn game của bạn để bắt đầu leo rank ngay hôm nay.',
+    gameLolDesc: 'Leo rank thần tốc, Cày thuê uy tín số 1 Việt Nam',
+    gameTftDesc: 'Cày thuê Đấu Trường Chân Lý, đội hình meta chuẩn',
+    gameValDesc: 'Leo rank Valorant, bắn thuê Radiant uy tín',
+    viewServices: 'Xem dịch vụ',
+    comingSoon: 'Sắp ra mắt',
 
     // Services Page
     servicePageTitle: 'Dịch vụ Cày Thuê',
@@ -328,7 +341,7 @@ const dictionaries = {
     schedulePlaceholder: 'Ví dụ: 8h - 14h hàng ngày',
     currentPoints: 'Điểm hiện tại',
     desiredPoints: 'Điểm mong muốn',
-    
+
     // Service Inputs
     servicesCurrentRank: 'Rank hiện tại',
     servicesDesiredRank: 'Rank mong muốn',
@@ -350,7 +363,7 @@ const dictionaries = {
     selectChamp: 'Chọn tướng',
     agreeTerms: 'Tôi đồng ý với điều khoản dịch vụ',
     totalPayment: 'Tổng thanh toán',
-    
+
     // Champion Modal
     searchChamp: 'Tìm kiếm tướng...',
     filterRole: 'Vai trò',
@@ -505,26 +518,26 @@ const dictionaries = {
     colPrice: 'Price',
     colDate: 'Date',
     statusCancelled: 'Cancelled',
-    introService: "Vietnam’s #1 professional League of Legends boosting service. Our Challenger-tier team is ready to support you 24/7. Safe, secure, and fast with a simple process.",
-    footerDesc: "Professional League of Legends boosting system, one of the most trusted services in Vietnam. Elevate your gaming level.",
+    introService: "Vietnam’s #1 professional game boosting service. Our elite booster team is ready to support you 24/7. Safe, secure, and fast with a simple process.",
+    footerDesc: "Professional game boosting system, one of the most trusted services in Vietnam. Elevate your gaming level.",
     support: "Support",
     contact: "Contact",
 
     serviceList: {
-        boostRank: "Rank Boosting",
-        placement: "Placement Matches",
-        mastery: "Mastery Boost",
-        coaching: "1-1 Coaching",
+      boostRank: "Rank Boosting",
+      placement: "Placement Matches",
+      mastery: "Mastery Boost",
+      coaching: "1-1 Coaching",
     },
 
     supportList: {
-        helpCenter: "Help Center",
-        terms: "Terms of Service",
-        privacy: "Privacy Policy",
-        contact: "Contact",
+      helpCenter: "Help Center",
+      terms: "Terms of Service",
+      privacy: "Privacy Policy",
+      contact: "Contact",
     },
 
-    copyright: "© 2026 CAYTHUELOL. All rights reserved.",
+    copyright: `© ${currentYear} LEORANK. All rights reserved.`,
     privacyPolicy: "Privacy Policy",
     termsOfService: "Terms of Service",
     shieldCheck: "100% absolute account security",
@@ -570,7 +583,7 @@ const dictionaries = {
     instantVerifyDesc: 'OTP code is sent immediately to your email.',
     secureTrans: 'Secure transaction',
     secureTransDesc: 'Ensure safety for every transaction in the system.',
-    securityFooter: 'CAYTHUELOL Security',
+    securityFooter: 'LEORANK Security',
     privacyTerms: 'Privacy Policy & Terms',
     didntReceive: "Didn't receive the code?",
     registerToastSuccess: 'Registration successful! Please check your email.',
@@ -697,6 +710,17 @@ const dictionaries = {
     typeMessage: 'Type a message...',
     send: 'Send',
     systemMessage: 'System Message',
+
+    // Game Selection Hub
+    chooseGameTitlePre: 'CHOOSE',
+    chooseGameTitleHighlight: 'GAME',
+    chooseGameTitlePost: 'TO BOOST',
+    chooseGameDesc: 'Our system supports leading Esports games. Select your game and start climbing ranks today.',
+    gameLolDesc: 'Fast rank climbing, #1 trusted boosting service in Vietnam',
+    gameTftDesc: 'Teamfight Tactics boosting, meta comps & high win rates',
+    gameValDesc: 'Valorant rank boost, Radiant boosters on demand',
+    viewServices: 'View Services',
+    comingSoon: 'Coming Soon',
 
     // Services Page
     servicePageTitle: 'Boosting Services',
@@ -900,26 +924,26 @@ const dictionaries = {
     colPrice: '가격',
     colDate: '날짜',
     statusCancelled: '취소됨',
-    introService: "베트남 1위 프로 리그 오브 레전드 대리 랭크 서비스. 챌린저 등급 팀이 24시간 언제든지 지원합니다. 간단한 절차로 안전하고 빠르게 진행됩니다.",
-    footerDesc: "베트남에서 가장 신뢰받는 리그 오브 레전드 대리 랭크 시스템. 당신의 게임 실력을 한 단계 끌어올리세요.",
+    introService: "베트남 1위 프로 게임 대리 랭크 서비스. 최고 등급 부스터 팀이 24시간 언제든지 지원합니다. 간단한 절차로 안전하고 빠르게 진행됩니다.",
+    footerDesc: "베트남에서 가장 신뢰받는 게임 대리 랭크 시스템. 당신의 게임 실력을 한 단계 끌어올리세요.",
     support: "고객 지원",
     contact: "문의하기",
 
     serviceList: {
-        boostRank: "랭크 대리",
-        placement: "배치 경기 대리",
-        mastery: "숙련도 대리",
-        coaching: "1-1 코칭",
+      boostRank: "랭크 대리",
+      placement: "배치 경기 대리",
+      mastery: "숙련도 대리",
+      coaching: "1-1 코칭",
     },
 
     supportList: {
-        helpCenter: "고객 센터",
-        terms: "서비스 이용약관",
-        privacy: "개인정보 처리방침",
-        contact: "문의하기",
+      helpCenter: "고객 센터",
+      terms: "서비스 이용약관",
+      privacy: "개인정보 처리방침",
+      contact: "문의하기",
     },
 
-    copyright: "© 2026 CAYTHUELOL. All rights reserved.",
+    copyright: `© ${currentYear} LEORANK. All rights reserved.`,
     privacyPolicy: "개인정보 처리방침",
     termsOfService: "서비스 이용약관",
     shieldCheck: "계정 100% 완벽 보안 보장",
@@ -965,7 +989,7 @@ const dictionaries = {
     instantVerifyDesc: 'OTP 코드가 이메일로 즉시 전송됩니다.',
     secureTrans: '안전한 거래',
     secureTransDesc: '시스템 내 모든 거래의 안전을 보장합니다.',
-    securityFooter: 'CAYTHUELOL 보안',
+    securityFooter: 'LEORANK 보안',
     privacyTerms: '개인정보 처리방침 및 약관',
     didntReceive: '코드를 받지 못하셨나요?',
     registerToastSuccess: '등록 성공! 이메일을 확인해주세요.',
@@ -1092,6 +1116,17 @@ const dictionaries = {
     typeMessage: '메시지 입력...',
     send: '전송',
     systemMessage: '시스템 메시지',
+
+    // Game Selection Hub
+    chooseGameTitlePre: '대리 랭크할',
+    chooseGameTitleHighlight: '게임',
+    chooseGameTitlePost: '선택',
+    chooseGameDesc: '다양한 인기 e스포츠 게임을 지원합니다. 게임을 선택하고 지금 바로 랭크를 올려보세요.',
+    gameLolDesc: '초고속 랭크 상승, 베트남 1위 신뢰도 높은 대리 서비스',
+    gameTftDesc: '전략적 팀 전투(TFT) 대리, 메타 덱 완벽 운용',
+    gameValDesc: '발로란트 랭크 대리, 레디언트 부스터 대기 중',
+    viewServices: '서비스 보기',
+    comingSoon: '출시 예정',
 
     // Services Page
     servicePageTitle: '부스팅 서비스',
@@ -1296,26 +1331,26 @@ const dictionaries = {
     colPrice: '価格',
     colDate: '日付',
     statusCancelled: 'キャンセル済み',
-    introService: "ベトナムNo.1のプロフェッショナルなリーグ・オブ・レジェンドブースティングサービス。チャレンジャーランクのチームが24時間365日サポートします。シンプルな手続きで安全・安心・スピーディーに対応します。",
-    footerDesc: "ベトナムで最も信頼されているリーグ・オブ・レジェンドのブースティングサービス。あなたのゲームレベルを引き上げます。",
+    introService: "ベトナムNo.1のプロフェッショナルなゲームブースティングサービス。トップランクのブースターチームが24時間365日サポートします。シンプルな手続きで安全・安心・スピーディーに対応します。",
+    footerDesc: "ベトナムで最も信頼されているゲームブースティングサービス。あなたのゲームレベルを引き上げます。",
     support: "サポート",
     contact: "お問い合わせ",
 
     serviceList: {
-        boostRank: "ランクブースト",
-        placement: "プレースメント代行",
-        mastery: "熟練度ブースト",
-        coaching: "1対1コーチング",
+      boostRank: "ランクブースト",
+      placement: "プレースメント代行",
+      mastery: "熟練度ブースト",
+      coaching: "1対1コーチング",
     },
 
     supportList: {
-        helpCenter: "ヘルプセンター",
-        terms: "利用規約",
-        privacy: "プライバシーポリシー",
-        contact: "お問い合わせ",
+      helpCenter: "ヘルプセンター",
+      terms: "利用規約",
+      privacy: "プライバシーポリシー",
+      contact: "お問い合わせ",
     },
 
-    copyright: "© 2026 CAYTHUELOL. All rights reserved.",
+    copyright: `© ${currentYear} LEORANK. All rights reserved.`,
     privacyPolicy: "プライバシーポリシー",
     termsOfService: "利用規約",
     shieldCheck: "アカウントを100％完全に保護",
@@ -1361,7 +1396,7 @@ const dictionaries = {
     instantVerifyDesc: 'OTPコードはすぐにメールに送信されます。',
     secureTrans: '安全な取引',
     secureTransDesc: 'システム内のすべての取引の安全を保証します。',
-    securityFooter: 'CAYTHUELOL セキュリティ',
+    securityFooter: 'LEORANK セキュリティ',
     privacyTerms: 'プライバシーポリシーと利用規約',
     didntReceive: 'コードを受け取っていませんか？',
     registerToastSuccess: '登録成功！メールを確認してください。',
@@ -1453,7 +1488,7 @@ const dictionaries = {
     rating: '評価',
     noBoosters: '現在利用可能なブースターはいません。後でもう一度確認してください。',
     becomeBooster: 'ブースターになるには登録してください',
-    
+
     // Create Order
     createOrderTitle: '注文作成',
     selectService: 'サービス選択',
@@ -1488,6 +1523,17 @@ const dictionaries = {
     typeMessage: 'メッセージを入力...',
     send: '送信',
     systemMessage: 'システムメッセージ',
+
+    // Game Selection Hub
+    chooseGameTitlePre: '代行する',
+    chooseGameTitleHighlight: 'ゲーム',
+    chooseGameTitlePost: 'を選択',
+    chooseGameDesc: '人気eスポーツゲームを多数サポート。ゲームを選んで今すぐランクアップを始めましょう。',
+    gameLolDesc: '超高速ランクアップ、ベトナムNo.1の信頼のブーストサービス',
+    gameTftDesc: 'TFT（チームファイト タクティクス）代行、メタ構成対応',
+    gameValDesc: 'VALORANTランク代行、レディアントブースター対応',
+    viewServices: 'サービスを見る',
+    comingSoon: '近日公開',
 
     // Services Page
     servicePageTitle: 'ブースティングサービス',
@@ -1567,7 +1613,7 @@ const dictionaries = {
     manageTransactions: '取引管理',
     systemSettings: 'システム設定',
     auditLogs: '監査ログ',
-    
+
     // Booster Apply
     boosterApplyTitle: "プロのブースターになる",
     boosterApplySubtitle: "伝説になろう",
@@ -1595,7 +1641,7 @@ const dictionaries = {
     highestRank: '最高ランク達成',
     nextStep: '次のステップ',
     prevStep: '前のステップ',
-    
+
     // Commitments
     commitTool: "ツール/ハック禁止",
     commitToolDesc: "ゲームに干渉するサードパーティ製ソフトウェアの使用は絶対禁止。",
@@ -1610,7 +1656,7 @@ const dictionaries = {
     commitDeposit: "デポジット規定",
     commitDepositDesc: "重大な規定違反があった場合、デポジットは没収されます。",
   },
-  
+
 } as const;
 
 /* =======================================================
@@ -1621,8 +1667,8 @@ type I18nDictionary = typeof dictionaries.vi;
 
 type NestedKeyOf<ObjectType extends object> = {
   [Key in keyof ObjectType & string]: ObjectType[Key] extends object
-    ? `${Key}.${NestedKeyOf<ObjectType[Key]>}`
-    : Key;
+  ? `${Key}.${NestedKeyOf<ObjectType[Key]>}`
+  : Key;
 }[keyof ObjectType & string];
 
 type I18nTranslationKey = NestedKeyOf<I18nDictionary>;

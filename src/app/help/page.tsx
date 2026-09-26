@@ -18,7 +18,7 @@ const FAQS = [
     category: 'Giao dịch & Thanh toán',
     icon: CreditCard,
     items: [
-      { q: 'Hệ thống giữ tiền (Escrow) hoạt động ra sao?', a: 'Khi bạn thanh toán, hệ thống CAYTHUELOL sẽ giữ số tiền này. Booster chỉ nhận được tiền khi hoàn thành đúng yêu cầu của đơn hàng và bạn xác nhận hài lòng.' },
+      { q: 'Hệ thống giữ tiền (Escrow) hoạt động ra sao?', a: 'Khi bạn thanh toán, hệ thống LEORANK sẽ giữ số tiền này. Booster chỉ nhận được tiền khi hoàn thành đúng yêu cầu của đơn hàng và bạn xác nhận hài lòng.' },
       { q: 'Tôi có được hoàn tiền nếu Booster không hoàn thành?', a: 'Chắc chắn. Nếu Booster bỏ ngang hoặc không đạt target, hệ thống sẽ hoàn trả 100% số tiền cọc/thanh toán về ví của bạn.' }
     ]
   },
@@ -38,10 +38,10 @@ export default function HelpCenterPage() {
   return (
     <div className="min-h-screen bg-zinc-950 text-white font-sans selection:bg-blue-500/30 pb-20 relative overflow-hidden">
       <Navbar />
-      
+
       {/* Background Effects */}
       <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-blue-600/10 blur-[120px] rounded-full pointer-events-none" />
-      
+
       <div className="max-w-4xl mx-auto px-6 pt-32 relative z-10">
         <div className="mb-8 flex justify-start w-full">
           <BackButton />

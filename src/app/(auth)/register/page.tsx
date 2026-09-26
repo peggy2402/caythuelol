@@ -113,7 +113,7 @@ export default function RegisterPage() {
       }
 
       toast.success(t('registerToastSuccess'));
-      
+
       // Xóa mốc thời gian cũ trong localStorage để trang OTP bắt đầu đếm ngược lại 60s
       // vì API register vừa gửi mail mới.
       localStorage.removeItem('otp_resend_available_at');
@@ -141,12 +141,12 @@ export default function RegisterPage() {
         {/* Content */}
         <div className="relative z-10 animate-in slide-in-from-left-8 fade-in duration-700">
           <Link href="/" className="flex items-center gap-3 mb-12">
-             <div className="relative h-10 w-10">
-                <Image src="/logo-ver3.png" alt="Logo" fill className="object-contain" />
-             </div>
-             <span className="text-2xl font-bold tracking-tighter">
-               CAYTHUE<span className="text-blue-500">LOL</span>
-             </span>
+            <div className="relative h-10 w-10">
+              <Image src="/logo.png" alt="Logo" fill className="object-contain" />
+            </div>
+            <span className="text-2xl font-bold tracking-tighter">
+              LEO<span className="text-blue-500">RANK</span>
+            </span>
           </Link>
 
           <div className="space-y-6 max-w-lg">
@@ -178,15 +178,15 @@ export default function RegisterPage() {
         </div>
 
         <div className="relative z-10 text-sm text-zinc-500">
-          © 2026 CAYTHUELOL. All rights reserved.
+          © {new Date().getFullYear()} LEO<span className="text-blue-500">RANK</span>. All rights reserved.
         </div>
       </div>
 
       {/* Right Side - Register Form */}
       <div className="w-full lg:w-1/2 flex items-center justify-center p-6 relative">
         {/* Mobile Background Glow */}
-        <Link 
-          href="/" 
+        <Link
+          href="/"
           className="absolute top-6 left-6 z-20 flex items-center gap-2 text-zinc-500 hover:text-zinc-900 transition-colors"
         >
           <ArrowLeft className="w-5 h-5" />
@@ -203,7 +203,7 @@ export default function RegisterPage() {
                 <Image src="/logo.png" alt="Logo" fill className="object-contain" />
               </div>
               <span className="text-2xl font-bold tracking-tighter">
-                CAYTHUE<span className="text-blue-500">LOL</span>
+                LEO<span className="text-blue-500">RANK</span>
               </span>
             </Link>
           </div>
@@ -305,24 +305,23 @@ export default function RegisterPage() {
                 </div>
                 {/* Password Strength Indicator */}
                 {formData.password && (
-                    <div className="pt-1 space-y-1">
-                        <div className="flex justify-between items-center text-xs">
-                            <span className="font-medium text-zinc-500">{t('passwordStrength')}</span>
-                            <span className={`font-bold ${
-                                passwordStrength.level === 1 ? 'text-red-500' :
-                                passwordStrength.level === 2 ? 'text-yellow-500' :
-                                passwordStrength.level === 3 ? 'text-green-500' : 'text-zinc-500'
-                            }`}>
-                                {passwordStrength.text}
-                            </span>
-                        </div>
-                        <div className="w-full bg-zinc-200 rounded-full h-1.5">
-                            <div
-                                className={`h-1.5 rounded-full transition-all duration-300 ${passwordStrength.color}`}
-                                style={{ width: `${(passwordStrength.level / 3) * 100}%` }}
-                            ></div>
-                        </div>
+                  <div className="pt-1 space-y-1">
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="font-medium text-zinc-500">{t('passwordStrength')}</span>
+                      <span className={`font-bold ${passwordStrength.level === 1 ? 'text-red-500' :
+                        passwordStrength.level === 2 ? 'text-yellow-500' :
+                          passwordStrength.level === 3 ? 'text-green-500' : 'text-zinc-500'
+                        }`}>
+                        {passwordStrength.text}
+                      </span>
                     </div>
+                    <div className="w-full bg-zinc-200 rounded-full h-1.5">
+                      <div
+                        className={`h-1.5 rounded-full transition-all duration-300 ${passwordStrength.color}`}
+                        style={{ width: `${(passwordStrength.level / 3) * 100}%` }}
+                      ></div>
+                    </div>
+                  </div>
                 )}
               </div>
 

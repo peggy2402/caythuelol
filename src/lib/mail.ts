@@ -16,7 +16,7 @@ export const sendEmail = async (to: string, subject: string, html: string) => {
 
   try {
     await transporter.sendMail({
-      from: `"CayThueLOL System" <${process.env.EMAIL_USER}>`,
+      from: `"LEORANK System" <${process.env.EMAIL_USER}>`,
       to,
       subject,
       html,
@@ -34,8 +34,8 @@ export const sendNewOrderNotification = async (
   serviceType: string,
   earnings: number
 ) => {
-  const subject = `[CayThueLOL] 🚀 Bạn nhận được đơn hàng mới #${orderId.slice(-6).toUpperCase()}`;
-  
+  const subject = `[LEORANK] 🚀 Bạn nhận được đơn hàng mới #${orderId.slice(-6).toUpperCase()}`;
+
   // Template Email Dark Mode
   const html = `
     <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; background-color: #18181b; color: #e4e4e7; border-radius: 12px; overflow: hidden;">
@@ -70,7 +70,7 @@ export const sendNewOrderNotification = async (
       </div>
       
       <div style="background-color: #09090b; padding: 16px; text-align: center; font-size: 12px; color: #71717a;">
-        <p style="margin: 0;">Đây là email tự động từ hệ thống CayThueLOL.</p>
+        <p style="margin: 0;">Đây là email tự động từ hệ thống LEORANK.</p>
       </div>
     </div>
   `;
