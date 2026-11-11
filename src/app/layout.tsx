@@ -84,6 +84,28 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="vi" className="overflow-x-hidden" suppressHydrationWarning>
+      <head>
+        {process.env.NODE_ENV !== 'production' && (
+          <script
+            dangerouslySetInnerHTML={{
+              __html: `
+                (function() {
+                  const _err = console.error;
+                  console.error = function() {
+                    for (let i = 0; i < arguments.length; i++) {
+                      const a = arguments[i];
+                      if (typeof a === 'string' && a.indexOf('bis_skin_checked') !== -1) {
+                        return;
+                      }
+                    }
+                    return _err.apply(console, arguments);
+                  };
+                })();
+              `,
+            }}
+          />
+        )}
+      </head>
       <body
         className={`${beVietnamPro.variable} font-sans antialiased bg-zinc-950 text-white w-full max-w-full overflow-x-hidden`}
         suppressHydrationWarning
