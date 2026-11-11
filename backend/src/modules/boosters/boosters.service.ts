@@ -136,10 +136,22 @@ export class BoostersService {
   }
 
   async getBoosterById(idOrUsername: string): Promise<any> {
-    let query: any = { username: { $regex: new RegExp(`^${idOrUsername}$`, 'i') } };
-    if (Types.ObjectId.isValid(idOrUsername)) {
-      query = { $or: [{ _id: idOrUsername }, { username: { $regex: new RegExp(`^${idOrUsername}$`, 'i') } }] };
+    const raw = decodeURIComponent(idOrUsername || '').trim();
+    const cleanUsername = raw.replace(/^@+/, '');
+
+    const orConditions: any[] = [
+      { username: { $regex: new RegExp(`^@?${cleanUsername}$`, 'i') } },
+      { 'booster_info.ingame_name': { $regex: new RegExp(`^${cleanUsername}$`, 'i') } },
+    ];
+
+    if (Types.ObjectId.isValid(raw)) {
+      orConditions.push({ _id: new Types.ObjectId(raw) });
     }
+    if (Types.ObjectId.isValid(cleanUsername)) {
+      orConditions.push({ _id: new Types.ObjectId(cleanUsername) });
+    }
+
+    const query = { $or: orConditions };
 
     const user = await this.userModel.findOne(query).select('-password_hash').lean();
     if (!user) throw new NotFoundException('Không tìm thấy Booster');
