@@ -182,13 +182,16 @@ export class BoostersService {
           .lean(),
       ]);
 
-    const boosterData = {
+    const booster = {
       ...user,
       ...profile,
-      ...(user.booster_info || {}),
+      booster_info: user.booster_info || (profile as any)?.booster_info || {},
+      profile: user.profile || profile,
       currentRank: (application as any)?.currentRank || 'N/A',
       highestRank: (application as any)?.highestRank || 'N/A',
       completed_orders: completedOrdersCount,
+      rating: user.booster_info?.rating || (profile as any)?.rating || 5.0,
+      bio: user.booster_info?.bio || (profile as any)?.bio || '',
     };
 
     let wins = 0;
@@ -218,9 +221,10 @@ export class BoostersService {
 
     return {
       success: true,
+      booster,
+      boosterData: booster,
       user,
       profile,
-      boosterData,
       reviews: reviews || [],
       relatedBoosters: relatedBoosters || [],
       stats: {
