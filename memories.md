@@ -970,3 +970,20 @@ caythuelol/
   - Cấu hình CORS cho `leorank.site` với `credentials: true`.
   - Tạo health-check endpoint `GET /` và Swagger UI tại `/docs`.
   - Xác nhận build thành công với TypeScript 5.7+ và Node.js v26.
+
+- **Phase 2 Implementation (Full Backend API Migration Complete):**
+  - Đã di dời toàn bộ 98 endpoints từ Next.js Serverless API routes sang các Module chuẩn của NestJS:
+    - `DatabaseModule`: Tích hợp 17 Mongoose schemas (`User`, `Order`, `Transaction`, `BoosterProfile`, `BoosterService`, `BoosterApplication`, `Blog`, `Comment`, `Game`, `Rank`, `Notification`, `SystemSetting`, `VerificationCode`, `Withdrawal`, `Message`, `AuditLog`).
+    - `CommonModule`: Global `JwtAuthGuard`, `RolesGuard`, decorators (`@ReqUser`, `@Roles`, `@Public`), `MailService` (Nodemailer), `PricingEngine`.
+    - `AuthModule`: Đăng ký, Đăng nhập, Xác thực OTP 6 số, Quên/Đổi mật khẩu, Google OAuth callback.
+    - `UsersModule`: Hồ sơ cá nhân, Tài khoản ngân hàng, Bookmark booster, Đóng góp phản hồi Discord.
+    - `BoostersModule`: Danh sách booster (Aggregation Pipeline đa tầng lọc Rank, Rating, Service), Chi tiết booster, Onboarding application, Bật/Tắt nhận đơn (`isReady`), Sàn việc làm (`market`), Cấu hình dịch vụ & định giá động, Thống kê doanh thu, Từ chức.
+    - `OrdersModule`: Đặt cọc/Thanh toán Escrow (ACID Transaction), Chi tiết đơn hàng, Nhận đơn, Báo cáo hoàn thành & giải ngân tự động, Quyết toán Net Wins (theo LP / theo trận), Đánh giá Booster, Khiếu nại.
+    - `WalletModule`: Lịch sử giao dịch sổ cái (Ledger), Tạo đơn nạp tiền VietQR, Hủy đơn nạp chờ, Yêu cầu rút tiền về ngân hàng.
+    - `WebhooksModule`: SePay Webhook xử lý nạp tiền tự động với thuật toán Smart Recovery & Idempotency.
+    - `ChatModule`: NestJS WebSocketGateway kết nối 2 chiều trực tiếp, tin nhắn đơn hàng, thả cảm xúc emoji, tải ảnh Cloudinary.
+    - `BlogsModule`: Danh sách bài viết, Tìm kiếm live, Bài viết nổi bật, Chi tiết bài viết theo Slug, Bình luận phân cấp lồng nhau, Like bình luận.
+    - `AdminModule`: Thống kê toàn sàn, Quản lý tài khoản (Ban/Unban/Cộng trừ số dư), Duyệt/Từ chối Booster, Phân xử khiếu nại (Hoàn tiền khách/Truy thu phạt ví âm Booster), Cấu hình phí sàn.
+    - `CronModule`: Tác vụ nền tự động định kỳ: Quét phạt nợ ví âm & khóa tài khoản (`debt-collection`), Tự động hủy đơn hàng quá 3 ngày không có Booster nhận và hoàn tiền (`expire-orders`).
+    - `PublicModule`: Cấu hình hệ thống công khai, Danh sách tướng LMHT, Xác thực mã giảm giá Coupon, Upload file/PDF Cloudinary.
+  - Kiểm thử biên dịch: `npm run build` thành công 100% không một lỗi cảnh báo.
