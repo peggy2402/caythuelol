@@ -18,3 +18,4 @@ export class WebhooksController {
     return this.webhooksService.handleSepayWebhook(authHeader, data);
   }
 }
+

@@ -46,3 +46,4 @@ export class ChatController {
     return this.chatService.reactMessage(messageId, user.userId, emoji);
   }
 }
+

@@ -89,3 +89,4 @@ export class MailService {
     return this.sendEmail(boosterEmail, subject, html);
   }
 }
+

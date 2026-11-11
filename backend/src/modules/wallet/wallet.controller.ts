@@ -50,3 +50,4 @@ export class WalletController {
     return this.walletService.requestWithdrawal(user.userId, amount, bankInfo);
   }
 }
+
