@@ -23,11 +23,10 @@ export async function apiFetch<T = any>(
 
   // Nếu ở trình duyệt (client-side), ưu tiên gọi qua Next.js rewrite (/api/...) để tránh CORS
   // Nếu ở server-side (SSR / Server Component), gọi trực tiếp tới backend URL
-  const isServer = typeof window === 'undefined';
   const normalizedPath = cleanEndpoint.startsWith('/api')
     ? cleanEndpoint
     : `/api${cleanEndpoint}`;
-  const url = isServer ? `${API_BASE_URL}${normalizedPath}` : normalizedPath;
+  const url = `${API_BASE_URL}${normalizedPath}`;
 
   const defaultHeaders: Record<string, string> = {
     'Content-Type': 'application/json',

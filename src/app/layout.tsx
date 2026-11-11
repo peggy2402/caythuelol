@@ -4,6 +4,7 @@ import "./globals.css";
 import LanguageProvider from "@/components/LanguageProvider";
 import CookieConsent from "@/components/CookieConsent";
 import { ChatProvider } from "@/contexts/ChatContext"; // Import ChatProvider
+import ApiInterceptor from "@/components/ApiInterceptor";
 import { Toaster } from "sonner";
 
 const beVietnamPro = Be_Vietnam_Pro({
@@ -110,6 +111,7 @@ export default function RootLayout({
         className={`${beVietnamPro.variable} font-sans antialiased bg-zinc-950 text-white w-full max-w-full overflow-x-hidden`}
         suppressHydrationWarning
       >
+        <ApiInterceptor />
         <LanguageProvider>
           <ChatProvider>
             {children}
