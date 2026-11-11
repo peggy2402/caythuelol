@@ -268,7 +268,7 @@ export class AdminService {
     };
   }
 
-  async listUsers(page = 1, limit = 20, search?: string) {
+  async listUsers(page = 1, limit = 20, search?: string): Promise<any> {
     const skip = (page - 1) * limit;
     const filter: any = {};
     if (search) {
@@ -278,12 +278,125 @@ export class AdminService {
       ];
     }
 
-    const [users, total] = await Promise.all([
-      this.userModel.find(filter).select('-password_hash').sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
+    const [users, totalUsers] = await Promise.all([
+      this.userModel
+        .find(filter)
+        .select('-password_hash')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
       this.userModel.countDocuments(filter),
     ]);
 
-    return { success: true, users, total, page, totalPages: Math.ceil(total / limit) };
+    const usersWithStats = await Promise.all(
+      users.map(async (user: any) => {
+        const [totalOrders, completedOrders, totalSpentAgg] = await Promise.all([
+          this.orderModel.countDocuments({ customerId: user._id }),
+          this.orderModel.countDocuments({
+            customerId: user._id,
+            status: OrderStatus.COMPLETED,
+          }),
+          this.orderModel.aggregate([
+            {
+              $match: {
+                customerId: user._id,
+                status: { $in: [OrderStatus.COMPLETED, 'SETTLED'] },
+              },
+            },
+            { $group: { _id: null, total: { $sum: '$pricing.total_amount' } } },
+          ]),
+        ]);
+
+        return {
+          ...user,
+          stats: {
+            totalOrders: totalOrders || 0,
+            completedOrders: completedOrders || 0,
+            totalSpent: totalSpentAgg[0]?.total || 0,
+          },
+        };
+      }),
+    );
+
+    const totalPages = Math.ceil(totalUsers / limit);
+
+    return {
+      success: true,
+      users: usersWithStats,
+      pagination: { page, totalPages, totalUsers },
+      total: totalUsers,
+      totalPages,
+      currentPage: page,
+    };
+  }
+
+  async getBoosters(query: {
+    tab?: string;
+    page?: number;
+    limit?: number;
+    search?: string;
+    sort?: string;
+  }): Promise<any> {
+    if (query.tab === 'applications') {
+      const apps = await this.boosterAppModel
+        .find()
+        .populate('userId', 'username email profile')
+        .sort({ createdAt: -1 })
+        .lean();
+      return { success: true, applications: apps };
+    }
+
+    const page = parseInt(String(query.page || '1'));
+    const limit = parseInt(String(query.limit || '10'));
+    const search = query.search || '';
+    const sort = query.sort || 'newest';
+
+    const filter: any = { role: UserRole.BOOSTER };
+    if (search) {
+      const searchRegex = { $regex: search, $options: 'i' };
+      filter.$or = [
+        { username: searchRegex },
+        { email: searchRegex },
+        { phoneNumber: searchRegex },
+        { 'booster_info.ingame_name': searchRegex },
+      ];
+    }
+
+    let sortOption: any = { createdAt: -1 };
+    if (sort === 'rating') sortOption = { 'booster_info.rating': -1 };
+    if (sort === 'orders') sortOption = { 'booster_info.completed_orders': -1 };
+    if (sort === 'oldest') sortOption = { createdAt: 1 };
+
+    const skip = (page - 1) * limit;
+
+    const [boosters, total] = await Promise.all([
+      this.userModel
+        .find(filter)
+        .select('-password_hash')
+        .sort(sortOption)
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      this.userModel.countDocuments(filter),
+    ]);
+
+    const totalPages = Math.ceil(total / limit);
+
+    return { success: true, boosters, total, totalPages, currentPage: page };
+  }
+
+  async demoteBooster(userId: string, reason?: string): Promise<any> {
+    await this.userModel.findByIdAndUpdate(userId, { role: UserRole.CUSTOMER });
+    await this.boosterAppModel.findOneAndUpdate(
+      { userId: new Types.ObjectId(userId), status: 'approved' },
+      {
+        status: 'rejected',
+        depositStatus: 'refunded',
+        note: reason ? `Admin hủy tư cách: ${reason}` : 'Admin hủy tư cách Booster',
+      },
+    );
+    return { success: true, message: 'Đã hủy tư cách Booster thành công' };
   }
 
   async toggleBanUser(userId: string, isBanned: boolean) {

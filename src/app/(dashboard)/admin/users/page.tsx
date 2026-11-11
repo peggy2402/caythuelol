@@ -173,24 +173,24 @@ export default function AdminUsersPage() {
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-1 font-mono text-emerald-400 font-bold">
                         <Wallet size={14} />
-                        {user.wallet_balance.toLocaleString()} đ
+                        {(user.wallet_balance || 0).toLocaleString()} đ
                       </div>
                     </td>
                     <td className="px-6 py-4">
                       <div className="text-xs text-zinc-300">
-                        <span className="text-white font-bold">{user.stats.completedOrders}</span> / {user.stats.totalOrders} đơn
+                        <span className="text-white font-bold">{user.stats?.completedOrders || 0}</span> / {user.stats?.totalOrders || 0} đơn
                       </div>
                       <div className="w-24 h-1.5 bg-zinc-800 rounded-full mt-1 overflow-hidden">
                         <div 
                           className="h-full bg-blue-500 rounded-full" 
-                          style={{ width: `${user.stats.totalOrders > 0 ? (user.stats.completedOrders / user.stats.totalOrders) * 100 : 0}%` }}
+                          style={{ width: `${(user.stats?.totalOrders || 0) > 0 ? ((user.stats?.completedOrders || 0) / user.stats.totalOrders) * 100 : 0}%` }}
                         />
                       </div>
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-1 font-mono text-yellow-500 font-bold">
                         <ShoppingBag size={14} />
-                        {user.stats.totalSpent.toLocaleString()} đ
+                        {(user.stats?.totalSpent || 0).toLocaleString()} đ
                       </div>
                     </td>
                     <td className="px-6 py-4 text-zinc-400 text-xs">

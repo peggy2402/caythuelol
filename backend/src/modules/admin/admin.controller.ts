@@ -38,8 +38,37 @@ export class AdminController {
     @Query('page') page?: number,
     @Query('limit') limit?: number,
     @Query('search') search?: string,
-  ) {
+  ): Promise<any> {
     return this.adminService.listUsers(Number(page || 1), Number(limit || 20), search);
+  }
+
+  @Get('boosters')
+  @ApiOperation({ summary: 'List boosters or booster applications' })
+  async getBoosters(@Query() query: any): Promise<any> {
+    return this.adminService.getBoosters(query);
+  }
+
+  @Patch('boosters/:id')
+  @ApiOperation({ summary: 'Update booster application status (approve/reject)' })
+  async updateBoosterApplication(
+    @Param('id') id: string,
+    @Body('status') status: 'approved' | 'rejected',
+    @Body('note') note?: string,
+  ): Promise<any> {
+    if (status === 'approved') {
+      return this.adminService.approveBooster(id);
+    } else {
+      return this.adminService.rejectBooster(id, note);
+    }
+  }
+
+  @Post('boosters/demote')
+  @ApiOperation({ summary: 'Demote booster to customer' })
+  async demoteBooster(
+    @Body('userId') userId: string,
+    @Body('reason') reason?: string,
+  ): Promise<any> {
+    return this.adminService.demoteBooster(userId, reason);
   }
 
   @Patch('users/:id/ban')
