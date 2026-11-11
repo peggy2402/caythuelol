@@ -124,10 +124,14 @@ export class PublicService {
       this.settingModel.findOne({ key: 'booster_registration_config' }).lean(),
     ]);
 
+    const isMaintenance = Boolean(maintenance?.value || false);
+
     return {
       success: true,
       banner: banner?.value || null,
-      maintenance: Boolean(maintenance?.value || false),
+      maintenance: isMaintenance,
+      maintenanceMode: isMaintenance,
+      maintenance_mode: isMaintenance,
       adminBank: adminBank?.value || null,
       boosterRegistration: boosterReg?.value || null,
     };

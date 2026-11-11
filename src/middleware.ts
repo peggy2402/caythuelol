@@ -1,16 +1,34 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
+function parseJwtRole(token: string): string | null {
+  try {
+    const parts = token.split('.');
+    if (parts.length < 2) return null;
+    const base64Url = parts[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split('')
+        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+        .join('')
+    );
+    const parsed = JSON.parse(jsonPayload);
+    return parsed.role || null;
+  } catch {
+    return null;
+  }
+}
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // 1. Bypass static files and APIs
-  // Lưu ý: Đã xóa '/maintenance' khỏi đây để xử lý logic redirect khi hết bảo trì
+  // 1. Bypass static files, Next.js internal files, and APIs
   if (
     pathname.startsWith('/api') || 
     pathname.startsWith('/_next') ||
     pathname.startsWith('/static') ||
-    pathname.includes('.') // images, etc.
+    pathname.includes('.') // images, favicon, css, etc.
   ) {
     return NextResponse.next();
   }
@@ -20,30 +38,40 @@ export async function middleware(request: NextRequest) {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://apil-lr.leorank.site';
     const configUrl = `${apiUrl}/api/public/system-config?ts=${Date.now()}`;
     const res = await fetch(configUrl, { cache: 'no-store' });
+    
     if (res.ok) {
       const config = await res.json();
-      
-      if (config.maintenanceMode) {
-        // Nếu đang BẬT bảo trì -> Chặn truy cập
-        if (
-          pathname.startsWith('/dashboard') || 
-          pathname.startsWith('/profile') || 
-          pathname.startsWith('/wallet') ||
-          pathname.startsWith('/services') || // Chặn đặt đơn
-          pathname.startsWith('/boosters') || // Chặn xem booster
-          pathname.startsWith('/orders') ||      // Chặn xem đơn hàng
-          pathname.startsWith('/blogs') ||         // Chặn admin panel
-          pathname.startsWith('/booster/jobs') ||          // Chặn jobs panel
-          pathname.startsWith('/booster/my-orders') || // Chặn my orders panel
-          pathname.startsWith('/booster/services') || // Chặn services panel
-          pathname.startsWith('/booster/dashboard')    // Chặn dashboard dashboard
-        ) {
-           return NextResponse.rewrite(new URL('/maintenance', request.url));
+      const isMaintenance = Boolean(
+        config.maintenanceMode ?? config.maintenance ?? config.maintenance_mode ?? false
+      );
+
+      // Check if user is ADMIN to allow bypass
+      const token = request.cookies.get('token')?.value;
+      const userRole = token ? parseJwtRole(token) : null;
+      const isAdmin = userRole === 'ADMIN';
+
+      if (isMaintenance) {
+        // Admin is allowed to browse or access admin panel to manage system
+        if (isAdmin) {
+          return NextResponse.next();
+        }
+
+        // Whitelist routes during maintenance:
+        // - /maintenance (the maintenance notification itself)
+        // - /login (to let administrators log in)
+        // - /admin (admin control panel)
+        const isWhitelisted =
+          pathname === '/maintenance' ||
+          pathname === '/login' ||
+          pathname.startsWith('/admin');
+
+        if (!isWhitelisted) {
+          return NextResponse.redirect(new URL('/maintenance', request.url));
         }
       } else {
-        // Nếu đang TẮT bảo trì mà user vẫn ở trang /maintenance -> Đẩy về trang chủ
+        // If maintenance is OFF and user visits /maintenance, redirect to home
         if (pathname === '/maintenance') {
-           return NextResponse.redirect(new URL('/', request.url));
+          return NextResponse.redirect(new URL('/', request.url));
         }
       }
     }
