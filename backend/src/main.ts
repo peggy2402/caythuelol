@@ -20,6 +20,9 @@ async function bootstrap() {
     }),
   );
 
+  // Set global prefix 'api' for all endpoints except root health check
+  app.setGlobalPrefix('api', { exclude: ['/'] });
+
   // CORS configuration
   const allowedOrigins = (process.env.CORS_ORIGINS || 'https://leorank.site,http://localhost:3000')
     .split(',')
@@ -52,6 +55,7 @@ async function bootstrap() {
     .build();
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('docs', app, document);
+  SwaggerModule.setup('api/docs', app, document);
 
   const port = process.env.PORT || 4000;
   await app.listen(port);

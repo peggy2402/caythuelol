@@ -108,7 +108,7 @@ export class AuthController {
   @ApiOperation({ summary: 'Initiate Google OAuth login redirect' })
   async googleAuth(@Res() res: Response) {
     const googleClientId = process.env.GOOGLE_CLIENT_ID;
-    const redirectUri = `${process.env.API_URL || 'https://apil-lr.leorank.site'}/auth/google/callback`;
+    const redirectUri = `${process.env.API_URL || 'https://apil-lr.leorank.site'}/api/auth/google/callback`;
 
     const params = new URLSearchParams({
       client_id: googleClientId || '',
@@ -131,7 +131,7 @@ export class AuthController {
     @Res() res: Response,
   ) {
     const frontendUrl = process.env.FRONTEND_URL || 'https://leorank.site';
-    const redirectUri = `${process.env.API_URL || 'https://apil-lr.leorank.site'}/auth/google/callback`;
+    const redirectUri = `${process.env.API_URL || 'https://apil-lr.leorank.site'}/api/auth/google/callback`;
 
     try {
       const { token } = await this.authService.googleAuthCallback(code, redirectUri);
