@@ -195,24 +195,36 @@ export class PublicService {
     const accountRegion = PLATFORM_TO_ACCOUNT_REGION[platformId] || 'asia';
     if (!tagLine) tagLine = platformId === 'VN2' ? 'VN2' : 'RIOT';
 
-    const riotKeySetting = await this.settingModel.findOne({
+    const riotKeySettings = await this.settingModel.find({
       key: { $in: ['RIOT_API_KEY', 'riot_api_key'] },
     }).lean();
-    const apiKey = riotKeySetting?.value || process.env.RIOT_API_KEY;
+
+    let apiKey = '';
+    for (const s of riotKeySettings) {
+      const val = typeof s?.value === 'string' ? s.value.trim() : '';
+      if (val.startsWith('RGAPI-')) {
+        apiKey = val;
+        break;
+      }
+    }
+    if (!apiKey) {
+      apiKey = (process.env.RIOT_API_KEY || '').trim();
+    }
 
     let mockReason = 'Chưa cấu hình RIOT_API_KEY trong hệ thống (cài đặt ở trang Admin > Cấu hình hệ thống)';
 
     if (apiKey) {
       try {
+        const headers = { 'X-Riot-Token': apiKey };
         const accountUrl = `https://${accountRegion}.api.riotgames.com/riot/account/v1/accounts/by-riot-id/${encodeURIComponent(
           gameName,
         )}/${encodeURIComponent(tagLine)}?api_key=${apiKey}`;
-        const accountRes = await axios.get(accountUrl);
+        const accountRes = await axios.get(accountUrl, { headers });
         const accountData = accountRes.data;
 
         if (accountData?.puuid) {
           const leagueUrl = `https://${platformId.toLowerCase()}.api.riotgames.com/lol/league/v4/entries/by-puuid/${accountData.puuid}?api_key=${apiKey}`;
-          const leagueRes = await axios.get(leagueUrl);
+          const leagueRes = await axios.get(leagueUrl, { headers });
           const leagues = leagueRes.data || [];
 
           return {
@@ -227,8 +239,10 @@ export class PublicService {
       } catch (err: any) {
         const status = err.response?.status;
         console.error(`[Riot API Player Error]: HTTP ${status}`, err.response?.data || err.message);
-        if (status === 403) {
-          mockReason = 'RIOT_API_KEY đã hết hạn (Development key của Riot hết hạn sau 24h) hoặc không hợp lệ. Vui lòng cập nhật API key mới từ developer.riotgames.com.';
+        if (status === 401) {
+          mockReason = 'RIOT_API_KEY không hợp lệ hoặc đã bị bấm Regenerate tạo mới trên developer.riotgames.com (HTTP 401: Unauthorized).';
+        } else if (status === 403) {
+          mockReason = 'RIOT_API_KEY đã hết hạn (Development key của Riot hết hạn sau 24h) hoặc bị từ chối truy cập (HTTP 403: Forbidden).';
         } else if (status === 404) {
           mockReason = `Không tìm thấy người chơi "${gameName}#${tagLine}" trên Riot Server ${server}.`;
         } else {

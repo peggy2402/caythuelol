@@ -11,7 +11,7 @@ import ExtraOptions from '@/components/services/lol/ExtraOptions';
 import PaymentSummary from '@/components/services/lol/PaymentSummary';
 import { detectUserServer } from '@/lib/geo';
 
-const RANKS = ['Iron', 'Bronze', 'Silver', 'Gold', 'Platinum', 'Diamond', 'Master'];
+const RANKS = ['Iron', 'Bronze', 'Silver', 'Gold', 'Platinum', 'Emerald', 'Diamond', 'Master'];
 const DIVISIONS = ['IV', 'III', 'II', 'I'];
 
 const FLAT_TIERS = (() => {
