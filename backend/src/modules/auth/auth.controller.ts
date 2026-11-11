@@ -108,7 +108,9 @@ export class AuthController {
   @ApiOperation({ summary: 'Initiate Google OAuth login redirect' })
   async googleAuth(@Res() res: Response) {
     const googleClientId = process.env.GOOGLE_CLIENT_ID;
-    const redirectUri = `${process.env.API_URL || 'https://apil-lr.leorank.site'}/api/auth/google/callback`;
+    const redirectUri =
+      process.env.GOOGLE_CALLBACK_URL ||
+      `${process.env.FRONTEND_URL || 'https://leorank.site'}/api/auth/google/callback`;
 
     const params = new URLSearchParams({
       client_id: googleClientId || '',
@@ -131,10 +133,12 @@ export class AuthController {
     @Res() res: Response,
   ) {
     const frontendUrl = process.env.FRONTEND_URL || 'https://leorank.site';
-    const redirectUri = `${process.env.API_URL || 'https://apil-lr.leorank.site'}/api/auth/google/callback`;
+    const redirectUri =
+      process.env.GOOGLE_CALLBACK_URL ||
+      `${process.env.FRONTEND_URL || 'https://leorank.site'}/api/auth/google/callback`;
 
     try {
-      const { token } = await this.authService.googleAuthCallback(code, redirectUri);
+      const { token, user } = await this.authService.googleAuthCallback(code, redirectUri);
       res.cookie('token', token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
@@ -142,7 +146,11 @@ export class AuthController {
         path: '/',
         sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
       });
-      return res.redirect(`${frontendUrl}/google-callback?token=${token}`);
+      return res.redirect(
+        `${frontendUrl}/google-callback?token=${token}&user=${encodeURIComponent(
+          JSON.stringify(user),
+        )}`,
+      );
     } catch (err: any) {
       return res.redirect(`${frontendUrl}/login?error=GoogleAuthFailed`);
     }
