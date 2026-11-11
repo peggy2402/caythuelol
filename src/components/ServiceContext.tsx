@@ -150,7 +150,7 @@ export function ServiceProvider({ children }: { children: ReactNode }) {
   ) => {
     _setSettings((prev) => {
       const next =
-        typeof value === 'function' ? (value as Function)(prev) : value;
+        typeof value === 'function' ? (value as (prev: ServiceSettings) => ServiceSettings)(prev) : value;
 
       if (JSON.stringify(prev) !== JSON.stringify(next)) {
         setIsModified(true);

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from "next/link";
 import Image from "next/image";
-import { Shield, Zap, Trophy, Star, CheckCircle, ArrowRight, Users, Clock, Target, ChevronRight, CreditCard, TrendingUp, Activity, Sparkles, MessageSquarePlus, Lightbulb, Bug, X, Loader2, UploadCloud, Facebook, Youtube, MessageCircle, Mail, Phone } from "lucide-react";
+import { Shield, Zap, Trophy, Star, CheckCircle, ArrowRight, Users, Clock, Target, ChevronRight, CreditCard, TrendingUp, Activity, Sparkles, MessageSquarePlus, Lightbulb, Bug, X, Loader2, UploadCloud, Facebook, Mail, Phone } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import { useLanguage } from "@/lib/i18n";
 import { motion, useScroll, useTransform, Variants, AnimatePresence } from "framer-motion";
@@ -37,12 +37,10 @@ const Typewriter = ({ words }: { words: string[] }) => {
 
 export default function Home() {
   const { t } = useLanguage();
-  const [scrollY, setScrollY] = useState(0);
 
   // Parallax effects
   const { scrollYProgress } = useScroll();
   const y1 = useTransform(scrollYProgress, [0, 1], [0, 200]);
-  const y2 = useTransform(scrollYProgress, [0, 1], [0, -100]);
   const opacityHero = useTransform(scrollYProgress, [0, 0.2], [1, 0]);
 
   // Feedback Modal State
@@ -52,14 +50,6 @@ export default function Home() {
   const [feedbackImage, setFeedbackImage] = useState('');
   const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
-
-  useEffect(() => {
-    const handleScroll = () => {
-      setScrollY(window.scrollY);
-    };
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
 
   // Animation Variants
   const containerVariants: Variants = {
@@ -453,7 +443,7 @@ export default function Home() {
                   <div className="flex gap-1 text-yellow-500 mb-6">
                     {[...Array(5)].map((_, i) => <Star key={i} className="h-5 w-5 fill-current" />)}
                   </div>
-                  <p className="text-zinc-300 mb-8 text-lg italic leading-relaxed">"{review.comment}"</p>
+                  <p className="text-zinc-300 mb-8 text-lg italic leading-relaxed">&ldquo;{review.comment}&rdquo;</p>
                   <div className="flex items-center gap-4 border-t border-white/5 pt-6">
                     <div className="h-12 w-12 rounded-full bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center font-bold text-white text-xl shadow-lg">
                       {review.avatar}

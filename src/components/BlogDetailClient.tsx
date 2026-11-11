@@ -73,13 +73,14 @@ export default function BlogDetailClient({ initialPost, initialComments, initial
     }
   };
 
+  useEffect(() => {
+    if (!post) {
+      toast.error('Không tìm thấy bài viết.');
+      router.push('/blogs');
+    }
+  }, [post, router]);
+
   if (!post) {
-    // This can happen if the server-side fetch failed but the page still rendered.
-    // We can show a message and redirect.
-    useEffect(() => {
-        toast.error('Không tìm thấy bài viết.');
-        router.push('/blogs');
-    }, [router]);
     return <div className="min-h-screen flex items-center justify-center bg-zinc-950 text-white">Đang chuyển hướng...</div>;
   }
 

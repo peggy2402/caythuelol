@@ -9,10 +9,10 @@ const timeToMinutes = (time: string) => {
 };
 
 export default function CoachingTimeline({ schedule }: { schedule: TimeWindow[] }) {
-  if (!schedule || schedule.length === 0) return null;
-
   // Group schedule by unique Date String
   const { uniqueDates, scheduleByDate } = useMemo(() => {
+    if (!schedule || schedule.length === 0) return { uniqueDates: [], scheduleByDate: {} };
+
     const map: Record<string, TimeWindow[]> = {};
     const dates: string[] = [];
 
@@ -30,6 +30,8 @@ export default function CoachingTimeline({ schedule }: { schedule: TimeWindow[] 
 
     return { uniqueDates: dates, scheduleByDate: map };
   }, [schedule]);
+
+  if (!schedule || schedule.length === 0) return null;
 
   return (
     <div className="bg-zinc-950/50 p-3 sm:p-4 rounded-xl border border-zinc-800">

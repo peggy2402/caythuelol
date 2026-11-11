@@ -61,7 +61,6 @@ export default function ChatInput({ onSend, disabled, onTyping, replyingTo, onCa
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      // @ts-ignore
       handleSubmit(e);
     }
   };
@@ -72,8 +71,8 @@ export default function ChatInput({ onSend, disabled, onTyping, replyingTo, onCa
     inputRef.current?.focus();
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (e?: React.SyntheticEvent) => {
+    e?.preventDefault();
     if (!message.trim() || disabled) return;
 
     setSending(true);
