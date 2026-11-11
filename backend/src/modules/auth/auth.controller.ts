@@ -104,6 +104,25 @@ export class AuthController {
   }
 
   @Public()
+  @Get('google')
+  @ApiOperation({ summary: 'Initiate Google OAuth login redirect' })
+  async googleAuth(@Res() res: Response) {
+    const googleClientId = process.env.GOOGLE_CLIENT_ID;
+    const redirectUri = `${process.env.API_URL || 'https://apil-lr.leorank.site'}/auth/google/callback`;
+
+    const params = new URLSearchParams({
+      client_id: googleClientId || '',
+      redirect_uri: redirectUri,
+      response_type: 'code',
+      scope: 'email profile',
+      access_type: 'offline',
+      prompt: 'consent',
+    });
+
+    return res.redirect(`https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`);
+  }
+
+  @Public()
   @Get('google/callback')
   @ApiOperation({ summary: 'Google OAuth callback handler' })
   async googleCallback(

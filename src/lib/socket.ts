@@ -1,10 +1,11 @@
 import { io } from "socket.io-client";
 
-// Kết nối đến Socket Server (chạy ở port 3001 hoặc biến môi trường)
-const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:3001";
+// Kết nối đến Socket Server trên NestJS Backend
+const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || process.env.NEXT_PUBLIC_API_URL || "https://apil-lr.leorank.site";
 
 export const socket = io(SOCKET_URL, {
-  autoConnect: false, // Chúng ta sẽ gọi socket.connect() thủ công trong useEffect khi User đã login
+  autoConnect: false, // Gọi socket.connect() khi User đã login
   reconnection: true,
-  transports: ['websocket', 'polling'], // Ưu tiên websocket
+  withCredentials: true,
+  transports: ['websocket', 'polling'],
 });

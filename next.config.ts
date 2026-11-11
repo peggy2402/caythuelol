@@ -109,6 +109,18 @@ const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+
+  async rewrites() {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://apil-lr.leorank.site';
+    return {
+      beforeFiles: [
+        {
+          source: '/api/:path*',
+          destination: `${apiUrl}/:path*`,
+        },
+      ],
+    };
+  },
 };
 
 export default nextConfig;
