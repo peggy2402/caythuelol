@@ -145,12 +145,12 @@ export default function AdminDashboard() {
             <div className="p-4 bg-zinc-950 rounded-lg border border-zinc-800">
                 <p className="text-xs text-zinc-500 uppercase font-bold mb-1">Tiền mặt thực tế (Net Cash)</p>
                 <p className="text-xl font-mono font-bold text-white">
-                    {realCash.toLocaleString()} đ
+                    {(realCash || 0).toLocaleString()} đ
                 </p>
                 <p className="text-[10px] text-zinc-600 mt-1 flex items-center gap-1">
-                   <ArrowUpRight size={10} className="text-green-500"/> {stats.totalDeposits.toLocaleString()} (Nạp)
+                   <ArrowUpRight size={10} className="text-green-500"/> {(stats.totalDeposits || 0).toLocaleString()} (Nạp)
                    <span className="mx-1">|</span>
-                   <ArrowDownLeft size={10} className="text-red-500"/> {stats.totalWithdrawals.toLocaleString()} (Rút)
+                   <ArrowDownLeft size={10} className="text-red-500"/> {(stats.totalWithdrawals || 0).toLocaleString()} (Rút)
                 </p>
             </div>
             <div className="p-4 bg-zinc-950 rounded-lg border border-zinc-800">
@@ -172,7 +172,7 @@ export default function AdminDashboard() {
                     {isSolvent ? 'Lợi nhuận ròng (Admin Profit)' : 'CẢNH BÁO: THÂM HỤT'}
                 </p>
                 <p className={`text-xl font-mono font-bold ${isSolvent ? 'text-green-400' : 'text-red-400'}`}>
-                    {solvency.toLocaleString()} đ
+                    {(solvency || 0).toLocaleString()} đ
                 </p>
                 <p className="text-[10px] opacity-70 mt-1">
                     = Tiền mặt - (Ví User + Cọc)
@@ -199,7 +199,7 @@ export default function AdminDashboard() {
                               <div className="text-xs text-zinc-400">{booster.orderCount} đơn</div>
                           </div>
                           <div className="text-right font-mono">
-                              <div className="font-bold text-green-400 text-base">{booster.totalEarnings.toLocaleString()} đ</div>
+                              <div className="font-bold text-green-400 text-base">{(booster.totalEarnings || 0).toLocaleString()} đ</div>
                               <div className="text-xs text-zinc-500">Thực nhận</div>
                           </div>
                       </div>
@@ -222,7 +222,7 @@ export default function AdminDashboard() {
                               <div className="font-bold text-white">{user.username}</div>
                               <div className="text-xs text-zinc-400">{user.orderCount} đơn</div>
                           </div>
-                          <div className="font-bold text-blue-400 text-base font-mono">{user.totalSpent.toLocaleString()} đ</div>
+                          <div className="font-bold text-blue-400 text-base font-mono">{(user.totalSpent || 0).toLocaleString()} đ</div>
                       </div>
                   ))}
               </div>
@@ -240,7 +240,7 @@ export default function AdminDashboard() {
                           <span className="font-bold text-lg text-zinc-500 w-6 text-center">{index + 1}</span>
                           <img src={user.avatar || '/default-avatar.png'} alt={user.username} className="w-10 h-10 rounded-full object-cover" />
                           <div className="font-bold text-white flex-1">{user.username}</div>
-                          <div className="font-bold text-emerald-400 text-base font-mono">{user.totalDeposited.toLocaleString()} đ</div>
+                          <div className="font-bold text-emerald-400 text-base font-mono">{(user.totalDeposited || 0).toLocaleString()} đ</div>
                       </div>
                   ))}
               </div>
@@ -252,7 +252,7 @@ export default function AdminDashboard() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard 
           title="Doanh thu Admin (Fees)" 
-          value={`${stats.adminRevenue.toLocaleString()} đ`} 
+          value={`${(stats.adminRevenue || 0).toLocaleString()} đ`} 
           icon={DollarSign} 
           color="text-green-500" 
           bg="bg-green-500/10" 

@@ -25,8 +25,11 @@ export class AdminController {
 
   @Get('stats')
   @ApiOperation({ summary: 'Get global admin dashboard statistics' })
-  async getStats() {
-    return this.adminService.getStats();
+  async getStats(
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ): Promise<any> {
+    return this.adminService.getStats(startDate, endDate);
   }
 
   @Get('users')
