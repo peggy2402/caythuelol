@@ -53,12 +53,14 @@ export default function ServiceTabs() {
 
     const fetchBoosterServices = async () => {
       try {
-        const res = await fetch(`/api/boosters/`); 
-        const data = await res.json();
-        const booster = data.booster;
-        
-        if (booster) {
-          setAllowedServices(booster.services || booster.booster_info?.services || []);
+        const cleanName = boosterId.replace(/^@/, '');
+        const res = await fetch(`/api/boosters/${encodeURIComponent(cleanName)}`); 
+        if (res.ok) {
+          const data = await res.json();
+          const services = data.boosterData?.services || data.user?.booster_info?.services || [];
+          if (Array.isArray(services) && services.length > 0) {
+            setAllowedServices(services.map((s: string) => s.trim().toUpperCase()));
+          }
         }
       } catch (error) {
         console.error("Failed to fetch booster services", error);
@@ -89,7 +91,14 @@ export default function ServiceTabs() {
       >
         <div className="flex gap-2 min-w-max px-1">
         {TABS.map((tab) => {
-          if (allowedServices && tab.key && !allowedServices.includes(tab.key)) return null;
+          if (allowedServices && tab.key) {
+            const isAllowed = allowedServices.some((s) => {
+              const norm = s.trim().toUpperCase().replace(/S$/, '').replace(/\s+/g, '_');
+              const tabNorm = tab.key.replace(/S$/, '').replace(/\s+/g, '_');
+              return norm === tabNorm;
+            });
+            if (!isAllowed) return null;
+          }
 
           const isActive = pathname.includes(tab.href);
           return (

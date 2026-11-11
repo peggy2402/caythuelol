@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Share2, Copy, Check, Facebook, Send, Twitter, X } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -16,6 +17,26 @@ export default function ShareProfileButton({
 }: ShareProfileButtonProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Close modal on Escape key
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsOpen(false);
+    };
+    if (isOpen) {
+      document.addEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = 'hidden';
+    }
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = 'unset';
+    };
+  }, [isOpen]);
 
   const name = displayName || username;
   const currentUrl = typeof window !== 'undefined'
@@ -64,6 +85,106 @@ export default function ShareProfileButton({
   const telegramShareUrl = `https://t.me/share/url?url=${encodeURIComponent(currentUrl)}&text=${encodeURIComponent(shareText)}`;
   const twitterShareUrl = `https://twitter.com/intent/tweet?url=${encodeURIComponent(currentUrl)}&text=${encodeURIComponent(shareText)}`;
 
+  const modalContent = isOpen ? (
+    <div
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200"
+      onClick={() => setIsOpen(false)}
+    >
+      <div
+        className="relative w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-2xl p-6 shadow-2xl text-left animate-in zoom-in-95 duration-200"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between mb-5">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400">
+              <Share2 size={20} />
+            </div>
+            <div>
+              <h3 className="font-bold text-white text-base">Chia sẻ hồ sơ Booster</h3>
+              <p className="text-xs text-zinc-400">Giới thiệu {name} tới bạn bè và cộng đồng</p>
+            </div>
+          </div>
+          <button
+            onClick={() => setIsOpen(false)}
+            className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
+          >
+            <X size={18} />
+          </button>
+        </div>
+
+        {/* Link Copy Box */}
+        <div className="mb-5">
+          <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider block mb-2">
+            Liên kết trực tiếp
+          </label>
+          <div className="flex items-center gap-2 bg-zinc-950 border border-zinc-800 rounded-xl p-1.5 focus-within:border-blue-500 transition-colors">
+            <input
+              type="text"
+              readOnly
+              value={currentUrl}
+              className="bg-transparent flex-1 text-sm text-zinc-300 px-3 outline-none select-all font-mono truncate"
+            />
+            <button
+              onClick={handleCopy}
+              className="flex items-center gap-1.5 px-3.5 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-semibold transition-all shrink-0 active:scale-95"
+            >
+              {copied ? (
+                <>
+                  <Check size={14} className="text-green-300" />
+                  <span>Đã chép</span>
+                </>
+              ) : (
+                <>
+                  <Copy size={14} />
+                  <span>Sao chép</span>
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+
+        {/* Social Share Buttons */}
+        <div>
+          <div className="text-xs font-semibold text-zinc-400 uppercase tracking-wider block mb-2.5">
+            Chia sẻ qua mạng xã hội
+          </div>
+          <div className="grid grid-cols-3 gap-2.5">
+            <a
+              href={facebookShareUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex flex-col items-center justify-center gap-1.5 p-3 rounded-xl bg-zinc-800/60 hover:bg-blue-600/20 border border-zinc-700/50 hover:border-blue-500/40 text-zinc-300 hover:text-blue-400 transition-all group"
+            >
+              <Facebook size={20} className="group-hover:scale-110 transition-transform text-[#1877F2]" />
+              <span className="text-xs font-medium">Facebook</span>
+            </a>
+
+            <a
+              href={telegramShareUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex flex-col items-center justify-center gap-1.5 p-3 rounded-xl bg-zinc-800/60 hover:bg-sky-600/20 border border-zinc-700/50 hover:border-sky-500/40 text-zinc-300 hover:text-sky-400 transition-all group"
+            >
+              <Send size={20} className="group-hover:scale-110 transition-transform text-[#229ED9]" />
+              <span className="text-xs font-medium">Telegram</span>
+            </a>
+
+            <a
+              href={twitterShareUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex flex-col items-center justify-center gap-1.5 p-3 rounded-xl bg-zinc-800/60 hover:bg-zinc-700/40 border border-zinc-700/50 hover:border-zinc-500 text-zinc-300 hover:text-white transition-all group"
+            >
+              <Twitter size={20} className="group-hover:scale-110 transition-transform text-[#1DA1F2]" />
+              <span className="text-xs font-medium">Twitter / X</span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  ) : null;
+
   return (
     <>
       <button
@@ -75,102 +196,7 @@ export default function ShareProfileButton({
         <span>Chia sẻ</span>
       </button>
 
-      {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
-          <div
-            className="relative w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-2xl p-6 shadow-2xl text-left"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Header */}
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2.5">
-                <div className="p-2 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400">
-                  <Share2 size={20} />
-                </div>
-                <div>
-                  <h3 className="font-bold text-white text-base">Chia sẻ hồ sơ Booster</h3>
-                  <p className="text-xs text-zinc-400">Giới thiệu {name} tới bạn bè và cộng đồng</p>
-                </div>
-              </div>
-              <button
-                onClick={() => setIsOpen(false)}
-                className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            {/* Link Copy Box */}
-            <div className="mb-5">
-              <label className="text-xs font-semibold text-zinc-400 uppercase tracking-wider block mb-2">
-                Liên kết trực tiếp
-              </label>
-              <div className="flex items-center gap-2 bg-zinc-950/80 border border-zinc-800 rounded-xl p-1.5 focus-within:border-blue-500 transition-colors">
-                <input
-                  type="text"
-                  readOnly
-                  value={currentUrl}
-                  className="bg-transparent flex-1 text-sm text-zinc-300 px-3 outline-none select-all font-mono truncate"
-                />
-                <button
-                  onClick={handleCopy}
-                  className="flex items-center gap-1.5 px-3 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-semibold transition-all shrink-0 active:scale-95"
-                >
-                  {copied ? (
-                    <>
-                      <Check size={14} className="text-green-300" />
-                      <span>Đã chép</span>
-                    </>
-                  ) : (
-                    <>
-                      <Copy size={14} />
-                      <span>Sao chép</span>
-                    </>
-                  )}
-                </button>
-              </div>
-            </div>
-
-            {/* Social Share Buttons */}
-            <div>
-              <div className="text-xs font-semibold text-zinc-400 uppercase tracking-wider block mb-2.5">
-                Chia sẻ qua mạng xã hội
-              </div>
-              <div className="grid grid-cols-3 gap-2.5">
-                <a
-                  href={facebookShareUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex flex-col items-center justify-center gap-1.5 p-3 rounded-xl bg-zinc-800/60 hover:bg-blue-600/20 border border-zinc-700/50 hover:border-blue-500/40 text-zinc-300 hover:text-blue-400 transition-all group"
-                >
-                  <Facebook size={20} className="group-hover:scale-110 transition-transform text-[#1877F2]" />
-                  <span className="text-xs font-medium">Facebook</span>
-                </a>
-
-                <a
-                  href={telegramShareUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex flex-col items-center justify-center gap-1.5 p-3 rounded-xl bg-zinc-800/60 hover:bg-sky-600/20 border border-zinc-700/50 hover:border-sky-500/40 text-zinc-300 hover:text-sky-400 transition-all group"
-                >
-                  <Send size={20} className="group-hover:scale-110 transition-transform text-[#229ED9]" />
-                  <span className="text-xs font-medium">Telegram</span>
-                </a>
-
-                <a
-                  href={twitterShareUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex flex-col items-center justify-center gap-1.5 p-3 rounded-xl bg-zinc-800/60 hover:bg-zinc-700/40 border border-zinc-700/50 hover:border-zinc-500 text-zinc-300 hover:text-white transition-all group"
-                >
-                  <Twitter size={20} className="group-hover:scale-110 transition-transform text-[#1DA1F2]" />
-                  <span className="text-xs font-medium">Twitter / X</span>
-                </a>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      {mounted && modalContent && createPortal(modalContent, document.body)}
     </>
   );
 }

@@ -18,6 +18,9 @@ import {
   Sparkles,
   Flame,
   Gamepad2,
+  Lock,
+  MessageSquare,
+  Clock,
   type LucideIcon,
 } from 'lucide-react';
 import SparklineChart from '@/components/SparklineChart';
@@ -93,108 +96,108 @@ interface ServiceInfo {
   desc: string;
   href: (username: string) => string;
   icon: LucideIcon;
-  gradient: string;
   badgeBg: string;
+  cardBg: string;
 }
 
 const SERVICE_REGISTRY: Record<string, ServiceInfo> = {
   RANK_BOOST: {
     name: 'Cày Rank / Elo Siêu Tốc',
     gameTag: 'LMHT / LoL',
-    desc: 'Leo rank Sắt đến Cao Thủ, Thách Đấu với tỉ lệ thắng cao & hoàn thành nhanh chóng.',
+    desc: 'Leo rank Sắt đến Cao Thủ, Thách Đấu với tỉ lệ thắng cao & nhanh chóng.',
     href: (u) => `/services/lol/rank-boost?booster=@${u}`,
     icon: Trophy,
-    gradient: 'from-amber-500/10 via-amber-500/5 to-transparent border-amber-500/30 hover:border-amber-500/60',
+    cardBg: 'hover:border-amber-500/50 hover:bg-amber-500/5',
     badgeBg: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
   },
   RANK: {
     name: 'Cày Rank / Elo Siêu Tốc',
     gameTag: 'LMHT / LoL',
-    desc: 'Leo rank Sắt đến Cao Thủ, Thách Đấu với tỉ lệ thắng cao & hoàn thành nhanh chóng.',
+    desc: 'Leo rank Sắt đến Cao Thủ, Thách Đấu với tỉ lệ thắng cao & nhanh chóng.',
     href: (u) => `/services/lol/rank-boost?booster=@${u}`,
     icon: Trophy,
-    gradient: 'from-amber-500/10 via-amber-500/5 to-transparent border-amber-500/30 hover:border-amber-500/60',
+    cardBg: 'hover:border-amber-500/50 hover:bg-amber-500/5',
     badgeBg: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
   },
   PLACEMENTS: {
     name: 'Phân Hạng Đầu Mùa (5 Trận)',
     gameTag: 'LMHT / LoL',
-    desc: 'Đảm bảo kết quả 5 trận phân hạng cao nhất để khởi đầu mùa giải thuận lợi, MMR tối ưu.',
+    desc: 'Đảm bảo kết quả 5 trận phân hạng cao nhất để khởi đầu mùa giải tối ưu.',
     href: (u) => `/services/lol/placements?booster=@${u}`,
     icon: Swords,
-    gradient: 'from-blue-500/10 via-blue-500/5 to-transparent border-blue-500/30 hover:border-blue-500/60',
+    cardBg: 'hover:border-blue-500/50 hover:bg-blue-500/5',
     badgeBg: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
   },
   PLACEMENT: {
     name: 'Phân Hạng Đầu Mùa (5 Trận)',
     gameTag: 'LMHT / LoL',
-    desc: 'Đảm bảo kết quả 5 trận phân hạng cao nhất để khởi đầu mùa giải thuận lợi, MMR tối ưu.',
+    desc: 'Đảm bảo kết quả 5 trận phân hạng cao nhất để khởi đầu mùa giải tối ưu.',
     href: (u) => `/services/lol/placements?booster=@${u}`,
     icon: Swords,
-    gradient: 'from-blue-500/10 via-blue-500/5 to-transparent border-blue-500/30 hover:border-blue-500/60',
+    cardBg: 'hover:border-blue-500/50 hover:bg-blue-500/5',
     badgeBg: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
   },
   PROMOTION: {
     name: 'Chuỗi Thăng Hạng',
     gameTag: 'LMHT / LoL',
-    desc: 'Vượt chuỗi thăng hạng BO3/BO5 an toàn và nhanh gọn mà không lo rớt bậc.',
+    desc: 'Vượt chuỗi thăng hạng BO3/BO5 an toàn và nhanh gọn mà không rớt bậc.',
     href: (u) => `/services/lol/promotion?booster=@${u}`,
     icon: TrendingUp,
-    gradient: 'from-emerald-500/10 via-emerald-500/5 to-transparent border-emerald-500/30 hover:border-emerald-500/60',
+    cardBg: 'hover:border-emerald-500/50 hover:bg-emerald-500/5',
     badgeBg: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
   },
   NET_WINS: {
     name: 'Cày Trận Thắng (Net Wins)',
     gameTag: 'LMHT / LoL',
-    desc: 'Đảm bảo số trận thắng ròng, tăng điểm LP và cải thiện hệ số MMR tài khoản.',
+    desc: 'Đảm bảo số trận thắng ròng, tăng điểm LP và cải thiện hệ số MMR.',
     href: (u) => `/services/lol/net-wins?booster=@${u}`,
     icon: Target,
-    gradient: 'from-purple-500/10 via-purple-500/5 to-transparent border-purple-500/30 hover:border-purple-500/60',
+    cardBg: 'hover:border-purple-500/50 hover:bg-purple-500/5',
     badgeBg: 'bg-purple-500/10 text-purple-400 border-purple-500/20',
   },
   NET_WIN: {
     name: 'Cày Trận Thắng (Net Wins)',
     gameTag: 'LMHT / LoL',
-    desc: 'Đảm bảo số trận thắng ròng, tăng điểm LP và cải thiện hệ số MMR tài khoản.',
+    desc: 'Đảm bảo số trận thắng ròng, tăng điểm LP và cải thiện hệ số MMR.',
     href: (u) => `/services/lol/net-wins?booster=@${u}`,
     icon: Target,
-    gradient: 'from-purple-500/10 via-purple-500/5 to-transparent border-purple-500/30 hover:border-purple-500/60',
+    cardBg: 'hover:border-purple-500/50 hover:bg-purple-500/5',
     badgeBg: 'bg-purple-500/10 text-purple-400 border-purple-500/20',
   },
   MASTERY: {
     name: 'Cày Thông Thạo Tướng',
     gameTag: 'LMHT / LoL',
-    desc: 'Cày điểm thông thạo & nâng cấp mốc biểu cảm thông thạo cho vị tướng bạn yêu thích.',
+    desc: 'Cày điểm thông thạo & mở biểu cảm thông thạo cho tướng tủ yêu thích.',
     href: (u) => `/services/lol/mastery?booster=@${u}`,
     icon: Medal,
-    gradient: 'from-yellow-500/10 via-yellow-500/5 to-transparent border-yellow-500/30 hover:border-yellow-500/60',
+    cardBg: 'hover:border-yellow-500/50 hover:bg-yellow-500/5',
     badgeBg: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20',
   },
   LEVELING: {
     name: 'Cày Cấp Độ (Level 30)',
     gameTag: 'LMHT / LoL',
-    desc: 'Cày cấp tài khoản từ 1 lên 30 nhanh nhất, tối đa Tinh Hoa Lam để mở khoá đấu xếp hạng.',
+    desc: 'Cày cấp tài khoản từ 1 lên 30 nhanh nhất để mở khoá đấu xếp hạng.',
     href: (u) => `/services/lol/leveling?booster=@${u}`,
     icon: Zap,
-    gradient: 'from-sky-500/10 via-sky-500/5 to-transparent border-sky-500/30 hover:border-sky-500/60',
+    cardBg: 'hover:border-sky-500/50 hover:bg-sky-500/5',
     badgeBg: 'bg-sky-500/10 text-sky-400 border-sky-500/20',
   },
   COACHING: {
-    name: 'Huấn Luyện & Duo Coaching 1-1',
+    name: 'Huấn Luyện & Duo 1-1',
     gameTag: 'LMHT / LoL',
-    desc: 'Phân tích replay, hướng dẫn tư duy macro/micro và sửa lỗi sai trực tiếp qua Discord.',
+    desc: 'Phân tích replay, hướng dẫn tư duy macro/micro và sửa lỗi sai trực tiếp.',
     href: (u) => `/services/lol/coaching?booster=@${u}`,
     icon: Users,
-    gradient: 'from-rose-500/10 via-rose-500/5 to-transparent border-rose-500/30 hover:border-rose-500/60',
+    cardBg: 'hover:border-rose-500/50 hover:bg-rose-500/5',
     badgeBg: 'bg-rose-500/10 text-rose-400 border-rose-500/20',
   },
   ONBET: {
     name: 'Cày Rank Sự Kiện / Onbet',
     gameTag: 'LMHT / LoL',
-    desc: 'Cày số trận và hoàn thành nhiệm vụ sự kiện, Battle Pass để nhận toàn bộ phần thưởng.',
+    desc: 'Cày vé sự kiện, nhiệm vụ Battle Pass để nhận toàn bộ phần thưởng.',
     href: (u) => `/services/lol/onbet?booster=@${u}`,
     icon: Banknote,
-    gradient: 'from-violet-500/10 via-violet-500/5 to-transparent border-violet-500/30 hover:border-violet-500/60',
+    cardBg: 'hover:border-violet-500/50 hover:bg-violet-500/5',
     badgeBg: 'bg-violet-500/10 text-violet-400 border-violet-500/20',
   },
 };
@@ -242,16 +245,16 @@ export default async function ShortProfilePage({ params }: Props) {
       matchedServices.push({ key, info });
       addedNames.add(info.name);
     } else if (!info && !addedNames.has(key)) {
-      // Fallback for unknown service
+      // Fallback for custom service
       matchedServices.push({
         key,
         info: {
           name: key.replace(/_/g, ' '),
           gameTag: 'LMHT / LoL',
-          desc: 'Dịch vụ chuyên nghiệp được cung cấp bởi Booster.',
+          desc: 'Dịch vụ chuyên nghiệp do Booster trực tiếp thực hiện.',
           href: (u) => `/services/lol/rank-boost?booster=@${u}`,
           icon: Swords,
-          gradient: 'from-zinc-800 to-zinc-900 border-zinc-700 hover:border-zinc-500',
+          cardBg: 'hover:border-zinc-500 hover:bg-zinc-800/50',
           badgeBg: 'bg-zinc-800 text-zinc-300 border-zinc-700',
         },
       });
@@ -264,17 +267,17 @@ export default async function ShortProfilePage({ params }: Props) {
   const boosterUsername = boosterData?.username || data.user.username;
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-white font-sans selection:bg-blue-500/30">
+    <div className="min-h-screen bg-[#09090b] text-white font-sans selection:bg-blue-500/30">
       {/* Background ambient lighting */}
-      <div className="fixed inset-0 z-[-1] pointer-events-none opacity-25">
+      <div className="fixed inset-0 z-[-1] pointer-events-none opacity-20">
         <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-blue-600/20 rounded-full blur-[140px]" />
         <div className="absolute top-1/3 right-1/4 w-[500px] h-[500px] bg-purple-600/20 rounded-full blur-[140px]" />
       </div>
 
-      <div className="max-w-5xl mx-auto py-10 px-4 sm:px-6 relative">
-        {/* Navigation bar with back button */}
+      <div className="max-w-6xl mx-auto py-8 px-4 sm:px-6 relative">
+        {/* Navigation bar with BackButton */}
         <div className="mb-6 flex items-center justify-between">
-          <BackButton />
+          <BackButton fallbackUrl="/boosters" />
           <div className="flex items-center gap-2">
             <span
               className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border ${
@@ -293,40 +296,36 @@ export default async function ShortProfilePage({ params }: Props) {
           </div>
         </div>
 
-        {/* Profile Hero Header Card */}
-        <div className="relative p-6 sm:p-8 bg-zinc-900/60 backdrop-blur-xl border border-white/10 rounded-3xl shadow-2xl mb-8 overflow-hidden">
-          {/* Decorative glow highlights */}
-          <div className="absolute -top-24 -left-24 w-60 h-60 bg-blue-500/20 rounded-full blur-3xl pointer-events-none" />
-          <div className="absolute -bottom-24 -right-24 w-60 h-60 bg-purple-500/20 rounded-full blur-3xl pointer-events-none" />
-
-          <div className="relative z-10 flex flex-col md:flex-row items-center md:items-start gap-6">
-            {/* Avatar with dynamic ring */}
-            <div className="relative shrink-0">
-              <div className="relative w-28 h-28 sm:w-32 sm:h-32 rounded-2xl overflow-hidden border-2 border-blue-500/60 shadow-xl shadow-blue-500/20 bg-zinc-900">
-                <Image
-                  src={boosterData?.profile?.avatar || '/default-avatar.png'}
-                  alt={boosterName}
-                  fill
-                  priority
-                  className="object-cover"
-                />
+        {/* Hero Card Banner */}
+        <div className="relative p-6 sm:p-7 bg-zinc-900/70 border border-white/10 rounded-3xl shadow-xl mb-8">
+          <div className="flex flex-col sm:flex-row items-center sm:items-start justify-between gap-6">
+            <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5 text-center sm:text-left">
+              {/* Avatar */}
+              <div className="relative shrink-0">
+                <div className="relative w-24 h-24 sm:w-28 sm:h-28 rounded-2xl overflow-hidden border-2 border-blue-500/60 shadow-lg bg-zinc-900">
+                  <Image
+                    src={boosterData?.profile?.avatar || '/default-avatar.png'}
+                    alt={boosterName}
+                    fill
+                    priority
+                    className="object-cover"
+                  />
+                </div>
+                <div
+                  className={`absolute -bottom-1.5 -right-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wider uppercase border shadow-md flex items-center gap-1 ${
+                    isReady
+                      ? 'bg-emerald-500 text-black border-emerald-300'
+                      : 'bg-zinc-700 text-zinc-300 border-zinc-600'
+                  }`}
+                >
+                  <span className={`w-1.5 h-1.5 rounded-full ${isReady ? 'bg-black' : 'bg-zinc-400'}`} />
+                  {isReady ? 'ONLINE' : 'BUSY'}
+                </div>
               </div>
-              <div
-                className={`absolute -bottom-2 -right-2 px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wider uppercase border shadow-md flex items-center gap-1 ${
-                  isReady
-                    ? 'bg-emerald-500 text-black border-emerald-300'
-                    : 'bg-zinc-700 text-zinc-300 border-zinc-600'
-                }`}
-              >
-                <span className={`w-1.5 h-1.5 rounded-full ${isReady ? 'bg-black' : 'bg-zinc-400'}`} />
-                {isReady ? 'ONLINE' : 'BUSY'}
-              </div>
-            </div>
 
-            {/* Profile Info */}
-            <div className="flex-1 text-center md:text-left space-y-3">
-              <div>
-                <div className="flex flex-wrap items-center justify-center md:justify-start gap-2.5">
+              {/* Identity & Badges */}
+              <div className="space-y-2">
+                <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
                   <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
                     {boosterName}
                   </h1>
@@ -335,48 +334,42 @@ export default async function ShortProfilePage({ params }: Props) {
                     Verified Booster
                   </span>
                 </div>
-                <p className="text-zinc-500 text-xs sm:text-sm font-medium mt-0.5">@{boosterUsername}</p>
-              </div>
+                <p className="text-zinc-500 text-xs sm:text-sm font-medium">@{boosterUsername}</p>
 
-              {/* Stats badges */}
-              <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 text-sm">
-                <div className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 font-bold">
-                  <Star size={15} className="fill-amber-400 text-amber-400" />
-                  <span>{boosterData?.rating ? boosterData.rating.toFixed(1) : '5.0'}</span>
-                  <span className="text-xs text-amber-400/70 font-normal">
-                    ({reviews?.length || 0} đánh giá)
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400 font-semibold">
-                  <CheckCircle2 size={15} />
-                  <span>{boosterData?.completed_orders || 0} đơn hoàn thành</span>
-                </div>
-
-                {boosterData?.highestRank && (
-                  <div className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-purple-500/10 border border-purple-500/20 text-purple-300 font-medium text-xs">
-                    <Flame size={14} className="text-purple-400" />
-                    <span>Peak: {boosterData.highestRank}</span>
+                {/* Key Metric Chips */}
+                <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2.5 pt-1 text-xs">
+                  <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 font-bold">
+                    <Star size={14} className="fill-amber-400 text-amber-400" />
+                    <span>{boosterData?.rating ? boosterData.rating.toFixed(1) : '5.0'}</span>
+                    <span className="text-[10px] text-amber-400/70 font-normal">
+                      ({reviews?.length || 0} đánh giá)
+                    </span>
                   </div>
-                )}
-              </div>
 
-              {/* Bio */}
-              <p className="text-zinc-300 text-sm leading-relaxed max-w-2xl whitespace-pre-line bg-zinc-950/40 p-3.5 rounded-2xl border border-white/5">
-                {boosterData?.bio || 'Chưa cập nhật phần giới thiệu cá nhân.'}
-              </p>
+                  <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-400 font-semibold">
+                    <CheckCircle2 size={14} />
+                    <span>{boosterData?.completed_orders || 0} đơn hoàn thành</span>
+                  </div>
+
+                  {boosterData?.highestRank && (
+                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-purple-500/10 border border-purple-500/20 text-purple-300 font-medium">
+                      <Flame size={13} className="text-purple-400" />
+                      <span>Peak: {boosterData.highestRank}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
 
-            {/* CTAs */}
-            <div className="flex flex-col sm:flex-row md:flex-col gap-2.5 w-full md:w-auto shrink-0 md:self-center">
+            {/* Actions */}
+            <div className="flex flex-row sm:flex-col gap-2.5 w-full sm:w-auto shrink-0 justify-center">
               <Link
                 href={`/services/lol/rank-boost?booster=@${boosterUsername}`}
-                className="flex items-center justify-center gap-2 px-7 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold rounded-xl transition-all duration-300 shadow-lg shadow-blue-600/30 hover:shadow-blue-500/50 hover:scale-105 active:scale-95 text-center text-sm"
+                className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold rounded-xl transition-all duration-200 shadow-md shadow-blue-600/30 hover:scale-105 active:scale-95 text-sm"
               >
                 <span>Thuê ngay</span>
-                <ArrowRight size={16} />
+                <ArrowRight size={15} />
               </Link>
-
               <ShareProfileButton
                 username={boosterUsername}
                 displayName={boosterName}
@@ -385,74 +378,107 @@ export default async function ShortProfilePage({ params }: Props) {
           </div>
         </div>
 
-        {/* Main Content Grid */}
-        <div className="grid md:grid-cols-3 gap-6">
-          {/* Left Column: Stats & Champions */}
-          <div className="md:col-span-1 space-y-6">
-            {/* Rank Box */}
-            <div className="bg-zinc-900/60 backdrop-blur-xl border border-white/10 rounded-2xl p-5 space-y-4 shadow-xl">
-              <div className="flex items-center justify-between pb-3 border-b border-zinc-800">
-                <span className="text-xs text-zinc-400 uppercase tracking-wider font-bold">Rank Hiện Tại</span>
-                <span className="text-sm font-extrabold text-blue-400 bg-blue-500/10 px-2.5 py-0.5 rounded-lg border border-blue-500/20">
-                  {boosterData?.currentRank || 'N/A'}
-                </span>
+        {/* 2-Column Responsive Layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          {/* Left Column (5 Cols): Bio, Guarantees, Rank, Champions */}
+          <div className="lg:col-span-5 space-y-6">
+            {/* Bio & Service Guarantees Card */}
+            <div className="bg-zinc-900/70 border border-white/10 rounded-2xl p-5 shadow-lg">
+              <h3 className="text-sm font-bold text-zinc-200 mb-3 flex items-center gap-2">
+                <MessageSquare size={16} className="text-blue-400" />
+                Giới thiệu về Booster
+              </h3>
+              <p className="text-zinc-300 text-sm leading-relaxed whitespace-pre-line bg-zinc-950/60 p-3.5 rounded-xl border border-white/5 italic">
+                "{boosterData?.bio?.trim() || 'Booster chuyên nghiệp, cam kết tốc độ cày nhanh, bảo mật tài khoản và tỉ lệ thắng cao nhất.'}"
+              </p>
+
+              {/* 4 Guarantees */}
+              <div className="grid grid-cols-2 gap-2 mt-4 pt-4 border-t border-zinc-800/80">
+                <div className="flex items-center gap-2 text-xs text-zinc-300">
+                  <Clock size={14} className="text-amber-400 shrink-0" />
+                  <span>Xử lý trong 15p</span>
+                </div>
+                <div className="flex items-center gap-2 text-xs text-zinc-300">
+                  <Lock size={14} className="text-emerald-400 shrink-0" />
+                  <span>Bảo mật IP / VPN</span>
+                </div>
+                <div className="flex items-center gap-2 text-xs text-zinc-300">
+                  <Shield size={14} className="text-blue-400 shrink-0" />
+                  <span>Không dùng Tool</span>
+                </div>
+                <div className="flex items-center gap-2 text-xs text-zinc-300">
+                  <Target size={14} className="text-purple-400 shrink-0" />
+                  <span>Tỉ lệ thắng cao</span>
+                </div>
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-zinc-400 uppercase tracking-wider font-bold">Rank Cao Nhất</span>
-                <span className="text-sm font-extrabold text-amber-400 bg-amber-500/10 px-2.5 py-0.5 rounded-lg border border-amber-500/20">
-                  {boosterData?.highestRank || 'N/A'}
-                </span>
+            </div>
+
+            {/* Rank Box */}
+            <div className="bg-zinc-900/70 border border-white/10 rounded-2xl p-5 shadow-lg">
+              <h3 className="text-sm font-bold text-zinc-200 mb-3 flex items-center gap-2">
+                <Trophy size={16} className="text-yellow-400" />
+                Trình độ & Xếp hạng
+              </h3>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-zinc-950/60 p-3 rounded-xl border border-white/5">
+                  <div className="text-[11px] text-zinc-400 uppercase font-semibold">Rank Hiện Tại</div>
+                  <div className="text-sm font-bold text-blue-400 mt-1">{boosterData?.currentRank || 'N/A'}</div>
+                </div>
+                <div className="bg-zinc-950/60 p-3 rounded-xl border border-white/5">
+                  <div className="text-[11px] text-zinc-400 uppercase font-semibold">Rank Cao Nhất</div>
+                  <div className="text-sm font-bold text-amber-400 mt-1">{boosterData?.highestRank || 'N/A'}</div>
+                </div>
               </div>
             </div>
 
             {/* Winrate Stat Box */}
-            <div className="bg-zinc-900/60 backdrop-blur-xl border border-white/10 rounded-2xl p-5 shadow-xl">
-              <h3 className="text-sm font-bold text-zinc-300 mb-3 flex items-center gap-2">
-                <TrendingUp size={18} className="text-emerald-400" />
-                Tỉ lệ thắng (30 ngày gần nhất)
+            <div className="bg-zinc-900/70 border border-white/10 rounded-2xl p-5 shadow-lg">
+              <h3 className="text-sm font-bold text-zinc-200 mb-2 flex items-center gap-2">
+                <TrendingUp size={16} className="text-emerald-400" />
+                Phong độ gần đây (30 ngày)
               </h3>
-              <div className="flex items-baseline gap-2">
-                <span className="text-3xl font-black text-emerald-400 tracking-tight">{winRate}%</span>
+              <div className="flex items-baseline gap-2 mb-2">
+                <span className="text-3xl font-black text-emerald-400">{winRate}%</span>
                 <span className="text-xs text-zinc-400">
                   ({wins} Thắng - {losses} Thua)
                 </span>
               </div>
               {winRateTrendData.length > 0 && (
-                <div className="mt-3 pt-3 border-t border-zinc-800">
-                  <SparklineChart data={winRateTrendData} color="#34d399" height={55} />
+                <div className="pt-2">
+                  <SparklineChart data={winRateTrendData} color="#34d399" height={50} />
                 </div>
               )}
             </div>
 
-            {/* Playing Champions (Champion Pool) */}
+            {/* Champion Pool */}
             {championPool.length > 0 && (
-              <div className="bg-zinc-900/60 backdrop-blur-xl border border-white/10 rounded-2xl p-5 shadow-xl">
-                <div className="flex items-center justify-between mb-4">
+              <div className="bg-zinc-900/70 border border-white/10 rounded-2xl p-5 shadow-lg">
+                <div className="flex items-center justify-between mb-3">
                   <h3 className="text-sm font-bold text-zinc-200 flex items-center gap-2">
-                    <Shield size={18} className="text-blue-400" />
+                    <Shield size={16} className="text-blue-400" />
                     Tướng tủ ({championPool.length})
                   </h3>
-                  <span className="text-[10px] text-zinc-500 uppercase tracking-wider font-mono">
+                  <span className="text-[10px] text-zinc-500 font-mono">
                     Patch {ddragonVersion}
                   </span>
                 </div>
-                <div className="grid grid-cols-5 gap-2.5">
-                  {championPool.map((champ: string) => (
+                <div className="grid grid-cols-5 gap-2">
+                  {championPool.slice(0, 10).map((champ: string) => (
                     <div
                       key={champ}
                       className="group relative flex flex-col items-center"
                       title={champ}
                     >
-                      <div className="relative w-11 h-11 rounded-xl overflow-hidden border border-zinc-700/80 group-hover:border-blue-500 group-hover:scale-105 transition-all duration-200 bg-zinc-800 shadow-sm">
+                      <div className="relative w-10 h-10 rounded-xl overflow-hidden border border-zinc-700 group-hover:border-blue-500 group-hover:scale-110 transition-all duration-200 bg-zinc-800 shadow-sm">
                         <Image
                           src={`https://ddragon.leagueoflegends.com/cdn/${ddragonVersion}/img/champion/${champ}.png`}
                           alt={champ}
                           fill
-                          sizes="44px"
+                          sizes="40px"
                           className="object-cover"
                         />
                       </div>
-                      <span className="text-[10px] text-zinc-400 group-hover:text-white truncate max-w-full text-center mt-1">
+                      <span className="text-[9px] text-zinc-400 group-hover:text-white truncate max-w-full text-center mt-1">
                         {champ}
                       </span>
                     </div>
@@ -462,51 +488,47 @@ export default async function ShortProfilePage({ params }: Props) {
             )}
           </div>
 
-          {/* Right Column: Provided Services & Reviews */}
-          <div className="md:col-span-2 space-y-6">
-            {/* Services Overhaul Section */}
-            <div className="bg-zinc-900/60 backdrop-blur-xl border border-white/10 rounded-2xl p-6 shadow-xl">
-              <div className="flex items-center justify-between mb-5 pb-3 border-b border-zinc-800">
+          {/* Right Column (7 Cols): Provided Services & Reviews */}
+          <div className="lg:col-span-7 space-y-6">
+            {/* Services Section */}
+            <div className="bg-zinc-900/70 border border-white/10 rounded-2xl p-5 sm:p-6 shadow-lg">
+              <div className="flex items-center justify-between mb-4 pb-3 border-b border-zinc-800">
                 <div className="flex items-center gap-2.5">
                   <div className="p-2 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400">
-                    <Swords size={20} />
+                    <Swords size={18} />
                   </div>
                   <div>
-                    <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                      Dịch vụ cung cấp
-                    </h3>
-                    <p className="text-xs text-zinc-400">
-                      Chọn dịch vụ để đặt hàng trực tiếp cùng Booster {boosterName}
-                    </p>
+                    <h3 className="text-base font-bold text-white">Dịch vụ cung cấp ({matchedServices.length})</h3>
+                    <p className="text-xs text-zinc-400">Đặt dịch vụ trực tiếp với Booster {boosterName}</p>
                   </div>
                 </div>
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-zinc-800 border border-zinc-700 text-zinc-300">
-                  <Gamepad2 size={14} className="text-blue-400" />
-                  LMHT (LoL)
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-zinc-800 border border-zinc-700 text-zinc-300">
+                  <Gamepad2 size={13} className="text-blue-400" />
+                  LMHT
                 </span>
               </div>
 
               {matchedServices.length === 0 ? (
                 <div className="text-center py-8 border border-dashed border-zinc-800 rounded-xl">
-                  <p className="text-zinc-500 text-sm">Booster hiện chưa kích hoạt dịch vụ nào.</p>
+                  <p className="text-zinc-500 text-sm">Booster hiện chưa cập nhật danh sách dịch vụ.</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {matchedServices.map(({ key, info }) => {
                     const ServiceIcon = info.icon;
                     return (
                       <Link
                         key={key}
                         href={info.href(boosterUsername)}
-                        className={`group relative flex flex-col justify-between p-4 rounded-xl border bg-gradient-to-br transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-black/40 ${info.gradient}`}
+                        className={`group flex flex-col justify-between p-3.5 rounded-xl border border-white/10 bg-zinc-950/50 transition-all duration-200 ${info.cardBg} hover:-translate-y-0.5 shadow-sm`}
                       >
                         <div>
                           <div className="flex items-center justify-between mb-2">
-                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border uppercase tracking-wider ${info.badgeBg}`}>
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded border uppercase ${info.badgeBg}`}>
                               {info.gameTag}
                             </span>
-                            <div className="p-1.5 rounded-lg bg-white/5 border border-white/10 text-white group-hover:scale-110 group-hover:bg-white/10 transition-all">
-                              <ServiceIcon size={16} />
+                            <div className="p-1 rounded-lg bg-white/5 text-zinc-300 group-hover:text-white transition-colors">
+                              <ServiceIcon size={15} />
                             </div>
                           </div>
                           <h4 className="font-bold text-white text-sm group-hover:text-blue-400 transition-colors line-clamp-1">
@@ -517,9 +539,9 @@ export default async function ShortProfilePage({ params }: Props) {
                           </p>
                         </div>
 
-                        <div className="mt-3.5 pt-2.5 border-t border-white/5 flex items-center justify-between text-xs font-semibold text-blue-400 group-hover:text-blue-300">
+                        <div className="mt-3 pt-2 border-t border-white/5 flex items-center justify-between text-xs font-semibold text-blue-400 group-hover:text-blue-300">
                           <span>Đặt dịch vụ ngay</span>
-                          <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
+                          <ArrowRight size={13} className="group-hover:translate-x-1 transition-transform" />
                         </div>
                       </Link>
                     );
