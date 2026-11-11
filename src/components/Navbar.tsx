@@ -79,9 +79,17 @@ export default function Navbar() {
     const token = localStorage.getItem('token');
     if (token) {
       fetch('/api/wallet', { headers: { Authorization: `Bearer ${token}` } })
-        .then(res => res.json())
+        .then(res => {
+          if (res.status === 401) {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            setUser(null);
+            return null;
+          }
+          return res.json();
+        })
         .then(data => {
-          if (data.balance !== undefined) {
+          if (data && data.balance !== undefined) {
             const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
             const updatedUser = {
               ...currentUser,
@@ -139,11 +147,23 @@ export default function Navbar() {
         // Fetch notifications
         if (token) {
           fetch('/api/notifications', { headers: { Authorization: `Bearer ${token}` } })
-            .then(res => res.json())
+            .then(res => {
+              if (res.status === 401) {
+                localStorage.removeItem('token');
+                localStorage.removeItem('user');
+                setUser(null);
+                return null;
+              }
+              if (!res.ok) return null;
+              return res.json();
+            })
             .then(data => {
-              setNotifications(data.notifications || []);
-              setUnreadCount(data.unreadCount || 0);
-            });
+              if (data) {
+                setNotifications(data.notifications || []);
+                setUnreadCount(data.unreadCount || 0);
+              }
+            })
+            .catch(() => {});
         }
 
         // Fetch fresh balance on mount to fix 0đ issue
@@ -290,7 +310,7 @@ export default function Navbar() {
           {/* Logo */}
           <Link href="/" className="flex items-center gap-3 group" suppressHydrationWarning>
             <div className="relative h-9 w-9 overflow-hidden group-hover:ring-blue-500/50 transition" suppressHydrationWarning>
-              <Image src="/logo.png" alt="Logo" fill className="object-cover" />
+              <Image src="/logo.png" alt="Logo" fill sizes="36px" className="object-cover" />
             </div>
             <span className="text-lg font-bold tracking-tight text-white">
               LEO<span className="text-blue-500">RANK</span>
@@ -611,7 +631,7 @@ export default function Navbar() {
               </div>
 
               {/* Actions */}
-              <div className="mt-6 pt-6 border-t border-white/10 space-y-3">
+              <div className="mt-6 pt-6 border-t border-white/10 space-y-3" suppressHydrationWarning>
                 <Link href="/dashboard" onClick={closeMobileMenu} className="block w-full text-center rounded-lg bg-blue-600 px-6 py-3 text-white font-semibold">{t('rentNow')}</Link>
                 <Link href="/wallet" onClick={closeMobileMenu} className="block w-full text-center rounded-lg bg-emerald-600/20 border border-emerald-500/30 px-6 py-3 text-emerald-400 font-semibold">{t('depositNow')}</Link>
                 <button onClick={() => { logout(); closeMobileMenu(); }} className="flex w-full items-center justify-center gap-3 rounded-lg py-3 text-red-400 hover:bg-red-500/10 transition-colors">
@@ -620,15 +640,15 @@ export default function Navbar() {
               </div>
             </div>
           ) : (
-            <div className="flex flex-col h-full">
-              <div className="flex-grow space-y-2">
+            <div className="flex flex-col h-full" suppressHydrationWarning>
+              <div className="flex-grow space-y-2" suppressHydrationWarning>
                 <Link href="/services" onClick={closeMobileMenu} suppressHydrationWarning className="block px-4 py-3 rounded-lg hover:bg-white/5 transition-colors">{t('services')}</Link>
                 <Link href="/boosters" onClick={closeMobileMenu} suppressHydrationWarning className="block px-4 py-3 rounded-lg hover:bg-white/5 transition-colors">{t('boosters')}</Link>
                 <Link href="/blogs" onClick={closeMobileMenu} suppressHydrationWarning className="block px-4 py-3 rounded-lg hover:bg-white/5 transition-colors">{t('blog')}</Link>
               </div>
 
-              <div className="space-y-3">
-                <div className="flex gap-3">
+              <div className="space-y-3" suppressHydrationWarning>
+                <div className="flex gap-3" suppressHydrationWarning>
                   <Link href="/login" onClick={closeMobileMenu} suppressHydrationWarning className="flex-1 text-center rounded-lg border border-zinc-700 bg-zinc-800/50 px-6 py-3 font-semibold transition-colors hover:bg-zinc-700">{t('login')}</Link>
                   <Link href="/register" onClick={closeMobileMenu} suppressHydrationWarning className="flex-1 text-center rounded-lg border border-zinc-700 bg-zinc-800/50 px-6 py-3 font-semibold transition-colors hover:bg-zinc-700">{t('registerNow')}</Link>
                 </div>
@@ -637,7 +657,7 @@ export default function Navbar() {
             </div>
           )}
 
-          <div className="mt-8 flex items-center justify-center pt-8 border-t border-white/10">
+          <div className="mt-8 flex items-center justify-center pt-8 border-t border-white/10" suppressHydrationWarning>
             <LanguageSwitcher
               language={language}
               setLanguage={setLanguage}

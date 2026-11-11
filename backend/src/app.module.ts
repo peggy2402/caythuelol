@@ -17,6 +17,7 @@ import { BlogsModule } from './modules/blogs/blogs.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { CronModule } from './modules/cron/cron.module';
 import { PublicModule } from './modules/public/public.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
 
 @Module({
   imports: [
@@ -45,6 +46,7 @@ import { PublicModule } from './modules/public/public.module';
     AdminModule,
     CronModule,
     PublicModule,
+    NotificationsModule,
   ],
   controllers: [AppController],
   providers: [],

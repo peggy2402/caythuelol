@@ -83,7 +83,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="vi" className="overflow-x-hidden">
+    <html lang="vi" className="overflow-x-hidden" suppressHydrationWarning>
       <body
         className={`${beVietnamPro.variable} font-sans antialiased bg-zinc-950 text-white w-full max-w-full overflow-x-hidden`}
         suppressHydrationWarning

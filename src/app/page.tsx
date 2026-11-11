@@ -143,15 +143,15 @@ export default function Home() {
     <div className="min-h-screen bg-[#030303] text-zinc-100 font-sans selection:bg-blue-500/30 overflow-x-hidden" suppressHydrationWarning>
       <Navbar />
 
-      <main className="relative">
+      <main className="relative" suppressHydrationWarning>
         {/* Ambient Background Noise/Texture */}
-        <div className="fixed inset-0 z-0 pointer-events-none opacity-[0.02] mix-blend-overlay" style={{ backgroundImage: 'url("/noise.png")' }}></div>
+        <div className="fixed inset-0 z-0 pointer-events-none opacity-[0.02] mix-blend-overlay" style={{ backgroundImage: 'url("/noise.png")' }} suppressHydrationWarning></div>
 
         {/* Hero Section */}
-        <section className="relative pt-32 pb-20 md:pt-40 md:pb-32 overflow-hidden min-h-[90vh] flex items-center">
+        <section className="relative pt-32 pb-20 md:pt-40 md:pb-32 overflow-hidden min-h-[90vh] flex items-center" suppressHydrationWarning>
           {/* Dynamic Background Glows */}
-          <div className="absolute top-[-20%] left-[-10%] w-[50vw] h-[50vw] bg-blue-600/10 blur-[120px] rounded-full pointer-events-none mix-blend-screen" />
-          <div className="absolute top-[10%] right-[-10%] w-[40vw] h-[40vw] bg-purple-600/10 blur-[120px] rounded-full pointer-events-none mix-blend-screen" />
+          <div className="absolute top-[-20%] left-[-10%] w-[50vw] h-[50vw] bg-blue-600/10 blur-[120px] rounded-full pointer-events-none mix-blend-screen" suppressHydrationWarning />
+          <div className="absolute top-[10%] right-[-10%] w-[40vw] h-[40vw] bg-purple-600/10 blur-[120px] rounded-full pointer-events-none mix-blend-screen" suppressHydrationWarning />
 
           <motion.div style={{ opacity: opacityHero, y: y1 }} className="container mx-auto px-6 relative z-10">
             <div className="grid lg:grid-cols-2 gap-16 lg:gap-8 items-center">
