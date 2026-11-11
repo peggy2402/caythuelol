@@ -3,11 +3,12 @@
 import { useState, useEffect, useMemo, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { Loader2, ArrowRight, ChevronDown, Search } from 'lucide-react';
+import { Loader2, ArrowRight, ChevronDown, Search, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 import AccountInfo from '@/components/services/lol/AccountInfo';
 import ExtraOptions from '@/components/services/lol/ExtraOptions';
 import PaymentSummary from '@/components/services/lol/PaymentSummary';
+import { getTierVi, VerifiedRankInfo } from '@/lib/riotRanks';
  
 
 const PROMOTION_STEPS = [
@@ -38,6 +39,7 @@ function PromotionContent() {
   const [checkIngame, setCheckIngame] = useState('');
   const [isChecking, setIsChecking] = useState(false);
   const [isRankVerified, setIsRankVerified] = useState(false);
+  const [verifiedRankInfo, setVerifiedRankInfo] = useState<VerifiedRankInfo | null>(null);
 
   // Account Info State
   const [accountType, setAccountType] = useState('RIOT');
@@ -184,6 +186,7 @@ function PromotionContent() {
           const league = Array.isArray(data.leagues) ? data.leagues.find((l: any) => l.queueType === qType) : null;
 
           if (league) {
+              const tierVi = getTierVi(league.tier);
               // Map Riot Tier to our Key (e.g. Gold_I)
               const key = `${league.tier.toUpperCase()}_${league.rank}`;
               const promoStep = PROMOTION_STEPS.find(p => p.id === key);
@@ -191,13 +194,25 @@ function PromotionContent() {
               if (promoStep) {
                   setSelectedPromo(key);
                   setIsRankVerified(true);
-                  toast.success(`Đã xác thực: ${league.tier} ${league.rank}. Hệ thống đã tự động chọn chuỗi phù hợp.`);
+                  const qName = queueType === 'SOLO' ? 'Xếp hạng Đơn/Đôi' : 'Xếp hạng Linh Hoạt';
+                  setVerifiedRankInfo({
+                    tier: league.tier,
+                    tierVi,
+                    rank: league.rank,
+                    lp: league.leaguePoints,
+                    queueName: qName,
+                    gameName: data.gameName || checkIngame.split('#')[0] || '',
+                    tagLine: data.tagLine || checkIngame.split('#')[1] || '',
+                  });
+                  toast.success(`Đã xác thực: ${tierVi} ${league.rank}. Hệ thống đã tự động chọn chuỗi phù hợp.`);
                   if (!gameUsername) setGameUsername(checkIngame.trim());
               } else {
-                  toast.error(`Rank hiện tại (${league.tier} ${league.rank}) không phải là bậc I. Dịch vụ này chỉ dành cho chuỗi thăng hạng từ bậc I.`);
+                  setVerifiedRankInfo(null);
+                  toast.error(`Rank hiện tại (${tierVi} ${league.rank}) không phải là bậc I. Dịch vụ này chỉ dành cho chuỗi thăng hạng từ bậc I.`);
                   setIsRankVerified(false);
               }
           } else {
+              setVerifiedRankInfo(null);
               toast.warning(`Tài khoản chưa có rank ${queueType === 'SOLO' ? 'Đơn/Đôi' : 'Linh Hoạt'}. Không thể xác thực.`);
               setIsRankVerified(false);
           }
@@ -277,6 +292,21 @@ function PromotionContent() {
                                         <p className="text-[10px] text-zinc-500 mt-2 italic">
                                             * Hệ thống sẽ tự động chọn chuỗi thăng hạng phù hợp với Rank của bạn.
                                         </p>
+
+                                        {/* Khối hiển thị kết quả xác thực Rank trực quan */}
+                                        {verifiedRankInfo && (
+                                          <div className="mt-3 p-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-between gap-2 text-xs">
+                                            <div className="flex items-center gap-2 min-w-0">
+                                              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                                              <span className="text-zinc-300 truncate">
+                                                Đã xác thực: <strong className="text-white font-semibold">{verifiedRankInfo.gameName}#{verifiedRankInfo.tagLine}</strong> ➔ <span className="text-emerald-400 font-bold">{verifiedRankInfo.tierVi} {verifiedRankInfo.rank}</span> ({verifiedRankInfo.lp} LP)
+                                              </span>
+                                            </div>
+                                            <span className="text-[10px] font-medium text-emerald-400/80 bg-emerald-950/60 border border-emerald-500/30 px-2 py-0.5 rounded whitespace-nowrap hidden sm:inline-block">
+                                              {verifiedRankInfo.queueName}
+                                            </span>
+                                          </div>
+                                        )}
                                     </div>
 
                                     {/* Queue Type */}

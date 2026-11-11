@@ -4,12 +4,13 @@
 import { useState, useEffect, useMemo, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useSearchParams } from 'next/navigation';
-import { ChevronRight, Loader2, ChevronDown, Search, Check } from 'lucide-react';
+import { ChevronRight, Loader2, ChevronDown, Search, Check, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 import AccountInfo from '@/components/services/lol/AccountInfo';
 import ExtraOptions from '@/components/services/lol/ExtraOptions';
 import PaymentSummary from '@/components/services/lol/PaymentSummary';
 import { detectUserServer } from '@/lib/geo';
+import { getTierVi, VerifiedRankInfo } from '@/lib/riotRanks';
 
 const RANKS = ['Iron', 'Bronze', 'Silver', 'Gold', 'Platinum', 'Emerald', 'Diamond', 'Master'];
 const DIVISIONS = ['IV', 'III', 'II', 'I'];
@@ -146,6 +147,7 @@ function RankBoostContent() {
   // Validation State
   const [checkIngame, setCheckIngame] = useState('');
   const [verifiedRankIndex, setVerifiedRankIndex] = useState(-1);
+  const [verifiedRankInfo, setVerifiedRankInfo] = useState<VerifiedRankInfo | null>(null);
   const [isChecking, setIsChecking] = useState(false);
   
   // Account Info State
@@ -344,6 +346,7 @@ function RankBoostContent() {
           const league = Array.isArray(data.leagues) ? data.leagues.find((l: any) => l.queueType === qType) : null;
 
           if (league) {
+              const tierVi = getTierVi(league.tier);
               // Map Riot Tier to our Key (e.g. GOLD_IV)
               let key = `${league.tier}_${league.rank}`;
               if (['MASTER', 'GRANDMASTER', 'CHALLENGER'].includes(league.tier)) key = 'MASTER';
@@ -353,14 +356,26 @@ function RankBoostContent() {
               if (idx !== -1) {
                   setCurrentTier(key);
                   setVerifiedRankIndex(idx); // Khóa các rank thấp hơn
-                  toast.success(`Đã xác thực: ${league.tier} ${league.rank} (${league.leaguePoints} LP)`);
+                  const qName = queueType === 'SOLO_DUO' ? 'Xếp hạng Đơn/Đôi' : 'Xếp hạng Linh Hoạt';
+                  setVerifiedRankInfo({
+                    tier: league.tier,
+                    tierVi,
+                    rank: league.rank,
+                    lp: league.leaguePoints,
+                    queueName: qName,
+                    gameName: data.gameName || checkIngame.split('#')[0] || '',
+                    tagLine: data.tagLine || checkIngame.split('#')[1] || '',
+                  });
+                  toast.success(`Đã xác thực: ${tierVi} ${league.rank} (${league.leaguePoints} LP)`);
                   
                   // Tự động điền vào Account Info nếu chưa có
                   if (!gameUsername) setGameUsername(checkIngame.trim());
               } else {
-                  toast.error(`Không hỗ trợ rank này: ${league.tier}`);
+                  setVerifiedRankInfo(null);
+                  toast.error(`Không hỗ trợ rank này: ${tierVi || league.tier}`);
               }
           } else {
+              setVerifiedRankInfo(null);
               toast.warning(`Tài khoản chưa có rank ${queueType === 'SOLO_DUO' ? 'Đơn/Đôi' : 'Linh Hoạt'}.`);
               setVerifiedRankIndex(-1); // Reset
           }
@@ -423,6 +438,21 @@ function RankBoostContent() {
                 <p className="text-[10px] text-zinc-500 mt-2 italic">
                     * Hệ thống sẽ tự động chọn Rank hiện tại chuẩn xác nhất để tránh sai sót.
                 </p>
+
+                {/* Khối hiển thị kết quả xác thực Rank trực quan */}
+                {verifiedRankInfo && (
+                  <div className="mt-3 p-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-between gap-2 text-xs">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                      <span className="text-zinc-300 truncate">
+                        Đã xác thực: <strong className="text-white font-semibold">{verifiedRankInfo.gameName}#{verifiedRankInfo.tagLine}</strong> ➔ <span className="text-emerald-400 font-bold">{verifiedRankInfo.tierVi} {verifiedRankInfo.rank}</span> ({verifiedRankInfo.lp} LP)
+                      </span>
+                    </div>
+                    <span className="text-[10px] font-medium text-emerald-400/80 bg-emerald-950/60 border border-emerald-500/30 px-2 py-0.5 rounded whitespace-nowrap hidden sm:inline-block">
+                      {verifiedRankInfo.queueName}
+                    </span>
+                  </div>
+                )}
             </div>
 
             <VisualRankSelector 

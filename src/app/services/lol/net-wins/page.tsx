@@ -8,6 +8,7 @@ import AccountInfo from '@/components/services/lol/AccountInfo';
 import ExtraOptions from '@/components/services/lol/ExtraOptions';
 import PaymentSummary from '@/components/services/lol/net-wins/PaymentSummary';
 import { detectUserServer } from '@/lib/geo';
+import { getTierVi, VerifiedRankInfo } from '@/lib/riotRanks';
 
 // Default settings fallback (System defaults)
 const DEFAULT_SETTINGS = {
@@ -53,6 +54,7 @@ function NetWinsContent() {
   const [checkIngame, setCheckIngame] = useState('');
   const [isChecking, setIsChecking] = useState(false);
   const [isRankVerified, setIsRankVerified] = useState(false);
+  const [verifiedRankInfo, setVerifiedRankInfo] = useState<VerifiedRankInfo | null>(null);
 
   // Account Info State
   const [accountType, setAccountType] = useState('RIOT');
@@ -144,25 +146,35 @@ function NetWinsContent() {
           const league = Array.isArray(data.leagues) ? data.leagues.find((l: any) => l.queueType === qType) : null;
 
           if (league) {
+              const tierVi = getTierVi(league.tier);
               // Map Riot Tier to our Ranks (Master+)
               const tierKey = league.tier.charAt(0).toUpperCase() + league.tier.slice(1).toLowerCase(); // e.g. "Master"
               
-              // Chỉ chấp nhận Master+ cho Net Wins (nếu logic yêu cầu thế, hoặc cho phép tất cả nhưng auto-select)
-              // Ở đây ta giả sử Net Wins hỗ trợ Master+ là chủ yếu, nhưng nếu rank thấp hơn vẫn cho phép thì cần map thêm.
-              // Tuy nhiên, RANKS constant chỉ có Master, GM, Challenger.
               const rankExists = RANKS.some(r => r.id === tierKey);
+
+              const qName = queueType === 'SOLO' ? 'Xếp hạng Đơn/Đôi' : 'Xếp hạng Linh Hoạt';
+              setVerifiedRankInfo({
+                tier: league.tier,
+                tierVi,
+                rank: league.rank,
+                lp: league.leaguePoints,
+                queueName: qName,
+                gameName: data.gameName || checkIngame.split('#')[0] || '',
+                tagLine: data.tagLine || checkIngame.split('#')[1] || '',
+              });
 
               if (rankExists) {
                   setSelectedRank(tierKey);
                   setCurrentLP(league.leaguePoints.toString());
                   setIsRankVerified(true);
-                  toast.success(`Đã xác thực: ${league.tier} ${league.rank} (${league.leaguePoints} LP)`);
+                  toast.success(`Đã xác thực: ${tierVi} ${league.rank} (${league.leaguePoints} LP)`);
                   if (!gameUsername) setGameUsername(checkIngame.trim());
               } else {
-                  toast.warning(`Rank hiện tại là ${league.tier}. Dịch vụ này được tối ưu cho Master+. Vui lòng kiểm tra lại hoặc liên hệ hỗ trợ.`);
-                  setIsRankVerified(false); // Hoặc true nếu muốn cho phép nhưng cảnh báo
+                  toast.warning(`Rank hiện tại là ${tierVi} ${league.rank}. Dịch vụ này được tối ưu cho Cao Thủ trở lên.`);
+                  setIsRankVerified(false);
               }
           } else {
+              setVerifiedRankInfo(null);
               toast.warning(`Tài khoản chưa có rank ${queueType === 'SOLO' ? 'Đơn/Đôi' : 'Linh Hoạt'}. Không thể xác thực.`);
               setIsRankVerified(false);
           }
@@ -327,6 +339,21 @@ function NetWinsContent() {
                             <p className="text-[10px] text-zinc-500 mt-2 italic">
                                 * Hệ thống sẽ tự động cập nhật Rank và LP hiện tại để tính toán chính xác.
                             </p>
+
+                            {/* Khối hiển thị kết quả xác thực Rank trực quan */}
+                            {verifiedRankInfo && (
+                              <div className="mt-3 p-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-between gap-2 text-xs">
+                                <div className="flex items-center gap-2 min-w-0">
+                                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                                  <span className="text-zinc-300 truncate">
+                                    Đã xác thực: <strong className="text-white font-semibold">{verifiedRankInfo.gameName}#{verifiedRankInfo.tagLine}</strong> ➔ <span className="text-emerald-400 font-bold">{verifiedRankInfo.tierVi} {verifiedRankInfo.rank}</span> ({verifiedRankInfo.lp} LP)
+                                  </span>
+                                </div>
+                                <span className="text-[10px] font-medium text-emerald-400/80 bg-emerald-950/60 border border-emerald-500/30 px-2 py-0.5 rounded whitespace-nowrap hidden sm:inline-block">
+                                  {verifiedRankInfo.queueName}
+                                </span>
+                              </div>
+                            )}
                         </div>
 
                         {RANKS.map((rank) => {
