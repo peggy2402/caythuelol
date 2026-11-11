@@ -17,13 +17,9 @@ export async function middleware(request: NextRequest) {
 
   // 2. Check Maintenance Mode
   try {
-    // Use absolute URL for server-side fetch in middleware
-    const url = request.nextUrl.clone();
-    url.pathname = '/api/public/system-config';
-    // Thêm timestamp để tránh cache tuyệt đối
-    url.searchParams.set('ts', Date.now().toString());
-    
-    const res = await fetch(url.toString(), { next: { revalidate: 0 } }); // Disable cache for immediate updates
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://apil-lr.leorank.site';
+    const configUrl = `${apiUrl}/api/public/system-config?ts=${Date.now()}`;
+    const res = await fetch(configUrl, { cache: 'no-store' });
     if (res.ok) {
       const config = await res.json();
       

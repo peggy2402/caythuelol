@@ -32,7 +32,7 @@ export class BoostersController {
   @Public()
   @Get(':id')
   @ApiOperation({ summary: 'Get booster profile by ID or username' })
-  async getBoosterById(@Param('id') id: string) {
+  async getBoosterById(@Param('id') id: string): Promise<any> {
     return this.boostersService.getBoosterById(id);
   }
 

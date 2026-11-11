@@ -135,20 +135,88 @@ export class BoostersService {
     };
   }
 
-  async getBoosterById(idOrUsername: string) {
-    let query: any = { username: idOrUsername };
+  async getBoosterById(idOrUsername: string): Promise<any> {
+    let query: any = { username: { $regex: new RegExp(`^${idOrUsername}$`, 'i') } };
     if (Types.ObjectId.isValid(idOrUsername)) {
-      query = { $or: [{ _id: idOrUsername }, { username: idOrUsername }] };
+      query = { $or: [{ _id: idOrUsername }, { username: { $regex: new RegExp(`^${idOrUsername}$`, 'i') } }] };
     }
 
-    const user = await this.userModel.findOne(query).select('-password_hash');
+    const user = await this.userModel.findOne(query).select('-password_hash').lean();
     if (!user) throw new NotFoundException('Không tìm thấy Booster');
 
-    const profile = await this.boosterProfileModel.findOne({ userId: user._id });
+    const [profile, application, completedOrdersCount, reviews, relatedBoosters, ordersLast30Days] =
+      await Promise.all([
+        this.boosterProfileModel.findOne({ userId: user._id }).lean(),
+        this.boosterAppModel.findOne({ userId: user._id }).lean(),
+        this.orderModel.countDocuments({ boosterId: user._id, status: OrderStatus.COMPLETED }),
+        this.orderModel
+          .find({ boosterId: user._id, status: OrderStatus.COMPLETED, rating: { $exists: true } })
+          .populate('customerId', 'username profile.avatar')
+          .sort({ createdAt: -1 })
+          .limit(10)
+          .lean(),
+        this.userModel
+          .find({ role: UserRole.BOOSTER, _id: { $ne: user._id } })
+          .select('username profile booster_info')
+          .limit(6)
+          .lean(),
+        this.orderModel
+          .find({
+            boosterId: user._id,
+            status: OrderStatus.COMPLETED,
+            updatedAt: { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) },
+          })
+          .select('match_history')
+          .lean(),
+      ]);
+
+    const boosterData = {
+      ...user,
+      ...profile,
+      ...(user.booster_info || {}),
+      currentRank: (application as any)?.currentRank || 'N/A',
+      highestRank: (application as any)?.highestRank || 'N/A',
+      completed_orders: completedOrdersCount,
+    };
+
+    let wins = 0;
+    let losses = 0;
+    const winRateTrendData: number[] = [];
+    let cumulativeWins = 0;
+    let cumulativeTotal = 0;
+
+    if (ordersLast30Days) {
+      for (const order of ordersLast30Days as any[]) {
+        if (order.match_history && Array.isArray(order.match_history)) {
+          for (const match of order.match_history) {
+            cumulativeTotal++;
+            if (match.result === 'WIN') {
+              wins++;
+              cumulativeWins++;
+            }
+            if (match.result === 'LOSS') losses++;
+            winRateTrendData.push(Math.round((cumulativeWins / cumulativeTotal) * 100));
+          }
+        }
+      }
+    }
+
+    const totalGames = wins + losses;
+    const winRate = totalGames > 0 ? Math.round((wins / totalGames) * 100) : 0;
+
     return {
       success: true,
       user,
       profile,
+      boosterData,
+      reviews: reviews || [],
+      relatedBoosters: relatedBoosters || [],
+      stats: {
+        wins,
+        losses,
+        winRate,
+        winRateTrendData,
+      },
     };
   }
 
