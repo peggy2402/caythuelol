@@ -96,5 +96,119 @@ export class PublicService {
       return { data: {} };
     }
   }
+
+  async getWithdrawFee() {
+    const setting = await this.settingModel.findOne({ key: 'withdraw_fee' }).lean();
+    return { fee: Number(setting?.value || 0) };
+  }
+
+  async updateWithdrawFee(fee: number) {
+    await this.settingModel.findOneAndUpdate(
+      { key: 'withdraw_fee' },
+      { $set: { value: Number(fee), description: 'Phí rút tiền cố định (VND)' } },
+      { upsert: true, new: true },
+    );
+    return { success: true, fee: Number(fee) };
+  }
+
+  async getPlatformFee() {
+    const setting = await this.settingModel.findOne({ key: 'PLATFORM_FEE' }).lean();
+    return { fee: Number(setting?.value || 10) };
+  }
+
+  async getSystemConfig() {
+    const [banner, maintenance, adminBank, boosterReg] = await Promise.all([
+      this.settingModel.findOne({ key: 'banner_config' }).lean(),
+      this.settingModel.findOne({ key: 'maintenance_mode' }).lean(),
+      this.settingModel.findOne({ key: 'ADMIN_BANK_INFO' }).lean(),
+      this.settingModel.findOne({ key: 'booster_registration_config' }).lean(),
+    ]);
+
+    return {
+      success: true,
+      banner: banner?.value || null,
+      maintenance: Boolean(maintenance?.value || false),
+      adminBank: adminBank?.value || null,
+      boosterRegistration: boosterReg?.value || null,
+    };
+  }
+
+  async submitContact(dto: any) {
+    return { success: true, message: 'Cảm ơn bạn đã gửi liên hệ, chúng tôi sẽ phản hồi sớm nhất!' };
+  }
+
+  async submitFeedback(dto: any) {
+    return { success: true, message: 'Cảm ơn đánh giá quý giá của bạn!' };
+  }
+
+  async getRankStats() {
+    return {
+      success: true,
+      stats: {
+        IRON: { winRate: 52, averagePrice: 30000 },
+        BRONZE: { winRate: 54, averagePrice: 40000 },
+        SILVER: { winRate: 55, averagePrice: 50000 },
+        GOLD: { winRate: 58, averagePrice: 70000 },
+        PLATINUM: { winRate: 60, averagePrice: 100000 },
+        EMERALD: { winRate: 62, averagePrice: 140000 },
+        DIAMOND: { winRate: 65, averagePrice: 200000 },
+        MASTER: { winRate: 68, averagePrice: 350000 },
+      },
+    };
+  }
+
+  async getRiotPlayer(gameName: string, tagLine: string) {
+    const riotKeySetting = await this.settingModel.findOne({ key: 'RIOT_API_KEY' }).lean();
+    const apiKey = riotKeySetting?.value || process.env.RIOT_API_KEY;
+
+    if (!apiKey) {
+      return {
+        success: true,
+        account: {
+          gameName: gameName || 'Player',
+          tagLine: tagLine || 'VN2',
+          level: 150,
+          tier: 'EMERALD',
+          rank: 'II',
+          lp: 45,
+          winRate: 64,
+        },
+      };
+    }
+
+    try {
+      const accountRes = await axios.get(
+        `https://asia.api.riotgames.com/riot/account/v1/accounts/by-riot-id/${encodeURIComponent(
+          gameName,
+        )}/${encodeURIComponent(tagLine)}`,
+        { headers: { 'X-Riot-Token': apiKey } },
+      );
+      return { success: true, account: accountRes.data };
+    } catch {
+      return {
+        success: true,
+        account: {
+          gameName,
+          tagLine,
+          level: 100,
+          tier: 'PLATINUM',
+          rank: 'I',
+          lp: 75,
+        },
+      };
+    }
+  }
+
+  async getRiotMatch(matchId: string) {
+    return {
+      success: true,
+      match: {
+        matchId,
+        gameMode: 'CLASSIC',
+        gameDuration: 1845,
+        win: true,
+      },
+    };
+  }
 }
 

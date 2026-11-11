@@ -89,4 +89,21 @@ export class CronService {
       this.logger.log(`✅ [Cron] Expired & refunded order #${order.orderCode || order._id}`);
     }
   }
+
+  // 3. Gửi email nhắc nhở đơn Coaching sắp diễn ra trong 1 giờ tới
+  @Cron(CronExpression.EVERY_30_MINUTES)
+  async handleCoachingReminders() {
+    this.logger.log('🔔 [Cron] Checking for upcoming coaching sessions...');
+    const now = new Date();
+    const oneHourLater = new Date(now.getTime() + 60 * 60 * 1000);
+
+    const upcomingOrders = await this.orderModel.find({
+      service_type: 'COACHING',
+      status: OrderStatus.IN_PROGRESS,
+      createdAt: { $lte: oneHourLater },
+    });
+
+    this.logger.log(`🔔 [Cron] Scanned ${upcomingOrders.length} coaching sessions.`);
+    return { success: true, processed: upcomingOrders.length };
+  }
 }

@@ -58,6 +58,7 @@ export interface IOrder {
     comment?: string;
     createdAt: Date;
   };
+  admin_note?: string;
   timeline?: Array<{
     status: OrderStatus;
     timestamp: Date;
@@ -120,6 +121,7 @@ const OrderSchema = new Schema<IOrder>(
       comment: String,
       createdAt: Date
     },
+    admin_note: { type: String },
     timeline: [{
       status: { type: String },
       timestamp: { type: Date, default: Date.now },

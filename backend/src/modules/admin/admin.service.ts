@@ -11,6 +11,9 @@ import {
 } from '../../database/schemas/Transaction';
 import { IBoosterApplication } from '../../database/schemas/BoosterApplication';
 import { ISystemSetting } from '../../database/schemas/SystemSetting';
+import { IBlog } from '../../database/schemas/Blog';
+import { IWithdrawal } from '../../database/schemas/Withdrawal';
+import { IAuditLog } from '../../database/schemas/AuditLog';
 
 @Injectable()
 export class AdminService {
@@ -20,6 +23,9 @@ export class AdminService {
     @InjectModel('Transaction') private transactionModel: Model<ITransaction>,
     @InjectModel('BoosterApplication') private boosterAppModel: Model<IBoosterApplication>,
     @InjectModel('SystemSetting') private settingModel: Model<ISystemSetting>,
+    @InjectModel('Blog') private blogModel: Model<IBlog>,
+    @InjectModel('Withdrawal') private withdrawalModel: Model<IWithdrawal>,
+    @InjectModel('AuditLog') private auditLogModel: Model<IAuditLog>,
     @InjectConnection() private readonly connection: Connection,
   ) {}
 
@@ -584,19 +590,494 @@ export class AdminService {
 
   async getSettings() {
     const settings = await this.settingModel.find().lean();
-    const map: Record<string, any> = {};
-    settings.forEach((s) => {
-      map[s.key] = s.value;
-    });
-    return { success: true, settings: map };
+    return settings;
   }
 
-  async updateSetting(key: string, value: any, description?: string) {
+  async updateSetting(key: string, value: any, description?: string): Promise<any> {
     await this.settingModel.findOneAndUpdate(
       { key },
       { $set: { value, description } },
       { upsert: true, new: true },
     );
     return { success: true, key, value };
+  }
+
+  // 1. Quản lý Đơn hàng
+  async getOrders(query: {
+    page?: number;
+    limit?: number;
+    status?: string;
+    search?: string;
+  }): Promise<any> {
+    const page = Number(query.page || 1);
+    const limit = Number(query.limit || 15);
+    const skip = (page - 1) * limit;
+
+    const filter: any = {};
+    if (query.status && query.status !== 'ALL') {
+      filter.status = query.status;
+    }
+
+    if (query.search) {
+      const searchRegex = { $regex: query.search.trim(), $options: 'i' };
+      filter.$or = [
+        { orderCode: searchRegex },
+        { service_type: searchRegex },
+        { 'game_account.ingame_name': searchRegex },
+      ];
+    }
+
+    const [orders, total] = await Promise.all([
+      this.orderModel
+        .find(filter)
+        .populate('customerId', 'username email profile')
+        .populate('boosterId', 'username email profile')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      this.orderModel.countDocuments(filter),
+    ]);
+
+    const totalPages = Math.ceil(total / limit) || 1;
+
+    return {
+      orders,
+      pagination: {
+        total,
+        page,
+        totalPages,
+        limit,
+      },
+    };
+  }
+
+  // 2. Quản lý Bài viết (Blogs CMS)
+  async getBlogs(): Promise<any> {
+    const blogs = await this.blogModel
+      .find()
+      .populate('author', 'username email')
+      .sort({ createdAt: -1 })
+      .lean();
+    return { success: true, blogs };
+  }
+
+  async createBlog(dto: any, authorId: string): Promise<any> {
+    const slug =
+      dto.slug ||
+      dto.title
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^\w\s-]/g, '')
+        .replace(/\s+/g, '-') +
+        '-' +
+        Date.now().toString().slice(-4);
+
+    const blog = await this.blogModel.create({
+      ...dto,
+      slug,
+      author: new Types.ObjectId(authorId),
+    });
+    return { success: true, blog };
+  }
+
+  async updateBlog(id: string, dto: any): Promise<any> {
+    const blog = await this.blogModel.findByIdAndUpdate(id, { $set: dto }, { new: true });
+    if (!blog) throw new NotFoundException('Không tìm thấy bài viết');
+    return { success: true, blog };
+  }
+
+  async deleteBlog(id: string): Promise<any> {
+    const res = await this.blogModel.findByIdAndDelete(id);
+    if (!res) throw new NotFoundException('Không tìm thấy bài viết');
+    return { success: true, message: 'Đã xóa bài viết thành công' };
+  }
+
+  // 3. Quản lý Rút tiền (Withdrawals)
+  async getWithdrawals(query: {
+    status?: string;
+    page?: number;
+    limit?: number;
+  }): Promise<any> {
+    const page = Number(query.page || 1);
+    const limit = Number(query.limit || 10);
+    const skip = (page - 1) * limit;
+
+    const filter: any = {};
+    if (query.status && query.status !== 'ALL') {
+      filter.status = query.status;
+    }
+
+    const [withdrawals, total] = await Promise.all([
+      this.withdrawalModel
+        .find(filter)
+        .populate('userId', 'username email role wallet_balance profile createdAt')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      this.withdrawalModel.countDocuments(filter),
+    ]);
+
+    const totalPages = Math.ceil(total / limit) || 1;
+
+    return {
+      withdrawals,
+      pagination: {
+        total,
+        page,
+        totalPages,
+        limit,
+      },
+    };
+  }
+
+  async handleWithdrawalAction(dto: {
+    withdrawalId: string;
+    action: 'APPROVE' | 'REJECT';
+    reason?: string;
+  }): Promise<any> {
+    const session = await this.connection.startSession();
+    session.startTransaction();
+
+    try {
+      const withdrawal = await this.withdrawalModel.findById(dto.withdrawalId).session(session);
+      if (!withdrawal) throw new NotFoundException('Không tìm thấy yêu cầu rút tiền');
+
+      if (dto.action === 'APPROVE') {
+        withdrawal.status = 'COMPLETED';
+        withdrawal.note = dto.reason || 'Admin đã duyệt chuyển khoản thành công';
+        await withdrawal.save({ session });
+
+        await this.transactionModel.findOneAndUpdate(
+          {
+            userId: withdrawal.userId,
+            type: TransactionType.WITHDRAWAL,
+            amount: -withdrawal.amount,
+            status: TransactionStatus.PENDING,
+          },
+          { status: TransactionStatus.SUCCESS },
+          { session },
+        );
+      } else {
+        // REJECT -> Hoàn lại tiền cho ví người dùng
+        withdrawal.status = 'REJECTED';
+        withdrawal.note = dto.reason || 'Admin từ chối yêu cầu rút tiền';
+        await withdrawal.save({ session });
+
+        const user = await this.userModel.findById(withdrawal.userId).session(session);
+        if (user) {
+          user.wallet_balance += withdrawal.amount;
+          await user.save({ session });
+
+          await this.transactionModel.create(
+            [
+              {
+                userId: user._id,
+                type: TransactionType.REFUND,
+                amount: withdrawal.amount,
+                balanceAfter: user.wallet_balance,
+                status: TransactionStatus.SUCCESS,
+                description: `Hoàn tiền yêu cầu rút tiền bị từ chối: ${dto.reason || 'Không hợp lệ'}`,
+              },
+            ],
+            { session },
+          );
+        }
+      }
+
+      await session.commitTransaction();
+      return { success: true, message: 'Xử lý yêu cầu rút tiền thành công' };
+    } catch (error) {
+      await session.abortTransaction();
+      throw error;
+    } finally {
+      session.endSession();
+    }
+  }
+
+  // 4. Quản lý Tiền cọc (Escrow Deposits)
+  async getDeposits(): Promise<any> {
+    const orders = await this.orderModel
+      .find({
+        $or: [
+          { 'payment.is_locked': true },
+          { status: { $in: [OrderStatus.PAID, OrderStatus.APPROVED, OrderStatus.IN_PROGRESS] } },
+        ],
+      })
+      .populate('customerId', 'username email profile')
+      .populate('boosterId', 'username email profile')
+      .sort({ createdAt: -1 })
+      .lean();
+
+    const totalHeld = orders.reduce(
+      (sum, o) => sum + (o.pricing?.deposit_amount || o.pricing?.total_amount || 0),
+      0,
+    );
+
+    return {
+      success: true,
+      orders,
+      totalHeld,
+    };
+  }
+
+  // 5. Quản lý Giao dịch (Transactions)
+  async getTransactions(query: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    status?: string;
+    type?: string;
+  }): Promise<any> {
+    const page = Number(query.page || 1);
+    const limit = Number(query.limit || 10);
+    const skip = (page - 1) * limit;
+
+    const filter: any = {};
+    if (query.status && query.status !== 'ALL') filter.status = query.status;
+    if (query.type && query.type !== 'ALL') filter.type = query.type;
+
+    if (query.search) {
+      const searchRegex = { $regex: query.search.trim(), $options: 'i' };
+      filter.$or = [
+        { description: searchRegex },
+        { gateway_ref: searchRegex },
+      ];
+    }
+
+    const [transactions, total] = await Promise.all([
+      this.transactionModel
+        .find(filter)
+        .populate('userId', 'username email profile')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      this.transactionModel.countDocuments(filter),
+    ]);
+
+    const totalPages = Math.ceil(total / limit) || 1;
+
+    return {
+      transactions,
+      pagination: {
+        total,
+        page,
+        totalPages,
+        limit,
+      },
+    };
+  }
+
+  async getTransactionById(id: string): Promise<any> {
+    const transaction = await this.transactionModel
+      .findById(id)
+      .populate('userId', 'username email wallet_balance profile')
+      .populate('orderId')
+      .lean();
+
+    if (!transaction) throw new NotFoundException('Không tìm thấy giao dịch');
+    return { success: true, transaction };
+  }
+
+  async rejectTransaction(transactionId: string, reason?: string): Promise<any> {
+    const tx = await this.transactionModel.findById(transactionId);
+    if (!tx) throw new NotFoundException('Không tìm thấy giao dịch');
+
+    tx.status = TransactionStatus.FAILED;
+    tx.description = tx.description + ` [Từ chối: ${reason || 'Không hợp lệ'}]`;
+    await tx.save();
+
+    return { success: true, message: 'Đã từ chối giao dịch' };
+  }
+
+  // 6. Nhật ký hệ thống (Audit Logs)
+  async getAuditLogs(page: number = 1, limit: number = 20): Promise<any> {
+    const skip = (page - 1) * limit;
+    const [logs, total] = await Promise.all([
+      this.auditLogModel
+        .find()
+        .populate('actorId', 'username email')
+        .populate('targetId', 'username email')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      this.auditLogModel.countDocuments(),
+    ]);
+
+    // Fallback: nếu audit log trống, tự động sinh từ các transactions mới nhất
+    if (logs.length === 0) {
+      const txLogs = await this.transactionModel
+        .find()
+        .populate('userId', 'username email')
+        .sort({ createdAt: -1 })
+        .limit(limit)
+        .lean();
+
+      const fallbackLogs = txLogs.map((tx) => ({
+        _id: tx._id,
+        action: tx.type,
+        description: tx.description || `Giao dịch ${tx.type}: ${tx.amount.toLocaleString()} đ`,
+        actorId: tx.userId,
+        createdAt: (tx as any).createdAt || new Date(),
+      }));
+
+      return {
+        logs: fallbackLogs,
+        pagination: {
+          total: fallbackLogs.length,
+          page: 1,
+          totalPages: 1,
+          limit,
+        },
+      };
+    }
+
+    const totalPages = Math.ceil(total / limit) || 1;
+    return {
+      logs,
+      pagination: {
+        total,
+        page,
+        totalPages,
+        limit,
+      },
+    };
+  }
+
+  // 7. Chi tiết & Thống kê Người dùng
+  async getUserById(id: string): Promise<any> {
+    const user = await this.userModel.findById(id).select('-password_hash').lean();
+    if (!user) throw new NotFoundException('Không tìm thấy người dùng');
+    return { success: true, user };
+  }
+
+  async getUserStats(id: string): Promise<any> {
+    const userObjId = new Types.ObjectId(id);
+
+    const [orderStats, txStats, recentTransactions] = await Promise.all([
+      this.orderModel.aggregate([
+        { $match: { customerId: userObjId } },
+        {
+          $group: {
+            _id: null,
+            totalOrders: { $sum: 1 },
+            completedOrders: {
+              $sum: {
+                $cond: [{ $in: ['$status', [OrderStatus.COMPLETED, 'SETTLED']] }, 1, 0],
+              },
+            },
+            totalSpent: {
+              $sum: {
+                $cond: [
+                  { $in: ['$status', [OrderStatus.COMPLETED, 'SETTLED']] },
+                  '$pricing.total_amount',
+                  0,
+                ],
+              },
+            },
+          },
+        },
+      ]),
+      this.transactionModel.aggregate([
+        { $match: { userId: userObjId, status: TransactionStatus.SUCCESS } },
+        {
+          $group: {
+            _id: '$type',
+            total: { $sum: '$amount' },
+          },
+        },
+      ]),
+      this.transactionModel
+        .find({ userId: userObjId })
+        .sort({ createdAt: -1 })
+        .limit(10)
+        .lean(),
+    ]);
+
+    const totalDeposits = txStats.find((t) => t._id === TransactionType.DEPOSIT)?.total || 0;
+    const totalWithdrawals = Math.abs(
+      txStats.find((t) => t._id === TransactionType.WITHDRAWAL)?.total || 0,
+    );
+
+    return {
+      success: true,
+      stats: {
+        totalOrders: orderStats[0]?.totalOrders || 0,
+        completedOrders: orderStats[0]?.completedOrders || 0,
+        totalSpent: orderStats[0]?.totalSpent || 0,
+        totalDeposits,
+        totalWithdrawals,
+      },
+      recentTransactions,
+    };
+  }
+
+  // 8. Quản lý Khiếu nại
+  async getDisputes(status?: string): Promise<any> {
+    const filter: any = {};
+    if (!status || status === 'PENDING') {
+      filter.status = OrderStatus.DISPUTED;
+    } else if (status === 'RESOLVED') {
+      filter.status = { $in: [OrderStatus.REFUNDED, OrderStatus.COMPLETED] };
+      filter['dispute_info'] = { $exists: true };
+    }
+
+    const disputes = await this.orderModel
+      .find(filter)
+      .populate('customerId', 'username email profile')
+      .populate('boosterId', 'username email profile')
+      .sort({ updatedAt: -1 })
+      .lean();
+
+    return { success: true, disputes };
+  }
+
+  async updateDisputeNote(orderId: string, note: string): Promise<any> {
+    const order = await this.orderModel.findById(orderId);
+    if (!order) throw new NotFoundException('Không tìm thấy đơn hàng');
+
+    order.admin_note = note;
+    await order.save();
+
+    return { success: true, message: 'Đã cập nhật ghi chú nội bộ' };
+  }
+
+  // 9. Cấu hình Riot API
+  async getRiotKey(): Promise<any> {
+    const setting = await this.settingModel.findOne({ key: 'RIOT_API_KEY' }).lean();
+    return { apiKey: setting?.value || '' };
+  }
+
+  async saveRiotKey(apiKey: string): Promise<any> {
+    await this.settingModel.findOneAndUpdate(
+      { key: 'RIOT_API_KEY' },
+      { $set: { value: apiKey, description: 'Riot Games API Key' } },
+      { upsert: true, new: true },
+    );
+    return { success: true, apiKey };
+  }
+
+  // 10. Phí rút tiền & Phí sàn
+  async getWithdrawFee(): Promise<any> {
+    const setting = await this.settingModel.findOne({ key: 'withdraw_fee' }).lean();
+    return { fee: Number(setting?.value || 0) };
+  }
+
+  async updateWithdrawFee(fee: number): Promise<any> {
+    await this.settingModel.findOneAndUpdate(
+      { key: 'withdraw_fee' },
+      { $set: { value: Number(fee), description: 'Phí rút tiền cố định (VND)' } },
+      { upsert: true, new: true },
+    );
+    return { success: true, fee: Number(fee) };
+  }
+
+  async getPlatformFee(): Promise<any> {
+    const setting = await this.settingModel.findOne({ key: 'PLATFORM_FEE' }).lean();
+    return { fee: Number(setting?.value || 10) };
   }
 }

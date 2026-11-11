@@ -57,5 +57,74 @@ export class PublicController {
       resourceType || 'auto',
     );
   }
+
+  // 1. Phí Rút tiền
+  @Public()
+  @Get('settings/withdraw-fee')
+  @ApiOperation({ summary: 'Get current withdrawal fee' })
+  async getWithdrawFee() {
+    return this.publicService.getWithdrawFee();
+  }
+
+  @Public()
+  @Post('settings/withdraw-fee')
+  @ApiOperation({ summary: 'Update withdrawal fee' })
+  async updateWithdrawFee(@Body('fee') fee: number) {
+    return this.publicService.updateWithdrawFee(fee);
+  }
+
+  // 2. Phí Sàn
+  @Public()
+  @Get('settings/platform-fee')
+  @ApiOperation({ summary: 'Get platform fee percent' })
+  async getPlatformFee() {
+    return this.publicService.getPlatformFee();
+  }
+
+  // 3. Cấu hình hệ thống công khai
+  @Public()
+  @Get('public/system-config')
+  @ApiOperation({ summary: 'Get public system config (banner, maintenance)' })
+  async getSystemConfig() {
+    return this.publicService.getSystemConfig();
+  }
+
+  // 4. Form Liên hệ & Đánh giá
+  @Public()
+  @Post('contact')
+  @ApiOperation({ summary: 'Submit contact message' })
+  async submitContact(@Body() dto: any) {
+    return this.publicService.submitContact(dto);
+  }
+
+  @Public()
+  @Post('feedback')
+  @ApiOperation({ summary: 'Submit customer feedback' })
+  async submitFeedback(@Body() dto: any) {
+    return this.publicService.submitFeedback(dto);
+  }
+
+  // 5. Thống kê Rank
+  @Public()
+  @Get('rank-stats')
+  @ApiOperation({ summary: 'Get League rank statistics' })
+  async getRankStats() {
+    return this.publicService.getRankStats();
+  }
+
+  // 6. Riot Games Proxy
+  @Public()
+  @Post('riot/player')
+  @ApiOperation({ summary: 'Lookup Riot player stats' })
+  async getRiotPlayer(@Body('gameName') gameName: string, @Body('tagLine') tagLine: string) {
+    return this.publicService.getRiotPlayer(gameName, tagLine);
+  }
+
+  @Public()
+  @Post('riot/match')
+  @ApiOperation({ summary: 'Lookup Riot match result' })
+  async getRiotMatch(@Body('matchId') matchId: string) {
+    return this.publicService.getRiotMatch(matchId);
+  }
 }
 
