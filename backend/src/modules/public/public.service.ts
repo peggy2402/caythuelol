@@ -189,6 +189,8 @@ export class PublicService {
     }).lean();
     const apiKey = riotKeySetting?.value || process.env.RIOT_API_KEY;
 
+    let mockReason = 'Chưa cấu hình RIOT_API_KEY trong hệ thống (cài đặt ở trang Admin > Cấu hình hệ thống)';
+
     if (apiKey) {
       try {
         const accountUrl = `https://${accountRegion}.api.riotgames.com/riot/account/v1/accounts/by-riot-id/${encodeURIComponent(
@@ -204,6 +206,7 @@ export class PublicService {
 
           return {
             success: true,
+            isMock: false,
             leagues,
             puuid: accountData.puuid,
             gameName: accountData.gameName,
@@ -211,13 +214,23 @@ export class PublicService {
           };
         }
       } catch (err: any) {
-        // Fallback gracefully below
+        const status = err.response?.status;
+        console.error(`[Riot API Player Error]: HTTP ${status}`, err.response?.data || err.message);
+        if (status === 403) {
+          mockReason = 'RIOT_API_KEY đã hết hạn (Development key của Riot hết hạn sau 24h) hoặc không hợp lệ. Vui lòng cập nhật API key mới từ developer.riotgames.com.';
+        } else if (status === 404) {
+          mockReason = `Không tìm thấy người chơi "${gameName}#${tagLine}" trên Riot Server ${server}.`;
+        } else {
+          mockReason = `Riot API lỗi (HTTP ${status || 'Unknown'}): ${err.response?.data?.status?.message || err.message}`;
+        }
       }
     }
 
     // Fallback thông minh: Giả lập dữ liệu rank hợp lệ để trải nghiệm người dùng không bị tắc nghẽn
     return {
       success: true,
+      isMock: true,
+      mockReason,
       puuid: 'mock_puuid_' + Date.now(),
       gameName: gameName || 'Mary Tái Lâm',
       tagLine: tagLine || '2003',

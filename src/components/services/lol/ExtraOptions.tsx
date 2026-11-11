@@ -96,7 +96,22 @@ export default function ExtraOptions({
       );
   }
 
-  const settings = boosterConfig.booster_info?.service_settings?.options || {};
+  const fallbackOptions = {
+    schedule: true,
+    scheduleFee: 0,
+    roles: ['TOP', 'JUNGLE', 'MID', 'ADC', 'SUPPORT'],
+    specificChamps: 30,
+    streaming: 349000,
+    express: 35,
+    duo: 50,
+  };
+
+  const boosterOptions = boosterConfig.booster_info?.service_settings?.options;
+  const settings = {
+    ...fallbackOptions,
+    ...(boosterOptions && Object.keys(boosterOptions).length > 0 ? boosterOptions : {}),
+    roles: boosterOptions?.roles?.length ? boosterOptions.roles : fallbackOptions.roles,
+  };
 
   return (
     <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-zinc-900/60 backdrop-blur-xl p-6 shadow-xl">

@@ -8,6 +8,55 @@ import { IBoosterApplication } from '../../database/schemas/BoosterApplication';
 import { IOrder, OrderStatus } from '../../database/schemas/Order';
 import { ITransaction, TransactionType, TransactionStatus } from '../../database/schemas/Transaction';
 
+export const DEFAULT_SERVICE_SETTINGS = {
+  enabledServices: ['RANK_BOOST', 'PROMOTION', 'NET_WINS', 'LEVELING', 'PLACEMENTS', 'MASTERY', 'COACHING'],
+  servers: ['VN', 'KR', 'JP', 'NA', 'EUW'],
+  rankPrices: {
+    IRON_IV: 15000, IRON_III: 15000, IRON_II: 15000, IRON_I: 15000,
+    BRONZE_IV: 20000, BRONZE_III: 20000, BRONZE_II: 20000, BRONZE_I: 20000,
+    SILVER_IV: 25000, SILVER_III: 25000, SILVER_II: 25000, SILVER_I: 25000,
+    GOLD_IV: 35000, GOLD_III: 35000, GOLD_II: 35000, GOLD_I: 35000,
+    PLATINUM_IV: 50000, PLATINUM_III: 50000, PLATINUM_II: 50000, PLATINUM_I: 50000,
+    EMERALD_IV: 70000, EMERALD_III: 75000, EMERALD_II: 80000, EMERALD_I: 90000,
+    DIAMOND_IV: 120000, DIAMOND_III: 140000, DIAMOND_II: 180000, DIAMOND_I: 250000,
+    MASTER: 400000, GRANDMASTER: 600000, CHALLENGER: 900000,
+  },
+  rankPricesFlex: {},
+  rankPricesDuo: {},
+  promotionPrices: {
+    IRON: 20000, BRONZE: 30000, SILVER: 45000, GOLD: 65000,
+    PLATINUM: 95000, EMERALD: 150000, DIAMOND: 250000,
+  },
+  promotionPricesFlex: {},
+  promotionPricesDuo: {},
+  placementPrices: {
+    UNRANKED: 25000, IRON: 20000, BRONZE: 25000, SILVER: 30000,
+    GOLD: 40000, PLATINUM: 60000, EMERALD: 85000, DIAMOND: 130000,
+  },
+  placementPricesFlex: {},
+  placementPricesDuo: {},
+  netWinPrices: {
+    IRON: 15000, BRONZE: 20000, SILVER: 25000, GOLD: 35000,
+    PLATINUM: 50000, EMERALD: 75000, DIAMOND: 120000, MASTER: 180000,
+  },
+  netWinPricesFlex: {},
+  netWinPricesDuo: {},
+  netWinDepositPercent: 50,
+  levelingPrices: { perLevel: 8000 },
+  masteryPrices: { perPoint: 5 },
+  lpModifiers: { low: 20, medium: 0, high: -20 },
+  options: {
+    schedule: true,
+    scheduleFee: 0,
+    roles: ['TOP', 'JUNGLE', 'MID', 'ADC', 'SUPPORT'],
+    specificChamps: 30,
+    streaming: 349000,
+    express: 35,
+    duo: 50,
+  },
+  queueModifiers: { SOLO_DUO: 0, FLEX: 0, TFT: 0 },
+};
+
 @Injectable()
 export class BoostersService {
   constructor(
@@ -182,10 +231,32 @@ export class BoostersService {
           .lean(),
       ]);
 
+    const rawBoosterInfo = user.booster_info || (profile as any)?.booster_info || {};
+    const existingSettings = rawBoosterInfo.service_settings || {};
+    
+    // Đảm bảo luôn có service_settings và options hợp lệ để frontend hiển thị mượt mà
+    const mergedSettings = {
+      ...DEFAULT_SERVICE_SETTINGS,
+      ...existingSettings,
+      options: {
+        ...DEFAULT_SERVICE_SETTINGS.options,
+        ...(existingSettings.options || {}),
+      },
+      rankPrices: {
+        ...DEFAULT_SERVICE_SETTINGS.rankPrices,
+        ...(existingSettings.rankPrices || {}),
+      },
+    };
+
+    const boosterInfo = {
+      ...rawBoosterInfo,
+      service_settings: mergedSettings,
+    };
+
     const booster = {
       ...user,
       ...profile,
-      booster_info: user.booster_info || (profile as any)?.booster_info || {},
+      booster_info: boosterInfo,
       profile: user.profile || profile,
       currentRank: (application as any)?.currentRank || 'N/A',
       highestRank: (application as any)?.highestRank || 'N/A',

@@ -144,7 +144,13 @@ export class AuthController {
       });
       return res.redirect(`${frontendUrl}/google-callback?token=${token}`);
     } catch (err: any) {
-      return res.redirect(`${frontendUrl}/login?error=GoogleAuthFailed`);
+      const errorMsg =
+        err?.response?.data?.error_description ||
+        err?.response?.data?.error ||
+        err?.message ||
+        'GoogleAuthFailed';
+      console.error('[Google OAuth Callback Error]:', err?.response?.data || err?.message || err);
+      return res.redirect(`${frontendUrl}/login?error=GoogleAuthFailed&reason=${encodeURIComponent(errorMsg)}`);
     }
   }
 

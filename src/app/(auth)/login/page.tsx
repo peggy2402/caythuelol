@@ -1,11 +1,10 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import {
-  Mail,
   Lock,
   Eye,
   EyeOff,
@@ -21,13 +20,26 @@ import {
 import { useLanguage } from '../../../lib/i18n';
 import { toast } from 'sonner';
 
-export default function LoginPage() {
+function LoginForm() {
   const { t } = useLanguage();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [formData, setFormData] = useState({ identifier: '', password: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+
+  useEffect(() => {
+    const errorParam = searchParams.get('error');
+    const reasonParam = searchParams.get('reason');
+    if (errorParam === 'GoogleAuthFailed') {
+      const msg = reasonParam
+        ? `Lỗi đăng nhập Google: ${decodeURIComponent(reasonParam)}`
+        : 'Đăng nhập Google thất bại. Vui lòng thử lại!';
+      setError(msg);
+      toast.error(msg);
+    }
+  }, [searchParams]);
 
   const handleGoogleLogin = () => {
     window.location.href = '/api/auth/google';
@@ -307,5 +319,19 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-zinc-950 text-white">
+          <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+        </div>
+      }
+    >
+      <LoginForm />
+    </Suspense>
   );
 }

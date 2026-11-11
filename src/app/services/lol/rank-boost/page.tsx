@@ -230,9 +230,18 @@ function RankBoostContent() {
 
   // Pricing Logic
   const priceDetails = useMemo(() => {
-    if (!boosterConfig?.booster_info?.service_settings) return null;
+    const defaultRankPrices: Record<string, number> = {
+      IRON_IV: 15000, IRON_III: 15000, IRON_II: 15000, IRON_I: 15000,
+      BRONZE_IV: 20000, BRONZE_III: 20000, BRONZE_II: 20000, BRONZE_I: 20000,
+      SILVER_IV: 25000, SILVER_III: 25000, SILVER_II: 25000, SILVER_I: 25000,
+      GOLD_IV: 35000, GOLD_III: 35000, GOLD_II: 35000, GOLD_I: 35000,
+      PLATINUM_IV: 50000, PLATINUM_III: 50000, PLATINUM_II: 50000, PLATINUM_I: 50000,
+      EMERALD_IV: 70000, EMERALD_III: 75000, EMERALD_II: 80000, EMERALD_I: 90000,
+      DIAMOND_IV: 120000, DIAMOND_III: 140000, DIAMOND_II: 180000, DIAMOND_I: 250000,
+      MASTER: 400000, GRANDMASTER: 600000, CHALLENGER: 900000
+    };
 
-    const settings = boosterConfig.booster_info.service_settings;
+    const settings = boosterConfig?.booster_info?.service_settings || {};
     const rankKeys = FLAT_TIERS.map(t => t.key);
     const startIdx = rankKeys.indexOf(currentTier);
     const endIdx = rankKeys.indexOf(desiredTier);
@@ -240,13 +249,17 @@ function RankBoostContent() {
     if (startIdx === -1 || endIdx === -1 || startIdx >= endIdx) return null;
 
     let totalBase = 0;
+    const baseRankPrices = (settings.rankPrices && Object.keys(settings.rankPrices).length > 0)
+        ? settings.rankPrices
+        : defaultRankPrices;
+
     const priceTable = (queueType === 'FLEX' && settings.rankPricesFlex && Object.keys(settings.rankPricesFlex).length > 0)
         ? settings.rankPricesFlex
-        : settings.rankPrices;
+        : baseRankPrices;
 
     for (let i = startIdx; i < endIdx; i++) {
         const rankKey = rankKeys[i];
-        totalBase += priceTable[rankKey] ?? settings.rankPrices?.[rankKey] ?? 0;
+        totalBase += priceTable[rankKey] ?? baseRankPrices[rankKey] ?? defaultRankPrices[rankKey] ?? 0;
     }
 
     // LP Modifier
