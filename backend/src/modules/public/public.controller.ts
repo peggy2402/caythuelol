@@ -116,8 +116,8 @@ export class PublicController {
   @Public()
   @Post('riot/player')
   @ApiOperation({ summary: 'Lookup Riot player stats' })
-  async getRiotPlayer(@Body('gameName') gameName: string, @Body('tagLine') tagLine: string) {
-    return this.publicService.getRiotPlayer(gameName, tagLine);
+  async getRiotPlayer(@Body() dto: any) {
+    return this.publicService.getRiotPlayer(dto);
   }
 
   @Public()

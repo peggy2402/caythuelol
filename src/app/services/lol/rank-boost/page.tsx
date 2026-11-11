@@ -152,7 +152,7 @@ function RankBoostContent() {
   const [accountType, setAccountType] = useState('RIOT');
   const [gameUsername, setGameUsername] = useState('');
   const [gamePassword, setGamePassword] = useState('');
-  const [selectedServer, setSelectedServer] = useState('');
+  const [selectedServer, setSelectedServer] = useState('VN');
 
   // Extra Options State
   const [extraOptions, setExtraOptions] = useState<Record<string, any>>({
@@ -201,7 +201,7 @@ function RankBoostContent() {
                     if (detected && boosterServers.includes(detected)) {
                         setSelectedServer(detected);
                     } else {
-                        setSelectedServer(boosterServers[0] || '');
+                        setSelectedServer(boosterServers[0] || 'VN');
                     }
                 });
             } else {
@@ -313,21 +313,22 @@ function RankBoostContent() {
   // Hàm Check Rank
   const handleCheckRank = async () => {
       if (!checkIngame.trim()) return toast.error('Vui lòng nhập Riot ID (VD: Hide on bush#KR1)');
-      if (!selectedServer) return toast.error('Vui lòng chọn Server trước khi check');
+      const activeServer = selectedServer || boosterConfig?.booster_info?.service_settings?.servers?.[0] || 'VN';
+      if (!selectedServer) setSelectedServer(activeServer);
       
       setIsChecking(true);
       try {
           const res = await fetch('/api/riot/player', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ server: selectedServer, name: checkIngame.trim() })
+              body: JSON.stringify({ server: activeServer, name: checkIngame.trim() })
           });
           const data = await res.json();
           
           if (!res.ok) throw new Error(data.error);
 
           const qType = queueType === 'SOLO_DUO' ? 'RANKED_SOLO_5x5' : 'RANKED_FLEX_SR';
-          const league = data.leagues.find((l: any) => l.queueType === qType);
+          const league = Array.isArray(data.leagues) ? data.leagues.find((l: any) => l.queueType === qType) : null;
 
           if (league) {
               // Map Riot Tier to our Key (e.g. GOLD_IV)
@@ -369,9 +370,27 @@ function RankBoostContent() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Input Check Rank */}
             <div className="md:col-span-2 bg-blue-900/10 border border-blue-500/20 p-4 rounded-xl">
-                <label className="text-xs font-bold uppercase text-blue-400 tracking-wider mb-2 block flex items-center gap-2">
-                    <Search className="w-3 h-3" /> Kiểm tra Rank hiện tại (Bắt buộc)
-                </label>
+                <div className="flex items-center justify-between mb-2">
+                    <label className="text-xs font-bold uppercase text-blue-400 tracking-wider flex items-center gap-2">
+                        <Search className="w-3 h-3" /> Kiểm tra Rank hiện tại (Bắt buộc)
+                    </label>
+                    <div className="flex items-center gap-1.5 text-xs text-zinc-400">
+                        <span>Máy chủ:</span>
+                        <select 
+                            value={selectedServer || 'VN'}
+                            onChange={(e) => setSelectedServer(e.target.value)}
+                            className="bg-zinc-900 border border-zinc-700 text-white rounded px-2 py-0.5 text-xs font-bold outline-none cursor-pointer focus:border-blue-500"
+                        >
+                            <option value="VN">VN (Việt Nam)</option>
+                            <option value="KR">KR (Hàn Quốc)</option>
+                            <option value="NA">NA (Bắc Mỹ)</option>
+                            <option value="EUW">EUW (Tây Âu)</option>
+                            <option value="JP">JP (Nhật Bản)</option>
+                            <option value="SG">SG (Đông Nam Á)</option>
+                            <option value="TW">TW (Đài Loan)</option>
+                        </select>
+                    </div>
+                </div>
                 <div className="flex gap-2">
                     <input 
                         type="text" 

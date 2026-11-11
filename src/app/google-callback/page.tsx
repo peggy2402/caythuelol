@@ -12,13 +12,11 @@ function GoogleCallbackContent() {
     const token = searchParams.get('token');
     const userString = searchParams.get('user');
 
-    if (token) {
+    if (token && userString) {
       try {
         // 1. Lưu vào localStorage (để Client dùng)
         localStorage.setItem('token', token);
-        if (userString) {
-          localStorage.setItem('user', decodeURIComponent(userString));
-        }
+        localStorage.setItem('user', decodeURIComponent(userString));
 
         // 2. Set Cookie (để Middleware dùng)
         // Lưu ý: Tốt nhất là Server nên set cookie httpOnly ngay trong API route.
