@@ -956,3 +956,17 @@ caythuelol/
   - **Bug Fix:** Xử lý triệt để lỗi Mongoose tự khởi tạo object `rating` rỗng `{}` gây ra lỗi chặn đánh giá ("Đơn hàng đã được đánh giá").
   - **Aggregation Fix:** Sửa cú pháp MongoDB Aggregation (từ `$avg: '$rating'` thành `$avg: '$rating.stars'`) để tính chính xác số sao trung bình.
   - **Data Sync:** Thêm bước `BoosterProfile.findOneAndUpdate` để đảm bảo dữ liệu Đánh giá và Số đơn hoàn thành luôn đồng nhất giữa `User` và bảng `BoosterProfile` public.
+
+
+33. 2026-11-11 — Architectural Evolution: Backend & Frontend Decoupling (NestJS Migration)
+
+- **Architectural Decision:**
+  - Tách độc lập Backend ra khỏi Next.js Monolith sang **NestJS** tại thư mục `backend/` trong cùng repository.
+  - Domain phân chia: Frontend giữ `https://leorank.site`, Backend API chuyển sang `https://apil-lr.leorank.site`.
+  - Hợp nhất: Socket.io server rời (trên Railway) sẽ được tích hợp trực tiếp vào NestJS WebSocket Gateway, giảm chi phí vận hành và giải quyết triệt để rủi ro timeout/cold start của Serverless MongoDB Connection Pool.
+
+- **Phase 1 Implementation:**
+  - Thiết lập dự án NestJS 11 với đầy đủ cấu trúc: `ConfigModule`, `MongooseModule`, `ScheduleModule`, `@nestjs/swagger`, `ValidationPipe`.
+  - Cấu hình CORS cho `leorank.site` với `credentials: true`.
+  - Tạo health-check endpoint `GET /` và Swagger UI tại `/docs`.
+  - Xác nhận build thành công với TypeScript 5.7+ và Node.js v26.
