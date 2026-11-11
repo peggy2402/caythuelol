@@ -91,9 +91,16 @@ export class PublicService {
       const res = await axios.get(
         'https://ddragon.leagueoflegends.com/cdn/14.24.1/data/en_US/champion.json',
       );
-      return res.data;
+      const raw = res.data;
+      const dataObj = raw?.data || {};
+      const version = raw?.version || '14.24.1';
+      const list = Object.values(dataObj).map((c: any) => ({
+        ...c,
+        imageUrl: `https://ddragon.leagueoflegends.com/cdn/${version}/img/champion/${c.image?.full || c.id + '.png'}`,
+      }));
+      return list;
     } catch {
-      return { data: {} };
+      return [];
     }
   }
 

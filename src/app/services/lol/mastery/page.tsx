@@ -75,8 +75,28 @@ function MasteryContent() {
   useEffect(() => {
     fetch('/api/champions')
       .then(res => res.json())
-      .then(data => setAllChampions(data || []))
-      .catch(err => console.error('Failed to load champions', err));
+      .then(data => {
+        const rawList = Array.isArray(data)
+          ? data
+          : data?.data && typeof data.data === 'object'
+          ? Object.values(data.data)
+          : data?.champions && Array.isArray(data.champions)
+          ? data.champions
+          : [];
+        const normalized = rawList.map((c: any) => ({
+          ...c,
+          imageUrl:
+            c.imageUrl ||
+            (c.image?.full
+              ? `https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/${c.image.full}`
+              : `https://ddragon.leagueoflegends.com/cdn/14.24.1/img/champion/${c.id || c.key}.png`),
+        }));
+        setAllChampions(normalized);
+      })
+      .catch(err => {
+        console.error('Failed to load champions', err);
+        setAllChampions([]);
+      });
   }, []);
   
   // 2. Fetch Booster Config
@@ -89,18 +109,26 @@ function MasteryContent() {
     const fetchBoosterData = async () => {
         setLoadingConfig(true);
         try {
-            const res = await fetch(`/api/boosters/${boosterId}`);
+            const cleanId = encodeURIComponent(boosterId.trim());
+            const res = await fetch(`/api/boosters/${cleanId}`);
+            if (!res.ok) {
+              setBoosterConfig(null);
+              toast.error('Không tìm thấy thông tin Booster này');
+              return;
+            }
             const data = await res.json();
-            const foundBooster = data.booster;
+            const foundBooster = data.booster || data.boosterData;
             
             if (foundBooster) {
                 setBoosterConfig(foundBooster);
-                setSelectedServer(foundBooster.booster_info?.service_settings?.servers?.[0] || '');
+                setSelectedServer(foundBooster.booster_info?.service_settings?.servers?.[0] || 'VN');
             } else {
+                setBoosterConfig(null);
                 toast.error('Không tìm thấy thông tin Booster này');
             }
         } catch (error) {
             console.error("Failed to fetch booster config:", error);
+            setBoosterConfig(null);
             toast.error('Lỗi khi tải thông tin Booster');
         } finally {
             setLoadingConfig(false);
@@ -137,14 +165,20 @@ function MasteryContent() {
 
   // --- PRICING LOGIC ---
   const priceDetails = useMemo(() => {
-    if (!lolConfig?.settings || currentLevel >= desiredLevel) return null;
-    const settings = lolConfig.settings;
-    const priceMap = settings.masteryPrices || {};
+    if (currentLevel >= desiredLevel) return null;
+    const settings = lolConfig?.settings || boosterConfig?.booster_info?.service_settings || {};
+    const defaultMasteryPrices: Record<string, number> = {
+      M1_M2: 20000, M2_M3: 25000, M3_M4: 30000, M4_M5: 40000,
+      M5_M6: 60000, M6_M7: 80000, M7_M8: 100000, M8_M9: 130000, M9_M10: 160000
+    };
+    const priceMap = (settings.masteryPrices && Object.keys(settings.masteryPrices).length > 0)
+      ? settings.masteryPrices
+      : defaultMasteryPrices;
 
     let base = 0;
     for (let i = currentLevel; i < desiredLevel; i++) {
         const key = `M${i}_M${i + 1}`;
-        base += priceMap[key] || 0;
+        base += priceMap[key] || defaultMasteryPrices[key] || 30000;
     }
 
     // Options
@@ -195,26 +229,33 @@ function MasteryContent() {
         platformFeeValue,
         depositAmount: 0 // Fix type error
     };
-  }, [lolConfig, currentLevel, desiredLevel, extraOptions, platformFee]);
+  }, [lolConfig, boosterConfig, currentLevel, desiredLevel, extraOptions, platformFee]);
 
   // Filtered Champions for Modal
   const filteredChampions = useMemo(() => {
-    let result = allChampions;
+    const list = Array.isArray(allChampions)
+      ? allChampions
+      : allChampions && typeof (allChampions as any).data === 'object'
+      ? Object.values((allChampions as any).data)
+      : [];
+
+    let result = list as any[];
     if (selectedRole) {
-        result = result.filter(c => c.tags && c.tags.includes(selectedRole));
+        result = result.filter(c => c && Array.isArray(c.tags) && c.tags.includes(selectedRole));
     }
     if (championQuery) {
-        result = result.filter(c => c.name.toLowerCase().includes(championQuery.toLowerCase()));
+        result = result.filter(c => c && c.name && c.name.toLowerCase().includes(championQuery.toLowerCase()));
     }
     // OPTIMIZATION: Chỉ lấy 50 tướng đầu tiên để tránh lag khi render modal
-    return result.slice(0, 50);
+    return Array.isArray(result) ? result.slice(0, 50) : [];
   }, [allChampions, championQuery, selectedRole]);
 
   // Booster's Signature Champions
   const boosterChampions = useMemo(() => {
-    if (!lolConfig?.champions || !allChampions.length) return [];
+    const list = Array.isArray(allChampions) ? allChampions : [];
+    if (!lolConfig?.champions || !list.length) return [];
     // Map IDs to full champion objects
-    return allChampions.filter(c => lolConfig.champions.includes(c.id));
+    return list.filter(c => c && c.id && lolConfig.champions.includes(c.id));
   }, [lolConfig, allChampions]);
 
   const isAccountValid = useMemo(() => {

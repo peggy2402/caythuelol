@@ -62,7 +62,6 @@ export default function BoosterPicker() {
       try {
         setLoading(true);
         const query = new URLSearchParams({ search: debouncedSearch, service: filterService, sort: sortBy });
-        console.log("Check query: " + query);
         const res = await fetch(`/api/boosters?${query.toString()}`);
         const data = await res.json();
         setBoosters(data.boosters || []);
