@@ -25,3 +25,4 @@ export interface VerifiedRankInfo {
   gameName: string;
   tagLine: string;
 }
+
