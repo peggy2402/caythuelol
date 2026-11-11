@@ -2,6 +2,7 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import Blog from '@/models/Blog';
+import '@/models/User';
 
 export const dynamic = 'force-dynamic';
 

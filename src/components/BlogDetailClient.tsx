@@ -89,20 +89,20 @@ export default function BlogDetailClient({ initialPost, initialComments, initial
 
   // The rest of the JSX from the original file...
   return (
-    <div className="min-h-screen bg-zinc-950 text-white pt-24 pb-20 px-4 font-sans">
+    <div className="min-h-screen bg-zinc-950 text-white pt-24 pb-20 px-4 font-sans w-full max-w-full overflow-x-hidden">
       <Navbar />
-      <div className="max-w-7xl mx-auto">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
+      <div className="max-w-7xl mx-auto w-full min-w-0">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 w-full min-w-0">
           
           {/* Main Content */}
-          <div className="lg:col-span-8">
+          <div className="lg:col-span-8 w-full min-w-0">
             <div className="mb-8">
               <Link href="/blogs" className="inline-flex items-center gap-2 text-zinc-400 hover:text-white transition-colors">
                 <ArrowLeft className="w-4 h-4" /> Quay lại trang tin tức
               </Link>
             </div>
 
-            <article className="prose prose-invert prose-lg max-w-none break-words prose-headings:font-bold prose-a:text-blue-400 hover:prose-a:text-blue-300 prose-img:rounded-xl">
+            <article className="prose prose-invert prose-lg max-w-none break-words prose-headings:font-bold prose-a:text-blue-400 hover:prose-a:text-blue-300 prose-img:rounded-xl w-full min-w-0 overflow-hidden">
               <header className="mb-12 border-b border-zinc-800 pb-8">
                 <h1 className="text-4xl md:text-5xl font-black text-white !mb-4">{post.title}</h1>
                 <div className="flex items-center gap-6 text-sm text-zinc-400">
@@ -124,7 +124,7 @@ export default function BlogDetailClient({ initialPost, initialComments, initial
           </div>
 
           {/* Sidebar */}
-          <aside className="lg:col-span-4 lg:sticky lg:top-24 h-fit">
+          <aside className="lg:col-span-4 lg:sticky lg:top-24 h-fit w-full min-w-0">
             <div className="space-y-8">
               {/* Social Share */}
               <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-6">
@@ -171,7 +171,7 @@ export default function BlogDetailClient({ initialPost, initialComments, initial
         </div>
 
         {/* Comments Section */}
-        <div className="mt-16 pt-8 border-t border-zinc-800">
+        <div className="mt-16 pt-8 border-t border-zinc-800 w-full max-w-full min-w-0 overflow-hidden">
           <h3 className="text-2xl font-bold text-white mb-6 flex items-center gap-2">
             <MessageSquare className="w-6 h-6 text-blue-500" /> Bình luận ({comments.length})
           </h3>
@@ -180,11 +180,11 @@ export default function BlogDetailClient({ initialPost, initialComments, initial
             <form onSubmit={(e) => {
                 e.preventDefault();
                 handlePostComment(commentText);
-            }} className="mb-8 flex gap-4">
+            }} className="mb-8 flex gap-4 w-full max-w-full min-w-0">
               <div className="w-10 h-10 rounded-full bg-zinc-800 overflow-hidden shrink-0">
                 {currentUser.profile?.avatar ? <img src={currentUser.profile.avatar} className="w-full h-full object-cover" /> : <User className="w-full h-full p-2 text-zinc-500" />}
               </div>
-              <div className="flex-1">
+              <div className="flex-1 min-w-0">
                 <textarea value={commentText} onChange={e => setCommentText(e.target.value)} placeholder="Viết bình luận của bạn..." className="w-full bg-zinc-900 border border-zinc-800 rounded-xl p-3 text-white focus:border-blue-500 outline-none min-h-[80px]" />
                 <div className="flex justify-end mt-2">
                   <button disabled={submitting || !commentText.trim()} className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 disabled:opacity-50">
@@ -200,7 +200,7 @@ export default function BlogDetailClient({ initialPost, initialComments, initial
             </div>
           )}
 
-          <div className="space-y-6">
+          <div className="space-y-6 w-full max-w-full min-w-0 overflow-hidden">
             {topLevelComments.map((comment) => (
               <CommentItem
                 key={comment._id}

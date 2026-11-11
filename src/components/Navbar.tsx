@@ -530,7 +530,7 @@ export default function Navbar() {
       {/* Mobile Menu Panel */}
       <div
         suppressHydrationWarning
-        className={`fixed inset-y-0 right-0 z-[60] flex flex-col w-3/4 max-w-xs transform border-l border-white/10 bg-zinc-750/80 backdrop-blur-md shadow-2xl transition-transform duration-300 ease-in-out md:hidden ${isMobileMenuOpen ? 'translate-x-0' : 'translate-x-full'
+        className={`fixed inset-y-0 right-0 z-[60] flex flex-col w-3/4 max-w-xs border-l border-white/10 bg-zinc-750/80 backdrop-blur-md shadow-2xl transition-all duration-300 ease-in-out md:hidden ${isMobileMenuOpen ? 'translate-x-0 opacity-100 pointer-events-auto' : 'translate-x-full opacity-0 pointer-events-none hidden'
           }`}
       >
         <div className="flex items-center justify-between border-b border-white/10 p-4" suppressHydrationWarning>

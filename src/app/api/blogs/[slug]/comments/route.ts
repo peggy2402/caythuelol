@@ -3,6 +3,7 @@ import { auth } from '@/lib/auth';
 import dbConnect from '@/lib/db';
 import Blog from '@/models/Blog';
 import Comment from '@/models/Comment';
+import '@/models/User';
 
 export async function GET(req: Request, { params }: { params: Promise<{ slug: string }> }) {
   try {
