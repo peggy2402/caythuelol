@@ -77,24 +77,24 @@ export default function AdminDepositsPage() {
                 <tr key={order._id} className="hover:bg-zinc-800/50">
                   <td className="px-6 py-4">
                     <Link href={`/orders/${order._id}`} className="text-blue-400 hover:underline flex items-center gap-1 font-mono">
-                      #{order._id.slice(-6)} <ExternalLink size={12} />
+                      #{order._id?.toString()?.slice(-6) || '---'} <ExternalLink size={12} />
                     </Link>
-                    <div className="text-xs text-zinc-500">{new Date(order.createdAt).toLocaleDateString('vi-VN')}</div>
+                    <div className="text-xs text-zinc-500">{order.createdAt ? new Date(order.createdAt).toLocaleDateString('vi-VN') : '---'}</div>
                   </td>
                   <td className="px-6 py-4 text-white font-medium">
-                    {order.serviceType.replace('_', ' ')}
+                    {(order.serviceType || (order as any).service_type || 'DỊCH VỤ').toString().replace(/_/g, ' ')}
                   </td>
                   <td className="px-6 py-4">
-                    <div className="text-white">C: {order.customerId?.username}</div>
+                    <div className="text-white">C: {order.customerId?.username || 'Khách'}</div>
                     <div className="text-zinc-500 text-xs">B: {order.boosterId?.username || '---'}</div>
                   </td>
                   <td className="px-6 py-4">
                     <span className="px-2 py-1 rounded text-[10px] font-bold bg-zinc-800 text-zinc-300 border border-zinc-700">
-                        {order.status}
+                        {order.status || 'PENDING'}
                     </span>
                   </td>
                   <td className="px-6 py-4 text-right font-mono text-yellow-500 font-bold">
-                    {order.pricing.deposit_amount.toLocaleString()} đ
+                    {(order.pricing?.deposit_amount || order.pricing?.total_amount || 0).toLocaleString()} đ
                   </td>
                 </tr>
               ))

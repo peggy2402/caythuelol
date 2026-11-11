@@ -111,7 +111,7 @@ export default function AdminTransactionsPage() {
           tx.amount,
           tx.status,
           new Date(tx.createdAt).toISOString(),
-          `"${(tx.metadata?.content || tx.description).replace(/"/g, '""')}"`
+          `"${(tx.metadata?.content || tx.description || '').toString().replace(/"/g, '""')}"`
         ].join(',');
         return row;
       }).join('\n');

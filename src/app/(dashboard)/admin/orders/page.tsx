@@ -112,14 +112,14 @@ export default function AdminOrdersPage() {
                   <tr key={order._id} className="hover:bg-zinc-800/50">
                     <td className="px-6 py-4">
                       <Link href={`/orders/${order._id}`} className="text-blue-400 hover:underline flex items-center gap-1 font-mono">
-                        #{order._id.slice(-6)} <ExternalLink size={12} />
+                        #{order._id?.toString()?.slice(-6) || '---'} <ExternalLink size={12} />
                       </Link>
-                      <div className="text-xs text-zinc-500">{new Date(order.createdAt).toLocaleDateString('vi-VN')}</div>
+                      <div className="text-xs text-zinc-500">{order.createdAt ? new Date(order.createdAt).toLocaleDateString('vi-VN') : '---'}</div>
                     </td>
                     <td className="px-6 py-4 text-white font-medium">
-                      {order.serviceType.replace('_', ' ')}
+                      {(order.serviceType || (order as any).service_type || 'DỊCH VỤ').toString().replace(/_/g, ' ')}
                       <div className="text-xs text-zinc-400 font-normal">
-                        {order.details.current_rank || order.details.current_level} → {order.details.desired_rank || order.details.desired_level}
+                        {order.details?.current_rank || order.details?.current_level || '---'} → {order.details?.desired_rank || order.details?.desired_level || '---'}
                       </div>
                     </td>
                     <td className="px-6 py-4">
@@ -128,11 +128,11 @@ export default function AdminOrdersPage() {
                     </td>
                     <td className="px-6 py-4">
                       <span className={`px-2 py-1 rounded-full text-[10px] font-bold ${STATUS_STYLES[order.status] || STATUS_STYLES.DEFAULT}`}>
-                        {order.status}
+                        {order.status || 'PENDING'}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-right font-mono text-emerald-400 font-bold">
-                      {order.pricing.total_amount.toLocaleString()} đ
+                      {(order.pricing?.total_amount || order.pricing?.deposit_amount || 0).toLocaleString()} đ
                     </td>
                   </tr>
                 ))
