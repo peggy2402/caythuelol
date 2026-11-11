@@ -987,3 +987,11 @@ caythuelol/
     - `CronModule`: Tác vụ nền tự động định kỳ: Quét phạt nợ ví âm & khóa tài khoản (`debt-collection`), Tự động hủy đơn hàng quá 3 ngày không có Booster nhận và hoàn tiền (`expire-orders`).
     - `PublicModule`: Cấu hình hệ thống công khai, Danh sách tướng LMHT, Xác thực mã giảm giá Coupon, Upload file/PDF Cloudinary.
   - Kiểm thử biên dịch: `npm run build` thành công 100% không một lỗi cảnh báo.
+
+- **Phase 3 Implementation (Frontend Integration & Reverse Proxy Setup):**
+  - Cập nhật biến môi trường Frontend: `NEXT_PUBLIC_API_URL=https://apil-lr.leorank.site` và `NEXT_PUBLIC_SOCKET_URL=https://apil-lr.leorank.site`.
+  - Cấu hình Next.js `rewrites()` (`beforeFiles`) trong `next.config.ts` để tự động chuyển tiếp toàn bộ các yêu cầu `/api/:path*` tới NestJS Backend (`https://apil-lr.leorank.site/:path*`), giúp bảo toàn 100% các component hiện tại và triệt tiêu hoàn toàn lỗi CORS/Cross-origin cookies.
+  - Cập nhật `src/lib/socket.ts` để kết nối WebSocket trực tiếp tới NestJS Gateway thay vì server Railway rời.
+  - Tạo `src/lib/api.ts` (API Client Wrapper) hỗ trợ cả SSR (Server Components) và CSR.
+  - Loại trừ thư mục `backend` khỏi `tsconfig.json` gốc để Next.js không typecheck nhầm file NestJS decorators.
+  - Xác nhận build Frontend `npm run build` thành công 100% với 137 static/dynamic pages.
