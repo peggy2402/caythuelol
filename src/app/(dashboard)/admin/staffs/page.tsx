@@ -29,7 +29,7 @@ import { format } from 'date-fns';
 import UserSelectDropdown, { AdminUserItem } from '@/components/admin/UserSelectDropdown';
 
 // 10 Quyền hạn chuẩn của hệ thống Back Office
-export const ALL_STAFF_PERMISSIONS = [
+const ALL_STAFF_PERMISSIONS = [
   {
     key: 'users',
     label: 'Quản lý Khách hàng',
