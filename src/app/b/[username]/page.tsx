@@ -16,6 +16,7 @@ import {
   MessageSquare,
   Clock,
   Zap,
+  Tag,
 } from 'lucide-react';
 import SparklineChart from '@/components/SparklineChart';
 import BoosterReviewList from '@/components/BoosterReviewList';
@@ -227,56 +228,75 @@ export default async function ShortProfilePage({ params }: Props) {
   const winRateTrendData = stats?.winRateTrendData || [];
 
   const championPool = boosterData?.service_settings?.playingChampions || [];
-  const rawServices: string[] = boosterData?.services || [];
-
   const boosterName = boosterData?.displayName || boosterData?.username || data.user.username;
   const boosterUsername = boosterData?.username || data.user.username;
 
-  // Normalize services
-  const normalizedKeys = Array.from(
-    new Set(
-      rawServices.map((s) =>
-        s.trim().toUpperCase().replace(/\s+/g, '_')
-      )
-    )
-  );
+  // 1. Ưu tiên lấy các dịch vụ động do chính Booster này tự tạo trong Studio
+  const customServicesList: any[] =
+    boosterData?.service_settings?.customServices ||
+    data.user?.booster_info?.service_settings?.customServices ||
+    [];
 
-  // Map to distinct service catalog entries
+  const coupon =
+    boosterData?.service_settings?.coupon ||
+    data.user?.booster_info?.service_settings?.coupon;
+
   const matchedServices: ServiceItem[] = [];
-  const addedNames = new Set<string>();
 
-  for (const key of normalizedKeys) {
-    const entry =
-      SERVICE_REGISTRY[key] ||
-      SERVICE_REGISTRY[key.replace(/S$/, '')] ||
-      SERVICE_REGISTRY[`${key}S`];
+  if (Array.isArray(customServicesList) && customServicesList.length > 0) {
+    customServicesList.forEach((s) => {
+      if (s.isActive === false) return;
+      matchedServices.push({
+        key: s.id,
+        name: s.name,
+        gameTag: s.gameCode || 'Game',
+        category: s.pricingType === 'PER_UNIT' ? 'OTHER' : 'RANK',
+        desc:
+          s.desc ||
+          (s.pricingType === 'PER_UNIT'
+            ? `${s.price.toLocaleString('vi-VN')} đ / ${s.unitName || 'điểm'}`
+            : `${s.price.toLocaleString('vi-VN')} đ`),
+        href: `/services/book/${s.id}`,
+        iconName: 'Trophy',
+        badgeBg:
+          s.depositPercent < 100
+            ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+            : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
+        cardBg: 'hover:border-blue-500/50 hover:bg-blue-500/5',
+      });
+    });
+  } else {
+    // Fallback nếu booster chưa tạo custom service
+    const rawServices: string[] = boosterData?.services || [];
+    const normalizedKeys = Array.from(
+      new Set(
+        rawServices.map((s) =>
+          s.trim().toUpperCase().replace(/\s+/g, '_')
+        )
+      )
+    );
 
-    if (entry && !addedNames.has(entry.name)) {
-      matchedServices.push({
-        key,
-        name: entry.name,
-        gameTag: entry.gameTag,
-        category: entry.category,
-        desc: entry.desc,
-        href: entry.href(boosterUsername),
-        iconName: entry.iconName,
-        badgeBg: entry.badgeBg,
-        cardBg: entry.cardBg,
-      });
-      addedNames.add(entry.name);
-    } else if (!entry && !addedNames.has(key)) {
-      matchedServices.push({
-        key,
-        name: key.replace(/_/g, ' '),
-        gameTag: 'LMHT / LoL',
-        category: 'OTHER',
-        desc: 'Dịch vụ chuyên nghiệp do Booster trực tiếp thực hiện.',
-        href: `/services/lol/rank-boost?booster=@${boosterUsername}`,
-        iconName: 'Swords',
-        cardBg: 'hover:border-zinc-500 hover:bg-zinc-800/50',
-        badgeBg: 'bg-zinc-800 text-zinc-300 border-zinc-700',
-      });
-      addedNames.add(key);
+    const addedNames = new Set<string>();
+    for (const key of normalizedKeys) {
+      const entry =
+        SERVICE_REGISTRY[key] ||
+        SERVICE_REGISTRY[key.replace(/S$/, '')] ||
+        SERVICE_REGISTRY[`${key}S`];
+
+      if (entry && !addedNames.has(entry.name)) {
+        matchedServices.push({
+          key,
+          name: entry.name,
+          gameTag: entry.gameTag,
+          category: entry.category,
+          desc: entry.desc,
+          href: `/services/book/${key.toLowerCase()}?booster=@${boosterUsername}`,
+          iconName: entry.iconName,
+          badgeBg: entry.badgeBg,
+          cardBg: entry.cardBg,
+        });
+        addedNames.add(entry.name);
+      }
     }
   }
 
@@ -393,6 +413,32 @@ export default async function ShortProfilePage({ params }: Props) {
             </div>
           </div>
         </div>
+
+        {/* Booster Active Coupon Banner */}
+        {coupon?.isActive && coupon?.code && (
+          <div className="bg-gradient-to-r from-blue-900/30 via-purple-900/30 to-blue-900/20 border border-blue-500/30 rounded-2xl p-4 sm:p-5 mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xl">
+            <div className="flex items-center gap-3.5">
+              <div className="w-12 h-12 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center shrink-0 border border-blue-500/30">
+                <Tag className="w-6 h-6" />
+              </div>
+              <div>
+                <div className="text-sm sm:text-base font-bold text-white flex items-center gap-2">
+                  <span>Ưu đãi độc quyền từ {boosterName}</span>
+                  <span className="px-2 py-0.5 rounded-md bg-blue-500/20 text-blue-300 text-xs font-bold border border-blue-500/30">
+                    Giảm {coupon.discountPercent}%
+                  </span>
+                </div>
+                <div className="text-xs text-zinc-400 mt-0.5">
+                  Áp dụng cho mọi dịch vụ khi thanh toán với mã: <span className="font-mono font-bold text-blue-400">{coupon.code}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="px-4 py-2 rounded-xl bg-blue-600/20 border border-blue-500/40 text-blue-300 font-mono font-bold text-sm text-center shrink-0">
+              {coupon.code}
+            </div>
+          </div>
+        )}
 
         {/* 2-Column Responsive Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">

@@ -23,6 +23,20 @@ export class BoostersController {
   constructor(private boostersService: BoostersService) {}
 
   @Public()
+  @Get('marketplace/services')
+  @ApiOperation({ summary: 'List marketplace services across all boosters' })
+  async listMarketplaceServices(@Query() query: any) {
+    return this.boostersService.listMarketplaceServices(query);
+  }
+
+  @Public()
+  @Get('marketplace/services/:serviceId')
+  @ApiOperation({ summary: 'Get marketplace service detail by ID' })
+  async getServiceDetail(@Param('serviceId') serviceId: string) {
+    return this.boostersService.getServiceDetail(serviceId);
+  }
+
+  @Public()
   @Get()
   @ApiOperation({ summary: 'List boosters with filters & pagination' })
   async listBoosters(@Query() query: any) {

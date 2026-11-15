@@ -28,6 +28,8 @@ import {
   ArrowUpDown,
   Tag,
   Loader2,
+  Percent,
+  Coins,
   type LucideIcon,
 } from 'lucide-react';
 import { getGameById, GAMES_CATALOG } from '@/lib/games';
@@ -45,6 +47,31 @@ const ICON_MAP: Record<string, LucideIcon> = {
   Crosshair,
   Shield,
 };
+
+interface MarketplaceService {
+  id: string;
+  gameCode: string;
+  name: string;
+  desc?: string;
+  pricingType: 'PER_UNIT' | 'FIXED';
+  price: number;
+  unitName?: string;
+  depositPercent: number;
+  requiredFields: string[];
+  booster: {
+    _id: string;
+    username: string;
+    displayName: string;
+    avatar?: string;
+    rating: number;
+    completedOrders: number;
+    coupon?: {
+      code: string;
+      discountPercent: number;
+      isActive: boolean;
+    } | null;
+  };
+}
 
 interface BoosterItem {
   _id: string;
@@ -76,39 +103,50 @@ function GameServicesContent() {
   const gameId = (params?.game as string) || 'lol';
   const game = getGameById(gameId) || GAMES_CATALOG[0];
 
-  const initialService = searchParams.get('service') || game.defaultServices[0]?.slug || 'rank-boost';
-  const [selectedServiceSlug, setSelectedServiceSlug] = useState(initialService);
+  // Active View Tab: 'SERVICES' or 'BOOSTERS'
+  const [activeTab, setActiveTab] = useState<'SERVICES' | 'BOOSTERS'>('SERVICES');
 
+  // Services State
+  const [services, setServices] = useState<MarketplaceService[]>([]);
+  const [loadingServices, setLoadingServices] = useState(true);
+
+  // Boosters State
   const [boosters, setBoosters] = useState<BoosterItem[]>([]);
   const [loadingBoosters, setLoadingBoosters] = useState(true);
+
+  // Filters State
   const [searchTerm, setSearchTerm] = useState('');
+  const [pricingFilter, setPricingFilter] = useState<'ALL' | 'FIXED' | 'PER_UNIT'>('ALL');
   const [selectedServer, setSelectedServer] = useState('');
-  const [sortBy, setSortBy] = useState('rating_desc');
 
-  // Selected Service Object
-  const activeService = useMemo(() => {
-    return (
-      game.defaultServices.find((s) => s.slug === selectedServiceSlug) ||
-      game.defaultServices[0]
-    );
-  }, [game, selectedServiceSlug]);
+  // Fetch Services for this Game
+  useEffect(() => {
+    const fetchServices = async () => {
+      setLoadingServices(true);
+      try {
+        const gameCode = (game.shortName || game.id).toUpperCase();
+        const res = await fetch(`/api/boosters/marketplace/services?gameCode=${encodeURIComponent(gameCode)}`);
+        if (res.ok) {
+          const data = await res.json();
+          setServices(data.data || []);
+        }
+      } catch (err) {
+        console.error('Lỗi tải danh sách dịch vụ:', err);
+      } finally {
+        setLoadingServices(false);
+      }
+    };
 
-  // Update URL search params when service changes
-  const handleSelectService = (slug: string) => {
-    setSelectedServiceSlug(slug);
-    const p = new URLSearchParams(searchParams.toString());
-    p.set('service', slug);
-    router.replace(`/services/${game.id}?${p.toString()}`, { scroll: false });
-  };
+    fetchServices();
+  }, [game.id, game.shortName]);
 
-  // Fetch Boosters
+  // Fetch Boosters for this Game
   useEffect(() => {
     const fetchBoosters = async () => {
       setLoadingBoosters(true);
       try {
         const query = new URLSearchParams({
           game: game.id.toUpperCase(),
-          sort: sortBy,
         });
         const res = await fetch(`/api/boosters?${query.toString()}`);
         if (res.ok) {
@@ -116,16 +154,34 @@ function GameServicesContent() {
           setBoosters(data.boosters || []);
         }
       } catch (err) {
-        console.error(err);
+        console.error('Lỗi tải danh sách tuyển thủ:', err);
       } finally {
         setLoadingBoosters(false);
       }
     };
 
     fetchBoosters();
-  }, [game.id, sortBy]);
+  }, [game.id]);
 
-  // Filter boosters by search term and server
+  // Filter Services
+  const filteredServices = useMemo(() => {
+    return services.filter((s) => {
+      const q = searchTerm.toLowerCase().trim();
+      const matchSearch =
+        !q ||
+        s.name.toLowerCase().includes(q) ||
+        (s.desc && s.desc.toLowerCase().includes(q)) ||
+        s.booster.username.toLowerCase().includes(q) ||
+        s.booster.displayName.toLowerCase().includes(q);
+
+      const matchPricing =
+        pricingFilter === 'ALL' || s.pricingType === pricingFilter;
+
+      return matchSearch && matchPricing;
+    });
+  }, [services, searchTerm, pricingFilter]);
+
+  // Filter Boosters
   const filteredBoosters = useMemo(() => {
     return boosters.filter((b) => {
       const q = searchTerm.toLowerCase().trim();
@@ -148,343 +204,366 @@ function GameServicesContent() {
 
       <main className="relative pt-24 pb-28 px-4 sm:px-6 max-w-7xl mx-auto">
         {/* Navigation & Breadcrumbs */}
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <BackButton fallbackUrl="/services" label="Tất cả game" />
-            <span className="text-zinc-600">/</span>
-            <span className="text-sm font-bold text-white">{game.name}</span>
-          </div>
-
-          {/* Upwork/Fiverr Flow Steps Indicator */}
-          <div className="flex items-center gap-2 text-xs">
-            <Link
-              href="/services"
-              className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-zinc-900 border border-zinc-700 text-zinc-400 hover:text-white transition-colors"
-            >
-              <span>Bước 1: {game.shortName}</span>
+        <div className="flex items-center justify-between mb-6">
+          <BackButton />
+          <div className="flex items-center gap-2 text-xs text-zinc-400">
+            <Link href="/services" className="hover:text-white transition-colors">
+              Tất cả Games
             </Link>
-            <span className="text-zinc-600">➔</span>
-            <span className="px-3 py-1 rounded-xl bg-blue-600/20 border border-blue-500/40 text-blue-300 font-semibold">
-              Bước 2: Chọn Dịch Vụ
-            </span>
-            <span className="text-zinc-600">➔</span>
-            <span className="px-3 py-1 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-500">
-              Bước 3: Chọn Booster
-            </span>
+            <span>/</span>
+            <span className="text-white font-semibold">{game.name}</span>
           </div>
         </div>
 
-        {/* Game Banner Header */}
-        <div className={`relative p-6 sm:p-8 rounded-3xl bg-gradient-to-r ${game.gradient} border border-white/10 shadow-2xl overflow-hidden mb-10`}>
-          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+        {/* Hero Header */}
+        <div
+          className={`relative rounded-3xl p-6 sm:p-8 mb-8 border border-white/10 bg-gradient-to-r ${game.gradient} overflow-hidden shadow-2xl`}
+        >
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-xs" />
           <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-            <div>
-              <div className="flex items-center gap-2 mb-2">
-                <span className="px-3 py-0.5 rounded-full bg-white/20 text-white text-xs font-bold uppercase tracking-wider backdrop-blur-md">
-                  {game.shortName}
-                </span>
-                <span className="text-xs text-white/80 font-medium">
-                  Hệ thống cày thuê uy tín
-                </span>
+            <div className="max-w-2xl">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 border border-white/20 text-white text-xs font-bold uppercase tracking-wider mb-3">
+                <Gamepad2 size={13} />
+                <span>{game.shortName} Marketplace</span>
               </div>
-              <h1 className="text-2xl sm:text-4xl font-black text-white tracking-tight">
-                DỊCH VỤ {game.name.toUpperCase()}
+              <h1 className="text-2xl sm:text-4xl font-black text-white tracking-tight drop-shadow-md mb-2">
+                Sàn Dịch Vụ {game.name}
               </h1>
-              <p className="text-white/80 text-xs sm:text-sm max-w-2xl mt-1 leading-relaxed">
-                {game.desc}
+              <p className="text-zinc-300 text-xs sm:text-sm leading-relaxed max-w-xl">
+                Khám phá các gói dịch vụ cày thuê do tuyển thủ tự niêm yết giá hoặc lựa chọn tuyển thủ hàng đầu để thuê trực tiếp.
               </p>
             </div>
 
+            {/* Quick Stats Pill */}
             <div className="flex items-center gap-3 shrink-0">
-              <div className="px-4 py-2.5 rounded-2xl bg-black/40 border border-white/10 backdrop-blur-md text-center">
-                <div className="text-xs text-zinc-400 font-medium">Dịch vụ sẵn có</div>
-                <div className="text-lg font-black text-white">{game.defaultServices.length}</div>
+              <div className="px-4 py-3 rounded-2xl bg-black/40 border border-white/10 backdrop-blur-md text-center">
+                <div className="text-xl sm:text-2xl font-black text-blue-400">
+                  {services.length}
+                </div>
+                <div className="text-[11px] font-semibold text-zinc-400">
+                  Gói Dịch Vụ
+                </div>
               </div>
-              <div className="px-4 py-2.5 rounded-2xl bg-black/40 border border-white/10 backdrop-blur-md text-center">
-                <div className="text-xs text-zinc-400 font-medium">Tuyển thủ sẵn sàng</div>
-                <div className="text-lg font-black text-emerald-400">{boosters.length}</div>
+              <div className="px-4 py-3 rounded-2xl bg-black/40 border border-white/10 backdrop-blur-md text-center">
+                <div className="text-xl sm:text-2xl font-black text-emerald-400">
+                  {boosters.length}
+                </div>
+                <div className="text-[11px] font-semibold text-zinc-400">
+                  Tuyển Thủ
+                </div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* STEP 2: LIST SERVICES (Category & Service Selector) */}
-        <div className="mb-12">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h2 className="text-lg sm:text-xl font-bold text-white flex items-center gap-2">
-                <span className="flex items-center justify-center w-6 h-6 rounded-full bg-blue-600 text-xs font-bold">
-                  2
-                </span>
-                <span>Chọn loại dịch vụ bạn cần</span>
-              </h2>
-              <p className="text-xs text-zinc-400 mt-0.5">
-                Nhấn vào dịch vụ để xem danh sách tuyển thủ và bảng giá chi tiết
-              </p>
-            </div>
+        {/* Two-Tab Switcher: Services Marketplace vs Boosters */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+          <div className="inline-flex p-1 bg-zinc-900/80 border border-white/10 rounded-2xl">
+            <button
+              type="button"
+              onClick={() => setActiveTab('SERVICES')}
+              className={`flex items-center gap-2 px-4 sm:px-6 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all ${
+                activeTab === 'SERVICES'
+                  ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
+                  : 'text-zinc-400 hover:text-white'
+              }`}
+            >
+              <Swords size={16} />
+              <span>Gói Dịch Vụ ({services.length})</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('BOOSTERS')}
+              className={`flex items-center gap-2 px-4 sm:px-6 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all ${
+                activeTab === 'BOOSTERS'
+                  ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
+                  : 'text-zinc-400 hover:text-white'
+              }`}
+            >
+              <Users size={16} />
+              <span>Danh Sách Tuyển Thủ ({boosters.length})</span>
+            </button>
           </div>
 
-          {/* Services Grid (Fiverr Gigs Style) */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
-            {game.defaultServices.map((svc) => {
-              const ServiceIcon = ICON_MAP[svc.iconName] || Swords;
-              const isSelected = svc.slug === selectedServiceSlug;
+          {/* Search Box */}
+          <div className="relative min-w-[260px]">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+            <input
+              type="text"
+              placeholder={
+                activeTab === 'SERVICES'
+                  ? 'Tìm theo tên gói hoặc tuyển thủ...'
+                  : 'Tìm tuyển thủ theo tên...'
+              }
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full bg-zinc-900 border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-xs sm:text-sm text-white placeholder-zinc-500 focus:border-blue-500 outline-none"
+            />
+          </div>
+        </div>
 
-              return (
-                <div
-                  key={svc.slug}
-                  onClick={() => handleSelectService(svc.slug)}
-                  className={`group relative p-4 rounded-2xl border cursor-pointer transition-all duration-200 flex flex-col justify-between ${
-                    isSelected
-                      ? 'bg-blue-600/15 border-blue-500 shadow-lg shadow-blue-600/20 ring-1 ring-blue-500 -translate-y-1'
-                      : 'bg-zinc-900/60 border-white/10 hover:border-white/20 hover:bg-zinc-900'
-                  }`}
-                >
-                  <div>
-                    <div className="flex items-center justify-between mb-2.5">
-                      <div
-                        className={`p-2 rounded-xl border transition-colors ${
-                          isSelected
-                            ? 'bg-blue-500/20 border-blue-500/40 text-blue-400'
-                            : 'bg-white/5 border-white/10 text-zinc-300 group-hover:text-white'
-                        }`}
-                      >
-                        <ServiceIcon size={18} />
+        {/* TAB 1: GÓI DỊCH VỤ MARKETPLACE */}
+        {activeTab === 'SERVICES' && (
+          <div>
+            {/* Filter Tags */}
+            <div className="flex items-center gap-2 mb-6 overflow-x-auto pb-1">
+              <span className="text-xs text-zinc-400 font-semibold mr-1">Loại giá:</span>
+              <button
+                type="button"
+                onClick={() => setPricingFilter('ALL')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
+                  pricingFilter === 'ALL'
+                    ? 'bg-blue-500/20 border-blue-500 text-blue-400'
+                    : 'bg-zinc-900 border-white/10 text-zinc-400 hover:text-white'
+                }`}
+              >
+                Tất cả
+              </button>
+              <button
+                type="button"
+                onClick={() => setPricingFilter('FIXED')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
+                  pricingFilter === 'FIXED'
+                    ? 'bg-blue-500/20 border-blue-500 text-blue-400'
+                    : 'bg-zinc-900 border-white/10 text-zinc-400 hover:text-white'
+                }`}
+              >
+                Trọn gói (Cố định)
+              </button>
+              <button
+                type="button"
+                onClick={() => setPricingFilter('PER_UNIT')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
+                  pricingFilter === 'PER_UNIT'
+                    ? 'bg-blue-500/20 border-blue-500 text-blue-400'
+                    : 'bg-zinc-900 border-white/10 text-zinc-400 hover:text-white'
+                }`}
+              >
+                Tính theo điểm (Có cọc)
+              </button>
+            </div>
+
+            {loadingServices ? (
+              <div className="flex flex-col items-center justify-center py-24 gap-3">
+                <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+                <p className="text-zinc-400 text-sm">Đang tải danh sách gói dịch vụ...</p>
+              </div>
+            ) : filteredServices.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filteredServices.map((svc) => {
+                  const hasCoupon = svc.booster.coupon?.isActive;
+
+                  return (
+                    <div
+                      key={svc.id}
+                      className="group bg-zinc-900/60 border border-white/10 hover:border-blue-500/40 rounded-2xl p-5 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 flex flex-col justify-between"
+                    >
+                      <div>
+                        {/* Top Badges */}
+                        <div className="flex items-center justify-between mb-3">
+                          <span className="px-2.5 py-0.5 rounded-md bg-white/5 border border-white/10 text-zinc-300 text-xs font-semibold uppercase">
+                            {svc.gameCode}
+                          </span>
+
+                          <div className="flex items-center gap-1.5">
+                            {svc.depositPercent < 100 ? (
+                              <span className="px-2 py-0.5 rounded-md bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[11px] font-bold">
+                                Cọc {svc.depositPercent}%
+                              </span>
+                            ) : (
+                              <span className="px-2 py-0.5 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[11px] font-bold">
+                                Trọn gói
+                              </span>
+                            )}
+
+                            {hasCoupon && (
+                              <span className="px-2 py-0.5 rounded-md bg-blue-500/10 border border-blue-500/20 text-blue-400 text-[11px] font-bold flex items-center gap-0.5">
+                                <Tag size={10} />
+                                -{svc.booster.coupon?.discountPercent}%
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Title & Description */}
+                        <h3 className="font-extrabold text-white text-base group-hover:text-blue-400 transition-colors line-clamp-1 mb-2">
+                          {svc.name}
+                        </h3>
+                        <p className="text-zinc-400 text-xs line-clamp-2 leading-relaxed mb-4">
+                          {svc.desc || 'Gói dịch vụ cày thuê chuyên nghiệp đảm bảo bảo mật và tốc độ cao.'}
+                        </p>
+
+                        {/* Price Preview */}
+                        <div className="p-3 rounded-xl bg-zinc-950/70 border border-white/5 mb-4 flex items-center justify-between">
+                          <span className="text-xs text-zinc-400">Giá dịch vụ:</span>
+                          <span className="font-extrabold text-emerald-400 text-sm">
+                            {svc.pricingType === 'PER_UNIT'
+                              ? `${svc.price.toLocaleString('vi-VN')} đ / ${svc.unitName || 'điểm'}`
+                              : `${svc.price.toLocaleString('vi-VN')} đ`}
+                          </span>
+                        </div>
                       </div>
 
-                      {svc.depositPercent < 100 ? (
-                        <span className="px-2 py-0.5 rounded-md bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[10px] font-bold">
-                          Cọc {svc.depositPercent}%
-                        </span>
-                      ) : (
-                        <span className="px-2 py-0.5 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-bold">
-                          Trọn gói
-                        </span>
-                      )}
+                      {/* Booster Info Footer & Book Button */}
+                      <div>
+                        <div className="pt-3 border-t border-white/5 flex items-center justify-between mb-4">
+                          <Link
+                            href={`/b/${svc.booster.username}`}
+                            className="flex items-center gap-2.5 min-w-0 group/b"
+                          >
+                            <div className="w-8 h-8 rounded-lg bg-zinc-800 border border-white/10 overflow-hidden shrink-0">
+                              {svc.booster.avatar ? (
+                                <img
+                                  src={svc.booster.avatar}
+                                  alt={svc.booster.username}
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <User className="w-full h-full p-1 text-zinc-500" />
+                              )}
+                            </div>
+                            <div className="min-w-0">
+                              <span className="text-xs font-bold text-white group-hover/b:text-blue-400 transition-colors truncate block">
+                                {svc.booster.displayName || svc.booster.username}
+                              </span>
+                              <div className="flex items-center gap-1 text-[11px] text-amber-400 font-semibold">
+                                <Star className="w-3 h-3 fill-amber-400" />
+                                <span>{svc.booster.rating.toFixed(1)}</span>
+                                <span className="text-zinc-500 font-normal">
+                                  ({svc.booster.completedOrders} đơn)
+                                </span>
+                              </div>
+                            </div>
+                          </Link>
+
+                          <Link
+                            href={`/b/${svc.booster.username}`}
+                            className="text-[11px] font-semibold text-zinc-400 hover:text-white transition-colors shrink-0"
+                          >
+                            Xem shop
+                          </Link>
+                        </div>
+
+                        <Link
+                          href={`/services/book/${svc.id}`}
+                          className="w-full py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-md shadow-blue-600/25 transition-all flex items-center justify-center gap-1.5"
+                        >
+                          <span>Đặt dịch vụ ngay</span>
+                          <ArrowRight size={14} />
+                        </Link>
+                      </div>
                     </div>
-
-                    <h3 className="font-bold text-white text-sm group-hover:text-blue-400 transition-colors line-clamp-1 mb-1">
-                      {svc.name}
-                    </h3>
-                    <p className="text-zinc-400 text-xs line-clamp-2 leading-relaxed">
-                      {svc.desc}
-                    </p>
-                  </div>
-
-                  <div className="mt-4 pt-3 border-t border-white/5 flex items-center justify-between">
-                    <span className="text-[11px] text-zinc-400">
-                      {svc.pricingType === 'PER_UNIT'
-                        ? `${svc.defaultPrice.toLocaleString('vi-VN')} đ / ${svc.unitName || 'điểm'}`
-                        : `Từ ${svc.defaultPrice.toLocaleString('vi-VN')} đ`}
-                    </span>
-                    <span
-                      className={`text-xs font-semibold ${
-                        isSelected ? 'text-blue-400' : 'text-zinc-500 group-hover:text-zinc-300'
-                      }`}
-                    >
-                      {isSelected ? 'Đang chọn' : 'Chọn dịch vụ'}
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* STEP 3: LIST BOOSTERS FOR SELECTED SERVICE (Fiverr/Upwork Freelancer Profiles) */}
-        <div>
-          {/* Section Header & Filters Bar */}
-          <div className="bg-zinc-900/60 border border-white/10 p-4 rounded-2xl shadow-xl mb-6 backdrop-blur-md">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-3">
-              <div>
-                <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                  <span className="flex items-center justify-center w-6 h-6 rounded-full bg-blue-600 text-xs font-bold">
-                    3
-                  </span>
-                  <span>Danh sách Tuyển thủ: {activeService?.name}</span>
-                </h3>
-                <p className="text-xs text-zinc-400 mt-0.5">
-                  Lựa chọn Booster uy tín, xem bảng giá và đặt lịch thuê ngay
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="py-20 text-center border border-dashed border-zinc-800 rounded-3xl bg-zinc-900/30 space-y-3">
+                <Swords className="w-10 h-10 text-zinc-600 mx-auto" />
+                <h4 className="text-base font-bold text-white">Chưa có gói dịch vụ nào</h4>
+                <p className="text-xs text-zinc-400 max-w-sm mx-auto">
+                  Hiện chưa có Booster nào đăng gói dịch vụ cho tựa game này hoặc không khớp với bộ lọc của bạn.
                 </p>
               </div>
-
-              {/* Quick sort & server filters */}
-              <div className="flex flex-wrap items-center gap-2.5">
-                {/* Search Box */}
-                <div className="relative min-w-[200px]">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-500" />
-                  <input
-                    type="text"
-                    placeholder="Tìm tên Booster..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full bg-zinc-950 border border-zinc-800 rounded-xl pl-9 pr-3 py-2 text-xs text-white focus:border-blue-500 outline-none"
-                  />
-                </div>
-
-                {/* Server Filter */}
-                <div className="relative">
-                  <select
-                    value={selectedServer}
-                    onChange={(e) => setSelectedServer(e.target.value)}
-                    className="appearance-none bg-zinc-950 border border-zinc-800 rounded-xl pl-3 pr-8 py-2 text-xs text-zinc-300 outline-none cursor-pointer focus:border-blue-500"
-                  >
-                    <option value="">Tất cả máy chủ</option>
-                    {game.standardServers.map((s) => (
-                      <option key={s.code} value={s.code}>
-                        {s.name} ({s.code})
-                      </option>
-                    ))}
-                  </select>
-                  <Filter className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-zinc-500 pointer-events-none" />
-                </div>
-
-                {/* Sort Filter */}
-                <div className="relative">
-                  <select
-                    value={sortBy}
-                    onChange={(e) => setSortBy(e.target.value)}
-                    className="appearance-none bg-zinc-950 border border-zinc-800 rounded-xl pl-3 pr-8 py-2 text-xs text-zinc-300 outline-none cursor-pointer focus:border-blue-500"
-                  >
-                    <option value="rating_desc">Đánh giá cao nhất</option>
-                    <option value="orders_desc">Nhiều đơn hoàn thành</option>
-                  </select>
-                  <ArrowUpDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3 h-3 text-zinc-500 pointer-events-none" />
-                </div>
-              </div>
-            </div>
+            )}
           </div>
+        )}
 
-          {/* Boosters Freelancers Grid */}
-          {loadingBoosters ? (
-            <div className="text-center py-16 bg-zinc-900/30 rounded-3xl border border-white/5">
-              <Loader2 className="w-8 h-8 animate-spin mx-auto mb-2 text-blue-500" />
-              <p className="text-zinc-500 text-sm">Đang tải danh sách Booster...</p>
-            </div>
-          ) : filteredBoosters.length === 0 ? (
-            <div className="text-center py-16 border border-dashed border-zinc-800 rounded-3xl bg-zinc-900/30">
-              <p className="text-zinc-500 text-sm">Chưa tìm thấy Booster nào phù hợp với bộ lọc.</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-              {filteredBoosters.map((booster) => {
-                const isReady = booster.booster_info?.isReady ?? true;
-                const completedCount =
-                  booster.completedOrders ?? booster.booster_info?.completed_orders ?? 0;
-                const rank =
-                  booster.games?.find((g) => g.gameCode === game.id.toUpperCase())?.ranks?.[0] ||
-                  booster.booster_info?.ranks?.[0];
+        {/* TAB 2: DANH SÁCH TUYỂN THỦ (SELLERS) */}
+        {activeTab === 'BOOSTERS' && (
+          <div>
+            {loadingBoosters ? (
+              <div className="flex flex-col items-center justify-center py-24 gap-3">
+                <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+                <p className="text-zinc-400 text-sm">Đang tải danh sách tuyển thủ...</p>
+              </div>
+            ) : filteredBoosters.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filteredBoosters.map((booster) => {
+                  const isReady = booster.booster_info?.isReady ?? true;
+                  const completedCount =
+                    booster.completedOrders || booster.booster_info?.completed_orders || 0;
 
-                const hireUrl = `/b/${booster.username}`;
-
-                return (
-                  <div
-                    key={booster._id}
-                    className="group relative bg-zinc-900/60 border border-white/10 hover:border-blue-500/40 rounded-2xl p-5 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 flex flex-col justify-between"
-                  >
-                    <div>
-                      {/* Top Bar: Avatar, Names, Online */}
-                      <div className="flex items-start gap-3.5 mb-4">
-                        <div className="relative w-14 h-14 rounded-2xl overflow-hidden border-2 border-white/10 group-hover:border-blue-500 transition-colors bg-zinc-800 shrink-0">
-                          {booster.avatar ? (
-                            <img
-                              src={booster.avatar}
-                              alt={booster.username}
-                              className="w-full h-full object-cover"
+                  return (
+                    <div
+                      key={booster._id}
+                      className="group bg-zinc-900/60 border border-white/10 hover:border-blue-500/40 rounded-2xl p-5 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 flex flex-col justify-between"
+                    >
+                      <div>
+                        {/* Avatar & Online status */}
+                        <div className="flex items-start gap-3.5 mb-4">
+                          <div className="relative w-14 h-14 rounded-2xl overflow-hidden border-2 border-white/10 group-hover:border-blue-500 transition-colors bg-zinc-800 shrink-0">
+                            {booster.avatar ? (
+                              <img
+                                src={booster.avatar}
+                                alt={booster.username}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <User className="w-full h-full p-3 text-zinc-400" />
+                            )}
+                            <div
+                              className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-zinc-900 ${
+                                isReady ? 'bg-green-500' : 'bg-zinc-500'
+                              }`}
+                              title={isReady ? 'Sẵn sàng nhận đơn' : 'Tạm nghỉ'}
                             />
-                          ) : (
-                            <User className="w-full h-full p-3 text-zinc-400" />
-                          )}
-                          <div
-                            className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-zinc-900 ${
-                              isReady ? 'bg-green-500' : 'bg-zinc-500'
-                            }`}
-                            title={isReady ? 'Sẵn sàng nhận đơn' : 'Tạm nghỉ'}
-                          />
-                        </div>
+                          </div>
 
-                        <div className="min-w-0 flex-1">
-                          <Link href={`/b/${booster.username}`} className="block">
-                            <h4 className="font-extrabold text-white text-base group-hover:text-blue-400 transition-colors truncate">
-                              {booster.displayName || booster.username}
-                            </h4>
-                          </Link>
-                          <div className="text-xs text-zinc-400 font-mono">@{booster.username}</div>
+                          <div className="min-w-0 flex-1">
+                            <Link href={`/b/${booster.username}`} className="block">
+                              <h4 className="font-extrabold text-white text-base group-hover:text-blue-400 transition-colors truncate">
+                                {booster.displayName || booster.username}
+                              </h4>
+                            </Link>
+                            <div className="text-xs text-zinc-400 font-mono">@{booster.username}</div>
 
-                          <div className="flex items-center gap-2 mt-1.5 text-xs">
-                            <span className="flex items-center gap-1 font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
-                              <Star size={11} className="fill-current" />
-                              {booster.rating?.toFixed(1) || '5.0'}
-                            </span>
-                            <span className="text-zinc-400 text-[11px] font-medium">
-                              {completedCount} đơn hoàn thành
-                            </span>
+                            <div className="flex items-center gap-2 mt-1.5 text-xs">
+                              <span className="flex items-center gap-1 font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
+                                <Star className="w-3.5 h-3.5 fill-amber-400" />
+                                {booster.rating?.toFixed(1) || '5.0'}
+                              </span>
+                              <span className="text-zinc-400 text-[11px]">
+                                {completedCount} đơn hoàn thành
+                              </span>
+                            </div>
                           </div>
                         </div>
-                      </div>
 
-                      {/* Rank badge & Service Price Preview */}
-                      <div className="bg-zinc-950/60 border border-white/5 rounded-xl p-3 mb-4 space-y-1.5">
-                        <div className="flex items-center justify-between text-xs">
-                          <span className="text-zinc-400">Dịch vụ:</span>
-                          <span className="font-bold text-white truncate max-w-[180px]">
-                            {activeService?.name}
+                        {/* Badges */}
+                        <div className="flex flex-wrap gap-1.5 mb-4">
+                          <span className="px-2 py-0.5 rounded-md bg-blue-500/10 text-[11px] font-semibold text-blue-400 border border-blue-500/20 flex items-center gap-1">
+                            <CheckCircle2 size={11} />
+                            Verified Booster
+                          </span>
+                          <span className="px-2 py-0.5 rounded-md bg-white/5 text-[11px] font-medium text-zinc-300 border border-white/10">
+                            {game.shortName}
                           </span>
                         </div>
-                        <div className="flex items-center justify-between text-xs">
-                          <span className="text-zinc-400">Giá đề xuất:</span>
-                          <span className="font-extrabold text-emerald-400">
-                            {activeService?.pricingType === 'PER_UNIT'
-                              ? `${activeService.defaultPrice.toLocaleString('vi-VN')} đ / ${activeService.unitName || 'điểm'}`
-                              : `Từ ${activeService?.defaultPrice.toLocaleString('vi-VN')} đ`}
-                          </span>
-                        </div>
-                        {activeService?.depositPercent && activeService.depositPercent < 100 && (
-                          <div className="flex items-center justify-between text-xs pt-1 border-t border-white/5">
-                            <span className="text-zinc-500">Mức cọc:</span>
-                            <span className="font-semibold text-amber-400">
-                              Cọc {activeService.depositPercent}%
-                            </span>
-                          </div>
-                        )}
                       </div>
 
-                      {/* Badges */}
-                      <div className="flex flex-wrap gap-1.5 mb-5">
-                        {rank && (
-                          <span className="px-2 py-0.5 rounded-md bg-yellow-500/10 text-[11px] font-bold text-yellow-400 border border-yellow-500/20">
-                            {rank.replace('_', ' ')}
-                          </span>
-                        )}
-                        <span className="px-2 py-0.5 rounded-md bg-blue-500/10 text-[11px] font-semibold text-blue-400 border border-blue-500/20 flex items-center gap-1">
-                          <CheckCircle2 size={11} />
-                          Verified
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Action Buttons */}
-                    <div className="flex items-center gap-2 pt-3 border-t border-white/5">
-                      <Link
-                        href={hireUrl}
-                        className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-md shadow-blue-600/30 transition-all hover:scale-[1.02] active:scale-95"
-                      >
-                        <span>Thuê Tuyển Thủ Này</span>
-                        <ArrowRight size={14} />
-                      </Link>
+                      {/* View Storefront Button */}
                       <Link
                         href={`/b/${booster.username}`}
-                        className="px-3 py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white font-semibold text-xs border border-zinc-700 transition-colors"
+                        className="w-full py-2.5 px-4 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white font-bold text-xs border border-white/10 hover:border-white/20 transition-all flex items-center justify-center gap-1.5 text-center"
                       >
-                        Hồ sơ
+                        <span>Xem gian hàng & Dịch vụ</span>
+                        <ArrowRight size={14} />
                       </Link>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="py-20 text-center border border-dashed border-zinc-800 rounded-3xl bg-zinc-900/30 space-y-3">
+                <Users className="w-10 h-10 text-zinc-600 mx-auto" />
+                <h4 className="text-base font-bold text-white">Chưa có tuyển thủ phù hợp</h4>
+                <p className="text-xs text-zinc-400 max-w-sm mx-auto">
+                  Không tìm thấy tuyển thủ nào cho tựa game này.
+                </p>
+              </div>
+            )}
+          </div>
+        )}
       </main>
     </div>
   );
@@ -492,7 +571,13 @@ function GameServicesContent() {
 
 export default function GameServicesPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-[#070709] flex items-center justify-center text-white"><Loader2 className="w-8 h-8 animate-spin text-blue-500" /></div>}>
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-[#070709] flex items-center justify-center text-white">
+          <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+        </div>
+      }
+    >
       <GameServicesContent />
     </Suspense>
   );

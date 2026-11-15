@@ -69,6 +69,143 @@ export class BoostersService {
     private jwtService: JwtService,
   ) {}
 
+  async listMarketplaceServices(query: {
+    gameCode?: string;
+    search?: string;
+    boosterId?: string;
+    pricingType?: string;
+    page?: number;
+    limit?: number;
+  }) {
+    const page = Math.max(1, Number(query.page || 1));
+    const limit = Math.max(1, Math.min(50, Number(query.limit || 20)));
+
+    const matchQuery: any = { role: UserRole.BOOSTER };
+    if (query.boosterId && Types.ObjectId.isValid(query.boosterId)) {
+      matchQuery._id = new Types.ObjectId(query.boosterId);
+    }
+
+    const boosters = await this.userModel
+      .find(matchQuery)
+      .select('username profile booster_info')
+      .lean();
+
+    const boosterIds = boosters.map((b) => b._id);
+    const profiles = await this.boosterProfileModel
+      .find({ userId: { $in: boosterIds } })
+      .lean();
+    const profileMap = new Map(profiles.map((p) => [p.userId.toString(), p]));
+
+    let allServices: any[] = [];
+
+    for (const b of boosters) {
+      const customServices = b.booster_info?.service_settings?.customServices;
+      const coupon = b.booster_info?.service_settings?.coupon || null;
+      const profile = profileMap.get(b._id.toString());
+
+      if (Array.isArray(customServices) && customServices.length > 0) {
+        for (const s of customServices) {
+          if (s.isActive === false) continue;
+
+          // Filter by gameCode
+          if (query.gameCode && s.gameCode && s.gameCode.toUpperCase() !== query.gameCode.toUpperCase()) {
+            continue;
+          }
+
+          // Filter by pricingType
+          if (query.pricingType && s.pricingType !== query.pricingType) {
+            continue;
+          }
+
+          // Filter by search keyword
+          if (query.search) {
+            const q = query.search.toLowerCase().trim();
+            const matchName = (s.name || '').toLowerCase().includes(q);
+            const matchDesc = (s.desc || '').toLowerCase().includes(q);
+            const matchBooster = (b.username || '').toLowerCase().includes(q);
+            if (!matchName && !matchDesc && !matchBooster) continue;
+          }
+
+          allServices.push({
+            ...s,
+            booster: {
+              _id: b._id,
+              username: b.username,
+              displayName: profile?.displayName || b.username,
+              avatar: b.profile?.avatar || '',
+              rating: profile?.rating || b.booster_info?.rating || 5.0,
+              completedOrders: profile?.completedOrders || b.booster_info?.completed_orders || 0,
+              coupon: coupon && coupon.isActive ? coupon : null,
+            },
+          });
+        }
+      }
+    }
+
+    const total = allServices.length;
+    const startIndex = (page - 1) * limit;
+    const paginated = allServices.slice(startIndex, startIndex + limit);
+
+    return {
+      success: true,
+      data: paginated,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit) || 1,
+    };
+  }
+
+  async getServiceDetail(serviceId: string) {
+    if (!serviceId) throw new BadRequestException('Mã dịch vụ không được để trống');
+
+    const cleanId = serviceId.trim();
+
+    // Tìm booster sở hữu dịch vụ này
+    const booster = await this.userModel
+      .findOne({
+        role: UserRole.BOOSTER,
+        'booster_info.service_settings.customServices.id': cleanId,
+      })
+      .select('-password_hash')
+      .lean();
+
+    if (!booster) {
+      throw new NotFoundException('Không tìm thấy dịch vụ hoặc dịch vụ đã ngừng hoạt động');
+    }
+
+    const services = booster.booster_info?.service_settings?.customServices || [];
+    const service = services.find((s: any) => s.id === cleanId);
+
+    if (!service) {
+      throw new NotFoundException('Không tìm thấy dịch vụ');
+    }
+
+    const [profile, app] = await Promise.all([
+      this.boosterProfileModel.findOne({ userId: booster._id }).lean(),
+      this.boosterAppModel.findOne({ userId: booster._id }).lean(),
+    ]);
+
+    const coupon = booster.booster_info?.service_settings?.coupon;
+
+    return {
+      success: true,
+      service,
+      booster: {
+        _id: booster._id,
+        username: booster.username,
+        displayName: profile?.displayName || booster.username,
+        avatar: booster.profile?.avatar || '',
+        bio: profile?.bio || booster.booster_info?.bio || '',
+        rating: profile?.rating || booster.booster_info?.rating || 5.0,
+        completedOrders: profile?.completedOrders || booster.booster_info?.completed_orders || 0,
+        currentRank: (app as any)?.currentRank || 'N/A',
+        highestRank: (app as any)?.highestRank || 'N/A',
+        coupon: coupon && coupon.isActive ? coupon : null,
+      },
+    };
+  }
+
   async listBoosters(query: {
     search?: string;
     server?: string;

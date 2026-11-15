@@ -1,7 +1,16 @@
 'use client';
 
 import { useMemo } from 'react';
-import { TimeWindow } from '@/components/services/lol/CoachingScheduleModal';
+
+export interface TimeWindow {
+  day?: string;
+  time?: string;
+  start: string;
+  end: string;
+  timestamp?: number;
+  dateStr?: string;
+  displayDate?: string;
+}
 
 const timeToMinutes = (time: string) => {
   const [h, m] = time.split(':').map(Number);
