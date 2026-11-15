@@ -494,7 +494,7 @@ export default function BoosterServicesStudio() {
 
         {/* SECTION 3: MÃ KHUYẾN MÃI CỦA BOOSTER */}
         <div className="bg-zinc-900/60 border border-white/10 rounded-2xl p-6 shadow-xl backdrop-blur-md">
-          <div className="flex items-center justify-between mb-4 pb-3 border-b border-zinc-800">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5 pb-4 border-b border-zinc-800">
             <div>
               <h2 className="text-lg font-bold text-white flex items-center gap-2">
                 <Percent size={18} className="text-purple-400" />
@@ -505,20 +505,44 @@ export default function BoosterServicesStudio() {
               </p>
             </div>
 
-            <button
-              type="button"
-              onClick={() => setCoupon({ ...coupon, isActive: !coupon.isActive })}
-              className={`px-3 py-1 rounded-full text-xs font-bold border transition-colors ${
-                coupon.isActive
-                  ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400'
-                  : 'bg-zinc-800 border-zinc-700 text-zinc-400'
-              }`}
-            >
-              {coupon.isActive ? 'Đang bật mã' : 'Đang tắt mã'}
-            </button>
+            {/* Toggle Gạt Switch ON / OFF Chuẩn UI/UX */}
+            <label className="flex items-center gap-3 cursor-pointer select-none self-start sm:self-auto bg-zinc-950/80 hover:bg-zinc-950 px-3.5 py-2 rounded-xl border border-zinc-800 transition-colors">
+              <span className="flex items-center gap-1.5 text-xs font-semibold">
+                <span
+                  className={`w-2 h-2 rounded-full transition-all ${
+                    coupon.isActive ? 'bg-emerald-400 shadow-sm shadow-emerald-400 animate-pulse' : 'bg-zinc-600'
+                  }`}
+                />
+                <span className={coupon.isActive ? 'text-emerald-400' : 'text-zinc-400'}>
+                  {coupon.isActive ? 'Đang kích hoạt' : 'Đang tắt'}
+                </span>
+              </span>
+
+              <button
+                type="button"
+                role="switch"
+                aria-checked={coupon.isActive}
+                onClick={() => setCoupon({ ...coupon, isActive: !coupon.isActive })}
+                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 ${
+                  coupon.isActive
+                    ? 'bg-emerald-600 shadow-sm shadow-emerald-600/50'
+                    : 'bg-zinc-800'
+                }`}
+              >
+                <span
+                  className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
+                    coupon.isActive ? 'translate-x-5' : 'translate-x-0'
+                  }`}
+                />
+              </button>
+            </label>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-xl">
+          <div
+            className={`grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-xl transition-opacity duration-200 ${
+              coupon.isActive ? 'opacity-100' : 'opacity-60'
+            }`}
+          >
             <div>
               <label className="text-xs font-semibold text-zinc-400 block mb-1.5 uppercase">
                 Mã Khuyến Mãi (Code)
