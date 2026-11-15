@@ -21,7 +21,7 @@ import { UserRole } from '../../database/schemas/User';
 @ApiTags('Admin')
 @Controller('admin')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(UserRole.ADMIN)
+@Roles(UserRole.ADMIN, UserRole.STAFF)
 @ApiBearerAuth()
 export class AdminController {
   constructor(private adminService: AdminService) {}

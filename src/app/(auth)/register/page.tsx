@@ -30,7 +30,7 @@ export default function RegisterPage() {
     email: '',
     phoneNumber: '',
     password: '',
-    role: 'CUSTOMER', // Default role
+    role: 'BOOSTER', // Default role for all new users
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -109,7 +109,10 @@ export default function RegisterPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.error || t('registerToastError'));
+        const errorMsg = Array.isArray(data.message)
+          ? data.message[0]
+          : (data.message || data.error || t('registerToastError'));
+        throw new Error(errorMsg);
       }
 
       toast.success(t('registerToastSuccess'));

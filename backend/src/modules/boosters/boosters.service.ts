@@ -360,10 +360,25 @@ export class BoostersService {
       { $set: { 'booster_info.service_settings': settings } },
     );
 
+    const updateDoc: any = {};
     if (settings.enabledServices) {
+      updateDoc.services = settings.enabledServices;
+    } else if (Array.isArray(settings.customServices)) {
+      updateDoc.services = settings.customServices.map((s: any) => s.slug || s.name || s.id);
+    }
+
+    if (Array.isArray(settings.selectedGames)) {
+      updateDoc.games = settings.selectedGames.map((g: string) => ({
+        gameCode: typeof g === 'string' ? g.toUpperCase() : (g as any).gameCode || 'LOL',
+        ranks: [],
+        servers: settings.servers || ['VN'],
+      }));
+    }
+
+    if (Object.keys(updateDoc).length > 0) {
       await this.boosterProfileModel.findOneAndUpdate(
         { userId: new Types.ObjectId(userId) },
-        { $set: { services: settings.enabledServices } },
+        { $set: updateDoc },
         { upsert: true },
       );
     }

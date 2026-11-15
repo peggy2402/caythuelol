@@ -2,6 +2,7 @@ import mongoose, { Schema, Document } from 'mongoose';
 
 export enum UserRole {
   ADMIN = 'ADMIN',
+  STAFF = 'STAFF',
   BOOSTER = 'BOOSTER',
   CUSTOMER = 'CUSTOMER',
 }

@@ -165,7 +165,7 @@ export default function BoosterServicesList({
                 : 'bg-zinc-800/80 text-zinc-400 hover:text-white border border-zinc-700/60'
             }`}
           >
-            ⚔️ Cày Rank & Elo ({rankCount})
+            Cày Rank & Elo ({rankCount})
           </button>
         )}
 
@@ -179,7 +179,7 @@ export default function BoosterServicesList({
                 : 'bg-zinc-800/80 text-zinc-400 hover:text-white border border-zinc-700/60'
             }`}
           >
-            🎯 Kỹ Năng & Khác ({otherCount})
+            Kỹ Năng & Khác ({otherCount})
           </button>
         )}
       </div>
@@ -271,3 +271,4 @@ export default function BoosterServicesList({
     </div>
   );
 }
+

@@ -48,11 +48,11 @@ export async function middleware(request: NextRequest) {
       // Check if user is ADMIN to allow bypass
       const token = request.cookies.get('token')?.value;
       const userRole = token ? parseJwtRole(token) : null;
-      const isAdmin = userRole === 'ADMIN';
+      const isAdminOrStaff = userRole === 'ADMIN' || userRole === 'STAFF';
 
       if (isMaintenance) {
-        // Admin is allowed to browse or access admin panel to manage system
-        if (isAdmin) {
+        // Admin & Staff are allowed to browse or access admin panel to manage system
+        if (isAdminOrStaff) {
           return NextResponse.next();
         }
 

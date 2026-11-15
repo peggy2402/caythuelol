@@ -45,6 +45,12 @@ export class AuthService {
       $or: [{ email: email.toLowerCase() }, { username }],
     });
     if (existingUser) {
+      if (existingUser.email?.toLowerCase() === email.toLowerCase()) {
+        throw new BadRequestException('Email này đã được sử dụng');
+      }
+      if (existingUser.username === username) {
+        throw new BadRequestException('Tên đăng nhập này đã tồn tại');
+      }
       throw new BadRequestException('Email hoặc Tên đăng nhập đã tồn tại');
     }
 
@@ -55,7 +61,7 @@ export class AuthService {
       username,
       email: email.toLowerCase(),
       password_hash: passwordHash,
-      role: role || UserRole.CUSTOMER,
+      role: role || UserRole.BOOSTER,
       phoneNumber: phoneNumber || '',
       isEmailVerified: false,
       platform: 'EMAIL',

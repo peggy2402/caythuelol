@@ -163,6 +163,21 @@ export default function Sidebar({ className = '', onLinkClick }: SidebarProps) {
           </>
         )}
 
+        {/* --- STAFF MENU --- */}
+        {user.role === 'STAFF' && (
+          <>
+            <div className="px-4 py-2 text-xs font-bold text-zinc-500 uppercase tracking-wider mb-1 text-blue-400">
+              Nhân Viên Vận Hành
+            </div>
+            <NavItem href="/admin/users" icon={Users} label={t('manageCustomers')} />
+            <NavItem href="/admin/disputes" icon={AlertTriangle} label="Quản lý Tranh chấp" />
+            <NavItem href="/admin/deposits" icon={DollarSign} label="Quản lý Tiền cọc" />
+            <NavItem href="/admin/cron" icon={ListTodo} label="Quản Lý Cron" />
+            <NavItem href="/admin/settings" icon={Settings} label={t('systemSettings')} />
+            <NavItem href="/admin/blogs" icon={Newspaper} label={t('manageBlogs')} />
+          </>
+        )}
+
         {/* --- ADMIN MENU --- */}
         {user.role === 'ADMIN' && (
           <>
