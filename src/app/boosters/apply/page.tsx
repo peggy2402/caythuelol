@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { Loader2, CheckCircle2, ShieldAlert, Upload, ChevronRight, ChevronLeft, AlertTriangle, Trophy, ChevronsUpDown, Check, Search, CloudUpload, Image as ImageIcon, X, Eraser, Download, LogOut, DoorOpen } from 'lucide-react';
+import { Loader2, CheckCircle2, ShieldAlert, Upload, ChevronRight, ChevronLeft, AlertTriangle, Trophy, ChevronsUpDown, Check, Search, CloudUpload, Image as ImageIcon, X, Eraser, Download, LogOut, DoorOpen, Landmark } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
@@ -22,6 +22,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { toast } from 'sonner';
 import Navbar from '@/components/Navbar';
 import { useLanguage } from '@/lib/i18n';
+import { cn } from '@/lib/utils';
+import BankSelectModal from './bank-select-modal';
 
 // --- Zod Schema cho Frontend ---
 const formSchema = z.object({
@@ -71,7 +73,6 @@ export default function BoosterApplyPage() {
   // Bank State
   const [banks, setBanks] = useState<Bank[]>([]);
   const [isBankOpen, setIsBankOpen] = useState(false);
-  const [bankSearch, setBankSearch] = useState('');
   const [contractDate, setContractDate] = useState<Date | null>(null);
   const [hasDownloadedContract, setHasDownloadedContract] = useState(false);
   const [isAlreadyBooster, setIsAlreadyBooster] = useState(false); // State check booster
@@ -839,73 +840,45 @@ export default function BoosterApplyPage() {
                         <div className="space-y-2">
                           <Label className="text-zinc-400">{t('bankName')}</Label>
                           
-                          {/* Custom Bank Selector */}
-                          <div className="relative">
-                            <div 
-                              onClick={() => setIsBankOpen(!isBankOpen)}
-                              className="flex items-center justify-between w-full rounded-md border border-white/10 bg-zinc-950/50 px-3 py-2 text-sm ring-offset-background placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:ring-offset-2 cursor-pointer h-10"
-                            >
-                              {selectedBankName ? (
-                                <div className="flex items-center gap-2">
-                                  {banks.find(b => b.shortName === selectedBankName)?.logo && (
-                                    <img src={banks.find(b => b.shortName === selectedBankName)?.logo} alt="Bank Logo" className="w-6 h-6 object-contain bg-white rounded-full p-0.5" />
-                                  )}
-                                  <span className="text-white font-medium truncate">{selectedBankName}</span>
-                                </div>
-                              ) : (
-                                <span className="text-zinc-600">Chọn ngân hàng...</span>
-                              )}
-                              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                            </div>
-
-                            {/* Dropdown Panel */}
-                            {isBankOpen && (
-                              <>
-                                <div className="fixed inset-0 z-40" onClick={() => setIsBankOpen(false)} />
-                                <div className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-md border border-white/10 bg-zinc-900 py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
-                                  <div className="sticky top-0 z-10 bg-zinc-900 p-2 border-b border-white/10">
-                                    <div className="relative">
-                                      <Search className="absolute left-2 top-2.5 h-4 w-4 text-zinc-500" />
-                                      <input 
-                                        className="w-full bg-zinc-800 text-white rounded-md py-2 pl-8 pr-4 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
-                                        placeholder="Tìm kiếm ngân hàng..."
-                                        value={bankSearch}
-                                        onChange={(e) => setBankSearch(e.target.value)}
-                                        autoFocus
-                                      />
-                                    </div>
-                                  </div>
-                                  {banks.filter(b => b.shortName.toLowerCase().includes(bankSearch.toLowerCase()) || b.name.toLowerCase().includes(bankSearch.toLowerCase()) || b.code.toLowerCase().includes(bankSearch.toLowerCase())).map((bank) => (
-                                    <div
-                                      key={bank.id}
-                                      className="relative flex cursor-pointer select-none items-center py-2 pl-3 pr-9 hover:bg-blue-600/20 hover:text-blue-400 text-zinc-300"
-                                      onClick={() => {
-                                        setValue('bankName', bank.shortName, { shouldValidate: true });
-                                        setIsBankOpen(false);
-                                      }}
-                                    >
-                                      <div className="flex items-center gap-3">
-                                        <img src={bank.logo} alt={bank.code} className="h-8 w-8 object-contain bg-white rounded-md p-0.5" />
-                                        <div className="flex flex-col">
-                                          <div className="flex items-center gap-2">
-                                            <span className="font-bold text-white">{bank.shortName}</span>
-                                            <span className="text-[10px] text-zinc-400 font-normal bg-zinc-800 px-1.5 py-0.5 rounded border border-white/5">{bank.code}</span>
-                                          </div>
-                                          <span className="text-xs text-zinc-500 truncate max-w-[180px]">{bank.name}</span>
-                                        </div>
-                                      </div>
-                                      {selectedBankName === bank.shortName && (
-                                        <span className="absolute inset-y-0 right-0 flex items-center pr-4 text-blue-500">
-                                          <Check className="h-4 w-4" />
-                                        </span>
-                                      )}
-                                    </div>
-                                  ))}
-                                  {banks.length === 0 && <div className="p-4 text-center text-zinc-500">Đang tải danh sách...</div>}
-                                </div>
-                              </>
+                          {/* Modern Bank Selector Trigger */}
+                          <div 
+                            onClick={() => setIsBankOpen(true)}
+                            className={cn(
+                              "flex items-center justify-between w-full rounded-xl border px-3.5 py-2 text-sm cursor-pointer h-11 transition-all",
+                              selectedBankName 
+                                ? "border-blue-500/40 bg-blue-500/5 hover:border-blue-500/60 shadow-sm"
+                                : "border-white/10 bg-zinc-950/50 hover:border-white/20 hover:bg-zinc-900/50"
                             )}
+                          >
+                            {selectedBankName ? (
+                              <div className="flex items-center gap-2.5 min-w-0 pr-2">
+                                {banks.find(b => b.shortName === selectedBankName)?.logo ? (
+                                  <img 
+                                    src={banks.find(b => b.shortName === selectedBankName)?.logo} 
+                                    alt="Bank Logo" 
+                                    className="w-7 h-7 object-contain bg-white rounded-lg p-0.5 shrink-0 shadow-xs" 
+                                  />
+                                ) : (
+                                  <div className="w-7 h-7 rounded-lg bg-blue-500/10 text-blue-400 flex items-center justify-center shrink-0">
+                                    <Landmark className="w-4 h-4" />
+                                  </div>
+                                )}
+                                <div className="flex flex-col min-w-0 text-left">
+                                  <span className="text-white font-bold text-sm truncate">{selectedBankName}</span>
+                                  <span className="text-[11px] text-zinc-400 truncate">
+                                    {banks.find(b => b.shortName === selectedBankName)?.name || 'Đã chọn ngân hàng'}
+                                  </span>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-2 text-zinc-500">
+                                <Landmark className="w-4 h-4 text-zinc-600" />
+                                <span>Chọn ngân hàng thụ hưởng...</span>
+                              </div>
+                            )}
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 text-zinc-400" />
                           </div>
+
                           {/* Hidden input to register with hook form */}
                           <input type="hidden" {...register('bankName')} />
                           
@@ -1139,6 +1112,17 @@ export default function BoosterApplyPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Bank Selection Modal (Desktop: Center Modal / Mobile: Bottom Sheet) */}
+      <BankSelectModal
+        isOpen={isBankOpen}
+        onClose={() => setIsBankOpen(false)}
+        banks={banks}
+        selectedBankName={selectedBankName}
+        onSelectBank={(bank) => {
+          setValue('bankName', bank.shortName, { shouldValidate: true });
+        }}
+      />
     </div>
   );
 }
