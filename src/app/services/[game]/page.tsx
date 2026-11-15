@@ -306,24 +306,21 @@ function GameServicesContent() {
         {/* TAB 1: GÓI DỊCH VỤ MARKETPLACE */}
         {activeTab === 'SERVICES' && (
           <div className="space-y-10">
-            {/* 1. DANH MỤC CÁC GÓI DỊCH VỤ CHUẨN CỦA SÀN (LUÔN CÓ MẶT) */}
+            {/* 1. DANH MỤC CÁC GÓI DỊCH VỤ CHUẨN CỦA SÀN (Khớp 100% Ảnh 1) */}
             <div>
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                    <Trophy className="text-blue-500 w-5 h-5" />
-                    <span>Dịch vụ cày thuê {game.name} chuẩn sàn</span>
-                  </h2>
-                  <p className="text-xs text-zinc-400 mt-0.5">
-                    Chọn loại dịch vụ bạn cần để tính giá tự động và kết nối tuyển thủ uy tín.
-                  </p>
-                </div>
-                <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">
-                  {game.defaultServices?.length || 8} gói dịch vụ
+              <div className="flex items-center gap-2.5 mb-1.5">
+                <span className="w-6 h-6 rounded-full bg-blue-600 text-white inline-flex items-center justify-center text-xs font-bold shrink-0">
+                  2
                 </span>
+                <h2 className="text-lg sm:text-xl font-bold text-white tracking-tight">
+                  Chọn loại dịch vụ bạn cần
+                </h2>
               </div>
+              <p className="text-xs text-zinc-400 ml-8 mb-5">
+                Nhấn vào dịch vụ để xem danh sách tuyển thủ và bảng giá chi tiết
+              </p>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {game.defaultServices
                   .filter((s) => {
                     const q = searchTerm.toLowerCase().trim();
@@ -334,20 +331,21 @@ function GameServicesContent() {
                     const isDeposit = svc.depositPercent < 100;
 
                     return (
-                      <div
+                      <Link
                         key={svc.slug}
-                        className="group bg-zinc-900/70 border border-white/10 hover:border-blue-500/50 rounded-2xl p-5 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 flex flex-col justify-between"
+                        href={`/services/${game.id}/${svc.slug}`}
+                        className="group bg-[#0f1118]/90 hover:bg-[#141724] border border-zinc-800/80 hover:border-zinc-700 rounded-2xl p-4 shadow-xl hover:shadow-2xl transition-all duration-200 flex flex-col justify-between"
                       >
                         <div className="space-y-3">
                           <div className="flex items-center justify-between">
-                            <div className="p-2.5 rounded-xl bg-blue-500/10 text-blue-400 border border-blue-500/20">
-                              <IconComp size={20} />
+                            <div className="w-9 h-9 rounded-xl bg-zinc-800/60 border border-zinc-700/50 flex items-center justify-center text-blue-400">
+                              <IconComp size={18} />
                             </div>
                             <span
-                              className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                              className={`text-[11px] font-medium px-2.5 py-0.5 rounded-full border ${
                                 isDeposit
-                                  ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
-                                  : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                                  ? 'bg-amber-950/40 text-amber-400 border-amber-500/30'
+                                  : 'bg-emerald-950/40 text-emerald-400 border-emerald-500/30'
                               }`}
                             >
                               {isDeposit ? `Cọc ${svc.depositPercent}%` : 'Trọn gói'}
@@ -355,34 +353,28 @@ function GameServicesContent() {
                           </div>
 
                           <div>
-                            <h3 className="font-extrabold text-white text-base group-hover:text-blue-400 transition-colors line-clamp-1 mb-1.5">
+                            <h3 className="font-bold text-white text-sm tracking-tight group-hover:text-blue-400 transition-colors mb-1">
                               {svc.name}
                             </h3>
-                            <p className="text-zinc-400 text-xs line-clamp-2 leading-relaxed">
+                            <p className="text-zinc-400 text-xs line-clamp-2 leading-relaxed min-h-[34px]">
                               {svc.desc}
                             </p>
                           </div>
                         </div>
 
-                        <div className="pt-4 mt-4 border-t border-zinc-800/80 flex items-center justify-between">
-                          <div>
-                            <span className="text-[10px] text-zinc-500 uppercase block">Giá từ</span>
-                            <span className="text-xs font-bold text-emerald-400 font-mono">
-                              {svc.pricingType === 'PER_UNIT'
-                                ? `${svc.defaultPrice.toLocaleString('vi-VN')} đ / ${svc.unitName || 'điểm'}`
-                                : `${svc.defaultPrice.toLocaleString('vi-VN')} đ`}
-                            </span>
-                          </div>
+                        <div className="pt-3 mt-3 border-t border-zinc-800/60 flex items-center justify-between">
+                          <span className="text-xs text-zinc-400 font-medium">
+                            {svc.pricingType === 'PER_UNIT'
+                              ? `${svc.defaultPrice.toLocaleString('vi-VN')} đ / ${svc.unitName || 'Điểm LP'}`
+                              : `Từ ${svc.defaultPrice.toLocaleString('vi-VN')} đ`}
+                          </span>
 
-                          <Link
-                            href={`/services/${game.id}/${svc.slug}`}
-                            className="px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs flex items-center gap-1 shadow-md shadow-blue-600/20 transition-all hover:scale-105"
-                          >
+                          <span className="text-xs font-semibold text-zinc-400 group-hover:text-blue-400 flex items-center gap-1 transition-colors">
                             <span>Chọn dịch vụ</span>
                             <ArrowRight size={13} />
-                          </Link>
+                          </span>
                         </div>
-                      </div>
+                      </Link>
                     );
                   })}
               </div>
