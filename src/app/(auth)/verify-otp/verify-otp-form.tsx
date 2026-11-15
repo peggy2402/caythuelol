@@ -84,19 +84,31 @@ export default function VerifyOtpForm({ email }: VerifyOtpFormProps) {
       const data = await res.json();
 
       if (!res.ok) {
-        let errorMessage = t(data.error as any) || t('verifyFailed');
-        // Xử lý thông báo lỗi có số lần thử còn lại
-        if (data.error === 'otpIncorrect' && data.data?.attemptsLeft > 0) {
-          // Lưu ý: Cách ghép chuỗi này là giải pháp cho i18n đơn giản hiện tại.
-          // Ví dụ: "Bạn còn 2 lần thử."
-          errorMessage = `${t('otpIncorrect')} ${t('remainingAttempts')} ${data.data.attemptsLeft} ${t('attemptsLeft')}`;
-        }
-        toast.error(errorMessage);
+        const errorMsg = Array.isArray(data.message)
+          ? data.message[0]
+          : (data.message || t(data.error as any) || t('verifyFailed') || 'Mã xác thực không hợp lệ');
+        toast.error(errorMsg);
         return;
       }
 
-      toast.success(t('verifySuccess'));
-      router.push('/dashboard');
+      toast.success(t('verifySuccess') || 'Xác thực tài khoản thành công!');
+
+      // Lưu token và user vào session trình duyệt
+      if (data.token) {
+        localStorage.setItem('token', data.token);
+        if (data.user) {
+          localStorage.setItem('user', JSON.stringify(data.user));
+        }
+        document.cookie = `token=${data.token}; path=/; max-age=${60 * 60 * 24 * 7}; secure; samesite=lax`;
+        window.dispatchEvent(new CustomEvent('user-updated'));
+      }
+
+      localStorage.removeItem('pending_verification_email');
+      sessionStorage.removeItem('pending_verification_email');
+      localStorage.removeItem('otp_resend_available_at');
+
+      // Chuyển hướng thẳng vào trang Dịch vụ
+      window.location.href = '/services';
     } catch (error) {
       toast.error(t('connectionError'));
     } finally {
@@ -116,9 +128,14 @@ export default function VerifyOtpForm({ email }: VerifyOtpFormProps) {
       });
       
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'resendFailed');
+      if (!res.ok) {
+        const errorMsg = Array.isArray(data.message)
+          ? data.message[0]
+          : (data.message || t(data.error as any) || 'Không thể gửi lại mã OTP');
+        throw new Error(errorMsg);
+      }
 
-      toast.success(t('resendSuccess'));
+      toast.success(data.message || t('resendSuccess') || 'Mã xác thực mới đã được gửi!');
       
       // Cập nhật lại mốc thời gian trong localStorage khi gửi lại
       const nextTime = Date.now() + 60 * 1000;

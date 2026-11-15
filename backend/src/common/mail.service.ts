@@ -1,12 +1,17 @@
 import { Injectable, Logger } from '@nestjs/common';
 import * as nodemailer from 'nodemailer';
+import { Resend } from 'resend';
 
 @Injectable()
 export class MailService {
   private readonly logger = new Logger(MailService.name);
   private transporter: nodemailer.Transporter;
+  private resend: Resend | null = null;
 
   constructor() {
+    if (process.env.RESEND_API_KEY) {
+      this.resend = new Resend(process.env.RESEND_API_KEY);
+    }
     this.transporter = nodemailer.createTransport({
       service: 'gmail',
       auth: {
@@ -17,6 +22,30 @@ export class MailService {
   }
 
   async sendEmail(to: string, subject: string, html: string): Promise<boolean> {
+    // 1. Ưu tiên gửi qua Resend HTTPS API (Siêu nhanh <200ms, không bị block/delay cổng SMTP)
+    if (this.resend && process.env.RESEND_API_KEY) {
+      try {
+        const fromEmail = process.env.EMAIL_FROM || 'noreply@leorank.site';
+        const { data, error } = await this.resend.emails.send({
+          from: `LEORANK <${fromEmail}>`,
+          to: [to],
+          subject,
+          html,
+        });
+
+        if (!error && data?.id) {
+          this.logger.log(`Email successfully sent via Resend to ${to} (ID: ${data.id})`);
+          return true;
+        }
+        if (error) {
+          this.logger.warn(`Resend API returned error, falling back to Gmail SMTP: ${JSON.stringify(error)}`);
+        }
+      } catch (resendErr) {
+        this.logger.warn('Resend exception, falling back to Gmail SMTP:', resendErr);
+      }
+    }
+
+    // 2. Fallback sang Gmail SMTP
     if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
       this.logger.warn('Missing EMAIL_USER or EMAIL_PASS. Email sending skipped.');
       return false;
@@ -28,7 +57,7 @@ export class MailService {
         subject,
         html,
       });
-      this.logger.log(`Email successfully sent to ${to}`);
+      this.logger.log(`Email successfully sent via Gmail SMTP to ${to}`);
       return true;
     } catch (error) {
       this.logger.error(`Error sending email to ${to}:`, error);

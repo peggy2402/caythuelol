@@ -82,10 +82,14 @@ export class AuthService {
       expiresAt,
     });
 
-    await this.mailService.sendOtpEmail(email, otp, 'VERIFICATION');
+    // Gửi email OTP bất đồng bộ trong background (không block response của người dùng)
+    this.mailService.sendOtpEmail(email, otp, 'VERIFICATION').catch((err) => {
+      console.error(`[MailService] Lỗi gửi OTP đăng ký tới ${email}:`, err);
+    });
 
     return {
       success: true,
+      email: email.toLowerCase(),
       message: 'Đăng ký thành công. Vui lòng kiểm tra email để lấy mã OTP.',
     };
   }
@@ -116,6 +120,29 @@ export class AuthService {
     const isMatch = await bcrypt.compare(password, user.password_hash);
     if (!isMatch) {
       throw new UnauthorizedException('Tài khoản hoặc mật khẩu không chính xác');
+    }
+
+    // Nếu tài khoản chưa kích hoạt (chưa verify OTP)
+    if (!user.isEmailVerified) {
+      const otp = Math.floor(100000 + Math.random() * 900000).toString();
+      const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+
+      await this.verificationCodeModel.findOneAndUpdate(
+        { email: user.email.toLowerCase(), type: 'EMAIL_VERIFICATION' },
+        { code: otp, expiresAt, attempts: 0 },
+        { upsert: true }
+      );
+
+      this.mailService.sendOtpEmail(user.email, otp, 'VERIFICATION').catch((err) => {
+        console.error(`[MailService] Lỗi gửi OTP kích hoạt lại tới ${user.email}:`, err);
+      });
+
+      return {
+        success: false,
+        requireVerification: true,
+        email: user.email,
+        message: 'Tài khoản chưa được kích hoạt. Mã OTP mới đã được gửi tới email của bạn.',
+      };
     }
 
     const payload = {
@@ -216,7 +243,9 @@ export class AuthService {
       expiresAt,
     });
 
-    await this.mailService.sendOtpEmail(lowerEmail, otp, 'VERIFICATION');
+    this.mailService.sendOtpEmail(lowerEmail, otp, 'VERIFICATION').catch((err) => {
+      console.error(`[MailService] Lỗi gửi lại OTP tới ${lowerEmail}:`, err);
+    });
     return { success: true, message: 'Mã xác thực mới đã được gửi về email của bạn' };
   }
 

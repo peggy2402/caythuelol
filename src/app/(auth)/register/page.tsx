@@ -100,6 +100,11 @@ export default function RegisterPage() {
     }
 
     try {
+      // Xóa sạch session/token cũ nếu có để tránh xung đột với tài khoản mới
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+
       const res = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -115,14 +120,15 @@ export default function RegisterPage() {
         throw new Error(errorMsg);
       }
 
-      toast.success(t('registerToastSuccess'));
+      toast.success(t('registerToastSuccess') || 'Đăng ký thành công! Vui lòng nhập mã OTP.');
 
-      // Xóa mốc thời gian cũ trong localStorage để trang OTP bắt đầu đếm ngược lại 60s
-      // vì API register vừa gửi mail mới.
+      const targetEmail = (data.email || formData.email).trim().toLowerCase();
+      localStorage.setItem('pending_verification_email', targetEmail);
+      sessionStorage.setItem('pending_verification_email', targetEmail);
       localStorage.removeItem('otp_resend_available_at');
 
-      // Chuyển hướng sang trang OTP (Server sẽ tự đọc cookie để biết email)
-      router.push('/verify-otp');
+      // Chuyển hướng sang trang OTP kèm query param email
+      router.push(`/verify-otp?email=${encodeURIComponent(targetEmail)}`);
     } catch (err: any) {
       setError(err.message);
       toast.error(err.message);

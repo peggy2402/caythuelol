@@ -48,6 +48,18 @@ export class AuthController {
   @ApiOperation({ summary: 'Login with username/email and password' })
   async login(@Body() dto: LoginDto, @Res({ passthrough: true }) res: Response) {
     const result = await this.authService.login(dto);
+
+    if ((result as any).requireVerification) {
+      res.cookie('verification_email', (result as any).email, {
+        httpOnly: false,
+        secure: process.env.NODE_ENV === 'production',
+        maxAge: 60 * 10 * 1000,
+        path: '/',
+        sameSite: 'lax',
+      });
+      return result;
+    }
+
     res.cookie('token', result.token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',

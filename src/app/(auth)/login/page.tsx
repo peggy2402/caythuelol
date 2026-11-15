@@ -81,10 +81,23 @@ function LoginForm() {
         throw new Error(data.message || data.error || t('loginToastError'));
       }
 
-      // Lưu token vào localStorage
+      // Xử lý trường hợp tài khoản chưa xác thực OTP (quên verify lúc đăng ký)
+      if (data.requireVerification) {
+        toast.info(data.message || 'Tài khoản chưa được kích hoạt. Vui lòng nhập mã OTP vừa gửi vào email.');
+        const targetEmail = data.email || formData.identifier;
+        localStorage.setItem('pending_verification_email', targetEmail);
+        sessionStorage.setItem('pending_verification_email', targetEmail);
+        localStorage.removeItem('otp_resend_available_at');
+        router.push(`/verify-otp?email=${encodeURIComponent(targetEmail)}`);
+        return;
+      }
+
+      // Lưu token vào localStorage và Cookie
       if (typeof window !== 'undefined') {
         localStorage.setItem('token', data.token);
         localStorage.setItem('user', JSON.stringify(data.user));
+        document.cookie = `token=${data.token}; path=/; max-age=${60 * 60 * 24 * 7}; secure; samesite=lax`;
+        window.dispatchEvent(new CustomEvent('user-updated'));
       }
 
       toast.success(t('welcomeBack'));
