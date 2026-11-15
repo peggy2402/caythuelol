@@ -134,7 +134,7 @@ export class AuthController {
     const redirectUri = `${process.env.API_URL || 'https://apil-lr.leorank.site'}/api/auth/google/callback`;
 
     try {
-      const { token } = await this.authService.googleAuthCallback(code, redirectUri);
+      const { token, user } = await this.authService.googleAuthCallback(code, redirectUri);
       res.cookie('token', token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
@@ -142,7 +142,17 @@ export class AuthController {
         path: '/',
         sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
       });
-      return res.redirect(`${frontendUrl}/google-callback?token=${token}`);
+      const userPayload = {
+        _id: user._id,
+        username: user.username,
+        email: user.email,
+        role: user.role,
+        isEmailVerified: user.isEmailVerified,
+        wallet_balance: user.wallet_balance || 0,
+        profile: user.profile || {},
+      };
+      const userEncoded = encodeURIComponent(JSON.stringify(userPayload));
+      return res.redirect(`${frontendUrl}/google-callback?token=${token}&user=${userEncoded}`);
     } catch (err: any) {
       const errorMsg =
         err?.response?.data?.error_description ||

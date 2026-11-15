@@ -12,21 +12,69 @@ function GoogleCallbackContent() {
     const token = searchParams.get('token');
     const userString = searchParams.get('user');
 
-    if (token && userString) {
+    if (token) {
       try {
-        // 1. Lưu vào localStorage (để Client dùng)
+        let userData: any = null;
+
+        // 1. Parse user nếu được truyền qua query params
+        if (userString) {
+          try {
+            userData = JSON.parse(decodeURIComponent(userString));
+          } catch (e) {
+            console.error('Lỗi parse userString từ URL:', e);
+          }
+        }
+
+        // 2. Fallback: Giải mã trực tiếp payload từ JWT Token nếu chưa có userData
+        if (!userData) {
+          try {
+            const parts = token.split('.');
+            if (parts.length >= 2) {
+              const base64Url = parts[1];
+              const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+              const jsonPayload = decodeURIComponent(
+                atob(base64)
+                  .split('')
+                  .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+                  .join('')
+              );
+              const payload = JSON.parse(jsonPayload);
+              userData = {
+                _id: payload.userId,
+                username: payload.username,
+                email: payload.email,
+                role: payload.role || 'CUSTOMER',
+                isEmailVerified: payload.isEmailVerified ?? true,
+                wallet_balance: 0,
+                profile: {},
+              };
+            }
+          } catch (jwtErr) {
+            console.error('Lỗi giải mã token payload:', jwtErr);
+          }
+        }
+
+        // 3. Lưu vào localStorage
         localStorage.setItem('token', token);
-        localStorage.setItem('user', decodeURIComponent(userString));
+        if (userData) {
+          localStorage.setItem('user', JSON.stringify(userData));
+        }
 
-        // 2. Set Cookie (để Middleware dùng)
-        // Lưu ý: Tốt nhất là Server nên set cookie httpOnly ngay trong API route.
-        // Nhưng nếu API Google Callback đang trả về URL redirect kèm token,
-        // ta có thể set cookie tạm ở đây để đảm bảo (dù không bảo mật bằng httpOnly).
-        document.cookie = `token=${token}; path=/; max-age=${60 * 60 * 24 * 7}; secure; samesite=strict`;
+        // 4. Lưu Cookie để Server/Middleware xác thực
+        document.cookie = `token=${token}; path=/; max-age=${60 * 60 * 24 * 7}; secure; samesite=lax`;
 
-        // 3. Chuyển hướng về Dashboard
-        router.push('/dashboard');
-        router.refresh(); // Refresh để cập nhật trạng thái login
+        // 5. Bắn event thông báo cập nhật session cho Navbar và toàn app
+        window.dispatchEvent(new CustomEvent('user-updated'));
+
+        // 6. Điều hướng người dùng tới trang phù hợp theo vai trò (mặc định vào trang Dịch vụ /services)
+        let targetUrl = '/services';
+        if (userData?.role === 'ADMIN') {
+          targetUrl = '/admin';
+        } else if (userData?.role === 'BOOSTER') {
+          targetUrl = '/booster/jobs';
+        }
+
+        window.location.href = targetUrl;
       } catch (error) {
         console.error('Error processing Google login:', error);
         router.push('/login?error=GoogleLoginFailed');
