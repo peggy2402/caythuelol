@@ -106,6 +106,23 @@ export class AdminController {
     return this.adminService.demoteBooster(userId, reason);
   }
 
+  @Roles(UserRole.ADMIN)
+  @Post('boosters/create')
+  @ApiOperation({ summary: 'Admin create or promote user to booster' })
+  async createBooster(@Body() body: any): Promise<any> {
+    return this.adminService.createBooster(body);
+  }
+
+  @Roles(UserRole.ADMIN)
+  @Patch('boosters/:id/profile')
+  @ApiOperation({ summary: 'Admin edit booster profile information' })
+  async editBoosterProfile(
+    @Param('id') userId: string,
+    @Body() body: any,
+  ): Promise<any> {
+    return this.adminService.editBoosterProfile(userId, body);
+  }
+
   @Get('boosters/applications')
   @ApiOperation({ summary: 'List booster onboarding applications' })
   async listApplications() {
@@ -266,6 +283,39 @@ export class AdminController {
   @ApiOperation({ summary: 'Save Riot API key' })
   async saveRiotKey(@Body('apiKey') apiKey: string): Promise<any> {
     return this.adminService.saveRiotKey(apiKey);
+  }
+
+  // --- QUẢN LÝ NHÂN VIÊN (STAFF & PERMISSIONS) ---
+
+  @Roles(UserRole.ADMIN)
+  @Get('staffs')
+  @ApiOperation({ summary: 'List all staff members and admins' })
+  async listStaffs(@Query('search') search?: string): Promise<any> {
+    return this.adminService.listStaffs(search);
+  }
+
+  @Roles(UserRole.ADMIN)
+  @Post('staffs')
+  @ApiOperation({ summary: 'Assign staff role to user or create new staff' })
+  async assignStaff(@Body() body: any): Promise<any> {
+    return this.adminService.assignStaff(body);
+  }
+
+  @Roles(UserRole.ADMIN)
+  @Patch('staffs/:userId/permissions')
+  @ApiOperation({ summary: 'Update staff member permissions' })
+  async updateStaffPermissions(
+    @Param('userId') userId: string,
+    @Body('permissions') permissions: string[],
+  ): Promise<any> {
+    return this.adminService.updateStaffPermissions(userId, permissions);
+  }
+
+  @Roles(UserRole.ADMIN)
+  @Post('staffs/:userId/remove')
+  @ApiOperation({ summary: 'Revoke staff role and revert to customer' })
+  async removeStaff(@Param('userId') userId: string): Promise<any> {
+    return this.adminService.removeStaff(userId);
   }
 }
 

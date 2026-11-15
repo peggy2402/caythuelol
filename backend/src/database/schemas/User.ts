@@ -42,6 +42,7 @@ export interface IUser extends Document {
     service_settings?: any;
     isReady?: boolean;
   };
+  staff_permissions?: string[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -73,6 +74,10 @@ const UserSchema: Schema = new Schema(
     wallet_balance: { type: Number, default: 0 },
     pending_balance: { type: Number, default: 0 },
     isBanned: { type: Boolean, default: false },
+    staff_permissions: {
+      type: [String],
+      default: ['users', 'disputes', 'deposits', 'cron', 'settings', 'blogs'],
+    },
     debt_info: {
       is_in_debt: { type: Boolean, default: false },
       reminder_count: { type: Number, default: 0 },

@@ -25,7 +25,8 @@ import {
   DollarSign,
   ClipboardList,
   UserMinus,
-  DoorOpen
+  DoorOpen,
+  UserCheck
 } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n';
 import { logout } from '@/lib/logout';
@@ -163,20 +164,30 @@ export default function Sidebar({ className = '', onLinkClick }: SidebarProps) {
           </>
         )}
 
-        {/* --- STAFF MENU --- */}
-        {user.role === 'STAFF' && (
-          <>
-            <div className="px-4 py-2 text-xs font-bold text-zinc-500 uppercase tracking-wider mb-1 text-blue-400">
-              Nhân Viên Vận Hành
-            </div>
-            <NavItem href="/admin/users" icon={Users} label={t('manageCustomers')} />
-            <NavItem href="/admin/disputes" icon={AlertTriangle} label="Quản lý Tranh chấp" />
-            <NavItem href="/admin/deposits" icon={DollarSign} label="Quản lý Tiền cọc" />
-            <NavItem href="/admin/cron" icon={ListTodo} label="Quản Lý Cron" />
-            <NavItem href="/admin/settings" icon={Settings} label={t('systemSettings')} />
-            <NavItem href="/admin/blogs" icon={Newspaper} label={t('manageBlogs')} />
-          </>
-        )}
+        {/* --- STAFF MENU (HIỂN THỊ THEO PHÂN QUYỀN ĐỘNG) --- */}
+        {user.role === 'STAFF' && (() => {
+          const staffPerms: string[] = Array.isArray(user.staff_permissions) && user.staff_permissions.length > 0
+            ? user.staff_permissions
+            : ['users', 'disputes', 'deposits', 'cron', 'settings', 'blogs'];
+
+          return (
+            <>
+              <div className="px-4 py-2 text-xs font-bold text-zinc-500 uppercase tracking-wider mb-1 text-blue-400">
+                Nhân Viên Vận Hành
+              </div>
+              {staffPerms.includes('users') && <NavItem href="/admin/users" icon={Users} label={t('manageCustomers')} />}
+              {staffPerms.includes('boosters') && <NavItem href="/admin/boosters" icon={ShieldAlert} label={t('manageBoosters')} />}
+              {staffPerms.includes('orders') && <NavItem href="/admin/orders" icon={ClipboardList} label={t('manageOrders')} />}
+              {staffPerms.includes('disputes') && <NavItem href="/admin/disputes" icon={AlertTriangle} label="Quản lý Tranh chấp" />}
+              {staffPerms.includes('deposits') && <NavItem href="/admin/deposits" icon={DollarSign} label="Quản lý Tiền cọc" />}
+              {staffPerms.includes('withdrawals') && <NavItem href="/admin/withdrawals" icon={Wallet} label="Quản lý Rút tiền" />}
+              {staffPerms.includes('transactions') && <NavItem href="/admin/transactions" icon={CreditCard} label={t('manageTransactions')} />}
+              {staffPerms.includes('blogs') && <NavItem href="/admin/blogs" icon={Newspaper} label={t('manageBlogs')} />}
+              {staffPerms.includes('cron') && <NavItem href="/admin/cron" icon={ListTodo} label="Quản Lý Cron" />}
+              {staffPerms.includes('settings') && <NavItem href="/admin/settings" icon={Settings} label={t('systemSettings')} />}
+            </>
+          );
+        })()}
 
         {/* --- ADMIN MENU --- */}
         {user.role === 'ADMIN' && (
@@ -185,6 +196,7 @@ export default function Sidebar({ className = '', onLinkClick }: SidebarProps) {
               {t('admin')}
             </div>
             <NavItem href="/admin/dashboard" icon={LayoutDashboard} label={t('dashboard')} />
+            <NavItem href="/admin/staffs" icon={UserCheck} label="Quản lý Nhân Viên" />
             <NavItem href="/admin/boosters" icon={ShieldAlert} label={t('manageBoosters')} />
             <NavItem href="/admin/users" icon={Users} label={t('manageCustomers')} />
             <NavItem href="/admin/transactions" icon={CreditCard} label={t('manageTransactions')} />
@@ -196,7 +208,6 @@ export default function Sidebar({ className = '', onLinkClick }: SidebarProps) {
             <NavItem href="/admin/cron" icon={ListTodo} label="Quản Lý Cron" />
             <NavItem href="/admin/settings" icon={Settings} label={t('systemSettings')} />
             <NavItem href="/admin/audit-logs" icon={ListTodo} label={t('auditLogs')} />
-
           </>
         )}
       </div>

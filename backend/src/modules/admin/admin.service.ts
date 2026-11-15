@@ -14,6 +14,8 @@ import { ISystemSetting } from '../../database/schemas/SystemSetting';
 import { IBlog } from '../../database/schemas/Blog';
 import { IWithdrawal } from '../../database/schemas/Withdrawal';
 import { IAuditLog } from '../../database/schemas/AuditLog';
+import { IBoosterProfile } from '../../database/schemas/BoosterProfile';
+import * as bcrypt from 'bcryptjs';
 
 @Injectable()
 export class AdminService {
@@ -21,6 +23,7 @@ export class AdminService {
     @InjectModel('User') private userModel: Model<IUser>,
     @InjectModel('Order') private orderModel: Model<IOrder>,
     @InjectModel('Transaction') private transactionModel: Model<ITransaction>,
+    @InjectModel('BoosterProfile') private boosterProfileModel: Model<IBoosterProfile>,
     @InjectModel('BoosterApplication') private boosterAppModel: Model<IBoosterApplication>,
     @InjectModel('SystemSetting') private settingModel: Model<ISystemSetting>,
     @InjectModel('Blog') private blogModel: Model<IBlog>,
@@ -389,7 +392,245 @@ export class AdminService {
 
     const totalPages = Math.ceil(total / limit);
 
-    return { success: true, boosters, total, totalPages, currentPage: page };
+    const boosterUserIds = boosters.map((b) => b._id);
+    const profiles = await this.boosterProfileModel
+      .find({ userId: { $in: boosterUserIds } })
+      .lean();
+    const profileMap = new Map(profiles.map((p) => [p.userId.toString(), p]));
+    const boostersWithProfile = boosters.map((b) => ({
+      ...b,
+      boosterProfile: profileMap.get(b._id.toString()) || null,
+    }));
+
+    return {
+      success: true,
+      boosters: boostersWithProfile,
+      total,
+      totalPages,
+      currentPage: page,
+    };
+  }
+
+  async createBooster(body: {
+    userId?: string;
+    username?: string;
+    email?: string;
+    password?: string;
+    displayName?: string;
+    bio?: string;
+    rating?: number;
+    completedOrders?: number;
+    gameCode?: string;
+    ranks?: string[];
+    servers?: string[];
+  }): Promise<any> {
+    let targetUser: any;
+
+    if (body.userId) {
+      targetUser = await this.userModel.findById(body.userId);
+      if (!targetUser) {
+        throw new NotFoundException('Không tìm thấy người dùng được chọn');
+      }
+      targetUser.role = UserRole.BOOSTER;
+      if (body.displayName) {
+        if (!targetUser.profile) targetUser.profile = {};
+        targetUser.profile.full_name = body.displayName;
+      }
+      await targetUser.save();
+    } else {
+      if (!body.username || !body.email || !body.password) {
+        throw new BadRequestException('Vui lòng cung cấp username, email và password');
+      }
+      const existing = await this.userModel.findOne({
+        $or: [{ email: body.email.toLowerCase() }, { username: body.username }],
+      });
+      if (existing) {
+        throw new BadRequestException('Email hoặc tên đăng nhập đã được sử dụng');
+      }
+      const salt = await bcrypt.genSalt(10);
+      const password_hash = await bcrypt.hash(body.password, salt);
+
+      targetUser = await this.userModel.create({
+        username: body.username,
+        email: body.email.toLowerCase(),
+        password_hash,
+        role: UserRole.BOOSTER,
+        isEmailVerified: true,
+        profile: {
+          full_name: body.displayName || body.username,
+        },
+      });
+    }
+
+    const defaultGame = {
+      gameCode: body.gameCode || 'LOL',
+      ranks: body.ranks && body.ranks.length > 0 ? body.ranks : ['CHALLENGER'],
+      servers: body.servers && body.servers.length > 0 ? body.servers : ['VN'],
+    };
+
+    const profile = await this.boosterProfileModel.findOneAndUpdate(
+      { userId: targetUser._id },
+      {
+        displayName: body.displayName || targetUser.profile?.full_name || targetUser.username,
+        bio: body.bio || 'Tuyển thủ LeoRank chuyên nghiệp',
+        rating: body.rating ?? 5.0,
+        completedOrders: body.completedOrders ?? 0,
+        games: [defaultGame],
+      },
+      { upsert: true, new: true },
+    );
+
+    return {
+      success: true,
+      message: 'Tạo hoặc thăng cấp Booster thành công',
+      user: targetUser,
+      profile,
+    };
+  }
+
+  async editBoosterProfile(
+    userId: string,
+    body: {
+      displayName?: string;
+      bio?: string;
+      rating?: number;
+      completedOrders?: number;
+      games?: any[];
+      isBanned?: boolean;
+    },
+  ): Promise<any> {
+    const user = await this.userModel.findById(userId);
+    if (!user) throw new NotFoundException('Không tìm thấy Booster');
+
+    if (body.isBanned !== undefined) {
+      user.isBanned = body.isBanned;
+      await user.save();
+    }
+
+    const updateData: any = {};
+    if (body.displayName !== undefined) updateData.displayName = body.displayName;
+    if (body.bio !== undefined) updateData.bio = body.bio;
+    if (body.rating !== undefined) updateData.rating = body.rating;
+    if (body.completedOrders !== undefined) updateData.completedOrders = body.completedOrders;
+    if (body.games !== undefined) updateData.games = body.games;
+
+    const profile = await this.boosterProfileModel.findOneAndUpdate(
+      { userId: new Types.ObjectId(userId) },
+      updateData,
+      { upsert: true, new: true },
+    );
+
+    return {
+      success: true,
+      message: 'Cập nhật hồ sơ Booster thành công',
+      profile,
+    };
+  }
+
+  // --- QUẢN LÝ NHÂN VIÊN (STAFF & PERMISSIONS) ---
+
+  async listStaffs(search?: string): Promise<any> {
+    const filter: any = {
+      role: { $in: [UserRole.STAFF, UserRole.ADMIN] },
+    };
+    if (search) {
+      const searchRegex = { $regex: search, $options: 'i' };
+      filter.$or = [{ username: searchRegex }, { email: searchRegex }];
+    }
+
+    const staffs = await this.userModel
+      .find(filter)
+      .select('-password_hash')
+      .sort({ createdAt: -1 })
+      .lean();
+
+    return { success: true, staffs };
+  }
+
+  async assignStaff(body: {
+    userId?: string;
+    username?: string;
+    email?: string;
+    password?: string;
+    permissions?: string[];
+  }): Promise<any> {
+    const defaultPermissions = [
+      'users',
+      'disputes',
+      'deposits',
+      'cron',
+      'settings',
+      'blogs',
+      'orders',
+      'boosters',
+    ];
+    const permissions = body.permissions || defaultPermissions;
+
+    if (body.userId) {
+      const user = await this.userModel.findById(body.userId);
+      if (!user) throw new NotFoundException('Không tìm thấy người dùng');
+      user.role = UserRole.STAFF;
+      user.staff_permissions = permissions;
+      await user.save();
+      return { success: true, message: 'Đã phân quyền Nhân viên thành công', user };
+    }
+
+    if (!body.username || !body.email || !body.password) {
+      throw new BadRequestException('Vui lòng cung cấp username, email và mật khẩu');
+    }
+
+    const existing = await this.userModel.findOne({
+      $or: [{ email: body.email.toLowerCase() }, { username: body.username }],
+    });
+    if (existing) {
+      throw new BadRequestException('Email hoặc tên đăng nhập đã tồn tại');
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const password_hash = await bcrypt.hash(body.password, salt);
+
+    const newUser = await this.userModel.create({
+      username: body.username,
+      email: body.email.toLowerCase(),
+      password_hash,
+      role: UserRole.STAFF,
+      isEmailVerified: true,
+      staff_permissions: permissions,
+      profile: { full_name: body.username },
+    });
+
+    return { success: true, message: 'Tạo tài khoản Nhân viên thành công', user: newUser };
+  }
+
+  async updateStaffPermissions(userId: string, permissions: string[]): Promise<any> {
+    const user = await this.userModel.findById(userId);
+    if (!user) throw new NotFoundException('Không tìm thấy nhân viên');
+    if (user.role !== UserRole.STAFF && user.role !== UserRole.ADMIN) {
+      throw new BadRequestException('Tài khoản này không phải nhân viên');
+    }
+
+    user.staff_permissions = permissions;
+    await user.save();
+
+    return {
+      success: true,
+      message: 'Cập nhật quyền hạn nhân viên thành công',
+      staff_permissions: user.staff_permissions,
+    };
+  }
+
+  async removeStaff(userId: string): Promise<any> {
+    const user = await this.userModel.findById(userId);
+    if (!user) throw new NotFoundException('Không tìm thấy nhân viên');
+    if (user.role === UserRole.ADMIN) {
+      throw new BadRequestException('Không thể thu hồi quyền của Quản trị viên tối cao');
+    }
+
+    user.role = UserRole.CUSTOMER;
+    user.staff_permissions = [];
+    await user.save();
+
+    return { success: true, message: 'Đã thu hồi quyền nhân viên, tài khoản về vai trò Khách hàng' };
   }
 
   async demoteBooster(userId: string, reason?: string): Promise<any> {

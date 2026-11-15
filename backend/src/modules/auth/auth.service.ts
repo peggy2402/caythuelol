@@ -199,6 +199,7 @@ export class AuthService {
       email: user.email,
       role: user.role,
       isEmailVerified: user.isEmailVerified,
+      staff_permissions: user.staff_permissions || [],
     };
 
     const token = this.jwtService.sign(payload);
@@ -216,6 +217,7 @@ export class AuthService {
         platform: (user as any).platform || 'EMAIL',
         wallet_balance: user.wallet_balance,
         profile: user.profile,
+        staff_permissions: user.staff_permissions || [],
       },
     };
   }
@@ -269,6 +271,7 @@ export class AuthService {
       email: user.email,
       role: user.role,
       isEmailVerified: true,
+      staff_permissions: user.staff_permissions || [],
     });
 
     const userObj = user.toObject();
@@ -440,6 +443,7 @@ export class AuthService {
       email: user.email,
       role: user.role,
       isEmailVerified: true,
+      staff_permissions: user.staff_permissions || [],
     });
 
     return { token, user };
