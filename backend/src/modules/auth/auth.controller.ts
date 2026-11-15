@@ -67,10 +67,14 @@ export class AuthController {
       return result;
     }
 
+    const cookieMaxAge = dto.rememberMe === false 
+      ? 24 * 60 * 60 * 1000 // 1 ngày nếu không chọn Ghi nhớ đăng nhập
+      : 30 * 24 * 60 * 60 * 1000; // 30 ngày nếu chọn Ghi nhớ đăng nhập
+
     res.cookie('token', result.token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      maxAge: 7 * 24 * 60 * 60 * 1000,
+      maxAge: cookieMaxAge,
       path: '/',
       sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
     });

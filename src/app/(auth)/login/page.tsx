@@ -25,11 +25,19 @@ function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [formData, setFormData] = useState({ identifier: '', password: '' });
+  const [rememberMe, setRememberMe] = useState(true);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
+    // Tự động khôi phục tên đăng nhập / email đã ghi nhớ
+    const savedId = localStorage.getItem('saved_login_identifier');
+    if (savedId) {
+      setFormData((prev) => ({ ...prev, identifier: savedId }));
+      setRememberMe(true);
+    }
+
     const errorParam = searchParams.get('error');
     const reasonParam = searchParams.get('reason');
     if (errorParam === 'GoogleAuthFailed') {
@@ -66,7 +74,7 @@ function LoginForm() {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({ ...formData, rememberMe }),
       });
 
       const data = await res.json();
@@ -99,11 +107,20 @@ function LoginForm() {
         return;
       }
 
+      // Xử lý chức năng Ghi nhớ đăng nhập
+      if (rememberMe) {
+        localStorage.setItem('saved_login_identifier', formData.identifier.trim());
+      } else {
+        localStorage.removeItem('saved_login_identifier');
+      }
+
       // Lưu token vào localStorage và Cookie
       if (typeof window !== 'undefined') {
         localStorage.setItem('token', data.token);
         localStorage.setItem('user', JSON.stringify(data.user));
-        document.cookie = `token=${data.token}; path=/; max-age=${60 * 60 * 24 * 7}; secure; samesite=lax`;
+
+        const cookieDuration = rememberMe ? 60 * 60 * 24 * 30 : 60 * 60 * 24; // 30 ngày vs 1 ngày
+        document.cookie = `token=${data.token}; path=/; max-age=${cookieDuration}; secure; samesite=lax`;
         window.dispatchEvent(new CustomEvent('user-updated'));
       }
 
@@ -269,9 +286,11 @@ function LoginForm() {
                 id="remember-me"
                 name="remember-me"
                 type="checkbox"
-                className="h-4 w-4 rounded border-zinc-300 bg-zinc-100 text-blue-600 focus:ring-blue-500/50 focus:ring-offset-0"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                className="h-4 w-4 rounded border-zinc-300 bg-zinc-100 text-blue-600 focus:ring-blue-500/50 focus:ring-offset-0 cursor-pointer"
               />
-              <label htmlFor="remember-me" className="ml-2 block text-sm text-zinc-600">
+              <label htmlFor="remember-me" className="ml-2 block text-sm text-zinc-600 cursor-pointer select-none">
                 {t('rememberMe')}
               </label>
             </div>

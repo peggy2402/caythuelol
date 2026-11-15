@@ -32,7 +32,8 @@ export default function VerifyOtpForm({ email }: VerifyOtpFormProps) {
   const [currentEmail, setCurrentEmail] = useState(email || '');
   const [inputEmail, setInputEmail] = useState('');
   const [otp, setOtp] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [isResending, setIsResending] = useState(false);
   const [countdown, setCountdown] = useState(60); // 60 giây đếm ngược
   const [canResend, setCanResend] = useState(false);
 
@@ -91,23 +92,27 @@ export default function VerifyOtpForm({ email }: VerifyOtpFormProps) {
     }
   }, [countdown]);
 
-  const handleVerify = async () => {
+  const verifyCode = async (codeToVerify?: string) => {
+    const code = (codeToVerify ?? otp).trim();
+
     if (!activeEmail) {
       toast.error('Vui lòng nhập địa chỉ email cần xác thực');
       return;
     }
 
-    if (otp.length !== 6) {
+    if (code.length !== 6) {
       toast.error(t('otpRequired') || 'Vui lòng nhập đủ 6 chữ số OTP');
       return;
     }
 
-    setIsLoading(true);
+    if (isVerifying) return;
+
+    setIsVerifying(true);
     try {
       const res = await fetch('/api/auth/verify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: activeEmail, otp }),
+        body: JSON.stringify({ email: activeEmail, otp: code }),
       });
 
       const data = await res.json();
@@ -141,7 +146,7 @@ export default function VerifyOtpForm({ email }: VerifyOtpFormProps) {
     } catch (error) {
       toast.error(t('connectionError'));
     } finally {
-      setIsLoading(false);
+      setIsVerifying(false);
     }
   };
 
@@ -151,9 +156,9 @@ export default function VerifyOtpForm({ email }: VerifyOtpFormProps) {
       return;
     }
 
-    if (!canResend) return;
+    if (!canResend || isResending) return;
     
-    setIsLoading(true);
+    setIsResending(true);
     try {
       const res = await fetch('/api/auth/resend', {
         method: 'POST',
@@ -179,7 +184,7 @@ export default function VerifyOtpForm({ email }: VerifyOtpFormProps) {
     } catch (error: any) {
       toast.error(t(error.message as any) || error.message || t('resendFailed'));
     } finally {
-      setIsLoading(false);
+      setIsResending(false);
     }
   };
 
@@ -232,15 +237,21 @@ export default function VerifyOtpForm({ email }: VerifyOtpFormProps) {
               <InputOTP
                 maxLength={6}
                 value={otp}
-                onChange={(value) => setOtp(value)}
-                disabled={isLoading}
+                onChange={(value) => {
+                  setOtp(value);
+                  if (value.length === 6) {
+                    verifyCode(value);
+                  }
+                }}
+                disabled={isVerifying}
+                autoFocus
               >
                 <InputOTPGroup className="gap-2 sm:gap-3">
                   {[0, 1, 2, 3, 4, 5].map((index) => (
                     <InputOTPSlot 
                       key={index} 
                       index={index} 
-                      className="w-10 h-12 sm:w-12 sm:h-14 text-lg font-bold border-zinc-200 bg-zinc-50 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 rounded-xl transition-all shadow-sm"
+                      className="w-10 h-12 sm:w-12 sm:h-14 text-lg font-bold border-zinc-200 bg-zinc-50 focus:bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 rounded-xl transition-all shadow-sm text-zinc-900"
                     />
                   ))}
                 </InputOTPGroup>
@@ -248,17 +259,17 @@ export default function VerifyOtpForm({ email }: VerifyOtpFormProps) {
             </div>
 
             <Button 
-              onClick={handleVerify} 
+              onClick={() => verifyCode(otp)} 
               className="w-full h-12 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white font-bold rounded-xl shadow-lg shadow-blue-500/25 transition-all transform hover:-translate-y-0.5 active:scale-[0.98]" 
-              disabled={isLoading || otp.length < 6 || !activeEmail}
+              disabled={isVerifying || otp.length < 6 || !activeEmail}
             >
-              {isLoading ? (
+              {isVerifying ? (
                 <>
                   <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                  {t('verifying')}
+                  {t('verifying') || 'Đang xác thực...'}
                 </>
               ) : (
-                t('verifyBtn')
+                t('verifyBtn') || 'Xác thực tài khoản'
               )}
             </Button>
 
@@ -266,12 +277,22 @@ export default function VerifyOtpForm({ email }: VerifyOtpFormProps) {
               <p className="text-zinc-500 mb-2">{t('didntReceive')}</p>
               {canResend ? (
                 <button 
+                  type="button"
                   onClick={handleResend} 
-                  className="text-blue-600 font-bold hover:text-blue-500 hover:underline transition-colors flex items-center gap-2 mx-auto lg:mx-0"
-                  disabled={isLoading || !activeEmail}
+                  disabled={isResending || !activeEmail}
+                  className="text-blue-600 font-bold hover:text-blue-500 hover:underline transition-colors flex items-center gap-2 mx-auto lg:mx-0 disabled:opacity-50"
                 >
-                  <Sparkles className="w-4 h-4" />
-                  {t('resendCode')}
+                  {isResending ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Đang gửi lại mã...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-4 h-4" />
+                      <span>{t('resendCode')}</span>
+                    </>
+                  )}
                 </button>
               ) : (
                 <span className="text-zinc-400 font-medium flex items-center justify-center lg:justify-start gap-2">
