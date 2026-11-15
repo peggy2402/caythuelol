@@ -26,6 +26,7 @@ import { UserRole } from '../../database/schemas/User';
 export class AdminController {
   constructor(private adminService: AdminService) {}
 
+  @Roles(UserRole.ADMIN)
   @Get('stats')
   @ApiOperation({ summary: 'Get global admin dashboard statistics' })
   async getStats(
@@ -64,6 +65,7 @@ export class AdminController {
     return this.adminService.toggleBanUser(userId, isBanned);
   }
 
+  @Roles(UserRole.ADMIN)
   @Post('users/:id/balance')
   @ApiOperation({ summary: 'Admin manually adjust wallet balance' })
   async adjustBalance(
@@ -94,6 +96,7 @@ export class AdminController {
     }
   }
 
+  @Roles(UserRole.ADMIN)
   @Post('boosters/demote')
   @ApiOperation({ summary: 'Demote booster to customer' })
   async demoteBooster(
@@ -251,12 +254,14 @@ export class AdminController {
     return this.adminService.updateSetting(key, value, description);
   }
 
+  @Roles(UserRole.ADMIN)
   @Get('settings/riot')
   @ApiOperation({ summary: 'Get Riot API key' })
   async getRiotKey(): Promise<any> {
     return this.adminService.getRiotKey();
   }
 
+  @Roles(UserRole.ADMIN)
   @Post('settings/riot')
   @ApiOperation({ summary: 'Save Riot API key' })
   async saveRiotKey(@Body('apiKey') apiKey: string): Promise<any> {
