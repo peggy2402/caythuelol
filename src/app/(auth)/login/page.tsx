@@ -84,11 +84,18 @@ function LoginForm() {
       // Xử lý trường hợp tài khoản chưa xác thực OTP (quên verify lúc đăng ký)
       if (data.requireVerification) {
         toast.info(data.message || 'Tài khoản chưa được kích hoạt. Vui lòng nhập mã OTP vừa gửi vào email.');
-        const targetEmail = data.email || formData.identifier;
+        const targetEmail = (data.email || formData.identifier).trim().toLowerCase();
+        
+        // Xóa mọi token cũ để không bị redirect sai
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+        document.cookie = 'token=; path=/; domain=.leorank.site; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+
         localStorage.setItem('pending_verification_email', targetEmail);
         sessionStorage.setItem('pending_verification_email', targetEmail);
         localStorage.removeItem('otp_resend_available_at');
-        router.push(`/verify-otp?email=${encodeURIComponent(targetEmail)}`);
+        router.replace('/verify-otp?email=' + encodeURIComponent(targetEmail));
         return;
       }
 

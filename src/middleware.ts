@@ -63,6 +63,8 @@ export async function middleware(request: NextRequest) {
         const isWhitelisted =
           pathname === '/maintenance' ||
           pathname === '/login' ||
+          pathname === '/register' ||
+          pathname === '/verify-otp' ||
           pathname.startsWith('/admin');
 
         if (!isWhitelisted) {

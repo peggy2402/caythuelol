@@ -1,5 +1,6 @@
 import {
   Injectable,
+  Logger,
   BadRequestException,
   UnauthorizedException,
   ForbiddenException,
@@ -25,6 +26,8 @@ import {
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     @InjectModel('User') private userModel: Model<IUser>,
     @InjectModel('VerificationCode')
@@ -34,74 +37,102 @@ export class AuthService {
   ) {}
 
   async register(dto: RegisterDto) {
-    const { username, email, password, role, phoneNumber } = dto;
+    const t0 = Date.now();
+    const { username, email, password, phoneNumber } = dto;
+    const cleanUsername = username.trim();
+    const cleanEmail = email.trim().toLowerCase();
 
     const usernameRegex = /^[a-zA-Z0-9_\-\.]+$/;
-    if (!usernameRegex.test(username)) {
+    if (!usernameRegex.test(cleanUsername)) {
       throw new BadRequestException('Tên đăng nhập không được chứa khoảng trắng hoặc ký tự đặc biệt');
     }
 
+    const t1 = Date.now();
     const existingUser = await this.userModel.findOne({
-      $or: [{ email: email.toLowerCase() }, { username }],
+      $or: [{ email: cleanEmail }, { username: cleanUsername }],
     });
+    const t2 = Date.now();
+
     if (existingUser) {
-      if (existingUser.email?.toLowerCase() === email.toLowerCase()) {
-        throw new BadRequestException('Email này đã được sử dụng');
+      // YÊU CẦU 3: Nếu tài khoản cũ CHƯA VERIFY OTP -> Cho phép cập nhật thông tin và cấp lại OTP mới
+      if (!existingUser.isEmailVerified) {
+        this.logger.log(`[Register] User [${existingUser.username} | ${existingUser.email}] chưa kích hoạt OTP. Cập nhật thông tin và cấp mã OTP mới.`);
+        const salt = await bcrypt.genSalt(10);
+        existingUser.password_hash = await bcrypt.hash(password, salt);
+        if (phoneNumber) existingUser.phoneNumber = phoneNumber;
+        await existingUser.save();
+      } else {
+        // ĐÃ VERIFY -> Báo trùng
+        if (existingUser.email?.toLowerCase() === cleanEmail) {
+          throw new BadRequestException('Email này đã được sử dụng');
+        }
+        if (existingUser.username === cleanUsername) {
+          throw new BadRequestException('Tên đăng nhập này đã tồn tại');
+        }
+        throw new BadRequestException('Email hoặc Tên đăng nhập đã tồn tại');
       }
-      if (existingUser.username === username) {
-        throw new BadRequestException('Tên đăng nhập này đã tồn tại');
-      }
-      throw new BadRequestException('Email hoặc Tên đăng nhập đã tồn tại');
+    } else {
+      const salt = await bcrypt.genSalt(10);
+      const passwordHash = await bcrypt.hash(password, salt);
+
+      const newUser = new this.userModel({
+        username: cleanUsername,
+        email: cleanEmail,
+        password_hash: passwordHash,
+        role: UserRole.CUSTOMER,
+        phoneNumber: phoneNumber || '',
+        isEmailVerified: false,
+        platform: 'EMAIL',
+        wallet_balance: 0,
+        pending_balance: 0,
+        profile: { avatar: '' },
+      });
+      await newUser.save();
     }
+    const t3 = Date.now();
 
-    const salt = await bcrypt.genSalt(10);
-    const passwordHash = await bcrypt.hash(password, salt);
-
-    const newUser = new this.userModel({
-      username,
-      email: email.toLowerCase(),
-      password_hash: passwordHash,
-      role: role || UserRole.CUSTOMER,
-      phoneNumber: phoneNumber || '',
-      isEmailVerified: false,
-      platform: 'EMAIL',
-      wallet_balance: 0,
-      pending_balance: 0,
-      profile: { avatar: '' },
-    });
-    await newUser.save();
-
-    // Create OTP
+    // Sinh mã OTP 6 số ngẫu nhiên
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 mins
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 phút
 
+    // YÊU CẦU 4: Hash OTP trước khi lưu vào Database
+    const otpHash = await bcrypt.hash(otp, 8);
+
+    await this.verificationCodeModel.deleteMany({ email: cleanEmail, type: 'EMAIL_VERIFICATION' });
     await this.verificationCodeModel.create({
-      email: email.toLowerCase(),
-      code: otp,
+      email: cleanEmail,
+      code: otpHash,
       type: 'EMAIL_VERIFICATION',
       expiresAt,
+      attempts: 0,
     });
+    const t4 = Date.now();
 
-    // Gửi email OTP bất đồng bộ trong background (không block response của người dùng)
-    this.mailService.sendOtpEmail(email, otp, 'VERIFICATION').catch((err) => {
-      console.error(`[MailService] Lỗi gửi OTP đăng ký tới ${email}:`, err);
+    this.logger.log(
+      `[Register Timing] CheckUser: ${t2 - t1}ms | SaveUser: ${t3 - t2}ms | SaveOTP: ${t4 - t3}ms | Total Response Time: ${t4 - t0}ms`,
+    );
+
+    // Gửi email OTP trong background (Fire-and-forget, tuyệt đối KHÔNG await để response < 1s)
+    this.mailService.sendOtpEmail(cleanEmail, otp, 'VERIFICATION').catch((err) => {
+      this.logger.error(`[MailService] Lỗi gửi OTP đăng ký tới ${cleanEmail}:`, err);
     });
 
     return {
       success: true,
-      email: email.toLowerCase(),
+      email: cleanEmail,
       message: 'Đăng ký thành công. Vui lòng kiểm tra email để lấy mã OTP.',
     };
   }
 
   async login(dto: LoginDto) {
     const { identifier, password } = dto;
+    const cleanId = identifier.trim();
 
     const user = await this.userModel
       .findOne({
         $or: [
-          { email: new RegExp(`^${identifier}$`, 'i') },
-          { username: new RegExp(`^${identifier}$`, 'i') },
+          { email: new RegExp(`^${cleanId}$`, 'i') },
+          { username: new RegExp(`^${cleanId}$`, 'i') },
         ],
       })
       .select('+password_hash');
@@ -122,26 +153,43 @@ export class AuthService {
       throw new UnauthorizedException('Tài khoản hoặc mật khẩu không chính xác');
     }
 
-    // Nếu tài khoản chưa kích hoạt (chưa verify OTP)
+    // YÊU CẦU 3: Nếu tài khoản chưa xác thực OTP -> Không cấp token, sinh OTP mới và trả requireVerification
     if (!user.isEmailVerified) {
-      const otp = Math.floor(100000 + Math.random() * 900000).toString();
-      const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+      const lowerEmail = user.email.toLowerCase();
 
-      await this.verificationCodeModel.findOneAndUpdate(
-        { email: user.email.toLowerCase(), type: 'EMAIL_VERIFICATION' },
-        { code: otp, expiresAt, attempts: 0 },
-        { upsert: true }
-      );
-
-      this.mailService.sendOtpEmail(user.email, otp, 'VERIFICATION').catch((err) => {
-        console.error(`[MailService] Lỗi gửi OTP kích hoạt lại tới ${user.email}:`, err);
+      // Kiểm tra rate limit: tối thiểu 60s giữa 2 lần gửi OTP
+      const existingRecord = await this.verificationCodeModel.findOne({
+        email: lowerEmail,
+        type: 'EMAIL_VERIFICATION',
       });
+
+      const lastSentTime = existingRecord ? new Date((existingRecord as any).updatedAt || (existingRecord as any).createdAt).getTime() : 0;
+      const canSendNew = Date.now() - lastSentTime > 60 * 1000;
+
+      if (canSendNew || !existingRecord) {
+        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+        const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+        const otpHash = await bcrypt.hash(otp, 8);
+
+        await this.verificationCodeModel.deleteMany({ email: lowerEmail, type: 'EMAIL_VERIFICATION' });
+        await this.verificationCodeModel.create({
+          email: lowerEmail,
+          code: otpHash,
+          type: 'EMAIL_VERIFICATION',
+          expiresAt,
+          attempts: 0,
+        });
+
+        this.mailService.sendOtpEmail(user.email, otp, 'VERIFICATION').catch((err) => {
+          this.logger.error(`[MailService] Lỗi gửi OTP kích hoạt lại tới ${user.email}:`, err);
+        });
+      }
 
       return {
         success: false,
         requireVerification: true,
         email: user.email,
-        message: 'Tài khoản chưa được kích hoạt. Mã OTP mới đã được gửi tới email của bạn.',
+        message: 'Tài khoản chưa được kích hoạt. Mã OTP đã được gửi tới email của bạn.',
       };
     }
 
@@ -174,7 +222,7 @@ export class AuthService {
 
   async verifyOtp(dto: VerifyOtpDto) {
     const { email, otp } = dto;
-    const lowerEmail = email.toLowerCase();
+    const lowerEmail = email.trim().toLowerCase();
 
     const record = await this.verificationCodeModel.findOne({
       email: lowerEmail,
@@ -185,15 +233,25 @@ export class AuthService {
       throw new BadRequestException('Mã xác thực không tồn tại hoặc đã hết hạn');
     }
 
-    if (record.attempts >= 3) {
+    // YÊU CẦU 4: Giới hạn tối đa 5 lần thử
+    if (record.attempts >= 5) {
       await this.verificationCodeModel.deleteOne({ _id: record._id });
-      throw new BadRequestException('Bạn đã nhập sai quá số lần quy định. Vui lòng yêu cầu mã mới.');
+      throw new BadRequestException('Bạn đã nhập sai quá 5 lần. Vui lòng yêu cầu gửi lại mã mới.');
     }
 
-    if (record.code !== otp) {
-      record.attempts += 1;
+    // So khớp mã OTP (hỗ trợ cả hash bcrypt lẫn plain text cũ)
+    let isMatch = false;
+    if (record.code.startsWith('$2')) {
+      isMatch = await bcrypt.compare(otp, record.code);
+    } else {
+      isMatch = record.code === otp;
+    }
+
+    if (!isMatch) {
+      record.attempts = (record.attempts || 0) + 1;
       await record.save();
-      throw new BadRequestException(`Mã xác thực không chính xác. Còn lại ${3 - record.attempts} lần thử.`);
+      const remaining = 5 - record.attempts;
+      throw new BadRequestException(`Mã xác thực không chính xác. Bạn còn lại ${remaining} lần thử.`);
     }
 
     const user = await this.userModel.findOne({ email: lowerEmail });
@@ -225,27 +283,45 @@ export class AuthService {
   }
 
   async resendOtp(email: string) {
-    const lowerEmail = email.toLowerCase();
+    const lowerEmail = email.trim().toLowerCase();
     const user = await this.userModel.findOne({ email: lowerEmail });
     if (!user) {
       throw new NotFoundException('Email chưa được đăng ký trong hệ thống');
+    }
+
+    const existingRecord = await this.verificationCodeModel.findOne({
+      email: lowerEmail,
+      type: 'EMAIL_VERIFICATION',
+    });
+
+    // Rate limit: Tối thiểu 60s giữa 2 lần gửi lại
+    if (existingRecord) {
+      const lastSentTime = new Date((existingRecord as any).updatedAt || (existingRecord as any).createdAt).getTime();
+      const timeSinceLast = Date.now() - lastSentTime;
+      if (timeSinceLast < 60 * 1000) {
+        const waitSec = Math.ceil((60 * 1000 - timeSinceLast) / 1000);
+        throw new BadRequestException(`Vui lòng đợi ${waitSec} giây trước khi yêu cầu mã mới.`);
+      }
     }
 
     await this.verificationCodeModel.deleteMany({ email: lowerEmail, type: 'EMAIL_VERIFICATION' });
 
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+    const otpHash = await bcrypt.hash(otp, 8);
 
     await this.verificationCodeModel.create({
       email: lowerEmail,
-      code: otp,
+      code: otpHash,
       type: 'EMAIL_VERIFICATION',
       expiresAt,
+      attempts: 0,
     });
 
     this.mailService.sendOtpEmail(lowerEmail, otp, 'VERIFICATION').catch((err) => {
-      console.error(`[MailService] Lỗi gửi lại OTP tới ${lowerEmail}:`, err);
+      this.logger.error(`[MailService] Lỗi gửi lại OTP tới ${lowerEmail}:`, err);
     });
+
     return { success: true, message: 'Mã xác thực mới đã được gửi về email của bạn' };
   }
 

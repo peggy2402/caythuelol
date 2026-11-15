@@ -1,5 +1,4 @@
 import { cookies } from 'next/headers';
-import { redirect } from 'next/navigation';
 import VerifyOtpForm from './verify-otp-form';
 
 export default async function VerifyOtpPage(props: {
@@ -8,12 +7,9 @@ export default async function VerifyOtpPage(props: {
   const searchParams = props.searchParams ? await props.searchParams : {};
   const cookieStore = await cookies();
   const cookieEmail = cookieStore.get('verification_email')?.value;
-  const email = searchParams?.email || cookieEmail;
+  const email = (searchParams?.email || cookieEmail || '').trim().toLowerCase();
 
-  // Nếu không có thông tin email để verify -> Chuyển về Register
-  if (!email) {
-    redirect('/register');
-  }
-
+  // Không dùng redirect() ở Server Component để tránh xung đột cookie/router.
+  // VerifyOtpForm sẽ tự động fallback đọc từ sessionStorage/localStorage nếu thiếu email.
   return <VerifyOtpForm email={email} />;
 }

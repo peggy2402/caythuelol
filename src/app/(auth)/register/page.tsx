@@ -100,10 +100,12 @@ export default function RegisterPage() {
     }
 
     try {
-      // Xóa sạch session/token cũ nếu có để tránh xung đột với tài khoản mới
+      // Xóa sạch session/token cũ nếu có (cả domain gốc, www và host-only)
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+      document.cookie = 'token=; path=/; domain=.leorank.site; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+      document.cookie = 'token=; path=/; domain=www.leorank.site; expires=Thu, 01 Jan 1970 00:00:00 GMT';
 
       const res = await fetch('/api/auth/register', {
         method: 'POST',
@@ -120,15 +122,15 @@ export default function RegisterPage() {
         throw new Error(errorMsg);
       }
 
-      toast.success(t('registerToastSuccess') || 'Đăng ký thành công! Vui lòng nhập mã OTP.');
+      toast.success(data.message || t('registerToastSuccess') || 'Đăng ký thành công! Vui lòng nhập mã OTP.');
 
       const targetEmail = (data.email || formData.email).trim().toLowerCase();
       localStorage.setItem('pending_verification_email', targetEmail);
       sessionStorage.setItem('pending_verification_email', targetEmail);
       localStorage.removeItem('otp_resend_available_at');
 
-      // Chuyển hướng sang trang OTP kèm query param email
-      router.push(`/verify-otp?email=${encodeURIComponent(targetEmail)}`);
+      // Điều hướng bằng router.replace sang trang OTP kèm query param email
+      router.replace('/verify-otp?email=' + encodeURIComponent(targetEmail));
     } catch (err: any) {
       setError(err.message);
       toast.error(err.message);

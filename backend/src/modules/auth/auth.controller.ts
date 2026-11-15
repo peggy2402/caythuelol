@@ -33,12 +33,17 @@ export class AuthController {
   @Post('register')
   @ApiOperation({ summary: 'Register a new user' })
   async register(@Body() dto: RegisterDto, @Res({ passthrough: true }) res: Response) {
+    // 1. Xóa sạch mọi cookie token cũ nếu có trước khi đăng ký
+    res.clearCookie('token', { path: '/' });
+    res.clearCookie('token', { path: '/', domain: '.leorank.site' });
+
     const result = await this.authService.register(dto);
-    res.cookie('verification_email', dto.email, {
-      httpOnly: true,
+    res.cookie('verification_email', dto.email.trim().toLowerCase(), {
+      httpOnly: false,
       secure: process.env.NODE_ENV === 'production',
-      maxAge: 60 * 10 * 1000,
+      maxAge: 15 * 60 * 1000,
       path: '/',
+      sameSite: 'lax',
     });
     return result;
   }
@@ -50,10 +55,12 @@ export class AuthController {
     const result = await this.authService.login(dto);
 
     if ((result as any).requireVerification) {
+      res.clearCookie('token', { path: '/' });
+      res.clearCookie('token', { path: '/', domain: '.leorank.site' });
       res.cookie('verification_email', (result as any).email, {
         httpOnly: false,
         secure: process.env.NODE_ENV === 'production',
-        maxAge: 60 * 10 * 1000,
+        maxAge: 15 * 60 * 1000,
         path: '/',
         sameSite: 'lax',
       });

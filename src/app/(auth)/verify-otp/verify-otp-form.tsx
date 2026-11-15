@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -29,10 +29,35 @@ interface VerifyOtpFormProps {
 export default function VerifyOtpForm({ email }: VerifyOtpFormProps) {
   const { t } = useLanguage();
   const router = useRouter();
+  const [currentEmail, setCurrentEmail] = useState(email || '');
+  const [inputEmail, setInputEmail] = useState('');
   const [otp, setOtp] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [countdown, setCountdown] = useState(60); // 60 giây đếm ngược
   const [canResend, setCanResend] = useState(false);
+
+  // Xóa cookie token cũ khi vào trang OTP & phục hồi email nếu URL không có
+  useEffect(() => {
+    document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+    document.cookie = 'token=; path=/; domain=.leorank.site; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+    document.cookie = 'token=; path=/; domain=www.leorank.site; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+
+    if (!email) {
+      const stored = sessionStorage.getItem('pending_verification_email') || localStorage.getItem('pending_verification_email');
+      if (stored) {
+        setCurrentEmail(stored.trim().toLowerCase());
+      }
+    }
+  }, [email]);
+
+  const activeEmail = currentEmail || inputEmail.trim().toLowerCase();
+
+  const maskedEmail = useMemo(() => {
+    if (!activeEmail || !activeEmail.includes('@')) return activeEmail;
+    const [local, domain] = activeEmail.split('@');
+    if (local.length <= 2) return `${local}***@${domain}`;
+    return `${local.slice(0, 2)}***${local.slice(-1)}@${domain}`;
+  }, [activeEmail]);
 
   // Logic khôi phục thời gian đếm ngược khi reload trang
   useEffect(() => {
@@ -50,7 +75,6 @@ export default function VerifyOtpForm({ email }: VerifyOtpFormProps) {
         setCanResend(true);
       }
     } else {
-      // Nếu chưa có (lần đầu vào), thiết lập mốc thời gian mới (60s)
       const nextTime = now + 60 * 1000;
       localStorage.setItem(STORAGE_KEY, nextTime.toString());
       setCountdown(60);
@@ -68,8 +92,13 @@ export default function VerifyOtpForm({ email }: VerifyOtpFormProps) {
   }, [countdown]);
 
   const handleVerify = async () => {
+    if (!activeEmail) {
+      toast.error('Vui lòng nhập địa chỉ email cần xác thực');
+      return;
+    }
+
     if (otp.length !== 6) {
-      toast.error(t('otpRequired'));
+      toast.error(t('otpRequired') || 'Vui lòng nhập đủ 6 chữ số OTP');
       return;
     }
 
@@ -78,7 +107,7 @@ export default function VerifyOtpForm({ email }: VerifyOtpFormProps) {
       const res = await fetch('/api/auth/verify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, otp }),
+        body: JSON.stringify({ email: activeEmail, otp }),
       });
 
       const data = await res.json();
@@ -91,7 +120,7 @@ export default function VerifyOtpForm({ email }: VerifyOtpFormProps) {
         return;
       }
 
-      toast.success(t('verifySuccess') || 'Xác thực tài khoản thành công!');
+      toast.success(data.message || t('verifySuccess') || 'Xác thực tài khoản thành công!');
 
       // Lưu token và user vào session trình duyệt
       if (data.token) {
@@ -117,6 +146,11 @@ export default function VerifyOtpForm({ email }: VerifyOtpFormProps) {
   };
 
   const handleResend = async () => {
+    if (!activeEmail) {
+      toast.error('Vui lòng nhập địa chỉ email cần gửi lại mã');
+      return;
+    }
+
     if (!canResend) return;
     
     setIsLoading(true);
@@ -124,7 +158,7 @@ export default function VerifyOtpForm({ email }: VerifyOtpFormProps) {
       const res = await fetch('/api/auth/resend', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email: activeEmail }),
       });
       
       const data = await res.json();
@@ -137,14 +171,13 @@ export default function VerifyOtpForm({ email }: VerifyOtpFormProps) {
 
       toast.success(data.message || t('resendSuccess') || 'Mã xác thực mới đã được gửi!');
       
-      // Cập nhật lại mốc thời gian trong localStorage khi gửi lại
       const nextTime = Date.now() + 60 * 1000;
       localStorage.setItem('otp_resend_available_at', nextTime.toString());
       
       setCountdown(60);
       setCanResend(false);
     } catch (error: any) {
-      toast.error(t(error.message as any) || t('resendFailed'));
+      toast.error(t(error.message as any) || error.message || t('resendFailed'));
     } finally {
       setIsLoading(false);
     }
@@ -173,9 +206,26 @@ export default function VerifyOtpForm({ email }: VerifyOtpFormProps) {
             <h1 className="text-3xl font-bold tracking-tight text-zinc-900">{t('verifyTitle')}</h1>
             <p className="text-zinc-500">
               {t('verifyDesc')} <br className="hidden lg:block" />
-              <span className="font-semibold text-zinc-900">{email}</span>
+              {activeEmail ? (
+                <span className="font-semibold text-zinc-900">{maskedEmail}</span>
+              ) : (
+                <span className="font-semibold text-amber-600">Vui lòng nhập email tài khoản của bạn</span>
+              )}
             </p>
           </div>
+
+          {!currentEmail && (
+            <div className="space-y-2">
+              <label className="text-xs font-semibold text-zinc-600">Email của bạn:</label>
+              <input
+                type="email"
+                value={inputEmail}
+                onChange={(e) => setInputEmail(e.target.value)}
+                placeholder="name@example.com"
+                className="w-full px-3 py-2 text-sm border border-zinc-200 rounded-xl bg-zinc-50 focus:outline-none focus:ring-2 focus:ring-blue-500/40"
+              />
+            </div>
+          )}
 
           <div className="space-y-6">
             <div className="flex justify-center lg:justify-start">
@@ -200,7 +250,7 @@ export default function VerifyOtpForm({ email }: VerifyOtpFormProps) {
             <Button 
               onClick={handleVerify} 
               className="w-full h-12 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white font-bold rounded-xl shadow-lg shadow-blue-500/25 transition-all transform hover:-translate-y-0.5 active:scale-[0.98]" 
-              disabled={isLoading || otp.length < 6}
+              disabled={isLoading || otp.length < 6 || !activeEmail}
             >
               {isLoading ? (
                 <>
@@ -218,7 +268,7 @@ export default function VerifyOtpForm({ email }: VerifyOtpFormProps) {
                 <button 
                   onClick={handleResend} 
                   className="text-blue-600 font-bold hover:text-blue-500 hover:underline transition-colors flex items-center gap-2 mx-auto lg:mx-0"
-                  disabled={isLoading}
+                  disabled={isLoading || !activeEmail}
                 >
                   <Sparkles className="w-4 h-4" />
                   {t('resendCode')}
@@ -249,21 +299,21 @@ export default function VerifyOtpForm({ email }: VerifyOtpFormProps) {
               <span>{t('security2FA')}</span>
             </div>
             <h2 className="text-4xl font-extrabold leading-tight">
-              {t('protectAccount')} <br />
+              {t('protectAccount') || 'Bảo mật tài khoản'} <br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">
-                {t('absoluteSafety')}
+                {t('absoluteSafety') || 'An toàn tuyệt đối'}
               </span>
             </h2>
             <p className="text-lg text-zinc-400 leading-relaxed">
-              {t('verifyHelpDesc')}
+              {t('verifyHelpDesc') || 'Mã OTP giúp bảo vệ tài khoản và ví tiền của bạn an toàn tuyệt đối trên hệ thống LeoRank.'}
             </p>
           </div>
 
           <div className="space-y-4">
             {[
-              { icon: Lock, title: t('e2eEncryption'), desc: t('e2eDesc') },
-              { icon: MailCheck, title: t('instantVerify'), desc: t('instantVerifyDesc') },
-              { icon: CheckCircle2, title: t('secureTrans'), desc: t('secureTransDesc') }
+              { icon: Lock, title: t('e2eEncryption') || 'Mã hóa đầu cuối', desc: t('e2eDesc') || 'Bảo vệ dữ liệu nghiêm ngặt' },
+              { icon: MailCheck, title: t('instantVerify') || 'Xác thực nhanh chóng', desc: t('instantVerifyDesc') || 'Mã OTP gửi trực tiếp tới email của bạn' },
+              { icon: CheckCircle2, title: t('secureTrans') || 'Giao dịch an toàn', desc: t('secureTransDesc') || 'Ngăn chặn truy cập trái phép' }
             ].map((item, idx) => (
               <div key={idx} className="flex items-start gap-4 p-4 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm hover:bg-white/10 transition-colors">
                 <div className="p-2.5 rounded-xl bg-gradient-to-br from-blue-500/20 to-purple-500/20 text-blue-400 mt-0.5">
@@ -279,8 +329,8 @@ export default function VerifyOtpForm({ email }: VerifyOtpFormProps) {
         </div>
         
         <div className="absolute bottom-8 left-12 right-12 text-xs text-zinc-500 flex justify-between">
-            <span>© {new Date().getFullYear()} {t('securityFooter')}</span>
-            <span>{t('privacyTerms')}</span>
+            <span>© {new Date().getFullYear()} LEORANK Security</span>
+            <span>{t('privacyTerms') || 'Điều khoản & Bảo mật'}</span>
         </div>
       </div>
     </div>

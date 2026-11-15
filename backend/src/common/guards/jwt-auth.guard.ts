@@ -35,6 +35,11 @@ export class JwtAuthGuard implements CanActivate {
       const payload = await this.jwtService.verifyAsync(token, {
         secret: process.env.JWT_SECRET,
       });
+
+      if (payload.isEmailVerified === false) {
+        throw new UnauthorizedException('Tài khoản chưa được kích hoạt. Vui lòng xác thực email.');
+      }
+
       request.user = payload;
     } catch {
       throw new UnauthorizedException('Invalid or expired token');
