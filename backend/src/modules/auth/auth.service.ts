@@ -61,7 +61,7 @@ export class AuthService {
       username,
       email: email.toLowerCase(),
       password_hash: passwordHash,
-      role: role || UserRole.BOOSTER,
+      role: role || UserRole.CUSTOMER,
       phoneNumber: phoneNumber || '',
       isEmailVerified: false,
       platform: 'EMAIL',

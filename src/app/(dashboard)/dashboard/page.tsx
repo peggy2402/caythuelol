@@ -255,7 +255,7 @@ export default function DashboardPage() {
         <div className="relative z-10">
           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-white">{t('hello')}, {user?.username}! 👋</h1>
+              <h1 className="text-3xl font-bold text-white">{t('hello')}, {user?.username}!</h1>
               <p className="mt-2 text-blue-100">{t('welcomeDash')} <span className="font-bold text-white">{stats[1].value}</span> {t('ordersProcessing')}</p>
             </div>
             {/* Language Switcher */}

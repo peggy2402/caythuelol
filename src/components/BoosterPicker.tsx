@@ -368,13 +368,14 @@ export default function BoosterPicker() {
               <button
                 type="button"
                 onClick={() => setSortBy('orders_desc')}
-                className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all ${
+                className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium transition-all ${
                   sortBy === 'orders_desc'
                     ? 'bg-blue-500/20 text-blue-300 border border-blue-500/40'
                     : 'bg-zinc-800/80 text-zinc-400 hover:text-white border border-zinc-700/60'
                 }`}
               >
-                🔥 Nhiều Đơn Nhất
+                <Flame className="w-3.5 h-3.5 text-orange-400" />
+                <span>Nhiều Đơn Nhất</span>
               </button>
               {selectedBooster && (
                 <button

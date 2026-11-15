@@ -15,6 +15,9 @@ import {
   Heart,
   ArrowUpDown,
   Sparkles,
+  Flame,
+  Swords,
+  Shield,
 } from 'lucide-react';
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';
@@ -236,33 +239,36 @@ export default function BoostersPage() {
                 setFilterService('');
                 setSortBy('orders_desc');
               }}
-              className={`px-3 py-1 rounded-lg text-xs font-medium transition-all ${
+              className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium transition-all ${
                 !filterService && sortBy === 'orders_desc'
                   ? 'bg-blue-500/20 text-blue-300 border border-blue-500/40'
                   : 'bg-zinc-800/70 text-zinc-400 hover:text-white border border-zinc-700/60'
               }`}
             >
-              🔥 Nhiều Đơn Hoàn Thành
+              <Flame className="w-3.5 h-3.5 text-orange-400" />
+              <span>Nhiều Đơn Hoàn Thành</span>
             </button>
             <button
               onClick={() => setFilterService('RANK_BOOST')}
-              className={`px-3 py-1 rounded-lg text-xs font-medium transition-all ${
+              className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium transition-all ${
                 filterService === 'RANK_BOOST'
                   ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/40'
                   : 'bg-zinc-800/70 text-zinc-400 hover:text-white border border-zinc-700/60'
               }`}
             >
-              ⚔️ Cày Rank / Elo
+              <Swords className="w-3.5 h-3.5 text-indigo-400" />
+              <span>Cày Rank / Elo</span>
             </button>
             <button
               onClick={() => setFilterService('PLACEMENTS')}
-              className={`px-3 py-1 rounded-lg text-xs font-medium transition-all ${
+              className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium transition-all ${
                 filterService === 'PLACEMENTS'
                   ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
                   : 'bg-zinc-800/70 text-zinc-400 hover:text-white border border-zinc-700/60'
               }`}
             >
-              🛡️ Phân Hạng Đầu Mùa
+              <Shield className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Phân Hạng Đầu Mùa</span>
             </button>
           </div>
         </div>

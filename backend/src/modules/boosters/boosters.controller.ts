@@ -92,6 +92,14 @@ export class BoostersController {
 
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
+  @Post('become-booster')
+  @ApiOperation({ summary: 'Register and upgrade role to BOOSTER' })
+  async becomeBooster(@ReqUser() user: any, @Body() body: any) {
+    return this.boostersService.becomeBooster(user.userId, body);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @Post('apply')
   @ApiOperation({ summary: 'Submit booster application' })
   async apply(@ReqUser() user: any, @Body() body: any) {

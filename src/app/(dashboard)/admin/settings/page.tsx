@@ -428,7 +428,7 @@ export default function AdminSettingsPage() {
                 <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${maintenanceMode ? 'translate-x-6' : 'translate-x-1'}`} />
               </button>
             </div>
-            {maintenanceMode && <p className="text-xs text-red-400 mt-2">⚠️ Người dùng sẽ không thể truy cập Dashboard khi bật chế độ này.</p>}
+            {maintenanceMode && <p className="text-xs text-red-400 mt-2">Lưu ý: Người dùng sẽ không thể truy cập Dashboard khi bật chế độ này.</p>}
           </div>
 
           {/* Banner Config */}

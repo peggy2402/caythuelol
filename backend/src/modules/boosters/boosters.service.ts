@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
+import { JwtService } from '@nestjs/jwt';
 
 import { IUser, UserRole } from '../../database/schemas/User';
 import { IBoosterProfile } from '../../database/schemas/BoosterProfile';
@@ -65,6 +66,7 @@ export class BoostersService {
     @InjectModel('BoosterApplication') private boosterAppModel: Model<IBoosterApplication>,
     @InjectModel('Order') private orderModel: Model<IOrder>,
     @InjectModel('Transaction') private transactionModel: Model<ITransaction>,
+    private jwtService: JwtService,
   ) {}
 
   async listBoosters(query: {
@@ -424,6 +426,73 @@ export class BoostersService {
         completedOrders: stats[OrderStatus.COMPLETED] || 0,
         inProgressOrders: stats[OrderStatus.IN_PROGRESS] || 0,
         approvedOrders: stats[OrderStatus.APPROVED] || 0,
+      },
+    };
+  }
+
+  async becomeBooster(userId: string, body: any) {
+    const user = await this.userModel.findById(userId);
+    if (!user) {
+      throw new NotFoundException('Không tìm thấy tài khoản người dùng');
+    }
+
+    if (user.role === UserRole.BOOSTER) {
+      return {
+        success: true,
+        message: 'Bạn đã là Tuyển thủ (Booster) của LeoRank!',
+        role: user.role,
+      };
+    }
+
+    // Nâng cấp role lên BOOSTER
+    user.role = UserRole.BOOSTER;
+    user.booster_info = {
+      bio: body.bio || user.booster_info?.bio || 'Tuyển thủ cày thuê uy tín',
+      ingame_name: body.ingameName || user.username,
+      main_games: body.mainGames && body.mainGames.length > 0 ? body.mainGames : ['lol'],
+      rating: 5.0,
+      completed_orders: 0,
+      isReady: true,
+      service_settings: user.booster_info?.service_settings || DEFAULT_SERVICE_SETTINGS,
+    };
+
+    await user.save();
+
+    await this.boosterProfileModel.findOneAndUpdate(
+      { userId: user._id },
+      {
+        $set: {
+          userId: user._id,
+          fullName: body.fullName || user.username,
+          bio: body.bio || 'Tuyển thủ cày thuê uy tín',
+          isReady: true,
+        },
+      },
+      { upsert: true },
+    );
+
+    const payload = {
+      userId: user._id,
+      username: user.username,
+      email: user.email,
+      role: UserRole.BOOSTER,
+      isEmailVerified: user.isEmailVerified,
+    };
+    const token = this.jwtService.sign(payload);
+
+    return {
+      success: true,
+      message: 'Chúc mừng bạn đã trở thành Tuyển thủ (Booster) của LeoRank!',
+      token,
+      user: {
+        _id: user._id,
+        username: user.username,
+        email: user.email,
+        role: user.role,
+        isEmailVerified: user.isEmailVerified,
+        wallet_balance: user.wallet_balance,
+        profile: user.profile,
+        booster_info: user.booster_info,
       },
     };
   }

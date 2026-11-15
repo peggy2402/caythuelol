@@ -34,6 +34,8 @@ export interface IUser extends Document {
   };
   booster_info?: {
     bio?: string;
+    ingame_name?: string;
+    main_games?: string[];
     services?: string[];
     rating?: number;
     completed_orders?: number;

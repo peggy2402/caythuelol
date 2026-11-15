@@ -51,7 +51,7 @@ export default function BoosterDashboardPage() {
       {/* Welcome Section */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-white mb-2">{t('hello')}, {user?.username}! 🏆</h1>
+          <h1 className="text-3xl font-bold text-white mb-2">{t('hello')}, {user?.username}!</h1>
           <p className="text-zinc-400">Chào mừng trở lại. Bạn đang có <span className="text-yellow-500 font-bold">{stats.activeOrders}</span> đơn hàng đang thực hiện.</p>
         </div>
         <Link href="/booster/jobs" className="bg-yellow-500 hover:bg-yellow-400 text-black px-6 py-3 rounded-xl font-bold transition-colors shadow-lg shadow-yellow-500/20">

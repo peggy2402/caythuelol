@@ -149,9 +149,9 @@ export default function BoosterApplyPage() {
 
   // --- Constants with i18n ---
   const STEPS = [
-    { id: 1, title: t('step1Info'), icon: "👤" },
-    { id: 2, title: t('step2Game'), icon: "🎮" },
-    { id: 3, title: t('step3Commit'), icon: "✍️" },
+    { id: 1, title: t('step1Info') },
+    { id: 2, title: t('step2Game') },
+    { id: 3, title: t('step3Commit') },
   ];
 
   const COMMITMENTS = [
@@ -397,9 +397,13 @@ export default function BoosterApplyPage() {
       if (!result) throw new Error("Không thể tạo hợp đồng. Vui lòng thử lại.");
 
       // 2. Submit Application
+      const token = localStorage.getItem('token');
       const res = await fetch('/api/boosters/apply', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({ ...data, contractUrl: result.url }),
       });
 

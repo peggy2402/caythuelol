@@ -30,7 +30,7 @@ export default function RegisterPage() {
     email: '',
     phoneNumber: '',
     password: '',
-    role: 'BOOSTER', // Default role for all new users
+    role: 'CUSTOMER', // Mặc định là Khách hàng (Customer)
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);

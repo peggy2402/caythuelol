@@ -350,7 +350,7 @@ export default function RankBoostPage() {
             </div>
 
             <div className="mt-3 bg-blue-900/20 border border-blue-500/30 rounded-xl p-4 text-sm">
-              <p className="text-blue-100 mb-2"><span className="text-yellow-400 font-bold mr-2">⚠️ LƯU Ý:</span>Chỉ nhập giá cho <span className="font-bold text-white border-b border-white">1 BẬC DUY NHẤT</span> (Ví dụ: Vàng 1 lên Bạch Kim 4).</p>
+              <p className="text-blue-100 mb-2"><span className="text-yellow-400 font-bold mr-2">LƯU Ý:</span>Chỉ nhập giá cho <span className="font-bold text-white border-b border-white">1 BẬC DUY NHẤT</span> (Ví dụ: Vàng 1 lên Bạch Kim 4).</p>
               <p className="text-zinc-400 text-xs mb-3 italic">
                  * Hệ thống sẽ <span className="text-green-400 font-bold">TỰ ĐỘNG CỘNG DỒN</span> giá tiền nếu khách đặt đơn leo nhiều bậc (Ví dụ: Từ Sắt 4 lên Thách Đấu = Tổng giá của tất cả các bậc ở giữa cộng lại). Bạn không cần nhập giá cho khoảng dài.
               </p>
@@ -495,7 +495,7 @@ export default function RankBoostPage() {
             <div className="px-5 pb-5 animate-in slide-in-from-top-2">
             <p className="text-sm md:text-base mt-4 text-left font-medium mb-6">
               <span className="text-red-400 font-semibold">
-                ⚠ Lưu ý quan trọng:
+                Lưu ý quan trọng:
               </span>{" "}
               <span className="text-zinc-300">
                 Bạn cần điều chỉnh giá phù hợp và
