@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { GAMES_CATALOG } from '@/lib/games';
+import { LOL_RANK_STEPS } from '@/lib/rank-calculator';
 
 const ICON_MAP: Record<string, LucideIcon> = {
   Swords,
@@ -59,6 +60,17 @@ export default function BoosterServicesStudio() {
 
   // Booster Configuration State
   const [selectedGames, setSelectedGames] = useState<string[]>(['LOL']);
+  const [standardConfig, setStandardConfig] = useState({
+    rankBoostEnabled: true,
+    rankPriceMultiplier: 1.0,
+    rankDepositPercent: 100,
+    netWinsEnabled: true,
+    netWinsPricePerLp: 1500,
+    placementsEnabled: true,
+    coachingEnabled: true,
+    coachingPricePerHour: 100000,
+  });
+  const [showRankTableModal, setShowRankTableModal] = useState(false);
   const [customServices, setCustomServices] = useState<CustomService[]>([]);
   const [coupon, setCoupon] = useState<BoosterCoupon>({
     code: '',
@@ -139,6 +151,10 @@ export default function BoosterServicesStudio() {
             ]);
           }
 
+          if (s.standardConfig) {
+            setStandardConfig(s.standardConfig);
+          }
+
           if (s.coupon) {
             setCoupon(s.coupon);
           }
@@ -159,6 +175,7 @@ export default function BoosterServicesStudio() {
     try {
       const payload = {
         selectedGames,
+        standardConfig,
         customServices,
         coupon,
         enabledServices: customServices.filter((s) => s.isActive).map((s) => s.name),
@@ -369,16 +386,216 @@ export default function BoosterServicesStudio() {
           </div>
         </div>
 
-        {/* SECTION 2: BỔ SUNG CÁC DỊCH VỤ TỰ ĐẶT TÊN (CRUD) */}
+        {/* SECTION 2: BẢNG GIÁ & THIẾT LẬP CÀY RANK CHUẨN (LMHT) */}
+        <div className="bg-zinc-900/60 border border-white/10 rounded-2xl p-6 shadow-xl backdrop-blur-md space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-zinc-800">
+            <div>
+              <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                <Trophy size={18} className="text-amber-400" />
+                <span>2. Bảng Giá & Thiết Lập Cày Rank Chuẩn (LMHT)</span>
+              </h2>
+              <p className="text-xs text-zinc-400 mt-0.5">
+                Cấu hình hệ số giá bước nhảy từ Sắt IV đến Cao Thủ, đơn giá cày LP và tỷ lệ cọc của riêng bạn.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setShowRankTableModal(true)}
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 border border-blue-500/30 text-xs font-bold transition-all shrink-0 self-start sm:self-center"
+            >
+              <span>Xem bảng giá 29 bậc Rank</span>
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            {/* GÓI 1: CÀY RANK / ELO */}
+            <div className="p-4 rounded-xl bg-zinc-950/70 border border-zinc-800 space-y-3.5 flex flex-col justify-between">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-extrabold text-white">Cày Rank / Elo Siêu Tốc</span>
+                  <label className="relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out">
+                    <input
+                      type="checkbox"
+                      checked={standardConfig.rankBoostEnabled}
+                      onChange={(e) =>
+                        setStandardConfig({ ...standardConfig, rankBoostEnabled: e.target.checked })
+                      }
+                      className="sr-only"
+                    />
+                    <span
+                      className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                        standardConfig.rankBoostEnabled ? 'translate-x-4 bg-emerald-400' : 'translate-x-0 bg-zinc-500'
+                      }`}
+                    />
+                  </label>
+                </div>
+                <p className="text-xs text-zinc-400">
+                  Leo rank bước nhảy từ Sắt IV đến Cao Thủ.
+                </p>
+              </div>
+
+              <div className="space-y-3 text-xs pt-2 border-t border-zinc-800">
+                <div>
+                  <label className="text-zinc-400 block mb-1 font-semibold uppercase text-[10px]">
+                    Hệ số giá của bạn
+                  </label>
+                  <select
+                    value={standardConfig.rankPriceMultiplier}
+                    onChange={(e) =>
+                      setStandardConfig({
+                        ...standardConfig,
+                        rankPriceMultiplier: parseFloat(e.target.value),
+                      })
+                    }
+                    className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-2.5 py-1.5 text-white font-medium outline-none"
+                  >
+                    <option value="0.85">85% (Cạnh tranh - Giá rẻ nhất)</option>
+                    <option value="0.9">90% (Giảm 10% - Hút khách)</option>
+                    <option value="1.0">100% (Giá chuẩn Sàn - Đề xuất)</option>
+                    <option value="1.1">110% (Tăng 10% - Tuyển thủ cao cấp)</option>
+                    <option value="1.2">120% (Tăng 20% - Thách Đấu Top đầu)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-zinc-400 block mb-1 font-semibold uppercase text-[10px]">
+                    Tỷ lệ cọc giữ chỗ
+                  </label>
+                  <select
+                    value={standardConfig.rankDepositPercent}
+                    onChange={(e) =>
+                      setStandardConfig({
+                        ...standardConfig,
+                        rankDepositPercent: parseInt(e.target.value),
+                      })
+                    }
+                    className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-2.5 py-1.5 text-white font-medium outline-none"
+                  >
+                    <option value="30">Cọc 30%</option>
+                    <option value="50">Cọc 50%</option>
+                    <option value="100">Trọn gói 100%</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* GÓI 2: CÀY ĐIỂM LP CAO THỦ */}
+            <div className="p-4 rounded-xl bg-zinc-950/70 border border-zinc-800 space-y-3.5 flex flex-col justify-between">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-extrabold text-white">Cày Điểm LP Cao Thủ</span>
+                  <label className="relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out">
+                    <input
+                      type="checkbox"
+                      checked={standardConfig.netWinsEnabled}
+                      onChange={(e) =>
+                        setStandardConfig({ ...standardConfig, netWinsEnabled: e.target.checked })
+                      }
+                      className="sr-only"
+                    />
+                    <span
+                      className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                        standardConfig.netWinsEnabled ? 'translate-x-4 bg-emerald-400' : 'translate-x-0 bg-zinc-500'
+                      }`}
+                    />
+                  </label>
+                </div>
+                <p className="text-xs text-zinc-400">
+                  Cày điểm LP Cao Thủ / Thách Đấu theo điểm.
+                </p>
+              </div>
+
+              <div className="space-y-2 text-xs pt-2 border-t border-zinc-800">
+                <label className="text-zinc-400 block font-semibold uppercase text-[10px]">
+                  Đơn giá trên 1 điểm LP
+                </label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    step="100"
+                    min="500"
+                    max="10000"
+                    value={standardConfig.netWinsPricePerLp}
+                    onChange={(e) =>
+                      setStandardConfig({
+                        ...standardConfig,
+                        netWinsPricePerLp: parseInt(e.target.value) || 1000,
+                      })
+                    }
+                    className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-2.5 py-1.5 text-white font-bold font-mono outline-none"
+                  />
+                  <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-500 text-[11px]">
+                    đ / LP
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* GÓI 3: COACHING & DUO 1-1 */}
+            <div className="p-4 rounded-xl bg-zinc-950/70 border border-zinc-800 space-y-3.5 flex flex-col justify-between">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-extrabold text-white">Huấn Luyện Coaching</span>
+                  <label className="relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out">
+                    <input
+                      type="checkbox"
+                      checked={standardConfig.coachingEnabled}
+                      onChange={(e) =>
+                        setStandardConfig({ ...standardConfig, coachingEnabled: e.target.checked })
+                      }
+                      className="sr-only"
+                    />
+                    <span
+                      className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                        standardConfig.coachingEnabled ? 'translate-x-4 bg-emerald-400' : 'translate-x-0 bg-zinc-500'
+                      }`}
+                    />
+                  </label>
+                </div>
+                <p className="text-xs text-zinc-400">
+                  Dạy kèm 1-1, phân tích replay, duo cùng tuyển thủ.
+                </p>
+              </div>
+
+              <div className="space-y-2 text-xs pt-2 border-t border-zinc-800">
+                <label className="text-zinc-400 block font-semibold uppercase text-[10px]">
+                  Đơn giá theo giờ học
+                </label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    step="10000"
+                    min="50000"
+                    max="500000"
+                    value={standardConfig.coachingPricePerHour}
+                    onChange={(e) =>
+                      setStandardConfig({
+                        ...standardConfig,
+                        coachingPricePerHour: parseInt(e.target.value) || 100000,
+                      })
+                    }
+                    className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-2.5 py-1.5 text-white font-bold font-mono outline-none"
+                  />
+                  <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-500 text-[11px]">
+                    đ / Giờ
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* SECTION 3: BỔ SUNG CÁC DỊCH VỤ TỰ ĐẶT TÊN (CRUD) */}
         <div className="bg-zinc-900/60 border border-white/10 rounded-2xl p-6 shadow-xl backdrop-blur-md">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 pb-3 border-b border-zinc-800">
             <div>
               <h2 className="text-lg font-bold text-white flex items-center gap-2">
                 <Swords size={18} className="text-red-400" />
-                <span>2. Danh sách dịch vụ bạn cung cấp ({customServices.length})</span>
+                <span>3. Dịch vụ tùy chỉnh khác do bạn tạo ({customServices.length})</span>
               </h2>
               <p className="text-xs text-zinc-400 mt-0.5">
-                Tự đặt tên dịch vụ, cấu hình đơn giá theo điểm (ví dụ 1.000 VNĐ / điểm LP), tiền cọc và thông tin yêu cầu.
+                Tự do tạo thêm các gói dịch vụ cày cấp, thông thạo tướng, hoặc các gói đặc thù khác.
               </p>
             </div>
 
@@ -764,6 +981,72 @@ export default function BoosterServicesStudio() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* --- MODAL XEM BẢNG GIÁ CHI TIẾT 29 NẤC RANK LMHT --- */}
+      {showRankTableModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
+          <div className="bg-zinc-900 border border-zinc-800 rounded-3xl w-full max-w-2xl p-6 space-y-4 shadow-2xl max-h-[85vh] flex flex-col text-left">
+            <div className="flex items-center justify-between pb-3 border-b border-zinc-800 shrink-0">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                  <Trophy size={18} />
+                </div>
+                <div>
+                  <h3 className="font-bold text-white text-base">
+                    Bảng Giá Chi Tiết 29 Mốc Thăng Hạng LMHT
+                  </h3>
+                  <p className="text-xs text-zinc-400 mt-0.5">
+                    Hệ số của bạn hiện tại: <strong className="text-emerald-400 font-mono">{Math.round(standardConfig.rankPriceMultiplier * 100)}%</strong>
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowRankTableModal(false)}
+                className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto space-y-2 pr-1 text-xs divide-y divide-zinc-800/60">
+              {LOL_RANK_STEPS.slice(0, -1).map((step, idx) => {
+                const nextStep = LOL_RANK_STEPS[idx + 1];
+                const yourPrice = Math.round(step.stepPrice * standardConfig.rankPriceMultiplier);
+
+                return (
+                  <div key={step.id} className="flex items-center justify-between py-2 text-zinc-300">
+                    <span className="font-medium">
+                      {step.label} → {nextStep?.label}
+                    </span>
+                    <div className="flex items-center gap-3">
+                      <span className="text-zinc-500 text-[11px] font-mono">
+                        Gốc: {step.stepPrice.toLocaleString('vi-VN')} đ
+                      </span>
+                      <span className="font-bold text-emerald-400 font-mono text-xs">
+                        Giá của bạn: {yourPrice.toLocaleString('vi-VN')} đ
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="pt-3 border-t border-zinc-800 flex items-center justify-between shrink-0">
+              <span className="text-[11px] text-zinc-500">
+                Giá cày thực tế sẽ cộng dồn các bước nhảy từ Rank hiện tại đến Rank mong muốn của khách.
+              </span>
+              <button
+                type="button"
+                onClick={() => setShowRankTableModal(false)}
+                className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs"
+              >
+                Đã hiểu
+              </button>
+            </div>
           </div>
         </div>
       )}

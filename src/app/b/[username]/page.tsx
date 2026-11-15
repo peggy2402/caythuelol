@@ -24,6 +24,7 @@ import RelatedBoosters from '@/components/RelatedBoosters';
 import BackButton from '@/components/BackButton';
 import ShareProfileButton from '@/components/ShareProfileButton';
 import BoosterServicesList, { ServiceItem } from '@/components/BoosterServicesList';
+import BoosterGameSelectorModal from '@/components/BoosterGameSelectorModal';
 import { API_BASE_URL } from '@/lib/api';
 
 type Props = {
@@ -572,13 +573,28 @@ export default async function ShortProfilePage({ params }: Props) {
             )}
           </div>
 
-          {/* Right Column (7 Cols): Paginated & Categorized Services + Reviews */}
+          {/* Right Column (7 Cols): Tựa Game & Modal Dịch Vụ + Reviews */}
           <div className="lg:col-span-7 space-y-6">
-            {/* Paginated Services Component */}
-            <BoosterServicesList
-              services={matchedServices}
-              boosterName={boosterName}
-            />
+            {/* TỰA GAME VÀ MODAL POPUP DỊCH VỤ */}
+            <div className="bg-zinc-900/70 border border-white/10 rounded-2xl p-5 sm:p-6 shadow-xl backdrop-blur-md">
+              <BoosterGameSelectorModal
+                boosterUsername={boosterUsername}
+                boosterName={boosterName}
+                boosterAvatar={boosterData?.profile?.avatar}
+                boosterGames={
+                  boosterData?.games && boosterData.games.length > 0
+                    ? boosterData.games
+                    : [
+                        {
+                          gameCode: 'LOL',
+                          ranks: [boosterData?.highestRank || 'Thách Đấu'],
+                          servers: ['VN'],
+                        },
+                      ]
+                }
+                customServices={customServicesList}
+              />
+            </div>
 
             {/* Customer Reviews Section */}
             <BoosterReviewList reviews={reviews || []} />
