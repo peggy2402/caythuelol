@@ -10,6 +10,7 @@ import {
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import Image from 'next/image';
+import UserSelectDropdown, { AdminUserItem } from '@/components/admin/UserSelectDropdown';
 
 // --- Types ---
 interface Application {
@@ -400,6 +401,7 @@ function ActiveBoostersTab() {
 
   // Form states cho tạo mới
   const [createMode, setCreateMode] = useState<'promote' | 'new'>('promote');
+  const [selectedPromoteUser, setSelectedPromoteUser] = useState<AdminUserItem | null>(null);
   const [promoteUserId, setPromoteUserId] = useState('');
   const [newUsername, setNewUsername] = useState('');
   const [newEmail, setNewEmail] = useState('');
@@ -489,6 +491,10 @@ function ActiveBoostersTab() {
   };
 
   const handleCreateBooster = async () => {
+    if (createMode === 'promote' && !promoteUserId) {
+      toast.error('Vui lòng chọn người dùng từ danh sách để thăng cấp');
+      return;
+    }
     setIsSubmitting(true);
     try {
       const payload = createMode === 'promote'
@@ -520,6 +526,7 @@ function ActiveBoostersTab() {
         toast.success(createMode === 'promote' ? 'Đã thăng cấp Booster thành công!' : 'Đã tạo tài khoản Booster mới!');
         setShowCreateModal(false);
         // Reset form
+        setSelectedPromoteUser(null);
         setPromoteUserId('');
         setNewUsername('');
         setNewEmail('');
@@ -850,17 +857,26 @@ function ActiveBoostersTab() {
               {createMode === 'promote' ? (
                 <div>
                   <label className="block text-zinc-400 text-xs font-semibold mb-1.5 uppercase">
-                    ID Người dùng (MongoDB User ID) *
+                    Chọn người dùng từ hệ thống *
                   </label>
-                  <input
-                    type="text"
-                    placeholder="Ví dụ: 65cb4b2e8f..."
-                    value={promoteUserId}
-                    onChange={(e) => setPromoteUserId(e.target.value)}
-                    className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3.5 py-2.5 text-zinc-200 focus:border-blue-500 outline-none"
+                  <UserSelectDropdown
+                    selectedUser={selectedPromoteUser}
+                    onSelect={(u) => {
+                      setSelectedPromoteUser(u);
+                      if (u) {
+                        setPromoteUserId(u._id);
+                        if (!newDisplayName) {
+                          setNewDisplayName(u.profile?.full_name || u.username);
+                        }
+                      } else {
+                        setPromoteUserId('');
+                      }
+                    }}
+                    excludeRoles={['BOOSTER']}
+                    placeholder="Tìm theo tên đăng nhập hoặc email khách hàng..."
                   />
-                  <p className="text-xs text-zinc-500 mt-1">
-                    Nhập ID của tài khoản Khách hàng để thăng cấp thành Booster mà không cần đợi duyệt hồ sơ.
+                  <p className="text-xs text-zinc-500 mt-1.5">
+                    Chọn trực tiếp từ danh sách người dùng để thăng cấp thành Booster tức thì mà không cần nhập ID thủ công.
                   </p>
                 </div>
               ) : (

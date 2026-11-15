@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
+import UserSelectDropdown, { AdminUserItem } from '@/components/admin/UserSelectDropdown';
 
 // 10 Quyền hạn chuẩn của hệ thống Back Office
 export const ALL_STAFF_PERMISSIONS = [
@@ -126,6 +127,7 @@ export default function AdminStaffsPage() {
 
   // Form states cho thêm nhân viên mới
   const [addMode, setAddMode] = useState<'existing' | 'new'>('existing');
+  const [selectedTargetUser, setSelectedTargetUser] = useState<AdminUserItem | null>(null);
   const [targetUserId, setTargetUserId] = useState('');
   const [newUsername, setNewUsername] = useState('');
   const [newEmail, setNewEmail] = useState('');
@@ -207,6 +209,10 @@ export default function AdminStaffsPage() {
   };
 
   const handleAddStaff = async () => {
+    if (addMode === 'existing' && !targetUserId) {
+      toast.error('Vui lòng chọn người dùng từ danh sách');
+      return;
+    }
     setIsSubmitting(true);
     try {
       const payload =
@@ -231,6 +237,7 @@ export default function AdminStaffsPage() {
       if (res.ok && data.success) {
         toast.success(data.message || 'Phân quyền Nhân viên thành công');
         setShowAddModal(false);
+        setSelectedTargetUser(null);
         setTargetUserId('');
         setNewUsername('');
         setNewEmail('');
@@ -474,17 +481,19 @@ export default function AdminStaffsPage() {
               {addMode === 'existing' ? (
                 <div>
                   <label className="block text-zinc-400 text-xs font-semibold mb-1.5 uppercase">
-                    ID Người dùng (MongoDB User ID) *
+                    Chọn người dùng từ hệ thống *
                   </label>
-                  <input
-                    type="text"
-                    placeholder="Ví dụ: 65cb4b2e8f..."
-                    value={targetUserId}
-                    onChange={(e) => setTargetUserId(e.target.value)}
-                    className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3.5 py-2.5 text-zinc-200 focus:border-blue-500 outline-none"
+                  <UserSelectDropdown
+                    selectedUser={selectedTargetUser}
+                    onSelect={(u) => {
+                      setSelectedTargetUser(u);
+                      setTargetUserId(u ? u._id : '');
+                    }}
+                    excludeRoles={['ADMIN']}
+                    placeholder="Tìm theo tên đăng nhập hoặc email người dùng..."
                   />
-                  <p className="text-xs text-zinc-500 mt-1">
-                    Nhập ID tài khoản người dùng hiện tại để nâng cấp thành Nhân viên (STAFF).
+                  <p className="text-xs text-zinc-500 mt-1.5">
+                    Chọn trực tiếp từ dữ liệu người dùng để nâng cấp thành Nhân viên (STAFF) mà không cần nhập ID thủ công.
                   </p>
                 </div>
               ) : (
