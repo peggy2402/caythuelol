@@ -928,28 +928,6 @@ function ServiceBookingContent() {
                 </div>
               </div>
 
-              {/* Chi tiết giá từng bậc */}
-              {calculation.stepsBreakdown.length > 0 && (
-                <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1 text-xs">
-                  <span className="text-[11px] font-bold text-zinc-500 uppercase block mb-1">
-                    Chi tiết từng bậc thăng hạng:
-                  </span>
-                  {calculation.stepsBreakdown.map((step, idx) => (
-                    <div
-                      key={idx}
-                      className="flex justify-between items-center py-1 border-b border-zinc-800/50 text-zinc-300"
-                    >
-                      <span>
-                        {step.from} → {step.to}
-                      </span>
-                      <span className="font-mono text-zinc-400">
-                        +{step.price.toLocaleString('vi-VN')} đ
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
-
               {/* Phụ phí Addons */}
               {calculation.addonsCost > 0 && (
                 <div className="flex justify-between text-xs py-1 border-t border-zinc-800 text-zinc-400">
