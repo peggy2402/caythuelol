@@ -259,7 +259,7 @@ export default function BoosterDashboardPage() {
             </div>
           </div>
           <div className="text-[10px] sm:text-xs text-zinc-500 mt-auto pt-1 truncate">
-            Tỷ lệ thành công: <b className="text-emerald-400">100%</b>
+            Tỷ lệ thành công: <b className="text-emerald-400">{stats.completedOrders > 0 ? '100%' : 'Chưa có'}</b>
           </div>
         </div>
 
@@ -274,8 +274,8 @@ export default function BoosterDashboardPage() {
                 <Star className="h-4 w-4 sm:h-5 sm:w-5" />
               </div>
             </div>
-            <div className="text-lg sm:text-2xl font-black text-purple-300 font-mono tracking-tight mb-2">
-              5.0 / 5.0 ★
+            <div className="text-base sm:text-xl font-black text-purple-300 font-mono tracking-tight mb-2">
+              {stats.rating > 0 ? `${stats.rating.toFixed(1)} / 5.0 ★` : 'Chưa có đánh giá'}
             </div>
           </div>
           <div className="text-[10px] sm:text-xs text-zinc-400 flex items-center justify-between mt-auto pt-1">

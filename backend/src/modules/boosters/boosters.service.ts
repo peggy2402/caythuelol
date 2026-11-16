@@ -659,6 +659,9 @@ export class BoostersService {
       stats[s._id] = s.count;
     });
 
+    const userDoc = await this.userModel.findById(objId).select('booster_info');
+    const rating = userDoc?.booster_info?.rating || 0;
+
     return {
       success: true,
       stats: {
@@ -666,6 +669,7 @@ export class BoostersService {
         completedOrders: stats[OrderStatus.COMPLETED] || 0,
         inProgressOrders: stats[OrderStatus.IN_PROGRESS] || 0,
         approvedOrders: stats[OrderStatus.APPROVED] || 0,
+        rating,
       },
     };
   }
