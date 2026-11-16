@@ -65,6 +65,23 @@ export interface AddonSelections {
   duo?: boolean; // Chơi cùng Booster (+50%)
 }
 
+export interface BoosterAddonConfig {
+  specificChamps?: { enabled: boolean; percent: number }; // mặc định { enabled: true, percent: 30 }
+  livestream?: { enabled: boolean; fee: number }; // mặc định { enabled: true, fee: 349000 }
+  flash?: { enabled: boolean; percent: number }; // mặc định { enabled: true, percent: 35 }
+  duo?: { enabled: boolean; percent: number }; // mặc định { enabled: true, percent: 50 }
+}
+
+export interface BoosterTierPrices {
+  IRON?: number;
+  BRONZE?: number;
+  SILVER?: number;
+  GOLD?: number;
+  PLATINUM?: number;
+  EMERALD?: number;
+  DIAMOND?: number;
+}
+
 export interface CalculationResult {
   basePrice: number;
   stepsCount: number;
@@ -84,6 +101,9 @@ export function calculateRankBoost({
   addons = {},
   boosterPriceMultiplier = 1.0,
   depositPercent = 100,
+  tierPrices,
+  stepOverrides,
+  addonsConfig,
 }: {
   currentRankId: string;
   desiredRankId: string;
@@ -91,6 +111,9 @@ export function calculateRankBoost({
   addons?: AddonSelections;
   boosterPriceMultiplier?: number;
   depositPercent?: number;
+  tierPrices?: BoosterTierPrices;
+  stepOverrides?: Record<string, number>;
+  addonsConfig?: BoosterAddonConfig;
 }): CalculationResult {
   const currentIndex = LOL_RANK_STEPS.findIndex((r) => r.id === currentRankId);
   const desiredIndex = LOL_RANK_STEPS.findIndex((r) => r.id === desiredRankId);
@@ -112,7 +135,21 @@ export function calculateRankBoost({
   for (let i = currentIndex; i < desiredIndex; i++) {
     const fromRank = LOL_RANK_STEPS[i];
     const toRank = LOL_RANK_STEPS[i + 1];
-    const stepCost = Math.round(fromRank.stepPrice * boosterPriceMultiplier);
+
+    let stepCost: number;
+    // 1. Ưu tiên giá override chi tiết theo từng nấc cụ thể
+    if (stepOverrides && typeof stepOverrides[fromRank.id] === 'number' && stepOverrides[fromRank.id] > 0) {
+      stepCost = Math.round(stepOverrides[fromRank.id]);
+    }
+    // 2. Tiếp theo là giá theo Tier lớn nếu booster có cấu hình
+    else if (tierPrices && typeof (tierPrices as any)[fromRank.tier] === 'number' && (tierPrices as any)[fromRank.tier] > 0) {
+      stepCost = Math.round((tierPrices as any)[fromRank.tier]);
+    }
+    // 3. Mặc định: Giá gốc sàn nhân hệ số multiplier của booster
+    else {
+      stepCost = Math.round(fromRank.stepPrice * (boosterPriceMultiplier || 1.0));
+    }
+
     rawBasePrice += stepCost;
     stepsBreakdown.push({
       from: fromRank.label,
@@ -124,14 +161,27 @@ export function calculateRankBoost({
   // Áp dụng hệ số điểm cộng mỗi ván
   const adjustedBasePrice = Math.round(rawBasePrice * lpGainMultiplier);
 
-  // Tính phí các tùy chọn mở rộng
+  // Tính phí các tùy chọn mở rộng theo cấu hình riêng của booster
   let addonPercentage = 0;
   let addonFlatFee = 0;
 
-  if (addons.duo) addonPercentage += 0.5; // +50%
-  if (addons.flash) addonPercentage += 0.35; // +35%
-  if (addons.specificChamps) addonPercentage += 0.3; // +30%
-  if (addons.livestream) addonFlatFee += 349000; // Cố định +349k
+  const duoCfg = addonsConfig?.duo ?? { enabled: true, percent: 50 };
+  const flashCfg = addonsConfig?.flash ?? { enabled: true, percent: 35 };
+  const champsCfg = addonsConfig?.specificChamps ?? { enabled: true, percent: 30 };
+  const liveCfg = addonsConfig?.livestream ?? { enabled: true, fee: 349000 };
+
+  if (addons.duo && duoCfg.enabled) {
+    addonPercentage += (duoCfg.percent ?? 50) / 100;
+  }
+  if (addons.flash && flashCfg.enabled) {
+    addonPercentage += (flashCfg.percent ?? 35) / 100;
+  }
+  if (addons.specificChamps && champsCfg.enabled) {
+    addonPercentage += (champsCfg.percent ?? 30) / 100;
+  }
+  if (addons.livestream && liveCfg.enabled) {
+    addonFlatFee += (liveCfg.fee ?? 349000);
+  }
 
   const percentageAddonCost = Math.round(adjustedBasePrice * addonPercentage);
   const totalAddonsCost = percentageAddonCost + addonFlatFee;

@@ -153,17 +153,54 @@ function ServiceBookingContent() {
     }
   }, [lpGain]);
 
-  // Tính toán bảng giá theo thuật toán Ladder Steps
+  // Cấu hình dịch vụ riêng của Booster nếu khách đã chỉ định
+  const boosterSettings = assignedBooster?.boosterData?.service_settings || assignedBooster?.service_settings;
+  const boosterStandardConfig = boosterSettings?.standardConfig;
+  const boosterMultiplier = boosterStandardConfig?.rankPriceMultiplier || 1.0;
+  const boosterAddonsConfig = boosterStandardConfig?.addonsConfig;
+  const boosterStepOverrides = boosterStandardConfig?.stepOverrides;
+
+  // Cấu hình chi tiết từng addon
+  const specificChampsCfg = isManualSelectBooster && boosterAddonsConfig?.specificChamps
+    ? boosterAddonsConfig.specificChamps
+    : { enabled: true, percent: 30 };
+
+  const livestreamCfg = isManualSelectBooster && boosterAddonsConfig?.livestream
+    ? boosterAddonsConfig.livestream
+    : { enabled: true, fee: 349000 };
+
+  const flashCfg = isManualSelectBooster && boosterAddonsConfig?.flash
+    ? boosterAddonsConfig.flash
+    : { enabled: true, percent: 35 };
+
+  const duoCfg = isManualSelectBooster && boosterAddonsConfig?.duo
+    ? boosterAddonsConfig.duo
+    : { enabled: true, percent: 50 };
+
+  // Tính toán bảng giá theo thuật toán Ladder Steps (Áp dụng cấu hình riêng của Booster)
   const calculation = useMemo(() => {
     return calculateRankBoost({
       currentRankId,
       desiredRankId,
       lpGainMultiplier: lpMultiplier,
       addons,
-      boosterPriceMultiplier: 1.0,
+      boosterPriceMultiplier: isManualSelectBooster && assignedBooster ? boosterMultiplier : 1.0,
       depositPercent: serviceDef.depositPercent || 100,
+      stepOverrides: isManualSelectBooster && assignedBooster ? boosterStepOverrides : undefined,
+      addonsConfig: isManualSelectBooster && assignedBooster ? boosterAddonsConfig : undefined,
     });
-  }, [currentRankId, desiredRankId, lpMultiplier, addons, serviceDef.depositPercent]);
+  }, [
+    currentRankId,
+    desiredRankId,
+    lpMultiplier,
+    addons,
+    serviceDef.depositPercent,
+    isManualSelectBooster,
+    assignedBooster,
+    boosterMultiplier,
+    boosterStepOverrides,
+    boosterAddonsConfig,
+  ]);
 
   // Tính giá sau khi áp dụng coupon
   const finalPrice = useMemo(() => {
@@ -534,58 +571,102 @@ function ServiceBookingContent() {
                     </div>
                   </label>
 
-                  <label className="flex items-center gap-3 p-2.5 rounded-xl bg-zinc-950/60 border border-zinc-800/80 hover:border-zinc-700 cursor-pointer select-none transition-colors">
+                  <label className={`flex items-center gap-3 p-2.5 rounded-xl border select-none transition-colors ${
+                    specificChampsCfg.enabled
+                      ? 'bg-zinc-950/60 border-zinc-800/80 hover:border-zinc-700 cursor-pointer'
+                      : 'bg-zinc-950/20 border-zinc-900 opacity-50 cursor-not-allowed'
+                  }`}>
                     <input
                       type="checkbox"
-                      checked={addons.specificChamps}
+                      disabled={!specificChampsCfg.enabled}
+                      checked={addons.specificChamps && specificChampsCfg.enabled}
                       onChange={(e) => setAddons({ ...addons, specificChamps: e.target.checked })}
-                      className="w-4 h-4 rounded bg-zinc-900 border-zinc-700 text-blue-600 focus:ring-0"
+                      className="w-4 h-4 rounded bg-zinc-900 border-zinc-700 text-blue-600 focus:ring-0 disabled:opacity-40"
                     />
                     <div className="flex items-center gap-1.5 text-xs text-zinc-200 font-medium">
                       <span>Tùy chọn tướng</span>
-                      <span className="text-blue-400 font-bold">+30.00%</span>
+                      {specificChampsCfg.enabled ? (
+                        <span className="text-blue-400 font-bold">
+                          +{specificChampsCfg.percent.toFixed(2)}%
+                        </span>
+                      ) : (
+                        <span className="text-zinc-500 text-[11px] font-semibold">(Tuyển thủ không nhận)</span>
+                      )}
                       <Info size={13} className="text-blue-400" />
                     </div>
                   </label>
 
-                  <label className="flex items-center gap-3 p-2.5 rounded-xl bg-zinc-950/60 border border-zinc-800/80 hover:border-zinc-700 cursor-pointer select-none transition-colors">
+                  <label className={`flex items-center gap-3 p-2.5 rounded-xl border select-none transition-colors ${
+                    livestreamCfg.enabled
+                      ? 'bg-zinc-950/60 border-zinc-800/80 hover:border-zinc-700 cursor-pointer'
+                      : 'bg-zinc-950/20 border-zinc-900 opacity-50 cursor-not-allowed'
+                  }`}>
                     <input
                       type="checkbox"
-                      checked={addons.livestream}
+                      disabled={!livestreamCfg.enabled}
+                      checked={addons.livestream && livestreamCfg.enabled}
                       onChange={(e) => setAddons({ ...addons, livestream: e.target.checked })}
-                      className="w-4 h-4 rounded bg-zinc-900 border-zinc-700 text-blue-600 focus:ring-0"
+                      className="w-4 h-4 rounded bg-zinc-900 border-zinc-700 text-blue-600 focus:ring-0 disabled:opacity-40"
                     />
                     <div className="flex items-center gap-1.5 text-xs text-zinc-200 font-medium">
                       <span>Xem trực tiếp</span>
-                      <span className="text-amber-400 font-bold">+349.000đ</span>
+                      {livestreamCfg.enabled ? (
+                        <span className="text-amber-400 font-bold">
+                          +{livestreamCfg.fee.toLocaleString('vi-VN')}đ
+                        </span>
+                      ) : (
+                        <span className="text-zinc-500 text-[11px] font-semibold">(Tuyển thủ không nhận)</span>
+                      )}
                       <Info size={13} className="text-blue-400" />
                     </div>
                   </label>
 
-                  <label className="flex items-center gap-3 p-2.5 rounded-xl bg-zinc-950/60 border border-zinc-800/80 hover:border-zinc-700 cursor-pointer select-none transition-colors">
+                  <label className={`flex items-center gap-3 p-2.5 rounded-xl border select-none transition-colors ${
+                    flashCfg.enabled
+                      ? 'bg-zinc-950/60 border-zinc-800/80 hover:border-zinc-700 cursor-pointer'
+                      : 'bg-zinc-950/20 border-zinc-900 opacity-50 cursor-not-allowed'
+                  }`}>
                     <input
                       type="checkbox"
-                      checked={addons.flash}
+                      disabled={!flashCfg.enabled}
+                      checked={addons.flash && flashCfg.enabled}
                       onChange={(e) => setAddons({ ...addons, flash: e.target.checked })}
-                      className="w-4 h-4 rounded bg-zinc-900 border-zinc-700 text-blue-600 focus:ring-0"
+                      className="w-4 h-4 rounded bg-zinc-900 border-zinc-700 text-blue-600 focus:ring-0 disabled:opacity-40"
                     />
                     <div className="flex items-center gap-1.5 text-xs text-zinc-200 font-medium">
                       <span>Cày siêu tốc</span>
-                      <span className="text-emerald-400 font-bold">+35.00%</span>
+                      {flashCfg.enabled ? (
+                        <span className="text-emerald-400 font-bold">
+                          +{flashCfg.percent.toFixed(2)}%
+                        </span>
+                      ) : (
+                        <span className="text-zinc-500 text-[11px] font-semibold">(Tuyển thủ không nhận)</span>
+                      )}
                       <Info size={13} className="text-blue-400" />
                     </div>
                   </label>
 
-                  <label className="flex items-center gap-3 p-2.5 rounded-xl bg-zinc-950/60 border border-zinc-800/80 hover:border-zinc-700 cursor-pointer select-none transition-colors">
+                  <label className={`flex items-center gap-3 p-2.5 rounded-xl border select-none transition-colors ${
+                    duoCfg.enabled
+                      ? 'bg-zinc-950/60 border-zinc-800/80 hover:border-zinc-700 cursor-pointer'
+                      : 'bg-zinc-950/20 border-zinc-900 opacity-50 cursor-not-allowed'
+                  }`}>
                     <input
                       type="checkbox"
-                      checked={addons.duo}
+                      disabled={!duoCfg.enabled}
+                      checked={addons.duo && duoCfg.enabled}
                       onChange={(e) => setAddons({ ...addons, duo: e.target.checked })}
-                      className="w-4 h-4 rounded bg-zinc-900 border-zinc-700 text-blue-600 focus:ring-0"
+                      className="w-4 h-4 rounded bg-zinc-900 border-zinc-700 text-blue-600 focus:ring-0 disabled:opacity-40"
                     />
                     <div className="flex items-center gap-1.5 text-xs text-zinc-200 font-medium">
                       <span>Chơi cùng Booster (Duo)</span>
-                      <span className="text-purple-400 font-bold">+50.00%</span>
+                      {duoCfg.enabled ? (
+                        <span className="text-purple-400 font-bold">
+                          +{duoCfg.percent.toFixed(2)}%
+                        </span>
+                      ) : (
+                        <span className="text-zinc-500 text-[11px] font-semibold">(Tuyển thủ không nhận)</span>
+                      )}
                       <Info size={13} className="text-blue-400" />
                     </div>
                   </label>

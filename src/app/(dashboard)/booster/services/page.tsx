@@ -20,6 +20,7 @@ import {
   Coins,
   Loader2,
   HelpCircle,
+  Sparkles,
   type LucideIcon,
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -69,6 +70,13 @@ export default function BoosterServicesStudio() {
     placementsEnabled: true,
     coachingEnabled: true,
     coachingPricePerHour: 100000,
+    addonsConfig: {
+      specificChamps: { enabled: true, percent: 30 },
+      livestream: { enabled: true, fee: 349000 },
+      flash: { enabled: true, percent: 35 },
+      duo: { enabled: true, percent: 50 },
+    },
+    stepOverrides: {} as Record<string, number>,
   });
   const [showRankTableModal, setShowRankTableModal] = useState(false);
   const [customServices, setCustomServices] = useState<CustomService[]>([]);
@@ -152,7 +160,15 @@ export default function BoosterServicesStudio() {
           }
 
           if (s.standardConfig) {
-            setStandardConfig(s.standardConfig);
+            setStandardConfig((prev) => ({
+              ...prev,
+              ...s.standardConfig,
+              addonsConfig: {
+                ...prev.addonsConfig,
+                ...(s.standardConfig.addonsConfig || {}),
+              },
+              stepOverrides: s.standardConfig.stepOverrides || {},
+            }));
           }
 
           if (s.coupon) {
@@ -584,6 +600,271 @@ export default function BoosterServicesStudio() {
               </div>
             </div>
           </div>
+
+          {/* CẤU HÌNH MỨC PHỤ PHÍ MỞ RỘNG (ADDONS) CHO CÀY RANK */}
+          <div className="pt-6 border-t border-zinc-800 space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div>
+                <h3 className="text-sm font-bold text-white flex items-center gap-1.5">
+                  <Sparkles className="text-amber-400 w-4 h-4" />
+                  <span>Cấu hình mức phụ phí mở rộng (Addons)</span>
+                </h3>
+                <p className="text-[11px] text-zinc-400 mt-0.5">
+                  Bật / Tắt dịch vụ bạn hỗ trợ và tùy chỉnh tỷ lệ % hoặc số tiền phụ phí khi khách đặt cày rank.
+                </p>
+              </div>
+              <span className="text-[11px] text-emerald-400 font-semibold bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-500/20 w-fit">
+                Tự động áp dụng cho khách hàng
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              {/* 1. Tùy chọn tướng */}
+              <div className="p-3.5 rounded-xl bg-zinc-950/80 border border-zinc-800 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-white">Tùy chọn tướng</span>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={standardConfig.addonsConfig.specificChamps.enabled}
+                    onClick={() =>
+                      setStandardConfig({
+                        ...standardConfig,
+                        addonsConfig: {
+                          ...standardConfig.addonsConfig,
+                          specificChamps: {
+                            ...standardConfig.addonsConfig.specificChamps,
+                            enabled: !standardConfig.addonsConfig.specificChamps.enabled,
+                          },
+                        },
+                      })
+                    }
+                    className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ${
+                      standardConfig.addonsConfig.specificChamps.enabled ? 'bg-blue-600' : 'bg-zinc-800'
+                    }`}
+                  >
+                    <span
+                      className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow transition duration-200 ${
+                        standardConfig.addonsConfig.specificChamps.enabled ? 'translate-x-4' : 'translate-x-0'
+                      }`}
+                    />
+                  </button>
+                </div>
+                <div>
+                  <label className="text-[10px] text-zinc-400 uppercase font-semibold block mb-1">
+                    Phụ phí cộng thêm
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      disabled={!standardConfig.addonsConfig.specificChamps.enabled}
+                      value={standardConfig.addonsConfig.specificChamps.percent}
+                      onChange={(e) =>
+                        setStandardConfig({
+                          ...standardConfig,
+                          addonsConfig: {
+                            ...standardConfig.addonsConfig,
+                            specificChamps: {
+                              ...standardConfig.addonsConfig.specificChamps,
+                              percent: Number(e.target.value) || 0,
+                            },
+                          },
+                        })
+                      }
+                      className="w-full bg-zinc-900 border border-zinc-700 disabled:opacity-40 rounded-lg px-2.5 py-1.5 text-xs text-white font-bold font-mono outline-none focus:border-blue-500"
+                    />
+                    <span className="text-xs text-blue-400 font-bold">%</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* 2. Xem trực tiếp (Livestream) */}
+              <div className="p-3.5 rounded-xl bg-zinc-950/80 border border-zinc-800 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-white">Xem trực tiếp</span>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={standardConfig.addonsConfig.livestream.enabled}
+                    onClick={() =>
+                      setStandardConfig({
+                        ...standardConfig,
+                        addonsConfig: {
+                          ...standardConfig.addonsConfig,
+                          livestream: {
+                            ...standardConfig.addonsConfig.livestream,
+                            enabled: !standardConfig.addonsConfig.livestream.enabled,
+                          },
+                        },
+                      })
+                    }
+                    className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ${
+                      standardConfig.addonsConfig.livestream.enabled ? 'bg-amber-600' : 'bg-zinc-800'
+                    }`}
+                  >
+                    <span
+                      className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow transition duration-200 ${
+                        standardConfig.addonsConfig.livestream.enabled ? 'translate-x-4' : 'translate-x-0'
+                      }`}
+                    />
+                  </button>
+                </div>
+                <div>
+                  <label className="text-[10px] text-zinc-400 uppercase font-semibold block mb-1">
+                    Phí dịch vụ cố định
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      step="10000"
+                      min="0"
+                      max="2000000"
+                      disabled={!standardConfig.addonsConfig.livestream.enabled}
+                      value={standardConfig.addonsConfig.livestream.fee}
+                      onChange={(e) =>
+                        setStandardConfig({
+                          ...standardConfig,
+                          addonsConfig: {
+                            ...standardConfig.addonsConfig,
+                            livestream: {
+                              ...standardConfig.addonsConfig.livestream,
+                              fee: Number(e.target.value) || 0,
+                            },
+                          },
+                        })
+                      }
+                      className="w-full bg-zinc-900 border border-zinc-700 disabled:opacity-40 rounded-lg px-2.5 py-1.5 text-xs text-white font-bold font-mono outline-none focus:border-amber-500"
+                    />
+                    <span className="text-xs text-amber-400 font-bold">đ</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* 3. Cày siêu tốc (Flash Boost) */}
+              <div className="p-3.5 rounded-xl bg-zinc-950/80 border border-zinc-800 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-white">Cày siêu tốc</span>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={standardConfig.addonsConfig.flash.enabled}
+                    onClick={() =>
+                      setStandardConfig({
+                        ...standardConfig,
+                        addonsConfig: {
+                          ...standardConfig.addonsConfig,
+                          flash: {
+                            ...standardConfig.addonsConfig.flash,
+                            enabled: !standardConfig.addonsConfig.flash.enabled,
+                          },
+                        },
+                      })
+                    }
+                    className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ${
+                      standardConfig.addonsConfig.flash.enabled ? 'bg-emerald-600' : 'bg-zinc-800'
+                    }`}
+                  >
+                    <span
+                      className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow transition duration-200 ${
+                        standardConfig.addonsConfig.flash.enabled ? 'translate-x-4' : 'translate-x-0'
+                      }`}
+                    />
+                  </button>
+                </div>
+                <div>
+                  <label className="text-[10px] text-zinc-400 uppercase font-semibold block mb-1">
+                    Phụ phí cộng thêm
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      disabled={!standardConfig.addonsConfig.flash.enabled}
+                      value={standardConfig.addonsConfig.flash.percent}
+                      onChange={(e) =>
+                        setStandardConfig({
+                          ...standardConfig,
+                          addonsConfig: {
+                            ...standardConfig.addonsConfig,
+                            flash: {
+                              ...standardConfig.addonsConfig.flash,
+                              percent: Number(e.target.value) || 0,
+                            },
+                          },
+                        })
+                      }
+                      className="w-full bg-zinc-900 border border-zinc-700 disabled:opacity-40 rounded-lg px-2.5 py-1.5 text-xs text-white font-bold font-mono outline-none focus:border-emerald-500"
+                    />
+                    <span className="text-xs text-emerald-400 font-bold">%</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* 4. Chơi cùng Booster (Duo) */}
+              <div className="p-3.5 rounded-xl bg-zinc-950/80 border border-zinc-800 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-white">Chơi cùng Booster</span>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={standardConfig.addonsConfig.duo.enabled}
+                    onClick={() =>
+                      setStandardConfig({
+                        ...standardConfig,
+                        addonsConfig: {
+                          ...standardConfig.addonsConfig,
+                          duo: {
+                            ...standardConfig.addonsConfig.duo,
+                            enabled: !standardConfig.addonsConfig.duo.enabled,
+                          },
+                        },
+                      })
+                    }
+                    className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ${
+                      standardConfig.addonsConfig.duo.enabled ? 'bg-purple-600' : 'bg-zinc-800'
+                    }`}
+                  >
+                    <span
+                      className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow transition duration-200 ${
+                        standardConfig.addonsConfig.duo.enabled ? 'translate-x-4' : 'translate-x-0'
+                      }`}
+                    />
+                  </button>
+                </div>
+                <div>
+                  <label className="text-[10px] text-zinc-400 uppercase font-semibold block mb-1">
+                    Phụ phí cộng thêm
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      min="0"
+                      max="150"
+                      disabled={!standardConfig.addonsConfig.duo.enabled}
+                      value={standardConfig.addonsConfig.duo.percent}
+                      onChange={(e) =>
+                        setStandardConfig({
+                          ...standardConfig,
+                          addonsConfig: {
+                            ...standardConfig.addonsConfig,
+                            duo: {
+                              ...standardConfig.addonsConfig.duo,
+                              percent: Number(e.target.value) || 0,
+                            },
+                          },
+                        })
+                      }
+                      className="w-full bg-zinc-900 border border-zinc-700 disabled:opacity-40 rounded-lg px-2.5 py-1.5 text-xs text-white font-bold font-mono outline-none focus:border-purple-500"
+                    />
+                    <span className="text-xs text-purple-400 font-bold">%</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* SECTION 3: BỔ SUNG CÁC DỊCH VỤ TỰ ĐẶT TÊN (CRUD) */}
@@ -985,7 +1266,7 @@ export default function BoosterServicesStudio() {
         </div>
       )}
 
-      {/* --- MODAL XEM BẢNG GIÁ CHI TIẾT 29 NẤC RANK LMHT --- */}
+      {/* --- MODAL XEM & CẤU HÌNH BẢNG GIÁ CHI TIẾT 29 NẤC RANK LMHT --- */}
       {showRankTableModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
           <div className="bg-zinc-900 border border-zinc-800 rounded-3xl w-full max-w-2xl p-6 space-y-4 shadow-2xl max-h-[85vh] flex flex-col text-left">
@@ -999,7 +1280,7 @@ export default function BoosterServicesStudio() {
                     Bảng Giá Chi Tiết 29 Mốc Thăng Hạng LMHT
                   </h3>
                   <p className="text-xs text-zinc-400 mt-0.5">
-                    Hệ số của bạn hiện tại: <strong className="text-emerald-400 font-mono">{Math.round(standardConfig.rankPriceMultiplier * 100)}%</strong>
+                    Hệ số của bạn: <strong className="text-emerald-400 font-mono">{Math.round(standardConfig.rankPriceMultiplier * 100)}%</strong>. Có thể nhập số tiền cụ thể cho từng nấc (hoặc để trống để tự tính theo hệ số).
                   </p>
                 </div>
               </div>
@@ -1015,20 +1296,45 @@ export default function BoosterServicesStudio() {
             <div className="flex-1 overflow-y-auto space-y-2 pr-1 text-xs divide-y divide-zinc-800/60">
               {LOL_RANK_STEPS.slice(0, -1).map((step, idx) => {
                 const nextStep = LOL_RANK_STEPS[idx + 1];
-                const yourPrice = Math.round(step.stepPrice * standardConfig.rankPriceMultiplier);
+                const calculatedPrice = Math.round(step.stepPrice * standardConfig.rankPriceMultiplier);
+                const customPrice = standardConfig.stepOverrides?.[step.id];
 
                 return (
-                  <div key={step.id} className="flex items-center justify-between py-2 text-zinc-300">
-                    <span className="font-medium">
+                  <div key={step.id} className="flex items-center justify-between py-2 text-zinc-300 gap-3">
+                    <span className="font-medium shrink-0">
                       {step.label} → {nextStep?.label}
                     </span>
-                    <div className="flex items-center gap-3">
-                      <span className="text-zinc-500 text-[11px] font-mono">
+                    <div className="flex items-center gap-2.5">
+                      <span className="text-zinc-500 text-[11px] font-mono hidden sm:inline">
                         Gốc: {step.stepPrice.toLocaleString('vi-VN')} đ
                       </span>
-                      <span className="font-bold text-emerald-400 font-mono text-xs">
-                        Giá của bạn: {yourPrice.toLocaleString('vi-VN')} đ
-                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <input
+                          type="number"
+                          step="1000"
+                          placeholder={calculatedPrice.toString()}
+                          value={customPrice !== undefined ? customPrice : ''}
+                          onChange={(e) => {
+                            const val = e.target.value === '' ? undefined : Number(e.target.value);
+                            const updated = { ...(standardConfig.stepOverrides || {}) };
+                            if (val === undefined || val <= 0) {
+                              delete updated[step.id];
+                            } else {
+                              updated[step.id] = val;
+                            }
+                            setStandardConfig({
+                              ...standardConfig,
+                              stepOverrides: updated,
+                            });
+                          }}
+                          className={`w-24 bg-zinc-950 border rounded-lg px-2 py-1 text-right font-mono font-bold text-xs outline-none ${
+                            customPrice !== undefined
+                              ? 'border-emerald-500/50 text-emerald-400 bg-emerald-950/20'
+                              : 'border-zinc-800 text-zinc-300 focus:border-blue-500'
+                          }`}
+                        />
+                        <span className="text-[11px] text-zinc-500">đ</span>
+                      </div>
                     </div>
                   </div>
                 );
@@ -1036,15 +1342,24 @@ export default function BoosterServicesStudio() {
             </div>
 
             <div className="pt-3 border-t border-zinc-800 flex items-center justify-between shrink-0">
-              <span className="text-[11px] text-zinc-500">
-                Giá cày thực tế sẽ cộng dồn các bước nhảy từ Rank hiện tại đến Rank mong muốn của khách.
-              </span>
+              <button
+                type="button"
+                onClick={() =>
+                  setStandardConfig({
+                    ...standardConfig,
+                    stepOverrides: {},
+                  })
+                }
+                className="text-[11px] text-zinc-400 hover:text-white underline transition-colors"
+              >
+                Khôi phục theo hệ số mặc định
+              </button>
               <button
                 type="button"
                 onClick={() => setShowRankTableModal(false)}
-                className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs"
+                className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-md shadow-blue-600/20"
               >
-                Đã hiểu
+                Xác nhận & Lưu
               </button>
             </div>
           </div>
