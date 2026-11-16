@@ -377,7 +377,7 @@ export default async function ShortProfilePage({ params }: Props) {
                 <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2.5 pt-1 text-xs">
                   <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 font-bold">
                     <Star size={14} className="fill-amber-400 text-amber-400" />
-                    <span>{boosterData?.rating ? boosterData.rating.toFixed(1) : '5.0'}</span>
+                    <span>{boosterData?.rating && boosterData.rating > 0 ? boosterData.rating.toFixed(1) : '0/0'}</span>
                     <span className="text-[10px] text-amber-400/70 font-normal">
                       ({reviews?.length || 0} đánh giá)
                     </span>

@@ -97,9 +97,11 @@ export default function BoosterGameSelectorModal({
         </span>
       </div>
 
-      {/* GAMES GRID CARDS */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {displayGames.map((game) => {
+      {/* GAMES LAYOUT: Tự động điều chỉnh bố cục theo số lượng tựa game */}
+      {displayGames.length === 1 ? (
+        /* TRƯỜNG HỢP 1 GAME: Fill toàn bộ khối với giao diện Banner Hero cao cấp */
+        (() => {
+          const game = displayGames[0];
           const boosterGameInfo = boosterGames.find(
             (g) => g.gameCode.toUpperCase() === game.id.toUpperCase()
           );
@@ -107,45 +109,148 @@ export default function BoosterGameSelectorModal({
 
           return (
             <div
-              key={game.id}
               onClick={() => handleOpenGame(game)}
-              className="group relative bg-zinc-900/80 hover:bg-zinc-850 border border-white/10 hover:border-blue-500/50 rounded-2xl p-5 cursor-pointer transition-all duration-300 hover:shadow-xl hover:shadow-blue-500/10 hover:-translate-y-1 flex flex-col justify-between"
+              className="group relative w-full bg-gradient-to-r from-[#0c101d] via-[#101626] to-[#0c101d] hover:from-[#11172a] hover:via-[#161f36] hover:to-[#11172a] border border-blue-500/30 hover:border-blue-500/60 rounded-3xl p-6 sm:p-8 cursor-pointer transition-all duration-300 shadow-xl hover:shadow-[0_0_35px_rgba(59,130,246,0.2)] flex flex-col md:flex-row items-center justify-between gap-6"
             >
-              <div className="space-y-3">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 text-white flex items-center justify-center font-bold text-sm shadow-md">
-                      {game.shortName || game.id.toUpperCase()}
-                    </div>
-                    <div>
-                      <h4 className="font-bold text-white text-base group-hover:text-blue-400 transition-colors">
-                        {game.name}
-                      </h4>
-                      <span className="text-[11px] text-zinc-400 font-medium">
-                        {game.defaultServices?.length || 8} gói dịch vụ
-                      </span>
-                    </div>
-                  </div>
+              {/* Bên trái: Thông tin tựa game */}
+              <div className="flex items-start sm:items-center gap-5 flex-1">
+                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-br from-blue-600 via-indigo-600 to-cyan-500 text-white flex items-center justify-center font-black text-xl sm:text-2xl shadow-lg shadow-blue-600/30 shrink-0 group-hover:scale-105 transition-transform duration-300">
+                  {game.shortName || game.id.toUpperCase()}
                 </div>
-
-                <p className="text-xs text-zinc-400 line-clamp-2 leading-relaxed">
-                  {game.desc}
-                </p>
-
-                <div className="flex items-center gap-1.5 text-xs text-amber-400 bg-amber-500/10 px-2.5 py-1 rounded-lg border border-amber-500/20 w-fit">
-                  <Trophy size={13} />
-                  <span>Trình độ: <strong>{topRank}</strong></span>
+                <div className="space-y-2">
+                  <div className="flex flex-wrap items-center gap-2.5">
+                    <h4 className="font-black text-white text-xl sm:text-2xl group-hover:text-blue-400 transition-colors">
+                      {game.name}
+                    </h4>
+                    <span className="text-xs px-3 py-1 rounded-full bg-blue-500/15 border border-blue-500/30 text-blue-400 font-extrabold">
+                      {game.defaultServices?.length || 8} gói dịch vụ
+                    </span>
+                  </div>
+                  <p className="text-xs sm:text-sm text-zinc-400 max-w-2xl leading-relaxed">
+                    {game.desc}
+                  </p>
+                  <div className="flex items-center gap-2 text-xs text-amber-400 bg-amber-500/10 px-3 py-1 rounded-xl border border-amber-500/20 w-fit">
+                    <Trophy size={14} />
+                    <span>Trình độ đảm nhận: <strong>{topRank}</strong></span>
+                  </div>
                 </div>
               </div>
 
-              <div className="pt-4 mt-4 border-t border-zinc-800/80 flex items-center justify-between text-xs font-semibold text-blue-400 group-hover:text-blue-300">
-                <span>Xem các dịch vụ</span>
-                <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
+              {/* Bên phải: Nút CTA hành động nổi bật */}
+              <div className="w-full md:w-auto shrink-0 flex items-center justify-end">
+                <div className="w-full md:w-auto flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-black text-sm shadow-xl shadow-blue-600/30 group-hover:shadow-blue-500/50 group-hover:scale-105 active:scale-95 transition-all">
+                  <span>Xem chi tiết các dịch vụ</span>
+                  <ArrowRight size={16} className="group-hover:translate-x-1.5 transition-transform" />
+                </div>
               </div>
             </div>
           );
-        })}
-      </div>
+        })()
+      ) : displayGames.length >= 5 ? (
+        /* TRƯỜNG HỢP 5 GAMES TRỞ LÊN: Hàng ngang có thể scroll mượt mà */
+        <div className="flex overflow-x-auto gap-4 pb-4 pt-1 scrollbar-thin scrollbar-thumb-zinc-700/60 scrollbar-track-zinc-900/40 snap-x">
+          {displayGames.map((game) => {
+            const boosterGameInfo = boosterGames.find(
+              (g) => g.gameCode.toUpperCase() === game.id.toUpperCase()
+            );
+            const topRank = boosterGameInfo?.ranks?.[0] || 'Cao Thủ / Thách Đấu';
+
+            return (
+              <div
+                key={game.id}
+                onClick={() => handleOpenGame(game)}
+                className="group relative min-w-[280px] sm:min-w-[320px] max-w-[340px] flex-shrink-0 snap-start bg-zinc-900/80 hover:bg-zinc-850 border border-white/10 hover:border-blue-500/50 rounded-2xl p-5 cursor-pointer transition-all duration-300 hover:shadow-xl hover:shadow-blue-500/10 hover:-translate-y-1 flex flex-col justify-between"
+              >
+                <div className="space-y-3">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 text-white flex items-center justify-center font-bold text-sm shadow-md">
+                        {game.shortName || game.id.toUpperCase()}
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-white text-base group-hover:text-blue-400 transition-colors">
+                          {game.name}
+                        </h4>
+                        <span className="text-[11px] text-zinc-400 font-medium">
+                          {game.defaultServices?.length || 8} gói dịch vụ
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <p className="text-xs text-zinc-400 line-clamp-2 leading-relaxed">
+                    {game.desc}
+                  </p>
+
+                  <div className="flex items-center gap-1.5 text-xs text-amber-400 bg-amber-500/10 px-2.5 py-1 rounded-lg border border-amber-500/20 w-fit">
+                    <Trophy size={13} />
+                    <span>Trình độ: <strong>{topRank}</strong></span>
+                  </div>
+                </div>
+
+                <div className="pt-4 mt-4 border-t border-zinc-800/80 flex items-center justify-between text-xs font-semibold text-blue-400 group-hover:text-blue-300">
+                  <span>Xem các dịch vụ</span>
+                  <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      ) : (
+        /* TRƯỜNG HỢP 2, 3, 4 GAMES: Lưới 2 cột (hoặc 2x2, hoặc 2 hàng 1 và 1 hàng 2) */
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {displayGames.map((game, index) => {
+            const boosterGameInfo = boosterGames.find(
+              (g) => g.gameCode.toUpperCase() === game.id.toUpperCase()
+            );
+            const topRank = boosterGameInfo?.ranks?.[0] || 'Cao Thủ / Thách Đấu';
+            // Khi có đúng 3 game: game thứ 3 span-full ở hàng 2
+            const isThirdInThree = displayGames.length === 3 && index === 2;
+
+            return (
+              <div
+                key={game.id}
+                onClick={() => handleOpenGame(game)}
+                className={`group relative bg-zinc-900/80 hover:bg-zinc-850 border border-white/10 hover:border-blue-500/50 rounded-2xl p-5 cursor-pointer transition-all duration-300 hover:shadow-xl hover:shadow-blue-500/10 hover:-translate-y-1 flex flex-col justify-between ${
+                  isThirdInThree ? 'md:col-span-2' : ''
+                }`}
+              >
+                <div className="space-y-3">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 text-white flex items-center justify-center font-bold text-sm shadow-md">
+                        {game.shortName || game.id.toUpperCase()}
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-white text-base group-hover:text-blue-400 transition-colors">
+                          {game.name}
+                        </h4>
+                        <span className="text-[11px] text-zinc-400 font-medium">
+                          {game.defaultServices?.length || 8} gói dịch vụ
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <p className="text-xs text-zinc-400 line-clamp-2 leading-relaxed">
+                    {game.desc}
+                  </p>
+
+                  <div className="flex items-center gap-1.5 text-xs text-amber-400 bg-amber-500/10 px-2.5 py-1 rounded-lg border border-amber-500/20 w-fit">
+                    <Trophy size={13} />
+                    <span>Trình độ: <strong>{topRank}</strong></span>
+                  </div>
+                </div>
+
+                <div className="pt-4 mt-4 border-t border-zinc-800/80 flex items-center justify-between text-xs font-semibold text-blue-400 group-hover:text-blue-300">
+                  <span>Xem các dịch vụ</span>
+                  <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       {/* --- MODAL POPUP GIỮA MÀN HÌNH: DANH SÁCH DỊCH VỤ CỦA TỰA GAME ĐƯỢC CHỌN --- */}
       {activeGameModal && (

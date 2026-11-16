@@ -503,7 +503,7 @@ export class BoostersService {
       currentRank: (application as any)?.currentRank || 'N/A',
       highestRank: (application as any)?.highestRank || 'N/A',
       completed_orders: completedOrdersCount,
-      rating: user.booster_info?.rating || (profile as any)?.rating || 5.0,
+      rating: user.booster_info?.rating || (profile as any)?.rating || 0,
       bio: user.booster_info?.bio || (profile as any)?.bio || '',
     };
 
