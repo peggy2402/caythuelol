@@ -463,12 +463,16 @@ function GameServicesContent() {
                                   className="relative inline-block w-8 h-8 rounded-full ring-2 ring-[#0c101d] overflow-hidden shrink-0 shadow-md"
                                 >
                                   {b.avatar ? (
-                                    <Image
+                                    // eslint-disable-next-line @next/next/no-img-element
+                                    <img
                                       src={b.avatar}
-                                      alt=""
-                                      width={32}
-                                      height={32}
+                                      alt={b.displayName || b.username || ''}
+                                      referrerPolicy="no-referrer"
                                       className="w-full h-full object-cover"
+                                      onError={(e) => {
+                                        e.currentTarget.onerror = null;
+                                        e.currentTarget.src = '/default-avatar.png';
+                                      }}
                                     />
                                   ) : (
                                     <div

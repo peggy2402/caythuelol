@@ -343,12 +343,16 @@ export default async function ShortProfilePage({ params }: Props) {
               {/* Avatar */}
               <div className="relative shrink-0">
                 <div className="relative w-24 h-24 sm:w-28 sm:h-28 rounded-2xl overflow-hidden border-2 border-blue-500/60 shadow-lg bg-zinc-900">
-                  <Image
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
                     src={boosterData?.profile?.avatar || '/default-avatar.png'}
                     alt={boosterName}
-                    fill
-                    priority
-                    className="object-cover"
+                    referrerPolicy="no-referrer"
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      e.currentTarget.onerror = null;
+                      e.currentTarget.src = '/default-avatar.png';
+                    }}
                   />
                 </div>
                 <div

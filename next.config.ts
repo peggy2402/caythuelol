@@ -6,6 +6,15 @@ const nextConfig: NextConfig = {
 
   images: {
     remotePatterns: [
+      // Cho phép mọi URL avatar từ bất kỳ domain nào
+      {
+        protocol: "https",
+        hostname: "**",
+      },
+      {
+        protocol: "http",
+        hostname: "**",
+      },
       // Google avatar
       {
         protocol: "https",
