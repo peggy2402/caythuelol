@@ -30,6 +30,7 @@ import {
   Target,
   ArrowRight,
   type LucideIcon,
+  RotateCcw,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { GAMES_CATALOG } from '@/lib/games';
@@ -70,6 +71,9 @@ export interface BoosterCoupon {
 
 export interface ServiceConfigItem {
   isEnabled: boolean;
+  isDeleted?: boolean;
+  name?: string;
+  desc?: string;
   price?: number;
   multiplier?: number;
   depositPercent: number;
@@ -308,6 +312,46 @@ export default function BoosterServicesStudio() {
     await syncCustomServices(customServices, updated);
   };
 
+  // Xóa một dịch vụ chuẩn khỏi danh sách của Booster
+  const handleDeleteDefaultService = async (slug: string, name: string) => {
+    const updated = {
+      ...servicesConfig,
+      [slug]: {
+        ...(servicesConfig[slug] || { depositPercent: 100 }),
+        isEnabled: false,
+        isDeleted: true,
+      },
+    };
+    setServicesConfig(updated);
+    toast.success(`Đã xóa dịch vụ "${name}" khỏi danh mục của bạn!`);
+    await syncCustomServices(customServices, updated);
+  };
+
+  // Khôi phục tất cả dịch vụ chuẩn của game đang xem
+  const handleRestoreDefaultServices = async () => {
+    const updated = { ...servicesConfig };
+    currentGameDef.defaultServices.forEach((s) => {
+      if (updated[s.slug]) {
+        updated[s.slug] = {
+          ...updated[s.slug],
+          isDeleted: false,
+          isEnabled: true,
+        };
+      } else {
+        updated[s.slug] = {
+          isEnabled: true,
+          price: s.defaultPrice,
+          multiplier: 1.0,
+          depositPercent: s.depositPercent || 100,
+          isDeleted: false,
+        };
+      }
+    });
+    setServicesConfig(updated);
+    toast.success(`Đã khôi phục các dịch vụ chuẩn của ${currentGameDef.name}!`);
+    await syncCustomServices(customServices, updated);
+  };
+
   // Mở modal thêm dịch vụ tùy chỉnh
   const handleOpenAddModal = () => {
     setEditingServiceId(null);
@@ -363,7 +407,7 @@ export default function BoosterServicesStudio() {
         customServices: updatedCustomList,
         coupon: cpn,
         enabledServices: Object.entries(cfg)
-          .filter(([_, item]) => item.isEnabled)
+          .filter(([_, item]) => item.isEnabled && !item.isDeleted)
           .map(([slug]) => slug),
       };
 
@@ -382,6 +426,49 @@ export default function BoosterServicesStudio() {
     e.preventDefault();
     if (!formData.name?.trim()) {
       toast.error('Vui lòng nhập tên dịch vụ');
+      return;
+    }
+
+    // Nếu sửa dịch vụ chuẩn có sẵn
+    if (editingServiceId && currentGameDef.defaultServices.some((s) => s.slug === editingServiceId)) {
+      const updatedCfg = {
+        ...servicesConfig,
+        [editingServiceId]: {
+          ...(servicesConfig[editingServiceId] || { isEnabled: true, depositPercent: 100 }),
+          name: formData.name,
+          desc: formData.desc,
+          price: formData.price,
+          depositPercent: formData.depositPercent || 100,
+          isDeleted: false,
+          isEnabled: true,
+        },
+      };
+      setServicesConfig(updatedCfg);
+      toast.success(`Đã cập nhật dịch vụ "${formData.name}" thành công!`);
+      await syncCustomServices(customServices, updatedCfg);
+      setIsModalOpen(false);
+      return;
+    }
+
+    // Nếu thêm lại một dịch vụ chuẩn đã bị xóa
+    if (formData.slug && currentGameDef.defaultServices.some((s) => s.slug === formData.slug)) {
+      const targetSlug = formData.slug;
+      const updatedCfg = {
+        ...servicesConfig,
+        [targetSlug]: {
+          ...(servicesConfig[targetSlug] || { isEnabled: true, depositPercent: 100 }),
+          name: formData.name,
+          desc: formData.desc,
+          price: formData.price,
+          depositPercent: formData.depositPercent || 100,
+          isDeleted: false,
+          isEnabled: true,
+        },
+      };
+      setServicesConfig(updatedCfg);
+      toast.success(`Đã thêm lại dịch vụ "${formData.name}" vào danh mục của bạn!`);
+      await syncCustomServices(customServices, updatedCfg);
+      setIsModalOpen(false);
       return;
     }
 
@@ -523,12 +610,25 @@ export default function BoosterServicesStudio() {
       <div className="bg-zinc-900/60 border border-zinc-800/80 rounded-3xl p-5 sm:p-6 shadow-xl backdrop-blur-md space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-zinc-800">
           <div>
-            <h2 className="text-base sm:text-lg font-black text-white flex items-center gap-2">
-              <Trophy size={20} className="text-amber-400" />
-              <span>2. Danh mục dịch vụ bạn cung cấp ({currentGameDef.name})</span>
-            </h2>
+            <div className="flex items-center gap-3">
+              <h2 className="text-base sm:text-lg font-black text-white flex items-center gap-2">
+                <Trophy size={20} className="text-amber-400" />
+                <span>2. Danh mục dịch vụ bạn cung cấp ({currentGameDef.name})</span>
+              </h2>
+              {currentGameDef.defaultServices.some((s) => servicesConfig[s.slug]?.isDeleted) && (
+                <button
+                  type="button"
+                  onClick={handleRestoreDefaultServices}
+                  className="px-2.5 py-1 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-cyan-400 hover:text-cyan-300 text-[11px] font-bold flex items-center gap-1 transition-colors"
+                  title="Khôi phục các dịch vụ mặc định đã xóa"
+                >
+                  <RotateCcw size={12} />
+                  <span>Khôi phục các gói đã xóa</span>
+                </button>
+              )}
+            </div>
             <p className="text-xs text-zinc-400 mt-0.5">
-              Bật/Tắt và tự do cấu hình bảng giá, tỷ lệ cọc cho từng dịch vụ bạn nhận cày. Bạn cũng có thể thêm gói cày đặc thù mới.
+              Bật/Tắt, chỉnh sửa hoặc bấm icon thùng rác để xóa bỏ bất kỳ dịch vụ nào bạn không nhận cày.
             </p>
           </div>
 
@@ -571,67 +671,109 @@ export default function BoosterServicesStudio() {
 
         {/* Lưới các dịch vụ (Gồm dịch vụ chuẩn + dịch vụ tùy chỉnh hợp nhất làm 1) */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {/* 1. Các dịch vụ chuẩn của Game */}
-          {currentGameDef.defaultServices.map((svc) => {
-            const config = servicesConfig[svc.slug] || {
-              isEnabled: true,
-              price: svc.defaultPrice,
-              multiplier: 1.0,
-              depositPercent: svc.depositPercent || 100,
-            };
-            const isEnabled = config.isEnabled ?? true;
-            const isRankTier = svc.slug === 'rank-boost' || svc.pricingType === 'TIER_MATRIX';
-            const isPerUnit = svc.pricingType === 'PER_UNIT' || svc.slug === 'net-wins';
+          {/* 1. Các dịch vụ chuẩn của Game (Đã hỗ trợ Sửa & Xóa bỏ nếu không nhận) */}
+          {currentGameDef.defaultServices
+            .filter((svc) => !servicesConfig[svc.slug]?.isDeleted)
+            .map((svc) => {
+              const config = servicesConfig[svc.slug] || {
+                isEnabled: true,
+                price: svc.defaultPrice,
+                multiplier: 1.0,
+                depositPercent: svc.depositPercent || 100,
+              };
+              const isEnabled = config.isEnabled ?? true;
+              const isRankTier = svc.slug === 'rank-boost' || svc.pricingType === 'TIER_MATRIX';
+              const isPerUnit = svc.pricingType === 'PER_UNIT' || svc.slug === 'net-wins';
+              const displayName = config.name || svc.name;
+              const displayDesc = config.desc || svc.desc;
 
-            return (
-              <div
-                key={svc.slug}
-                className={`p-4 sm:p-5 rounded-2xl border transition-all duration-300 flex flex-col justify-between ${
-                  isEnabled
-                    ? 'bg-zinc-950/80 border-zinc-700/80 shadow-md'
-                    : 'bg-zinc-950/40 border-zinc-850 opacity-60'
-                }`}
-              >
-                <div>
-                  {/* Service Header + Toggle Switch */}
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <span className="font-extrabold text-white text-sm">{svc.name}</span>
-                      <span
-                        className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${
-                          isRankTier
-                            ? 'bg-blue-500/10 border-blue-500/30 text-blue-400'
-                            : isPerUnit
-                            ? 'bg-amber-500/10 border-amber-500/30 text-amber-400'
-                            : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
-                        }`}
-                      >
-                        {isRankTier ? 'Theo Bậc Rank' : isPerUnit ? 'Theo Điểm LP/Đơn Vị' : 'Trọn Gói'}
-                      </span>
+              return (
+                <div
+                  key={svc.slug}
+                  className={`p-4 sm:p-5 rounded-2xl border transition-all duration-300 flex flex-col justify-between ${
+                    isEnabled
+                      ? 'bg-zinc-950/80 border-zinc-700/80 shadow-md'
+                      : 'bg-zinc-950/40 border-zinc-850 opacity-60'
+                  }`}
+                >
+                  <div>
+                    {/* Service Header + Edit, Delete & Toggle Switch */}
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <span className="font-extrabold text-white text-sm">{displayName}</span>
+                        <span
+                          className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${
+                            isRankTier
+                              ? 'bg-blue-500/10 border-blue-500/30 text-blue-400'
+                              : isPerUnit
+                              ? 'bg-amber-500/10 border-amber-500/30 text-amber-400'
+                              : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+                          }`}
+                        >
+                          {isRankTier ? 'Theo Bậc Rank' : isPerUnit ? 'Theo Điểm LP/Đơn Vị' : 'Trọn Gói'}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-1.5">
+                        {/* Nút Chỉnh Sửa Chi Tiết */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingServiceId(svc.slug);
+                            setFormData({
+                              id: `srv_${activeGameCode.toLowerCase()}_${svc.slug}`,
+                              slug: svc.slug,
+                              serviceType: svc.slug,
+                              gameCode: activeGameCode,
+                              name: displayName,
+                              desc: displayDesc,
+                              pricingType: (svc.pricingType as any) || 'FIXED',
+                              price: config.price ?? svc.defaultPrice,
+                              unitName: svc.unitName || 'Điểm LP',
+                              depositPercent: config.depositPercent || svc.depositPercent,
+                              isActive: isEnabled,
+                            });
+                            setIsModalOpen(true);
+                          }}
+                          title="Chỉnh sửa tên, mô tả & cấu hình"
+                          className="p-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white border border-zinc-800 transition-colors"
+                        >
+                          <Edit2 size={13} />
+                        </button>
+
+                        {/* Nút Xóa Dịch Vụ Khỏi Danh Mục Của Booster */}
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteDefaultService(svc.slug, displayName)}
+                          title="Xóa dịch vụ này khỏi danh mục của bạn"
+                          className="p-1.5 rounded-lg bg-zinc-900 hover:bg-red-500/20 text-red-400 hover:text-red-300 border border-zinc-800 hover:border-red-500/40 transition-colors"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+
+                        {/* Switch Toggle Button */}
+                        <button
+                          type="button"
+                          role="switch"
+                          aria-checked={isEnabled}
+                          onClick={() => handleToggleService(svc.slug)}
+                          className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out ${
+                            isEnabled ? 'bg-cyan-500 shadow-[0_0_12px_rgba(6,182,212,0.4)]' : 'bg-zinc-800'
+                          }`}
+                        >
+                          <span
+                            className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
+                              isEnabled ? 'translate-x-5' : 'translate-x-0'
+                            }`}
+                          />
+                        </button>
+                      </div>
                     </div>
 
-                    {/* Switch Toggle Button */}
-                    <button
-                      type="button"
-                      role="switch"
-                      aria-checked={isEnabled}
-                      onClick={() => handleToggleService(svc.slug)}
-                      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out ${
-                        isEnabled ? 'bg-cyan-500 shadow-[0_0_12px_rgba(6,182,212,0.4)]' : 'bg-zinc-800'
-                      }`}
-                    >
-                      <span
-                        className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
-                          isEnabled ? 'translate-x-5' : 'translate-x-0'
-                        }`}
-                      />
-                    </button>
+                    <p className="text-xs text-zinc-400 line-clamp-2 mb-4 leading-relaxed">
+                      {displayDesc}
+                    </p>
                   </div>
-
-                  <p className="text-xs text-zinc-400 line-clamp-2 mb-4 leading-relaxed">
-                    {svc.desc}
-                  </p>
-                </div>
 
                 {/* Service Config Controls */}
                 <div className="pt-3 border-t border-zinc-800/80 space-y-3">
