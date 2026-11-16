@@ -25,7 +25,18 @@ const formatGameName = (code: string) => {
 export default function BoosterCard({ booster, isBookmarked, onToggleBookmark }: BoosterCardProps) {
   const router = useRouter();
   const [isNavigating, setIsNavigating] = useState(false);
-  const [avatarError, setAvatarError] = useState(false);
+  const rawAvatar = booster.avatar || booster.profile?.avatar;
+  const initialAvatar = rawAvatar && rawAvatar.trim() ? rawAvatar.trim() : '/default-avatar.png';
+  const [currentAvatar, setCurrentAvatar] = useState(initialAvatar);
+  const [avatarFailed, setAvatarFailed] = useState(false);
+
+  const handleAvatarError = () => {
+    if (currentAvatar !== '/default-avatar.png') {
+      setCurrentAvatar('/default-avatar.png');
+    } else {
+      setAvatarFailed(true);
+    }
+  };
 
   const profileUrl = `/b/${booster.username}`;
 
@@ -41,8 +52,6 @@ export default function BoosterCard({ booster, isBookmarked, onToggleBookmark }:
   const rawGames = booster.games?.map((g: any) => g.gameCode || g.game) || booster.booster_info?.main_games || ['LMHT'];
   const normalizedGames = Array.from(new Set(rawGames.map((g: any) => formatGameName(String(g)))));
   const winrate = booster.winrate || booster.booster_info?.winrate || null;
-
-  const avatarUrl = booster.avatar || booster.profile?.avatar;
 
   const handleCardClick = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -91,14 +100,14 @@ export default function BoosterCard({ booster, isBookmarked, onToggleBookmark }:
                   <Loader2 className="w-6 h-6 text-blue-400 animate-spin" />
                 </div>
               )}
-              {avatarUrl && !avatarError ? (
+              {!avatarFailed ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img 
-                  src={avatarUrl} 
+                  src={currentAvatar} 
                   alt={booster.username} 
                   referrerPolicy="no-referrer"
                   className="w-full h-full object-cover"
-                  onError={() => setAvatarError(true)}
+                  onError={handleAvatarError}
                 />
               ) : (
                 <span className="text-2xl font-black text-blue-400 font-mono">
