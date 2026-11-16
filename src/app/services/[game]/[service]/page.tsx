@@ -34,6 +34,9 @@ import {
   X,
   ArrowRightLeft,
   ChevronRight,
+  Globe,
+  ChevronDown,
+  Layers,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getGameById, GAMES_CATALOG, getServiceMeta } from '@/lib/games';
@@ -44,17 +47,249 @@ import {
   AddonSelections,
 } from '@/lib/rank-calculator';
 
-const ICON_MAP: Record<string, any> = {
-  Trophy,
-  Target,
-  Swords,
-  TrendingUp,
-  Zap,
-  Medal,
-  Users,
-  Banknote,
-  Gamepad2,
+// 1. Danh sách 16 Máy chủ chuẩn
+interface LolServer {
+  name: string;
+  code: string;
+  platformId: string;
+  region: string;
+  flag: string;
+}
+
+const LOL_SERVERS: LolServer[] = [
+  { name: 'Vietnam', code: 'VN', platformId: 'VN2', region: 'Vietnam', flag: '🇻🇳' },
+  { name: 'Southeast Asia', code: 'SEA', platformId: 'SG2', region: 'Southeast Asia', flag: '🌏' },
+  { name: 'North America', code: 'NA', platformId: 'NA1', region: 'North America', flag: '🇺🇸' },
+  { name: 'Europe West', code: 'EUW', platformId: 'EUW1', region: 'Europe', flag: '🇪🇺' },
+  { name: 'Europe Nordic & East', code: 'EUNE', platformId: 'EUN1', region: 'Europe', flag: '🇪🇺' },
+  { name: 'Japan', code: 'JP', platformId: 'JP1', region: 'Asia', flag: '🇯🇵' },
+  { name: 'Korea', code: 'KR', platformId: 'KR', region: 'Asia', flag: '🇰🇷' },
+  { name: 'Taiwan', code: 'TW', platformId: 'TW2', region: 'Asia', flag: '🇹🇼' },
+  { name: 'Brazil', code: 'BR', platformId: 'BR1', region: 'Americas', flag: '🇧🇷' },
+  { name: 'Türkiye', code: 'TR', platformId: 'TR1', region: 'Europe', flag: '🇹🇷' },
+  { name: 'Russia', code: 'RU', platformId: 'RU', region: 'Europe', flag: '🇷🇺' },
+  { name: 'Oceania', code: 'OCE', platformId: 'OC1', region: 'Oceania', flag: '🇦🇺' },
+  { name: 'Latin America North', code: 'LAN', platformId: 'LA1', region: 'Americas', flag: '🇲🇽' },
+  { name: 'Latin America South', code: 'LAS', platformId: 'LA2', region: 'Americas', flag: '🇨🇱' },
+  { name: 'Middle East', code: 'ME', platformId: 'ME1', region: 'Middle East', flag: '🇦🇪' },
+  { name: 'Public Beta Environment', code: 'PBE', platformId: 'PBE', region: 'Americas', flag: '🧪' },
+];
+
+// 2. Danh sách Loại Tài Khoản
+const ACCOUNT_TYPES = [
+  {
+    id: 'Riot',
+    name: 'Riot Games',
+    desc: 'Tài khoản Riot ID chính thức (Client VNG / Riot)',
+    badge: 'Khuyên dùng',
+  },
+  {
+    id: 'Facebook',
+    name: 'Facebook',
+    desc: 'Đăng nhập liên kết tài khoản Facebook',
+  },
+  {
+    id: 'Google',
+    name: 'Google',
+    desc: 'Đăng nhập qua Google Account / Gmail',
+  },
+  {
+    id: 'Apple',
+    name: 'Apple',
+    desc: 'Đăng nhập thông qua Apple ID / iCloud',
+  },
+  {
+    id: 'Xbox',
+    name: 'Xbox',
+    desc: 'Tài khoản liên kết Xbox Network / Game Pass',
+  },
+  {
+    id: 'PlayStation',
+    name: 'PlayStation',
+    desc: 'Tài khoản liên kết PlayStation Network (PSN)',
+  },
+];
+
+// 3. Cấu hình Hệ số Điểm Cộng Mỗi Ván (LP Gain)
+const LP_GAIN_OPTIONS = [
+  {
+    id: '25_PLUS',
+    label: '+25 trở lên',
+    multiplier: 0.9,
+    discountLabel: '-10%',
+    badgeClass: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
+    desc: 'MMR rất cao · Leo cực nhanh',
+  },
+  {
+    id: '20_24',
+    label: '20 - 24',
+    multiplier: 1.0,
+    discountLabel: 'Chuẩn 0%',
+    badgeClass: 'bg-blue-500/15 text-blue-400 border-blue-500/30',
+    desc: 'MMR tiêu chuẩn',
+  },
+  {
+    id: '15_19',
+    label: '15 - 19',
+    multiplier: 1.1,
+    discountLabel: '+10%',
+    badgeClass: 'bg-amber-500/15 text-amber-400 border-amber-500/30',
+    desc: 'MMR trung bình · Cần thêm số trận',
+  },
+  {
+    id: 'UNDER_15',
+    label: 'Dưới 15',
+    multiplier: 1.15,
+    discountLabel: '+15%',
+    badgeClass: 'bg-rose-500/15 text-rose-400 border-rose-500/30',
+    desc: 'MMR thấp (Hell Elo) · Cần gánh nặng',
+  },
+];
+
+// 4. Cấu hình Tier Ranks (Chỉ từ Sắt IV đến Cao Thủ)
+const TIER_CONFIG: Record<
+  string,
+  {
+    name: string;
+    image: string;
+    textColor: string;
+    borderColor: string;
+    activeBorder: string;
+    bgGradient: string;
+    glowClass: string;
+    badgeBg: string;
+  }
+> = {
+  IRON: {
+    name: 'Sắt',
+    image: '/images/ranks/iron.png',
+    textColor: 'text-zinc-300',
+    borderColor: 'border-zinc-800',
+    activeBorder: 'border-zinc-400 ring-2 ring-zinc-400/40',
+    bgGradient: 'from-zinc-900/90 to-zinc-950/90',
+    glowClass: 'shadow-[0_0_25px_rgba(161,161,170,0.15)]',
+    badgeBg: 'bg-zinc-800 text-zinc-300 border-zinc-700',
+  },
+  BRONZE: {
+    name: 'Đồng',
+    image: '/images/ranks/bronze.png',
+    textColor: 'text-amber-500',
+    borderColor: 'border-amber-900/40',
+    activeBorder: 'border-amber-600 ring-2 ring-amber-600/40',
+    bgGradient: 'from-amber-950/30 to-zinc-950/90',
+    glowClass: 'shadow-[0_0_25px_rgba(217,119,6,0.15)]',
+    badgeBg: 'bg-amber-900/30 text-amber-400 border-amber-800/40',
+  },
+  SILVER: {
+    name: 'Bạc',
+    image: '/images/ranks/silver.png',
+    textColor: 'text-slate-300',
+    borderColor: 'border-slate-800',
+    activeBorder: 'border-slate-400 ring-2 ring-slate-400/40',
+    bgGradient: 'from-slate-900/40 to-zinc-950/90',
+    glowClass: 'shadow-[0_0_25px_rgba(203,213,225,0.15)]',
+    badgeBg: 'bg-slate-800/50 text-slate-300 border-slate-700',
+  },
+  GOLD: {
+    name: 'Vàng',
+    image: '/images/ranks/gold.png',
+    textColor: 'text-yellow-400',
+    borderColor: 'border-yellow-900/40',
+    activeBorder: 'border-yellow-500 ring-2 ring-yellow-500/40',
+    bgGradient: 'from-yellow-950/30 to-zinc-950/90',
+    glowClass: 'shadow-[0_0_25px_rgba(234,179,8,0.2)]',
+    badgeBg: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/30',
+  },
+  PLATINUM: {
+    name: 'Bạch Kim',
+    image: '/images/ranks/platinum.png',
+    textColor: 'text-cyan-300',
+    borderColor: 'border-cyan-900/40',
+    activeBorder: 'border-cyan-400 ring-2 ring-cyan-400/40',
+    bgGradient: 'from-cyan-950/30 to-zinc-950/90',
+    glowClass: 'shadow-[0_0_25px_rgba(34,211,238,0.2)]',
+    badgeBg: 'bg-cyan-500/10 text-cyan-300 border-cyan-500/30',
+  },
+  EMERALD: {
+    name: 'Lục Bảo',
+    image: '/images/ranks/emerald.png',
+    textColor: 'text-emerald-400',
+    borderColor: 'border-emerald-900/40',
+    activeBorder: 'border-emerald-500 ring-2 ring-emerald-500/40',
+    bgGradient: 'from-emerald-950/30 to-zinc-950/90',
+    glowClass: 'shadow-[0_0_25px_rgba(16,185,129,0.2)]',
+    badgeBg: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30',
+  },
+  DIAMOND: {
+    name: 'Kim Cương',
+    image: '/images/ranks/diamond.png',
+    textColor: 'text-blue-400',
+    borderColor: 'border-blue-900/40',
+    activeBorder: 'border-blue-500 ring-2 ring-blue-500/40',
+    bgGradient: 'from-blue-950/30 to-zinc-950/90',
+    glowClass: 'shadow-[0_0_25px_rgba(59,130,246,0.25)]',
+    badgeBg: 'bg-blue-500/10 text-blue-400 border-blue-500/30',
+  },
+  MASTER: {
+    name: 'Cao Thủ',
+    image: '/images/ranks/master.png',
+    textColor: 'text-purple-400',
+    borderColor: 'border-purple-900/40',
+    activeBorder: 'border-purple-500 ring-2 ring-purple-500/40',
+    bgGradient: 'from-purple-950/30 to-zinc-950/90',
+    glowClass: 'shadow-[0_0_25px_rgba(168,85,247,0.25)]',
+    badgeBg: 'bg-purple-500/10 text-purple-400 border-purple-500/30',
+  },
 };
+
+const DIVISIONS = ['IV', 'III', 'II', 'I'];
+
+// Component hiển thị Logo các nhà cung cấp tài khoản
+function ProviderLogo({ provider, className = 'w-5 h-5' }: { provider: string; className?: string }) {
+  switch (provider) {
+    case 'Riot':
+      return (
+        <svg className={className} viewBox="0 0 24 24" fill="#EF4444">
+          <path d="M13.43 2.18L2.09 7.64l3.19 11.75 4.67-1.3-1.63-6 1.7-.47 1.25 4.61 2.55-.71-1.25-4.61 1.7-.47 1.25 4.61 2.55-.71-1.6-5.89 2.45-.68.84 3.09 2.5-.7L21.91 2.6l-8.48-.42zM3.48 20.37l4.9-1.36.95 3.49-4.9 1.36-.95-3.49z" />
+        </svg>
+      );
+    case 'Facebook':
+      return (
+        <svg className={className} viewBox="0 0 24 24" fill="#1877F2">
+          <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
+        </svg>
+      );
+    case 'Google':
+      return (
+        <svg className={className} viewBox="0 0 24 24">
+          <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z"/>
+          <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.27v3.15C3.25 21.36 7.31 24 12 24z"/>
+          <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.27C.46 8.2 0 10.04 0 12s.46 3.8 1.27 5.42l4.01-3.15z"/>
+          <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.31 0 3.25 2.64 1.27 6.58l4.01 3.15c.95-2.83 3.6-4.98 6.72-4.98z"/>
+        </svg>
+      );
+    case 'Apple':
+      return (
+        <svg className={className} viewBox="0 0 170 170" fill="currentColor">
+          <path d="M150.37 130.25c-2.45 5.66-5.35 10.87-8.71 15.66-4.58 6.53-8.33 11.05-11.22 13.56-4.48 4.12-9.28 6.23-14.42 6.35-3.69 0-8.14-1.05-13.32-3.18-5.19-2.12-9.97-3.17-14.34-3.17-4.58 0-9.49 1.05-14.75 3.17-5.26 2.13-9.5 3.24-12.74 3.35-4.35.13-9.16-1.9-14.42-6.08-3.7-3.04-7.58-7.7-11.64-13.98-6.19-9.56-11.02-20.91-14.48-34.05-3.47-13.14-5.2-25.17-5.2-36.1 0-13.59 3.39-25.04 10.18-34.36 6.78-9.31 15.35-14.07 25.7-14.28 4.7 0 9.87 1.25 15.52 3.75 5.65 2.5 9.4 3.8 11.25 3.92 1.48-.12 5.56-1.5 12.24-4.14 6.68-2.63 12.08-3.83 16.2-3.6 12.08.74 21.57 5.17 28.48 13.3-10.74 6.53-16.01 15.44-15.82 26.74.19 8.92 3.52 16.48 10 22.68 6.47 6.2 14.16 9.68 23.07 10.45-2.12 6.54-4.87 13.14-8.24 19.8zM119.22 31.84c0-7.39 2.65-14.44 7.95-21.14 5.3-6.7 11.85-10.7 19.64-12-0.21 2.22-.21 3.92-.21 5.08 0 7.39-2.76 14.54-8.27 21.46-5.51 6.91-12.19 10.7-20.04 11.36-.11-1.48-.17-3.08-.17-4.76z"/>
+        </svg>
+      );
+    case 'Xbox':
+      return (
+        <svg className={className} viewBox="0 0 24 24" fill="#107C10">
+          <path d="M4.64 3.58C6.67 1.84 9.22.8 12 .8c2.78 0 5.33 1.04 7.36 2.78-1.53 1.57-3.8 3.8-5.32 5.37-.36.38-.72.76-1.07 1.14-.38-.41-.75-.8-1.12-1.2-1.53-1.63-3.69-3.79-5.21-5.31zm-2.8 3.65C.66 9.17 0 11.49 0 14c0 3.89 1.63 7.38 4.22 9.87C3.2 21.2 2.3 17.5 2.8 14c.3-2.1.8-4.5 1.9-6.6l-2.86-.17zm20.32 0l-2.86.17c1.1 2.1 1.6 4.5 1.9 6.6.5 3.5-.4 7.2-1.42 9.87 2.59-2.49 4.22-5.98 4.22-9.87 0-2.51-.66-4.83-1.84-6.77zM12 12.3c.6 0 1.2.3 1.5.8 1.4 2.1 3.5 5.5 4.6 8.8C16.3 23.2 14.2 24 12 24s-4.3-.8-6.1-2.1c1.1-3.3 3.2-6.7 4.6-8.8.3-.5.9-.8 1.5-.8z"/>
+        </svg>
+      );
+    case 'PlayStation':
+      return (
+        <svg className={className} viewBox="0 0 24 24" fill="#003791">
+          <path d="M8.07 4.62c0-.55.45-1 .99-1h3.76c2.72 0 4.93 2.21 4.93 4.93 0 2.22-1.47 4.1-3.5 4.72v-2.09c1-.48 1.69-1.49 1.69-2.67 0-1.62-1.32-2.94-2.94-2.94H10.9v10.5h-2.83V4.62zm-6.2 12.51c-.69-.47-1.1-1.25-1.1-2.08 0-1.21.87-2.22 2.05-2.43 1.83-.33 5.48-.96 5.48-.96l-1.07 1.88-3.48.58c-.51.08-.88.52-.88 1.04 0 .39.21.75.55.94l6.09 3.52-2.61.94-5.03-3.43zm11.97.94l6.09-3.52c.34-.19.55-.55.55-.94 0-.52-.37-.96-.88-1.04l-3.48-.58-1.07-1.88s3.65.63 5.48.96c1.18.21 2.05 1.22 2.05 2.43 0 .83-.41 1.61-1.1 2.08l-5.03 3.43-2.61-.94z"/>
+        </svg>
+      );
+    default:
+      return <Lock className={className} />;
+  }
+}
 
 function ServiceBookingContent() {
   const params = useParams();
@@ -88,6 +323,18 @@ function ServiceBookingContent() {
   const [queueType, setQueueType] = useState<string>('SOLO_DUO');
   const [server, setServer] = useState<string>('VN');
 
+  // Modals States
+  const [isRankModalOpen, setIsRankModalOpen] = useState(false);
+  const [rankModalTarget, setRankModalTarget] = useState<'CURRENT' | 'DESIRED'>('CURRENT');
+  const [tempTier, setTempTier] = useState<string>('GOLD');
+  const [tempDivision, setTempDivision] = useState<string>('IV');
+
+  const [isServerModalOpen, setIsServerModalOpen] = useState(false);
+  const [serverSearchTerm, setServerSearchTerm] = useState('');
+  const [serverRegionFilter, setServerRegionFilter] = useState('ALL');
+
+  const [isAccountTypeModalOpen, setIsAccountTypeModalOpen] = useState(false);
+
   // 2. States cho Tùy chọn mở rộng (Addons)
   const [addons, setAddons] = useState<AddonSelections>({
     schedule: false,
@@ -99,7 +346,7 @@ function ServiceBookingContent() {
   });
 
   // 3. States cho Thông tin tài khoản cần cày
-  const [accountType, setAccountType] = useState<'Riot' | 'Garena'>('Riot');
+  const [accountType, setAccountType] = useState<string>('Riot');
   const [ingameAccount, setIngameAccount] = useState('');
   const [ingamePassword, setIngamePassword] = useState('');
   const [orderNote, setOrderNote] = useState('');
@@ -112,7 +359,7 @@ function ServiceBookingContent() {
   const [isBoosterModalOpen, setIsBoosterModalOpen] = useState(false);
   const [boosterSearchTerm, setBoosterSearchTerm] = useState('');
 
-  // 5. States cho Mã giảm giá
+  // 5. States cho Mã giảm giá & Submit
   const [couponCode, setCouponCode] = useState('');
   const [appliedCoupon, setAppliedCoupon] = useState<any>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -144,7 +391,6 @@ function ServiceBookingContent() {
         if (data?.user) {
           setAssignedBooster(data);
           setIsManualSelectBooster(true);
-          // Tự áp dụng coupon của booster nếu có
           const boosterCoupon = data.boosterData?.service_settings?.coupon;
           if (boosterCoupon?.isActive && boosterCoupon?.code) {
             setAppliedCoupon(boosterCoupon);
@@ -188,20 +434,14 @@ function ServiceBookingContent() {
     setBoosterSearchTerm('');
   };
 
-  // Hệ số LP Gain
+  // Hệ số LP Gain cấu hình chuẩn xác theo yêu cầu người dùng:
+  // +25 trở lên -> -10% (-0.1)
+  // 20 - 24 -> 0% (0.0)
+  // 15 - 19 -> +10% (+0.1)
+  // Dưới 15 -> +15% (+0.15)
   const lpMultiplier = useMemo(() => {
-    switch (lpGain) {
-      case '25_PLUS':
-        return 1.0;
-      case '20_24':
-        return 1.05;
-      case '15_19':
-        return 1.15;
-      case 'UNDER_15':
-        return 1.25;
-      default:
-        return 1.0;
-    }
+    const opt = LP_GAIN_OPTIONS.find((o) => o.id === lpGain);
+    return opt ? opt.multiplier : 1.0;
   }, [lpGain]);
 
   // Cấu hình dịch vụ riêng của Booster nếu khách đã chỉ định
@@ -268,6 +508,95 @@ function ServiceBookingContent() {
     return Math.round(finalPrice * ratio);
   }, [finalPrice, serviceDef.depositPercent]);
 
+  // Rank Objects
+  const currentRankObj = useMemo(() => {
+    return LOL_RANK_STEPS.find((r) => r.id === currentRankId) || LOL_RANK_STEPS[0];
+  }, [currentRankId]);
+
+  const desiredRankObj = useMemo(() => {
+    return LOL_RANK_STEPS.find((r) => r.id === desiredRankId) || LOL_RANK_STEPS[1];
+  }, [desiredRankId]);
+
+  const currentRankIndex = useMemo(() => {
+    return LOL_RANK_STEPS.findIndex((r) => r.id === currentRankId);
+  }, [currentRankId]);
+
+  const desiredRankIndex = useMemo(() => {
+    return LOL_RANK_STEPS.findIndex((r) => r.id === desiredRankId);
+  }, [desiredRankId]);
+
+  // Server Object
+  const currentServerObj = useMemo(() => {
+    return LOL_SERVERS.find((s) => s.code === server) || LOL_SERVERS[0];
+  }, [server]);
+
+  // Lọc Server theo Search & Region
+  const filteredServers = useMemo(() => {
+    return LOL_SERVERS.filter((s) => {
+      const matchesRegion = serverRegionFilter === 'ALL' || s.region === serverRegionFilter;
+      if (!matchesRegion) return false;
+      if (!serverSearchTerm.trim()) return true;
+      const q = serverSearchTerm.toLowerCase().trim();
+      return (
+        s.name.toLowerCase().includes(q) ||
+        s.code.toLowerCase().includes(q) ||
+        s.platformId.toLowerCase().includes(q) ||
+        s.region.toLowerCase().includes(q)
+      );
+    });
+  }, [serverSearchTerm, serverRegionFilter]);
+
+  // Regions list
+  const serverRegions = useMemo(() => {
+    const set = new Set<string>();
+    LOL_SERVERS.forEach((s) => set.add(s.region));
+    return ['ALL', ...Array.from(set)];
+  }, []);
+
+  // Account Type Object
+  const currentAccountTypeObj = useMemo(() => {
+    return ACCOUNT_TYPES.find((a) => a.id === accountType) || ACCOUNT_TYPES[0];
+  }, [accountType]);
+
+  // Xử lý mở Modal chọn Rank
+  const handleOpenRankModal = (target: 'CURRENT' | 'DESIRED') => {
+    setRankModalTarget(target);
+    const targetObj = target === 'CURRENT' ? currentRankObj : desiredRankObj;
+    setTempTier(targetObj.tier);
+    setTempDivision(targetObj.division || 'IV');
+    setIsRankModalOpen(true);
+  };
+
+  // Xử lý xác nhận chọn Rank từ Modal
+  const handleConfirmRank = () => {
+    const selectedRankId = tempTier === 'MASTER' ? 'MASTER' : `${tempTier}_${tempDivision}`;
+    const newIdx = LOL_RANK_STEPS.findIndex((r) => r.id === selectedRankId);
+
+    if (newIdx === -1) {
+      setIsRankModalOpen(false);
+      return;
+    }
+
+    if (rankModalTarget === 'CURRENT') {
+      setCurrentRankId(selectedRankId);
+      // Nếu rank hiện tại >= rank mong muốn, tự động đẩy rank mong muốn lên bậc kế tiếp
+      if (newIdx >= desiredRankIndex) {
+        const nextDesired = LOL_RANK_STEPS[Math.min(newIdx + 1, LOL_RANK_STEPS.length - 1)];
+        setDesiredRankId(nextDesired.id);
+        toast.info(`Đã tự động đặt Rank mong muốn thành ${nextDesired.label}`);
+      }
+    } else {
+      // Rank mong muốn
+      if (newIdx <= currentRankIndex) {
+        toast.error('Rank mong muốn phải cao hơn Rank hiện tại!');
+        return;
+      }
+      setDesiredRankId(selectedRankId);
+    }
+
+    setIsRankModalOpen(false);
+  };
+
   // Xử lý áp dụng mã giảm giá
   const handleApplyCoupon = () => {
     if (!couponCode.trim()) {
@@ -298,19 +627,17 @@ function ServiceBookingContent() {
     }
 
     if (calculation.totalPrice <= 0) {
-      toast.error('Rank mong muốn phải cao hơn Rank hiện tại');
+      toast.error('Vui lòng chọn rank mong muốn cao hơn rank hiện tại');
       return;
     }
 
     if (!ingameAccount.trim() || !ingamePassword.trim()) {
-      toast.error('Vui lòng nhập đầy đủ tài khoản và mật khẩu tài khoản cày');
+      toast.error('Vui lòng điền đầy đủ tài khoản và mật khẩu in-game');
       return;
     }
 
-    setIsSubmitting(true);
     try {
-      const currentRankObj = LOL_RANK_STEPS.find((r) => r.id === currentRankId);
-      const desiredRankObj = LOL_RANK_STEPS.find((r) => r.id === desiredRankId);
+      setIsSubmitting(true);
 
       const orderPayload = {
         game: game.id.toUpperCase(),
@@ -364,6 +691,9 @@ function ServiceBookingContent() {
     }
   };
 
+  const currentTierMeta = TIER_CONFIG[currentRankObj.tier] || TIER_CONFIG.GOLD;
+  const desiredTierMeta = TIER_CONFIG[desiredRankObj.tier] || TIER_CONFIG.GOLD;
+
   return (
     <div className="min-h-screen bg-[#070709] text-white font-sans selection:bg-blue-500/30">
       <Navbar />
@@ -416,9 +746,9 @@ function ServiceBookingContent() {
 
         {/* Main Grid: Form Left (7 Cols), Summary Right (5 Cols) */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-          {/* CỘT TRÁI: FORM CẤU HÌNH DỊCH VỤ (Chuẩn y như ảnh minh họa) */}
+          {/* CỘT TRÁI: FORM CẤU HÌNH DỊCH VỤ */}
           <div className="lg:col-span-7 space-y-6">
-            {/* 1. LỰA CHỌN TUYỂN THỦ THỰC HIỆN (BƯỚC ĐẦU TIÊN CỰC KỲ TRỰC QUAN) */}
+            {/* 1. LỰA CHỌN TUYỂN THỦ THỰC HIỆN */}
             <div className="bg-zinc-900/60 border border-white/10 rounded-3xl p-5 sm:p-6 shadow-xl backdrop-blur-md space-y-4">
               <div className="flex items-center justify-between">
                 <div>
@@ -565,7 +895,7 @@ function ServiceBookingContent() {
                     </Link>
                   </div>
 
-                  {/* Nút Mở Modal Đổi Tuyển Thủ Chuẩn UI/UX */}
+                  {/* Nút Mở Modal Đổi Tuyển Thủ */}
                   <div className="pt-2.5 border-t border-zinc-900 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                     <span className="text-[11px] text-zinc-400">
                       Muốn tuyển thủ khác cày đơn này?
@@ -583,99 +913,215 @@ function ServiceBookingContent() {
               )}
             </div>
 
-            <div className="bg-zinc-900/60 border border-white/10 rounded-3xl p-6 sm:p-7 shadow-xl backdrop-blur-md space-y-5">
-              {/* 2. Rank Hiện Tại & Rank Mong Muốn */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="text-xs font-bold text-zinc-300 block mb-2">
-                    Rank hiện tại <span className="text-red-500">*</span>
+            {/* 2. KHỐI THIẾT KẾ MỚI: VISUAL RANK SELECTOR & CẤU HÌNH THÔNG SỐ */}
+            <div className="bg-zinc-900/60 border border-white/10 rounded-3xl p-6 sm:p-7 shadow-xl backdrop-blur-md space-y-6">
+              {/* LỘ TRÌNH RANK TƯƠNG TÁC (THAY THẾ HOÀN TOÀN DROPDOWN CŨ) */}
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <label className="text-xs font-bold text-zinc-300 flex items-center gap-2">
+                    <Trophy size={14} className="text-amber-400" />
+                    <span>Lộ trình Cày Rank (Sắt IV → Cao Thủ)</span>
+                    <span className="text-red-500">*</span>
                   </label>
-                  <select
-                    value={currentRankId}
-                    onChange={(e) => setCurrentRankId(e.target.value)}
-                    className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3.5 py-2.5 text-sm text-white font-medium focus:border-blue-500 outline-none transition-all shadow-inner"
-                  >
-                    {LOL_RANK_STEPS.slice(0, -1).map((r) => (
-                      <option key={r.id} value={r.id}>
-                        {r.label}
-                      </option>
-                    ))}
-                  </select>
+                  <span className="text-[11px] text-blue-400 font-semibold">
+                    Nhấn vào thẻ để đổi rank
+                  </span>
                 </div>
 
-                <div>
-                  <label className="text-xs font-bold text-zinc-300 block mb-2">
-                    Rank mong muốn <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    value={desiredRankId}
-                    onChange={(e) => setDesiredRankId(e.target.value)}
-                    className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3.5 py-2.5 text-sm text-white font-medium focus:border-blue-500 outline-none transition-all shadow-inner"
+                <div className="grid grid-cols-1 md:grid-cols-11 gap-3 items-center">
+                  {/* Card Rank Hiện Tại */}
+                  <div
+                    onClick={() => handleOpenRankModal('CURRENT')}
+                    className={`md:col-span-5 p-4 rounded-2xl border transition-all cursor-pointer group relative overflow-hidden bg-gradient-to-br ${currentTierMeta.bgGradient} ${currentTierMeta.borderColor} hover:border-blue-400/80 hover:shadow-lg hover:shadow-blue-500/10 active:scale-[0.99]`}
                   >
-                    {LOL_RANK_STEPS.slice(1).map((r) => (
-                      <option key={r.id} value={r.id}>
-                        {r.label}
-                      </option>
-                    ))}
-                  </select>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-[10px] uppercase font-bold tracking-wider text-zinc-400 flex items-center gap-1">
+                        <span>Rank Hiện Tại</span>
+                        <span className="text-red-500">*</span>
+                      </span>
+                      <span className="text-[10px] font-semibold text-blue-400 group-hover:underline">
+                        Thay đổi
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-3.5">
+                      <div className="relative shrink-0 w-14 h-14 rounded-2xl bg-black/40 border border-white/5 flex items-center justify-center p-1.5 shadow-inner">
+                        <img
+                          src={currentTierMeta.image}
+                          alt={currentRankObj.label}
+                          className="w-full h-full object-contain filter drop-shadow-[0_4px_10px_rgba(0,0,0,0.5)] group-hover:scale-110 transition-transform duration-200"
+                        />
+                      </div>
+                      <div className="min-w-0">
+                        <div className={`text-base sm:text-lg font-black tracking-tight ${currentTierMeta.textColor}`}>
+                          {currentRankObj.label}
+                        </div>
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${currentTierMeta.badgeBg}`}>
+                            {currentRankObj.tier === 'MASTER' ? 'Cao Thủ' : `Bậc ${currentRankObj.division}`}
+                          </span>
+                          <span className="text-[11px] text-zinc-400 font-mono">
+                            Mốc #{currentRankIndex + 1}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Icon Chuyển Giao Mũi Tên */}
+                  <div className="md:col-span-1 flex items-center justify-center py-1 md:py-0">
+                    <div className="w-8 h-8 rounded-full bg-blue-500/15 border border-blue-500/30 text-blue-400 flex items-center justify-center shadow-md">
+                      <ArrowRight size={15} className="rotate-90 md:rotate-0" />
+                    </div>
+                  </div>
+
+                  {/* Card Rank Mong Muốn */}
+                  <div
+                    onClick={() => handleOpenRankModal('DESIRED')}
+                    className={`md:col-span-5 p-4 rounded-2xl border transition-all cursor-pointer group relative overflow-hidden bg-gradient-to-br ${desiredTierMeta.bgGradient} ${desiredTierMeta.borderColor} hover:border-emerald-400/80 hover:shadow-lg hover:shadow-emerald-500/10 active:scale-[0.99]`}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-[10px] uppercase font-bold tracking-wider text-zinc-400 flex items-center gap-1">
+                        <span>Rank Mong Muốn</span>
+                        <span className="text-red-500">*</span>
+                      </span>
+                      <span className="text-[10px] font-semibold text-emerald-400 group-hover:underline">
+                        Thay đổi
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-3.5">
+                      <div className="relative shrink-0 w-14 h-14 rounded-2xl bg-black/40 border border-white/5 flex items-center justify-center p-1.5 shadow-inner">
+                        <img
+                          src={desiredTierMeta.image}
+                          alt={desiredRankObj.label}
+                          className="w-full h-full object-contain filter drop-shadow-[0_4px_10px_rgba(0,0,0,0.5)] group-hover:scale-110 transition-transform duration-200"
+                        />
+                      </div>
+                      <div className="min-w-0">
+                        <div className={`text-base sm:text-lg font-black tracking-tight ${desiredTierMeta.textColor}`}>
+                          {desiredRankObj.label}
+                        </div>
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${desiredTierMeta.badgeBg}`}>
+                            {desiredRankObj.tier === 'MASTER' ? 'Cao Thủ' : `Bậc ${desiredRankObj.division}`}
+                          </span>
+                          <span className="text-[11px] text-emerald-400 font-bold">
+                            +{calculation.stepsCount} bậc nhảy
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              {/* 2. Điểm cộng mỗi ván & Loại xếp hạng */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="text-xs font-bold text-zinc-300 block mb-2 flex items-center gap-1.5">
-                    <span>Điểm cộng mỗi ván</span>
+              {/* ĐIỂM CỘNG MỖI VÁN (LP GAIN) - CẤU HÌNH HỆ SỐ TRỰC QUAN */}
+              <div>
+                <div className="flex items-center justify-between mb-2.5">
+                  <label className="text-xs font-bold text-zinc-300 flex items-center gap-1.5">
+                    <span>Điểm cộng mỗi ván (LP Gain)</span>
                     <Info size={13} className="text-blue-400" />
                     <span className="text-red-500">*</span>
                   </label>
-                  <select
-                    value={lpGain}
-                    onChange={(e) => setLpGain(e.target.value)}
-                    className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3.5 py-2.5 text-sm text-white font-medium focus:border-blue-500 outline-none transition-all shadow-inner"
-                  >
-                    <option value="25_PLUS">25 trở lên</option>
-                    <option value="20_24">20 - 24</option>
-                    <option value="15_19">15 - 19</option>
-                    <option value="UNDER_15">Dưới 15</option>
-                  </select>
+                  <span className="text-[11px] text-zinc-400">
+                    Ảnh hưởng trực tiếp đến tổng giá cày
+                  </span>
                 </div>
 
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                  {LP_GAIN_OPTIONS.map((opt) => {
+                    const isSelected = lpGain === opt.id;
+                    return (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => setLpGain(opt.id)}
+                        className={`p-3 rounded-2xl border text-left transition-all relative ${
+                          isSelected
+                            ? 'bg-blue-600/15 border-blue-500 ring-1 ring-blue-500/50 shadow-md'
+                            : 'bg-zinc-950/60 border-zinc-800/80 hover:border-zinc-700 hover:bg-zinc-900/40'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between mb-1.5">
+                          <span className="font-bold text-xs sm:text-sm text-white">
+                            {opt.label}
+                          </span>
+                          <span className={`text-[10px] font-extrabold px-1.5 py-0.5 rounded border ${opt.badgeClass}`}>
+                            {opt.discountLabel}
+                          </span>
+                        </div>
+                        <div className="text-[10px] text-zinc-400 line-clamp-1">
+                          {opt.desc}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* LOẠI HÀNG ĐỢI & CHỌN SERVER */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Loại Hàng Đợi */}
                 <div>
                   <label className="text-xs font-bold text-zinc-300 block mb-2">
                     Loại xếp hạng <span className="text-red-500">*</span>
                   </label>
-                  <select
-                    value={queueType}
-                    onChange={(e) => setQueueType(e.target.value)}
-                    className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3.5 py-2.5 text-sm text-white font-medium focus:border-blue-500 outline-none transition-all shadow-inner"
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setQueueType('SOLO_DUO')}
+                      className={`py-2.5 px-3 rounded-xl border text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+                        queueType === 'SOLO_DUO'
+                          ? 'bg-blue-600/20 border-blue-500 text-blue-300 ring-1 ring-blue-500/40'
+                          : 'bg-zinc-950 border-zinc-800 text-zinc-400 hover:text-white'
+                      }`}
+                    >
+                      <Swords size={13} />
+                      <span>Đơn / Đôi</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setQueueType('FLEX')}
+                      className={`py-2.5 px-3 rounded-xl border text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+                        queueType === 'FLEX'
+                          ? 'bg-blue-600/20 border-blue-500 text-blue-300 ring-1 ring-blue-500/40'
+                          : 'bg-zinc-950 border-zinc-800 text-zinc-400 hover:text-white'
+                      }`}
+                    >
+                      <Users size={13} />
+                      <span>Linh Hoạt (Flex)</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Chọn Server (Modal Popup giữa màn hình) */}
+                <div>
+                  <label className="text-xs font-bold text-zinc-300 block mb-2 flex items-center justify-between">
+                    <span>Chọn Máy Chủ (Server) <span className="text-red-500">*</span></span>
+                    <span className="text-[11px] text-blue-400 cursor-pointer font-semibold" onClick={() => setIsServerModalOpen(true)}>
+                      16 máy chủ
+                    </span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setIsServerModalOpen(true)}
+                    className="w-full bg-zinc-950 border border-zinc-800 hover:border-zinc-700 rounded-xl px-3.5 py-2.5 text-xs text-white font-medium flex items-center justify-between transition-all group shadow-inner"
                   >
-                    <option value="SOLO_DUO">Đơn / Đôi</option>
-                    <option value="FLEX">Linh Hoạt (Flex)</option>
-                  </select>
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <span className="text-base shrink-0">{currentServerObj.flag}</span>
+                      <span className="font-bold truncate text-white">{currentServerObj.name}</span>
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-400 font-mono">
+                        {currentServerObj.code} · {currentServerObj.platformId}
+                      </span>
+                    </div>
+                    <ChevronDown size={14} className="text-zinc-500 group-hover:text-white shrink-0 ml-1 transition-colors" />
+                  </button>
                 </div>
               </div>
 
-              {/* 3. Chọn Server */}
-              <div>
-                <label className="text-xs font-bold text-zinc-300 block mb-2">
-                  Chọn Server <span className="text-red-500">*</span>
-                </label>
-                <select
-                  value={server}
-                  onChange={(e) => setServer(e.target.value)}
-                  className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3.5 py-2.5 text-sm text-white font-medium focus:border-blue-500 outline-none transition-all shadow-inner"
-                >
-                  <option value="VN">Việt Nam</option>
-                  <option value="KR">Hàn Quốc (KR)</option>
-                  <option value="SEA">Đông Nam Á (SEA)</option>
-                  <option value="EUW">Tây Âu (EUW)</option>
-                  <option value="NA">Bắc Mỹ (NA)</option>
-                </select>
-              </div>
-
-              {/* 4. Tùy chọn mở rộng (Addons Checkboxes y hệt mẫu) */}
-              <div className="pt-2">
+              {/* 3. TÙY CHỌN MỞ RỘNG (ADDONS) */}
+              <div className="pt-2 border-t border-zinc-800/80">
                 <span className="text-xs font-bold text-zinc-300 block mb-3 uppercase tracking-wider">
                   Tùy chọn mở rộng
                 </span>
@@ -833,25 +1279,29 @@ function ServiceBookingContent() {
                 </div>
               </div>
 
-              {/* 5. Thông tin tài khoản cần cày */}
-              <div className="pt-2">
+              {/* 4. THÔNG TIN TÀI KHOẢN CẦN CÀY (MODAL POPUP LOẠI TÀI KHOẢN) */}
+              <div className="pt-2 border-t border-zinc-800/80">
                 <span className="text-xs font-bold text-zinc-300 block mb-3 uppercase tracking-wider">
                   Thông tin tài khoản cần cày
                 </span>
 
                 <div className="grid grid-cols-1 sm:grid-cols-12 gap-3">
-                  <div className="sm:col-span-3">
+                  {/* Nút Chọn Loại Tài Khoản (Modal Popup) */}
+                  <div className="sm:col-span-4">
                     <label className="text-xs font-semibold text-zinc-400 block mb-1">
-                      Tài khoản <span className="text-red-500">*</span>
+                      Loại Tài Khoản <span className="text-red-500">*</span>
                     </label>
-                    <select
-                      value={accountType}
-                      onChange={(e) => setAccountType(e.target.value as any)}
-                      className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-white outline-none"
+                    <button
+                      type="button"
+                      onClick={() => setIsAccountTypeModalOpen(true)}
+                      className="w-full bg-zinc-950 border border-zinc-800 hover:border-zinc-700 rounded-xl px-3 py-2.5 text-xs text-white flex items-center justify-between transition-colors shadow-inner group"
                     >
-                      <option value="Riot">Riot</option>
-                      <option value="Garena">Garena</option>
-                    </select>
+                      <div className="flex items-center gap-2 truncate">
+                        <ProviderLogo provider={accountType} className="w-4 h-4 shrink-0" />
+                        <span className="font-bold truncate text-white">{currentAccountTypeObj.name}</span>
+                      </div>
+                      <ChevronDown size={13} className="text-zinc-500 group-hover:text-white shrink-0 ml-1 transition-colors" />
+                    </button>
                   </div>
 
                   <div className="sm:col-span-4">
@@ -860,14 +1310,14 @@ function ServiceBookingContent() {
                     </label>
                     <input
                       type="text"
-                      placeholder="Điền tên đăng nhập"
+                      placeholder="Tên đăng nhập / Riot ID"
                       value={ingameAccount}
                       onChange={(e) => setIngameAccount(e.target.value)}
-                      className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-white placeholder-zinc-500 outline-none focus:border-blue-500"
+                      className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-white placeholder-zinc-500 outline-none focus:border-blue-500 transition-colors"
                     />
                   </div>
 
-                  <div className="sm:col-span-5">
+                  <div className="sm:col-span-4">
                     <label className="text-xs font-semibold text-zinc-400 block mb-1">
                       Mật khẩu tài khoản <span className="text-red-500">*</span>
                     </label>
@@ -876,7 +1326,7 @@ function ServiceBookingContent() {
                       placeholder="Điền mật khẩu"
                       value={ingamePassword}
                       onChange={(e) => setIngamePassword(e.target.value)}
-                      className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-white placeholder-zinc-500 outline-none focus:border-blue-500"
+                      className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-white placeholder-zinc-500 outline-none focus:border-blue-500 transition-colors"
                     />
                   </div>
                 </div>
@@ -887,10 +1337,10 @@ function ServiceBookingContent() {
                   </label>
                   <textarea
                     rows={2}
-                    placeholder="Ví dụ: Chỉ cày vào buổi tối sau 20h, không dùng IP lạ..."
+                    placeholder="Ví dụ: Chỉ cày vào buổi tối sau 20h, không dùng IP lạ, chat với bạn bè..."
                     value={orderNote}
                     onChange={(e) => setOrderNote(e.target.value)}
-                    className="w-full bg-zinc-950 border border-zinc-800 rounded-xl p-3 text-xs text-white placeholder-zinc-500 outline-none focus:border-blue-500"
+                    className="w-full bg-zinc-950 border border-zinc-800 rounded-xl p-3 text-xs text-white placeholder-zinc-500 outline-none focus:border-blue-500 transition-colors"
                   />
                 </div>
               </div>
@@ -911,9 +1361,10 @@ function ServiceBookingContent() {
               <div className="p-3.5 rounded-2xl bg-zinc-950/80 border border-white/5 space-y-2 text-xs">
                 <div className="flex justify-between text-zinc-300">
                   <span>Lộ trình:</span>
-                  <span className="font-bold text-white">
-                    {LOL_RANK_STEPS.find((r) => r.id === currentRankId)?.label} →{' '}
-                    {LOL_RANK_STEPS.find((r) => r.id === desiredRankId)?.label}
+                  <span className="font-bold text-white flex items-center gap-1.5">
+                    <span className={currentTierMeta.textColor}>{currentRankObj.label}</span>
+                    <span>→</span>
+                    <span className={desiredTierMeta.textColor}>{desiredRankObj.label}</span>
                   </span>
                 </div>
                 <div className="flex justify-between text-zinc-400">
@@ -923,8 +1374,27 @@ function ServiceBookingContent() {
                   </span>
                 </div>
                 <div className="flex justify-between text-zinc-400">
-                  <span>Máy chủ:</span>
-                  <span className="text-zinc-200">{server}</span>
+                  <span>Máy chủ (Server):</span>
+                  <span className="text-zinc-200 flex items-center gap-1">
+                    <span>{currentServerObj.flag}</span>
+                    <span>{currentServerObj.name} ({currentServerObj.code})</span>
+                  </span>
+                </div>
+                <div className="flex justify-between text-zinc-400">
+                  <span>Điểm cộng / ván:</span>
+                  <span className="text-zinc-200 flex items-center gap-1">
+                    <span>{LP_GAIN_OPTIONS.find((o) => o.id === lpGain)?.label}</span>
+                    <span className={`text-[10px] font-bold px-1 rounded ${LP_GAIN_OPTIONS.find((o) => o.id === lpGain)?.badgeClass}`}>
+                      {LP_GAIN_OPTIONS.find((o) => o.id === lpGain)?.discountLabel}
+                    </span>
+                  </span>
+                </div>
+                <div className="flex justify-between text-zinc-400">
+                  <span>Loại tài khoản:</span>
+                  <span className="text-zinc-200 flex items-center gap-1.5">
+                    <ProviderLogo provider={accountType} className="w-3.5 h-3.5" />
+                    <span>{currentAccountTypeObj.name}</span>
+                  </span>
                 </div>
               </div>
 
@@ -1020,7 +1490,7 @@ function ServiceBookingContent() {
           </div>
         </div>
 
-        {/* STICKY BOTTOM CHECKOUT BAR (Mobile Only - Giải quyết triệt để vấn đề cuộn mỏi tay trên điện thoại) */}
+        {/* STICKY BOTTOM CHECKOUT BAR (Mobile Only) */}
         <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-zinc-950/95 backdrop-blur-xl border-t border-zinc-800 p-3 sm:p-4 shadow-[0_-10px_30px_rgba(0,0,0,0.8)]">
           <div className="flex items-center justify-between gap-3 max-w-md mx-auto">
             <div>
@@ -1053,7 +1523,417 @@ function ServiceBookingContent() {
           </div>
         </div>
 
-        {/* MODAL POPUP CHỌN BOOSTER GIỮA MÀN HÌNH CHUẨN UI/UX */}
+        {/* ========================================================================= */}
+        {/* MODAL 1: VISUAL RANK PICKER MODAL (CHỌN TỪ SẮT IV ĐẾN CAO THỦ)           */}
+        {/* ========================================================================= */}
+        {isRankModalOpen && (
+          <div
+            className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200"
+            onClick={() => setIsRankModalOpen(false)}
+          >
+            <div
+              className="bg-[#0e1017] border border-white/10 rounded-3xl p-5 sm:p-6 max-w-xl w-full shadow-2xl space-y-4 animate-in zoom-in-95 duration-150 relative max-h-[92vh] flex flex-col"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header Modal */}
+              <div className="flex items-center justify-between pb-3 border-b border-zinc-800/80 shrink-0">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-blue-500/20 text-blue-400 border border-blue-500/30 flex items-center justify-center">
+                    <Trophy size={18} />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-extrabold text-white">
+                      {rankModalTarget === 'CURRENT' ? 'Chọn Rank Hiện Tại' : 'Chọn Rank Mong Muốn'}
+                    </h3>
+                    <p className="text-xs text-zinc-400">
+                      Phạm vi cày dịch vụ từ Sắt IV đến Cao Thủ
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsRankModalOpen(false)}
+                  className="w-8 h-8 rounded-xl bg-zinc-800/80 hover:bg-zinc-700 text-zinc-400 hover:text-white flex items-center justify-center transition-colors"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              {/* Scroll Content */}
+              <div className="overflow-y-auto space-y-4 pr-1 flex-1">
+                {/* 1. Chọn Tier Lớn */}
+                <div>
+                  <span className="text-xs font-bold text-zinc-300 block mb-2">
+                    1. Chọn Hạng (Tier):
+                  </span>
+                  <div className="grid grid-cols-4 gap-2 sm:gap-2.5">
+                    {Object.entries(TIER_CONFIG).map(([tierKey, meta]) => {
+                      // Nếu chọn rank hiện tại: Không cho chọn Master
+                      if (rankModalTarget === 'CURRENT' && tierKey === 'MASTER') return null;
+
+                      const isSelected = tempTier === tierKey;
+                      return (
+                        <button
+                          key={tierKey}
+                          type="button"
+                          onClick={() => {
+                            setTempTier(tierKey);
+                            if (tierKey === 'MASTER') {
+                              setTempDivision('');
+                            } else if (!tempDivision) {
+                              setTempDivision('IV');
+                            }
+                          }}
+                          className={`p-2.5 sm:p-3 rounded-2xl border text-center transition-all flex flex-col items-center gap-1.5 relative ${
+                            isSelected
+                              ? `${meta.activeBorder} ${meta.bgGradient} ${meta.glowClass}`
+                              : 'bg-zinc-950/60 border-zinc-800/80 hover:border-zinc-700 hover:bg-zinc-900/60'
+                          }`}
+                        >
+                          <div className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center">
+                            <img
+                              src={meta.image}
+                              alt={meta.name}
+                              className="w-full h-full object-contain filter drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)]"
+                            />
+                          </div>
+                          <span className={`text-xs font-bold ${isSelected ? meta.textColor : 'text-zinc-300'}`}>
+                            {meta.name}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* 2. Chọn Bậc (Division) */}
+                {tempTier !== 'MASTER' ? (
+                  <div>
+                    <span className="text-xs font-bold text-zinc-300 block mb-2">
+                      2. Chọn Phân Bậc (Division):
+                    </span>
+                    <div className="grid grid-cols-4 gap-2">
+                      {DIVISIONS.map((div) => {
+                        const stepId = `${tempTier}_${div}`;
+                        const stepIdx = LOL_RANK_STEPS.findIndex((r) => r.id === stepId);
+                        // Nếu là rank mong muốn, không cho chọn bậc <= rank hiện tại
+                        const isDisabled = rankModalTarget === 'DESIRED' && stepIdx <= currentRankIndex;
+                        const isSelected = tempDivision === div;
+
+                        return (
+                          <button
+                            key={div}
+                            type="button"
+                            disabled={isDisabled}
+                            onClick={() => setTempDivision(div)}
+                            className={`py-3 px-2 rounded-xl border text-center transition-all flex flex-col items-center justify-center gap-1 ${
+                              isDisabled
+                                ? 'bg-zinc-950/30 border-zinc-900 opacity-40 cursor-not-allowed text-zinc-600'
+                                : isSelected
+                                ? 'bg-blue-600 border-blue-400 text-white shadow-lg shadow-blue-600/30 ring-1 ring-blue-300'
+                                : 'bg-zinc-950 border-zinc-800 text-zinc-300 hover:border-zinc-700 hover:bg-zinc-900'
+                            }`}
+                          >
+                            <span className="text-sm font-extrabold font-mono tracking-wider">
+                              Bậc {div}
+                            </span>
+                            {isDisabled && (
+                              <span className="text-[9px] text-zinc-500">Thấp hơn</span>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-3.5 rounded-2xl bg-purple-950/20 border border-purple-500/30 text-purple-300 text-xs flex items-center gap-2.5">
+                    <Crown size={18} className="shrink-0 text-purple-400" />
+                    <span>
+                      <strong>Cao Thủ:</strong> Mốc rank đích cao nhất trong bảng giá leo rank theo bậc.
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* Footer Preview & Confirm */}
+              <div className="pt-3 border-t border-zinc-800/80 flex items-center justify-between shrink-0">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-zinc-400">Đang chọn:</span>
+                  <span className="text-sm font-black text-white">
+                    {tempTier === 'MASTER'
+                      ? 'Cao Thủ'
+                      : `${TIER_CONFIG[tempTier]?.name || tempTier} ${tempDivision}`}
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsRankModalOpen(false)}
+                    className="px-3.5 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-xs font-bold text-zinc-300 transition-colors"
+                  >
+                    Hủy
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleConfirmRank}
+                    className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-xs font-bold text-white shadow-md shadow-blue-600/30 transition-all active:scale-95"
+                  >
+                    Xác Nhận
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================================= */}
+        {/* MODAL 2: CHỌN MÁY CHỦ (SERVER POPUP GIỮA MÀN HÌNH)                       */}
+        {/* ========================================================================= */}
+        {isServerModalOpen && (
+          <div
+            className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200"
+            onClick={() => {
+              setIsServerModalOpen(false);
+              setServerSearchTerm('');
+            }}
+          >
+            <div
+              className="bg-[#0e1017] border border-white/10 rounded-3xl p-5 sm:p-6 max-w-xl w-full shadow-2xl space-y-4 animate-in zoom-in-95 duration-150 relative max-h-[90vh] flex flex-col"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between pb-3 border-b border-zinc-800/80 shrink-0">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-blue-500/20 text-blue-400 border border-blue-500/30 flex items-center justify-center">
+                    <Globe size={18} />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-extrabold text-white">Chọn Máy Chủ (Server)</h3>
+                    <p className="text-xs text-zinc-400">
+                      Mặc định là Vietnam (VN) · Hỗ trợ toàn bộ 16 máy chủ toàn cầu
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsServerModalOpen(false);
+                    setServerSearchTerm('');
+                  }}
+                  className="w-8 h-8 rounded-xl bg-zinc-800/80 hover:bg-zinc-700 text-zinc-400 hover:text-white flex items-center justify-center transition-colors"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              {/* Search Box */}
+              <div className="relative shrink-0">
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-500 w-4 h-4" />
+                <input
+                  type="text"
+                  placeholder="Tìm theo tên máy chủ (Vietnam, Korea, NA...) hoặc mã VN, KR, EUW..."
+                  value={serverSearchTerm}
+                  onChange={(e) => setServerSearchTerm(e.target.value)}
+                  className="w-full bg-zinc-950 border border-zinc-800 rounded-2xl pl-10 pr-4 py-2.5 text-xs sm:text-sm text-white placeholder-zinc-500 outline-none focus:border-blue-500 transition-colors"
+                  autoFocus
+                />
+              </div>
+
+              {/* Region Filter Chips */}
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none shrink-0">
+                {serverRegions.map((reg) => (
+                  <button
+                    key={reg}
+                    type="button"
+                    onClick={() => setServerRegionFilter(reg)}
+                    className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold whitespace-nowrap transition-colors ${
+                      serverRegionFilter === reg
+                        ? 'bg-blue-600 text-white font-bold'
+                        : 'bg-zinc-950 border border-zinc-800 text-zinc-400 hover:text-white'
+                    }`}
+                  >
+                    {reg === 'ALL' ? 'Tất cả khu vực' : reg}
+                  </button>
+                ))}
+              </div>
+
+              {/* Server Grid Scrollable */}
+              <div className="overflow-y-auto space-y-2 pr-1 flex-1 min-h-[220px] max-h-[360px]">
+                {filteredServers.length > 0 ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {filteredServers.map((s) => {
+                      const isSelected = server === s.code;
+                      return (
+                        <div
+                          key={s.code}
+                          onClick={() => {
+                            setServer(s.code);
+                            setIsServerModalOpen(false);
+                            setServerSearchTerm('');
+                            toast.success(`Đã chọn máy chủ ${s.name} (${s.code})`);
+                          }}
+                          className={`p-3 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${
+                            isSelected
+                              ? 'bg-blue-950/40 border-blue-500 ring-1 ring-blue-500/50 shadow-md'
+                              : 'bg-zinc-950/60 hover:bg-zinc-900 border-zinc-800/80 hover:border-zinc-700'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <span className="text-xl shrink-0">{s.flag}</span>
+                            <div className="min-w-0">
+                              <div className="font-extrabold text-xs sm:text-sm text-white truncate">
+                                {s.name}
+                              </div>
+                              <div className="text-[11px] text-zinc-400 font-mono truncate">
+                                {s.code} · {s.platformId} ({s.region})
+                              </div>
+                            </div>
+                          </div>
+
+                          {isSelected ? (
+                            <span className="w-6 h-6 rounded-full bg-blue-500 text-white flex items-center justify-center shrink-0">
+                              <Check size={14} />
+                            </span>
+                          ) : (
+                            <span className="text-xs text-zinc-500 hover:text-blue-400 font-semibold shrink-0">
+                              Chọn
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="py-12 text-center text-zinc-500 space-y-2">
+                    <Search className="w-8 h-8 mx-auto text-zinc-600" />
+                    <p className="text-xs">Không tìm thấy máy chủ nào khớp với "{serverSearchTerm}"</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Footer */}
+              <div className="pt-3 border-t border-zinc-800/80 flex items-center justify-between text-[11px] text-zinc-400 shrink-0">
+                <span>{filteredServers.length} máy chủ sẵn sàng</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsServerModalOpen(false);
+                    setServerSearchTerm('');
+                  }}
+                  className="text-xs text-zinc-400 hover:text-white font-medium"
+                >
+                  Đóng
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================================= */}
+        {/* MODAL 3: CHỌN LOẠI TÀI KHOẢN (RIOT, FACEBOOK, GOOGLE, APPLE, XBOX, PS)  */}
+        {/* ========================================================================= */}
+        {isAccountTypeModalOpen && (
+          <div
+            className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200"
+            onClick={() => setIsAccountTypeModalOpen(false)}
+          >
+            <div
+              className="bg-[#0e1017] border border-white/10 rounded-3xl p-5 sm:p-6 max-w-lg w-full shadow-2xl space-y-4 animate-in zoom-in-95 duration-150 relative max-h-[90vh] flex flex-col"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between pb-3 border-b border-zinc-800/80 shrink-0">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-purple-500/20 text-purple-400 border border-purple-500/30 flex items-center justify-center">
+                    <Lock size={18} />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-extrabold text-white">Chọn Loại Tài Khoản</h3>
+                    <p className="text-xs text-zinc-400">
+                      Chọn nền tảng tài khoản bạn dùng để đăng nhập vào game
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsAccountTypeModalOpen(false)}
+                  className="w-8 h-8 rounded-xl bg-zinc-800/80 hover:bg-zinc-700 text-zinc-400 hover:text-white flex items-center justify-center transition-colors"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              {/* Provider Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 overflow-y-auto py-1">
+                {ACCOUNT_TYPES.map((acc) => {
+                  const isSelected = accountType === acc.id;
+                  return (
+                    <div
+                      key={acc.id}
+                      onClick={() => {
+                        setAccountType(acc.id);
+                        setIsAccountTypeModalOpen(false);
+                        toast.success(`Đã chọn loại tài khoản ${acc.name}`);
+                      }}
+                      className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${
+                        isSelected
+                          ? 'bg-purple-950/30 border-purple-500 ring-1 ring-purple-500/50 shadow-md'
+                          : 'bg-zinc-950/60 hover:bg-zinc-900 border-zinc-800/80 hover:border-zinc-700'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-10 h-10 rounded-xl bg-zinc-900 border border-zinc-800 flex items-center justify-center shrink-0">
+                          <ProviderLogo provider={acc.id} className="w-5 h-5" />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-extrabold text-white text-xs sm:text-sm">
+                              {acc.name}
+                            </span>
+                            {acc.badge && (
+                              <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-red-500/10 text-red-400 border border-red-500/20">
+                                {acc.badge}
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-[11px] text-zinc-400 line-clamp-1 mt-0.5">
+                            {acc.desc}
+                          </div>
+                        </div>
+                      </div>
+
+                      {isSelected && (
+                        <span className="w-6 h-6 rounded-full bg-purple-500 text-white flex items-center justify-center shrink-0">
+                          <Check size={14} />
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Footer */}
+              <div className="pt-3 border-t border-zinc-800/80 flex items-center justify-between text-[11px] text-zinc-400 shrink-0">
+                <span className="flex items-center gap-1.5">
+                  <Shield size={12} className="text-emerald-400" />
+                  <span>Bảo mật thông tin đăng nhập tuyệt đối</span>
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setIsAccountTypeModalOpen(false)}
+                  className="text-xs text-zinc-400 hover:text-white font-medium"
+                >
+                  Đóng
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================================= */}
+        {/* MODAL 4: CHỌN BOOSTER                                                     */}
+        {/* ========================================================================= */}
         {isBoosterModalOpen && (
           <div
             className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200"
