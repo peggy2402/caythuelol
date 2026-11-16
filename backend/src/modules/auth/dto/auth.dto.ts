@@ -55,10 +55,15 @@ export class ResetPasswordDto {
 }
 
 export class ChangePasswordDto {
-  @ApiProperty({ example: 'OldPassword123' })
+  @ApiPropertyOptional({ example: 'OldPassword123' })
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
-  oldPassword: string;
+  oldPassword?: string;
+
+  @ApiPropertyOptional({ example: 'OldPassword123' })
+  @IsOptional()
+  @IsString()
+  currentPassword?: string;
 
   @ApiProperty({ example: 'NewPassword123' })
   @IsString()

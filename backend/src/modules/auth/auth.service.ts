@@ -379,7 +379,16 @@ export class AuthService {
   }
 
   async changePassword(userId: string, dto: ChangePasswordDto) {
-    const { oldPassword, newPassword } = dto;
+    const oldPassword = dto.oldPassword || dto.currentPassword;
+    if (!oldPassword) {
+      throw new BadRequestException('Vui lòng nhập mật khẩu hiện tại');
+    }
+
+    const { newPassword } = dto;
+    if (!newPassword || typeof newPassword !== 'string' || newPassword.length < 6) {
+      throw new BadRequestException('Mật khẩu mới phải có ít nhất 6 ký tự');
+    }
+
     const user = await this.userModel.findById(userId).select('+password_hash');
     if (!user) {
       throw new NotFoundException('Người dùng không tồn tại');

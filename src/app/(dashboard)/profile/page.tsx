@@ -446,17 +446,30 @@ export default function ProfilePage() {
       }
       setIsChangingPassword(true);
       try {
+          const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
           const res = await fetch('/api/auth/change-password', {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ currentPassword, newPassword }),
+              headers: {
+                  'Content-Type': 'application/json',
+                  ...(token ? { Authorization: `Bearer ${token}` } : {}),
+              },
+              body: JSON.stringify({
+                  currentPassword,
+                  oldPassword: currentPassword,
+                  newPassword,
+              }),
           });
           const data = await res.json();
-          if (!res.ok) throw new Error(data.error);
+          if (!res.ok) {
+              const errMsg = Array.isArray(data.message)
+                  ? data.message[0]
+                  : (data.message || data.error);
+              throw new Error(errMsg);
+          }
           toast.success(t('passwordChangeSuccess'));
           setCurrentPassword(''); setNewPassword(''); setConfirmNewPassword('');
       } catch (error: any) {
-          toast.error(t(error.message as any) || t('passwordChangeFailed'));
+          toast.error(error.message || t('passwordChangeFailed'));
       } finally {
           setIsChangingPassword(false);
       }
