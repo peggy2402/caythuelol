@@ -694,7 +694,7 @@ export class BoostersService {
       bio: body.bio || user.booster_info?.bio || 'Tuyển thủ cày thuê uy tín',
       ingame_name: body.ingameName || user.username,
       main_games: body.mainGames && body.mainGames.length > 0 ? body.mainGames : ['lol'],
-      rating: 5.0,
+      rating: 0,
       completed_orders: 0,
       isReady: true,
       service_settings: user.booster_info?.service_settings || DEFAULT_SERVICE_SETTINGS,

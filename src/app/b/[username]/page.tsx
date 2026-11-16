@@ -68,9 +68,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!data?.user) return { title: 'Booster Not Found' };
 
   const { user, boosterData } = data;
-  const statsText = boosterData?.rating
-    ? `⭐ ${boosterData.rating.toFixed(1)} (${boosterData.completed_orders || 0} đơn)`
-    : '';
+  const rating = typeof boosterData?.rating === 'number' && boosterData.rating > 0 ? boosterData.rating : 0;
+  const completedOrders = boosterData?.completed_orders || 0;
+
+  const statsText = rating > 0
+    ? `⭐ ${rating.toFixed(1)} (${completedOrders} đơn)`
+    : `⭐ 0/0 (${completedOrders} đơn)`;
 
   return {
     title: `${user.username} ${statsText} - Booster Chuyên Nghiệp | LeoRank`,
