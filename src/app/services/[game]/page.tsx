@@ -49,6 +49,15 @@ const ICON_MAP: Record<string, LucideIcon> = {
   Shield,
 };
 
+const AVATAR_BG_COLORS = [
+  'bg-white text-zinc-950',
+  'bg-emerald-500 text-white',
+  'bg-amber-500 text-black',
+  'bg-cyan-500 text-black',
+  'bg-purple-500 text-white',
+  'bg-rose-500 text-white',
+];
+
 interface MarketplaceService {
   id: string;
   gameCode: string;
@@ -320,7 +329,7 @@ function GameServicesContent() {
                 Nhấn vào dịch vụ để xem danh sách tuyển thủ và bảng giá chi tiết
               </p>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
                 {game.defaultServices
                   .filter((s) => {
                     const q = searchTerm.toLowerCase().trim();
@@ -330,19 +339,39 @@ function GameServicesContent() {
                     const IconComp = ICON_MAP[svc.iconName] || Trophy;
                     const isDeposit = svc.depositPercent < 100;
 
+                    // Lọc các Booster nhận cày dịch vụ này
+                    const svcBoosters = boosters.filter((b) => {
+                      const sSettings = (b as any).booster_info?.service_settings || (b as any).service_settings;
+                      if (sSettings?.enabledServices && Array.isArray(sSettings.enabledServices)) {
+                        if (sSettings.enabledServices.includes(svc.slug)) return true;
+                      }
+                      if (sSettings?.servicesConfig && sSettings.servicesConfig[svc.slug]?.isEnabled) {
+                        return true;
+                      }
+                      const bServices = b.services || b.booster_info?.services || [];
+                      if (bServices.includes(svc.slug)) return true;
+                      // Mặc định các booster active của game LOL nhận cày rank
+                      if (svc.slug === 'rank-boost') return true;
+                      return false;
+                    });
+
+                    // Lấy tối đa 3 booster để hiển thị chấm tròn avatar
+                    const displayBoosters = svcBoosters.slice(0, 3);
+                    const remainingCount = svcBoosters.length > 3 ? svcBoosters.length - 3 : (boosters.length > 3 ? boosters.length - 3 : 0);
+
                     return (
                       <Link
                         key={svc.slug}
                         href={`/services/${game.id}/${svc.slug}`}
-                        className="group bg-[#0f1118]/90 hover:bg-[#141724] border border-zinc-800/80 hover:border-zinc-700 rounded-2xl p-4 shadow-xl hover:shadow-2xl transition-all duration-200 flex flex-col justify-between"
+                        className="group bg-[#0c101d] hover:bg-[#11172a] border border-blue-500/30 hover:border-blue-500 rounded-3xl p-5 shadow-xl hover:shadow-[0_0_30px_rgba(59,130,246,0.25)] transition-all duration-300 flex flex-col justify-between"
                       >
                         <div className="space-y-3">
                           <div className="flex items-center justify-between">
-                            <div className="w-9 h-9 rounded-xl bg-zinc-800/60 border border-zinc-700/50 flex items-center justify-center text-blue-400">
-                              <IconComp size={18} />
+                            <div className="w-11 h-11 rounded-2xl bg-blue-500/20 border border-blue-500/30 flex items-center justify-center text-blue-400 shadow-inner">
+                              <IconComp size={22} />
                             </div>
                             <span
-                              className={`text-[11px] font-medium px-2.5 py-0.5 rounded-full border ${
+                              className={`text-[11px] font-bold px-3 py-1 rounded-full border ${
                                 isDeposit
                                   ? 'bg-amber-950/40 text-amber-400 border-amber-500/30'
                                   : 'bg-emerald-950/40 text-emerald-400 border-emerald-500/30'
@@ -353,7 +382,7 @@ function GameServicesContent() {
                           </div>
 
                           <div>
-                            <h3 className="font-bold text-white text-sm tracking-tight group-hover:text-blue-400 transition-colors mb-1">
+                            <h3 className="font-extrabold text-white text-base tracking-tight group-hover:text-blue-400 transition-colors mb-1.5">
                               {svc.name}
                             </h3>
                             <p className="text-zinc-400 text-xs line-clamp-2 leading-relaxed min-h-[34px]">
@@ -362,17 +391,50 @@ function GameServicesContent() {
                           </div>
                         </div>
 
-                        <div className="pt-3 mt-3 border-t border-zinc-800/60 flex items-center justify-between">
-                          <span className="text-xs text-zinc-400 font-medium">
-                            {svc.pricingType === 'PER_UNIT'
-                              ? `${svc.defaultPrice.toLocaleString('vi-VN')} đ / ${svc.unitName || 'Điểm LP'}`
-                              : `Từ ${svc.defaultPrice.toLocaleString('vi-VN')} đ`}
-                          </span>
+                        {/* PHẦN ĐÁY: CHẤM TRÒN AVATAR BOOSTER + SỐ LƯỢNG + MŨI TÊN (Khớp 100% hình vẽ) */}
+                        <div className="pt-3.5 mt-3.5 border-t border-zinc-800/80 flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <div className="flex items-center -space-x-2 overflow-hidden">
+                              {(displayBoosters.length > 0 ? displayBoosters : boosters.slice(0, 3)).map((b, idx) => {
+                                const colorClass = AVATAR_BG_COLORS[idx % AVATAR_BG_COLORS.length];
+                                const initial = (b.displayName || b.username || 'B').slice(0, 1).toUpperCase();
 
-                          <span className="text-xs font-semibold text-zinc-400 group-hover:text-blue-400 flex items-center gap-1 transition-colors">
-                            <span>Chọn dịch vụ</span>
-                            <ArrowRight size={13} />
-                          </span>
+                                return (
+                                  <div
+                                    key={b._id || idx}
+                                    title={b.displayName || b.username || `Tuyển thủ #${idx + 1}`}
+                                    className="relative inline-block w-8 h-8 rounded-full ring-2 ring-[#0c101d] overflow-hidden shrink-0 shadow-md"
+                                  >
+                                    {b.avatar ? (
+                                      <Image
+                                        src={b.avatar}
+                                        alt=""
+                                        width={32}
+                                        height={32}
+                                        className="w-full h-full object-cover"
+                                      />
+                                    ) : (
+                                      <div
+                                        className={`w-full h-full flex items-center justify-center text-xs font-black ${colorClass}`}
+                                      >
+                                        {initial}
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+
+                            {remainingCount > 0 && (
+                              <span className="text-xs font-black text-amber-400 pl-0.5">
+                                +{remainingCount}
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="w-8 h-8 rounded-full bg-white/5 group-hover:bg-blue-600 border border-white/10 group-hover:border-blue-500 flex items-center justify-center text-white transition-all duration-200 group-hover:translate-x-1 shadow-md">
+                            <ArrowRight size={16} />
+                          </div>
                         </div>
                       </Link>
                     );
