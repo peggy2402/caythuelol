@@ -183,6 +183,19 @@ export class BoostersService {
 
     let allServices: any[] = [];
 
+    // Helper chuẩn hóa mã game để match cả LOL/LMHT, TFT/DTCL, AOV/LIENQUAN
+    const normalizeGameCode = (c?: string) => {
+      const code = (c || '').toUpperCase().trim();
+      if (code === 'LMHT' || code === 'LOL') return 'LOL';
+      if (code === 'DTCL' || code === 'TFT') return 'TFT';
+      if (code === 'LIENQUAN' || code === 'AOV') return 'AOV';
+      if (code === 'TOCCHIEN' || code === 'WILDRIFT') return 'WILDRIFT';
+      if (code === 'FCO' || code === 'FCONLINE') return 'FCONLINE';
+      return code;
+    };
+
+    const targetGameCode = query.gameCode ? normalizeGameCode(query.gameCode) : null;
+
     for (const b of boosters) {
       const customServices = b.booster_info?.service_settings?.customServices;
       const coupon = b.booster_info?.service_settings?.coupon || null;
@@ -193,8 +206,11 @@ export class BoostersService {
           if (s.isActive === false) continue;
 
           // Filter by gameCode
-          if (query.gameCode && s.gameCode && s.gameCode.toUpperCase() !== query.gameCode.toUpperCase()) {
-            continue;
+          if (targetGameCode) {
+            const serviceGameCode = normalizeGameCode(s.gameCode);
+            if (serviceGameCode && serviceGameCode !== targetGameCode) {
+              continue;
+            }
           }
 
           // Filter by pricingType

@@ -151,7 +151,7 @@ function GameServicesContent() {
     const fetchServices = async () => {
       setLoadingServices(true);
       try {
-        const gameCode = (game.shortName || game.id).toUpperCase();
+        const gameCode = game.id.toUpperCase();
         const res = await fetch(`/api/boosters/marketplace/services?gameCode=${encodeURIComponent(gameCode)}`);
         if (res.ok) {
           const data = await res.json();
@@ -168,7 +168,7 @@ function GameServicesContent() {
     };
 
     fetchServices();
-  }, [game.id, game.shortName]);
+  }, [game.id]);
 
   // 2. Fetch Boosters cho Game
   useEffect(() => {
@@ -383,26 +383,27 @@ function GameServicesContent() {
                 <p className="text-zinc-400 text-sm">Đang tải danh mục dịch vụ từ tuyển thủ...</p>
               </div>
             ) : groupedServices.length === 0 ? (
-              /* EMPTY STATE: Chưa có tuyển thủ nào cấu hình dịch vụ */
+              /* EMPTY STATE: Chưa có tuyển thủ nào niêm yết dịch vụ */
               <div className="p-8 sm:p-14 rounded-3xl border-2 border-dashed border-zinc-800 bg-zinc-900/30 text-center flex flex-col items-center justify-center gap-4">
                 <div className="w-16 h-16 rounded-3xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 shadow-inner">
                   <Gamepad2 size={32} />
                 </div>
                 <div className="max-w-md">
                   <h3 className="text-base font-bold text-white mb-1">
-                    Hiện chưa có dịch vụ nào cho {game.name}
+                    Hiện chưa có gói dịch vụ nào cho {game.name}
                   </h3>
                   <p className="text-xs text-zinc-400 leading-relaxed">
-                    Chưa có tuyển thủ nào niêm yết gói cày cho tựa game này trên sàn. Nếu bạn là tuyển thủ, hãy vào Studio Dịch Vụ để niêm yết gói cày đầu tiên!
+                    Các tuyển thủ hiện đang cập nhật bảng giá dịch vụ cho tựa game này. Bạn có thể xem danh sách tuyển thủ đang online để thuê trực tiếp hoặc gửi yêu cầu cày thuê!
                   </p>
                 </div>
-                <Link
-                  href="/booster/services"
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('BOOSTERS')}
                   className="mt-2 flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-xs shadow-lg shadow-blue-600/30 transition-all active:scale-95"
                 >
-                  <Sparkles size={16} />
-                  <span>Truy cập Studio Dịch Vụ</span>
-                </Link>
+                  <Users size={16} />
+                  <span>Xem Danh Sách Tuyển Thủ Đang Online</span>
+                </button>
               </div>
             ) : (
               /* HIỂN THỊ LƯỚI CARD KHỚP 100% BẢN VẼ TAY CỦA USER */
