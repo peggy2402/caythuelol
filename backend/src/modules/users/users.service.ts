@@ -110,8 +110,15 @@ export class UsersService {
   }
 
   async getBookmarks(userId: string) {
-    const user = await this.userModel.findById(userId).populate('bookmarks', 'username profile booster_info');
-    return (user as any)?.bookmarks || [];
+    const user = await this.userModel.findById(userId).populate({
+      path: 'bookmarks',
+      select: 'username avatar profile booster_info role isBanned',
+    });
+    const bookmarks = (user as any)?.bookmarks || [];
+    return {
+      success: true,
+      bookmarks,
+    };
   }
 
   async sendFeedback(userId: string | null, feedback: { type: string; content: string; imageUrl?: string }) {

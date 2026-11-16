@@ -74,10 +74,15 @@ export default function BoostersPage() {
   useEffect(() => {
     const fetchBookmarks = async () => {
       try {
-        const res = await fetch('/api/user/bookmarks');
+        const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+        const res = await fetch('/api/user/bookmarks', {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
         if (res.ok) {
           const data = await res.json();
-          setBookmarks(data.bookmarks || []);
+          const raw = Array.isArray(data) ? data : (data.bookmarks || []);
+          const ids = raw.map((item: any) => (typeof item === 'string' ? item : item?._id)).filter(Boolean);
+          setBookmarks(ids);
         }
       } catch (e) {}
     };
@@ -96,9 +101,13 @@ export default function BoostersPage() {
     setBookmarks(newBookmarks);
 
     try {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
       const res = await fetch('/api/user/bookmarks', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({ boosterId }),
       });
       if (!res.ok) {
