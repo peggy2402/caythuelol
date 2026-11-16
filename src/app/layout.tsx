@@ -84,7 +84,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="vi" className="overflow-x-hidden" suppressHydrationWarning>
+    <html lang="vi" className="overflow-x-clip" suppressHydrationWarning>
       <head>
         {process.env.NODE_ENV !== 'production' && (
           <script
@@ -108,7 +108,7 @@ export default function RootLayout({
         )}
       </head>
       <body
-        className={`${beVietnamPro.variable} font-sans antialiased bg-zinc-950 text-white w-full max-w-full overflow-x-hidden`}
+        className={`${beVietnamPro.variable} font-sans antialiased bg-zinc-950 text-white w-full max-w-full overflow-x-clip`}
         suppressHydrationWarning
       >
         <ApiInterceptor />

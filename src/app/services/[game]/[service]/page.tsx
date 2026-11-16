@@ -1376,9 +1376,9 @@ function ServiceBookingContent() {
             </div>
           </div>
 
-          {/* CỘT PHẢI: BẢNG GIÁ TỔNG, CHI TIẾT BƯỚC NHẢY & THANH TOÁN ESCROW */}
-          <div className="lg:col-span-5 space-y-6 lg:sticky lg:top-24">
-            <div className="bg-zinc-900/70 border border-white/10 rounded-3xl p-6 shadow-xl backdrop-blur-md space-y-5">
+          {/* CỘT PHẢI: BẢNG GIÁ TỔNG, CHI TIẾT BƯỚC NHẢY & THANH TOÁN ESCROW (Fixed / Sticky trên Desktop) */}
+          <div className="lg:col-span-5 lg:sticky lg:top-24 self-start space-y-6 z-20">
+            <div className="bg-zinc-900/80 border border-white/10 rounded-3xl p-6 shadow-2xl backdrop-blur-md space-y-5 max-h-[calc(100vh-7.5rem)] overflow-y-auto scrollbar-none">
               <h3 className="text-base font-extrabold text-white flex items-center justify-between">
                 <span>Tóm Tắt Đơn Cày Rank</span>
                 <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">
