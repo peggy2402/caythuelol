@@ -30,6 +30,9 @@ import {
   AlertCircle,
   Crown,
   Check,
+  Search,
+  X,
+  ArrowRightLeft,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getGameById, GAMES_CATALOG } from '@/lib/games';
@@ -94,6 +97,8 @@ function ServiceBookingContent() {
   const [loadingBooster, setLoadingBooster] = useState(false);
   const [boosterList, setBoosterList] = useState<any[]>([]);
   const [isManualSelectBooster, setIsManualSelectBooster] = useState(Boolean(cleanBoosterUsername));
+  const [isBoosterModalOpen, setIsBoosterModalOpen] = useState(false);
+  const [boosterSearchTerm, setBoosterSearchTerm] = useState('');
 
   // 5. States cho Mã giảm giá
   const [couponCode, setCouponCode] = useState('');
@@ -151,6 +156,38 @@ function ServiceBookingContent() {
       .catch(() => {})
       .finally(() => setLoadingBooster(false));
   }, [cleanBoosterUsername]);
+
+  // Lọc danh sách Booster trong Modal tìm kiếm
+  const filteredBoosters = useMemo(() => {
+    const q = boosterSearchTerm.toLowerCase().trim();
+    if (!q) return boosterList;
+    return boosterList.filter((b) => {
+      const name = (b.displayName || '').toLowerCase();
+      const username = (b.username || '').toLowerCase();
+      return name.includes(q) || username.includes(q);
+    });
+  }, [boosterList, boosterSearchTerm]);
+
+  // Xử lý chọn Booster từ Modal
+  const handleSelectBooster = (booster: any) => {
+    setAssignedBooster({
+      user: booster,
+      boosterData: booster.boosterProfile || booster.booster_info || booster,
+    });
+    setIsManualSelectBooster(true);
+    const boosterCoupon = booster.boosterProfile?.service_settings?.coupon || booster.service_settings?.coupon;
+    if (boosterCoupon?.isActive && boosterCoupon?.code) {
+      setAppliedCoupon(boosterCoupon);
+      setCouponCode(boosterCoupon.code);
+      toast.success(`Đã chọn tuyển thủ @${booster.username} & áp dụng mã giảm ${boosterCoupon.discountPercent}%!`);
+    } else {
+      setAppliedCoupon(null);
+      setCouponCode('');
+      toast.success(`Đã chọn tuyển thủ @${booster.username}!`);
+    }
+    setIsBoosterModalOpen(false);
+    setBoosterSearchTerm('');
+  };
 
   // Hệ số LP Gain
   const lpMultiplier = useMemo(() => {
@@ -523,12 +560,15 @@ function ServiceBookingContent() {
                   type="button"
                   onClick={() => {
                     setIsManualSelectBooster(true);
-                    if (!assignedBooster && boosterList.length > 0) {
-                      const first = boosterList[0];
-                      setAssignedBooster({
-                        user: first,
-                        boosterData: first.boosterProfile || first.booster_info || first,
-                      });
+                    if (!assignedBooster) {
+                      setIsBoosterModalOpen(true);
+                      if (boosterList.length > 0) {
+                        const first = boosterList[0];
+                        setAssignedBooster({
+                          user: first,
+                          boosterData: first.boosterProfile || first.booster_info || first,
+                        });
+                      }
                     }
                   }}
                   className={`p-3.5 rounded-2xl border text-left transition-all relative ${
@@ -614,36 +654,19 @@ function ServiceBookingContent() {
                     </Link>
                   </div>
 
-                  {/* Dropdown Đổi Tuyển Thủ Nhanh */}
-                  <div className="pt-2 border-t border-zinc-900">
-                    <label className="text-[11px] font-semibold text-zinc-400 block mb-1.5">
-                      Đổi sang tuyển thủ khác:
-                    </label>
-                    <select
-                      value={assignedBooster?.user?._id || ''}
-                      onChange={(e) => {
-                        const bId = e.target.value;
-                        const found = boosterList.find((b) => b._id === bId);
-                        if (found) {
-                          setAssignedBooster({
-                            user: found,
-                            boosterData: found.boosterProfile || found.booster_info || found,
-                          });
-                          const boosterCoupon = found.boosterProfile?.service_settings?.coupon || found.service_settings?.coupon;
-                          if (boosterCoupon?.isActive && boosterCoupon?.code) {
-                            setAppliedCoupon(boosterCoupon);
-                            setCouponCode(boosterCoupon.code);
-                          }
-                        }
-                      }}
-                      className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-purple-500"
+                  {/* Nút Mở Modal Đổi Tuyển Thủ Chuẩn UI/UX */}
+                  <div className="pt-2.5 border-t border-zinc-900 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <span className="text-[11px] text-zinc-400">
+                      Muốn tuyển thủ khác cày đơn này?
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setIsBoosterModalOpen(true)}
+                      className="px-3 py-1.5 rounded-xl bg-purple-500/15 hover:bg-purple-500/25 text-purple-300 border border-purple-500/30 text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-sm active:scale-95 self-start sm:self-auto"
                     >
-                      {boosterList.map((b) => (
-                        <option key={b._id} value={b._id}>
-                          {b.displayName || b.username} (@{b.username}) — Đánh giá: {b.rating ? b.rating.toFixed(1) : '5.0'} ⭐
-                        </option>
-                      ))}
-                    </select>
+                      <Search size={13} />
+                      <span>Đổi sang tuyển thủ khác</span>
+                    </button>
                   </div>
                 </div>
               )}
@@ -1140,6 +1163,170 @@ function ServiceBookingContent() {
             </button>
           </div>
         </div>
+
+        {/* MODAL POPUP CHỌN BOOSTER GIỮA MÀN HÌNH CHUẨN UI/UX */}
+        {isBoosterModalOpen && (
+          <div
+            className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200"
+            onClick={() => {
+              setIsBoosterModalOpen(false);
+              setBoosterSearchTerm('');
+            }}
+          >
+            <div
+              className="bg-[#0e1017] border border-white/10 rounded-3xl p-5 sm:p-6 max-w-lg w-full shadow-2xl space-y-4 animate-in zoom-in-95 duration-150 relative max-h-[90vh] flex flex-col"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Modal Header */}
+              <div className="flex items-center justify-between pb-3 border-b border-zinc-800/80 shrink-0">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-purple-500/20 text-purple-400 border border-purple-500/30 flex items-center justify-center">
+                    <Crown size={18} />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-extrabold text-white">Chọn Tuyển Thủ Cày Thuê</h3>
+                    <p className="text-xs text-zinc-400">
+                      Chọn tuyển thủ uy tín để đảm bảo tiến độ và tỷ lệ thắng
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsBoosterModalOpen(false);
+                    setBoosterSearchTerm('');
+                  }}
+                  className="w-8 h-8 rounded-xl bg-zinc-800/80 hover:bg-zinc-700 text-zinc-400 hover:text-white flex items-center justify-center transition-colors"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              {/* Input Search Box */}
+              <div className="relative shrink-0">
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-500 w-4 h-4" />
+                <input
+                  type="text"
+                  placeholder="Tìm theo tên hiển thị hoặc username..."
+                  value={boosterSearchTerm}
+                  onChange={(e) => setBoosterSearchTerm(e.target.value)}
+                  className="w-full bg-zinc-950 border border-zinc-800 rounded-2xl pl-10 pr-4 py-2.5 text-xs sm:text-sm text-white placeholder-zinc-500 outline-none focus:border-purple-500 transition-colors"
+                  autoFocus
+                />
+              </div>
+
+              {/* Booster List Scrollable */}
+              <div className="overflow-y-auto space-y-2.5 pr-1 flex-1 min-h-[240px] max-h-[380px]">
+                {filteredBoosters.length > 0 ? (
+                  filteredBoosters.map((b) => {
+                    const isSelected = assignedBooster?.user?._id === b._id;
+                    const bProfile = b.boosterProfile || b.booster_info || b;
+                    const bCoupon = bProfile?.service_settings?.coupon;
+                    const bMultiplier = bProfile?.service_settings?.standardConfig?.rankPriceMultiplier;
+
+                    return (
+                      <div
+                        key={b._id}
+                        onClick={() => handleSelectBooster(b)}
+                        className={`p-3 sm:p-3.5 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${
+                          isSelected
+                            ? 'bg-purple-950/30 border-purple-500/80 ring-1 ring-purple-500/50 shadow-md shadow-purple-950/50'
+                            : 'bg-zinc-950/60 hover:bg-zinc-900 border-zinc-800/80 hover:border-zinc-700'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-purple-500/20 to-blue-500/20 border border-purple-500/30 flex items-center justify-center text-white font-bold text-base shrink-0">
+                            {b.avatar ? (
+                              <Image
+                                src={b.avatar}
+                                alt=""
+                                width={44}
+                                height={44}
+                                className="rounded-2xl object-cover"
+                              />
+                            ) : (
+                              (b.displayName || b.username || 'B').slice(0, 1).toUpperCase()
+                            )}
+                          </div>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className="font-extrabold text-white text-xs sm:text-sm truncate">
+                                {b.displayName || b.username}
+                              </span>
+                              <span className="text-[11px] text-zinc-400 font-mono truncate">
+                                @{b.username}
+                              </span>
+                            </div>
+
+                            <div className="flex flex-wrap items-center gap-2 mt-1 text-[11px] text-zinc-400">
+                              <span className="flex items-center gap-1 text-amber-400 font-bold">
+                                <Star size={11} fill="currentColor" />
+                                {b.rating ? b.rating.toFixed(1) : '5.0'}
+                              </span>
+                              <span>•</span>
+                              <span className="text-zinc-300">
+                                {b.completedOrders || 0} đơn thành công
+                              </span>
+                              {bMultiplier && bMultiplier !== 1.0 && (
+                                <>
+                                  <span>•</span>
+                                  <span className="text-cyan-400 font-semibold">
+                                    Giá: {(bMultiplier * 100).toFixed(0)}%
+                                  </span>
+                                </>
+                              )}
+                              {bCoupon?.isActive && (
+                                <span className="px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold text-[10px]">
+                                  Voucher -{bCoupon.discountPercent}%
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="shrink-0">
+                          {isSelected ? (
+                            <span className="px-2.5 py-1 rounded-xl bg-purple-500 text-white text-xs font-bold inline-flex items-center gap-1">
+                              <Check size={13} />
+                              <span>Đang chọn</span>
+                            </span>
+                          ) : (
+                            <button
+                              type="button"
+                              className="px-3 py-1.5 rounded-xl bg-zinc-800 hover:bg-purple-600 text-zinc-300 hover:text-white text-xs font-semibold transition-all"
+                            >
+                              Chọn
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <div className="py-12 text-center text-zinc-500 space-y-2">
+                    <Search className="w-8 h-8 mx-auto text-zinc-600" />
+                    <p className="text-xs">Không tìm thấy tuyển thủ nào khớp với "{boosterSearchTerm}"</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Modal Footer */}
+              <div className="pt-3 border-t border-zinc-800/80 flex items-center justify-between text-[11px] text-zinc-400 shrink-0">
+                <span>Có {filteredBoosters.length} tuyển thủ sẵn sàng</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsBoosterModalOpen(false);
+                    setBoosterSearchTerm('');
+                  }}
+                  className="text-xs text-zinc-400 hover:text-white font-medium"
+                >
+                  Đóng
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );
