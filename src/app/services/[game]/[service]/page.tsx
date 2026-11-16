@@ -561,9 +561,27 @@ function ServiceBookingContent() {
   // Xử lý mở Modal chọn Rank
   const handleOpenRankModal = (target: 'CURRENT' | 'DESIRED') => {
     setRankModalTarget(target);
-    const targetObj = target === 'CURRENT' ? currentRankObj : desiredRankObj;
-    setTempTier(targetObj.tier);
-    setTempDivision(targetObj.division || 'IV');
+    if (target === 'CURRENT') {
+      // Nếu rank hiện tại >= rank mong muốn, tự động đưa temp về bậc thấp hơn rank mong muốn 1 nấc
+      if (currentRankIndex >= desiredRankIndex) {
+        const fallback = LOL_RANK_STEPS[Math.max(0, desiredRankIndex - 1)];
+        setTempTier(fallback.tier);
+        setTempDivision(fallback.division || 'IV');
+      } else {
+        setTempTier(currentRankObj.tier);
+        setTempDivision(currentRankObj.division || 'IV');
+      }
+    } else {
+      // Nếu rank mong muốn <= rank hiện tại, tự động đưa temp về bậc cao hơn rank hiện tại 1 nấc
+      if (desiredRankIndex <= currentRankIndex) {
+        const fallback = LOL_RANK_STEPS[Math.min(LOL_RANK_STEPS.length - 1, currentRankIndex + 1)];
+        setTempTier(fallback.tier);
+        setTempDivision(fallback.division || 'IV');
+      } else {
+        setTempTier(desiredRankObj.tier);
+        setTempDivision(desiredRankObj.division || 'IV');
+      }
+    }
     setIsRankModalOpen(true);
   };
 
@@ -578,20 +596,21 @@ function ServiceBookingContent() {
     }
 
     if (rankModalTarget === 'CURRENT') {
-      setCurrentRankId(selectedRankId);
-      // Nếu rank hiện tại >= rank mong muốn, tự động đẩy rank mong muốn lên bậc kế tiếp
+      // Validate: Rank hiện tại BẮT BUỘC phải thấp hơn Rank mong muốn
       if (newIdx >= desiredRankIndex) {
-        const nextDesired = LOL_RANK_STEPS[Math.min(newIdx + 1, LOL_RANK_STEPS.length - 1)];
-        setDesiredRankId(nextDesired.id);
-        toast.info(`Đã tự động đặt Rank mong muốn thành ${nextDesired.label}`);
+        toast.error(`Rank hiện tại (${LOL_RANK_STEPS[newIdx].label}) phải thấp hơn Rank mong muốn (${desiredRankObj.label})!`);
+        return;
       }
+      setCurrentRankId(selectedRankId);
+      toast.success(`Đã chọn Rank hiện tại: ${LOL_RANK_STEPS[newIdx].label}`);
     } else {
-      // Rank mong muốn
+      // Validate: Rank mong muốn BẮT BUỘC phải cao hơn Rank hiện tại
       if (newIdx <= currentRankIndex) {
-        toast.error('Rank mong muốn phải cao hơn Rank hiện tại!');
+        toast.error(`Rank mong muốn (${LOL_RANK_STEPS[newIdx].label}) phải cao hơn Rank hiện tại (${currentRankObj.label})!`);
         return;
       }
       setDesiredRankId(selectedRankId);
+      toast.success(`Đã chọn Rank mong muốn: ${LOL_RANK_STEPS[newIdx].label}`);
     }
 
     setIsRankModalOpen(false);
@@ -1014,6 +1033,16 @@ function ServiceBookingContent() {
                     </div>
                   </div>
                 </div>
+
+                {/* Cảnh báo nếu rank không hợp lệ */}
+                {currentRankIndex >= desiredRankIndex && (
+                  <div className="mt-3 p-3 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs flex items-center gap-2 animate-in fade-in">
+                    <AlertCircle size={15} className="shrink-0" />
+                    <span>
+                      Lộ trình chưa hợp lệ: <strong>Rank hiện tại ({currentRankObj.label})</strong> phải thấp hơn <strong>Rank mong muốn ({desiredRankObj.label})</strong>. Vui lòng bấm vào thẻ để chọn lại.
+                    </span>
+                  </div>
+                )}
               </div>
 
               {/* ĐIỂM CỘNG MỖI VÁN (LP GAIN) - CẤU HÌNH HỆ SỐ TRỰC QUAN */}
@@ -1546,7 +1575,9 @@ function ServiceBookingContent() {
                       {rankModalTarget === 'CURRENT' ? 'Chọn Rank Hiện Tại' : 'Chọn Rank Mong Muốn'}
                     </h3>
                     <p className="text-xs text-zinc-400">
-                      Phạm vi cày dịch vụ từ Sắt IV đến Cao Thủ
+                      {rankModalTarget === 'CURRENT'
+                        ? `Rank hiện tại phải thấp hơn Rank mong muốn (${desiredRankObj.label})`
+                        : `Rank mong muốn phải cao hơn Rank hiện tại (${currentRankObj.label})`}
                     </p>
                   </div>
                 </div>
@@ -1559,6 +1590,31 @@ function ServiceBookingContent() {
                 </button>
               </div>
 
+              {/* Context Banner */}
+              <div className={`p-2.5 rounded-xl border flex items-center justify-between text-xs shrink-0 ${
+                rankModalTarget === 'CURRENT'
+                  ? 'bg-blue-500/10 border-blue-500/20 text-blue-300'
+                  : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300'
+              }`}>
+                <div className="flex items-center gap-2 min-w-0">
+                  <Info size={14} className="shrink-0 text-blue-400" />
+                  <span className="truncate">
+                    {rankModalTarget === 'CURRENT' ? (
+                      <>
+                        Đang chọn rank xuất phát để cày lên: <strong className="text-white">{desiredRankObj.label}</strong>
+                      </>
+                    ) : (
+                      <>
+                        Đang chọn mốc rank đích cần đạt từ: <strong className="text-white">{currentRankObj.label}</strong>
+                      </>
+                    )}
+                  </span>
+                </div>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-white/10 text-white shrink-0 ml-2">
+                  {rankModalTarget === 'CURRENT' ? `Yêu cầu: < ${desiredRankObj.label}` : `Yêu cầu: > ${currentRankObj.label}`}
+                </span>
+              </div>
+
               {/* Scroll Content */}
               <div className="overflow-y-auto space-y-4 pr-1 flex-1">
                 {/* 1. Chọn Tier Lớn */}
@@ -1568,24 +1624,61 @@ function ServiceBookingContent() {
                   </span>
                   <div className="grid grid-cols-4 gap-2 sm:gap-2.5">
                     {Object.entries(TIER_CONFIG).map(([tierKey, meta]) => {
-                      // Nếu chọn rank hiện tại: Không cho chọn Master
-                      if (rankModalTarget === 'CURRENT' && tierKey === 'MASTER') return null;
+                      // Validate Tier:
+                      // - Với Rank Hiện Tại: bậc thấp nhất của tier này phải < desiredRankIndex
+                      const lowestInTierIdx = LOL_RANK_STEPS.findIndex((r) => r.tier === tierKey);
+                      // - Với Rank Mong Muốn: bậc cao nhất của tier này phải > currentRankIndex
+                      const highestInTierIdx = tierKey === 'MASTER'
+                        ? LOL_RANK_STEPS.findIndex((r) => r.id === 'MASTER')
+                        : LOL_RANK_STEPS.findIndex((r) => r.id === `${tierKey}_1`);
+
+                      const isTierDisabled = rankModalTarget === 'CURRENT'
+                        ? (tierKey === 'MASTER' || lowestInTierIdx >= desiredRankIndex)
+                        : (highestInTierIdx <= currentRankIndex);
 
                       const isSelected = tempTier === tierKey;
+
                       return (
                         <button
                           key={tierKey}
                           type="button"
+                          disabled={isTierDisabled}
                           onClick={() => {
+                            if (isTierDisabled) return;
                             setTempTier(tierKey);
                             if (tierKey === 'MASTER') {
                               setTempDivision('');
-                            } else if (!tempDivision) {
-                              setTempDivision('IV');
+                            } else {
+                              // Tự động tìm division hợp lệ nhất trong tier này
+                              if (rankModalTarget === 'CURRENT') {
+                                const validDivs = DIVISIONS.filter((d) => {
+                                  const idx = LOL_RANK_STEPS.findIndex((r) => r.id === `${tierKey}_${d}`);
+                                  return idx !== -1 && idx < desiredRankIndex;
+                                });
+                                if (validDivs.includes(tempDivision)) {
+                                  // giữ nguyên nếu division đang chọn hợp lệ
+                                } else if (validDivs.length > 0) {
+                                  // Chọn division cao nhất còn hợp lệ
+                                  setTempDivision(validDivs[validDivs.length - 1]);
+                                }
+                              } else {
+                                const validDivs = DIVISIONS.filter((d) => {
+                                  const idx = LOL_RANK_STEPS.findIndex((r) => r.id === `${tierKey}_${d}`);
+                                  return idx !== -1 && idx > currentRankIndex;
+                                });
+                                if (validDivs.includes(tempDivision)) {
+                                  // giữ nguyên
+                                } else if (validDivs.length > 0) {
+                                  // Chọn division thấp nhất còn hợp lệ
+                                  setTempDivision(validDivs[0]);
+                                }
+                              }
                             }
                           }}
                           className={`p-2.5 sm:p-3 rounded-2xl border text-center transition-all flex flex-col items-center gap-1.5 relative ${
-                            isSelected
+                            isTierDisabled
+                              ? 'bg-zinc-950/20 border-zinc-900/60 opacity-25 cursor-not-allowed select-none'
+                              : isSelected
                               ? `${meta.activeBorder} ${meta.bgGradient} ${meta.glowClass}`
                               : 'bg-zinc-950/60 border-zinc-800/80 hover:border-zinc-700 hover:bg-zinc-900/60'
                           }`}
@@ -1594,12 +1687,19 @@ function ServiceBookingContent() {
                             <img
                               src={meta.image}
                               alt={meta.name}
-                              className="w-full h-full object-contain filter drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)]"
+                              className={`w-full h-full object-contain filter drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)] ${
+                                isTierDisabled ? 'grayscale' : ''
+                              }`}
                             />
                           </div>
-                          <span className={`text-xs font-bold ${isSelected ? meta.textColor : 'text-zinc-300'}`}>
+                          <span className={`text-xs font-bold ${isTierDisabled ? 'text-zinc-600' : isSelected ? meta.textColor : 'text-zinc-300'}`}>
                             {meta.name}
                           </span>
+                          {isTierDisabled && (
+                            <span className="text-[9px] text-zinc-600 font-medium -mt-0.5">
+                              {rankModalTarget === 'CURRENT' ? 'Quá cao' : 'Quá thấp'}
+                            </span>
+                          )}
                         </button>
                       );
                     })}
@@ -1616,19 +1716,25 @@ function ServiceBookingContent() {
                       {DIVISIONS.map((div) => {
                         const stepId = `${tempTier}_${div}`;
                         const stepIdx = LOL_RANK_STEPS.findIndex((r) => r.id === stepId);
-                        // Nếu là rank mong muốn, không cho chọn bậc <= rank hiện tại
-                        const isDisabled = rankModalTarget === 'DESIRED' && stepIdx <= currentRankIndex;
+                        
+                        // Validate:
+                        // - Rank hiện tại: Phải < desiredRankIndex
+                        // - Rank mong muốn: Phải > currentRankIndex
+                        const isDivisionDisabled = rankModalTarget === 'CURRENT'
+                          ? stepIdx >= desiredRankIndex
+                          : stepIdx <= currentRankIndex;
+
                         const isSelected = tempDivision === div;
 
                         return (
                           <button
                             key={div}
                             type="button"
-                            disabled={isDisabled}
+                            disabled={isDivisionDisabled}
                             onClick={() => setTempDivision(div)}
                             className={`py-3 px-2 rounded-xl border text-center transition-all flex flex-col items-center justify-center gap-1 ${
-                              isDisabled
-                                ? 'bg-zinc-950/30 border-zinc-900 opacity-40 cursor-not-allowed text-zinc-600'
+                              isDivisionDisabled
+                                ? 'bg-zinc-950/30 border-zinc-900 opacity-25 cursor-not-allowed text-zinc-600 select-none'
                                 : isSelected
                                 ? 'bg-blue-600 border-blue-400 text-white shadow-lg shadow-blue-600/30 ring-1 ring-blue-300'
                                 : 'bg-zinc-950 border-zinc-800 text-zinc-300 hover:border-zinc-700 hover:bg-zinc-900'
@@ -1637,8 +1743,12 @@ function ServiceBookingContent() {
                             <span className="text-sm font-extrabold font-mono tracking-wider">
                               Bậc {div}
                             </span>
-                            {isDisabled && (
-                              <span className="text-[9px] text-zinc-500">Thấp hơn</span>
+                            {isDivisionDisabled && (
+                              <span className="text-[9px] text-zinc-500">
+                                {rankModalTarget === 'CURRENT'
+                                  ? stepIdx === desiredRankIndex ? 'Bằng rank đích' : 'Cao hơn'
+                                  : stepIdx === currentRankIndex ? 'Bằng rank hiện tại' : 'Thấp hơn'}
+                              </span>
                             )}
                           </button>
                         );
@@ -1656,33 +1766,56 @@ function ServiceBookingContent() {
               </div>
 
               {/* Footer Preview & Confirm */}
-              <div className="pt-3 border-t border-zinc-800/80 flex items-center justify-between shrink-0">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-zinc-400">Đang chọn:</span>
-                  <span className="text-sm font-black text-white">
-                    {tempTier === 'MASTER'
-                      ? 'Cao Thủ'
-                      : `${TIER_CONFIG[tempTier]?.name || tempTier} ${tempDivision}`}
-                  </span>
-                </div>
+              {(() => {
+                const tempSelectedRankId = tempTier === 'MASTER' ? 'MASTER' : `${tempTier}_${tempDivision}`;
+                const tempRankIdx = LOL_RANK_STEPS.findIndex((r) => r.id === tempSelectedRankId);
+                const isSelectionValid = tempRankIdx !== -1 && (
+                  rankModalTarget === 'CURRENT'
+                    ? tempRankIdx < desiredRankIndex
+                    : tempRankIdx > currentRankIndex
+                );
+                const selectedLabel = tempTier === 'MASTER'
+                  ? 'Cao Thủ'
+                  : `${TIER_CONFIG[tempTier]?.name || tempTier} ${tempDivision}`;
 
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setIsRankModalOpen(false)}
-                    className="px-3.5 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-xs font-bold text-zinc-300 transition-colors"
-                  >
-                    Hủy
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleConfirmRank}
-                    className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-xs font-bold text-white shadow-md shadow-blue-600/30 transition-all active:scale-95"
-                  >
-                    Xác Nhận
-                  </button>
-                </div>
-              </div>
+                return (
+                  <div className="pt-3 border-t border-zinc-800/80 flex items-center justify-between shrink-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-zinc-400">Đang chọn:</span>
+                      <span className={`text-sm font-black ${isSelectionValid ? 'text-white' : 'text-red-400'}`}>
+                        {selectedLabel}
+                      </span>
+                      {!isSelectionValid && (
+                        <span className="text-[10px] font-bold text-red-400 bg-red-500/10 border border-red-500/20 px-2 py-0.5 rounded">
+                          {rankModalTarget === 'CURRENT' ? `Phải < ${desiredRankObj.label}` : `Phải > ${currentRankObj.label}`}
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setIsRankModalOpen(false)}
+                        className="px-3.5 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-xs font-bold text-zinc-300 transition-colors"
+                      >
+                        Hủy
+                      </button>
+                      <button
+                        type="button"
+                        disabled={!isSelectionValid}
+                        onClick={handleConfirmRank}
+                        className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                          isSelectionValid
+                            ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-md shadow-blue-600/30 active:scale-95 cursor-pointer'
+                            : 'bg-zinc-800 text-zinc-500 opacity-40 cursor-not-allowed'
+                        }`}
+                      >
+                        Xác Nhận
+                      </button>
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           </div>
         )}
