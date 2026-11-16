@@ -353,17 +353,22 @@ export default function ProfilePage() {
 
     // 2. Update basic info if email didn't change
     try {
+        const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
         const res = await fetch('/api/user/profile', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
             body: JSON.stringify({ 
                 username, 
                 avatar: avatarUrl,
+                bio,
                 booster_info: user.role === 'BOOSTER' ? { bio } : undefined 
             }),
         });
         const data = await res.json();
-        if (!res.ok) throw new Error(data.error);
+        if (!res.ok) throw new Error(data.error || data.message);
 
         toast.success(t('profileUpdateSuccess'));
         // Update local storage

@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Body, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Put, Body, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { UsersService } from './users.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -20,11 +20,33 @@ export class UsersController {
 
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
+  @Post('profile')
+  @ApiOperation({ summary: 'Update profile info (POST)' })
+  async updateProfilePost(
+    @ReqUser() user: any,
+    @Body() body: { username?: string; avatar?: string; bio?: string; booster_info?: { bio?: string } },
+  ) {
+    return this.usersService.updateProfile(user.userId, body);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @Put('profile')
+  @ApiOperation({ summary: 'Update profile info (PUT)' })
+  async updateProfilePut(
+    @ReqUser() user: any,
+    @Body() body: { username?: string; avatar?: string; bio?: string; booster_info?: { bio?: string } },
+  ) {
+    return this.usersService.updateProfile(user.userId, body);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @Patch('profile')
-  @ApiOperation({ summary: 'Update profile info' })
+  @ApiOperation({ summary: 'Update profile info (PATCH)' })
   async updateProfile(
     @ReqUser() user: any,
-    @Body() body: { username?: string; avatar?: string; bio?: string },
+    @Body() body: { username?: string; avatar?: string; bio?: string; booster_info?: { bio?: string } },
   ) {
     return this.usersService.updateProfile(user.userId, body);
   }

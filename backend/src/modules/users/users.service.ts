@@ -29,7 +29,10 @@ export class UsersService {
     return userObj;
   }
 
-  async updateProfile(userId: string, data: { username?: string; avatar?: string; bio?: string }) {
+  async updateProfile(
+    userId: string,
+    data: { username?: string; avatar?: string; bio?: string; booster_info?: { bio?: string } },
+  ) {
     const user = await this.userModel.findById(userId);
     if (!user) {
       throw new NotFoundException('Không tìm thấy người dùng');
@@ -43,21 +46,39 @@ export class UsersService {
       user.username = data.username;
     }
 
+    if (!user.profile) {
+      user.profile = {};
+    }
+
     if (data.avatar !== undefined) {
       user.profile.avatar = data.avatar;
     }
 
+    const bio = data.bio !== undefined ? data.bio : data.booster_info?.bio;
+    if (bio !== undefined) {
+      if (!user.booster_info) {
+        user.booster_info = {};
+      }
+      user.booster_info.bio = bio;
+    }
+
     await user.save();
 
-    if (user.role === 'BOOSTER' && data.bio !== undefined) {
+    if (user.role === 'BOOSTER' && bio !== undefined) {
       await this.boosterProfileModel.findOneAndUpdate(
         { userId: user._id },
-        { $set: { bio: data.bio } },
+        { $set: { bio: bio } },
         { upsert: true, new: true },
       );
     }
 
-    return this.getProfile(userId);
+    const updatedProfile = await this.getProfile(userId);
+    return {
+      success: true,
+      message: 'Cập nhật hồ sơ thành công',
+      user: updatedProfile.user || updatedProfile,
+      ...updatedProfile,
+    };
   }
 
   async updateBankInfo(userId: string, bankInfo: { bankName: string; accountNumber: string; accountHolder: string }) {
