@@ -66,6 +66,8 @@ export interface AddonSelections {
 }
 
 export interface BoosterAddonConfig {
+  specificRole?: { enabled: boolean; percent: number }; // mặc định { enabled: true, percent: 25 }
+  schedule?: { enabled: boolean; percent: number }; // mặc định { enabled: true, percent: 20 }
   specificChamps?: { enabled: boolean; percent: number }; // mặc định { enabled: true, percent: 30 }
   livestream?: { enabled: boolean; fee: number }; // mặc định { enabled: true, fee: 349000 }
   flash?: { enabled: boolean; percent: number }; // mặc định { enabled: true, percent: 35 }
@@ -168,6 +170,8 @@ export function calculateRankBoost({
   const duoCfg = addonsConfig?.duo ?? { enabled: true, percent: 50 };
   const flashCfg = addonsConfig?.flash ?? { enabled: true, percent: 35 };
   const champsCfg = addonsConfig?.specificChamps ?? { enabled: true, percent: 30 };
+  const roleCfg = addonsConfig?.specificRole ?? { enabled: true, percent: 25 };
+  const scheduleCfg = addonsConfig?.schedule ?? { enabled: true, percent: 20 };
   const liveCfg = addonsConfig?.livestream ?? { enabled: true, fee: 349000 };
 
   if (addons.duo && duoCfg.enabled) {
@@ -178,6 +182,12 @@ export function calculateRankBoost({
   }
   if (addons.specificChamps && champsCfg.enabled) {
     addonPercentage += (champsCfg.percent ?? 30) / 100;
+  }
+  if (addons.specificRole && roleCfg.enabled) {
+    addonPercentage += (roleCfg.percent ?? 25) / 100;
+  }
+  if (addons.schedule && scheduleCfg.enabled) {
+    addonPercentage += (scheduleCfg.percent ?? 20) / 100;
   }
   if (addons.livestream && liveCfg.enabled) {
     addonFlatFee += (liveCfg.fee ?? 349000);

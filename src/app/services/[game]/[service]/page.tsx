@@ -28,6 +28,8 @@ import {
   Gamepad2,
   Sparkles,
   AlertCircle,
+  Crown,
+  Check,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getGameById, GAMES_CATALOG } from '@/lib/games';
@@ -174,6 +176,14 @@ function ServiceBookingContent() {
   const boosterStepOverrides = boosterStandardConfig?.stepOverrides;
 
   // Cấu hình chi tiết từng addon
+  const scheduleCfg = isManualSelectBooster && boosterAddonsConfig?.schedule
+    ? boosterAddonsConfig.schedule
+    : { enabled: true, percent: 20 };
+
+  const specificRoleCfg = isManualSelectBooster && boosterAddonsConfig?.specificRole
+    ? boosterAddonsConfig.specificRole
+    : { enabled: true, percent: 25 };
+
   const specificChampsCfg = isManualSelectBooster && boosterAddonsConfig?.specificChamps
     ? boosterAddonsConfig.specificChamps
     : { enabled: true, percent: 30 };
@@ -329,7 +339,7 @@ function ServiceBookingContent() {
     <div className="min-h-screen bg-[#070709] text-white font-sans selection:bg-blue-500/30">
       <Navbar />
 
-      <main className="relative pt-24 pb-28 px-4 sm:px-6 max-w-7xl mx-auto">
+      <main className="relative pt-24 pb-36 lg:pb-28 px-4 sm:px-6 max-w-7xl mx-auto">
         {/* Navigation & Breadcrumbs */}
         <div className="flex items-center justify-between mb-6">
           <BackButton fallbackUrl={`/services/${game.id}`} />
@@ -460,8 +470,187 @@ function ServiceBookingContent() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           {/* CỘT TRÁI: FORM CẤU HÌNH DỊCH VỤ (Chuẩn y như ảnh minh họa) */}
           <div className="lg:col-span-7 space-y-6">
+            {/* 1. LỰA CHỌN TUYỂN THỦ THỰC HIỆN (BƯỚC ĐẦU TIÊN CỰC KỲ TRỰC QUAN) */}
+            <div className="bg-zinc-900/60 border border-white/10 rounded-3xl p-5 sm:p-6 shadow-xl backdrop-blur-md space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm sm:text-base font-extrabold text-white flex items-center gap-2">
+                    <Users className="text-blue-400 w-4 h-4" />
+                    <span>Lựa Chọn Tuyển Thủ (Booster)</span>
+                  </h3>
+                  <p className="text-xs text-zinc-400 mt-0.5">
+                    Chọn ghép nhanh tự động hoặc chỉ định tuyển thủ bạn tin tưởng
+                  </p>
+                </div>
+                {isManualSelectBooster && assignedBooster && (
+                  <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400">
+                    Đang chỉ định
+                  </span>
+                )}
+              </div>
+
+              {/* 2 Lựa chọn: Ghép nhanh vs Chỉ định */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsManualSelectBooster(false);
+                    setAssignedBooster(null);
+                    setAppliedCoupon(null);
+                    setCouponCode('');
+                  }}
+                  className={`p-3.5 rounded-2xl border text-left transition-all relative ${
+                    !isManualSelectBooster
+                      ? 'bg-blue-600/10 border-blue-500/80 shadow-[0_0_20px_rgba(59,130,246,0.15)] ring-1 ring-blue-500/50'
+                      : 'bg-zinc-950/60 border-zinc-800 hover:border-zinc-700'
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="w-8 h-8 rounded-xl bg-blue-500/20 text-blue-400 border border-blue-500/30 flex items-center justify-center">
+                      <Zap size={16} />
+                    </div>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                      Khuyên dùng
+                    </span>
+                  </div>
+                  <div className="font-bold text-white text-xs sm:text-sm">Ghép Nhanh Tự Động</div>
+                  <div className="text-[11px] text-zinc-400 mt-1 leading-relaxed">
+                    Hệ thống tự ghép Tuyển thủ Thách Đấu có winrate cao nhất đang online &lt; 3 phút.
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsManualSelectBooster(true);
+                    if (!assignedBooster && boosterList.length > 0) {
+                      const first = boosterList[0];
+                      setAssignedBooster({
+                        user: first,
+                        boosterData: first.boosterProfile || first.booster_info || first,
+                      });
+                    }
+                  }}
+                  className={`p-3.5 rounded-2xl border text-left transition-all relative ${
+                    isManualSelectBooster
+                      ? 'bg-purple-600/10 border-purple-500/80 shadow-[0_0_20px_rgba(168,85,247,0.15)] ring-1 ring-purple-500/50'
+                      : 'bg-zinc-950/60 border-zinc-800 hover:border-zinc-700'
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="w-8 h-8 rounded-xl bg-purple-500/20 text-purple-400 border border-purple-500/30 flex items-center justify-center">
+                      <Crown size={16} />
+                    </div>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-400 border border-purple-500/20">
+                      Theo yêu cầu
+                    </span>
+                  </div>
+                  <div className="font-bold text-white text-xs sm:text-sm">Chỉ Định Tuyển Thủ</div>
+                  <div className="text-[11px] text-zinc-400 mt-1 leading-relaxed">
+                    Tùy chọn tuyển thủ cụ thể bạn yêu thích, xem đánh giá và áp dụng ưu đãi riêng.
+                  </div>
+                </button>
+              </div>
+
+              {/* Card Tuyển Thủ Đang Chọn */}
+              {isManualSelectBooster && (
+                <div className="p-3.5 sm:p-4 rounded-2xl bg-zinc-950 border border-zinc-800 space-y-3 animate-in fade-in duration-200">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-purple-500/20 to-blue-500/20 border border-purple-500/30 flex items-center justify-center text-white font-bold text-base shadow-inner">
+                        {assignedBooster?.user?.avatar ? (
+                          <Image
+                            src={assignedBooster.user.avatar}
+                            alt=""
+                            width={44}
+                            height={44}
+                            className="rounded-2xl object-cover"
+                          />
+                        ) : (
+                          (assignedBooster?.user?.displayName || assignedBooster?.user?.username || 'B')
+                            .slice(0, 1)
+                            .toUpperCase()
+                        )}
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-extrabold text-white text-sm">
+                            {assignedBooster?.user?.displayName || assignedBooster?.user?.username || 'Tuyển thủ'}
+                          </span>
+                          <span className="text-xs text-zinc-400 font-mono">
+                            @{assignedBooster?.user?.username || ''}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 text-xs text-zinc-400 mt-0.5">
+                          <span className="flex items-center gap-1 text-amber-400 font-bold">
+                            <Star size={12} fill="currentColor" />
+                            {assignedBooster?.user?.rating
+                              ? assignedBooster.user.rating.toFixed(1)
+                              : '5.0'}
+                          </span>
+                          <span>•</span>
+                          <span className="text-zinc-300">
+                            {assignedBooster?.user?.completedOrders || 0} đơn hoàn thành
+                          </span>
+                          {boosterMultiplier !== 1.0 && (
+                            <>
+                              <span>•</span>
+                              <span className="text-blue-400 font-bold">
+                                Hệ số giá: {(boosterMultiplier * 100).toFixed(0)}%
+                              </span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <Link
+                      href={`/boosters/@${assignedBooster?.user?.username || ''}`}
+                      target="_blank"
+                      className="text-xs text-blue-400 hover:text-blue-300 font-semibold inline-flex items-center gap-1 self-start sm:self-auto"
+                    >
+                      <span>Xem hồ sơ</span>
+                      <ArrowRight size={12} />
+                    </Link>
+                  </div>
+
+                  {/* Dropdown Đổi Tuyển Thủ Nhanh */}
+                  <div className="pt-2 border-t border-zinc-900">
+                    <label className="text-[11px] font-semibold text-zinc-400 block mb-1.5">
+                      Đổi sang tuyển thủ khác:
+                    </label>
+                    <select
+                      value={assignedBooster?.user?._id || ''}
+                      onChange={(e) => {
+                        const bId = e.target.value;
+                        const found = boosterList.find((b) => b._id === bId);
+                        if (found) {
+                          setAssignedBooster({
+                            user: found,
+                            boosterData: found.boosterProfile || found.booster_info || found,
+                          });
+                          const boosterCoupon = found.boosterProfile?.service_settings?.coupon || found.service_settings?.coupon;
+                          if (boosterCoupon?.isActive && boosterCoupon?.code) {
+                            setAppliedCoupon(boosterCoupon);
+                            setCouponCode(boosterCoupon.code);
+                          }
+                        }
+                      }}
+                      className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-purple-500"
+                    >
+                      {boosterList.map((b) => (
+                        <option key={b._id} value={b._id}>
+                          {b.displayName || b.username} (@{b.username}) — Đánh giá: {b.rating ? b.rating.toFixed(1) : '5.0'} ⭐
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              )}
+            </div>
+
             <div className="bg-zinc-900/60 border border-white/10 rounded-3xl p-6 sm:p-7 shadow-xl backdrop-blur-md space-y-5">
-              {/* 1. Rank Hiện Tại & Rank Mong Muốn */}
+              {/* 2. Rank Hiện Tại & Rank Mong Muốn */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="text-xs font-bold text-zinc-300 block mb-2">
@@ -558,28 +747,52 @@ function ServiceBookingContent() {
                 </span>
 
                 <div className="space-y-2.5">
-                  <label className="flex items-center gap-3 p-2.5 rounded-xl bg-zinc-950/60 border border-zinc-800/80 hover:border-zinc-700 cursor-pointer select-none transition-colors">
+                  <label className={`flex items-center gap-3 p-2.5 rounded-xl border select-none transition-colors ${
+                    scheduleCfg.enabled
+                      ? 'bg-zinc-950/60 border-zinc-800/80 hover:border-zinc-700 cursor-pointer'
+                      : 'bg-zinc-950/20 border-zinc-900 opacity-50 cursor-not-allowed'
+                  }`}>
                     <input
                       type="checkbox"
-                      checked={addons.schedule}
+                      disabled={!scheduleCfg.enabled}
+                      checked={addons.schedule && scheduleCfg.enabled}
                       onChange={(e) => setAddons({ ...addons, schedule: e.target.checked })}
-                      className="w-4 h-4 rounded bg-zinc-900 border-zinc-700 text-blue-600 focus:ring-0"
+                      className="w-4 h-4 rounded bg-zinc-900 border-zinc-700 text-blue-600 focus:ring-0 disabled:opacity-40"
                     />
                     <div className="flex items-center gap-1.5 text-xs text-zinc-200 font-medium">
                       <span>Đặt lịch cày</span>
+                      {scheduleCfg.enabled ? (
+                        <span className="text-blue-400 font-bold">
+                          +{scheduleCfg.percent.toFixed(2)}%
+                        </span>
+                      ) : (
+                        <span className="text-zinc-500 text-[11px] font-semibold">(Tuyển thủ không nhận)</span>
+                      )}
                       <Info size={13} className="text-blue-400" />
                     </div>
                   </label>
 
-                  <label className="flex items-center gap-3 p-2.5 rounded-xl bg-zinc-950/60 border border-zinc-800/80 hover:border-zinc-700 cursor-pointer select-none transition-colors">
+                  <label className={`flex items-center gap-3 p-2.5 rounded-xl border select-none transition-colors ${
+                    specificRoleCfg.enabled
+                      ? 'bg-zinc-950/60 border-zinc-800/80 hover:border-zinc-700 cursor-pointer'
+                      : 'bg-zinc-950/20 border-zinc-900 opacity-50 cursor-not-allowed'
+                  }`}>
                     <input
                       type="checkbox"
-                      checked={addons.specificRole}
+                      disabled={!specificRoleCfg.enabled}
+                      checked={addons.specificRole && specificRoleCfg.enabled}
                       onChange={(e) => setAddons({ ...addons, specificRole: e.target.checked })}
-                      className="w-4 h-4 rounded bg-zinc-900 border-zinc-700 text-blue-600 focus:ring-0"
+                      className="w-4 h-4 rounded bg-zinc-900 border-zinc-700 text-blue-600 focus:ring-0 disabled:opacity-40"
                     />
                     <div className="flex items-center gap-1.5 text-xs text-zinc-200 font-medium">
                       <span>Tùy chọn vị trí / đường</span>
+                      {specificRoleCfg.enabled ? (
+                        <span className="text-blue-400 font-bold">
+                          +{specificRoleCfg.percent.toFixed(2)}%
+                        </span>
+                      ) : (
+                        <span className="text-zinc-500 text-[11px] font-semibold">(Tuyển thủ không nhận)</span>
+                      )}
                       <Info size={13} className="text-blue-400" />
                     </div>
                   </label>
@@ -683,60 +896,7 @@ function ServiceBookingContent() {
                       <Info size={13} className="text-blue-400" />
                     </div>
                   </label>
-
-                  {/* Mục Chọn Booster */}
-                  <label className="flex items-center gap-3 p-2.5 rounded-xl bg-zinc-950/60 border border-zinc-800/80 hover:border-zinc-700 cursor-pointer select-none transition-colors">
-                    <input
-                      type="checkbox"
-                      checked={isManualSelectBooster}
-                      onChange={(e) => {
-                        setIsManualSelectBooster(e.target.checked);
-                        if (!e.target.checked) setAssignedBooster(null);
-                      }}
-                      className="w-4 h-4 rounded bg-zinc-900 border-zinc-700 text-blue-600 focus:ring-0"
-                    />
-                    <div className="flex items-center gap-1.5 text-xs text-zinc-200 font-medium">
-                      <span>Chọn Booster</span>
-                      {assignedBooster && (
-                        <span className="text-blue-400 font-bold">
-                          (Đã chọn: @{assignedBooster.user?.username})
-                        </span>
-                      )}
-                    </div>
-                  </label>
                 </div>
-
-                {/* Dropdown danh sách booster khi tích chọn */}
-                {isManualSelectBooster && (
-                  <div className="mt-3 p-3 bg-zinc-950 rounded-2xl border border-zinc-800 space-y-2 animate-in fade-in duration-200">
-                    <span className="text-xs text-zinc-400 block font-semibold">
-                      Chọn tuyển thủ từ danh sách:
-                    </span>
-                    <select
-                      value={assignedBooster?.user?._id || ''}
-                      onChange={(e) => {
-                        const bId = e.target.value;
-                        const found = boosterList.find((b) => b._id === bId);
-                        if (found) {
-                          setAssignedBooster({
-                            user: found,
-                            boosterData: found.boosterProfile || found.booster_info || found,
-                          });
-                        } else {
-                          setAssignedBooster(null);
-                        }
-                      }}
-                      className="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-3.5 py-2 text-xs text-white outline-none"
-                    >
-                      <option value="">-- Hệ thống tự động ghép tuyển thủ uy tín nhất --</option>
-                      {boosterList.map((b) => (
-                        <option key={b._id} value={b._id}>
-                          {b.displayName || b.username} (Đánh giá: {b.rating ? b.rating.toFixed(1) : '5.0'} ⭐)
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
               </div>
 
               {/* 5. Thông tin tài khoản cần cày */}
@@ -945,6 +1105,39 @@ function ServiceBookingContent() {
                 <span>Hoàn tiền 100% nếu không hoàn thành đúng tiến độ.</span>
               </div>
             </div>
+          </div>
+        </div>
+
+        {/* STICKY BOTTOM CHECKOUT BAR (Mobile Only - Giải quyết triệt để vấn đề cuộn mỏi tay trên điện thoại) */}
+        <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-zinc-950/95 backdrop-blur-xl border-t border-zinc-800 p-3 sm:p-4 shadow-[0_-10px_30px_rgba(0,0,0,0.8)]">
+          <div className="flex items-center justify-between gap-3 max-w-md mx-auto">
+            <div>
+              <div className="flex items-baseline gap-1.5">
+                <span className="text-[11px] text-zinc-400">Tổng:</span>
+                <span className="text-base font-extrabold text-white font-mono">
+                  {finalPrice.toLocaleString('vi-VN')} đ
+                </span>
+              </div>
+              <div className="text-[11px] font-semibold text-emerald-400">
+                Cọc giữ Escrow: {finalDeposit.toLocaleString('vi-VN')} đ
+              </div>
+            </div>
+
+            <button
+              type="button"
+              disabled={isSubmitting || calculation.totalPrice <= 0}
+              onClick={handlePlaceOrder}
+              className="py-2.5 px-4 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-xs shadow-lg shadow-blue-600/30 active:scale-95 disabled:opacity-50 flex items-center gap-1.5 shrink-0"
+            >
+              {isSubmitting ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <>
+                  <span>Đặt Cày Ngay</span>
+                  <ArrowRight size={14} />
+                </>
+              )}
+            </button>
           </div>
         </div>
       </main>

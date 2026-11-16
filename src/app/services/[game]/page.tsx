@@ -602,14 +602,22 @@ function GameServicesContent() {
                         </div>
                       </div>
 
-                      {/* View Storefront Button */}
-                      <Link
-                        href={`/b/${booster.username}`}
-                        className="w-full py-2.5 px-4 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white font-bold text-xs border border-white/10 hover:border-white/20 transition-all flex items-center justify-center gap-1.5 text-center"
-                      >
-                        <span>Xem gian hàng & Dịch vụ</span>
-                        <ArrowRight size={14} />
-                      </Link>
+                      {/* Action Buttons */}
+                      <div className="grid grid-cols-2 gap-2 mt-2">
+                        <Link
+                          href={`/b/${booster.username}`}
+                          className="py-2 px-3 rounded-xl bg-zinc-800/80 hover:bg-zinc-700 text-zinc-300 hover:text-white font-semibold text-xs border border-white/5 transition-all flex items-center justify-center gap-1 text-center"
+                        >
+                          <span>Hồ sơ</span>
+                        </Link>
+                        <Link
+                          href={`/services/${game.id}/rank-boost?booster=@${booster.username}`}
+                          className="py-2 px-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-md shadow-blue-600/20 transition-all flex items-center justify-center gap-1 text-center"
+                        >
+                          <span>Thuê ngay</span>
+                          <ArrowRight size={13} />
+                        </Link>
+                      </div>
                     </div>
                   );
                 })}
