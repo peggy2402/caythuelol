@@ -1,4 +1,4 @@
-// src/app/booster/apply/page.tsx
+// src/app/boosters/apply/page.tsx
 'use client';
 
 import React, { useState, useRef } from 'react';
@@ -6,13 +6,17 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { Loader2, CheckCircle2, ShieldAlert, Upload, ChevronRight, ChevronLeft, AlertTriangle, Trophy, ChevronsUpDown, Check, Search, CloudUpload, Image as ImageIcon, X, Eraser, Download, LogOut, DoorOpen, Landmark } from 'lucide-react';
+import { 
+  Loader2, CheckCircle2, ShieldAlert, Upload, ChevronRight, ChevronLeft, 
+  AlertTriangle, Trophy, ChevronsUpDown, Check, Search, CloudUpload, 
+  Image as ImageIcon, X, Eraser, Download, LogOut, DoorOpen, Landmark,
+  ShieldCheck, Zap, Sparkles, Lock, ArrowRight, Wallet, UserCheck, Flame
+} from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import SignatureCanvas from 'react-signature-canvas';
 
-// UI Components (Giả sử bạn đã cài Shadcn)
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -25,21 +29,21 @@ import { useLanguage } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import BankSelectModal from './bank-select-modal';
 
-// --- Zod Schema cho Frontend ---
+// Form Schema
 const formSchema = z.object({
   fullName: z.string().min(2, "Họ tên quá ngắn"),
-  phoneNumber: z.string().regex(/^[0-9]{10,11}$/, "SĐT không hợp lệ"),
+  phoneNumber: z.string().regex(/^[0-9]{10,11}$/, "Số điện thoại không hợp lệ (10-11 số)"),
   facebookUrl: z.string().url("Link Facebook không hợp lệ"),
   discordTag: z.string().min(3, "Discord Tag không hợp lệ"),
   currentRank: z.string().min(1, "Vui lòng nhập Rank hiện tại"),
   highestRank: z.string().min(1, "Vui lòng nhập Rank cao nhất"),
   opggLink: z.string().url("Link OP.GG không hợp lệ"),
-  rankImageUrl: z.string().url("Vui lòng upload ảnh bằng chứng"), // Giả lập đã có URL
-  bankName: z.string().min(1, "Vui lòng chọn ngân hàng"),
-  bankAccountName: z.string().min(1, "Vui lòng nhập tên chủ TK"),
-  bankAccountNumber: z.string().min(1, "Vui lòng nhập số TK"),
+  rankImageUrl: z.string().url("Vui lòng tải lên ảnh bằng chứng"),
+  bankName: z.string().min(1, "Vui lòng chọn ngân hàng thụ hưởng"),
+  bankAccountName: z.string().min(1, "Vui lòng nhập tên chủ tài khoản"),
+  bankAccountNumber: z.string().min(1, "Vui lòng nhập số tài khoản ngân hàng"),
   agreementSigned_name: z.string(),
-  signatureImage: z.string().optional(), // Lưu ảnh chữ ký base64
+  signatureImage: z.string().optional(),
   contractUrl: z.string().optional(),
   billImageUrl: z.string().optional(),
 });
@@ -75,8 +79,8 @@ export default function BoosterApplyPage() {
   const [isBankOpen, setIsBankOpen] = useState(false);
   const [contractDate, setContractDate] = useState<Date | null>(null);
   const [hasDownloadedContract, setHasDownloadedContract] = useState(false);
-  const [isAlreadyBooster, setIsAlreadyBooster] = useState(false); // State check booster
-  const [showResignModal, setShowResignModal] = useState(false); // State modal nghỉ việc
+  const [isAlreadyBooster, setIsAlreadyBooster] = useState(false);
+  const [showResignModal, setShowResignModal] = useState(false);
   
   // Signature Ref
   const sigCanvas = useRef<any>({});
@@ -86,7 +90,7 @@ export default function BoosterApplyPage() {
   const [adminSettings, setAdminSettings] = useState<AdminSettings>({
     adminBank: { bankName: '', accountNumber: '', accountHolder: '' },
     depositConfig: { depositRequired: false, depositAmount: 0 },
-    platformName: 'LOL Boosting Platform'
+    platformName: 'LeoRank Esports Platform'
   });
 
   const { register, handleSubmit, watch, trigger, setValue, formState: { errors } } = useForm<FormData>({
@@ -109,16 +113,15 @@ export default function BoosterApplyPage() {
       .catch(err => console.error("Failed to fetch banks", err));
   }, []);
 
-  // Set contract date on client side to avoid hydration mismatch
+  // Set contract date on client
   React.useEffect(() => {
     setContractDate(new Date());
   }, []);
 
-  // Fetch Admin Settings (Bank & Deposit Config)
+  // Fetch Admin Settings
   React.useEffect(() => {
     const fetchAdminSettings = async () => {
       try {
-        // Sử dụng API public để tránh lỗi 403 Forbidden
         const res = await fetch(`/api/settings/public?t=${Date.now()}`, { cache: 'no-store' });
         const data = await res.json();
         if (Array.isArray(data)) {
@@ -137,7 +140,7 @@ export default function BoosterApplyPage() {
     };
     fetchAdminSettings();
 
-    // Check if user is already a booster
+    // Check user role
     const checkUserRole = () => {
       const userStr = localStorage.getItem('user');
       if (userStr) {
@@ -148,50 +151,47 @@ export default function BoosterApplyPage() {
     checkUserRole();
   }, []);
 
-  // --- Constants with i18n ---
+  // Constants
   const STEPS = [
-    { id: 1, title: t('step1Info') },
-    { id: 2, title: t('step2Game') },
-    { id: 3, title: t('step3Commit') },
+    { id: 1, title: 'Thông tin cá nhân' },
+    { id: 2, title: 'Trình độ & Ngân hàng' },
+    { id: 3, title: 'Cam kết & Hợp đồng' },
   ];
 
   const COMMITMENTS = [
-    { id: 'tool', title: t('commitTool'), desc: t('commitToolDesc') },
-    { id: 'security', title: t('commitSecurity'), desc: t('commitSecurityDesc') },
-    { id: 'private', title: t('commitPrivate'), desc: t('commitPrivateDesc') },
-    { id: 'stream', title: t('commitStream'), desc: t('commitStreamDesc') },
-    { id: 'penalty', title: t('commitPenalty'), desc: t('commitPenaltyDesc') },
-    { id: 'deposit', title: t('commitDeposit'), desc: t('commitDepositDesc') },
+    { id: 'tool', title: 'Không sử dụng phần mềm thứ ba', desc: 'Tuyệt đối không sử dụng tool, script, hack, bot hay bất kỳ phần mềm gian lận nào trong quá trình thi đấu.' },
+    { id: 'security', title: 'Bảo mật tài khoản khách hàng', desc: 'Bảo mật thông tin đăng nhập, không tự ý đổi mật khẩu, không tiêu xài Tinh Hoa Lam hay RP của khách.' },
+    { id: 'private', title: 'Giữ kín thông tin & Ẩn danh', desc: 'Không chat trong trận, không kết bạn, không trả lời tin nhắn bạn bè của khách, luôn bật chế độ Offline.' },
+    { id: 'stream', title: 'Quy tắc Livestream (nếu có)', desc: 'Chỉ livestream khi khách hàng có đăng ký gói add-on xem trực tiếp và tuân thủ che tên tài khoản.' },
+    { id: 'penalty', title: 'Cam kết bồi thường vi phạm', desc: 'Chịu trách nhiệm bồi thường 100% nếu gây ra sự cố khóa tài khoản do lỗi chủ quan của booster.' },
+    { id: 'deposit', title: 'Quy tắc ký quỹ bảo chứng', desc: 'Khoản tiền ký quỹ bảo chứng (nếu có) sẽ được hoàn trả 100% khi booster kết thúc hợp tác đúng quy trình.' },
   ];
 
-  // --- Handlers ---
+  // Stepper handlers
   const nextStep = async () => {
-    // CONFLICT CHECK: Trước khi qua bước 3 (Cam kết & Ký), kiểm tra lại cấu hình Admin
     if (step === 2) {
       try {
         const res = await fetch(`/api/settings/public?t=${Date.now()}`, { cache: 'no-store' });
         const data = await res.json();
         if (Array.isArray(data)) {
           const serverDepositConfig = data.find((s: any) => s.key === 'booster_registration_config')?.value;
-          
-          // Nếu cấu hình trên server khác với state hiện tại
           if (serverDepositConfig && serverDepositConfig.depositRequired !== adminSettings.depositConfig.depositRequired) {
             setAdminSettings(prev => ({ ...prev, depositConfig: serverDepositConfig }));
-            
-            toast.warning("Cấu hình hệ thống đã thay đổi", {
+            toast.warning("Cấu hình hệ thống đã cập nhật", {
               description: serverDepositConfig.depositRequired 
-                ? "Admin vừa BẬT yêu cầu đặt cọc. Vui lòng thực hiện chuyển khoản."
-                : "Admin vừa TẮT yêu cầu đặt cọc. Bạn không cần chuyển khoản nữa."
+                ? "Admin vừa bật yêu cầu đặt cọc bảo chứng. Vui lòng chuyển khoản để tiếp tục."
+                : "Admin vừa tắt yêu cầu đặt cọc. Bạn không cần chuyển khoản nữa."
             });
-            return; // Dừng lại để UI cập nhật, User phải bấm Next lần nữa
+            return;
           }
         }
-      } catch (e) { console.error("Sync check failed", e); }
+      } catch (e) { 
+        console.error("Sync check failed", e); 
+      }
 
-      // Validate Bill Image if deposit is required
       if (adminSettings.depositConfig.depositRequired && !billImageUrl) {
-        toast.error("Thiếu ảnh xác nhận chuyển khoản", {
-          description: "Vui lòng upload ảnh Bill chuyển khoản tiền cọc để tiếp tục."
+        toast.error("Thiếu ảnh chuyển khoản tiền cọc", {
+          description: "Vui lòng tải lên ảnh Bill chuyển khoản để tiếp tục bước tiếp theo."
         });
         return;
       }
@@ -212,7 +212,6 @@ export default function BoosterApplyPage() {
   };
 
   const allAgreementsChecked = COMMITMENTS.every(c => agreements[c.id]);
-  // Validate: Phải nhập đúng tên VÀ (đã ký tên HOẶC đang ở bước xem lại)
   const isNameMatch = signature && fullName && signature.trim().toLowerCase() === fullName.trim().toLowerCase();
   const isSignatureValid = isNameMatch && !sigCanvas.current?.isEmpty();
 
@@ -220,26 +219,24 @@ export default function BoosterApplyPage() {
     sigCanvas.current?.clear();
     setSignatureDataUrl(null);
   };
+
   const saveSignature = () => {
     if (sigCanvas.current) {
       setSignatureDataUrl(sigCanvas.current.getCanvas().toDataURL('image/png'));
     }
   };
 
-  // --- QR Code Generation Logic ---
-  // Cấu trúc: BOOSTERAPPLY [SĐT]
+  // QR Code Generation
   const transferContent = `BOOSTERAPPLY ${phoneNumber || 'SDT'}`;
-  // Link tạo QR từ VietQR (Template: compact2 để gọn đẹp)
   const qrCodeUrl = `https://img.vietqr.io/image/${adminSettings.adminBank.bankName}-${adminSettings.adminBank.accountNumber}-compact2.png?amount=${adminSettings.depositConfig.depositAmount}&addInfo=${encodeURIComponent(transferContent)}&accountName=${encodeURIComponent(adminSettings.adminBank.accountHolder)}`;
 
-  // --- Upload Handler ---
+  // Upload Handlers
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Validate file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
-      toast.error("File quá lớn", { description: "Vui lòng chọn ảnh dưới 5MB" });
+      toast.error("File quá lớn", { description: "Vui lòng chọn ảnh dung lượng dưới 5MB" });
       return;
     }
 
@@ -255,19 +252,18 @@ export default function BoosterApplyPage() {
       setValue('rankImageUrl', data.url, { shouldValidate: true });
       toast.success("Đã tải ảnh lên thành công");
     } catch (error) {
-      toast.error("Lỗi upload ảnh", { description: "Vui lòng thử lại hoặc nhập link trực tiếp" });
+      toast.error("Lỗi upload ảnh", { description: "Vui lòng thử lại" });
     } finally {
       setIsUploadingRank(false);
     }
   };
 
-  // --- Upload Bill Handler ---
   const handleBillUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     if (file.size > 5 * 1024 * 1024) {
-      toast.error("File quá lớn", { description: "Vui lòng chọn ảnh dưới 5MB" });
+      toast.error("File quá lớn", { description: "Vui lòng chọn ảnh dung lượng dưới 5MB" });
       return;
     }
 
@@ -289,38 +285,30 @@ export default function BoosterApplyPage() {
     }
   };
 
-  // --- PDF Generation Logic ---
+  // PDF Contract Generation
   const generateContractBlob = async (): Promise<Blob | null> => {
     const contractElement = document.getElementById('contract-template');
     if (!contractElement) return null;
 
     try {
-      // 1. Convert HTML to Canvas
       const canvas = await html2canvas(contractElement, { 
-        scale: 1.5, // Giảm scale để giảm dung lượng file
+        scale: 1.5,
         useCORS: true,
-        backgroundColor: '#ffffff', // Đảm bảo nền trắng
-        // QUAN TRỌNG: Xóa toàn bộ CSS global trong bản clone để html2canvas không parse file Tailwind (gây lỗi oklch)
+        backgroundColor: '#ffffff',
         onclone: (clonedDoc) => {
           const styles = clonedDoc.getElementsByTagName('style');
           const links = clonedDoc.getElementsByTagName('link');
-          // Xóa ngược từ cuối lên để tránh lỗi index
           for (let i = styles.length - 1; i >= 0; i--) { styles[i].remove(); }
           for (let i = links.length - 1; i >= 0; i--) { 
             if (links[i].rel === 'stylesheet') links[i].remove(); 
           }
         }
       });
-      // Sử dụng JPEG chất lượng 0.75 thay vì PNG để giảm dung lượng (từ ~14MB xuống <2MB)
       const imgData = canvas.toDataURL('image/jpeg', 0.75);
-
-      // 2. Create PDF
       const pdf = new jsPDF('p', 'mm', 'a4');
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
       pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
-      
-      // 3. Convert PDF to Blob
       return pdf.output('blob');
     } catch (error) {
       console.error("Lỗi tạo hợp đồng:", error);
@@ -334,12 +322,9 @@ export default function BoosterApplyPage() {
     if (!pdfBlob) return null;
 
     try {
-      // 4. Upload to Cloudinary (via API)
       const formData = new FormData();
-      // Đặt tên file đơn giản, chỉ gồm chữ số và timestamp để tránh lỗi URL
       const cleanFileName = `contract_${Date.now()}.pdf`;
       formData.append('file', pdfBlob, cleanFileName);
-      // Gửi thêm resource_type = raw để API (nếu hỗ trợ) sẽ upload dưới dạng file thô, tránh lỗi xử lý ảnh của Cloudinary
       formData.append('resource_type', 'raw');
       
       const uploadRes = await fetch('/api/upload', {
@@ -359,13 +344,11 @@ export default function BoosterApplyPage() {
   };
 
   const handleDownload = async () => {
-    // Đảm bảo chữ ký được cập nhật vào state để render ra PDF
     if (sigCanvas.current && !sigCanvas.current.isEmpty()) {
       setSignatureDataUrl(sigCanvas.current.getCanvas().toDataURL('image/png'));
     }
-    await new Promise(resolve => setTimeout(resolve, 100)); // Chờ render
+    await new Promise(resolve => setTimeout(resolve, 100));
 
-    // toast.info("Đang tạo file PDF...");
     const blob = await generateContractBlob();
     if (blob) {
       const url = window.URL.createObjectURL(blob);
@@ -375,7 +358,7 @@ export default function BoosterApplyPage() {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      toast.success("Đã tải xuống bản khai!");
+      toast.success("Đã tải xuống bản khai hợp đồng!");
       setHasDownloadedContract(true);
     }
   };
@@ -383,13 +366,10 @@ export default function BoosterApplyPage() {
   const onSubmit = async (data: FormData) => {
     setIsSubmitting(true);
     try {
-      // 1. Generate & Upload Contract
-      // Đảm bảo chữ ký đã được lưu vào state để render ra template
       if (sigCanvas.current && !sigCanvas.current.isEmpty()) {
         setSignatureDataUrl(sigCanvas.current.getCanvas().toDataURL('image/png'));
       }
       
-      // Chờ 1 chút để state cập nhật (nếu cần) hoặc render lại DOM
       await new Promise(resolve => setTimeout(resolve, 100));
 
       toast.info("Đang tạo hợp đồng điện tử...");
@@ -397,7 +377,6 @@ export default function BoosterApplyPage() {
       
       if (!result) throw new Error("Không thể tạo hợp đồng. Vui lòng thử lại.");
 
-      // 2. Submit Application
       const token = localStorage.getItem('token');
       const res = await fetch('/api/boosters/apply', {
         method: 'POST',
@@ -414,10 +393,10 @@ export default function BoosterApplyPage() {
       }
 
       toast.success("Đăng ký thành công!", {
-        description: "Hồ sơ của bạn đang được xét duyệt. Vui lòng chờ liên hệ qua Discord.",
+        description: "Hồ sơ của bạn đang được xét duyệt. Ban quản trị sẽ liên hệ sớm qua Discord.",
       });
       
-      router.push('/dashboard'); // Redirect về dashboard
+      router.push('/dashboard');
     } catch (error: any) {
       toast.error("Lỗi", {
         description: error.message,
@@ -428,13 +407,11 @@ export default function BoosterApplyPage() {
     }
   };
 
-  // --- Resign Handler ---
   const confirmResign = async () => {
     try {
       const res = await fetch('/api/boosters/resign', { method: 'POST' });
       if (res.ok) {
         toast.success("Đã hủy tư cách Booster thành công.");
-        // Cập nhật localStorage và redirect
         const userStr = localStorage.getItem('user');
         if (userStr) {
           const user = JSON.parse(userStr);
@@ -452,72 +429,73 @@ export default function BoosterApplyPage() {
     setShowResignModal(false);
   };
 
-  // --- Render Components ---
-
+  // State: Already Booster
   if (isAlreadyBooster) {
     return (
-      <div className="min-h-screen bg-zinc-950 text-white font-sans selection:bg-blue-500/30 relative overflow-hidden flex items-center justify-center">
+      <div className="min-h-screen bg-[#050608] text-white font-sans selection:bg-cyan-500/30 relative overflow-hidden flex items-center justify-center p-4">
         <Navbar />
-        <div className="fixed inset-0 bg-[url('/noise.png')] bg-center opacity-10 pointer-events-none" />
+        <div className="fixed inset-0 bg-gradient-to-b from-cyan-600/10 via-transparent to-transparent pointer-events-none" />
         
-        <Card className="border-white/10 bg-zinc-900/60 backdrop-blur-xl shadow-2xl max-w-md w-full mx-4">
-          <CardHeader className="text-center pb-2">
-            <div className="mx-auto w-16 h-16 bg-green-500/10 rounded-full flex items-center justify-center mb-4 border border-green-500/20">
-              <CheckCircle2 className="w-8 h-8 text-green-500" />
+        <Card className="border-cyan-500/30 bg-zinc-900/80 backdrop-blur-2xl shadow-[0_20px_50px_rgba(0,0,0,0.6)] max-w-md w-full relative z-10 overflow-hidden">
+          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-cyan-500 via-blue-500 to-amber-500" />
+          
+          <CardHeader className="text-center pb-2 pt-8">
+            <div className="mx-auto w-20 h-20 bg-cyan-500/10 rounded-2xl flex items-center justify-center mb-4 border border-cyan-500/30 shadow-[0_0_25px_rgba(6,182,212,0.2)]">
+              <ShieldCheck className="w-10 h-10 text-cyan-400" />
             </div>
-            <CardTitle className="text-2xl font-bold text-white">Bạn đang là Booster</CardTitle>
-            <CardDescription className="text-zinc-400">
-              Tài khoản của bạn đang hoạt động với tư cách Booster. Bạn có thể nhận đơn và kiếm thu nhập.
+            <CardTitle className="text-2xl font-black text-white">Bạn Đang Là Booster</CardTitle>
+            <CardDescription className="text-zinc-400 text-xs sm:text-sm mt-1">
+              Tài khoản của bạn đã được phê duyệt tư cách Booster chính thức. Bạn có thể nhận đơn và kiếm thu nhập ngay.
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4 pt-4">
+
+          <CardContent className="space-y-4 pt-4 pb-8">
             <Button 
               onClick={() => router.push('/booster/dashboard')}
-              className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold h-12"
+              className="w-full bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-black h-12 shadow-[0_0_25px_rgba(6,182,212,0.3)] transition-all hover:scale-102"
             >
-              <Trophy className="mr-2 h-4 w-4" /> Vào Dashboard Booster
+              <Trophy className="mr-2 h-4 w-4" /> Vào Booster Dashboard
             </Button>
             
             <div className="relative py-2">
-              <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-white/10"></span></div>
-              <div className="relative flex justify-center text-xs uppercase"><span className="bg-zinc-900 px-2 text-zinc-500">Hoặc</span></div>
+              <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-zinc-800"></span></div>
+              <div className="relative flex justify-center text-[10px] uppercase tracking-wider"><span className="bg-zinc-900 px-3 text-zinc-500">Hoặc</span></div>
             </div>
 
             <Button 
               onClick={() => setShowResignModal(true)}
               variant="outline"
-              className="w-full border-red-500/20 text-red-400 hover:bg-red-500/10 hover:text-red-300 h-12"
+              className="w-full border-red-500/20 text-red-400 hover:bg-red-500/10 hover:text-red-300 h-12 text-xs font-bold"
             >
-              <DoorOpen className="mr-2 h-4 w-4" /> Xin nghỉ việc (Về Customer)
+              <DoorOpen className="mr-2 h-4 w-4" /> Xin Nghỉ Việc (Về Tài Khoản Khách)
             </Button>
           </CardContent>
         </Card>
 
         {/* Resign Confirmation Modal */}
         <Dialog open={showResignModal} onOpenChange={setShowResignModal}>
-          <DialogContent className="bg-zinc-900 border-red-500/20 text-white sm:max-w-[425px]">
+          <DialogContent className="bg-zinc-900 border-red-500/30 text-white sm:max-w-[425px]">
             <DialogHeader>
-              <DialogTitle className="text-xl text-red-500 flex items-center gap-2">
-                <AlertTriangle /> Gỡ quyền Booster
+              <DialogTitle className="text-xl text-red-400 flex items-center gap-2">
+                <AlertTriangle className="w-5 h-5" /> Hủy Quyền Booster
               </DialogTitle>
-              <DialogDescription className="text-zinc-300 pt-4 text-base font-medium">
-                Bạn có chắc muốn ngừng làm Booster?
+              <DialogDescription className="text-zinc-300 pt-3 text-sm">
+                Bạn có chắc chắn muốn ngừng hoạt động với tư cách Booster trên hệ thống?
               </DialogDescription>
             </DialogHeader>
             
-            <div className="bg-zinc-950/50 p-4 rounded-lg border border-white/5 text-sm text-zinc-400 space-y-2">
-              <p className="font-semibold text-zinc-300">Sau khi xác nhận:</p>
-              <ul className="list-disc pl-5 space-y-1">
-                <li>Bạn sẽ được hoàn lại tiền cọc</li>
-                <li>Bạn sẽ không nhận được đơn mới</li>
-                <li>Các đơn đang làm vẫn phải hoàn thành</li>
-                <li>Bạn sẽ trở lại tài khoản Khách hàng</li>
+            <div className="bg-zinc-950 p-4 rounded-xl border border-zinc-800 text-xs text-zinc-400 space-y-2">
+              <p className="font-bold text-zinc-300">Sau khi xác nhận:</p>
+              <ul className="list-disc pl-5 space-y-1 text-zinc-400">
+                <li>Khoản tiền cọc (nếu có) sẽ được hoàn trả theo quy định</li>
+                <li>Bạn sẽ không thể nhận thêm đơn hàng mới</li>
+                <li>Tài khoản sẽ chuyển về giao diện Khách hàng</li>
               </ul>
             </div>
 
             <DialogFooter className="mt-4 flex gap-2">
-              <Button variant="ghost" onClick={() => setShowResignModal(false)} className="flex-1 bg-zinc-800 hover:bg-zinc-700 text-white">Hủy</Button>
-              <Button onClick={confirmResign} className="flex-1 bg-red-600 hover:bg-red-500 text-white font-bold">Xác nhận</Button>
+              <Button variant="ghost" onClick={() => setShowResignModal(false)} className="flex-1 bg-zinc-800 hover:bg-zinc-700 text-white text-xs">Hủy</Button>
+              <Button onClick={confirmResign} className="flex-1 bg-red-600 hover:bg-red-500 text-white font-bold text-xs">Xác nhận</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -526,41 +504,79 @@ export default function BoosterApplyPage() {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-white font-sans selection:bg-blue-500/30 relative overflow-hidden">
+    <div className="min-h-screen bg-[#050608] text-zinc-100 font-sans selection:bg-cyan-500/30 overflow-x-hidden pt-28 pb-32">
       <Navbar />
-      
-      {/* Background Effects */}
-      <div className="fixed inset-0 bg-[url('/noise.png')] bg-center [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))] opacity-10 pointer-events-none" />
-      <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[500px] bg-blue-600/20 blur-[120px] rounded-full pointer-events-none" />
-      <div className="fixed bottom-0 right-0 w-[800px] h-[400px] bg-purple-600/10 blur-[100px] rounded-full pointer-events-none" />
 
-      <div className="relative z-10 pt-28 pb-20 container mx-auto px-4 max-w-4xl">
-        {/* Header */}
-        <div className="text-center mb-16">
+      {/* Dynamic Ambient Background Glows */}
+      <div className="fixed inset-0 z-0 pointer-events-none opacity-[0.03] mix-blend-overlay" style={{ backgroundImage: 'url("/noise.png")' }}></div>
+      <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[1100px] h-[550px] bg-gradient-to-b from-cyan-600/15 via-blue-600/10 to-transparent blur-[140px] pointer-events-none rounded-full" />
+      <div className="fixed bottom-0 right-0 w-[600px] h-[500px] bg-amber-500/10 blur-[150px] pointer-events-none rounded-full" />
+
+      <div className="relative z-10 container mx-auto px-4 max-w-4xl">
+        
+        {/* ========================================================================= */}
+        {/* HERO HEADER SECTION                                                       */}
+        {/* ========================================================================= */}
+        <div className="text-center mb-12 sm:mb-16">
           <motion.div 
             initial={{ opacity: 0, y: 20 }} 
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
           >
-            <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-bold uppercase tracking-wider mb-6">
-              <Trophy className="w-3 h-3" /> {t('boosterApplySubtitle') || 'Join the Elite'}
+            <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-cyan-950/40 border border-cyan-500/30 text-cyan-300 text-xs font-bold uppercase tracking-wider mb-5 backdrop-blur-md shadow-[0_0_20px_rgba(6,182,212,0.2)]">
+              <Flame className="w-3.5 h-3.5 text-amber-400" />
+              <span>Gia Nhập Đội Ngũ Tuyển Thủ LeoRank Pro</span>
             </span>
-            <h1 className="text-4xl md:text-6xl font-black tracking-tight text-white mb-6">
-              {t('boosterApplyTitle')}
+
+            <h1 className="text-3xl sm:text-5xl md:text-6xl font-black tracking-tight text-white mb-4 uppercase">
+              Đăng Ký Trở Thành <br />
+              <span className="bg-gradient-to-r from-cyan-400 via-sky-300 to-amber-300 bg-clip-text text-transparent">
+                Booster Chuyên Nghiệp
+              </span>
             </h1>
-            <p className="text-zinc-400 max-w-2xl mx-auto text-lg leading-relaxed">
-              {t('boosterApplyDesc')}
+
+            <p className="text-zinc-400 max-w-2xl mx-auto text-sm sm:text-base leading-relaxed mb-8">
+              Nhận nguồn đơn hàng ổn định hàng ngày, hưởng mức chia sẻ doanh thu lên đến 85%, rút tiền tức thì 24/7 và được bảo vệ quyền lợi bằng hợp đồng điện tử.
             </p>
+
+            {/* 3 Booster Perks */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 max-w-2xl mx-auto">
+              <div className="p-3.5 rounded-2xl bg-zinc-900/60 border border-zinc-800 flex items-center gap-3 text-left">
+                <div className="p-2 rounded-xl bg-cyan-500/10 text-cyan-400"><Wallet className="w-4 h-4" /></div>
+                <div>
+                  <div className="text-xs font-bold text-white">Chia sẻ 80% - 85%</div>
+                  <div className="text-[11px] text-zinc-500">Mức chiết khấu cao nhất</div>
+                </div>
+              </div>
+
+              <div className="p-3.5 rounded-2xl bg-zinc-900/60 border border-zinc-800 flex items-center gap-3 text-left">
+                <div className="p-2 rounded-xl bg-amber-500/10 text-amber-400"><Zap className="w-4 h-4" /></div>
+                <div>
+                  <div className="text-xs font-bold text-white">Rút Tiền Tức Thì 24/7</div>
+                  <div className="text-[11px] text-zinc-500">Về mọi ngân hàng VN</div>
+                </div>
+              </div>
+
+              <div className="p-3.5 rounded-2xl bg-zinc-900/60 border border-zinc-800 flex items-center gap-3 text-left">
+                <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-400"><ShieldCheck className="w-4 h-4" /></div>
+                <div>
+                  <div className="text-xs font-bold text-white">Bảo Hộ Escrow</div>
+                  <div className="text-[11px] text-zinc-500">100% không lo quỵt tiền</div>
+                </div>
+              </div>
+            </div>
           </motion.div>
         </div>
 
-        {/* Stepper */}
+        {/* ========================================================================= */}
+        {/* STEPPER PROGRESS BAR                                                      */}
+        {/* ========================================================================= */}
         <div className="mb-12">
           <div className="relative">
-            {/* Progress Bar Background */}
+            {/* Background Track */}
             <div className="absolute top-6 left-0 w-full h-1 bg-zinc-800 rounded-full -z-10 -translate-y-1/2">
               <div 
-                className="h-full bg-gradient-to-r from-blue-600 to-purple-500 rounded-full transition-all duration-700 ease-out shadow-[0_0_10px_rgba(59,130,246,0.5)]"
+                className="h-full bg-gradient-to-r from-cyan-500 via-blue-500 to-amber-400 rounded-full transition-all duration-700 ease-out shadow-[0_0_15px_rgba(6,182,212,0.5)]"
                 style={{ width: `${((step - 1) / (STEPS.length - 1)) * 100}%` }}
               />
             </div>
@@ -571,29 +587,26 @@ export default function BoosterApplyPage() {
                 const isCurrent = step === s.id;
                 
                 return (
-                  <div key={s.id} className="flex flex-col items-center gap-3 relative group">
-                    {/* Circle */}
+                  <div key={s.id} className="flex flex-col items-center gap-2 relative group">
                     <div 
-                      className={`w-12 h-12 rounded-full flex items-center justify-center border-2 transition-all duration-500 z-10 relative
+                      className={`w-12 h-12 rounded-2xl flex items-center justify-center border-2 transition-all duration-500 z-10 relative
                         ${isActive 
-                          ? 'bg-zinc-900 border-blue-500 text-blue-400 shadow-[0_0_20px_rgba(59,130,246,0.3)]' 
+                          ? 'bg-zinc-950 border-cyan-500 text-cyan-400 shadow-[0_0_20px_rgba(6,182,212,0.35)]' 
                           : 'bg-zinc-950 border-zinc-800 text-zinc-600'
                         }
                       `}
                     >
                       {step > s.id ? (
-                        <CheckCircle2 className="w-6 h-6 text-blue-500" />
+                        <CheckCircle2 className="w-6 h-6 text-cyan-400" />
                       ) : (
-                        <span className={`text-lg font-bold ${isActive ? 'text-blue-400' : 'text-zinc-600'}`}>{s.id}</span>
+                        <span className={`text-base font-black font-mono ${isActive ? 'text-cyan-300' : 'text-zinc-600'}`}>{s.id}</span>
                       )}
                       
-                      {/* Active Pulse Ring */}
                       {isCurrent && (
-                        <span className="absolute inset-0 rounded-full border border-blue-500/50 animate-ping opacity-75" />
+                        <span className="absolute inset-0 rounded-2xl border border-cyan-400/50 animate-ping opacity-75" />
                       )}
                     </div>
 
-                    {/* Label */}
                     <span className={`hidden md:block text-xs font-bold uppercase tracking-wider transition-colors duration-300 ${isActive ? 'text-white' : 'text-zinc-600'}`}>
                       {s.title}
                     </span>
@@ -602,23 +615,25 @@ export default function BoosterApplyPage() {
               })}
             </div>
 
-            {/* Mobile Step Label - Chỉ hiện tên bước đang active trên mobile để tránh dính chữ */}
-            <div className="md:hidden text-center mt-6">
-              <span className="text-sm font-bold text-blue-400 uppercase tracking-wider">
-                {STEPS[step - 1]?.title}
+            <div className="md:hidden text-center mt-5">
+              <span className="text-xs font-black text-cyan-400 uppercase tracking-wider">
+                Bước {step}: {STEPS[step - 1]?.title}
               </span>
             </div>
           </div>
         </div>
 
-        {/* Form Content */}
-        <Card className="border-white/10 bg-zinc-900/60 backdrop-blur-xl shadow-2xl relative overflow-hidden">
-          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 via-purple-500 to-blue-500 opacity-50" />
+        {/* ========================================================================= */}
+        {/* FORM CONTENT CARD                                                         */}
+        {/* ========================================================================= */}
+        <Card className="border-zinc-800 bg-zinc-900/80 backdrop-blur-2xl shadow-[0_20px_60px_rgba(0,0,0,0.6)] relative overflow-hidden rounded-3xl">
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-cyan-500 via-blue-500 to-amber-500" />
+          
           <CardContent className="p-6 md:p-10">
             <form onSubmit={(e) => e.preventDefault()}>
               <AnimatePresence mode="wait">
                 
-                {/* STEP 1: PERSONAL INFO */}
+                {/* ---------------- STEP 1: PERSONAL INFO ---------------- */}
                 {step === 1 && (
                   <motion.div
                     key="step1"
@@ -627,32 +642,59 @@ export default function BoosterApplyPage() {
                     exit={{ opacity: 0, x: -20 }}
                     className="space-y-6"
                   >
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <h3 className="text-lg font-black text-white mb-1 flex items-center gap-2">
+                        <UserCheck className="w-5 h-5 text-cyan-400" />
+                        1. Thông Tin Định Danh Cá Nhân
+                      </h3>
+                      <p className="text-xs text-zinc-400">Thông tin này được bảo mật tuyệt đối và chỉ dùng để đối soát thanh toán.</p>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                       <div className="space-y-2">
-                        <Label className="text-zinc-400">{t('fullName')}</Label>
-                        <Input {...register('fullName')} placeholder="Nguyễn Văn A" className="bg-zinc-950/50 border-white/10 text-white placeholder:text-zinc-600 focus:border-blue-500 focus:ring-blue-500/20" />
-                        {errors.fullName && <p className="text-red-500 text-xs">{errors.fullName.message}</p>}
+                        <Label className="text-xs font-bold uppercase tracking-wider text-zinc-400">Họ và tên thật *</Label>
+                        <Input 
+                          {...register('fullName')} 
+                          placeholder="Ví dụ: Nguyễn Văn A" 
+                          className="bg-zinc-950 border-zinc-800 text-white rounded-xl h-11 text-sm focus:border-cyan-500 transition-colors" 
+                        />
+                        {errors.fullName && <p className="text-red-400 text-xs">{errors.fullName.message}</p>}
                       </div>
+
                       <div className="space-y-2">
-                        <Label className="text-zinc-400">{t('phoneNumber')}</Label>
-                        <Input {...register('phoneNumber')} placeholder="0912..." className="bg-zinc-950/50 border-white/10 text-white placeholder:text-zinc-600 focus:border-blue-500 focus:ring-blue-500/20" />
-                        {errors.phoneNumber && <p className="text-red-500 text-xs">{errors.phoneNumber.message}</p>}
+                        <Label className="text-xs font-bold uppercase tracking-wider text-zinc-400">Số điện thoại liên hệ *</Label>
+                        <Input 
+                          {...register('phoneNumber')} 
+                          placeholder="Ví dụ: 0987654321" 
+                          className="bg-zinc-950 border-zinc-800 text-white rounded-xl h-11 text-sm focus:border-cyan-500 transition-colors" 
+                        />
+                        {errors.phoneNumber && <p className="text-red-400 text-xs">{errors.phoneNumber.message}</p>}
                       </div>
+
                       <div className="space-y-2">
-                        <Label className="text-zinc-400">{t('facebookUrl')}</Label>
-                        <Input {...register('facebookUrl')} placeholder="https://facebook.com/..." className="bg-zinc-950/50 border-white/10 text-white placeholder:text-zinc-600 focus:border-blue-500 focus:ring-blue-500/20" />
-                        {errors.facebookUrl && <p className="text-red-500 text-xs">{errors.facebookUrl.message}</p>}
+                        <Label className="text-xs font-bold uppercase tracking-wider text-zinc-400">Link Facebook cá nhân *</Label>
+                        <Input 
+                          {...register('facebookUrl')} 
+                          placeholder="https://facebook.com/username" 
+                          className="bg-zinc-950 border-zinc-800 text-white rounded-xl h-11 text-sm focus:border-cyan-500 transition-colors" 
+                        />
+                        {errors.facebookUrl && <p className="text-red-400 text-xs">{errors.facebookUrl.message}</p>}
                       </div>
+
                       <div className="space-y-2">
-                        <Label className="text-zinc-400">{t('discordTag')}</Label>
-                        <Input {...register('discordTag')} placeholder="username#1234" className="bg-zinc-950/50 border-white/10 text-white placeholder:text-zinc-600 focus:border-blue-500 focus:ring-blue-500/20" />
-                        {errors.discordTag && <p className="text-red-500 text-xs">{errors.discordTag.message}</p>}
+                        <Label className="text-xs font-bold uppercase tracking-wider text-zinc-400">Discord Tag (Để liên hệ nhận đơn) *</Label>
+                        <Input 
+                          {...register('discordTag')} 
+                          placeholder="Ví dụ: leorank#1234" 
+                          className="bg-zinc-950 border-zinc-800 text-white rounded-xl h-11 text-sm focus:border-cyan-500 transition-colors" 
+                        />
+                        {errors.discordTag && <p className="text-red-400 text-xs">{errors.discordTag.message}</p>}
                       </div>
                     </div>
                   </motion.div>
                 )}
 
-                {/* STEP 2: GAME & BANK INFO */}
+                {/* ---------------- STEP 2: GAME VERIFICATION & BANK ---------------- */}
                 {step === 2 && (
                   <motion.div
                     key="step2"
@@ -661,38 +703,51 @@ export default function BoosterApplyPage() {
                     exit={{ opacity: 0, x: -20 }}
                     className="space-y-8"
                   >
-                    {/* Game Info */}
-                    <div className="space-y-4">
-                      <h3 className="text-lg font-semibold text-blue-400 flex items-center gap-2">
-                        <span className="w-1 h-6 bg-blue-500 rounded-full"></span> {t('servicesCurrentRank')}
-                      </h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="space-y-2">
-                          <Label className="text-zinc-400">{t('servicesCurrentRank')}</Label>
-                          <Input {...register('currentRank')} placeholder="VD: Cao Thủ 200LP" className="bg-zinc-950/50 border-white/10 text-white placeholder:text-zinc-600 focus:border-blue-500 focus:ring-blue-500/20" />
-                          {errors.currentRank && <p className="text-red-500 text-xs">{errors.currentRank.message}</p>}
-                        </div>
-                        <div className="space-y-2">
-                          <Label className="text-zinc-400">{t('highestRank')}</Label>
-                          <Input {...register('highestRank')} placeholder="VD: Thách Đấu 500LP" className="bg-zinc-950/50 border-white/10 text-white placeholder:text-zinc-600 focus:border-blue-500 focus:ring-blue-500/20" />
-                          {errors.highestRank && <p className="text-red-500 text-xs">{errors.highestRank.message}</p>}
-                        </div>
-                        <div className="space-y-2 md:col-span-2">
-                          <Label className="text-zinc-400">{t('opggLink')}</Label>
-                          <Input {...register('opggLink')} placeholder="https://www.op.gg/summoners/vn/..." className="bg-zinc-950/50 border-white/10 text-white placeholder:text-zinc-600 focus:border-blue-500 focus:ring-blue-500/20" />
-                          {errors.opggLink && <p className="text-red-500 text-xs">{errors.opggLink.message}</p>}
-                        </div> 
-                        <div className="space-y-2 md:col-span-2">
-                          <Label className="text-zinc-400">{t('rankProof')}</Label>
-                          
-                          {/* URL Input */}
-                          <Input 
-                            {...register('rankImageUrl')} 
-                            placeholder="https://i.imgur.com/..." 
-                            className="bg-zinc-950/50 border-white/10 text-white placeholder:text-zinc-600 focus:border-blue-500 focus:ring-blue-500/20 mb-2" 
-                          />
+                    {/* Game Details */}
+                    <div className="space-y-5">
+                      <div>
+                        <h3 className="text-lg font-black text-white mb-1 flex items-center gap-2">
+                          <Trophy className="w-5 h-5 text-amber-400" />
+                          2. Xác Thực Trình Độ Thi Đấu
+                        </h3>
+                        <p className="text-xs text-zinc-400">Yêu cầu tối thiểu đạt mức rank Cao Thủ trở lên trong mùa hiện tại hoặc gần nhất.</p>
+                      </div>
 
-                          {/* Big Upload Button Area */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                        <div className="space-y-2">
+                          <Label className="text-xs font-bold uppercase tracking-wider text-zinc-400">Bậc Rank Hiện Tại *</Label>
+                          <Input 
+                            {...register('currentRank')} 
+                            placeholder="Ví dụ: Cao Thủ 350 LP" 
+                            className="bg-zinc-950 border-zinc-800 text-white rounded-xl h-11 text-sm focus:border-cyan-500 transition-colors" 
+                          />
+                          {errors.currentRank && <p className="text-red-400 text-xs">{errors.currentRank.message}</p>}
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label className="text-xs font-bold uppercase tracking-wider text-zinc-400">Bậc Rank Cao Nhất Từng Đạt *</Label>
+                          <Input 
+                            {...register('highestRank')} 
+                            placeholder="Ví dụ: Thách Đấu 1100 LP" 
+                            className="bg-zinc-950 border-zinc-800 text-white rounded-xl h-11 text-sm focus:border-cyan-500 transition-colors" 
+                          />
+                          {errors.highestRank && <p className="text-red-400 text-xs">{errors.highestRank.message}</p>}
+                        </div>
+
+                        <div className="space-y-2 md:col-span-2">
+                          <Label className="text-xs font-bold uppercase tracking-wider text-zinc-400">Link Hồ Sơ OP.GG hoặc Tracker *</Label>
+                          <Input 
+                            {...register('opggLink')} 
+                            placeholder="https://www.op.gg/summoners/vn/..." 
+                            className="bg-zinc-950 border-zinc-800 text-white rounded-xl h-11 text-sm focus:border-cyan-500 transition-colors" 
+                          />
+                          {errors.opggLink && <p className="text-red-400 text-xs">{errors.opggLink.message}</p>}
+                        </div> 
+
+                        {/* Rank Proof Screenshot */}
+                        <div className="space-y-2 md:col-span-2">
+                          <Label className="text-xs font-bold uppercase tracking-wider text-zinc-400">Ảnh Bằng Chứng Màn Hình Trong Game *</Label>
+                          
                           <div className="relative group">
                             <input 
                               type="file" 
@@ -702,86 +757,85 @@ export default function BoosterApplyPage() {
                               className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20 disabled:cursor-not-allowed"
                             />
                             <div className={`
-                              border-2 border-dashed rounded-xl p-6 flex flex-col items-center justify-center gap-3 transition-all duration-200
-                              ${errors.rankImageUrl ? 'border-red-500/50 bg-red-500/5' : 'border-white/10 bg-zinc-950/30 hover:bg-zinc-900 hover:border-blue-500/50'}
+                              border-2 border-dashed rounded-2xl p-6 flex flex-col items-center justify-center gap-3 transition-all
+                              ${errors.rankImageUrl ? 'border-red-500/50 bg-red-500/5' : 'border-zinc-800 bg-zinc-950/70 hover:bg-zinc-900 hover:border-cyan-500/50'}
                             `}>
                               {isUploadingRank ? (
-                                <Loader2 className="w-10 h-10 text-blue-500 animate-spin" />
+                                <Loader2 className="w-10 h-10 text-cyan-400 animate-spin" />
                               ) : rankImageUrl ? (
-                                <div className="relative w-full h-48 rounded-lg overflow-hidden border border-white/10 group-hover:opacity-50 transition-opacity">
+                                <div className="relative w-full h-48 rounded-xl overflow-hidden border border-zinc-800 group-hover:opacity-60 transition-opacity">
                                   {/* eslint-disable-next-line @next/next/no-img-element */}
                                   <img src={rankImageUrl} alt="Rank Proof" className="w-full h-full object-cover" />
                                   <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <span className="bg-black/70 text-white px-3 py-1 rounded-full text-sm font-medium">Nhấn để thay đổi</span>
+                                    <span className="bg-black/80 text-white px-4 py-1.5 rounded-full text-xs font-bold">Nhấn để thay đổi ảnh</span>
                                   </div>
                                 </div>
                               ) : (
                                 <>
-                                  <div className="p-4 bg-zinc-900 rounded-full border border-white/5 group-hover:scale-110 transition-transform duration-200">
-                                    <CloudUpload className="w-8 h-8 text-zinc-400 group-hover:text-blue-400" />
+                                  <div className="p-4 bg-zinc-900 rounded-2xl border border-zinc-800 group-hover:scale-110 transition-transform">
+                                    <CloudUpload className="w-8 h-8 text-zinc-400 group-hover:text-cyan-400 transition-colors" />
                                   </div>
                                   <div className="text-center">
-                                    <p className="text-sm font-medium text-zinc-300 group-hover:text-white">Nhấn để tải ảnh lên</p>
-                                    <p className="text-xs text-zinc-500 mt-1">Hoặc kéo thả file vào đây (Max 5MB)</p>
+                                    <p className="text-xs sm:text-sm font-bold text-zinc-300">Nhấn để tải lên ảnh bằng chứng rank</p>
+                                    <p className="text-xs text-zinc-500 mt-0.5">Hỗ trợ PNG, JPG, JPEG (Tối đa 5MB)</p>
                                   </div>
                                 </>
                               )}
                             </div>
                           </div>
 
-                          {errors.rankImageUrl && <p className="text-red-500 text-xs">{errors.rankImageUrl.message}</p>}
+                          {errors.rankImageUrl && <p className="text-red-400 text-xs">{errors.rankImageUrl.message}</p>}
                         </div>
                       </div>
                     </div>
 
-                    <div className="h-px bg-white/10" />
+                    <div className="h-px bg-zinc-800" />
 
-                    {/* Deposit Info (Conditional) */}
+                    {/* Deposit Section (Conditional based on Admin config) */}
                     {adminSettings.depositConfig.depositRequired ? (
-                      <div className="bg-orange-900/10 border border-orange-500/20 rounded-lg p-4 animate-in fade-in">
+                      <div className="bg-amber-950/20 border border-amber-500/30 rounded-2xl p-5 animate-in fade-in">
                         <div className="flex items-start gap-3">
-                          <ShieldAlert className="text-orange-400 shrink-0 mt-1" />
+                          <ShieldAlert className="text-amber-400 shrink-0 mt-1 w-5 h-5" />
                           <div className="w-full">
-                            <h4 className="font-semibold text-orange-300">Yêu cầu Đặt cọc (Deposit)</h4>
-                            <p className="text-sm text-zinc-400 mt-1 mb-3">
-                              Để đảm bảo uy tín, bạn cần đóng khoản cọc là <span className="text-white font-bold">{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(adminSettings.depositConfig.depositAmount)}</span>. Khoản này sẽ được hoàn lại 100% khi bạn ngừng làm Booster.
+                            <h4 className="font-bold text-amber-300 text-sm">Khoản Ký Quỹ Bảo Chứng Uy Tín (Deposit Required)</h4>
+                            <p className="text-xs text-zinc-400 mt-1 mb-4 leading-relaxed">
+                              Nhằm đảm bảo an toàn tài khoản của khách hàng, hệ thống yêu cầu khoản cọc bảo chứng là <span className="text-white font-bold">{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(adminSettings.depositConfig.depositAmount)}</span>. Khoản này được giữ an toàn và <b className="text-amber-300">hoàn lại 100%</b> khi bạn ngừng hợp tác.
                             </p>
                             
-                            <div className="flex flex-col md:flex-row gap-6 items-center">
+                            <div className="flex flex-col md:flex-row gap-5 items-center">
                               {/* QR Code */}
-                              <div className="bg-white p-2 rounded-lg shrink-0">
+                              <div className="bg-white p-2.5 rounded-2xl shrink-0 shadow-inner">
                                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                                <img src={qrCodeUrl} alt="QR Chuyển khoản" className="w-32 h-32 md:w-40 md:h-40 object-contain" />
+                                <img src={qrCodeUrl} alt="QR Chuyển khoản" className="w-32 h-32 md:w-36 md:h-36 object-contain" />
                               </div>
 
-                              {/* Admin Bank Info Display */}
-                              <div className="flex-1 space-y-3 w-full">
-                                <div className="bg-zinc-950/80 p-3 rounded border border-orange-500/10 grid grid-cols-1 gap-3 text-sm">
-                                  <div className="flex justify-between border-b border-white/5 pb-2">
+                              {/* Bank Info */}
+                              <div className="flex-1 space-y-2.5 w-full text-xs">
+                                <div className="bg-zinc-950 p-3.5 rounded-xl border border-zinc-800 space-y-2">
+                                  <div className="flex justify-between border-b border-zinc-900 pb-1.5">
                                     <span className="text-zinc-500">Ngân hàng:</span>
                                     <span className="font-bold text-white">{adminSettings.adminBank.bankName}</span>
                                   </div>
-                                  <div className="flex justify-between border-b border-white/5 pb-2">
+                                  <div className="flex justify-between border-b border-zinc-900 pb-1.5">
                                     <span className="text-zinc-500">Số tài khoản:</span>
-                                    <span className="font-mono font-bold text-white tracking-wide">{adminSettings.adminBank.accountNumber}</span>
+                                    <span className="font-mono font-bold text-white tracking-wider">{adminSettings.adminBank.accountNumber}</span>
                                   </div>
-                                  <div className="flex justify-between border-b border-white/5 pb-2">
+                                  <div className="flex justify-between border-b border-zinc-900 pb-1.5">
                                     <span className="text-zinc-500">Chủ tài khoản:</span>
                                     <span className="font-bold text-white uppercase">{adminSettings.adminBank.accountHolder}</span>
                                   </div>
-                                  <div className="flex justify-between items-center pt-1">
-                                    <span className="text-zinc-500">Nội dung:</span>
-                                    <span className="font-mono font-bold text-orange-400 bg-orange-500/10 px-2 py-1 rounded select-all">{transferContent}</span>
+                                  <div className="flex justify-between items-center pt-0.5">
+                                    <span className="text-zinc-500">Nội dung chuyển khoản:</span>
+                                    <span className="font-mono font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded select-all">{transferContent}</span>
                                   </div>
                                 </div>
-                                <p className="text-xs text-zinc-500 italic text-center md:text-left">* Quét mã QR để nội dung chuyển khoản được điền tự động chính xác.</p>
                               </div>
                             </div>
 
-                            {/* Upload Bill Section */}
-                            <div className="mt-4 pt-4 border-t border-white/5">
-                              <Label className="text-zinc-300 mb-2 block">Xác nhận chuyển khoản (Upload Bill)</Label>
-                              <div className="flex items-center gap-4">
+                            {/* Upload Bill */}
+                            <div className="mt-4 pt-4 border-t border-amber-500/20">
+                              <Label className="text-xs font-bold text-zinc-300 mb-2 block">Tải lên ảnh Bill chuyển khoản thành công *</Label>
+                              <div className="flex items-center gap-3">
                                 <div className="relative group flex-1">
                                   <input 
                                     type="file" 
@@ -791,23 +845,23 @@ export default function BoosterApplyPage() {
                                     className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20 disabled:cursor-not-allowed"
                                   />
                                   <div className={`
-                                    border border-dashed rounded-lg p-3 flex items-center justify-center gap-3 transition-all duration-200
-                                    ${billImageUrl ? 'border-green-500/50 bg-green-500/5' : 'border-white/10 bg-zinc-950/30 hover:bg-zinc-900'}
+                                    border border-dashed rounded-xl p-3 flex items-center justify-center gap-2 transition-all
+                                    ${billImageUrl ? 'border-emerald-500/50 bg-emerald-500/10' : 'border-zinc-800 bg-zinc-950 hover:bg-zinc-900'}
                                   `}>
                                     {isUploadingBill ? (
-                                      <Loader2 className="w-5 h-5 text-blue-500 animate-spin" />
+                                      <Loader2 className="w-4 h-4 text-cyan-400 animate-spin" />
                                     ) : billImageUrl ? (
-                                      <div className="flex items-center gap-2 text-green-400">
-                                        <CheckCircle2 className="w-5 h-5" />
-                                        <span className="text-sm font-medium">Đã tải ảnh lên</span>
+                                      <div className="flex items-center gap-1.5 text-emerald-400 text-xs font-bold">
+                                        <CheckCircle2 className="w-4 h-4" />
+                                        <span>Đã tải ảnh Bill thành công</span>
                                       </div>
                                     ) : (
-                                      <span className="text-sm text-zinc-400">Nhấn để tải ảnh Bill chuyển khoản...</span>
+                                      <span className="text-xs text-zinc-400">Nhấn để tải lên ảnh Bill chuyển khoản...</span>
                                     )}
                                   </div>
                                 </div>
                                 {billImageUrl && (
-                                  <a href={billImageUrl} target="_blank" rel="noreferrer" className="shrink-0 w-12 h-12 rounded-lg border border-white/10 overflow-hidden block">
+                                  <a href={billImageUrl} target="_blank" rel="noreferrer" className="shrink-0 w-11 h-11 rounded-xl border border-zinc-800 overflow-hidden block">
                                     {/* eslint-disable-next-line @next/next/no-img-element */}
                                     <img src={billImageUrl} alt="Bill" className="w-full h-full object-cover" />
                                   </a>
@@ -818,36 +872,38 @@ export default function BoosterApplyPage() {
                         </div>
                       </div>
                     ) : (
-                      <div className="bg-blue-900/10 border border-blue-500/20 rounded-lg p-4">
-                        <div className="flex items-start gap-3">
-                          <CheckCircle2 className="text-blue-400 shrink-0 mt-1" />
-                          <div>
-                            <h4 className="font-semibold text-blue-300">Đăng ký Miễn phí</h4>
-                            <p className="text-sm text-zinc-400 mt-1">
-                              Hiện tại hệ thống đang miễn phí đặt cọc cho các Booster mới. Hãy tận dụng cơ hội này!
-                            </p>
-                          </div>
+                      <div className="bg-cyan-950/20 border border-cyan-500/30 rounded-2xl p-4 flex items-start gap-3">
+                        <CheckCircle2 className="text-cyan-400 shrink-0 mt-0.5 w-5 h-5" />
+                        <div>
+                          <h4 className="font-bold text-cyan-300 text-sm">Chính Sách Đăng Ký Miễn Cọc</h4>
+                          <p className="text-xs text-zinc-400 mt-0.5">
+                            Hệ thống hiện đang hỗ trợ miễn phí tiền ký quỹ cho các tuyển thủ mới đăng ký trong tháng này.
+                          </p>
                         </div>
                       </div>
                     )}
 
-                    {/* Booster Bank Info */}
+                    {/* Booster Bank Details */}
                     <div className="space-y-4">
-                      <h3 className="text-lg font-semibold text-blue-400 flex items-center gap-2">
-                        <span className="w-1 h-6 bg-blue-500 rounded-full"></span> Ngân hàng của bạn
-                      </h3>
+                      <div>
+                        <h3 className="text-base font-black text-white mb-1 flex items-center gap-2">
+                          <Landmark className="w-4 h-4 text-cyan-400" />
+                          Thông Tin Tài Khoản Ngân Hàng Thụ Hưởng
+                        </h3>
+                        <p className="text-xs text-zinc-400">Dùng để nhận tiền thanh toán tự động khi bạn hoàn thành các đơn hàng.</p>
+                      </div>
+
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div className="space-y-2">
-                          <Label className="text-zinc-400">{t('bankName')}</Label>
+                          <Label className="text-xs font-bold uppercase tracking-wider text-zinc-400">Ngân Hàng *</Label>
                           
-                          {/* Modern Bank Selector Trigger */}
                           <div 
                             onClick={() => setIsBankOpen(true)}
                             className={cn(
                               "flex items-center justify-between w-full rounded-xl border px-3.5 py-2 text-sm cursor-pointer h-11 transition-all",
                               selectedBankName 
-                                ? "border-blue-500/40 bg-blue-500/5 hover:border-blue-500/60 shadow-sm"
-                                : "border-white/10 bg-zinc-950/50 hover:border-white/20 hover:bg-zinc-900/50"
+                                ? "border-cyan-500/50 bg-cyan-950/20 shadow-sm"
+                                : "border-zinc-800 bg-zinc-950 hover:border-zinc-700"
                             )}
                           >
                             {selectedBankName ? (
@@ -856,50 +912,51 @@ export default function BoosterApplyPage() {
                                   <img 
                                     src={banks.find(b => b.shortName === selectedBankName)?.logo} 
                                     alt="Bank Logo" 
-                                    className="w-7 h-7 object-contain bg-white rounded-lg p-0.5 shrink-0 shadow-xs" 
+                                    className="w-6 h-6 object-contain bg-white rounded p-0.5 shrink-0" 
                                   />
                                 ) : (
-                                  <div className="w-7 h-7 rounded-lg bg-blue-500/10 text-blue-400 flex items-center justify-center shrink-0">
-                                    <Landmark className="w-4 h-4" />
-                                  </div>
+                                  <Landmark className="w-4 h-4 text-cyan-400 shrink-0" />
                                 )}
-                                <div className="flex flex-col min-w-0 text-left">
-                                  <span className="text-white font-bold text-sm truncate">{selectedBankName}</span>
-                                  <span className="text-[11px] text-zinc-400 truncate">
-                                    {banks.find(b => b.shortName === selectedBankName)?.name || 'Đã chọn ngân hàng'}
-                                  </span>
-                                </div>
+                                <span className="text-white font-bold text-xs truncate">{selectedBankName}</span>
                               </div>
                             ) : (
-                              <div className="flex items-center gap-2 text-zinc-500">
+                              <div className="flex items-center gap-2 text-zinc-500 text-xs">
                                 <Landmark className="w-4 h-4 text-zinc-600" />
-                                <span>Chọn ngân hàng thụ hưởng...</span>
+                                <span>Chọn ngân hàng...</span>
                               </div>
                             )}
                             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 text-zinc-400" />
                           </div>
 
-                          {/* Hidden input to register with hook form */}
                           <input type="hidden" {...register('bankName')} />
-                          
-                          {errors.bankName && <p className="text-red-500 text-xs">{errors.bankName.message}</p>}
+                          {errors.bankName && <p className="text-red-400 text-xs">{errors.bankName.message}</p>}
                         </div>
+
                         <div className="space-y-2">
-                          <Label className="text-zinc-400">{t('bankAccountNum')}</Label>
-                          <Input {...register('bankAccountNumber')} className="bg-zinc-950/50 border-white/10 text-white placeholder:text-zinc-600 focus:border-blue-500 focus:ring-blue-500/20" />
-                          {errors.bankAccountNumber && <p className="text-red-500 text-xs">{errors.bankAccountNumber.message}</p>}
+                          <Label className="text-xs font-bold uppercase tracking-wider text-zinc-400">Số Tài Khoản *</Label>
+                          <Input 
+                            {...register('bankAccountNumber')} 
+                            placeholder="Số tài khoản..."
+                            className="bg-zinc-950 border-zinc-800 text-white rounded-xl h-11 text-sm focus:border-cyan-500 font-mono transition-colors" 
+                          />
+                          {errors.bankAccountNumber && <p className="text-red-400 text-xs">{errors.bankAccountNumber.message}</p>}
                         </div>
+
                         <div className="space-y-2">
-                          <Label className="text-zinc-400">{t('bankAccountName')}</Label>
-                          <Input {...register('bankAccountName')} className="bg-zinc-950/50 border-white/10 text-white placeholder:text-zinc-600 focus:border-blue-500 focus:ring-blue-500/20" />
-                          {errors.bankAccountName && <p className="text-red-500 text-xs">{errors.bankAccountName.message}</p>}
+                          <Label className="text-xs font-bold uppercase tracking-wider text-zinc-400">Tên Chủ Tài Khoản *</Label>
+                          <Input 
+                            {...register('bankAccountName')} 
+                            placeholder="NGUYEN VAN A"
+                            className="bg-zinc-950 border-zinc-800 text-white rounded-xl h-11 text-sm focus:border-cyan-500 uppercase transition-colors" 
+                          />
+                          {errors.bankAccountName && <p className="text-red-400 text-xs">{errors.bankAccountName.message}</p>}
                         </div>
                       </div>
                     </div>
                   </motion.div>
                 )}
 
-                {/* STEP 3: COMMITMENT */}
+                {/* ---------------- STEP 3: COMMITMENTS & DIGITAL CONTRACT ---------------- */}
                 {step === 3 && (
                   <motion.div
                     key="step3"
@@ -908,82 +965,121 @@ export default function BoosterApplyPage() {
                     exit={{ opacity: 0, x: -20 }}
                     className="space-y-8"
                   >
+                    <div>
+                      <h3 className="text-lg font-black text-white mb-1 flex items-center gap-2">
+                        <Lock className="w-5 h-5 text-emerald-400" />
+                        3. Cam Kết Nghề Nghiệp & Ký Hợp Đồng Điện Tử
+                      </h3>
+                      <p className="text-xs text-zinc-400">Vui lòng đọc kỹ và gạt bật toàn bộ các điều khoản cam kết trước khi ký tên.</p>
+                    </div>
+
+                    {/* Commitments Switch List */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {COMMITMENTS.map((item) => (
                         <div 
                           key={item.id} 
-                          className={`p-4 rounded-lg border transition-all duration-200 ${agreements[item.id] ? 'bg-green-950/20 border-green-500/50' : 'bg-zinc-950/50 border-white/10'}`}
+                          className={`p-4 rounded-2xl border transition-all ${
+                            agreements[item.id] ? 'bg-emerald-950/20 border-emerald-500/50' : 'bg-zinc-950 border-zinc-800'
+                          }`}
                         >
                           <div className="flex justify-between items-start gap-4">
                             <div>
-                              <h4 className={`font-semibold ${agreements[item.id] ? 'text-green-400' : 'text-zinc-200'}`}>{item.title}</h4>
-                              <p className="text-sm text-zinc-500 mt-1">{item.desc}</p>
+                              <h4 className={`text-xs font-bold ${agreements[item.id] ? 'text-emerald-300' : 'text-zinc-200'}`}>
+                                {item.title}
+                              </h4>
+                              <p className="text-[11px] text-zinc-400 mt-1 leading-relaxed">{item.desc}</p>
                             </div>
                             <Switch 
                               checked={!!agreements[item.id]}
                               onCheckedChange={() => toggleAgreement(item.id)}
-                              className="data-[state=checked]:bg-green-500"
+                              className="data-[state=checked]:bg-emerald-500"
                             />
                           </div>
                         </div>
                       ))}
                     </div>
 
-                    <div className="bg-zinc-950/50 p-6 rounded-xl border border-white/10 space-y-4">
-                      <Label className="text-zinc-300">Ký tên xác nhận</Label>
-                      <p className="text-sm text-zinc-500">{t('signatureDesc').replace('{name}', fullName || '...')}</p>
-                      
-                      {/* Signature Pad */}
-                      <div className="border border-zinc-700 rounded-lg bg-white overflow-hidden relative">
-                        <SignatureCanvas 
-                          ref={sigCanvas}
-                          penColor="black"
-                          canvasProps={{ width: 500, height: 200, className: 'sigCanvas w-full h-40 md:h-52 cursor-crosshair' }}
-                          onEnd={saveSignature}
-                        />
+                    {/* Digital Signature Pad Box */}
+                    <div className="bg-zinc-950 p-6 rounded-2xl border border-zinc-800 space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <Label className="text-xs font-bold uppercase tracking-wider text-white">Chữ Ký Điện Tử Của Bạn *</Label>
+                          <p className="text-xs text-zinc-500 mt-0.5">Dùng chuột hoặc màn hình cảm ứng để ký tên xác nhận vào khung trắng bên dưới.</p>
+                        </div>
                         <button 
                           type="button" 
                           onClick={clearSignature}
-                          className="absolute top-2 right-2 p-1 bg-zinc-200 rounded text-zinc-600 hover:bg-zinc-300 text-xs flex items-center gap-1"
+                          className="px-3 py-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs font-bold rounded-lg flex items-center gap-1 transition-colors"
                         >
-                          <Eraser size={12} /> Xóa
+                          <Eraser size={12} /> Xóa Chữ Ký
                         </button>
                       </div>
 
-                      <Label className="text-zinc-300 mt-4 block">Nhập lại họ tên để xác thực</Label>
-                      <Input 
-                        {...register('agreementSigned_name')}
-                        placeholder={t('fullName')} 
-                        className={`bg-zinc-900 border-white/10 text-white placeholder:text-zinc-600 h-12 text-lg ${
-                          signature && !isNameMatch ? 'border-red-500 focus:ring-red-500' : 
-                          isNameMatch ? 'border-green-500 focus:ring-green-500' : 'focus:border-blue-500 focus:ring-blue-500/20'
-                        }`}
-                      />
+                      {/* Canvas Container */}
+                      <div className="border border-zinc-700 rounded-xl bg-white overflow-hidden relative shadow-inner">
+                        <SignatureCanvas 
+                          ref={sigCanvas}
+                          penColor="black"
+                          canvasProps={{ width: 500, height: 200, className: 'sigCanvas w-full h-44 cursor-crosshair' }}
+                          onEnd={saveSignature}
+                        />
+                      </div>
+
+                      <div className="space-y-2 pt-2">
+                        <Label className="text-xs font-bold uppercase tracking-wider text-zinc-400">
+                          Nhập Lại Họ Tên Để Đối Chiếu Chữ Ký *
+                        </Label>
+                        <Input 
+                          {...register('agreementSigned_name')}
+                          placeholder="Ví dụ: Nguyễn Văn A (Phải khớp với tên ở Bước 1)" 
+                          className={`bg-zinc-900 border-zinc-800 text-white rounded-xl h-11 text-sm ${
+                            signature && !isNameMatch ? 'border-red-500 focus:border-red-500' : 
+                            isNameMatch ? 'border-emerald-500 focus:border-emerald-500' : 'focus:border-cyan-500'
+                          }`}
+                        />
+                        {signature && !isNameMatch && (
+                          <p className="text-red-400 text-xs">Họ tên đối chiếu không khớp với họ tên ở Bước 1.</p>
+                        )}
+                      </div>
                     </div>
                   </motion.div>
                 )}
               </AnimatePresence>
 
               {/* Navigation Buttons */}
-              <div className="flex justify-between mt-10 pt-6 border-t border-white/10">
+              <div className="flex justify-between mt-10 pt-6 border-t border-zinc-800">
                 {step > 1 ? (
-                  <Button type="button" variant="outline" onClick={prevStep} className="border-white/10 bg-zinc-800/50 hover:bg-zinc-700 hover:text-white text-white font-bold shadow-lg shadow-black/20 backdrop-blur-sm transition-all">
-                    <ChevronLeft className="mr-2 h-4 w-4" /> {t('prevStep')}
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={prevStep} 
+                    className="border-zinc-800 bg-zinc-950 hover:bg-zinc-800 text-zinc-300 font-bold text-xs h-11 px-5 rounded-xl transition-all"
+                  >
+                    <ChevronLeft className="mr-1.5 h-4 w-4" /> Quay Lại
                   </Button>
                 ) : <div></div>}
 
                 {step < 3 ? (
-                  <Button type="button" onClick={nextStep} className="bg-blue-600 hover:bg-blue-500 text-white font-bold shadow-lg shadow-blue-500/20">
-                    {t('nextStep')} <ChevronRight className="ml-2 h-4 w-4" />
+                  <Button 
+                    type="button" 
+                    onClick={nextStep} 
+                    className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-black text-xs h-11 px-6 rounded-xl shadow-[0_0_20px_rgba(6,182,212,0.3)] transition-all"
+                  >
+                    <span>Tiếp Theo</span>
+                    <ChevronRight className="ml-1.5 h-4 w-4" />
                   </Button>
                 ) : (
                   <Button 
                     type="button" 
                     onClick={() => setShowConfirmModal(true)} 
                     disabled={!allAgreementsChecked || !isSignatureValid || !signatureDataUrl}
-                    className={`font-bold min-w-[150px] ${(!allAgreementsChecked || !isSignatureValid || !signatureDataUrl) ? 'bg-slate-700 text-slate-400' : 'bg-green-600 hover:bg-green-700 text-white'}`}
+                    className={`font-black text-xs h-11 px-7 rounded-xl transition-all ${
+                      (!allAgreementsChecked || !isSignatureValid || !signatureDataUrl) 
+                        ? 'bg-zinc-800 text-zinc-500 cursor-not-allowed' 
+                        : 'bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white shadow-[0_0_25px_rgba(16,185,129,0.4)]'
+                    }`}
                   >
-                    {t('submitApp')}
+                    Xem Lại & Nộp Đơn
                   </Button>
                 )}
               </div>
@@ -992,18 +1088,15 @@ export default function BoosterApplyPage() {
         </Card>
       </div>
 
-      {/* HIDDEN CONTRACT TEMPLATE FOR PDF GENERATION */}
-      {/* Fix: Sử dụng fixed top-0 left-0 z-[-50] để tránh lỗi render và clipping */}
+      {/* ========================================================================= */}
+      {/* HIDDEN CONTRACT TEMPLATE FOR PDF GENERATION (DO NOT USE TAILWIND COLORS)   */}
+      {/* ========================================================================= */}
       <div className="fixed top-0 left-0 z-[-50]">
-        {/* 
-            QUAN TRỌNG: Sử dụng Inline Styles 100% cho phần này.
-            Không dùng class Tailwind để tránh lỗi 'oklch' color function của html2canvas.
-        */}
         <div id="contract-template" style={{ width: '210mm', minHeight: '297mm', padding: '20mm', fontFamily: 'Times New Roman, serif', lineHeight: '1.6', position: 'relative', backgroundColor: '#ffffff', color: '#000000', boxSizing: 'border-box' }}>
           <div style={{ textAlign: 'center', marginBottom: '32px' }}>
             <h1 style={{ fontSize: '24px', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '8px', margin: 0 }}>CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</h1>
             <p style={{ fontWeight: 'bold', marginBottom: '24px', textDecoration: 'underline', textDecorationColor: '#000000', margin: 0 }}>Độc lập - Tự do - Hạnh phúc</p>
-            <h2 style={{ fontSize: '30px', fontWeight: 'bold', textTransform: 'uppercase', marginTop: '40px', marginBottom: '8px' }}>HỢP ĐỒNG HỢP TÁC CÀY THUÊ</h2>
+            <h2 style={{ fontSize: '30px', fontWeight: 'bold', textTransform: 'uppercase', marginTop: '40px', marginBottom: '8px' }}>HỢP ĐỒNG HỢP TÁC CÀY THUÊ ESPORTS</h2>
             <p style={{ fontStyle: 'italic', fontSize: '14px', marginTop: '8px' }}>Số: {contractDate ? contractDate.getTime() : '...'}/HĐ-BOOSTER</p>
           </div>
 
@@ -1012,24 +1105,25 @@ export default function BoosterApplyPage() {
           </div>
 
           <div style={{ marginBottom: '24px' }}>
-            <h3 style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '8px', margin: 0 }}>BÊN A: {adminSettings.platformName.toUpperCase()} (Bên quản lý)</h3>
-            <p style={{ margin: 0 }}>Đại diện bởi hệ thống quản trị viên.</p>
+            <h3 style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '8px', margin: 0 }}>BÊN A: {adminSettings.platformName.toUpperCase()} (Bên quản lý hệ thống)</h3>
+            <p style={{ margin: 0 }}>Đại diện bởi ban quản trị nền tảng LeoRank.</p>
           </div>
 
           <div style={{ marginBottom: '24px' }}>
-            <h3 style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '8px', margin: 0 }}>BÊN B: {fullName?.toUpperCase()} (Bên Booster)</h3>
+            <h3 style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '8px', margin: 0 }}>BÊN B: {fullName?.toUpperCase()} (Bên Tuyển thủ Booster)</h3>
             <p style={{ margin: 0 }}>Số điện thoại: {watch('phoneNumber')}</p>
             <p style={{ margin: 0 }}>Discord: {watch('discordTag')}</p>
             <p style={{ margin: 0 }}>Facebook: {watch('facebookUrl')}</p>
+            <p style={{ margin: 0 }}>Ngân hàng thụ hưởng: {watch('bankName')} - {watch('bankAccountNumber')} ({watch('bankAccountName')})</p>
           </div>
 
           <div style={{ marginBottom: '24px' }}>
             <h3 style={{ fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '8px', margin: 0 }}>ĐIỀU 1: NỘI DUNG HỢP TÁC</h3>
-            <p style={{ textAlign: 'justify', margin: 0 }}>Bên B đồng ý trở thành đối tác cung cấp dịch vụ cày thuê (Boosting) trên nền tảng của Bên A. Bên B cam kết tuân thủ mọi quy định về bảo mật, chất lượng dịch vụ và thái độ phục vụ khách hàng.</p>
+            <p style={{ textAlign: 'justify', margin: 0 }}>Bên B đồng ý trở thành đối tác cung cấp dịch vụ cày thuê (Boosting) trên nền tảng của Bên A. Bên B cam kết tuân thủ mọi quy định về bảo mật, chất lượng thi đấu và thái độ phục vụ khách hàng.</p>
           </div>
 
           <div style={{ marginBottom: '24px' }}>
-            <h3 style={{ fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '8px', margin: 0 }}>ĐIỀU 2: CAM KẾT CỦA BÊN B</h3>
+            <h3 style={{ fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '8px', margin: 0 }}>ĐIỀU 2: CÁC CAM KẾT NGHỀ NGHIỆP</h3>
             <ul style={{ listStyleType: 'disc', paddingLeft: '24px', margin: 0 }}>
               {COMMITMENTS.map((c) => (
                 <li key={c.id} style={{ textAlign: 'justify', marginBottom: '4px' }}>{c.desc}</li>
@@ -1041,13 +1135,11 @@ export default function BoosterApplyPage() {
             <div style={{ textAlign: 'center', width: '50%' }}>
               <p style={{ fontWeight: 'bold', textTransform: 'uppercase', margin: 0 }}>ĐẠI DIỆN BÊN A</p>
               <p style={{ fontStyle: 'italic', fontSize: '14px', margin: 0 }}>(Đã ký điện tử)</p>
-              <div style={{ marginTop: '64px', fontWeight: 'bold' }}>CHIEN</div>
+              <div style={{ marginTop: '64px', fontWeight: 'bold' }}>LEORANK ADMIN</div>
             </div>
             <div style={{ textAlign: 'center', width: '50%' }}>
               <p style={{ fontWeight: 'bold', textTransform: 'uppercase', margin: 0 }}>ĐẠI DIỆN BÊN B</p>
               <p style={{ fontStyle: 'italic', fontSize: '14px', margin: 0 }}>(Ký tên xác nhận)</p>
-              
-              {/* Hiển thị ảnh chữ ký thay vì text */}
               <div style={{ marginTop: '16px', height: '80px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 {signatureDataUrl ? <img src={signatureDataUrl} alt="Signature" style={{ maxHeight: '80px', maxWidth: '100%' }} /> : <span style={{color: '#ccc'}}>...</span>}
@@ -1058,62 +1150,68 @@ export default function BoosterApplyPage() {
         </div>
       </div>
 
-      {/* Confirmation Modal */}
+      {/* ========================================================================= */}
+      {/* CONFIRMATION & PDF DOWNLOAD MODAL                                         */}
+      {/* ========================================================================= */}
       <Dialog open={showConfirmModal} onOpenChange={(isOpen) => {
         setShowConfirmModal(isOpen);
         if (!isOpen) {
-          setHasDownloadedContract(false); // Reset khi đóng modal
+          setHasDownloadedContract(false);
         }
       }}>
-        <DialogContent className="bg-zinc-900 border-white/10 text-white sm:max-w-[520px]">
+        <DialogContent className="bg-zinc-900 border-zinc-800 text-white sm:max-w-[500px] rounded-3xl">
           <DialogHeader>
-            <DialogTitle className="text-xl text-blue-400 flex items-center gap-2">
-              <AlertTriangle /> {t('confirmAppTitle')}
+            <DialogTitle className="text-lg font-black text-white flex items-center gap-2">
+              <ShieldCheck className="w-5 h-5 text-cyan-400" />
+              Xác Nhận Nộp Hồ Sơ Tuyển Thủ
             </DialogTitle>
-            <DialogDescription className="text-zinc-400 pt-2">
-              {t('confirmAppDesc')}
+            <DialogDescription className="text-zinc-400 text-xs pt-1.5 leading-relaxed">
+              Vui lòng bấm <b className="text-cyan-400">"Tải Bản Khai PDF"</b> để lưu lại hợp đồng điện tử trước khi gửi hồ sơ chính thức lên hệ thống.
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter className="mt-4 flex flex-col-reverse sm:flex-row sm:justify-end gap-2">
+
+          <DialogFooter className="mt-5 flex flex-col-reverse sm:flex-row sm:justify-end gap-2.5">
             <Button
               variant="ghost"
               onClick={() => setShowConfirmModal(false)}
-              className="text-zinc-400 hover:text-white hover:bg-zinc-800"
+              className="text-zinc-400 hover:text-white hover:bg-zinc-800 text-xs rounded-xl"
             >
-              {t('cancelBtn')}
+              Hủy
             </Button>
             <Button
               type="button"
               variant="outline"
               onClick={handleDownload}
-              className="border-zinc-700 bg-zinc-800 text-zinc-300 hover:bg-zinc-700 hover:text-white"
+              className="border-zinc-700 bg-zinc-800 text-zinc-200 hover:bg-zinc-700 text-xs font-bold rounded-xl"
             >
-              <Download className="mr-2 h-4 w-4" />
-              Tải bản khai
+              <Download className="mr-1.5 h-4 w-4" />
+              Tải Bản Khai PDF
             </Button>
             <Button
               onClick={() => {
                 if (!hasDownloadedContract) {
-                  toast.error("Vui lòng tải bản khai trước khi gửi đăng ký.");
+                  toast.error("Vui lòng tải bản khai hợp đồng trước khi gửi đăng ký.");
                   return;
                 }
                 handleSubmit(onSubmit)();
               }}
               disabled={isSubmitting}
-              className={`bg-blue-600 hover:bg-blue-500 text-white font-bold transition-opacity ${!hasDownloadedContract && !isSubmitting ? 'opacity-60' : ''}`}
+              className={`bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-black text-xs rounded-xl shadow-[0_0_20px_rgba(6,182,212,0.3)] ${
+                !hasDownloadedContract && !isSubmitting ? 'opacity-60 cursor-not-allowed' : ''
+              }`}
             >
               {isSubmitting ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
               ) : (
-                <CheckCircle2 className="mr-2 h-4 w-4" />
+                <CheckCircle2 className="mr-1.5 h-4 w-4" />
               )}
-              {t('confirmSend')}
+              Xác Nhận Gửi Hồ Sơ
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Bank Selection Modal (Desktop: Center Modal / Mobile: Bottom Sheet) */}
+      {/* Bank Selection Modal */}
       <BankSelectModal
         isOpen={isBankOpen}
         onClose={() => setIsBankOpen(false)}
