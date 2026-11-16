@@ -35,7 +35,7 @@ import {
   ArrowRightLeft,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { getGameById, GAMES_CATALOG } from '@/lib/games';
+import { getGameById, GAMES_CATALOG, getServiceMeta } from '@/lib/games';
 import {
   LOL_RANK_STEPS,
   calculateRankBoost,
@@ -66,8 +66,19 @@ function ServiceBookingContent() {
   const cleanBoosterUsername = boosterQuery.replace(/^@+/, '');
 
   const game = getGameById(gameId) || GAMES_CATALOG[0];
+  const serviceMeta = getServiceMeta(game.id, serviceSlug);
   const serviceDef =
-    game.defaultServices.find((s) => s.slug === serviceSlug) || game.defaultServices[0];
+    game.defaultServices.find((s) => s.slug === serviceSlug) ||
+    serviceMeta || {
+      slug: serviceSlug,
+      name: serviceSlug === 'rank-boost' ? 'Cày Rank / Elo Siêu Tốc' : 'Dịch Vụ Cày Thuê',
+      desc: 'Dịch vụ cày thuê chuyên nghiệp cam kết tốc độ và bảo mật.',
+      iconName: 'Trophy',
+      pricingType: (serviceSlug === 'rank-boost' ? 'TIER_MATRIX' : 'FIXED') as any,
+      defaultPrice: 100000,
+      depositPercent: 100,
+      requiredFields: ['account_credentials'],
+    };
 
   // 1. States cho Cày Rank (Rank Calculator)
   const [currentRankId, setCurrentRankId] = useState<string>('GOLD_4');
