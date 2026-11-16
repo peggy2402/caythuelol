@@ -398,100 +398,19 @@ function ServiceBookingContent() {
           </p>
         </div>
 
-        {/* 2. CHỌN LOẠI DỊCH VỤ BẠN CẦN (Khớp 100% Ảnh 1) */}
-        <div className="mb-10">
-          <div className="flex items-center gap-2.5 mb-1.5">
-            <span className="w-6 h-6 rounded-full bg-blue-600 text-white inline-flex items-center justify-center text-xs font-bold shrink-0">
-              2
-            </span>
+        {/* CẤU HÌNH CHI TIẾT & BẢNG TÍNH GIÁ */}
+        <div className="flex items-center gap-2.5 mb-6">
+          <div className="p-2 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400">
+            <Sparkles size={20} />
+          </div>
+          <div>
             <h2 className="text-lg sm:text-xl font-bold text-white tracking-tight">
-              Chọn loại dịch vụ bạn cần
+              Cấu hình chi tiết gói dịch vụ
             </h2>
+            <p className="text-xs text-zinc-400">
+              Tùy chỉnh thông số cày rank, chọn tuyển thủ và tính toán chi phí theo thời gian thực
+            </p>
           </div>
-          <p className="text-xs text-zinc-400 ml-8 mb-5">
-            Nhấn vào dịch vụ để xem danh sách tuyển thủ và bảng giá chi tiết
-          </p>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {game.defaultServices.map((svc) => {
-              const isSelected = svc.slug === serviceSlug;
-              const IconComp = ICON_MAP[svc.iconName] || Trophy;
-              const isDeposit = svc.depositPercent < 100;
-              const svcUrl = `/services/${game.id}/${svc.slug}${
-                cleanBoosterUsername ? `?booster=@${cleanBoosterUsername}` : ''
-              }`;
-
-              return (
-                <Link
-                  key={svc.slug}
-                  href={svcUrl}
-                  className={`p-4 rounded-2xl transition-all flex flex-col justify-between cursor-pointer border ${
-                    isSelected
-                      ? 'bg-[#0e1220] border-blue-500 shadow-[0_0_25px_rgba(59,130,246,0.2)] ring-1 ring-blue-500'
-                      : 'bg-[#0f1118]/90 hover:bg-[#141724] border-zinc-800/80 hover:border-zinc-700'
-                  }`}
-                >
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div
-                        className={`w-9 h-9 rounded-xl flex items-center justify-center border ${
-                          isSelected
-                            ? 'bg-blue-500/20 text-blue-400 border-blue-500/30'
-                            : 'bg-zinc-800/60 text-zinc-300 border-zinc-700/50'
-                        }`}
-                      >
-                        <IconComp size={18} />
-                      </div>
-                      <span
-                        className={`text-[11px] font-medium px-2.5 py-0.5 rounded-full border ${
-                          isDeposit
-                            ? 'bg-amber-950/40 text-amber-400 border-amber-500/30'
-                            : 'bg-emerald-950/40 text-emerald-400 border-emerald-500/30'
-                        }`}
-                      >
-                        {isDeposit ? `Cọc ${svc.depositPercent}%` : 'Trọn gói'}
-                      </span>
-                    </div>
-
-                    <div>
-                      <h3 className="font-bold text-white text-sm tracking-tight mb-1">
-                        {svc.name}
-                      </h3>
-                      <p className="text-zinc-400 text-xs line-clamp-2 leading-relaxed min-h-[34px]">
-                        {svc.desc}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="pt-3 mt-3 border-t border-zinc-800/60 flex items-center justify-between">
-                    <span className="text-xs text-zinc-400 font-medium">
-                      {svc.pricingType === 'PER_UNIT'
-                        ? `${svc.defaultPrice.toLocaleString('vi-VN')} đ / ${svc.unitName || 'Điểm LP'}`
-                        : `Từ ${svc.defaultPrice.toLocaleString('vi-VN')} đ`}
-                    </span>
-
-                    <span
-                      className={`text-xs font-semibold ${
-                        isSelected ? 'text-blue-400 font-bold' : 'text-zinc-400 hover:text-white'
-                      }`}
-                    >
-                      {isSelected ? 'Đang chọn' : 'Chọn dịch vụ'}
-                    </span>
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* 3. CẤU HÌNH CHI TIẾT & BẢNG TÍNH GIÁ */}
-        <div className="flex items-center gap-2.5 mb-5">
-          <span className="w-6 h-6 rounded-full bg-blue-600 text-white inline-flex items-center justify-center text-xs font-bold shrink-0">
-            3
-          </span>
-          <h2 className="text-lg sm:text-xl font-bold text-white tracking-tight">
-            Cấu hình chi tiết gói dịch vụ
-          </h2>
         </div>
 
         {/* Main Grid: Form Left (7 Cols), Summary Right (5 Cols) */}
