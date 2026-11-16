@@ -275,12 +275,12 @@ export default function BoosterDashboardPage() {
               </div>
             </div>
             <div className="text-base sm:text-xl font-black text-purple-300 font-mono tracking-tight mb-2">
-              {stats.rating > 0 ? `${stats.rating.toFixed(1)} / 5.0 ★` : 'Chưa có đánh giá'}
+              {stats.rating > 0 ? `${stats.rating.toFixed(1)} / 5.0 ★` : '0/0 ★'}
             </div>
           </div>
           <div className="text-[10px] sm:text-xs text-zinc-400 flex items-center justify-between mt-auto pt-1">
-            <span>Bảo chứng:</span>
-            <span className="text-emerald-400 font-bold">100% Escrow</span>
+            <span>Cơ chế bảo vệ:</span>
+            <span className="text-emerald-400 font-bold">Ký quỹ Escrow</span>
           </div>
         </div>
       </div>

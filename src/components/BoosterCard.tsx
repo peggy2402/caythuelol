@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { Star, Heart, Loader2, ShieldCheck, Trophy, ArrowRight, Gamepad2 } from 'lucide-react';
 
@@ -11,9 +10,22 @@ interface BoosterCardProps {
   onToggleBookmark: (boosterId: string, e: React.MouseEvent) => void;
 }
 
+// Chuẩn hóa tên tựa game hiển thị: LOL và LMHT là 1
+const formatGameName = (code: string) => {
+  const c = (code || '').toUpperCase().trim();
+  if (c === 'LOL' || c === 'LMHT' || c === 'LEAGUE OF LEGENDS' || c === 'LEAGUE_OF_LEGENDS') return 'LMHT';
+  if (c === 'TFT' || c === 'DTCL') return 'ĐTCL';
+  if (c === 'VALORANT' || c === 'VAL') return 'Valorant';
+  if (c === 'WILD_RIFT' || c === 'TOCCHIEN') return 'Tốc Chiến';
+  if (c === 'ARENA_OF_VALOR' || c === 'LIENQUAN') return 'Liên Quân';
+  if (c === 'FC_ONLINE' || c === 'FO4') return 'FC Online';
+  return code || 'LMHT';
+};
+
 export default function BoosterCard({ booster, isBookmarked, onToggleBookmark }: BoosterCardProps) {
   const router = useRouter();
   const [isNavigating, setIsNavigating] = useState(false);
+  const [avatarError, setAvatarError] = useState(false);
 
   const profileUrl = `/b/${booster.username}`;
 
@@ -25,9 +37,12 @@ export default function BoosterCard({ booster, isBookmarked, onToggleBookmark }:
   const userRank = booster.games?.[0]?.ranks?.[0] || booster.booster_info?.currentRank || '';
   const cleanRankKey = userRank ? userRank.split(/[_ ]/)[0].toLowerCase() : '';
   
-  // Danh sách game nhận cày
-  const mainGames = booster.games?.map((g: any) => g.gameCode || g.game) || booster.booster_info?.main_games || ['LMHT'];
+  // Chuẩn hóa danh sách game nhận cày (LOL và LMHT đều quy về LMHT)
+  const rawGames = booster.games?.map((g: any) => g.gameCode || g.game) || booster.booster_info?.main_games || ['LMHT'];
+  const normalizedGames = Array.from(new Set(rawGames.map((g: any) => formatGameName(String(g)))));
   const winrate = booster.winrate || booster.booster_info?.winrate || null;
+
+  const avatarUrl = booster.avatar || booster.profile?.avatar;
 
   const handleCardClick = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -76,13 +91,14 @@ export default function BoosterCard({ booster, isBookmarked, onToggleBookmark }:
                   <Loader2 className="w-6 h-6 text-blue-400 animate-spin" />
                 </div>
               )}
-              {booster.avatar || booster.profile?.avatar ? (
-                <Image 
-                  src={booster.avatar || booster.profile?.avatar} 
+              {avatarUrl && !avatarError ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img 
+                  src={avatarUrl} 
                   alt={booster.username} 
-                  fill 
-                  className="object-cover" 
-                  sizes="80px" 
+                  referrerPolicy="no-referrer"
+                  className="w-full h-full object-cover"
+                  onError={() => setAvatarError(true)}
                 />
               ) : (
                 <span className="text-2xl font-black text-blue-400 font-mono">
@@ -117,7 +133,7 @@ export default function BoosterCard({ booster, isBookmarked, onToggleBookmark }:
           ) : (
             <div className="flex items-center gap-1 text-zinc-400 text-[11px] font-medium">
               <Star className="w-3.5 h-3.5 text-zinc-500" />
-              <span>Chưa có đánh giá</span>
+              <span>0/0</span>
             </div>
           )}
           <span className="text-zinc-700">•</span>
@@ -127,7 +143,7 @@ export default function BoosterCard({ booster, isBookmarked, onToggleBookmark }:
           </div>
         </div>
 
-        {/* Bậc Rank hoặc Game hỗ trợ */}
+        {/* Bậc Rank hoặc Game hỗ trợ (Chuẩn hóa LMHT thống nhất) */}
         <div className="flex flex-wrap justify-center items-center gap-1.5 my-2 min-h-[28px]">
           {userRank ? (
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-xs font-bold text-blue-300">
@@ -144,7 +160,7 @@ export default function BoosterCard({ booster, isBookmarked, onToggleBookmark }:
           ) : (
             <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/5 border border-white/10 text-[11px] font-medium text-zinc-400">
               <Gamepad2 className="w-3 h-3 text-blue-400" />
-              <span>{mainGames.slice(0, 2).join(' / ')}</span>
+              <span>{normalizedGames.slice(0, 2).join(' / ')}</span>
             </span>
           )}
 
