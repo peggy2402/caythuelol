@@ -18,7 +18,8 @@ import {
   Settings2,
   AlertTriangle,
   DoorOpen,
-  Power
+  Power,
+  Zap
 } from 'lucide-react';
 import { useLanguage } from '../../lib/i18n';
 import Sidebar from '@/components/Sidebar';
@@ -266,6 +267,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <Sidebar 
         className={`md:hidden ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`} 
         onLinkClick={() => setIsSidebarOpen(false)} 
+        onClose={() => setIsSidebarOpen(false)}
       />
 
       {/* Main Content */}
@@ -449,10 +451,107 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 p-6 md:p-8 bg-zinc-900">
+        <main className="flex-1 p-4 sm:p-6 md:p-8 pb-24 md:pb-8 bg-zinc-950">
           {children}
         </main>
       </div>
+
+      {/* Mobile Bottom Navigation Bar */}
+      <nav className="fixed bottom-0 left-0 right-0 z-40 bg-zinc-950/95 backdrop-blur-xl border-t border-white/10 px-3 py-2 flex items-center justify-around md:hidden shadow-[0_-10px_30px_rgba(0,0,0,0.8)]">
+        {user?.role === 'BOOSTER' ? (
+          <>
+            <Link
+              href="/booster/dashboard"
+              className={`flex flex-col items-center gap-1 py-1 px-2 rounded-xl text-[10px] font-bold transition-all ${
+                pathname === '/booster/dashboard' ? 'text-cyan-400 scale-105' : 'text-zinc-400 hover:text-white'
+              }`}
+            >
+              <LayoutDashboard className="w-5 h-5" />
+              <span>Tổng quan</span>
+            </Link>
+            <Link
+              href="/booster/jobs"
+              className={`flex flex-col items-center gap-1 py-1 px-2 rounded-xl text-[10px] font-bold transition-all ${
+                pathname === '/booster/jobs' ? 'text-cyan-400 scale-105' : 'text-zinc-400 hover:text-white'
+              }`}
+            >
+              <Briefcase className="w-5 h-5" />
+              <span>Sàn việc</span>
+            </Link>
+            <Link
+              href="/booster/my-orders"
+              className={`flex flex-col items-center gap-1 py-1 px-2 rounded-xl text-[10px] font-bold transition-all ${
+                pathname === '/booster/my-orders' ? 'text-cyan-400 scale-105' : 'text-zinc-400 hover:text-white'
+              }`}
+            >
+              <Gamepad2 className="w-5 h-5" />
+              <span>Đơn cày</span>
+            </Link>
+            <Link
+              href="/booster/services"
+              className={`flex flex-col items-center gap-1 py-1 px-2 rounded-xl text-[10px] font-bold transition-all ${
+                pathname === '/booster/services' ? 'text-cyan-400 scale-105' : 'text-zinc-400 hover:text-white'
+              }`}
+            >
+              <Zap className="w-5 h-5" />
+              <span>Dịch vụ</span>
+            </Link>
+            <button
+              onClick={() => setIsSidebarOpen(true)}
+              className="flex flex-col items-center gap-1 py-1 px-2 rounded-xl text-[10px] font-bold text-zinc-400 hover:text-white transition-colors"
+            >
+              <Menu className="w-5 h-5" />
+              <span>Menu</span>
+            </button>
+          </>
+        ) : (
+          <>
+            <Link
+              href="/dashboard"
+              className={`flex flex-col items-center gap-1 py-1 px-2 rounded-xl text-[10px] font-bold transition-all ${
+                pathname === '/dashboard' ? 'text-cyan-400 scale-105' : 'text-zinc-400 hover:text-white'
+              }`}
+            >
+              <LayoutDashboard className="w-5 h-5" />
+              <span>Tổng quan</span>
+            </Link>
+            <Link
+              href="/services"
+              className={`flex flex-col items-center gap-1 py-1 px-2 rounded-xl text-[10px] font-bold transition-all ${
+                pathname === '/services' || pathname.startsWith('/services/') ? 'text-cyan-400 scale-105' : 'text-zinc-400 hover:text-white'
+              }`}
+            >
+              <Zap className="w-5 h-5" />
+              <span>Thuê ngay</span>
+            </Link>
+            <Link
+              href="/orders"
+              className={`flex flex-col items-center gap-1 py-1 px-2 rounded-xl text-[10px] font-bold transition-all ${
+                pathname.startsWith('/orders') ? 'text-cyan-400 scale-105' : 'text-zinc-400 hover:text-white'
+              }`}
+            >
+              <Gamepad2 className="w-5 h-5" />
+              <span>Đơn hàng</span>
+            </Link>
+            <Link
+              href="/wallet"
+              className={`flex flex-col items-center gap-1 py-1 px-2 rounded-xl text-[10px] font-bold transition-all ${
+                pathname === '/wallet' ? 'text-cyan-400 scale-105' : 'text-zinc-400 hover:text-white'
+              }`}
+            >
+              <Wallet className="w-5 h-5" />
+              <span>Ví tiền</span>
+            </Link>
+            <button
+              onClick={() => setIsSidebarOpen(true)}
+              className="flex flex-col items-center gap-1 py-1 px-2 rounded-xl text-[10px] font-bold text-zinc-400 hover:text-white transition-colors"
+            >
+              <Menu className="w-5 h-5" />
+              <span>Menu</span>
+            </button>
+          </>
+        )}
+      </nav>
     </div>
   );
 }

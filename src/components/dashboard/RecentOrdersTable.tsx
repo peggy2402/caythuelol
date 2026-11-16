@@ -53,17 +53,17 @@ export default function RecentOrdersTable({ orders }: RecentOrdersTableProps) {
     new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
 
   return (
-    <div className="rounded-3xl border border-zinc-800 bg-zinc-900/60 backdrop-blur-xl overflow-hidden shadow-[0_15px_40px_rgba(0,0,0,0.5)]">
-      <div className="flex items-center justify-between border-b border-zinc-800 p-6">
+    <div className="rounded-2xl sm:rounded-3xl border border-zinc-800 bg-zinc-900/60 backdrop-blur-xl overflow-hidden shadow-[0_15px_40px_rgba(0,0,0,0.5)]">
+      <div className="flex items-center justify-between border-b border-zinc-800 p-4 sm:p-6">
         <div>
-          <h3 className="text-lg font-bold text-white flex items-center gap-2">
-            <Gamepad2 className="w-5 h-5 text-cyan-400" />
+          <h3 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
+            <Gamepad2 className="w-4 h-4 sm:w-5 sm:h-5 text-cyan-400" />
             Lịch Sử Đơn Hàng Gần Đây
           </h3>
-          <p className="text-xs text-zinc-400 mt-0.5">Tiền cọc của bạn được bảo đảm an toàn qua hệ thống Escrow.</p>
+          <p className="text-[11px] sm:text-xs text-zinc-400 mt-0.5">Tiền cọc bảo đảm an toàn qua hệ thống Escrow.</p>
         </div>
-        <Link href="/orders" className="flex items-center gap-1 text-xs font-bold text-cyan-400 hover:text-cyan-300 transition-colors">
-          Xem tất cả đơn hàng <ArrowUpRight className="h-4 w-4" />
+        <Link href="/orders" className="flex items-center gap-1 text-xs font-bold text-cyan-400 hover:text-cyan-300 transition-colors shrink-0">
+          Xem tất cả <ArrowUpRight className="h-3.5 w-3.5" />
         </Link>
       </div>
 

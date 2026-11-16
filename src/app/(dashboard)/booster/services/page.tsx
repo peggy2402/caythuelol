@@ -310,7 +310,7 @@ export default function BoosterServicesStudio() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto pt-6 pb-20 px-4 sm:px-6 text-white font-sans">
+    <div className="w-full max-w-[1440px] mx-auto pt-2 pb-20 px-2 sm:px-4 text-white font-sans">
       {/* Header Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 mb-8 border-b border-zinc-800">
         <div>
@@ -340,7 +340,7 @@ export default function BoosterServicesStudio() {
 
       <div className="space-y-10">
         {/* SECTION 1: LỰA CHỌN TỰA GAME CÓ THỂ CÀY */}
-        <div className="bg-zinc-900/60 border border-white/10 rounded-2xl p-6 shadow-xl backdrop-blur-md">
+        <div className="bg-zinc-900/60 border border-white/10 rounded-2xl p-4 sm:p-6 shadow-xl backdrop-blur-md">
           <div className="flex items-center justify-between mb-4 pb-3 border-b border-zinc-800">
             <div>
               <h2 className="text-lg font-bold text-white flex items-center gap-2">
@@ -356,7 +356,7 @@ export default function BoosterServicesStudio() {
             </span>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4">
             {GAMES_CATALOG.map((game) => {
               const isSelected = selectedGames.includes(game.id.toUpperCase());
               const GameIcon = ICON_MAP[game.iconName] || Gamepad2;
@@ -367,13 +367,13 @@ export default function BoosterServicesStudio() {
                   onClick={() => handleToggleGame(game.id)}
                   className={`p-3.5 rounded-xl border cursor-pointer transition-all flex items-center justify-between ${
                     isSelected
-                      ? 'bg-blue-600/15 border-blue-500 text-white shadow-md'
+                      ? 'bg-blue-600/15 border-blue-500 text-white shadow-md shadow-blue-500/10'
                       : 'bg-zinc-950/60 border-zinc-800 text-zinc-400 hover:border-zinc-700 hover:text-white'
                   }`}
                 >
                   <div className="flex items-center gap-2.5 min-w-0">
                     <div
-                      className={`p-2 rounded-lg border ${
+                      className={`p-2 rounded-lg border shrink-0 ${
                         isSelected
                           ? 'bg-blue-500/20 border-blue-500/30 text-blue-400'
                           : 'bg-zinc-800 border-zinc-700 text-zinc-400'
@@ -388,7 +388,7 @@ export default function BoosterServicesStudio() {
                   </div>
 
                   <div
-                    className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ${
+                    className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ml-1.5 ${
                       isSelected
                         ? 'bg-blue-500 border-blue-400 text-white'
                         : 'border-zinc-700 bg-zinc-900'
