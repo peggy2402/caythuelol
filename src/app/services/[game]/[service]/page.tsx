@@ -204,36 +204,29 @@ function ServiceBookingContent() {
   }, [lpGain]);
 
   // Cấu hình dịch vụ riêng của Booster nếu khách đã chỉ định
-  const boosterSettings = assignedBooster?.boosterData?.service_settings || assignedBooster?.service_settings;
+  const boosterSettings =
+    assignedBooster?.service_settings ||
+    assignedBooster?.booster_info?.service_settings ||
+    assignedBooster?.boosterData?.service_settings ||
+    assignedBooster?.boosterData?.booster_info?.service_settings;
+
   const boosterStandardConfig = boosterSettings?.standardConfig;
   const boosterMultiplier = boosterStandardConfig?.rankPriceMultiplier || 1.0;
-  const boosterAddonsConfig = boosterStandardConfig?.addonsConfig;
-  const boosterStepOverrides = boosterStandardConfig?.stepOverrides;
+  const boosterAddonsConfig =
+    assignedBooster?.addonsConfig ||
+    boosterSettings?.addonsConfig ||
+    boosterStandardConfig?.addonsConfig;
+  const boosterStepOverrides =
+    boosterSettings?.stepOverrides ||
+    boosterStandardConfig?.stepOverrides;
 
-  // Cấu hình chi tiết từng addon
-  const scheduleCfg = isManualSelectBooster && boosterAddonsConfig?.schedule
-    ? boosterAddonsConfig.schedule
-    : { enabled: true, percent: 20 };
-
-  const specificRoleCfg = isManualSelectBooster && boosterAddonsConfig?.specificRole
-    ? boosterAddonsConfig.specificRole
-    : { enabled: true, percent: 25 };
-
-  const specificChampsCfg = isManualSelectBooster && boosterAddonsConfig?.specificChamps
-    ? boosterAddonsConfig.specificChamps
-    : { enabled: true, percent: 30 };
-
-  const livestreamCfg = isManualSelectBooster && boosterAddonsConfig?.livestream
-    ? boosterAddonsConfig.livestream
-    : { enabled: true, fee: 349000 };
-
-  const flashCfg = isManualSelectBooster && boosterAddonsConfig?.flash
-    ? boosterAddonsConfig.flash
-    : { enabled: true, percent: 35 };
-
-  const duoCfg = isManualSelectBooster && boosterAddonsConfig?.duo
-    ? boosterAddonsConfig.duo
-    : { enabled: true, percent: 50 };
+  // Cấu hình chi tiết từng addon (Ưu tiên cấu hình thực tế từ Booster)
+  const scheduleCfg = boosterAddonsConfig?.schedule || { enabled: true, percent: 20 };
+  const specificRoleCfg = boosterAddonsConfig?.specificRole || { enabled: true, percent: 25 };
+  const specificChampsCfg = boosterAddonsConfig?.specificChamps || { enabled: true, percent: 30 };
+  const livestreamCfg = boosterAddonsConfig?.livestream || { enabled: true, fee: 349000 };
+  const flashCfg = boosterAddonsConfig?.flash || { enabled: true, percent: 35 };
+  const duoCfg = boosterAddonsConfig?.duo || { enabled: true, percent: 50 };
 
   // Tính toán bảng giá theo thuật toán Ladder Steps (Áp dụng cấu hình riêng của Booster)
   const calculation = useMemo(() => {
@@ -784,7 +777,7 @@ function ServiceBookingContent() {
                       <span>Đặt lịch cày</span>
                       {scheduleCfg.enabled ? (
                         <span className="text-blue-400 font-bold">
-                          +{scheduleCfg.percent.toFixed(2)}%
+                          +{Math.round(scheduleCfg.percent)}%
                         </span>
                       ) : (
                         <span className="text-zinc-500 text-[11px] font-semibold">(Tuyển thủ không nhận)</span>
@@ -809,7 +802,7 @@ function ServiceBookingContent() {
                       <span>Tùy chọn vị trí / đường</span>
                       {specificRoleCfg.enabled ? (
                         <span className="text-blue-400 font-bold">
-                          +{specificRoleCfg.percent.toFixed(2)}%
+                          +{Math.round(specificRoleCfg.percent)}%
                         </span>
                       ) : (
                         <span className="text-zinc-500 text-[11px] font-semibold">(Tuyển thủ không nhận)</span>
@@ -834,7 +827,7 @@ function ServiceBookingContent() {
                       <span>Tùy chọn tướng</span>
                       {specificChampsCfg.enabled ? (
                         <span className="text-blue-400 font-bold">
-                          +{specificChampsCfg.percent.toFixed(2)}%
+                          +{Math.round(specificChampsCfg.percent)}%
                         </span>
                       ) : (
                         <span className="text-zinc-500 text-[11px] font-semibold">(Tuyển thủ không nhận)</span>
@@ -884,7 +877,7 @@ function ServiceBookingContent() {
                       <span>Cày siêu tốc</span>
                       {flashCfg.enabled ? (
                         <span className="text-emerald-400 font-bold">
-                          +{flashCfg.percent.toFixed(2)}%
+                          +{Math.round(flashCfg.percent)}%
                         </span>
                       ) : (
                         <span className="text-zinc-500 text-[11px] font-semibold">(Tuyển thủ không nhận)</span>
@@ -909,7 +902,7 @@ function ServiceBookingContent() {
                       <span>Chơi cùng Booster (Duo)</span>
                       {duoCfg.enabled ? (
                         <span className="text-purple-400 font-bold">
-                          +{duoCfg.percent.toFixed(2)}%
+                          +{Math.round(duoCfg.percent)}%
                         </span>
                       ) : (
                         <span className="text-zinc-500 text-[11px] font-semibold">(Tuyển thủ không nhận)</span>

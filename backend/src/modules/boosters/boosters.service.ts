@@ -69,6 +69,91 @@ export class BoostersService {
     private jwtService: JwtService,
   ) {}
 
+  getAvailableServiceTypes(gameCode?: string) {
+    const code = (gameCode || 'LOL').toUpperCase();
+    const map: Record<string, any[]> = {
+      LOL: [
+        {
+          serviceType: 'rank-boost',
+          name: 'Cày Rank / Elo Siêu Tốc',
+          desc: 'Leo rank bước nhảy từ Sắt IV đến Cao Thủ với tỷ lệ thắng cao.',
+          pricingType: 'TIER_MATRIX',
+          defaultPrice: 0,
+          allowDeposit: false,
+          depositPercent: 100,
+          requiresRankSteps: true,
+        },
+        {
+          serviceType: 'net-wins',
+          name: 'Cày Điểm Cao Thủ / Thách Đấu',
+          desc: 'Cày điểm LP Cao Thủ, Đại Cao Thủ, Thách Đấu tính theo điểm.',
+          pricingType: 'TIER_PER_POINT',
+          defaultPrice: 1500,
+          allowDeposit: true,
+          depositPercent: 30,
+          unitName: 'Điểm LP',
+          tierRates: {
+            master: 1000,
+            grandmaster: 1500,
+            challenger: 2000,
+          },
+        },
+        {
+          serviceType: 'placements',
+          name: 'Phân Hạng Đầu Mùa (5 Trận)',
+          desc: 'Đảm bảo kết quả 5 trận phân hạng cao nhất để khởi đầu mùa giải thuận lợi.',
+          pricingType: 'FIXED',
+          defaultPrice: 150000,
+          allowDeposit: false,
+          depositPercent: 100,
+        },
+        {
+          serviceType: 'promotion',
+          name: 'Chuỗi Thăng Hạng',
+          desc: 'Vượt chuỗi thăng hạng BO3/BO5 an toàn và nhanh gọn.',
+          pricingType: 'FIXED',
+          defaultPrice: 80000,
+          allowDeposit: false,
+          depositPercent: 100,
+        },
+        {
+          serviceType: 'leveling',
+          name: 'Cày Cấp Độ 1-30',
+          desc: 'Cày cấp tài khoản lên cấp 30 nhanh nhất, tối đa Tinh Hoa Lam.',
+          pricingType: 'FIXED',
+          defaultPrice: 120000,
+          allowDeposit: false,
+          depositPercent: 100,
+        },
+        {
+          serviceType: 'coaching',
+          name: 'Huấn Luyện Coaching',
+          desc: 'Dạy kèm 1-1, phân tích replay, duo cùng tuyển thủ.',
+          pricingType: 'PER_UNIT',
+          defaultPrice: 100000,
+          unitName: 'Giờ học',
+          allowDeposit: true,
+          depositPercent: 50,
+        },
+        {
+          serviceType: 'mastery',
+          name: 'Cày Thông Thạo Tướng',
+          desc: 'Cày điểm thông thạo & nâng cấp mốc biểu cảm cho vị tướng yêu thích.',
+          pricingType: 'PER_UNIT',
+          defaultPrice: 60000,
+          unitName: 'Mốc cấp',
+          allowDeposit: false,
+          depositPercent: 100,
+        },
+      ],
+    };
+
+    return {
+      success: true,
+      data: map[code] || map['LOL'],
+    };
+  }
+
   async listMarketplaceServices(query: {
     gameCode?: string;
     search?: string;
@@ -396,6 +481,8 @@ export class BoostersService {
       ...user,
       ...profile,
       booster_info: boosterInfo,
+      service_settings: mergedSettings,
+      addonsConfig: existingSettings.addonsConfig || existingSettings.standardConfig?.addonsConfig,
       profile: user.profile || profile,
       currentRank: (application as any)?.currentRank || 'N/A',
       highestRank: (application as any)?.highestRank || 'N/A',

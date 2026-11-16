@@ -37,17 +37,17 @@ export class BoostersController {
   }
 
   @Public()
+  @Get('service-types')
+  @ApiOperation({ summary: 'Get available service templates for a game' })
+  async getServiceTypes(@Query('gameCode') gameCode?: string) {
+    return this.boostersService.getAvailableServiceTypes(gameCode);
+  }
+
+  @Public()
   @Get()
   @ApiOperation({ summary: 'List boosters with filters & pagination' })
   async listBoosters(@Query() query: any) {
     return this.boostersService.listBoosters(query);
-  }
-
-  @Public()
-  @Get(':id')
-  @ApiOperation({ summary: 'Get booster profile by ID or username' })
-  async getBoosterById(@Param('id') id: string): Promise<any> {
-    return this.boostersService.getBoosterById(id);
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
@@ -102,6 +102,13 @@ export class BoostersController {
   @ApiOperation({ summary: 'Get booster earnings and order stats' })
   async getStats(@ReqUser() user: any) {
     return this.boostersService.getStats(user.userId);
+  }
+
+  @Public()
+  @Get(':id')
+  @ApiOperation({ summary: 'Get booster profile by ID or username' })
+  async getBoosterById(@Param('id') id: string): Promise<any> {
+    return this.boostersService.getBoosterById(id);
   }
 
   @UseGuards(JwtAuthGuard)
