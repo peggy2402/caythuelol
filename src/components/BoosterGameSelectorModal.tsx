@@ -99,7 +99,7 @@ export default function BoosterGameSelectorModal({
 
       {/* GAMES LAYOUT: Tự động điều chỉnh bố cục theo số lượng tựa game */}
       {displayGames.length === 1 ? (
-        /* TRƯỜNG HỢP 1 GAME: Fill toàn bộ khối với giao diện Banner Hero cao cấp */
+        /* TRƯỜNG HỢP 1 GAME: Fill toàn bộ khối dạng Card Showcase hiện đại, thoáng đãng */
         (() => {
           const game = displayGames[0];
           const boosterGameInfo = boosterGames.find(
@@ -110,37 +110,46 @@ export default function BoosterGameSelectorModal({
           return (
             <div
               onClick={() => handleOpenGame(game)}
-              className="group relative w-full bg-gradient-to-r from-[#0c101d] via-[#101626] to-[#0c101d] hover:from-[#11172a] hover:via-[#161f36] hover:to-[#11172a] border border-blue-500/30 hover:border-blue-500/60 rounded-3xl p-6 sm:p-8 cursor-pointer transition-all duration-300 shadow-xl hover:shadow-[0_0_35px_rgba(59,130,246,0.2)] flex flex-col md:flex-row items-center justify-between gap-6"
+              className="group relative w-full bg-gradient-to-br from-[#0c101d] via-[#101728] to-[#0c101d] hover:from-[#11172a] hover:via-[#162038] hover:to-[#11172a] border border-blue-500/25 hover:border-blue-500/50 rounded-3xl p-6 sm:p-7 cursor-pointer transition-all duration-300 shadow-xl hover:shadow-[0_10px_35px_rgba(59,130,246,0.18)] flex flex-col gap-5 overflow-hidden"
             >
-              {/* Bên trái: Thông tin tựa game */}
-              <div className="flex items-start sm:items-center gap-5 flex-1">
-                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-br from-blue-600 via-indigo-600 to-cyan-500 text-white flex items-center justify-center font-black text-xl sm:text-2xl shadow-lg shadow-blue-600/30 shrink-0 group-hover:scale-105 transition-transform duration-300">
-                  {game.shortName || game.id.toUpperCase()}
-                </div>
-                <div className="space-y-2">
-                  <div className="flex flex-wrap items-center gap-2.5">
-                    <h4 className="font-black text-white text-xl sm:text-2xl group-hover:text-blue-400 transition-colors">
-                      {game.name}
-                    </h4>
-                    <span className="text-xs px-3 py-1 rounded-full bg-blue-500/15 border border-blue-500/30 text-blue-400 font-extrabold">
-                      {game.defaultServices?.length || 8} gói dịch vụ
-                    </span>
+              {/* Ánh sáng ambient phía sau */}
+              <div className="absolute top-0 right-0 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl pointer-events-none group-hover:bg-blue-500/15 transition-all" />
+
+              {/* Hàng 1: Header Game (Logo + Tên + Badge) */}
+              <div className="flex flex-wrap items-center justify-between gap-3 relative z-10">
+                <div className="flex items-center gap-3.5">
+                  <div className="w-13 h-13 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 text-white flex items-center justify-center font-black text-base sm:text-lg shadow-lg shadow-blue-600/30 shrink-0 group-hover:scale-105 transition-transform duration-300">
+                    {game.shortName || game.id.toUpperCase()}
                   </div>
-                  <p className="text-xs sm:text-sm text-zinc-400 max-w-2xl leading-relaxed">
-                    {game.desc}
-                  </p>
-                  <div className="flex items-center gap-2 text-xs text-amber-400 bg-amber-500/10 px-3 py-1 rounded-xl border border-amber-500/20 w-fit">
-                    <Trophy size={14} />
-                    <span>Trình độ đảm nhận: <strong>{topRank}</strong></span>
+                  <div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h4 className="font-extrabold text-white text-lg sm:text-xl group-hover:text-blue-400 transition-colors">
+                        {game.name}
+                      </h4>
+                      <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-blue-500/15 border border-blue-500/30 text-blue-400 font-bold">
+                        {game.defaultServices?.length || 8} gói dịch vụ
+                      </span>
+                    </div>
+                    <p className="text-xs text-zinc-400 mt-0.5">Tựa game thi đấu chính nhận cày thuê & cải thiện elo</p>
                   </div>
                 </div>
               </div>
 
-              {/* Bên phải: Nút CTA hành động nổi bật */}
-              <div className="w-full md:w-auto shrink-0 flex items-center justify-end">
-                <div className="w-full md:w-auto flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-black text-sm shadow-xl shadow-blue-600/30 group-hover:shadow-blue-500/50 group-hover:scale-105 active:scale-95 transition-all">
+              {/* Hàng 2: Mô tả tựa game (Trải rộng toàn khối, thoáng đãng không bị ép cột) */}
+              <p className="text-xs sm:text-sm text-zinc-300 leading-relaxed max-w-4xl relative z-10">
+                {game.desc}
+              </p>
+
+              {/* Hàng 3: Trình độ Rank và Nút CTA */}
+              <div className="pt-4 border-t border-white/5 flex flex-wrap items-center justify-between gap-4 relative z-10">
+                <div className="inline-flex items-center gap-2 text-xs text-amber-300 bg-amber-500/10 px-3.5 py-1.5 rounded-xl border border-amber-500/25 font-medium">
+                  <Trophy size={14} className="text-amber-400 shrink-0" />
+                  <span>Trình độ đảm nhận: <strong className="text-amber-200">{topRank}</strong></span>
+                </div>
+
+                <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-extrabold text-xs shadow-lg shadow-blue-600/25 group-hover:shadow-blue-500/40 group-hover:scale-105 active:scale-95 transition-all">
                   <span>Xem chi tiết các dịch vụ</span>
-                  <ArrowRight size={16} className="group-hover:translate-x-1.5 transition-transform" />
+                  <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
                 </div>
               </div>
             </div>
