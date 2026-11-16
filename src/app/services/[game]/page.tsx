@@ -28,6 +28,7 @@ import {
   Tag,
   Loader2,
   Sparkles,
+  ChevronRight,
   type LucideIcon,
 } from 'lucide-react';
 import { getGameById, GAMES_CATALOG, getServiceMeta } from '@/lib/games';
@@ -264,15 +265,15 @@ function GameServicesContent() {
 
       <main className="relative pt-24 pb-28 px-4 sm:px-6 max-w-7xl mx-auto">
         {/* Navigation & Breadcrumbs */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
           <BackButton />
-          <div className="flex items-center gap-2 text-xs text-zinc-400">
-            <Link href="/services" className="hover:text-white transition-colors">
+          <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-xs text-zinc-400 overflow-x-auto whitespace-nowrap py-1 scrollbar-none max-w-full">
+            <Link href="/services" className="hover:text-white transition-colors shrink-0">
               Tất cả Games
             </Link>
-            <span>/</span>
-            <span className="text-white font-semibold">{game.name}</span>
-          </div>
+            <ChevronRight size={13} className="text-zinc-600 shrink-0" />
+            <span className="text-white font-bold truncate shrink-0">{game.name}</span>
+          </nav>
         </div>
 
         {/* Hero Header */}

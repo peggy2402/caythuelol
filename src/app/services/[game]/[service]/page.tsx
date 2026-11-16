@@ -33,6 +33,7 @@ import {
   Search,
   X,
   ArrowRightLeft,
+  ChevronRight,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getGameById, GAMES_CATALOG, getServiceMeta } from '@/lib/games';
@@ -368,20 +369,20 @@ function ServiceBookingContent() {
       <Navbar />
 
       <main className="relative pt-24 pb-36 lg:pb-28 px-4 sm:px-6 max-w-7xl mx-auto">
-        {/* Navigation & Breadcrumbs */}
-        <div className="flex items-center justify-between mb-6">
+        {/* Navigation & Breadcrumbs - Thoáng đãng, không bị bóp nghẹt trên mobile */}
+        <div className="flex flex-wrap items-center justify-between gap-3.5 mb-6">
           <BackButton fallbackUrl={`/services/${game.id}`} />
-          <div className="flex items-center gap-2 text-xs text-zinc-400">
-            <Link href="/services" className="hover:text-white transition-colors">
+          <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-xs text-zinc-400 overflow-x-auto whitespace-nowrap py-1 scrollbar-none max-w-full">
+            <Link href="/services" className="hover:text-white transition-colors shrink-0">
               Sàn Dịch Vụ
             </Link>
-            <span>/</span>
-            <Link href={`/services/${game.id}`} className="hover:text-white transition-colors">
+            <ChevronRight size={13} className="text-zinc-600 shrink-0" />
+            <Link href={`/services/${game.id}`} className="hover:text-white transition-colors shrink-0">
               {game.name}
             </Link>
-            <span>/</span>
-            <span className="text-white font-semibold">{serviceDef.name}</span>
-          </div>
+            <ChevronRight size={13} className="text-zinc-600 shrink-0" />
+            <span className="text-white font-bold truncate shrink-0">{serviceDef.name}</span>
+          </nav>
         </div>
 
         {/* Header Title */}
