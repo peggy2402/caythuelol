@@ -131,12 +131,23 @@ export default function BoosterServicesStudio() {
     isActive: true,
   });
 
+  // Helper lấy headers kèm Bearer token
+  const getHeaders = () => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+    return {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    };
+  };
+
   // Load cài đặt hiện tại từ backend
   useEffect(() => {
     const fetchSettings = async () => {
       try {
         setLoading(true);
-        const res = await fetch('/api/boosters/services');
+        const res = await fetch('/api/boosters/services', {
+          headers: getHeaders(),
+        });
         if (res.ok) {
           const data = await res.json();
           const s = data.settings || {};
@@ -237,7 +248,7 @@ export default function BoosterServicesStudio() {
 
       const res = await fetch('/api/boosters/services', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getHeaders(),
         body: JSON.stringify(payload),
       });
 
@@ -322,29 +333,74 @@ export default function BoosterServicesStudio() {
     setIsModalOpen(true);
   };
 
+  // Đồng bộ dịch vụ tùy chỉnh lên server ngay lập tức
+  const syncCustomServices = async (updatedList: CustomService[]) => {
+    try {
+      const standardConfig = {
+        rankBoostEnabled: servicesConfig['rank-boost']?.isEnabled ?? true,
+        rankPriceMultiplier: servicesConfig['rank-boost']?.multiplier ?? 1.0,
+        rankDepositPercent: servicesConfig['rank-boost']?.depositPercent ?? 100,
+        netWinsEnabled: servicesConfig['net-wins']?.isEnabled ?? true,
+        netWinsPricePerLp: servicesConfig['net-wins']?.price ?? 1500,
+        placementsEnabled: servicesConfig['placements']?.isEnabled ?? true,
+        coachingEnabled: servicesConfig['coaching']?.isEnabled ?? true,
+        coachingPricePerHour: servicesConfig['coaching']?.price ?? 100000,
+        addonsConfig,
+        stepOverrides,
+        servicesConfig,
+      };
+
+      const payload = {
+        selectedGames,
+        standardConfig,
+        customServices: updatedList,
+        coupon,
+        enabledServices: Object.entries(servicesConfig)
+          .filter(([_, cfg]) => cfg.isEnabled)
+          .map(([slug]) => slug),
+      };
+
+      await fetch('/api/boosters/services', {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify(payload),
+      });
+    } catch (err) {
+      console.error('Lỗi khi đồng bộ dịch vụ tùy chỉnh lên server:', err);
+    }
+  };
+
   // Lưu modal dịch vụ tùy chỉnh
-  const handleSaveModal = (e: React.FormEvent) => {
+  const handleSaveModal = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name?.trim()) {
       toast.error('Vui lòng nhập tên dịch vụ');
       return;
     }
 
+    let updatedList: CustomService[] = [];
     if (editingServiceId) {
-      setCustomServices((prev) =>
-        prev.map((s) => (s.id === editingServiceId ? ({ ...s, ...formData } as CustomService) : s))
+      updatedList = customServices.map((s) =>
+        s.id === editingServiceId ? ({ ...s, ...formData } as CustomService) : s
       );
+      setCustomServices(updatedList);
       toast.success('Đã cập nhật dịch vụ tùy chỉnh');
     } else {
-      setCustomServices((prev) => [...prev, formData as CustomService]);
+      updatedList = [...customServices, formData as CustomService];
+      setCustomServices(updatedList);
       toast.success('Đã thêm dịch vụ tùy chỉnh mới');
     }
     setIsModalOpen(false);
+
+    // Gửi ngay lên server để API xuất hiện trong tab Network và lưu DB tức thì
+    await syncCustomServices(updatedList);
   };
 
-  const handleDeleteCustomService = (id: string) => {
-    setCustomServices((prev) => prev.filter((s) => s.id !== id));
+  const handleDeleteCustomService = async (id: string) => {
+    const updatedList = customServices.filter((s) => s.id !== id);
+    setCustomServices(updatedList);
     toast.success('Đã xóa dịch vụ tùy chỉnh');
+    await syncCustomServices(updatedList);
   };
 
   // Lấy danh mục dịch vụ chuẩn của game đang xem
