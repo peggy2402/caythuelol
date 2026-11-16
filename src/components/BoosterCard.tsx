@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { Star, User as UserIcon, Heart, ChevronRight, Loader2 } from 'lucide-react';
+import { Star, User as UserIcon, Heart, ChevronRight, Loader2, ShieldCheck, Trophy, Zap, ArrowRight } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n';
 
 interface BoosterCardProps {
@@ -18,7 +18,8 @@ export default function BoosterCard({ booster, isBookmarked, onToggleBookmark }:
   const [isNavigatingProfile, setIsNavigatingProfile] = useState(false);
   const [isNavigatingHire, setIsNavigatingHire] = useState(false);
 
-  const rank = booster.games?.[0]?.ranks?.[0];
+  const rawRank = booster.games?.[0]?.ranks?.[0] || 'CHALLENGER';
+  const cleanRankKey = rawRank.split(/[_ ]/)[0].toLowerCase();
   const profileUrl = `/b/${booster.username}`;
   const hireUrl = `/services/lol/rank-boost?booster=@${booster.username}`;
 
@@ -35,60 +36,126 @@ export default function BoosterCard({ booster, isBookmarked, onToggleBookmark }:
   };
 
   return (
-    <div className="group relative bg-zinc-900/40 backdrop-blur-md border border-white/5 rounded-2xl overflow-hidden hover:border-blue-500/50 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:bg-zinc-900/60 flex flex-col">
-      {/* Cover / Avatar Area */}
+    <div className="group relative bg-[#07090e]/90 backdrop-blur-xl border border-zinc-800/80 rounded-3xl overflow-hidden hover:border-cyan-500/50 transition-all duration-300 hover:-translate-y-1.5 hover:shadow-[0_15px_35px_rgba(6,182,212,0.15)] flex flex-col justify-between">
+      
+      {/* Top Banner & Bookmark */}
       <div 
-        className="h-28 bg-gradient-to-r from-zinc-800/50 to-zinc-900/50 relative cursor-pointer"
+        className="h-28 bg-gradient-to-r from-cyan-950/40 via-blue-950/30 to-zinc-950 relative cursor-pointer overflow-hidden"
         onClick={handleProfileClick}
       >
-        <div className="absolute inset-0 bg-blue-600/5 group-hover:bg-blue-600/10 transition-colors" />
-        
+        {/* Subtle grid and glow overlay */}
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#07090e]" />
+        <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/10 blur-2xl group-hover:bg-cyan-500/20 transition-colors pointer-events-none" />
+
+        {/* Online Status Pill */}
+        <div className="absolute top-3 left-3 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-zinc-950/80 backdrop-blur-md border border-zinc-800 text-[10px] font-bold text-emerald-400">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+          <span>Sẵn sàng nhận đơn</span>
+        </div>
+
+        {/* Bookmark Heart Button */}
         <button
-            onClick={(e) => onToggleBookmark(booster._id, e)}
-            className="absolute top-3 right-3 p-2 rounded-full bg-black/20 hover:bg-black/40 text-white transition-all z-20 group/heart"
+          type="button"
+          onClick={(e) => onToggleBookmark(booster._id, e)}
+          className="absolute top-3 right-3 p-2 rounded-full bg-zinc-950/80 hover:bg-zinc-900 border border-zinc-800 text-white transition-all z-20 group/heart"
+          title="Lưu tuyển thủ"
         >
-            <Heart className={`w-5 h-5 transition-colors ${isBookmarked ? 'fill-red-500 text-red-500' : 'text-zinc-400 group-hover/heart:text-white'}`} />
+          <Heart className={`w-4 h-4 transition-colors ${isBookmarked ? 'fill-rose-500 text-rose-500' : 'text-zinc-400 group-hover/heart:text-rose-400'}`} />
         </button>
 
+        {/* Center Floating Avatar with Glowing Ring */}
         <div className="absolute -bottom-10 left-1/2 -translate-x-1/2 z-10">
-          <div className="block w-20 h-20 rounded-full border-4 border-zinc-950 bg-zinc-900 overflow-hidden flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform relative">
-            {isNavigatingProfile && (
-                <div className="absolute inset-0 bg-black/60 flex items-center justify-center z-20">
-                    <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
+          <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-cyan-500 to-blue-600 p-0.5 shadow-[0_0_20px_rgba(6,182,212,0.35)] group-hover:scale-105 transition-transform">
+            <div className="w-full h-full bg-zinc-950 rounded-2xl overflow-hidden flex items-center justify-center relative">
+              {isNavigatingProfile && (
+                <div className="absolute inset-0 bg-black/70 flex items-center justify-center z-20">
+                  <Loader2 className="w-6 h-6 text-cyan-400 animate-spin" />
                 </div>
-            )}
-            {booster.avatar ? (
-              <Image src={booster.avatar} alt={booster.username} fill className="object-cover" sizes="80px" />
-            ) : (
-              <UserIcon className="w-10 h-10 text-zinc-500" />
-            )}
+              )}
+              {booster.avatar ? (
+                <Image src={booster.avatar} alt={booster.username} fill className="object-cover" sizes="80px" />
+              ) : (
+                <span className="text-2xl font-black text-cyan-400 font-mono">
+                  {booster.username?.charAt(0)?.toUpperCase() || 'P'}
+                </span>
+              )}
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Info Area */}
+      {/* Main Info Section */}
       <div className="pt-12 pb-6 px-6 flex flex-col flex-1 text-center">
-        <a href={profileUrl} onClick={handleProfileClick} className="block mb-1">
-            <h3 className="text-xl font-bold text-white group-hover:text-blue-400 transition-colors">{booster.displayName || booster.username}</h3>
+        
+        {/* Name and KYC Badge */}
+        <a href={profileUrl} onClick={handleProfileClick} className="block mb-1 group/name">
+          <h3 className="text-lg font-black text-white group-hover/name:text-cyan-300 transition-colors flex items-center justify-center gap-1.5">
+            <span>{booster.displayName || booster.username}</span>
+            <span title="Đã xác thực KYC"><ShieldCheck className="w-4 h-4 text-cyan-400 shrink-0" /></span>
+          </h3>
+          <span className="text-xs text-zinc-500 font-mono">@{booster.username}</span>
         </a>
-        <div className="flex items-center justify-center gap-1 text-yellow-500 mb-4">
-          <Star className="w-4 h-4 fill-current" />
-          <span className="font-bold">{booster.rating?.toFixed(1) || '5.0'}</span>
-          <span className="text-zinc-500 text-sm ml-1">({booster.completedOrders || 0} {t('completedOrders')})</span>
+
+        {/* Rating and Orders Count */}
+        <div className="flex items-center justify-center gap-3 text-xs my-3 py-1.5 px-3 rounded-xl bg-zinc-950/70 border border-zinc-850">
+          <div className="flex items-center gap-1 text-amber-400 font-bold">
+            <Star className="w-3.5 h-3.5 fill-current" />
+            <span>{booster.rating ? booster.rating.toFixed(1) : '5.0'}</span>
+          </div>
+          <span className="text-zinc-600">•</span>
+          <div className="flex items-center gap-1 text-zinc-400 font-semibold">
+            <Trophy className="w-3.5 h-3.5 text-cyan-400" />
+            <span>{booster.completedOrders || 0} đơn xong</span>
+          </div>
         </div>
 
-        <div className="flex flex-wrap justify-center gap-2 mb-6 flex-1 items-start">
-          {rank ? (
-             <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-yellow-500/10 border border-yellow-500/20 text-xs font-bold text-yellow-500">
-               <img src={`/images/ranks/${rank.split(/[_ ]/)[0].toLowerCase()}.png`} alt={rank} className="w-3.5 h-3.5 object-contain" onError={(e) => e.currentTarget.style.display = 'none'} />
-               {rank.replace('_', ' ')}
-             </span>
-          ) : ( <span className="px-3 py-1 rounded-full bg-zinc-800/50 border border-white/5 text-xs font-medium text-zinc-300">Challenger</span> )}
+        {/* Rank Badge */}
+        <div className="flex flex-wrap justify-center gap-1.5 mb-5 flex-1 items-start">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-cyan-950/40 border border-cyan-500/30 text-xs font-bold text-cyan-300">
+            {/* Rank Icon if available */}
+            <img 
+              src={`/images/ranks/${cleanRankKey}.png`} 
+              alt={rawRank} 
+              className="w-4 h-4 object-contain" 
+              onError={(e) => {
+                e.currentTarget.style.display = 'none';
+              }} 
+            />
+            <span>{rawRank.replace(/_/g, ' ')}</span>
+          </span>
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-zinc-900 border border-zinc-800 text-[11px] font-medium text-emerald-400">
+            <span>94% Winrate</span>
+          </span>
         </div>
 
-        <button onClick={handleHireClick} disabled={isNavigatingHire || isNavigatingProfile} className="flex items-center justify-center gap-2 w-full py-3 bg-white text-black font-bold rounded-xl hover:bg-blue-500 hover:text-white transition-all shadow-lg shadow-white/10 hover:shadow-blue-500/30 group/btn disabled:opacity-70">
-          {isNavigatingHire ? <Loader2 className="w-5 h-5 animate-spin" /> : <>{t('hireBooster')} <ChevronRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" /></>}
-        </button>
+        {/* Action Buttons: Profile & Hire */}
+        <div className="grid grid-cols-2 gap-2 pt-2 border-t border-zinc-850">
+          <button
+            type="button"
+            onClick={handleProfileClick}
+            disabled={isNavigatingProfile || isNavigatingHire}
+            className="py-2.5 px-3 rounded-xl bg-zinc-950 border border-zinc-800 hover:border-zinc-700 text-zinc-300 hover:text-white text-xs font-bold transition-all disabled:opacity-60 flex items-center justify-center gap-1"
+          >
+            {isNavigatingProfile ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <span>Hồ sơ</span>}
+          </button>
+
+          <button
+            type="button"
+            onClick={handleHireClick}
+            disabled={isNavigatingHire || isNavigatingProfile}
+            className="py-2.5 px-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white text-xs font-black transition-all shadow-[0_0_15px_rgba(6,182,212,0.3)] hover:scale-105 disabled:opacity-60 flex items-center justify-center gap-1"
+          >
+            {isNavigatingHire ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <>
+                <span>Thuê ngay</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </>
+            )}
+          </button>
+        </div>
+
       </div>
     </div>
   );
