@@ -7,7 +7,7 @@ import {
 import { InjectModel, InjectConnection } from '@nestjs/mongoose';
 import { Model, Types, Connection } from 'mongoose';
 
-import { IOrder, OrderStatus } from '../../database/schemas/Order';
+import { IOrder, OrderStatus, SettlementStatus, IOrderSnapshot } from '../../database/schemas/Order';
 import { IUser } from '../../database/schemas/User';
 import {
   ITransaction,
@@ -15,6 +15,7 @@ import {
   TransactionStatus,
 } from '../../database/schemas/Transaction';
 import { MailService } from '../../common/mail.service';
+import { PricingEngineService } from '../pricing/pricing-engine.service';
 
 @Injectable()
 export class OrdersService {
@@ -24,6 +25,7 @@ export class OrdersService {
     @InjectModel('Transaction') private transactionModel: Model<ITransaction>,
     @InjectConnection() private readonly connection: Connection,
     private mailService: MailService,
+    private pricingEngine: PricingEngineService,
   ) {}
 
   async checkout(userId: string, body: any) {
@@ -51,6 +53,32 @@ export class OrdersService {
 
       const customCode = 'BK-' + Math.random().toString(36).substring(2, 8).toUpperCase();
 
+      const orderSnapshot: IOrderSnapshot = {
+        gameCode: (details?.game || 'LOL').toUpperCase(),
+        serviceSlug: serviceType,
+        pricingModel: details?.pricingModel || (serviceType === 'net-wins' ? 'UNIT_BASED' : 'FIXED_TRANSITION'),
+        initialState: {
+          rankId: details?.current_rank_id || details?.current_rank,
+          rankLabel: details?.current_rank,
+          lp: parseInt(details?.current_lp || details?.start_lp) || 0,
+        },
+        targetState: {
+          rankId: details?.desired_rank_id || details?.desired_rank,
+          rankLabel: details?.desired_rank,
+          lp: parseInt(details?.target_lp) || 0,
+        },
+        unitPrice: details?.unitPrice || 1000,
+        depositPercent: pricing.deposit_percent || (amountToDeduct >= pricing.total_amount ? 100 : 30),
+        estimatedAmount: pricing.total_amount,
+        depositAmount: amountToDeduct,
+        overTargetPolicySnapshot: {
+          allowOverTarget: Boolean(details?.allowOverTarget),
+          maxOverTargetUnits: parseInt(details?.maxOverTargetUnits) || 0,
+          chargeOverTarget: Boolean(details?.chargeOverTarget),
+        },
+        createdAt: new Date(),
+      };
+
       const newOrder = new this.orderModel({
         orderCode: customCode,
         customerId: user._id,
@@ -61,7 +89,7 @@ export class OrdersService {
           ...pricing,
           base_price: pricing.basePrice || pricing.base_price,
           option_fees: pricing.optionFees || pricing.option_fees,
-          settlement_status: 'PENDING',
+          settlement_status: SettlementStatus.DEPOSIT_HELD,
         },
         payment: {
           is_locked: true,
@@ -69,6 +97,7 @@ export class OrdersService {
           final_paid: false,
           booster_received_pending: false,
         },
+        snapshot: orderSnapshot,
         details,
         options,
         timeline: [
@@ -76,7 +105,7 @@ export class OrdersService {
             status: OrderStatus.PAID,
             timestamp: new Date(),
             actor: user._id,
-            note: 'Khách hàng thanh toán đặt cọc đơn hàng thành công',
+            note: 'Khách hàng thanh toán đặt cọc đơn hàng thành công qua Escrow Hold',
           },
         ],
       });
@@ -200,7 +229,7 @@ export class OrdersService {
     return { success: true, order };
   }
 
-  async completeOrder(orderId: string, boosterId: string) {
+  async completeOrder(orderId: string, boosterId: string, resultData?: any) {
     const session = await this.connection.startSession();
     session.startTransaction();
 
@@ -217,7 +246,31 @@ export class OrdersService {
 
       let actualTotal = order.pricing.total_amount;
 
-      if (order.serviceType === 'NET_WINS' && order.details) {
+      // 1. Áp dụng Pricing Engine tính toán Settlement chính xác theo Snapshot
+      if (order.snapshot) {
+        const actualState = {
+          rankId: resultData?.actualRank || order.details?.current_rank,
+          lp: resultData?.actualLP !== undefined ? parseInt(resultData.actualLP) : parseInt(order.details?.current_lp || order.details?.target_lp),
+          reportedAt: new Date(),
+          note: resultData?.note,
+        };
+
+        const settlement = this.pricingEngine.calculateSettlement({
+          snapshot: order.snapshot,
+          actualState,
+          customerApprovedOverTarget: Boolean(order.details?.allowOverTarget),
+        });
+
+        order.snapshot.actualState = actualState;
+        order.snapshot.actualAmount = settlement.actualAmount;
+        order.snapshot.refundAmount = settlement.refundAmount;
+        order.snapshot.additionalPayment = settlement.additionalPayment;
+
+        order.pricing.final_amount = settlement.actualAmount;
+        order.pricing.settlement_status = settlement.settlementStatus;
+        actualTotal = settlement.actualAmount;
+      } else if (order.serviceType === 'NET_WINS' && order.details) {
+        // Fallback tương thích ngược
         const { start_lp, current_lp, unit_price_per_lp, calc_mode } = order.details;
         let actualBasePrice = order.pricing.base_price;
 
@@ -239,22 +292,48 @@ export class OrdersService {
         const diff = actualTotal - paid;
 
         if (diff > 0) {
-          order.pricing.settlement_status = 'CUSTOMER_OWES';
+          order.pricing.settlement_status = SettlementStatus.CUSTOMER_OWES;
           order.payment.final_paid = false;
         } else if (diff < 0) {
-          order.pricing.settlement_status = 'REFUND_NEEDED';
+          order.pricing.settlement_status = SettlementStatus.REFUND_NEEDED;
         } else {
-          order.pricing.settlement_status = 'SETTLED';
+          order.pricing.settlement_status = SettlementStatus.SETTLED;
           order.payment.final_paid = true;
         }
       }
 
-      let boosterEarnings = order.pricing.booster_earnings || 0;
-      if (order.serviceType === 'NET_WINS' && order.pricing.total_amount > 0) {
-        boosterEarnings = Math.round((actualTotal / order.pricing.total_amount) * boosterEarnings);
+      let boosterEarnings = order.pricing.booster_earnings || Math.round(actualTotal * 0.85);
+      if (order.pricing.total_amount > 0) {
+        boosterEarnings = Math.round((actualTotal / order.pricing.total_amount) * (order.pricing.booster_earnings || actualTotal * 0.85));
       }
 
-      if (!order.payment.booster_received_pending) {
+      // Xử lý tự động hoàn tiền nếu cày tụt hoặc cày thiếu (Refund dư cọc)
+      const refundAmount = order.snapshot?.refundAmount || 0;
+      if (refundAmount > 0) {
+        const customer = await this.userModel.findById(order.customerId).session(session);
+        if (customer) {
+          customer.wallet_balance += refundAmount;
+          await customer.save({ session });
+
+          await this.transactionModel.create(
+            [
+              {
+                userId: customer._id,
+                orderId: order._id,
+                type: TransactionType.REFUND,
+                amount: refundAmount,
+                balanceAfter: customer.wallet_balance,
+                status: TransactionStatus.SUCCESS,
+                description: `Hoàn tiền cọc đơn cày thuê #${order.orderCode || order._id.toString().slice(-6)}`,
+              },
+            ],
+            { session },
+          );
+        }
+      }
+
+      // Giải phóng tiền công cho Booster an toàn (Idempotency check: chỉ 1 lần duy nhất)
+      if (!order.payment.booster_received_pending && boosterEarnings > 0) {
         order.payment.booster_received_pending = true;
 
         const booster = await this.userModel.findByIdAndUpdate(
@@ -280,24 +359,21 @@ export class OrdersService {
       }
 
       order.status = OrderStatus.COMPLETED;
-      if (!order.timeline) order.timeline = [];
+      order.timeline = order.timeline || [];
       order.timeline.push({
         status: OrderStatus.COMPLETED,
         timestamp: new Date(),
         actor: new Types.ObjectId(boosterId),
-        note: 'Booster báo cáo hoàn thành đơn hàng và nhận giải ngân',
+        note: `Tuyển thủ báo cáo hoàn thành đơn hàng. Đã quyết toán: ${actualTotal.toLocaleString('vi-VN')} đ`,
       });
 
       await order.save({ session });
       await session.commitTransaction();
 
-      return {
-        success: true,
-        message: 'Báo cáo hoàn thành đơn hàng và nhận tiền công thành công!',
-      };
-    } catch (error) {
+      return { success: true, order };
+    } catch (err) {
       await session.abortTransaction();
-      throw error;
+      throw err;
     } finally {
       session.endSession();
     }

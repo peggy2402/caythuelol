@@ -97,6 +97,7 @@ function ServiceBookingContent() {
   const [couponCode, setCouponCode] = useState('');
   const [appliedCoupon, setAppliedCoupon] = useState<any>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [dbTemplates, setDbTemplates] = useState<any[]>([]);
 
   // Helper lấy token
   const getHeaders = () => {
@@ -106,6 +107,18 @@ function ServiceBookingContent() {
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     };
   };
+
+  // Fetch Service Templates từ Database
+  useEffect(() => {
+    fetch(`/api/templates/services?gameCode=${encodeURIComponent((game.shortName || game.id).toUpperCase())}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data.templates) && data.templates.length > 0) {
+          setDbTemplates(data.templates);
+        }
+      })
+      .catch(() => {});
+  }, [game.id, game.shortName]);
 
   // Fetch danh sách booster của game để khách chọn nếu muốn
   useEffect(() => {
@@ -362,7 +375,7 @@ function ServiceBookingContent() {
           </p>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {game.defaultServices.map((svc) => {
+            {(dbTemplates.length > 0 ? dbTemplates : game.defaultServices).map((svc) => {
               const isSelected = svc.slug === serviceSlug;
               const IconComp = ICON_MAP[svc.iconName] || Trophy;
               const isDeposit = svc.depositPercent < 100;

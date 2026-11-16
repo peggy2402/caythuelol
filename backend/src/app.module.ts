@@ -18,6 +18,7 @@ import { AdminModule } from './modules/admin/admin.module';
 import { CronModule } from './modules/cron/cron.module';
 import { PublicModule } from './modules/public/public.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
+import { PricingModule } from './modules/pricing/pricing.module';
 
 @Module({
   imports: [
@@ -47,6 +48,7 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
     CronModule,
     PublicModule,
     NotificationsModule,
+    PricingModule,
   ],
   controllers: [AppController],
   providers: [],

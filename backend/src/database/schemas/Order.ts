@@ -12,6 +12,66 @@ export enum OrderStatus {
   CANCELLED = 'CANCELLED',
 }
 
+export enum SettlementStatus {
+  NOT_SETTLED = 'NOT_SETTLED',
+  DEPOSIT_HELD = 'DEPOSIT_HELD',
+  PENDING_CONFIRMATION = 'PENDING_CONFIRMATION',
+  SETTLED = 'SETTLED',
+  CUSTOMER_OWES = 'CUSTOMER_OWES',
+  PARTIALLY_REFUNDED = 'PARTIALLY_REFUNDED',
+  REFUND_NEEDED = 'REFUND_NEEDED',
+  REFUNDED = 'REFUNDED',
+  DISPUTED = 'DISPUTED',
+}
+
+export interface IOrderSnapshot {
+  gameCode: string;
+  serviceSlug: string;
+  pricingModel: string;
+  initialState: {
+    rankId?: string;
+    rankLabel?: string;
+    lp?: number;
+    level?: number;
+  };
+  targetState: {
+    rankId?: string;
+    rankLabel?: string;
+    lp?: number;
+    level?: number;
+  };
+  actualState?: {
+    rankId?: string;
+    rankLabel?: string;
+    lp?: number;
+    level?: number;
+    reportedAt?: Date;
+    note?: string;
+  };
+  unitPrice?: number;
+  priceRulesSnapshot?: any;
+  addonsSnapshot?: Array<{
+    slug: string;
+    name: string;
+    pricingType: string;
+    price: number;
+    calculationBase: string;
+    cost: number;
+  }>;
+  depositPercent: number;
+  estimatedAmount: number;
+  depositAmount: number;
+  actualAmount?: number;
+  refundAmount?: number;
+  additionalPayment?: number;
+  overTargetPolicySnapshot?: {
+    allowOverTarget: boolean;
+    maxOverTargetUnits?: number;
+    chargeOverTarget: boolean;
+  };
+  createdAt: Date;
+}
+
 export interface IOrder {
   orderCode?: string; // Mã đơn hàng custom (VD: CTL-X8A9B2)
   customerId: mongoose.Types.ObjectId;
@@ -26,7 +86,7 @@ export interface IOrder {
     option_fees: number;
     platform_fee: number;
     booster_earnings: number;
-    settlement_status?: 'PENDING' | 'CUSTOMER_OWES' | 'REFUND_NEEDED' | 'SETTLED';
+    settlement_status?: SettlementStatus | string;
   };
   payment: {
     is_locked: boolean; // Tiền đang bị khóa?
@@ -34,6 +94,7 @@ export interface IOrder {
     final_paid: boolean;
     booster_received_pending?: boolean; // Booster đã nhận tiền vào ví chờ chưa?
   };
+  snapshot?: IOrderSnapshot; // Bất biến lưu toàn bộ giá & chính sách tại thời điểm đặt đơn
   details: any;
   options?: any;
   // Tracking cho Net Wins
@@ -96,6 +157,7 @@ const OrderSchema = new Schema<IOrder>(
       final_paid: { type: Boolean, default: false },
       booster_received_pending: { type: Boolean, default: false }
     },
+    snapshot: { type: Schema.Types.Mixed },
     details: { type: Schema.Types.Mixed },
     options: { type: Schema.Types.Mixed },
     match_history: [{

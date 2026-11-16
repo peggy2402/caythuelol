@@ -107,6 +107,9 @@ function GameServicesContent() {
   // Active View Tab: 'SERVICES' or 'BOOSTERS'
   const [activeTab, setActiveTab] = useState<'SERVICES' | 'BOOSTERS'>('SERVICES');
 
+  // Database Service Templates
+  const [dbTemplates, setDbTemplates] = useState<any[]>([]);
+
   // Services State
   const [services, setServices] = useState<MarketplaceService[]>([]);
   const [loadingServices, setLoadingServices] = useState(true);
@@ -119,6 +122,25 @@ function GameServicesContent() {
   const [searchTerm, setSearchTerm] = useState('');
   const [pricingFilter, setPricingFilter] = useState<'ALL' | 'FIXED' | 'PER_UNIT'>('ALL');
   const [selectedServer, setSelectedServer] = useState('');
+
+  // Fetch Service Templates from Database
+  useEffect(() => {
+    const fetchTemplates = async () => {
+      try {
+        const gameCode = (game.shortName || game.id).toUpperCase();
+        const res = await fetch(`/api/templates/services?gameCode=${encodeURIComponent(gameCode)}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data.templates) && data.templates.length > 0) {
+            setDbTemplates(data.templates);
+          }
+        }
+      } catch (err) {
+        console.error('Lỗi tải mẫu dịch vụ:', err);
+      }
+    };
+    fetchTemplates();
+  }, [game.id, game.shortName]);
 
   // Fetch Services for this Game
   useEffect(() => {
@@ -321,7 +343,7 @@ function GameServicesContent() {
               </p>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                {game.defaultServices
+                {(dbTemplates.length > 0 ? dbTemplates : game.defaultServices)
                   .filter((s) => {
                     const q = searchTerm.toLowerCase().trim();
                     return !q || s.name.toLowerCase().includes(q) || s.desc.toLowerCase().includes(q);

@@ -3,6 +3,8 @@ import {
   Get,
   Post,
   Body,
+  Param,
+  Query,
   UseInterceptors,
   UploadedFile,
   BadRequestException,
@@ -22,6 +24,23 @@ export class PublicController {
   @ApiOperation({ summary: 'Get public platform settings and bank info' })
   async getPublicSettings() {
     return this.publicService.getPublicSettings();
+  }
+
+  @Public()
+  @Get('templates/services')
+  @ApiOperation({ summary: 'Get standard service templates by gameCode' })
+  async getServiceTemplates(@Query('gameCode') gameCode?: string) {
+    return this.publicService.getServiceTemplates(gameCode || 'LOL');
+  }
+
+  @Public()
+  @Get('templates/services/:slug')
+  @ApiOperation({ summary: 'Get standard service template detail' })
+  async getServiceTemplateDetail(
+    @Param('slug') slug: string,
+    @Query('gameCode') gameCode?: string,
+  ) {
+    return this.publicService.getServiceTemplateDetail(gameCode || 'LOL', slug);
   }
 
   @Public()

@@ -10,6 +10,7 @@ import BoosterApplication from './schemas/BoosterApplication';
 import Blog from './schemas/Blog';
 import Comment from './schemas/Comment';
 import Game from './schemas/Game';
+import GameServiceTemplate from './schemas/GameServiceTemplate';
 import Rank from './schemas/Rank';
 import RankHistory from './schemas/RankHistory';
 import Notification from './schemas/Notification';
@@ -29,6 +30,7 @@ const models = [
   { name: 'Blog', schema: Blog.schema },
   { name: 'Comment', schema: Comment.schema },
   { name: 'Game', schema: Game.schema },
+  { name: 'GameServiceTemplate', schema: GameServiceTemplate.schema },
   { name: 'Rank', schema: Rank.schema },
   { name: 'RankHistory', schema: RankHistory.schema },
   { name: 'Notification', schema: Notification.schema },

@@ -12,6 +12,7 @@ export class PublicService {
   constructor(
     @InjectModel('SystemSetting') private settingModel: Model<ISystemSetting>,
     @InjectModel('BoosterProfile') private boosterProfileModel: Model<IBoosterProfile>,
+    @InjectModel('GameServiceTemplate') private templateModel: Model<any>,
   ) {
     cloudinary.config({
       cloud_name: process.env.CLOUDINARY_CLOUD_NAME || process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
@@ -32,6 +33,24 @@ export class PublicService {
       map[s.key] = s.value;
     });
     return { success: true, settings: map };
+  }
+
+  async getServiceTemplates(gameCode: string = 'LOL') {
+    const templates = await this.templateModel
+      .find({ gameCode: gameCode.toUpperCase(), isActive: true })
+      .sort({ createdAt: 1 })
+      .lean();
+    return { success: true, templates };
+  }
+
+  async getServiceTemplateDetail(gameCode: string, slug: string) {
+    const template = await this.templateModel
+      .findOne({ gameCode: gameCode.toUpperCase(), slug: slug.toLowerCase(), isActive: true })
+      .lean();
+    if (!template) {
+      throw new NotFoundException(`Không tìm thấy mẫu dịch vụ ${slug} cho game ${gameCode}`);
+    }
+    return { success: true, template };
   }
 
   async validateCoupon(code: string, boosterId: string) {

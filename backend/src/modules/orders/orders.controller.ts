@@ -65,8 +65,12 @@ export class OrdersController {
   @Roles(UserRole.BOOSTER)
   @Post(':id/complete')
   @ApiOperation({ summary: 'Booster completes order and releases funds' })
-  async completeOrder(@Param('id') id: string, @ReqUser() user: any) {
-    return this.ordersService.completeOrder(id, user.userId);
+  async completeOrder(
+    @Param('id') id: string,
+    @ReqUser() user: any,
+    @Body() body?: { actualLP?: number; actualRank?: string; note?: string },
+  ) {
+    return this.ordersService.completeOrder(id, user.userId, body);
   }
 
   @Post(':id/rate')
