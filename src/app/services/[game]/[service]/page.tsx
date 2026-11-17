@@ -1146,53 +1146,90 @@ function ServiceBookingContent() {
               {isManualSelectBooster && (
                 <div className="p-3.5 sm:p-4 rounded-2xl bg-zinc-950 border border-zinc-800 space-y-3 animate-in fade-in duration-200">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <div className="flex items-center gap-3">
-                      <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-purple-500/20 to-blue-500/20 border border-purple-500/30 flex items-center justify-center text-white font-bold text-base shadow-inner">
-                        {assignedBooster?.user?.avatar ? (
-                          <Image
-                            src={assignedBooster.user.avatar}
-                            alt=""
-                            width={44}
-                            height={44}
-                            className="rounded-2xl object-cover"
-                          />
-                        ) : (
-                          (assignedBooster?.user?.displayName || assignedBooster?.user?.username || 'B')
-                            .slice(0, 1)
-                            .toUpperCase()
-                        )}
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="font-extrabold text-white text-sm">
-                            {assignedBooster?.user?.displayName || assignedBooster?.user?.username || 'Tuyển thủ'}
-                          </span>
-                          <span className="text-xs text-zinc-400 font-mono">
-                            @{assignedBooster?.user?.username || ''}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2 text-xs text-zinc-400 mt-0.5">
-                          <span className={`flex items-center gap-1 font-bold ${assignedBooster?.user?.rating && assignedBooster.user.rating > 0 ? 'text-amber-400' : 'text-zinc-500'}`}>
-                            <Star size={12} fill="currentColor" />
-                            {assignedBooster?.user?.rating && assignedBooster.user.rating > 0
-                              ? assignedBooster.user.rating.toFixed(1)
-                              : '0.0'}
-                          </span>
-                          <span>•</span>
-                          <span className="text-zinc-300">
-                            {assignedBooster?.user?.completedOrders || 0} đơn hoàn thành
-                          </span>
-                          {boosterMultiplier !== 1.0 && (
-                            <>
-                              <span>•</span>
-                              <span className="text-blue-400 font-bold">
-                                Hệ số giá: {(boosterMultiplier * 100).toFixed(0)}%
+                    {(() => {
+                      const avatarUrl =
+                        assignedBooster?.user?.profile?.avatar ||
+                        assignedBooster?.user?.avatar ||
+                        assignedBooster?.boosterData?.avatar ||
+                        assignedBooster?.booster?.avatar ||
+                        assignedBooster?.avatar ||
+                        '';
+
+                      const displayName =
+                        assignedBooster?.boosterData?.displayName ||
+                        assignedBooster?.booster?.displayName ||
+                        assignedBooster?.user?.displayName ||
+                        assignedBooster?.user?.username ||
+                        'Tuyển thủ';
+
+                      const username =
+                        assignedBooster?.user?.username ||
+                        assignedBooster?.boosterData?.username ||
+                        assignedBooster?.booster?.username ||
+                        '';
+
+                      const rating =
+                        assignedBooster?.boosterData?.rating ||
+                        assignedBooster?.booster?.rating ||
+                        assignedBooster?.user?.rating ||
+                        assignedBooster?.user?.booster_info?.rating ||
+                        5.0;
+
+                      const completedCount =
+                        assignedBooster?.boosterData?.completedOrders ||
+                        assignedBooster?.boosterData?.completed_orders ||
+                        assignedBooster?.booster?.completed_orders ||
+                        assignedBooster?.user?.completedOrders ||
+                        assignedBooster?.user?.booster_info?.completed_orders ||
+                        0;
+
+                      return (
+                        <div className="flex items-center gap-3">
+                          <div className="w-12 h-12 rounded-2xl overflow-hidden bg-gradient-to-br from-purple-500/20 to-blue-500/20 border border-purple-500/30 flex items-center justify-center text-white font-bold text-base shadow-inner shrink-0">
+                            {avatarUrl ? (
+                              <img
+                                src={avatarUrl}
+                                alt={displayName}
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  (e.target as HTMLImageElement).src = '/default-avatar.png';
+                                }}
+                              />
+                            ) : (
+                              (displayName || username || 'B').slice(0, 1).toUpperCase()
+                            )}
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-extrabold text-white text-sm">
+                                {displayName}
                               </span>
-                            </>
-                          )}
+                              <span className="text-xs text-zinc-400 font-mono">
+                                @{username}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2 text-xs text-zinc-400 mt-0.5">
+                              <span className={`flex items-center gap-1 font-bold ${rating > 0 ? 'text-amber-400' : 'text-zinc-500'}`}>
+                                <Star size={12} fill="currentColor" />
+                                {rating > 0 ? rating.toFixed(1) : '5.0'}
+                              </span>
+                              <span>•</span>
+                              <span className="text-zinc-300">
+                                {completedCount} đơn hoàn thành
+                              </span>
+                              {boosterMultiplier !== 1.0 && (
+                                <>
+                                  <span>•</span>
+                                  <span className="text-blue-400 font-bold">
+                                    Hệ số giá: {(boosterMultiplier * 100).toFixed(0)}%
+                                  </span>
+                                </>
+                              )}
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    </div>
+                      );
+                    })()}
 
                     <Link
                       href={`/boosters/@${assignedBooster?.user?.username || ''}`}

@@ -34,6 +34,7 @@ export interface IUser extends Document {
       accountHolder: string;
     };
   };
+  avatar?: string;
   booster_info?: {
     bio?: string;
     ingame_name?: string;

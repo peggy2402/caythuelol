@@ -804,9 +804,14 @@ export class BoostersService {
       service_settings: mergedSettings,
     };
 
+    const realAvatar = user.profile?.avatar || (profile as any)?.avatar || user.avatar || '';
+    const realDisplayName = (profile as any)?.displayName || (user as any)?.displayName || user.username;
+
     const booster = {
       ...user,
       ...profile,
+      avatar: realAvatar,
+      displayName: realDisplayName,
       booster_info: boosterInfo,
       service_settings: mergedSettings,
       addonsConfig: existingSettings.addonsConfig || existingSettings.standardConfig?.addonsConfig,
@@ -847,7 +852,11 @@ export class BoostersService {
       success: true,
       booster,
       boosterData: booster,
-      user,
+      user: {
+        ...user,
+        avatar: realAvatar,
+        displayName: realDisplayName,
+      },
       profile,
       reviews: reviews || [],
       relatedBoosters: relatedBoosters || [],

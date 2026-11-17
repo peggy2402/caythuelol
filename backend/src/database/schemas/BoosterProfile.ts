@@ -16,6 +16,7 @@ export interface IBoosterGameProfile {
 export interface IBoosterProfile extends Document {
   userId: mongoose.Types.ObjectId;
   displayName?: string; // Tên hiển thị (nếu muốn khác username)
+  avatar?: string; // Avatar tuyển thủ
   bio: string;
   
   // Thay thế các trường flat cũ bằng mảng games để hỗ trợ nhiều game
@@ -41,6 +42,7 @@ const BoosterProfileSchema = new Schema<IBoosterProfile>(
   {
     userId: { type: Schema.Types.ObjectId, ref: 'User', required: true, unique: true },
     displayName: { type: String },
+    avatar: { type: String },
     bio: { type: String, default: '' },
     
     // Cấu trúc mới hỗ trợ nhiều game
