@@ -1,5 +1,7 @@
 // src/lib/games.ts
 
+export type GameBadge = 'HOT' | 'Mới' | 'Phổ Biến' | 'Đề xuất' | 'Xu hướng';
+
 export interface GameDefinition {
   id: string;
   name: string;
@@ -8,7 +10,9 @@ export interface GameDefinition {
   iconName: string;
   gradient: string;
   accentColor: string;
-  banner: string;
+  banner: string; // Fallback local image path (e.g. /images/games/lol-card.jpg)
+  bannerUrl?: string; // Online image URL (CDN, Imgur, Cloudinary...)
+  badge?: GameBadge; // Nhãn nổi bật: HOT, Mới, Phổ Biến, Đề xuất, Xu hướng
   active: boolean;
   standardRanks: string[];
   standardServers: { code: string; name: string }[];
@@ -36,6 +40,7 @@ export const GAMES_CATALOG: GameDefinition[] = [
     gradient: 'from-blue-600 to-cyan-600',
     accentColor: 'text-blue-400',
     banner: '/images/games/lol-card.jpg',
+    badge: 'HOT',
     active: true,
     standardRanks: [
       'Iron',
@@ -70,6 +75,7 @@ export const GAMES_CATALOG: GameDefinition[] = [
     gradient: 'from-amber-600 to-orange-600',
     accentColor: 'text-amber-400',
     banner: '/images/games/tft-card.jpg',
+    badge: 'Đề xuất',
     active: true,
     standardRanks: [
       'Iron',
@@ -102,6 +108,7 @@ export const GAMES_CATALOG: GameDefinition[] = [
     gradient: 'from-rose-600 to-red-600',
     accentColor: 'text-rose-400',
     banner: '/images/games/val-card.jpg',
+    badge: 'Phổ Biến',
     active: true,
     standardRanks: [
       'Iron',
@@ -132,6 +139,7 @@ export const GAMES_CATALOG: GameDefinition[] = [
     gradient: 'from-amber-500 to-yellow-600',
     accentColor: 'text-amber-400',
     banner: '/images/games/cs2-card.jpg',
+    badge: 'Xu hướng',
     active: true,
     standardRanks: [
       'Silver I - Elite',
@@ -276,6 +284,7 @@ export const GAMES_CATALOG: GameDefinition[] = [
     gradient: 'from-emerald-600 to-teal-700',
     accentColor: 'text-emerald-400',
     banner: '/images/games/deltaforce-card.jpg',
+    badge: 'Mới',
     active: true,
     standardRanks: [
       'Bronze',
@@ -302,6 +311,7 @@ export const GAMES_CATALOG: GameDefinition[] = [
     gradient: 'from-purple-600 to-pink-600',
     accentColor: 'text-purple-400',
     banner: '/images/games/marvelrivals-card.jpg',
+    badge: 'Xu hướng',
     active: true,
     standardRanks: [
       'Bronze',
@@ -331,6 +341,7 @@ export const GAMES_CATALOG: GameDefinition[] = [
     gradient: 'from-stone-700 to-amber-900',
     accentColor: 'text-amber-500',
     banner: '/images/games/poe2-card.jpg',
+    badge: 'Mới',
     active: true,
     standardRanks: [
       'Act 1-6 Campaign',
@@ -531,8 +542,61 @@ export const GAMES_CATALOG: GameDefinition[] = [
   },
 ];
 
+export const GAMES_CATALOG_STORAGE_KEY = 'leorank_staff_games_catalog';
+
+/**
+ * Lấy danh sách Game Catalog (hỗ trợ đọc từ localStorage / cache được cấu hình bởi Staff)
+ * Fallback về GAMES_CATALOG mặc định nếu chưa có cấu hình tùy chỉnh
+ */
+export function getStoredGamesCatalog(): GameDefinition[] {
+  if (typeof window === 'undefined') {
+    return GAMES_CATALOG;
+  }
+  try {
+    const raw = localStorage.getItem(GAMES_CATALOG_STORAGE_KEY);
+    if (!raw) return GAMES_CATALOG;
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed) && parsed.length > 0) {
+      return parsed;
+    }
+  } catch {
+    // Ignore storage parse error
+  }
+  return GAMES_CATALOG;
+}
+
+/**
+ * Lưu danh sách Game Catalog tùy chỉnh vào localStorage
+ */
+export function saveStoredGamesCatalog(games: GameDefinition[]): void {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(GAMES_CATALOG_STORAGE_KEY, JSON.stringify(games));
+    // Phát event cho các component cùng tab hoặc khác tab cập nhật
+    window.dispatchEvent(new Event('games-catalog-updated'));
+  } catch (err) {
+    console.error('Failed to save games catalog:', err);
+  }
+}
+
+/**
+ * Khôi phục lại danh sách Game Catalog mặc định
+ */
+export function resetStoredGamesCatalog(): void {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.removeItem(GAMES_CATALOG_STORAGE_KEY);
+    window.dispatchEvent(new Event('games-catalog-updated'));
+  } catch (err) {
+    console.error('Failed to reset games catalog:', err);
+  }
+}
+
 export function getGameById(gameId: string): GameDefinition | undefined {
-  return GAMES_CATALOG.find(
+  const catalog = typeof window !== 'undefined' ? getStoredGamesCatalog() : GAMES_CATALOG;
+  return catalog.find(
+    (g) => g.id.toLowerCase() === gameId.toLowerCase()
+  ) || GAMES_CATALOG.find(
     (g) => g.id.toLowerCase() === gameId.toLowerCase()
   );
 }

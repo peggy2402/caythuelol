@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import Navbar from '@/components/Navbar';
 import { Gamepad2, ChevronDown, ChevronUp } from 'lucide-react';
-import { GAMES_CATALOG } from '@/lib/games';
+import { GAMES_CATALOG, getStoredGamesCatalog, type GameDefinition } from '@/lib/games';
 import ServicesHero, { CategoryKey } from '@/components/services/ServicesHero';
 import GameCard from '@/components/services/GameCard';
 import EscrowGuarantees from '@/components/services/EscrowGuarantees';
@@ -14,48 +14,66 @@ export default function ServicesHubPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<CategoryKey>('ALL');
   const [displayCount, setDisplayCount] = useState<number>(INITIAL_DISPLAY_COUNT);
+  const [games, setGames] = useState<GameDefinition[]>(GAMES_CATALOG);
 
-  // Filter games based on search and category
+  // Đồng bộ cấu hình Game từ localStorage hoặc Backend được Staff cấu hình
+  useEffect(() => {
+    const loadGames = () => {
+      setGames(getStoredGamesCatalog());
+    };
+    loadGames();
+
+    window.addEventListener('games-catalog-updated', loadGames);
+    window.addEventListener('storage', loadGames);
+    return () => {
+      window.removeEventListener('games-catalog-updated', loadGames);
+      window.removeEventListener('storage', loadGames);
+    };
+  }, []);
+
+  // Filter games based on search, category and active status
   const filteredGames = useMemo(() => {
-    return GAMES_CATALOG.filter((game) => {
-      const q = searchTerm.toLowerCase().trim();
-      const matchesSearch =
-        !q ||
-        game.name.toLowerCase().includes(q) ||
-        game.shortName.toLowerCase().includes(q) ||
-        game.desc.toLowerCase().includes(q);
+    return games
+      .filter((g) => g.active !== false)
+      .filter((game) => {
+        const q = searchTerm.toLowerCase().trim();
+        const matchesSearch =
+          !q ||
+          game.name.toLowerCase().includes(q) ||
+          game.shortName.toLowerCase().includes(q) ||
+          game.desc.toLowerCase().includes(q);
 
-      if (!matchesSearch) return false;
+        if (!matchesSearch) return false;
 
-      if (selectedCategory === 'ALL') return true;
-      if (selectedCategory === 'MOBA') {
-        return ['lol', 'dota2', 'aov', 'wildrift'].includes(game.id);
-      }
-      if (selectedCategory === 'FPS') {
-        return [
-          'valorant',
-          'cs2',
-          'valmobile',
-          'deltaforce',
-          'marvelrivals',
-          'pubg',
-          'pubgmobile',
-          'codm',
-          'freefire',
-          'truykich2',
-          'overwatch2',
-        ].includes(game.id);
-      }
-      if (selectedCategory === 'TACTICS') {
-        return ['tft'].includes(game.id);
-      }
-      if (selectedCategory === 'ACTION') {
-        return ['poe2', 'naraka'].includes(game.id);
-      }
+        if (selectedCategory === 'ALL') return true;
+        if (selectedCategory === 'MOBA') {
+          return ['lol', 'dota2', 'aov', 'wildrift'].includes(game.id);
+        }
+        if (selectedCategory === 'FPS') {
+          return [
+            'valorant',
+            'cs2',
+            'valmobile',
+            'deltaforce',
+            'marvelrivals',
+            'pubg',
+            'pubgmobile',
+            'codm',
+            'freefire',
+            'truykich2',
+            'overwatch2',
+          ].includes(game.id);
+        }
+        if (selectedCategory === 'TACTICS') {
+          return ['tft'].includes(game.id);
+        }
+        if (selectedCategory === 'ACTION') {
+          return ['poe2', 'naraka'].includes(game.id);
+        }
 
-      return true;
-    });
-  }, [searchTerm, selectedCategory]);
+        return true;
+      });
+  }, [games, searchTerm, selectedCategory]);
 
   // Khi tìm kiếm hoặc chọn category, hiển thị toàn bộ kết quả lọc; khi ở trang All thì phân trang xem thêm
   const isFiltered = searchTerm.trim().length > 0 || selectedCategory !== 'ALL';

@@ -17,9 +17,10 @@ const PERMISSION_TO_ROUTE: Record<string, string> = {
   boosters: '/admin/boosters',
   withdrawals: '/admin/withdrawals',
   transactions: '/admin/transactions',
+  games: '/admin/games',
 };
 
-const DEFAULT_STAFF_PERMS = ['users', 'disputes', 'deposits', 'cron', 'settings', 'blogs'];
+const DEFAULT_STAFF_PERMS = ['users', 'disputes', 'deposits', 'cron', 'settings', 'blogs', 'games'];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
