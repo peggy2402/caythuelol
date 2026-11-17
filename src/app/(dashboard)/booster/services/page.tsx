@@ -171,7 +171,8 @@ export default function BoosterServicesStudio() {
     updatedAddonsConfig?: AddonsConfig,
     updatedCoupon?: BoosterCoupon,
     updatedStepOverrides?: Record<string, number>,
-    updatedSelectedGames?: string[]
+    updatedSelectedGames?: string[],
+    options?: { showToast?: boolean; successMessage?: string }
   ) => {
     try {
       setSaving(true);
@@ -202,6 +203,14 @@ export default function BoosterServicesStudio() {
 
       if (!res.ok) {
         throw new Error('Lỗi đồng bộ dịch vụ');
+      }
+
+      const resJson = await res.json().catch(() => null);
+
+      if (options?.showToast) {
+        toast.success(
+          options.successMessage || resJson?.message || 'Đã lưu cấu hình dịch vụ thành công!'
+        );
       }
     } catch (err) {
       console.error('Lỗi sync service settings:', err);
@@ -545,9 +554,14 @@ export default function BoosterServicesStudio() {
 
         <button
           type="button"
-          onClick={() => syncAllServices(customServices)}
+          onClick={() =>
+            syncAllServices(customServices, addonsConfig, coupon, stepOverrides, selectedGames, {
+              showToast: true,
+              successMessage: 'Đã lưu toàn bộ cấu hình dịch vụ thành công!',
+            })
+          }
           disabled={saving}
-          className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-black text-xs shadow-lg shadow-blue-600/30 transition-all active:scale-95 shrink-0"
+          className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-black text-xs shadow-lg shadow-blue-600/30 transition-all active:scale-95 shrink-0 cursor-pointer disabled:opacity-50"
         >
           {saving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
           <span>{saving ? 'Đang lưu...' : 'Lưu toàn bộ thay đổi'}</span>
@@ -1528,9 +1542,12 @@ export default function BoosterServicesStudio() {
                   type="button"
                   onClick={() => {
                     setShowRankTableModal(false);
-                    syncAllServices(customServices);
+                    syncAllServices(customServices, addonsConfig, coupon, stepOverrides, selectedGames, {
+                      showToast: true,
+                      successMessage: 'Đã lưu bảng giá bậc rank thành công!',
+                    });
                   }}
-                  className="px-5 py-2 rounded-xl bg-cyan-500 text-black font-black text-xs"
+                  className="px-5 py-2 rounded-xl bg-cyan-500 text-black font-black text-xs cursor-pointer"
                 >
                   Xong & Lưu Bảng Giá
                 </button>
