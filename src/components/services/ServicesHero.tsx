@@ -2,7 +2,7 @@
 
 import { ShieldCheck, Search, Swords, Crosshair, Gamepad2, Trophy, Layers, type LucideIcon } from 'lucide-react';
 
-export type CategoryKey = 'ALL' | 'MOBA' | 'FPS' | 'TACTICS' | 'SPORTS';
+export type CategoryKey = 'ALL' | 'MOBA' | 'FPS' | 'TACTICS' | 'ACTION';
 
 interface CategoryTab {
   id: CategoryKey;
@@ -15,7 +15,7 @@ export const CATEGORIES: CategoryTab[] = [
   { id: 'MOBA', label: 'MOBA', icon: Swords },
   { id: 'FPS', label: 'FPS / Bắn súng', icon: Crosshair },
   { id: 'TACTICS', label: 'Chiến thuật', icon: Gamepad2 },
-  { id: 'SPORTS', label: 'Thể thao / Khác', icon: Trophy },
+  { id: 'ACTION', label: 'Sinh tồn / Nhập vai', icon: Trophy },
 ];
 
 interface ServicesHeroProps {

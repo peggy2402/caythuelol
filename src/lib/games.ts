@@ -26,6 +26,7 @@ export interface GameDefinition {
 }
 
 export const GAMES_CATALOG: GameDefinition[] = [
+  // 1. LEAGUE OF LEGENDS
   {
     id: 'lol',
     name: 'League of Legends',
@@ -54,10 +55,12 @@ export const GAMES_CATALOG: GameDefinition[] = [
       { code: 'JP', name: 'Nhật Bản' },
       { code: 'NA', name: 'Bắc Mỹ' },
       { code: 'EUW', name: 'Tây Âu' },
-      { code: 'SEA', name: 'Đông Nam Á (SG/TH/PH/TW)' },
+      { code: 'SEA', name: 'Đông Nam Á' },
     ],
     defaultServices: [],
   },
+
+  // 2. TEAMFIGHT TACTICS
   {
     id: 'tft',
     name: 'Teamfight Tactics',
@@ -88,6 +91,8 @@ export const GAMES_CATALOG: GameDefinition[] = [
     ],
     defaultServices: [],
   },
+
+  // 3. VALORANT
   {
     id: 'valorant',
     name: 'Valorant',
@@ -116,6 +121,66 @@ export const GAMES_CATALOG: GameDefinition[] = [
     ],
     defaultServices: [],
   },
+
+  // 4. COUNTER-STRIKE 2 (CS2)
+  {
+    id: 'cs2',
+    name: 'Counter-Strike 2',
+    shortName: 'CS2',
+    desc: 'Cày Elo Premier Rating, nâng bậc xếp hạng Competitive và Faceit Level 10.',
+    iconName: 'Crosshair',
+    gradient: 'from-amber-500 to-yellow-600',
+    accentColor: 'text-amber-400',
+    banner: '/images/games/cs2-card.jpg',
+    active: true,
+    standardRanks: [
+      'Silver I - Elite',
+      'Gold Nova I - Master',
+      'Master Guardian',
+      'DMG',
+      'LE / LEM',
+      'Supreme',
+      'Global Elite',
+      'Premier 15k - 30k+',
+    ],
+    standardServers: [
+      { code: 'VN', name: 'Việt Nam / SEA' },
+      { code: 'ASIA', name: 'Châu Á' },
+      { code: 'EU', name: 'Châu Âu' },
+    ],
+    defaultServices: [],
+  },
+
+  // 5. DOTA 2
+  {
+    id: 'dota2',
+    name: 'Dota 2',
+    shortName: 'Dota 2',
+    desc: 'Dịch vụ kéo rank MMR Dota 2 từ Herald đến Immortal, cày chuỗi thắng Calibration.',
+    iconName: 'Swords',
+    gradient: 'from-red-600 to-rose-700',
+    accentColor: 'text-red-400',
+    banner: '/images/games/dota2-card.jpg',
+    active: true,
+    standardRanks: [
+      'Herald',
+      'Guardian',
+      'Crusader',
+      'Archon',
+      'Legend',
+      'Ancient',
+      'Divine',
+      'Immortal',
+    ],
+    standardServers: [
+      { code: 'SEA', name: 'Đông Nam Á (SEA)' },
+      { code: 'JP', name: 'Nhật Bản' },
+      { code: 'EU', name: 'Châu Âu' },
+    ],
+    defaultServices: [],
+  },
+
+  // 6. ARENA OF VALOR (LIÊN QUÂN MOBILE)
   {
     id: 'aov',
     name: 'Arena of Valor',
@@ -143,6 +208,8 @@ export const GAMES_CATALOG: GameDefinition[] = [
     ],
     defaultServices: [],
   },
+
+  // 7. WILD RIFT (TỐC CHIẾN)
   {
     id: 'wildrift',
     name: 'Wild Rift',
@@ -171,27 +238,295 @@ export const GAMES_CATALOG: GameDefinition[] = [
     ],
     defaultServices: [],
   },
+
+  // 8. VALORANT MOBILE
   {
-    id: 'fconline',
-    name: 'FC Online',
-    shortName: 'FC Online',
-    desc: 'Cày xếp hạng 1vs1, GLXH, cày sự kiện và cày Star Point FC Online.',
-    iconName: 'Trophy',
-    gradient: 'from-emerald-600 to-teal-700',
-    accentColor: 'text-emerald-400',
-    banner: '/images/games/fconline-card.jpg',
+    id: 'valmobile',
+    name: 'Valorant Mobile',
+    shortName: 'Val Mobile',
+    desc: 'Dịch vụ leo rank Valorant Mobile, tối ưu chuỗi thắng và thử nghiệm sớm.',
+    iconName: 'Crosshair',
+    gradient: 'from-rose-500 to-orange-500',
+    accentColor: 'text-rose-400',
+    banner: '/images/games/valmobile-card.jpg',
     active: true,
     standardRanks: [
-      'Nghiệp Dư',
-      'Bán Chuyên',
-      'Chuyên Nghiệp',
-      'Thế Giới',
-      'Tinh Anh',
+      'Iron',
+      'Bronze',
+      'Silver',
+      'Gold',
+      'Platinum',
+      'Diamond',
+      'Immortal',
+    ],
+    standardServers: [
+      { code: 'ASIA', name: 'Châu Á' },
+      { code: 'CN', name: 'Trung Quốc' },
+    ],
+    defaultServices: [],
+  },
+
+  // 9. DELTA FORCE
+  {
+    id: 'deltaforce',
+    name: 'Delta Force',
+    shortName: 'Delta Force',
+    desc: 'Cày rank Warfare, Operation Hazard, nâng cấp vũ khí và kéo extraction an toàn.',
+    iconName: 'Crosshair',
+    gradient: 'from-emerald-600 to-teal-700',
+    accentColor: 'text-emerald-400',
+    banner: '/images/games/deltaforce-card.jpg',
+    active: true,
+    standardRanks: [
+      'Bronze',
+      'Silver',
+      'Gold',
+      'Platinum',
+      'Diamond',
+      'Pinnacle',
+    ],
+    standardServers: [
+      { code: 'ASIA', name: 'Châu Á (SEA)' },
+      { code: 'GLOBAL', name: 'Toàn Cầu' },
+    ],
+    defaultServices: [],
+  },
+
+  // 10. MARVEL RIVALS
+  {
+    id: 'marvelrivals',
+    name: 'Marvel Rivals',
+    shortName: 'Marvel Rivals',
+    desc: 'Leo rank Competitive Siêu Anh Hùng 6v6, kéo bậc Eternity và One Above All.',
+    iconName: 'Zap',
+    gradient: 'from-purple-600 to-pink-600',
+    accentColor: 'text-purple-400',
+    banner: '/images/games/marvelrivals-card.jpg',
+    active: true,
+    standardRanks: [
+      'Bronze',
+      'Silver',
+      'Gold',
+      'Platinum',
+      'Diamond',
+      'Grandmaster',
+      'Eternity',
+      'One Above All',
+    ],
+    standardServers: [
+      { code: 'ASIA', name: 'Châu Á' },
+      { code: 'NA', name: 'Bắc Mỹ' },
+      { code: 'EU', name: 'Châu Âu' },
+    ],
+    defaultServices: [],
+  },
+
+  // 11. PATH OF EXILE 2 (POE 2)
+  {
+    id: 'poe2',
+    name: 'Path of Exile 2',
+    shortName: 'POE 2',
+    desc: 'Cày cấp cốt truyện Campaign, cày Maps Endgame, Farm Boss và build đồ tối thượng.',
+    iconName: 'Shield',
+    gradient: 'from-stone-700 to-amber-900',
+    accentColor: 'text-amber-500',
+    banner: '/images/games/poe2-card.jpg',
+    active: true,
+    standardRanks: [
+      'Act 1-6 Campaign',
+      'White Maps',
+      'Yellow Maps',
+      'Red Maps (T16)',
+      'Pinnacle Bosses',
+    ],
+    standardServers: [
+      { code: 'SG', name: 'Singapore (SEA)' },
+      { code: 'JP', name: 'Nhật Bản' },
+      { code: 'US', name: 'Bắc Mỹ' },
+    ],
+    defaultServices: [],
+  },
+
+  // 12. FREE FIRE
+  {
+    id: 'freefire',
+    name: 'Free Fire',
+    shortName: 'Free Fire',
+    desc: 'Cày Rank Tử Chiến (CS), Sinh Tồn (BR) lên Huyền Thoại và Thách Đấu.',
+    iconName: 'Flame',
+    gradient: 'from-amber-500 to-red-600',
+    accentColor: 'text-amber-400',
+    banner: '/images/games/freefire-card.jpg',
+    active: true,
+    standardRanks: [
+      'Đồng',
+      'Bạc',
+      'Vàng',
+      'Bạch Kim',
+      'Kim Cương',
       'Huyền Thoại',
-      'Siêu Sao',
       'Thách Đấu',
     ],
     standardServers: [{ code: 'VN', name: 'Việt Nam' }],
+    defaultServices: [],
+  },
+
+  // 13. PUBG MOBILE
+  {
+    id: 'pubgmobile',
+    name: 'PUBG Mobile',
+    shortName: 'PUBG Mobile',
+    desc: 'Cày rank Chí Tôn (Conqueror), Vương Giả (Ace), KD cao và chuỗi Top 1 an toàn.',
+    iconName: 'Crosshair',
+    gradient: 'from-yellow-600 to-amber-700',
+    accentColor: 'text-yellow-400',
+    banner: '/images/games/pubgmobile-card.jpg',
+    active: true,
+    standardRanks: [
+      'Đồng',
+      'Bạc',
+      'Vàng',
+      'Bạch Kim',
+      'Kim Cương',
+      'Cao Thủ (Crown)',
+      'Vương Giả (Ace)',
+      'Chí Tôn (Conqueror)',
+    ],
+    standardServers: [
+      { code: 'VN', name: 'VNG (Việt Nam)' },
+      { code: 'ASIA', name: 'Châu Á' },
+    ],
+    defaultServices: [],
+  },
+
+  // 14. PUBG PC (BATTLEGROUNDS)
+  {
+    id: 'pubg',
+    name: 'PUBG: BATTLEGROUNDS',
+    shortName: 'PUBG PC',
+    desc: 'Cày Ranked RP PUBG PC từ Bronze lên Master, Duo cùng pro player có mic call.',
+    iconName: 'Crosshair',
+    gradient: 'from-orange-600 to-amber-600',
+    accentColor: 'text-orange-400',
+    banner: '/images/games/pubg-card.jpg',
+    active: true,
+    standardRanks: [
+      'Bronze',
+      'Silver',
+      'Gold',
+      'Platinum',
+      'Diamond',
+      'Master',
+    ],
+    standardServers: [
+      { code: 'SEA', name: 'Đông Nam Á (SEA)' },
+      { code: 'KRJP', name: 'Hàn Quốc / Nhật Bản' },
+    ],
+    defaultServices: [],
+  },
+
+  // 15. CALL OF DUTY: MOBILE VN (CODM)
+  {
+    id: 'codm',
+    name: 'Call of Duty: Mobile VN',
+    shortName: 'CODM VN',
+    desc: 'Cày Huyền Thoại MP & BR, mở camo Kim Cương/Damascus siêu tốc.',
+    iconName: 'Crosshair',
+    gradient: 'from-zinc-700 to-stone-900',
+    accentColor: 'text-yellow-400',
+    banner: '/images/games/codm-card.jpg',
+    active: true,
+    standardRanks: [
+      'Tân Binh',
+      'Tinh Anh',
+      'Chuyên Nghiệp',
+      'Bậc Thầy',
+      'Đại Kiện Tướng',
+      'Huyền Thoại (Legendary)',
+    ],
+    standardServers: [{ code: 'VN', name: 'VNG (Việt Nam)' }],
+    defaultServices: [],
+  },
+
+  // 16. NARAKA: BLADEPOINT
+  {
+    id: 'naraka',
+    name: 'NARAKA: BLADEPOINT',
+    shortName: 'NARAKA',
+    desc: 'Leo rank Asura, Unrivaled Asura, cày điểm chiến lực võ khí và tướng độc quyền.',
+    iconName: 'Swords',
+    gradient: 'from-red-700 to-amber-700',
+    accentColor: 'text-red-400',
+    banner: '/images/games/naraka-card.jpg',
+    active: true,
+    standardRanks: [
+      'Bronze',
+      'Silver',
+      'Gold',
+      'Platinum',
+      'Solar',
+      'Empyrean',
+      'Astral',
+      'Asura',
+    ],
+    standardServers: [
+      { code: 'SEA', name: 'Đông Nam Á (SEA)' },
+      { code: 'AS', name: 'Châu Á' },
+    ],
+    defaultServices: [],
+  },
+
+  // 17. TRUY KÍCH 2 (BATTLE TEAMS 2)
+  {
+    id: 'truykich2',
+    name: 'Truy Kích 2',
+    shortName: 'Truy Kích 2',
+    desc: 'Cày rank Đặt Bom, Sinh Tồn, nâng cấp vũ khí và hoàn thành Battle Pass nhanh.',
+    iconName: 'Crosshair',
+    gradient: 'from-blue-700 to-indigo-800',
+    accentColor: 'text-blue-400',
+    banner: '/images/games/truykich2-card.jpg',
+    active: true,
+    standardRanks: [
+      'Học Viên',
+      'Binh Nhì',
+      'Hạ Sĩ',
+      'Trung Sĩ',
+      'Thượng Sĩ',
+      'Thiếu Úy',
+      'Đại Úy',
+      'Tướng Quân',
+    ],
+    standardServers: [{ code: 'VN', name: 'VTC (Việt Nam)' }],
+    defaultServices: [],
+  },
+
+  // 18. OVERWATCH 2
+  {
+    id: 'overwatch2',
+    name: 'Overwatch 2',
+    shortName: 'Overwatch 2',
+    desc: 'Dịch vụ leo rank Competitive 2.0 Overwatch từ Bronze lên Champion.',
+    iconName: 'Zap',
+    gradient: 'from-orange-500 to-sky-600',
+    accentColor: 'text-orange-400',
+    banner: '/images/games/overwatch2-card.jpg',
+    active: true,
+    standardRanks: [
+      'Bronze',
+      'Silver',
+      'Gold',
+      'Platinum',
+      'Diamond',
+      'Master',
+      'Grandmaster',
+      'Champion',
+    ],
+    standardServers: [
+      { code: 'ASIA', name: 'Châu Á' },
+      { code: 'AMERICAS', name: 'Châu Mỹ' },
+      { code: 'EU', name: 'Châu Âu' },
+    ],
     defaultServices: [],
   },
 ];

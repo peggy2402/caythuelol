@@ -1,47 +1,70 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import Navbar from '@/components/Navbar';
-import { Gamepad2 } from 'lucide-react';
+import { Gamepad2, ChevronDown, ChevronUp } from 'lucide-react';
 import { GAMES_CATALOG } from '@/lib/games';
 import ServicesHero, { CategoryKey } from '@/components/services/ServicesHero';
 import GameCard from '@/components/services/GameCard';
 import EscrowGuarantees from '@/components/services/EscrowGuarantees';
 
+const INITIAL_DISPLAY_COUNT = 8; // 2 hàng x 4 cards trên Desktop
+
 export default function ServicesHubPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<CategoryKey>('ALL');
+  const [displayCount, setDisplayCount] = useState<number>(INITIAL_DISPLAY_COUNT);
 
   // Filter games based on search and category
-  const filteredGames = GAMES_CATALOG.filter((game) => {
-    const q = searchTerm.toLowerCase().trim();
-    const matchesSearch =
-      !q ||
-      game.name.toLowerCase().includes(q) ||
-      game.shortName.toLowerCase().includes(q) ||
-      game.desc.toLowerCase().includes(q);
+  const filteredGames = useMemo(() => {
+    return GAMES_CATALOG.filter((game) => {
+      const q = searchTerm.toLowerCase().trim();
+      const matchesSearch =
+        !q ||
+        game.name.toLowerCase().includes(q) ||
+        game.shortName.toLowerCase().includes(q) ||
+        game.desc.toLowerCase().includes(q);
 
-    if (!matchesSearch) return false;
+      if (!matchesSearch) return false;
 
-    if (selectedCategory === 'ALL') return true;
-    if (selectedCategory === 'MOBA') {
-      return ['lol', 'aov', 'wildrift'].includes(game.id);
-    }
-    if (selectedCategory === 'FPS') {
-      return ['valorant'].includes(game.id);
-    }
-    if (selectedCategory === 'TACTICS') {
-      return ['tft'].includes(game.id);
-    }
-    if (selectedCategory === 'SPORTS') {
-      return ['fconline'].includes(game.id);
-    }
+      if (selectedCategory === 'ALL') return true;
+      if (selectedCategory === 'MOBA') {
+        return ['lol', 'dota2', 'aov', 'wildrift'].includes(game.id);
+      }
+      if (selectedCategory === 'FPS') {
+        return [
+          'valorant',
+          'cs2',
+          'valmobile',
+          'deltaforce',
+          'marvelrivals',
+          'pubg',
+          'pubgmobile',
+          'codm',
+          'freefire',
+          'truykich2',
+          'overwatch2',
+        ].includes(game.id);
+      }
+      if (selectedCategory === 'TACTICS') {
+        return ['tft'].includes(game.id);
+      }
+      if (selectedCategory === 'ACTION') {
+        return ['poe2', 'naraka'].includes(game.id);
+      }
 
-    return true;
-  });
+      return true;
+    });
+  }, [searchTerm, selectedCategory]);
+
+  // Khi tìm kiếm hoặc chọn category, hiển thị toàn bộ kết quả lọc; khi ở trang All thì phân trang xem thêm
+  const isFiltered = searchTerm.trim().length > 0 || selectedCategory !== 'ALL';
+  const visibleGames = isFiltered ? filteredGames : filteredGames.slice(0, displayCount);
+  const remainingCount = filteredGames.length - visibleGames.length;
+  const isExpanded = displayCount >= filteredGames.length;
 
   return (
-    <div className="min-h-screen bg-[#050608] text-zinc-100 font-sans selection:bg-cyan-500/30 overflow-x-hidden pt-28 pb-32">
+    <div className="min-h-screen bg-[#050608] text-zinc-100 font-sans selection:bg-cyan-500/30 overflow-x-clip pt-28 pb-32">
       <Navbar />
 
       {/* Dynamic Ambient Background Glows */}
@@ -58,12 +81,40 @@ export default function ServicesHubPage() {
           setSelectedCategory={setSelectedCategory}
         />
 
-        {/* 2. Games Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredGames.map((game) => (
+        {/* 2. Games Grid (4 Cards 1 Hàng trên Desktop) */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+          {visibleGames.map((game) => (
             <GameCard key={game.id} game={game} />
           ))}
         </div>
+
+        {/* 3. Nút "Xem thêm" & "Thu gọn" */}
+        {!isFiltered && filteredGames.length > INITIAL_DISPLAY_COUNT && (
+          <div className="flex justify-center items-center gap-3 mt-10">
+            {!isExpanded ? (
+              <button
+                type="button"
+                onClick={() => setDisplayCount((prev) => Math.min(prev + 8, filteredGames.length))}
+                className="px-6 py-3 rounded-2xl bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-700/80 hover:border-cyan-500/50 text-white font-bold text-xs sm:text-sm transition-all duration-200 flex items-center gap-2 shadow-xl hover:shadow-cyan-500/10 active:scale-95 group"
+              >
+                <span>Xem thêm tựa game khác</span>
+                <span className="px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 text-xs font-mono">
+                  +{remainingCount}
+                </span>
+                <ChevronDown size={16} className="text-zinc-400 group-hover:text-cyan-300 group-hover:translate-y-0.5 transition-transform" />
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setDisplayCount(INITIAL_DISPLAY_COUNT)}
+                className="px-5 py-2.5 rounded-2xl bg-zinc-900/80 hover:bg-zinc-800 border border-zinc-800 text-zinc-400 hover:text-white font-bold text-xs transition-colors flex items-center gap-1.5"
+              >
+                <span>Thu gọn danh sách</span>
+                <ChevronUp size={15} />
+              </button>
+            )}
+          </div>
+        )}
 
         {/* Empty Search Result */}
         {filteredGames.length === 0 && (
@@ -83,7 +134,7 @@ export default function ServicesHubPage() {
           </div>
         )}
 
-        {/* 3. Escrow Guarantees */}
+        {/* 4. Escrow Guarantees */}
         <EscrowGuarantees />
       </main>
     </div>
