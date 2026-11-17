@@ -22,13 +22,46 @@ export class BlogsService {
       tag.trim().toLowerCase() !== 'tat-ca' &&
       tag.trim().toLowerCase() !== 'tất cả'
     ) {
-      filter.tags = { $regex: new RegExp(`^${tag.trim()}$`, 'i') };
+      const cleanTag = tag.trim().toLowerCase();
+      if (cleanTag === 'meta & guide' || cleanTag === 'cẩm nang meta' || cleanTag === 'meta' || cleanTag === 'guide') {
+        const metaRegex = /(cẩm nang|meta|chiến thuật|hướng dẫn|guide|kinh nghiệm|line-up|giáo án)/i;
+        filter.$or = [
+          { tags: { $regex: metaRegex } },
+          { title: { $regex: metaRegex } },
+        ];
+      } else if (cleanTag === 'esports' || cleanTag === 'tin tức esports' || cleanTag === 'tin tức') {
+        const esportsRegex = /(esports|giải đấu|tin tức|lck|lpl|vcs|riot|chuyển nhượng)/i;
+        filter.$or = [
+          { tags: { $regex: esportsRegex } },
+          { title: { $regex: esportsRegex } },
+        ];
+      } else if (cleanTag === 'system' || cleanTag === 'thông báo hệ thống' || cleanTag === 'hệ thống' || cleanTag === 'thông báo') {
+        const systemRegex = /(hệ thống|thông báo|cập nhật|bảo trì|chính sách|system)/i;
+        filter.$or = [
+          { tags: { $regex: systemRegex } },
+          { title: { $regex: systemRegex } },
+        ];
+      } else {
+        const escaped = tag.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        filter.tags = { $regex: new RegExp(escaped, 'i') };
+      }
     }
-    if (search) {
-      filter.$or = [
-        { title: { $regex: search, $options: 'i' } },
-        { excerpt: { $regex: search, $options: 'i' } },
-      ];
+
+    if (search && search.trim()) {
+      const searchRegex = new RegExp(search.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+      const searchCondition = {
+        $or: [
+          { title: { $regex: searchRegex } },
+          { excerpt: { $regex: searchRegex } },
+          { tags: { $regex: searchRegex } },
+        ],
+      };
+      if (filter.$or) {
+        filter.$and = [{ $or: filter.$or }, searchCondition];
+        delete filter.$or;
+      } else {
+        filter.$or = searchCondition.$or;
+      }
     }
 
     const [blogs, total] = await Promise.all([

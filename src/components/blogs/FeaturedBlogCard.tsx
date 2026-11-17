@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Calendar, User, ArrowRight } from 'lucide-react';
+import { Calendar, User, ArrowRight, Eye } from 'lucide-react';
 
 interface FeaturedBlogCardProps {
   post: {
@@ -12,6 +12,7 @@ interface FeaturedBlogCardProps {
     thumbnail?: string;
     tags?: string[];
     createdAt: string;
+    views?: number;
     author?: {
       username?: string;
     };
@@ -50,6 +51,11 @@ export default function FeaturedBlogCard({ post }: FeaturedBlogCardProps) {
               <span className="flex items-center gap-1 text-zinc-500 text-xs">
                 <Calendar className="w-3.5 h-3.5" />
                 {new Date(post.createdAt).toLocaleDateString('vi-VN')}
+              </span>
+              <span>•</span>
+              <span className="flex items-center gap-1 text-zinc-400 text-xs">
+                <Eye className="w-3.5 h-3.5 text-cyan-400" />
+                {post.views || 0} lượt xem
               </span>
             </div>
 
