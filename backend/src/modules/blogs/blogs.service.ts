@@ -16,8 +16,13 @@ export class BlogsService {
     const skip = (page - 1) * limit;
     const filter: any = { isPublished: true };
 
-    if (tag) {
-      filter.tags = tag;
+    if (
+      tag &&
+      tag.trim().toLowerCase() !== 'all' &&
+      tag.trim().toLowerCase() !== 'tat-ca' &&
+      tag.trim().toLowerCase() !== 'tất cả'
+    ) {
+      filter.tags = { $regex: new RegExp(`^${tag.trim()}$`, 'i') };
     }
     if (search) {
       filter.$or = [

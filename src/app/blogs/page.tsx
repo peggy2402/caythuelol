@@ -42,7 +42,7 @@ export default function BlogsPage() {
         const params = new URLSearchParams({
           page: page.toString(),
           limit: '9',
-          tag: activeCategory,
+          tag: activeCategory === 'All' ? '' : activeCategory,
           search: debouncedSearch,
         });
         const res = await fetch(`/api/blogs?${params.toString()}`);
