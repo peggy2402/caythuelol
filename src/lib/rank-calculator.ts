@@ -102,6 +102,91 @@ export const VALORANT_RANK_STEPS: RankDivision[] = [
   { id: 'RADIANT', tier: 'RADIANT', label: 'Radiant', stepPrice: 0 },
 ];
 
+export interface PointBoostTierSegment {
+  id: string;
+  label: string;
+  shortLabel: string;
+  defaultPrice: number;
+  unit: string; // 'RR' | 'LP'
+  desc: string;
+  badgeColor: string;
+}
+
+export const VALORANT_POINT_TIERS: PointBoostTierSegment[] = [
+  {
+    id: 'immortal1_2',
+    label: 'Immortal 1 → Immortal 2',
+    shortLabel: 'Immortal 1 ➔ 2',
+    defaultPrice: 5000,
+    unit: 'RR',
+    desc: 'Phân khúc leo điểm Immortal 1',
+    badgeColor: 'text-pink-400 bg-pink-500/10 border-pink-500/30',
+  },
+  {
+    id: 'immortal2_3',
+    label: 'Immortal 2 → Immortal 3',
+    shortLabel: 'Immortal 2 ➔ 3',
+    defaultPrice: 7000,
+    unit: 'RR',
+    desc: 'Phân khúc leo điểm Immortal 2',
+    badgeColor: 'text-rose-400 bg-rose-500/10 border-rose-500/30',
+  },
+  {
+    id: 'immortal3_radiant',
+    label: 'Immortal 3 → Radiant',
+    shortLabel: 'Immortal 3 ➔ Radiant',
+    defaultPrice: 10000,
+    unit: 'RR',
+    desc: 'Bứt phá đỉnh cao Radiant',
+    badgeColor: 'text-amber-400 bg-amber-500/10 border-amber-500/30',
+  },
+  {
+    id: 'radiant_top100',
+    label: 'Radiant → Top 100',
+    shortLabel: 'Radiant Top 100',
+    defaultPrice: 20000,
+    unit: 'RR',
+    desc: 'Top 100 Leaderboard Vùng',
+    badgeColor: 'text-cyan-400 bg-cyan-500/10 border-cyan-500/30',
+  },
+];
+
+export const LOL_POINT_TIERS: PointBoostTierSegment[] = [
+  {
+    id: 'master',
+    label: 'Cao Thủ (Master)',
+    shortLabel: 'Cao Thủ',
+    defaultPrice: 1000,
+    unit: 'LP',
+    desc: 'Cày điểm Cao Thủ tích lũy',
+    badgeColor: 'text-purple-400 bg-purple-500/10 border-purple-500/30',
+  },
+  {
+    id: 'grandmaster',
+    label: 'Đại Cao Thủ (Grandmaster)',
+    shortLabel: 'Đại Cao Thủ',
+    defaultPrice: 1500,
+    unit: 'LP',
+    desc: 'Duy trì & tăng điểm Đại Cao Thủ',
+    badgeColor: 'text-red-400 bg-red-500/10 border-red-500/30',
+  },
+  {
+    id: 'challenger',
+    label: 'Thách Đấu (Challenger)',
+    shortLabel: 'Thách Đấu',
+    defaultPrice: 2000,
+    unit: 'LP',
+    desc: 'Chinh phục đỉnh cao Thách Đấu',
+    badgeColor: 'text-cyan-400 bg-cyan-500/10 border-cyan-500/30',
+  },
+];
+
+export function getPointBoostTiers(gameCode: string): PointBoostTierSegment[] {
+  const code = (gameCode || 'LOL').toUpperCase();
+  if (code === 'VALORANT') return VALORANT_POINT_TIERS;
+  return LOL_POINT_TIERS;
+}
+
 export function getRankSteps(gameCode: string): RankDivision[] {
   const code = (gameCode || 'LOL').toUpperCase();
   if (code === 'VALORANT') return VALORANT_RANK_STEPS;
@@ -162,6 +247,7 @@ export interface CalculationResult {
 export function calculateRankBoost({
   currentRankId,
   desiredRankId,
+  rankSteps,
   lpGainMultiplier = 1.0,
   addons = {},
   boosterPriceMultiplier = 1.0,
@@ -172,6 +258,7 @@ export function calculateRankBoost({
 }: {
   currentRankId: string;
   desiredRankId: string;
+  rankSteps?: RankDivision[];
   lpGainMultiplier?: number;
   addons?: AddonSelections;
   boosterPriceMultiplier?: number;
@@ -180,8 +267,9 @@ export function calculateRankBoost({
   stepOverrides?: Record<string, number>;
   addonsConfig?: BoosterAddonConfig;
 }): CalculationResult {
-  const currentIndex = LOL_RANK_STEPS.findIndex((r) => r.id === currentRankId);
-  const desiredIndex = LOL_RANK_STEPS.findIndex((r) => r.id === desiredRankId);
+  const steps = rankSteps && rankSteps.length > 0 ? rankSteps : LOL_RANK_STEPS;
+  const currentIndex = steps.findIndex((r) => r.id === currentRankId);
+  const desiredIndex = steps.findIndex((r) => r.id === desiredRankId);
 
   if (currentIndex === -1 || desiredIndex === -1 || desiredIndex <= currentIndex) {
     return {
@@ -198,8 +286,8 @@ export function calculateRankBoost({
   const stepsBreakdown: { from: string; to: string; price: number }[] = [];
 
   for (let i = currentIndex; i < desiredIndex; i++) {
-    const fromRank = LOL_RANK_STEPS[i];
-    const toRank = LOL_RANK_STEPS[i + 1];
+    const fromRank = steps[i];
+    const toRank = steps[i + 1];
 
     let stepCost: number;
     // 1. Ưu tiên giá override chi tiết theo từng nấc cụ thể
