@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { motion, useScroll, useTransform } from 'framer-motion';
-import { Star, Shield, Flame, ArrowRight, Gamepad2, ShieldCheck, Zap, Trophy, Lock } from 'lucide-react';
+import { Star, Shield, Flame, ArrowRight, Gamepad2, Zap, Lock } from 'lucide-react';
 
 // Lightweight Custom Typewriter Hook
 const Typewriter = ({ words }: { words: string[] }) => {
@@ -56,41 +56,6 @@ export default function HeroSection() {
       />
 
       <div className="container mx-auto px-6 relative z-10">
-        {/* Floating Cyber Badge 1 (Left Side - Desktop only) */}
-        <motion.div
-          animate={{ y: [-8, 8, -8], rotate: [-1, 1, -1] }}
-          transition={{ repeat: Infinity, duration: 4.8, ease: "easeInOut" }}
-          className="hidden xl:flex absolute left-8 top-1/3 items-center gap-3 p-3.5 rounded-2xl bg-zinc-950/80 border border-cyan-500/30 backdrop-blur-xl shadow-[0_10px_30px_rgba(6,182,212,0.2)]"
-        >
-          <div className="w-10 h-10 rounded-xl bg-cyan-500/20 text-cyan-400 flex items-center justify-center font-bold">
-            <Trophy size={20} />
-          </div>
-          <div>
-            <div className="text-xs font-black text-white">Thách Đấu 1100 LP</div>
-            <div className="text-[10px] text-cyan-400 font-semibold flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              Tỷ lệ thắng 88%+
-            </div>
-          </div>
-        </motion.div>
-
-        {/* Floating Cyber Badge 2 (Right Side - Desktop only) */}
-        <motion.div
-          animate={{ y: [8, -8, 8], rotate: [1, -1, 1] }}
-          transition={{ repeat: Infinity, duration: 5.2, ease: "easeInOut" }}
-          className="hidden xl:flex absolute right-8 top-1/3 items-center gap-3 p-3.5 rounded-2xl bg-zinc-950/80 border border-emerald-500/30 backdrop-blur-xl shadow-[0_10px_30px_rgba(16,185,129,0.2)]"
-        >
-          <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold">
-            <ShieldCheck size={20} />
-          </div>
-          <div>
-            <div className="text-xs font-black text-white">Escrow Bảo Chứng 100%</div>
-            <div className="text-[10px] text-emerald-400 font-semibold">
-              Tiền giữ an toàn tuyệt đối
-            </div>
-          </div>
-        </motion.div>
-
         <div className="flex flex-col items-center text-center max-w-4xl mx-auto">
           {/* Top Trust Indicator Pill */}
           <motion.div
