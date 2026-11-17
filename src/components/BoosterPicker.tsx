@@ -200,9 +200,9 @@ export default function BoosterPicker() {
                   <span className="text-xs text-blue-400 font-mono">@{selectedBooster.username}</span>
                 </div>
                 <div className="flex flex-wrap items-center gap-2.5 mt-1 text-xs">
-                  <span className="flex items-center gap-1 text-amber-400 font-bold bg-amber-500/10 px-2 py-0.5 rounded-md border border-amber-500/20">
+                  <span className={`flex items-center gap-1 font-bold px-2 py-0.5 rounded-md border ${selectedBooster.rating && selectedBooster.rating > 0 ? 'text-amber-400 bg-amber-500/10 border-amber-500/20' : 'text-zinc-500 bg-zinc-800 border-zinc-700'}`}>
                     <Star size={12} className="fill-current" />
-                    {selectedBooster.rating?.toFixed(1) || '5.0'}
+                    {selectedBooster.rating && selectedBooster.rating > 0 ? selectedBooster.rating.toFixed(1) : '0.0'}
                   </span>
                   <span className="text-zinc-300 font-medium bg-zinc-800 px-2 py-0.5 rounded-md border border-zinc-700">
                     {selectedBooster.completedOrders ?? selectedBooster.booster_info?.completed_orders ?? 0} đơn hoàn thành
@@ -302,9 +302,9 @@ export default function BoosterPicker() {
                             </div>
 
                             <div className="flex items-center gap-2 shrink-0 text-xs">
-                              <span className="flex items-center gap-1 text-amber-400 font-bold bg-amber-500/10 px-2 py-0.5 rounded">
+                              <span className={`flex items-center gap-1 font-bold px-2 py-0.5 rounded ${booster.rating && booster.rating > 0 ? 'text-amber-400 bg-amber-500/10' : 'text-zinc-500 bg-zinc-800'}`}>
                                 <Star size={11} className="fill-current" />
-                                {booster.rating?.toFixed(1) || '5.0'}
+                                {booster.rating && booster.rating > 0 ? booster.rating.toFixed(1) : '0.0'}
                               </span>
                               <span className="text-zinc-400 text-[11px] font-medium hidden sm:inline">
                                 {orders} đơn
@@ -458,9 +458,9 @@ export default function BoosterPicker() {
                             </h3>
                           </Link>
                           <div className="flex items-center gap-2 mt-0.5 text-xs">
-                            <span className="flex items-center gap-1 text-amber-400 font-bold">
+                            <span className={`flex items-center gap-1 font-bold ${booster.rating && booster.rating > 0 ? 'text-amber-400' : 'text-zinc-500'}`}>
                               <Star className="w-3 h-3 fill-current" />
-                              {booster.rating?.toFixed(1) || '5.0'}
+                              {booster.rating && booster.rating > 0 ? booster.rating.toFixed(1) : '0.0'}
                             </span>
                             <span className="text-zinc-500">•</span>
                             <span className="text-zinc-400 font-medium text-[11px]">

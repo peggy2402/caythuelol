@@ -99,8 +99,8 @@ export default function BoosterProfileView({ id }: { id: string }) {
 
               <div className="grid grid-cols-2 gap-4 mb-6 text-center">
                 <div className="bg-zinc-950/50 rounded-xl p-3 border border-white/5">
-                  <div className="text-yellow-500 font-bold text-xl flex items-center justify-center gap-1">
-                    {info.rating?.toFixed(1) || 5.0} <Star className="w-4 h-4 fill-current" />
+                  <div className={`font-bold text-xl flex items-center justify-center gap-1 ${info.rating && info.rating > 0 ? 'text-yellow-500' : 'text-zinc-500'}`}>
+                    {info.rating && info.rating > 0 ? info.rating.toFixed(1) : '0.0'} <Star className="w-4 h-4 fill-current" />
                   </div>
                   <div className="text-xs text-zinc-500">{t('rating')}</div>
                 </div>

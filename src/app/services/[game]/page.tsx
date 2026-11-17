@@ -555,9 +555,9 @@ function GameServicesContent() {
                             </div>
 
                             <div className="flex items-center gap-2 text-xs">
-                              <div className="flex items-center gap-1 text-amber-400 font-bold">
-                                <Star className="w-3.5 h-3.5 fill-amber-400" />
-                                <span>{booster.rating ? booster.rating.toFixed(1) : '5.0'}</span>
+                              <div className={`flex items-center gap-1 font-bold ${booster.rating && booster.rating > 0 ? 'text-amber-400' : 'text-zinc-500'}`}>
+                                <Star className={`w-3.5 h-3.5 ${booster.rating && booster.rating > 0 ? 'fill-amber-400' : 'fill-zinc-600 text-zinc-600'}`} />
+                                <span>{booster.rating && booster.rating > 0 ? booster.rating.toFixed(1) : '0.0'}</span>
                               </div>
                               <span className="text-zinc-600">·</span>
                               <span className="text-zinc-400 font-medium">

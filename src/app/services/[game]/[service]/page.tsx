@@ -882,11 +882,11 @@ function ServiceBookingContent() {
                           </span>
                         </div>
                         <div className="flex items-center gap-2 text-xs text-zinc-400 mt-0.5">
-                          <span className="flex items-center gap-1 text-amber-400 font-bold">
+                          <span className={`flex items-center gap-1 font-bold ${assignedBooster?.user?.rating && assignedBooster.user.rating > 0 ? 'text-amber-400' : 'text-zinc-500'}`}>
                             <Star size={12} fill="currentColor" />
-                            {assignedBooster?.user?.rating
+                            {assignedBooster?.user?.rating && assignedBooster.user.rating > 0
                               ? assignedBooster.user.rating.toFixed(1)
-                              : '5.0'}
+                              : '0.0'}
                           </span>
                           <span>•</span>
                           <span className="text-zinc-300">
@@ -2161,9 +2161,9 @@ function ServiceBookingContent() {
                             </div>
 
                             <div className="flex flex-wrap items-center gap-2 mt-1 text-[11px] text-zinc-400">
-                              <span className="flex items-center gap-1 text-amber-400 font-bold">
+                              <span className={`flex items-center gap-1 font-bold ${b.rating && b.rating > 0 ? 'text-amber-400' : 'text-zinc-500'}`}>
                                 <Star size={11} fill="currentColor" />
-                                {b.rating ? b.rating.toFixed(1) : '5.0'}
+                                {b.rating && b.rating > 0 ? b.rating.toFixed(1) : '0.0'}
                               </span>
                               <span>•</span>
                               <span className="text-zinc-300">
