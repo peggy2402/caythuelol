@@ -79,20 +79,16 @@ function LanguageDropdown({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const currentLangObj = LANGUAGES_LIST.find((l) => l.code === language) || LANGUAGES_LIST[0];
-
   return (
     <div ref={dropdownRef} className={`relative ${className}`} suppressHydrationWarning>
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-zinc-800 bg-zinc-900/60 hover:bg-zinc-800 text-zinc-300 hover:text-white transition-all text-xs font-bold group cursor-pointer shadow-sm"
+        className="relative p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-white/10 transition-colors group cursor-pointer flex items-center justify-center"
         aria-label="Chọn ngôn ngữ"
         title="Chọn ngôn ngữ (Language)"
       >
-        <LanguageIcon className="w-4 h-4 text-zinc-400 group-hover:text-blue-400 transition-colors" />
-        <span className="uppercase text-[11px] font-extrabold tracking-wider">{currentLangObj.code}</span>
-        <ChevronDown size={13} className={`text-zinc-500 transition-transform ${isOpen ? 'rotate-180 text-blue-400' : ''}`} />
+        <LanguageIcon className="w-5 h-5 text-zinc-400 group-hover:text-blue-400 transition-colors" />
       </button>
 
       {isOpen && (
@@ -390,220 +386,231 @@ export default function Navbar() {
           </Link>
 
           {/* Desktop */}
-          <nav className="hidden md:flex items-center gap-8 text-sm font-medium" suppressHydrationWarning>
-            <NavLink href="/services" label={t('services')} />
-            <NavLink href="/boosters" label={t('boosters')} />
-            <NavLink href="/vip" label="Hội Viên VIP" />
-            <NavLink href="/blogs" label={t('blog')} />
-            {user?.role === 'BOOSTER' && (
-              <NavLink href="/booster/jobs" label={t('jobMarket')} />
-            )}
-            {user?.role === 'CUSTOMER' && (
-              <Link href="/boosters/apply" className="text-yellow-500 hover:text-yellow-400 transition">
-                {t('becomeBooster')}
-              </Link>
-            )}
+          <div className="hidden md:flex items-center gap-5" suppressHydrationWarning>
+            {/* Nav Links */}
+            <nav className="flex items-center gap-7 text-sm font-medium" suppressHydrationWarning>
+              <NavLink href="/services" label={t('services')} />
+              <NavLink href="/boosters" label={t('boosters')} />
+              <NavLink href="/vip" label="Hội Viên VIP" />
+              <NavLink href="/blogs" label={t('blog')} />
+              {user?.role === 'BOOSTER' && (
+                <NavLink href="/booster/jobs" label={t('jobMarket')} />
+              )}
+              {user?.role === 'CUSTOMER' && (
+                <Link href="/boosters/apply" className="text-yellow-500 hover:text-yellow-400 transition">
+                  {t('becomeBooster')}
+                </Link>
+              )}
+            </nav>
+
             <div className="h-5 w-px bg-white/10" suppressHydrationWarning />
 
-            <LanguageDropdown
-              language={language}
-              setLanguage={setLanguage}
-            />
+            {/* Right Tools & Actions (Language, Bell, User) */}
+            <div className="flex items-center gap-1.5" suppressHydrationWarning>
+              <LanguageDropdown
+                language={language}
+                setLanguage={setLanguage}
+              />
 
-            {/* Notification Bell */}
-            {user && (
-              <div className="relative ml-4">
-                <button onClick={handleReadNoti} className="relative p-2 text-zinc-400 hover:text-white transition-colors">
-                  <Bell className="w-5 h-5" />
-                  {unreadCount > 0 && (
-                    <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
+              {/* Notification Bell */}
+              {user && (
+                <div className="relative">
+                  <button
+                    onClick={handleReadNoti}
+                    className="relative p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+                    aria-label="Thông báo"
+                  >
+                    <Bell className="w-5 h-5" />
+                    {unreadCount > 0 && (
+                      <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
+                    )}
+                  </button>
+
+                  {isNotiOpen && (
+                    <div className="absolute right-0 mt-3 w-80 bg-zinc-900 border border-zinc-800 rounded-xl shadow-2xl overflow-hidden z-50">
+                      <div className="p-3 border-b border-zinc-800 font-bold text-white text-sm">Thông báo</div>
+                      <div className="max-h-64 overflow-y-auto">
+                        {notifications.length === 0 ? (
+                          <div className="p-4 text-center text-zinc-500 text-xs">Không có thông báo mới</div>
+                        ) : (
+                          notifications.map((noti, idx) => (
+                            <Link href={noti.link || '#'} key={idx} className="block p-3 hover:bg-zinc-800 transition-colors border-b border-zinc-800/50 last:border-0">
+                              <div className="text-sm font-bold text-white mb-1">{noti.title}</div>
+                              <div className="text-xs text-zinc-400 line-clamp-2">{noti.message}</div>
+                              <div className="text-[10px] text-zinc-600 mt-1">{new Date(noti.createdAt).toLocaleDateString()}</div>
+                            </Link>
+                          ))
+                        )}
+                      </div>
+                    </div>
                   )}
-                </button>
+                </div>
+              )}
 
-                {isNotiOpen && (
-                  <div className="absolute right-0 mt-3 w-80 bg-zinc-900 border border-zinc-800 rounded-xl shadow-2xl overflow-hidden z-50">
-                    <div className="p-3 border-b border-zinc-800 font-bold text-white text-sm">Thông báo</div>
-                    <div className="max-h-64 overflow-y-auto">
-                      {notifications.length === 0 ? (
-                        <div className="p-4 text-center text-zinc-500 text-xs">Không có thông báo mới</div>
-                      ) : (
-                        notifications.map((noti, idx) => (
-                          <Link href={noti.link || '#'} key={idx} className="block p-3 hover:bg-zinc-800 transition-colors border-b border-zinc-800/50 last:border-0">
-                            <div className="text-sm font-bold text-white mb-1">{noti.title}</div>
-                            <div className="text-xs text-zinc-400 line-clamp-2">{noti.message}</div>
-                            <div className="text-[10px] text-zinc-600 mt-1">{new Date(noti.createdAt).toLocaleDateString()}</div>
-                          </Link>
-                        ))
-                      )}
+              {user ? (
+                <div className="relative ml-1" suppressHydrationWarning>
+                  <button
+                    onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                    className="flex items-center gap-3 rounded-full border border-white/10 bg-zinc-900 px-3 py-1.5 hover:border-blue-500/40 transition cursor-pointer"
+                  >
+                    <div className="relative h-8 w-8 rounded-full overflow-hidden bg-gradient-to-br from-blue-500 to-purple-600 p-[1px]">
+                      <div className="h-full w-full bg-zinc-950 rounded-full flex items-center justify-center">
+                        {user.profile?.avatar ? (
+                          <img
+                            src={user.profile.avatar}
+                            alt="Avatar"
+                            className="rounded-full h-8 w-8 object-cover"
+                          />
+                        ) : (
+                          <User className="h-4 w-4 text-white" />
+                        )}
+                      </div>
                     </div>
-                  </div>
-                )}
-              </div>
-            )}
 
-            {user ? (
-              <div className="relative ml-4" suppressHydrationWarning>
-                <button
-                  onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                  className="flex items-center gap-3 rounded-full border border-white/10 bg-zinc-900 px-3 py-1.5 hover:border-blue-500/40 transition"
-                >
-                  <div className="relative h-8 w-8 rounded-full overflow-hidden bg-gradient-to-br from-blue-500 to-purple-600 p-[1px]">
-                    <div className="h-full w-full bg-zinc-950 rounded-full flex items-center justify-center">
-                      {user.profile?.avatar ? (
-                        <img
-                          src={user.profile.avatar}
-                          alt="Avatar"
-                          className="rounded-full h-8 w-8 object-cover"
-                        />
-                      ) : (
-                        <User className="h-4 w-4 text-white" />
-                      )}
+                    <div className="text-left">
+                      <div className="text-xs font-semibold text-white">
+                        {user.username}
+                      </div>
+                      <div className="text-[11px] font-medium text-emerald-400">
+                        {user.wallet_balance?.toLocaleString('vi-VN')}đ
+                      </div>
                     </div>
-                  </div>
 
-                  <div className="text-left">
-                    <div className="text-xs font-semibold text-white">
-                      {user.username}
-                    </div>
-                    <div className="text-[11px] font-medium text-emerald-400">
-                      {user.wallet_balance?.toLocaleString('vi-VN')}đ
-                    </div>
-                  </div>
+                    <ChevronDown
+                      className={`h-4 w-4 text-zinc-500 transition ${isDropdownOpen ? 'rotate-180' : ''
+                        }`}
+                    />
+                  </button>
 
-                  <ChevronDown
-                    className={`h-4 w-4 text-zinc-500 transition ${isDropdownOpen ? 'rotate-180' : ''
+                  {/* Dropdown */}
+                  <div
+                    suppressHydrationWarning
+                    className={`absolute right-0 mt-3 w-64 rounded-xl border border-white/10 bg-zinc-900 shadow-2xl transition-all duration-200 ${isDropdownOpen
+                      ? 'opacity-100 translate-y-0'
+                      : 'opacity-0 -translate-y-2 pointer-events-none'
                       }`}
-                  />
-                </button>
-
-                {/* Dropdown */}
-                <div
-                  suppressHydrationWarning
-                  className={`absolute right-0 mt-3 w-64 rounded-xl border border-white/10 bg-zinc-900 shadow-2xl transition-all duration-200 ${isDropdownOpen
-                    ? 'opacity-100 translate-y-0'
-                    : 'opacity-0 -translate-y-2 pointer-events-none'
-                    }`}
-                >
-                  <div className="p-2 space-y-1 text-sm">
-                    <Link
-                      href={dashboardHref}
-                      className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/5"
-                    >
-                      <LayoutDashboard className="h-4 w-4" />
-                      {t('dashboard')}
-                    </Link>
-
-                    <Link
-                      href="/wallet"
-                      className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/5"
-                    >
-                      <Wallet className="h-4 w-4" />
-                      {t('wallet')}
-                    </Link>
-
-                    <Link
-                      href="/vip"
-                      className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/5 text-emerald-400 font-semibold"
-                    >
-                      <Crown className="h-4 w-4 text-emerald-400" />
-                      Hội Viên VIP Pass
-                    </Link>
-
-                    {user.role === 'CUSTOMER' && (
-                      <>
-                        <Link
-                          href="/orders"
-                          className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/5"
-                        >
-                          <FileText className="h-4 w-4" />
-                          {t('orders')}
-                        </Link>
-                        <Link
-                          href="/favorites"
-                          className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/5"
-                        >
-                          <Heart className="h-4 w-4" />
-                          Yêu thích
-                        </Link>
-                      </>
-                    )}
-
-                    {user.role === 'BOOSTER' && (
-                      <>
-                        <Link
-                          href="/booster/jobs"
-                          className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/5"
-                        >
-                          <Briefcase className="h-4 w-4" />
-                          {t('jobMarket')}
-                        </Link>
-                        <Link
-                          href="/booster/my-orders"
-                          className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/5"
-                        >
-                          <ListTodo className="h-4 w-4" />
-                          {t('myActiveJobs')}
-                        </Link>
-                        <button
-                          onClick={() => { toggleAvailability(); setIsDropdownOpen(false); }}
-                          className={`flex w-full items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/5 transition-colors ${(user.booster_info?.isReady ?? true) ? 'text-green-400' : 'text-zinc-500'
-                            }`}
-                        >
-                          <Power className="h-4 w-4" />
-                          {(user.booster_info?.isReady ?? true) ? 'Đang Sẵn Sàng' : 'Đang Tạm Nghỉ'}
-                        </button>
-                        <button
-                          onClick={() => setShowResignModal(true)}
-                          className="flex w-full items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/5 text-red-400"
-                        >
-                          <DoorOpen className="h-4 w-4" /> Gỡ Quyền Booster
-                        </button>
-                      </>
-                    )}
-
-                    {/* Admin Link - Chỉ hiện khi role là ADMIN */}
-                    {user.role === 'ADMIN' && (
+                  >
+                    <div className="p-2 space-y-1 text-sm">
                       <Link
-                        href="/admin/boosters"
-                        className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/5 text-yellow-500"
+                        href={dashboardHref}
+                        className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/5"
                       >
-                        <ShieldAlert className="h-4 w-4" />
-                        Duyệt Đơn Booster
+                        <LayoutDashboard className="h-4 w-4" />
+                        {t('dashboard')}
                       </Link>
-                    )}
 
-                    <div className="border-t border-white/10 my-1" />
+                      <Link
+                        href="/wallet"
+                        className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/5"
+                      >
+                        <Wallet className="h-4 w-4" />
+                        {t('wallet')}
+                      </Link>
 
-                    <button
-                      onClick={() => { logout(); }}
-                      className="flex w-full items-center gap-3 px-3 py-2 rounded-lg text-red-400 hover:bg-red-500/10"
-                    >
-                      <LogOut className="h-4 w-4" />
-                      {t('logout')}
-                    </button>
+                      <Link
+                        href="/vip"
+                        className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/5 text-emerald-400 font-semibold"
+                      >
+                        <Crown className="h-4 w-4 text-emerald-400" />
+                        Hội Viên VIP Pass
+                      </Link>
+
+                      {user.role === 'CUSTOMER' && (
+                        <>
+                          <Link
+                            href="/orders"
+                            className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/5"
+                          >
+                            <FileText className="h-4 w-4" />
+                            {t('orders')}
+                          </Link>
+                          <Link
+                            href="/favorites"
+                            className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/5"
+                          >
+                            <Heart className="h-4 w-4" />
+                            Yêu thích
+                          </Link>
+                        </>
+                      )}
+
+                      {user.role === 'BOOSTER' && (
+                        <>
+                          <Link
+                            href="/booster/jobs"
+                            className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/5"
+                          >
+                            <Briefcase className="h-4 w-4" />
+                            {t('jobMarket')}
+                          </Link>
+                          <Link
+                            href="/booster/my-orders"
+                            className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/5"
+                          >
+                            <ListTodo className="h-4 w-4" />
+                            {t('myActiveJobs')}
+                          </Link>
+                          <button
+                            onClick={() => { toggleAvailability(); setIsDropdownOpen(false); }}
+                            className={`flex w-full items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/5 transition-colors ${(user.booster_info?.isReady ?? true) ? 'text-green-400' : 'text-zinc-500'
+                              }`}
+                          >
+                            <Power className="h-4 w-4" />
+                            {(user.booster_info?.isReady ?? true) ? 'Đang Sẵn Sàng' : 'Đang Tạm Nghỉ'}
+                          </button>
+                          <button
+                            onClick={() => setShowResignModal(true)}
+                            className="flex w-full items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/5 text-red-400"
+                          >
+                            <DoorOpen className="h-4 w-4" /> Gỡ Quyền Booster
+                          </button>
+                        </>
+                      )}
+
+                      {/* Admin Link - Chỉ hiện khi role là ADMIN */}
+                      {user.role === 'ADMIN' && (
+                        <Link
+                          href="/admin/boosters"
+                          className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/5 text-yellow-500"
+                        >
+                          <ShieldAlert className="h-4 w-4" />
+                          Duyệt Đơn Booster
+                        </Link>
+                      )}
+
+                      <div className="border-t border-white/10 my-1" />
+
+                      <button
+                        onClick={() => { logout(); }}
+                        className="flex w-full items-center gap-3 px-3 py-2 rounded-lg text-red-400 hover:bg-red-500/10"
+                      >
+                        <LogOut className="h-4 w-4" />
+                        {t('logout')}
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ) : (
-              <>
-                <Link
-                  href="/login"
-                  suppressHydrationWarning
-                  className="text-zinc-400 hover:text-white transition"
-                >
-                  {t('login')}
-                </Link>
+              ) : (
+                <div className="flex items-center gap-3 ml-2" suppressHydrationWarning>
+                  <Link
+                    href="/login"
+                    suppressHydrationWarning
+                    className="text-zinc-400 hover:text-white transition text-sm font-medium"
+                  >
+                    {t('login')}
+                  </Link>
 
-                <Link
-                  href="/dashboard"
-                  suppressHydrationWarning
-                  className="rounded-lg bg-blue-600 px-5 py-2 text-white font-semibold shadow-lg shadow-blue-500/20 hover:bg-blue-500 transition"
-                >
-                  {t('rentNow')}
-                </Link>
-              </>
-            )}
-          </nav>
+                  <Link
+                    href="/dashboard"
+                    suppressHydrationWarning
+                    className="rounded-lg bg-blue-600 px-5 py-2 text-white font-semibold shadow-lg shadow-blue-500/20 hover:bg-blue-500 transition text-sm"
+                  >
+                    {t('rentNow')}
+                  </Link>
+                </div>
+              )}
+            </div>
+          </div>
 
           {/* Mobile Button */}
           <button
