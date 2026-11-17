@@ -23,6 +23,7 @@ import {
   ListTodo,
   Settings,
   CheckCircle2,
+  Gamepad2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -92,6 +93,13 @@ const ALL_STAFF_PERMISSIONS = [
     desc: 'Giám sát và kích hoạt các cronjob định kỳ',
     icon: ListTodo,
     color: 'text-orange-400',
+  },
+  {
+    key: 'games',
+    label: 'Cấu hình Tựa Game',
+    desc: 'Quản lý danh mục game, bật/tắt hiển thị, gắn nhãn HOT/Mới và banner URL',
+    icon: Gamepad2,
+    color: 'text-cyan-400',
   },
   {
     key: 'settings',
@@ -381,7 +389,7 @@ export default function AdminStaffsPage() {
                       <td className="px-6 py-4">
                         {isAdmin ? (
                           <div className="flex items-center gap-1.5 text-xs text-yellow-400 font-semibold">
-                            <CheckCircle2 className="w-4 h-4 text-yellow-500" /> Toàn quyền hệ thống (10/10 phân hệ)
+                            <CheckCircle2 className="w-4 h-4 text-yellow-500" /> Toàn quyền hệ thống ({ALL_STAFF_PERMISSIONS.length}/{ALL_STAFF_PERMISSIONS.length} phân hệ)
                           </div>
                         ) : (
                           <div className="space-y-1.5">
