@@ -27,8 +27,11 @@ export default function BlogDetailClient({ initialPost, initialComments, initial
     if (userStr) setCurrentUser(JSON.parse(userStr));
   }, []);
 
-  const handlePostComment = async (content: string, parentId: string | null = null) => {
-    if (!currentUser) return toast.error('Vui lòng đăng nhập để bình luận');
+  const handlePostComment = async (content: string, parentId?: string | null): Promise<void> => {
+    if (!currentUser) {
+      toast.error('Vui lòng đăng nhập để bình luận');
+      return;
+    }
     if (!content.trim()) return;
 
     setSubmitting(true);
@@ -36,7 +39,7 @@ export default function BlogDetailClient({ initialPost, initialComments, initial
       const res = await fetch(`/api/blogs/${slug}/comments`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content, parentId })
+        body: JSON.stringify({ content, parentId: parentId || null })
       });
       const data = await res.json();
       if (res.ok) {
@@ -46,8 +49,11 @@ export default function BlogDetailClient({ initialPost, initialComments, initial
       } else {
         toast.error('Gửi thất bại');
       }
-    } catch (e) { toast.error('Lỗi kết nối'); }
-    finally { setSubmitting(false); }
+    } catch (e) {
+      toast.error('Lỗi kết nối');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleLikeComment = async (commentId: string) => {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import {
@@ -25,7 +25,8 @@ import {
   Crown,
   AlertTriangle,
   DoorOpen,
-  Power
+  Power,
+  Check,
 } from 'lucide-react';
 import { useLanguage, Language } from '../lib/i18n';
 import { useRouter, usePathname } from 'next/navigation';
@@ -36,29 +37,98 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Button } from '@/components/ui/button';
 import { apiFetch } from '@/lib/api';
 
-function LanguageSwitcher({
+const LANGUAGES_LIST: { code: Language; label: string; nativeName: string; flag: string }[] = [
+  { code: 'vi', label: 'Tiếng Việt', nativeName: 'Tiếng Việt', flag: '🇻🇳' },
+  { code: 'kr', label: 'Hàn Quốc', nativeName: '한국어', flag: '🇰🇷' },
+  { code: 'jp', label: 'Nhật Bản', nativeName: '日本語', flag: '🇯🇵' },
+  { code: 'en', label: 'English', nativeName: 'English', flag: '🇺🇸' },
+];
+
+function LanguageIcon({ className = 'w-4 h-4' }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      className={className}
+      aria-hidden="true"
+    >
+      <path d="M20.58 19.37L17.59 11.01C17.38 10.46 16.91 10.12 16.37 10.12C15.83 10.12 15.37 10.46 15.14 11.03L12.16 19.37C12.02 19.76 12.22 20.19 12.61 20.33C13 20.47 13.43 20.27 13.57 19.88L14.19 18.15H18.54L19.16 19.88C19.27 20.19 19.56 20.38 19.87 20.38C19.95 20.38 20.04 20.37 20.12 20.34C20.51 20.2 20.71 19.77 20.57 19.38L20.58 19.37ZM14.74 16.64L16.38 12.05L18.02 16.64H14.74ZM12.19 7.85C9.92999 11.42 7.89 13.58 5.41 15.02C5.29 15.09 5.16 15.12 5.04 15.12C4.78 15.12 4.53 14.99 4.39 14.75C4.18 14.39 4.3 13.93 4.66 13.73C6.75999 12.51 8.48 10.76 10.41 7.86H4.12C3.71 7.86 3.37 7.52 3.37 7.11C3.37 6.7 3.71 6.36 4.12 6.36H7.87V4.38C7.87 3.97 8.21 3.63 8.62 3.63C9.02999 3.63 9.37 3.97 9.37 4.38V6.36H13.12C13.53 6.36 13.87 6.7 13.87 7.11C13.87 7.52 13.53 7.86 13.12 7.86H12.18L12.19 7.85ZM12.23 15.12C12.1 15.12 11.97 15.09 11.85 15.02C11.2 14.64 10.57 14.22 9.97999 13.78C9.64999 13.53 9.58 13.06 9.83 12.73C10.08 12.4 10.55 12.33 10.88 12.58C11.42 12.99 12.01 13.37 12.61 13.72C12.97 13.93 13.09 14.39 12.88 14.75C12.74 14.99 12.49 15.12 12.23 15.12Z" />
+    </svg>
+  );
+}
+
+function LanguageDropdown({
   language,
   setLanguage,
-  className = ''
+  className = '',
 }: {
   language: Language;
   setLanguage: (lang: Language) => void;
   className?: string;
 }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const currentLangObj = LANGUAGES_LIST.find((l) => l.code === language) || LANGUAGES_LIST[0];
+
   return (
-    <div className={`flex items-center gap-3 ${className}`} suppressHydrationWarning>
-      {(['vi', 'kr', 'jp', 'en'] as Language[]).map((lang) => (
-        <button
-          key={lang}
-          onClick={() => setLanguage(lang)}
-          className={`text-xs font-bold uppercase transition ${language === lang
-            ? 'text-blue-500'
-            : 'text-zinc-500 hover:text-white'
-            }`}
-        >
-          {lang}
-        </button>
-      ))}
+    <div ref={dropdownRef} className={`relative ${className}`} suppressHydrationWarning>
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-zinc-800 bg-zinc-900/60 hover:bg-zinc-800 text-zinc-300 hover:text-white transition-all text-xs font-bold group cursor-pointer shadow-sm"
+        aria-label="Chọn ngôn ngữ"
+        title="Chọn ngôn ngữ (Language)"
+      >
+        <LanguageIcon className="w-4 h-4 text-zinc-400 group-hover:text-blue-400 transition-colors" />
+        <span className="uppercase text-[11px] font-extrabold tracking-wider">{currentLangObj.code}</span>
+        <ChevronDown size={13} className={`text-zinc-500 transition-transform ${isOpen ? 'rotate-180 text-blue-400' : ''}`} />
+      </button>
+
+      {isOpen && (
+        <div className="absolute right-0 mt-2 w-48 rounded-2xl border border-white/10 bg-zinc-900/95 backdrop-blur-xl shadow-2xl p-1.5 z-50 animate-in fade-in zoom-in-95 duration-150">
+          <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-zinc-500 border-b border-white/5 mb-1">
+            Chọn Ngôn Ngữ (Language)
+          </div>
+          {LANGUAGES_LIST.map((lang) => {
+            const isSelected = language === lang.code;
+            return (
+              <button
+                key={lang.code}
+                type="button"
+                onClick={() => {
+                  setLanguage(lang.code);
+                  setIsOpen(false);
+                }}
+                className={`flex items-center justify-between w-full px-3 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                  isSelected
+                    ? 'bg-blue-600/15 text-blue-400 font-bold border border-blue-500/20'
+                    : 'text-zinc-300 hover:text-white hover:bg-white/5'
+                }`}
+              >
+                <div className="flex items-center gap-2.5">
+                  <span className="text-base leading-none">{lang.flag}</span>
+                  <div className="text-left">
+                    <div className="leading-tight">{lang.nativeName}</div>
+                    <div className="text-[10px] text-zinc-500 uppercase">{lang.code}</div>
+                  </div>
+                </div>
+                {isSelected && <Check size={14} className="text-blue-400 stroke-[3]" />}
+              </button>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
@@ -335,7 +405,7 @@ export default function Navbar() {
             )}
             <div className="h-5 w-px bg-white/10" suppressHydrationWarning />
 
-            <LanguageSwitcher
+            <LanguageDropdown
               language={language}
               setLanguage={setLanguage}
             />
@@ -670,12 +740,28 @@ export default function Navbar() {
             </div>
           )}
 
-          <div className="mt-8 flex items-center justify-center pt-8 border-t border-white/10" suppressHydrationWarning>
-            <LanguageSwitcher
-              language={language}
-              setLanguage={setLanguage}
-              className="justify-center"
-            />
+          <div className="mt-8 flex flex-col items-center justify-center pt-6 border-t border-white/10 gap-2" suppressHydrationWarning>
+            <div className="text-[11px] font-bold uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
+              <LanguageIcon className="w-3.5 h-3.5 text-zinc-400" />
+              <span>Ngôn ngữ hiển thị</span>
+            </div>
+            <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-zinc-900 border border-zinc-800">
+              {LANGUAGES_LIST.map((lang) => (
+                <button
+                  key={lang.code}
+                  type="button"
+                  onClick={() => setLanguage(lang.code)}
+                  className={`flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    language === lang.code
+                      ? 'bg-blue-600 text-white shadow-md'
+                      : 'text-zinc-400 hover:text-white'
+                  }`}
+                >
+                  <span className="text-sm">{lang.flag}</span>
+                  <span className="uppercase text-[11px]">{lang.code}</span>
+                </button>
+              ))}
+            </div>
           </div>
         </nav>
       </div>

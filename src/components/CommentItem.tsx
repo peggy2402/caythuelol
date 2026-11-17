@@ -34,7 +34,7 @@ interface InlineReplyComposerProps {
   currentUser: any;
   isLast: boolean;
   hasBottomGap: boolean;
-  onSubmit: (content: string, parentId: string) => Promise<void> | void;
+  onSubmit: (content: string, parentId?: string | null) => Promise<void> | void;
   onCancel: () => void;
 }
 
@@ -168,7 +168,7 @@ interface ThreadCommentNodeProps {
   childrenMap: Map<string, any[]>;
   commentById: Map<string, any>;
   onLike: (commentId: string) => void;
-  onReply: (content: string, parentId: string) => Promise<void> | void;
+  onReply: (content: string, parentId?: string | null) => Promise<void> | void;
   currentUser: any;
   collapsedIds: Set<string>;
   onToggleCollapse: (commentId: string) => void;
@@ -721,7 +721,7 @@ export interface CommentThreadProps {
   comments: any[];
   allComments?: any[];
   onLike: (commentId: string) => void;
-  onReply: (content: string, parentId: string) => Promise<void> | void;
+  onReply: (content: string, parentId?: string | null) => Promise<void> | void;
   currentUser: any;
 }
 
@@ -802,7 +802,7 @@ export interface CommentItemProps {
   comments?: any[];
   allComments?: any[];
   onLike: (commentId: string) => void;
-  onReply: (content: string, parentId: string) => Promise<void> | void;
+  onReply: (content: string, parentId?: string | null) => Promise<void> | void;
   currentUser: any;
   depth?: number;
 }
