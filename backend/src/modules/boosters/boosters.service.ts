@@ -948,6 +948,49 @@ export class BoostersService {
     return { success: true, message: 'Đã lưu cấu hình dịch vụ thành công' };
   }
 
+  async generateCouponCode(userId: string) {
+    const user = await this.userModel.findById(userId);
+    if (!user) throw new NotFoundException('Không tìm thấy thông tin booster');
+
+    const rawUsername = (user.username || 'PRO').replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+    const prefix = rawUsername.length >= 3 ? rawUsername.slice(0, 4) : 'LEO';
+
+    const chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
+    let generatedCode = '';
+    let isUnique = false;
+    let attempts = 0;
+
+    while (!isUnique && attempts < 25) {
+      attempts++;
+      let randomStr = '';
+      for (let i = 0; i < 4; i++) {
+        randomStr += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      generatedCode = `${prefix}${randomStr}`;
+
+      const existingUser = await this.userModel.findOne({
+        'booster_info.service_settings.coupon.code': generatedCode,
+      });
+
+      const existingProfile = await this.boosterProfileModel.findOne({
+        'games.metadata.coupons.code': generatedCode,
+      });
+
+      if (!existingUser && !existingProfile) {
+        isUnique = true;
+      }
+    }
+
+    if (!isUnique) {
+      generatedCode = `${prefix}${Date.now().toString().slice(-4)}`;
+    }
+
+    return {
+      success: true,
+      code: generatedCode,
+    };
+  }
+
   async getStats(userId: string) {
     const objId = new Types.ObjectId(userId);
 

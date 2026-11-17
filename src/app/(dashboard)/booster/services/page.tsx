@@ -32,6 +32,7 @@ import {
   ChevronDown,
   Check,
   Search,
+  RotateCw,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -115,6 +116,13 @@ export default function BoosterServicesStudio() {
   const [isGameSelectorOpen, setIsGameSelectorOpen] = useState(false);
   const [gameSearchQuery, setGameSearchQuery] = useState('');
   const gameSelectorRef = useRef<HTMLDivElement>(null);
+
+  // Trạng thái thu gọn Mục 1 trên mobile và tìm kiếm game
+  const [isSection1Collapsed, setIsSection1Collapsed] = useState(false);
+  const [section1Search, setSection1Search] = useState('');
+
+  // Trạng thái tự sinh mã coupon
+  const [isGeneratingCoupon, setIsGeneratingCoupon] = useState(false);
 
   // Đóng dropdown chọn game khi click ra ngoài
   useEffect(() => {
@@ -569,6 +577,42 @@ export default function BoosterServicesStudio() {
     await syncAllServices(updatedList);
   };
 
+  // Tự sinh mã giảm giá độc quyền không trùng lặp trên DB
+  const handleGenerateCoupon = async () => {
+    setIsGeneratingCoupon(true);
+    try {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+      const res = await fetch('/api/boosters/generate-coupon', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.code) {
+          const updated = { ...coupon, code: data.code, isActive: true };
+          setCoupon(updated);
+          toast.success(`Đã tự sinh mã ưu đãi duy nhất: ${data.code}`);
+          await syncAllServices(customServices, addonsConfig, updated);
+        }
+      } else {
+        const randomCode = 'LEO' + Math.random().toString(36).substring(2, 6).toUpperCase();
+        const updated = { ...coupon, code: randomCode, isActive: true };
+        setCoupon(updated);
+        toast.success(`Đã tạo mã ngẫu nhiên: ${randomCode}`);
+        await syncAllServices(customServices, addonsConfig, updated);
+      }
+    } catch (error) {
+      console.error('Lỗi khi sinh mã coupon', error);
+      toast.error('Không thể tạo mã tự động. Vui lòng thử lại!');
+    } finally {
+      setIsGeneratingCoupon(false);
+    }
+  };
+
   // Lọc các dịch vụ thuộc tựa game đang chọn
   const currentGameDef =
     GAMES_CATALOG.find((g) => g.id.toUpperCase() === activeGameCode) || GAMES_CATALOG[0];
@@ -623,8 +667,8 @@ export default function BoosterServicesStudio() {
       {/* ========================================================================= */}
       {/* SECTION 1: TỰA GAME BẠN CÓ THỂ CÀY                                        */}
       {/* ========================================================================= */}
-      <div className="bg-zinc-900/60 border border-zinc-800/80 rounded-3xl p-5 sm:p-6 shadow-xl backdrop-blur-md space-y-4">
-        <div className="flex items-center justify-between pb-3 border-b border-zinc-800">
+      <div className="bg-zinc-900/60 border border-zinc-800/80 rounded-3xl p-4 sm:p-6 shadow-xl backdrop-blur-md space-y-3.5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-3 border-b border-zinc-800">
           <div>
             <h2 className="text-base sm:text-lg font-black text-white flex items-center gap-2">
               <Gamepad2 size={20} className="text-cyan-400" />
@@ -634,61 +678,128 @@ export default function BoosterServicesStudio() {
               Bật các game bạn nhận đơn. Khách hàng sẽ thấy bạn trong danh sách tuyển thủ của tựa game đó.
             </p>
           </div>
-          <span className="text-xs text-zinc-400 font-semibold bg-zinc-950 px-3 py-1 rounded-xl border border-zinc-800">
-            Đã chọn: <b className="text-cyan-400">{selectedGames.length}</b> game
-          </span>
+          <div className="flex items-center gap-2 self-start sm:self-auto">
+            <span className="text-xs text-zinc-400 font-semibold bg-zinc-950 px-2.5 py-1 rounded-xl border border-zinc-800">
+              Đã chọn: <b className="text-cyan-400">{selectedGames.length}</b> game
+            </span>
+            <button
+              type="button"
+              onClick={() => setIsSection1Collapsed(!isSection1Collapsed)}
+              className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-zinc-950 hover:bg-zinc-800 border border-zinc-800 hover:border-zinc-700 text-xs font-bold text-zinc-300 transition-all cursor-pointer active:scale-95"
+            >
+              <span>{isSection1Collapsed ? 'Mở rộng' : 'Thu gọn'}</span>
+              <ChevronDown
+                size={14}
+                className={`transition-transform duration-200 ${isSection1Collapsed ? '' : 'rotate-180'}`}
+              />
+            </button>
+          </div>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4">
-          {GAMES_CATALOG.map((game) => {
-            const isSelected = selectedGames.includes(game.id.toUpperCase());
-            const GameIcon = ICON_MAP[game.iconName] || Gamepad2;
-
-            return (
-              <div
-                key={game.id}
-                onClick={() => handleToggleGame(game.id)}
-                className={`p-3.5 sm:p-4 rounded-2xl border cursor-pointer transition-all duration-300 flex items-center justify-between ${
-                  isSelected
-                    ? 'bg-cyan-500/10 border-cyan-500/50 text-white shadow-[0_0_20px_rgba(6,182,212,0.15)]'
-                    : 'bg-zinc-950/60 border-zinc-800 text-zinc-400 hover:border-zinc-700 hover:text-white'
-                }`}
+        {/* Chế độ thu gọn: Chỉ hiển thị các game đã chọn dạng chips gọn gàng */}
+        {isSection1Collapsed ? (
+          <div className="p-3 rounded-2xl bg-zinc-950/70 border border-zinc-800/80 space-y-2">
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-zinc-400 font-medium">Danh sách game đang nhận cày:</span>
+              <button
+                type="button"
+                onClick={() => setIsSection1Collapsed(false)}
+                className="text-cyan-400 hover:text-cyan-300 font-bold underline cursor-pointer"
               >
-                <div className="flex items-center gap-2.5 min-w-0">
+                + Chọn thêm game
+              </button>
+            </div>
+            <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto pr-1">
+              {selectedGames.map((gCode) => {
+                const gObj = GAMES_CATALOG.find((g) => g.id.toUpperCase() === gCode);
+                return (
+                  <span
+                    key={gCode}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-xs font-bold font-mono"
+                  >
+                    <Gamepad2 size={13} className="text-cyan-400" />
+                    <span>{gObj?.name || gCode}</span>
+                  </span>
+                );
+              })}
+            </div>
+          </div>
+        ) : (
+          /* Chế độ mở rộng: Có ô tìm kiếm và khung cuộn gọn gàng trên mobile */
+          <div className="space-y-2.5">
+            {GAMES_CATALOG.length > 8 && (
+              <div className="relative">
+                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
+                <input
+                  type="text"
+                  value={section1Search}
+                  onChange={(e) => setSection1Search(e.target.value)}
+                  placeholder="Tìm nhanh tựa game trong 20+ game..."
+                  className="w-full pl-9 pr-3 py-1.5 rounded-xl bg-zinc-950/90 border border-zinc-800 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-cyan-500"
+                />
+              </div>
+            )}
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-2 sm:gap-3 max-h-[320px] sm:max-h-none overflow-y-auto pr-1 custom-scrollbar">
+              {GAMES_CATALOG.filter((game) => {
+                if (!section1Search.trim()) return true;
+                const q = section1Search.toLowerCase().trim();
+                return (
+                  game.name.toLowerCase().includes(q) ||
+                  game.shortName.toLowerCase().includes(q) ||
+                  game.id.toLowerCase().includes(q)
+                );
+              }).map((game) => {
+                const isSelected = selectedGames.includes(game.id.toUpperCase());
+                const GameIcon = ICON_MAP[game.iconName] || Gamepad2;
+
+                return (
                   <div
-                    className={`p-2 rounded-xl border shrink-0 ${
+                    key={game.id}
+                    onClick={() => handleToggleGame(game.id)}
+                    className={`p-2.5 sm:p-3.5 rounded-2xl border cursor-pointer transition-all duration-200 flex items-center justify-between ${
                       isSelected
-                        ? 'bg-cyan-500/20 border-cyan-500/40 text-cyan-400'
-                        : 'bg-zinc-800 border-zinc-700 text-zinc-400'
+                        ? 'bg-cyan-500/10 border-cyan-500/50 text-white shadow-[0_0_15px_rgba(6,182,212,0.12)]'
+                        : 'bg-zinc-950/60 border-zinc-800 text-zinc-400 hover:border-zinc-700 hover:text-white'
                     }`}
                   >
-                    <GameIcon size={16} />
-                  </div>
-                  <div className="truncate">
-                    <div className="text-xs font-bold truncate">{game.name}</div>
-                    <div className="text-[10px] text-zinc-500">{game.shortName}</div>
-                  </div>
-                </div>
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div
+                        className={`p-1.5 sm:p-2 rounded-xl border shrink-0 ${
+                          isSelected
+                            ? 'bg-cyan-500/20 border-cyan-500/40 text-cyan-400'
+                            : 'bg-zinc-800 border-zinc-700 text-zinc-400'
+                        }`}
+                      >
+                        <GameIcon size={14} />
+                      </div>
+                      <div className="truncate">
+                        <div className="text-xs font-bold truncate">{game.name}</div>
+                        <div className="text-[10px] text-zinc-500">{game.shortName}</div>
+                      </div>
+                    </div>
 
-                <div
-                  className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ml-1.5 ${
-                    isSelected ? 'bg-cyan-500 border-cyan-400 text-black' : 'border-zinc-700 bg-zinc-900'
-                  }`}
-                >
-                  {isSelected && <CheckCircle2 size={12} className="stroke-[3]" />}
-                </div>
-              </div>
-            );
-          })}
-        </div>
+                    <div
+                      className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center shrink-0 ml-1.5 ${
+                        isSelected ? 'bg-cyan-500 border-cyan-400 text-black' : 'border-zinc-700 bg-zinc-900'
+                      }`}
+                    >
+                      {isSelected && <CheckCircle2 size={11} className="stroke-[3]" />}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ========================================================================= */}
       {/* SECTION 2: DANH MỤC DỊCH VỤ BẠN CUNG CẤP                                   */}
       {/* ========================================================================= */}
-      <div className="bg-zinc-900/60 border border-zinc-800/80 rounded-3xl p-5 sm:p-6 shadow-xl backdrop-blur-md space-y-6">
+      <div className="bg-zinc-900/60 border border-zinc-800/80 rounded-3xl p-4 sm:p-6 shadow-xl backdrop-blur-md space-y-5">
         {/* HÀNG 1: HEADER & NÚT THÊM DỊCH VỤ ĐỘC LẬP */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-zinc-800">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-zinc-800">
           <div>
             <h2 className="text-base sm:text-lg font-black text-white flex items-center gap-2">
               <Trophy size={20} className="text-amber-400" />
@@ -768,114 +879,121 @@ export default function BoosterServicesStudio() {
 
                 {/* Popover Dropdown Chọn Nhanh Tựa Game */}
                 {isGameSelectorOpen && (
-                  <div className="absolute right-0 top-full mt-2 w-full sm:w-80 md:w-96 p-3 rounded-2xl bg-[#0b0f19] border border-cyan-500/30 shadow-[0_20px_50px_rgba(0,0,0,0.85)] z-50 animate-in fade-in zoom-in-95 duration-150 backdrop-blur-2xl">
-                    <div className="flex items-center justify-between pb-2.5 mb-2.5 border-b border-zinc-800">
-                      <div className="flex items-center gap-2">
-                        <Gamepad2 size={16} className="text-cyan-400" />
-                        <span className="text-xs font-black text-white">
-                          Chọn tựa game muốn cấu hình
-                        </span>
+                  <>
+                    {/* Backdrop mờ trên mobile */}
+                    <div
+                      className="fixed inset-0 bg-black/60 backdrop-blur-xs z-40 sm:hidden"
+                      onClick={() => setIsGameSelectorOpen(false)}
+                    />
+                    <div className="fixed sm:absolute inset-x-3 sm:inset-x-auto sm:right-0 top-20 sm:top-full mt-2 w-auto sm:w-80 md:w-96 p-3 rounded-2xl bg-[#0b0f19] border border-cyan-500/30 shadow-[0_20px_50px_rgba(0,0,0,0.85)] z-50 animate-in fade-in zoom-in-95 duration-150 backdrop-blur-2xl max-w-sm sm:max-w-none mx-auto sm:mx-0">
+                      <div className="flex items-center justify-between pb-2.5 mb-2.5 border-b border-zinc-800">
+                        <div className="flex items-center gap-2">
+                          <Gamepad2 size={16} className="text-cyan-400" />
+                          <span className="text-xs font-black text-white">
+                            Chọn tựa game muốn cấu hình
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setIsGameSelectorOpen(false)}
+                          className="p-1 rounded-lg hover:bg-zinc-800 text-zinc-400 hover:text-white transition-colors"
+                        >
+                          <X size={14} />
+                        </button>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => setIsGameSelectorOpen(false)}
-                        className="p-1 rounded-lg hover:bg-zinc-800 text-zinc-400 hover:text-white transition-colors"
-                      >
-                        <X size={14} />
-                      </button>
-                    </div>
 
-                    {/* Ô tìm kiếm nhanh nếu có từ 4 game trở lên */}
-                    {selectedGames.length > 3 && (
-                      <div className="relative mb-2.5">
-                        <Search
-                          size={14}
-                          className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500"
-                        />
-                        <input
-                          type="text"
-                          value={gameSearchQuery}
-                          onChange={(e) => setGameSearchQuery(e.target.value)}
-                          placeholder="Tìm nhanh tựa game..."
-                          className="w-full pl-9 pr-3 py-1.5 rounded-xl bg-zinc-900/90 border border-zinc-800 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-cyan-500/60"
-                        />
+                      {/* Ô tìm kiếm nhanh nếu có từ 4 game trở lên */}
+                      {selectedGames.length > 3 && (
+                        <div className="relative mb-2.5">
+                          <Search
+                            size={14}
+                            className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500"
+                          />
+                          <input
+                            type="text"
+                            value={gameSearchQuery}
+                            onChange={(e) => setGameSearchQuery(e.target.value)}
+                            placeholder="Tìm nhanh tựa game..."
+                            className="w-full pl-9 pr-3 py-1.5 rounded-xl bg-zinc-900/90 border border-zinc-800 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-cyan-500/60"
+                          />
+                        </div>
+                      )}
+
+                      {/* Danh sách các tựa game dạng cuộn dọc gọn gàng */}
+                      <div className="max-h-64 overflow-y-auto space-y-1.5 pr-1 custom-scrollbar">
+                        {selectedGames
+                          .filter((gCode) => {
+                            if (!gameSearchQuery.trim()) return true;
+                            const gObj = GAMES_CATALOG.find((g) => g.id.toUpperCase() === gCode);
+                            const q = gameSearchQuery.toLowerCase().trim();
+                            return (
+                              gCode.toLowerCase().includes(q) ||
+                              (gObj?.name || '').toLowerCase().includes(q) ||
+                              (gObj?.shortName || '').toLowerCase().includes(q)
+                            );
+                          })
+                          .map((gCode) => {
+                            const gObj = GAMES_CATALOG.find((g) => g.id.toUpperCase() === gCode);
+                            const isCurrentActive = activeGameCode === gCode;
+                            const serviceCount = customServices.filter(
+                              (s) => (s.gameCode || 'LOL').toUpperCase() === gCode
+                            ).length;
+
+                            return (
+                              <button
+                                key={gCode}
+                                type="button"
+                                onClick={() => {
+                                  setActiveGameCode(gCode);
+                                  setIsGameSelectorOpen(false);
+                                  setGameSearchQuery('');
+                                }}
+                                className={`w-full flex items-center justify-between p-2.5 rounded-xl text-left transition-all cursor-pointer ${
+                                  isCurrentActive
+                                    ? 'bg-cyan-500/15 border border-cyan-500/40 text-cyan-300 font-extrabold shadow-sm'
+                                    : 'hover:bg-zinc-900/90 border border-transparent text-zinc-300 hover:text-white'
+                                }`}
+                              >
+                                <div className="flex items-center gap-2.5 min-w-0">
+                                  <div
+                                    className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
+                                      isCurrentActive
+                                        ? 'bg-cyan-500 text-black font-black text-xs'
+                                        : 'bg-zinc-800 text-zinc-400'
+                                    }`}
+                                  >
+                                    <Gamepad2 size={15} />
+                                  </div>
+                                  <div className="min-w-0 truncate">
+                                    <div className="text-xs font-bold truncate">
+                                      {gObj?.name || gCode}
+                                    </div>
+                                    <div className="text-[10px] text-zinc-500 font-mono">
+                                      {gObj?.shortName || gCode}
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <div className="flex items-center gap-2 shrink-0 ml-2">
+                                  <span
+                                    className={`text-[10px] px-2 py-0.5 rounded-full font-mono ${
+                                      serviceCount > 0
+                                        ? 'bg-cyan-500/20 text-cyan-300 font-bold border border-cyan-500/30'
+                                        : 'bg-zinc-800 text-zinc-500'
+                                    }`}
+                                  >
+                                    {serviceCount} dịch vụ
+                                  </span>
+                                  {isCurrentActive && (
+                                    <Check size={16} className="text-cyan-400 shrink-0" />
+                                  )}
+                                </div>
+                              </button>
+                            );
+                          })}
                       </div>
-                    )}
-
-                    {/* Danh sách các tựa game dạng cuộn dọc gọn gàng */}
-                    <div className="max-h-64 overflow-y-auto space-y-1.5 pr-1 custom-scrollbar">
-                      {selectedGames
-                        .filter((gCode) => {
-                          if (!gameSearchQuery.trim()) return true;
-                          const gObj = GAMES_CATALOG.find((g) => g.id.toUpperCase() === gCode);
-                          const q = gameSearchQuery.toLowerCase().trim();
-                          return (
-                            gCode.toLowerCase().includes(q) ||
-                            (gObj?.name || '').toLowerCase().includes(q) ||
-                            (gObj?.shortName || '').toLowerCase().includes(q)
-                          );
-                        })
-                        .map((gCode) => {
-                          const gObj = GAMES_CATALOG.find((g) => g.id.toUpperCase() === gCode);
-                          const isCurrentActive = activeGameCode === gCode;
-                          const serviceCount = customServices.filter(
-                            (s) => (s.gameCode || 'LOL').toUpperCase() === gCode
-                          ).length;
-
-                          return (
-                            <button
-                              key={gCode}
-                              type="button"
-                              onClick={() => {
-                                setActiveGameCode(gCode);
-                                setIsGameSelectorOpen(false);
-                                setGameSearchQuery('');
-                              }}
-                              className={`w-full flex items-center justify-between p-2.5 rounded-xl text-left transition-all cursor-pointer ${
-                                isCurrentActive
-                                  ? 'bg-cyan-500/15 border border-cyan-500/40 text-cyan-300 font-extrabold shadow-sm'
-                                  : 'hover:bg-zinc-900/90 border border-transparent text-zinc-300 hover:text-white'
-                              }`}
-                            >
-                              <div className="flex items-center gap-2.5 min-w-0">
-                                <div
-                                  className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
-                                    isCurrentActive
-                                      ? 'bg-cyan-500 text-black font-black text-xs'
-                                      : 'bg-zinc-800 text-zinc-400'
-                                  }`}
-                                >
-                                  <Gamepad2 size={15} />
-                                </div>
-                                <div className="min-w-0 truncate">
-                                  <div className="text-xs font-bold truncate">
-                                    {gObj?.name || gCode}
-                                  </div>
-                                  <div className="text-[10px] text-zinc-500 font-mono">
-                                    {gObj?.shortName || gCode}
-                                  </div>
-                                </div>
-                              </div>
-
-                              <div className="flex items-center gap-2 shrink-0 ml-2">
-                                <span
-                                  className={`text-[10px] px-2 py-0.5 rounded-full font-mono ${
-                                    serviceCount > 0
-                                      ? 'bg-cyan-500/20 text-cyan-300 font-bold border border-cyan-500/30'
-                                      : 'bg-zinc-800 text-zinc-500'
-                                  }`}
-                                >
-                                  {serviceCount} dịch vụ
-                                </span>
-                                {isCurrentActive && (
-                                  <Check size={16} className="text-cyan-400 shrink-0" />
-                                )}
-                              </div>
-                            </button>
-                          );
-                        })}
                     </div>
-                  </div>
+                  </>
                 )}
               </div>
             </div>
@@ -1590,20 +1708,35 @@ export default function BoosterServicesStudio() {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="text-[10px] text-zinc-400 uppercase font-semibold block mb-1">
-              Ký hiệu mã giảm giá
-            </label>
-            <input
-              type="text"
-              placeholder="VD: PRO10, CHAOCHIEN"
-              value={coupon.code}
-              onChange={(e) => {
-                const updated = { ...coupon, code: e.target.value.toUpperCase() };
-                setCoupon(updated);
-              }}
-              onBlur={() => syncAllServices(customServices, addonsConfig, coupon)}
-              className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-xs font-mono font-bold text-white uppercase outline-none focus:border-cyan-500"
-            />
+            <div className="flex items-center justify-between mb-1">
+              <label className="text-[10px] text-zinc-400 uppercase font-semibold block">
+                Ký hiệu mã giảm giá
+              </label>
+              <span className="text-[10px] text-zinc-500 font-medium">Mã riêng không trùng</span>
+            </div>
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="VD: PRO10, CHAOCHIEN"
+                value={coupon.code}
+                onChange={(e) => {
+                  const updated = { ...coupon, code: e.target.value.toUpperCase() };
+                  setCoupon(updated);
+                }}
+                onBlur={() => syncAllServices(customServices, addonsConfig, coupon)}
+                className="w-full bg-zinc-950 border border-zinc-800 rounded-xl pl-3 pr-28 py-2 text-xs font-mono font-bold text-white uppercase outline-none focus:border-cyan-500 transition-colors"
+              />
+              <button
+                type="button"
+                onClick={handleGenerateCoupon}
+                disabled={isGeneratingCoupon}
+                title="Tự động sinh mã ngẫu nhiên không trùng lặp trên toàn hệ thống"
+                className="absolute right-1.5 top-1/2 -translate-y-1/2 flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 hover:text-cyan-300 border border-cyan-500/30 text-[11px] font-bold transition-all active:scale-95 cursor-pointer disabled:opacity-50"
+              >
+                <RotateCw size={12} className={isGeneratingCoupon ? 'animate-spin' : ''} />
+                <span>Tự sinh mã</span>
+              </button>
+            </div>
           </div>
 
           <div>

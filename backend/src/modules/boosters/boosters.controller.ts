@@ -107,6 +107,15 @@ export class BoostersController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.BOOSTER)
   @ApiBearerAuth()
+  @Post('generate-coupon')
+  @ApiOperation({ summary: 'Generate unique booster coupon code' })
+  async generateCouponCode(@ReqUser() user: any) {
+    return this.boostersService.generateCouponCode(user.userId);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.BOOSTER)
+  @ApiBearerAuth()
   @Get('stats')
   @ApiOperation({ summary: 'Get booster earnings and order stats' })
   async getStats(@ReqUser() user: any) {
