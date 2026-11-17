@@ -1571,65 +1571,67 @@ function ServiceBookingContent() {
                 </div>
               </div>
 
-              {/* LOẠI HÀNG ĐỢI & CHỌN SERVER */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {/* Loại Hàng Đợi */}
-                <div>
-                  <label className="text-xs font-bold text-zinc-300 block mb-2">
-                    Loại xếp hạng <span className="text-red-500">*</span>
-                  </label>
-                  <div className="grid grid-cols-2 gap-2">
+              {/* LOẠI HÀNG ĐỢI & CHỌN SERVER (CHỈ DÀNH CHO LMHT, VALORANT KHÔNG CÓ FLEX VÀ KHÔNG CẦN CHỌN SERVER) */}
+              {!isValorant && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* Loại Hàng Đợi */}
+                  <div>
+                    <label className="text-xs font-bold text-zinc-300 block mb-2">
+                      Loại xếp hạng <span className="text-red-500">*</span>
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setQueueType('SOLO_DUO')}
+                        className={`py-2.5 px-3 rounded-xl border text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+                          queueType === 'SOLO_DUO'
+                            ? 'bg-blue-600/20 border-blue-500 text-blue-300 ring-1 ring-blue-500/40'
+                            : 'bg-zinc-950 border-zinc-800 text-zinc-400 hover:text-white'
+                        }`}
+                      >
+                        <Swords size={13} />
+                        <span>Đơn / Đôi</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setQueueType('FLEX')}
+                        className={`py-2.5 px-3 rounded-xl border text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+                          queueType === 'FLEX'
+                            ? 'bg-blue-600/20 border-blue-500 text-blue-300 ring-1 ring-blue-500/40'
+                            : 'bg-zinc-950 border-zinc-800 text-zinc-400 hover:text-white'
+                        }`}
+                      >
+                        <Users size={13} />
+                        <span>Linh Hoạt (Flex)</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Chọn Server (Modal Popup giữa màn hình) */}
+                  <div>
+                    <label className="text-xs font-bold text-zinc-300 block mb-2 flex items-center justify-between">
+                      <span>Chọn Máy Chủ (Server) <span className="text-red-500">*</span></span>
+                      <span className="text-[11px] text-blue-400 cursor-pointer font-semibold" onClick={() => setIsServerModalOpen(true)}>
+                        16 máy chủ
+                      </span>
+                    </label>
                     <button
                       type="button"
-                      onClick={() => setQueueType('SOLO_DUO')}
-                      className={`py-2.5 px-3 rounded-xl border text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
-                        queueType === 'SOLO_DUO'
-                          ? 'bg-blue-600/20 border-blue-500 text-blue-300 ring-1 ring-blue-500/40'
-                          : 'bg-zinc-950 border-zinc-800 text-zinc-400 hover:text-white'
-                      }`}
+                      onClick={() => setIsServerModalOpen(true)}
+                      className="w-full bg-zinc-950 border border-zinc-800 hover:border-zinc-700 rounded-xl px-3.5 py-2.5 text-xs text-white font-medium flex items-center justify-between transition-all group shadow-inner"
                     >
-                      <Swords size={13} />
-                      <span>Đơn / Đôi</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setQueueType('FLEX')}
-                      className={`py-2.5 px-3 rounded-xl border text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
-                        queueType === 'FLEX'
-                          ? 'bg-blue-600/20 border-blue-500 text-blue-300 ring-1 ring-blue-500/40'
-                          : 'bg-zinc-950 border-zinc-800 text-zinc-400 hover:text-white'
-                      }`}
-                    >
-                      <Users size={13} />
-                      <span>Linh Hoạt (Flex)</span>
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <span className="text-base shrink-0">{currentServerObj.flag}</span>
+                        <span className="font-bold truncate text-white">{currentServerObj.name}</span>
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-400 font-mono">
+                          {currentServerObj.code} · {currentServerObj.platformId}
+                        </span>
+                      </div>
+                      <ChevronDown size={14} className="text-zinc-500 group-hover:text-white shrink-0 ml-1 transition-colors" />
                     </button>
                   </div>
                 </div>
-
-                {/* Chọn Server (Modal Popup giữa màn hình) */}
-                <div>
-                  <label className="text-xs font-bold text-zinc-300 block mb-2 flex items-center justify-between">
-                    <span>Chọn Máy Chủ (Server) <span className="text-red-500">*</span></span>
-                    <span className="text-[11px] text-blue-400 cursor-pointer font-semibold" onClick={() => setIsServerModalOpen(true)}>
-                      16 máy chủ
-                    </span>
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => setIsServerModalOpen(true)}
-                    className="w-full bg-zinc-950 border border-zinc-800 hover:border-zinc-700 rounded-xl px-3.5 py-2.5 text-xs text-white font-medium flex items-center justify-between transition-all group shadow-inner"
-                  >
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <span className="text-base shrink-0">{currentServerObj.flag}</span>
-                      <span className="font-bold truncate text-white">{currentServerObj.name}</span>
-                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-400 font-mono">
-                        {currentServerObj.code} · {currentServerObj.platformId}
-                      </span>
-                    </div>
-                    <ChevronDown size={14} className="text-zinc-500 group-hover:text-white shrink-0 ml-1 transition-colors" />
-                  </button>
-                </div>
-              </div>
+              )}
 
               {/* 3. TÙY CHỌN MỞ RỘNG (ADDONS) */}
               <div className="pt-2 border-t border-zinc-800/80">
@@ -1914,19 +1916,23 @@ function ServiceBookingContent() {
                   </div>
                 )}
 
-                <div className="flex justify-between text-zinc-400">
-                  <span>Loại hàng đợi:</span>
-                  <span className="text-zinc-200">
-                    {queueType === 'SOLO_DUO' ? 'Đơn / Đôi' : 'Linh Hoạt'}
-                  </span>
-                </div>
-                <div className="flex justify-between text-zinc-400">
-                  <span>Máy chủ (Server):</span>
-                  <span className="text-zinc-200 flex items-center gap-1">
-                    <span>{currentServerObj.flag}</span>
-                    <span>{currentServerObj.name} ({currentServerObj.code})</span>
-                  </span>
-                </div>
+                {!isValorant && (
+                  <>
+                    <div className="flex justify-between text-zinc-400">
+                      <span>Loại hàng đợi:</span>
+                      <span className="text-zinc-200">
+                        {queueType === 'SOLO_DUO' ? 'Đơn / Đôi' : 'Linh Hoạt'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-zinc-400">
+                      <span>Máy chủ (Server):</span>
+                      <span className="text-zinc-200 flex items-center gap-1">
+                        <span>{currentServerObj.flag}</span>
+                        <span>{currentServerObj.name} ({currentServerObj.code})</span>
+                      </span>
+                    </div>
+                  </>
+                )}
                 <div className="flex justify-between text-zinc-400">
                   <span>Điểm cộng / ván:</span>
                   <span className="text-zinc-200 flex items-center gap-1">
