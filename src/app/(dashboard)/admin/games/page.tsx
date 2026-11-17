@@ -90,30 +90,42 @@ export default function AdminGamesManagementPage() {
     accentColor: 'text-blue-400',
     iconName: 'Gamepad2',
     metrics: {
-      totalOrders: 15,
-      recentOrders: 8,
-      activeBoosters: 6,
-      averageRating: 4.85,
-      totalReviews: 12,
+      totalOrders: 0,
+      recentOrders: 0,
+      activeBoosters: 0,
+      averageRating: 0,
+      totalReviews: 0,
       isNew: false,
     },
   });
 
-  // Hợp nhất metrics thông minh để không bao giờ bị thiếu số liệu
-  const enrichGamesWithMetrics = (list: GameDefinition[]): GameDefinition[] => {
+  // Hợp nhất metrics thông minh từ Backend Database thực tế
+  const enrichGamesWithMetrics = (
+    list: GameDefinition[],
+    realMetricsMap: Record<string, any> = {},
+  ): GameDefinition[] => {
     return list.map((g) => {
       const original = GAMES_CATALOG.find((cat) => cat.id.toLowerCase() === g.id.toLowerCase());
-      const metrics =
-        g.metrics && typeof g.metrics.totalOrders === 'number'
-          ? g.metrics
-          : original?.metrics || {
-              totalOrders: 18,
-              recentOrders: 7,
-              activeBoosters: 5,
-              averageRating: 4.85,
-              totalReviews: 10,
-              isNew: false,
-            };
+
+      // Lấy chỉ số thực tế từ Database theo id, shortName hoặc code
+      const keysToTry = [g.id, g.shortName, (g as any).code]
+        .filter(Boolean)
+        .map((k) => String(k).toUpperCase());
+      const dbKey = keysToTry.find((k) => realMetricsMap[k] !== undefined);
+      const dbMetrics = dbKey ? realMetricsMap[dbKey] : null;
+
+      // Xóa bỏ hoàn toàn mock data cũ (như 18 đơn, 7 mới) nếu có trong cache localStorage
+      const prevTotal = g.metrics?.totalOrders;
+      const isOldMockData = prevTotal === 18 && g.metrics?.recentOrders === 7;
+
+      const metrics: GameMetrics = {
+        totalOrders: dbMetrics?.totalOrders ?? (isOldMockData ? 0 : g.metrics?.totalOrders || 0),
+        recentOrders: dbMetrics?.recentOrders ?? (isOldMockData ? 0 : g.metrics?.recentOrders || 0),
+        activeBoosters: dbMetrics?.activeBoosters ?? (isOldMockData ? 0 : g.metrics?.activeBoosters || 0),
+        averageRating: dbMetrics?.averageRating ?? (isOldMockData ? 0 : g.metrics?.averageRating || 0),
+        totalReviews: dbMetrics?.totalReviews ?? (isOldMockData ? 0 : g.metrics?.totalReviews || 0),
+        isNew: g.metrics?.isNew ?? false,
+      };
 
       return {
         ...g,
@@ -125,7 +137,7 @@ export default function AdminGamesManagementPage() {
     });
   };
 
-  // Tải danh sách game (từ Backend Settings hoặc localStorage)
+  // Tải danh sách game (từ Backend Settings, Database Metrics hoặc localStorage)
   useEffect(() => {
     loadGamesCatalog();
   }, []);
@@ -134,6 +146,19 @@ export default function AdminGamesManagementPage() {
     setLoading(true);
     try {
       let loadedList: GameDefinition[] | null = null;
+      let realMetricsMap: Record<string, any> = {};
+
+      // 1. Tải chỉ số thống kê thực tế từ DB (Order, Reviews, Boosters)
+      try {
+        const metricsRes = await apiFetch<any>('/admin/games-metrics');
+        if (metricsRes && typeof metricsRes === 'object') {
+          realMetricsMap = metricsRes.data || metricsRes;
+        }
+      } catch {
+        // Backend offline / not configured
+      }
+
+      // 2. Tải danh mục cấu hình games
       try {
         const res = await apiFetch<any>('/admin/settings');
         const settingsList = res?.data || res || [];
@@ -154,7 +179,7 @@ export default function AdminGamesManagementPage() {
         loadedList = getStoredGamesCatalog();
       }
 
-      const enriched = enrichGamesWithMetrics(loadedList);
+      const enriched = enrichGamesWithMetrics(loadedList, realMetricsMap);
       setGames(enriched);
       saveStoredGamesCatalog(enriched);
     } catch (err) {
@@ -271,11 +296,11 @@ export default function AdminGamesManagementPage() {
       accentColor: 'text-blue-400',
       iconName: 'Gamepad2',
       metrics: {
-        totalOrders: 15,
-        recentOrders: 8,
-        activeBoosters: 5,
-        averageRating: 4.85,
-        totalReviews: 10,
+        totalOrders: 0,
+        recentOrders: 0,
+        activeBoosters: 0,
+        averageRating: 0,
+        totalReviews: 0,
         isNew: true,
         createdAt: new Date().toISOString(),
       },
@@ -293,11 +318,11 @@ export default function AdminGamesManagementPage() {
       ...game,
       badgeMode: game.badgeMode || 'AUTO',
       metrics: game.metrics || {
-        totalOrders: 20,
-        recentOrders: 8,
-        activeBoosters: 6,
-        averageRating: 4.8,
-        totalReviews: 12,
+        totalOrders: 0,
+        recentOrders: 0,
+        activeBoosters: 0,
+        averageRating: 0,
+        totalReviews: 0,
         isNew: false,
       },
     });
@@ -746,18 +771,24 @@ export default function AdminGamesManagementPage() {
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs font-mono">
                       <div className="px-2.5 py-1.5 rounded-xl bg-zinc-900/90 border border-zinc-800/80">
                         <span className="text-[10px] text-zinc-500 block">Tổng đơn</span>
-                        <span className="font-bold text-white text-xs">{m?.totalOrders ?? 0} đơn</span>
+                        <span className="font-bold text-white text-xs">{m?.totalOrders || 0} đơn</span>
                       </div>
                       <div className="px-2.5 py-1.5 rounded-xl bg-zinc-900/90 border border-zinc-800/80">
                         <span className="text-[10px] text-zinc-500 block">Đơn gần đây</span>
-                        <span className="font-bold text-cyan-300 text-xs">+{m?.recentOrders ?? 0} mới</span>
+                        <span className="font-bold text-cyan-300 text-xs">
+                          {m?.recentOrders && m.recentOrders > 0 ? `+${m.recentOrders} mới` : '0 mới'}
+                        </span>
                       </div>
                       <div className="px-2.5 py-1.5 rounded-xl bg-zinc-900/90 border border-zinc-800/80">
                         <span className="text-[10px] text-zinc-500 block">Đánh giá</span>
-                        <span className="font-bold text-amber-400 text-xs flex items-center gap-0.5">
-                          <Star size={11} className="fill-amber-400" />
-                          {(m?.averageRating ?? 4.8).toFixed(1)}★ ({m?.totalReviews ?? 0})
-                        </span>
+                        {m?.totalReviews && m.totalReviews > 0 ? (
+                          <span className="font-bold text-amber-400 text-xs flex items-center gap-0.5">
+                            <Star size={11} className="fill-amber-400" />
+                            {(m.averageRating || 0).toFixed(1)}★ ({m.totalReviews})
+                          </span>
+                        ) : (
+                          <span className="font-semibold text-zinc-500 text-xs">Chưa có</span>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -1046,20 +1077,20 @@ export default function AdminGamesManagementPage() {
 
                   <div>
                     <label className="block text-[11px] font-medium text-zinc-400 mb-1">
-                      Điểm vote trung bình (1-5★):
+                      Điểm vote trung bình (0-5★):
                     </label>
                     <input
                       type="number"
-                      step="0.05"
-                      min={1}
+                      step="0.1"
+                      min={0}
                       max={5}
-                      value={formData.metrics?.averageRating ?? 4.8}
+                      value={formData.metrics?.averageRating ?? 0}
                       onChange={(e) =>
                         setFormData({
                           ...formData,
                           metrics: {
                             ...formData.metrics!,
-                            averageRating: parseFloat(e.target.value) || 4.8,
+                            averageRating: parseFloat(e.target.value) || 0,
                           },
                         })
                       }

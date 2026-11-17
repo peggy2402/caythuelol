@@ -43,6 +43,14 @@ export interface IUser extends Document {
     isReady?: boolean;
   };
   staff_permissions?: string[];
+  vip_info?: {
+    is_vip: boolean;
+    package_type?: string;
+    discount_percent?: number;
+    start_date?: Date;
+    end_date?: Date;
+    note?: string;
+  };
   createdAt: Date;
   updatedAt: Date;
 }
@@ -94,6 +102,14 @@ const UserSchema: Schema = new Schema(
       }
     },
     booster_info: { type: Schema.Types.Mixed },
+    vip_info: {
+      is_vip: { type: Boolean, default: false },
+      package_type: { type: String },
+      discount_percent: { type: Number, default: 0 },
+      start_date: { type: Date },
+      end_date: { type: Date },
+      note: { type: String },
+    },
     bookmarks: [{ type: Schema.Types.ObjectId, ref: 'User' }],
   },
   { timestamps: true }

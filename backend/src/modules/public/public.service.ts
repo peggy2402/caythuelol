@@ -310,5 +310,60 @@ export class PublicService {
       },
     };
   }
+
+  detectGeoLocale(req: any) {
+    const headers = req?.headers || {};
+
+    // 1. Phân tích header Quốc gia từ Cloudflare, Vercel hoặc Reverse Proxy
+    const rawCountry = (
+      headers['cf-ipcountry'] ||
+      headers['x-vercel-ip-country'] ||
+      headers['x-country-code'] ||
+      ''
+    ).toString().toUpperCase().trim();
+
+    // 2. Trích xuất Client IP thực tế
+    const forwardedFor = headers['x-forwarded-for'];
+    const clientIp = (
+      (typeof forwardedFor === 'string' ? forwardedFor.split(',')[0] : '') ||
+      headers['x-real-ip'] ||
+      req?.socket?.remoteAddress ||
+      req?.ip ||
+      '127.0.0.1'
+    ).trim();
+
+    // 3. Mapping Quốc gia -> Ngôn ngữ & Tiền tệ tương ứng
+    let country = rawCountry;
+    let suggestedLanguage: 'vi' | 'en' | 'kr' | 'jp' = 'vi';
+    let currency: 'VND' | 'USD' | 'KRW' | 'JPY' = 'VND';
+
+    if (country === 'KR') {
+      suggestedLanguage = 'kr';
+      currency = 'KRW';
+    } else if (country === 'JP') {
+      suggestedLanguage = 'jp';
+      currency = 'JPY';
+    } else if (country === 'VN') {
+      suggestedLanguage = 'vi';
+      currency = 'VND';
+    } else if (country && country !== 'XX' && country !== 'T1') {
+      // Các quốc gia quốc tế khác (US, UK, CA, AU, SG, v.v.)
+      suggestedLanguage = 'en';
+      currency = 'USD';
+    } else {
+      // Môi trường Localhost hoặc không nhận diện được
+      country = 'VN';
+      suggestedLanguage = 'vi';
+      currency = 'VND';
+    }
+
+    return {
+      success: true,
+      ip: clientIp,
+      country,
+      suggestedLanguage,
+      currency,
+    };
+  }
 }
 

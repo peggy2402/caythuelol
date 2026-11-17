@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { motion } from 'framer-motion';
-import { Star, Shield, Flame, ArrowRight, Gamepad2 } from 'lucide-react';
+import { motion, useScroll, useTransform } from 'framer-motion';
+import { Star, Shield, Flame, ArrowRight, Gamepad2, Zap, Lock } from 'lucide-react';
 
 // Lightweight Custom Typewriter Hook
 const Typewriter = ({ words }: { words: string[] }) => {
@@ -36,6 +36,10 @@ const Typewriter = ({ words }: { words: string[] }) => {
 };
 
 export default function HeroSection() {
+  const { scrollY } = useScroll();
+  const yHeroGlow = useTransform(scrollY, [0, 600], [0, 150]);
+  const opacityHero = useTransform(scrollY, [0, 500], [1, 0.4]);
+
   const typewriterWords = [
     "Dịch vụ Cày Thuê LoL & Đa Game Uy Tín #1",
     "Bảo chứng tài chính 100% qua LeoRank Escrow",
@@ -45,9 +49,14 @@ export default function HeroSection() {
 
   return (
     <section className="relative pt-32 pb-16 md:pt-40 md:pb-24 overflow-hidden min-h-[85vh] flex items-center">
+      {/* Interactive Parallax Ambient Lighting */}
+      <motion.div
+        style={{ y: yHeroGlow, opacity: opacityHero }}
+        className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[700px] h-[400px] bg-cyan-500/10 blur-[130px] rounded-full pointer-events-none"
+      />
+
       <div className="container mx-auto px-6 relative z-10">
         <div className="flex flex-col items-center text-center max-w-4xl mx-auto">
-
           {/* Top Trust Indicator Pill */}
           <motion.div
             initial={{ opacity: 0, y: -20 }}
@@ -119,11 +128,11 @@ export default function HeroSection() {
             </a>
 
             <Link
-              href="/services/lol"
+              href="/services"
               className="flex h-14 w-full sm:w-auto items-center justify-center gap-3 rounded-xl bg-zinc-900/80 px-8 text-base font-bold text-zinc-300 border border-zinc-700/80 hover:border-zinc-500 hover:text-white hover:bg-zinc-800 transition-all backdrop-blur-md"
             >
               <Gamepad2 className="w-5 h-5 text-cyan-400" />
-              <span>Khám Phá Dịch Vụ LMHT</span>
+              <span>Khám Phá Dịch Vụ</span>
             </Link>
           </motion.div>
 

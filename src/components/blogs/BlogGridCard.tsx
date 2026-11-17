@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Calendar, Clock, ChevronRight } from 'lucide-react';
+import { Calendar, Clock, ChevronRight, Eye } from 'lucide-react';
 
 interface BlogGridCardProps {
   post: {
@@ -13,6 +13,7 @@ interface BlogGridCardProps {
     tags?: string[];
     createdAt: string;
     content?: string;
+    views?: number;
   };
 }
 
@@ -52,6 +53,11 @@ export default function BlogGridCard({ post }: BlogGridCardProps) {
           <span className="flex items-center gap-1">
             <Clock className="w-3 h-3 text-cyan-400" />
             {readingTime} phút đọc
+          </span>
+          <span>•</span>
+          <span className="flex items-center gap-1 text-zinc-400">
+            <Eye className="w-3 h-3 text-sky-400" />
+            {post.views || 0} xem
           </span>
         </div>
 

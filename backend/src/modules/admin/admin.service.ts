@@ -1321,4 +1321,94 @@ export class AdminService {
     const setting = await this.settingModel.findOne({ key: 'PLATFORM_FEE' }).lean();
     return { fee: Number(setting?.value || 10) };
   }
+
+  // 11. Thống kê chỉ số thực tế theo từng Tựa Game từ Database thực tế (Orders, Ratings, Boosters)
+  async getGameMetrics(): Promise<Record<string, any>> {
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+
+    // 1. Thống kê đơn hàng và đánh giá thực tế từ Order collection
+    const orderAgg = await this.orderModel.aggregate([
+      {
+        $project: {
+          gameCode: {
+            $toUpper: {
+              $ifNull: [
+                '$snapshot.gameCode',
+                { $ifNull: ['$details.game', { $ifNull: ['$details.gameCode', '$serviceType'] }] },
+              ],
+            },
+          },
+          status: 1,
+          rating: '$rating.stars',
+          createdAt: 1,
+        },
+      },
+      {
+        $group: {
+          _id: '$gameCode',
+          totalOrders: { $sum: 1 },
+          recentOrders: {
+            $sum: {
+              $cond: [{ $gte: ['$createdAt', thirtyDaysAgo] }, 1, 0],
+            },
+          },
+          totalReviews: {
+            $sum: {
+              $cond: [{ $and: [{ $ne: ['$rating', null] }, { $gt: ['$rating', 0] }] }, 1, 0],
+            },
+          },
+          ratingSum: {
+            $sum: {
+              $cond: [{ $and: [{ $ne: ['$rating', null] }, { $gt: ['$rating', 0] }] }, '$rating', 0],
+            },
+          },
+        },
+      },
+    ]);
+
+    // 2. Thống kê số lượng Booster đang hoạt động từ BoosterProfile
+    const boosterAgg = await this.boosterProfileModel.aggregate([
+      { $match: { is_active: true } },
+      { $unwind: { path: '$games', preserveNullAndEmptyArrays: false } },
+      {
+        $group: {
+          _id: { $toUpper: '$games.gameCode' },
+          activeBoosters: { $sum: 1 },
+        },
+      },
+    ]);
+
+    const result: Record<string, any> = {};
+
+    for (const item of orderAgg) {
+      if (!item._id) continue;
+      const code = String(item._id).toUpperCase();
+      const avg = item.totalReviews > 0 ? Number((item.ratingSum / item.totalReviews).toFixed(1)) : 0;
+      result[code] = {
+        totalOrders: item.totalOrders || 0,
+        recentOrders: item.recentOrders || 0,
+        totalReviews: item.totalReviews || 0,
+        averageRating: avg,
+        activeBoosters: 0,
+      };
+    }
+
+    for (const b of boosterAgg) {
+      if (!b._id) continue;
+      const code = String(b._id).toUpperCase();
+      if (!result[code]) {
+        result[code] = {
+          totalOrders: 0,
+          recentOrders: 0,
+          totalReviews: 0,
+          averageRating: 0,
+          activeBoosters: b.activeBoosters || 0,
+        };
+      } else {
+        result[code].activeBoosters = b.activeBoosters || 0;
+      }
+    }
+
+    return result;
+  }
 }

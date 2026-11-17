@@ -244,6 +244,43 @@ const TIER_CONFIG: Record<
 
 const DIVISIONS = ['IV', 'III', 'II', 'I'];
 
+// Chuyển đổi hai chiều giữa số La Mã (IV, III, II, I) và số Ả Rập (4, 3, 2, 1) trong ID của LOL_RANK_STEPS
+const DIVISION_TO_NUM: Record<string, string> = {
+  IV: '4',
+  III: '3',
+  II: '2',
+  I: '1',
+  '4': '4',
+  '3': '3',
+  '2': '2',
+  '1': '1',
+};
+
+const NUM_TO_DIVISION: Record<string, string> = {
+  '4': 'IV',
+  '3': 'III',
+  '2': 'II',
+  '1': 'I',
+  IV: 'IV',
+  III: 'III',
+  II: 'II',
+  I: 'I',
+};
+
+// Helper: Lấy chuẩn ID trong LOL_RANK_STEPS (VD: 'IRON_1', 'MASTER')
+const getRankStepId = (tier: string, div?: string): string => {
+  if (tier === 'MASTER') return 'MASTER';
+  const num = DIVISION_TO_NUM[div || '4'] || div || '4';
+  return `${tier}_${num}`;
+};
+
+// Helper: Tìm index trong LOL_RANK_STEPS chính xác 100%
+const findRankStepIndex = (tier: string, div?: string): number => {
+  if (tier === 'MASTER') return LOL_RANK_STEPS.findIndex((r) => r.id === 'MASTER');
+  const targetId = getRankStepId(tier, div);
+  return LOL_RANK_STEPS.findIndex((r) => r.id === targetId || (r.tier === tier && r.division === div));
+};
+
 // Component hiển thị Logo các nhà cung cấp tài khoản
 function ProviderLogo({ provider, className = 'w-5 h-5' }: { provider: string; className?: string }) {
   switch (provider) {
@@ -587,8 +624,8 @@ function ServiceBookingContent() {
 
   // Xử lý xác nhận chọn Rank từ Modal
   const handleConfirmRank = () => {
-    const selectedRankId = tempTier === 'MASTER' ? 'MASTER' : `${tempTier}_${tempDivision}`;
-    const newIdx = LOL_RANK_STEPS.findIndex((r) => r.id === selectedRankId);
+    const selectedRankId = getRankStepId(tempTier, tempDivision);
+    const newIdx = findRankStepIndex(tempTier, tempDivision);
 
     if (newIdx === -1) {
       setIsRankModalOpen(false);
@@ -1652,7 +1689,7 @@ function ServiceBookingContent() {
                               // Tự động tìm division hợp lệ nhất trong tier này
                               if (rankModalTarget === 'CURRENT') {
                                 const validDivs = DIVISIONS.filter((d) => {
-                                  const idx = LOL_RANK_STEPS.findIndex((r) => r.id === `${tierKey}_${d}`);
+                                  const idx = findRankStepIndex(tierKey, d);
                                   return idx !== -1 && idx < desiredRankIndex;
                                 });
                                 if (validDivs.includes(tempDivision)) {
@@ -1663,7 +1700,7 @@ function ServiceBookingContent() {
                                 }
                               } else {
                                 const validDivs = DIVISIONS.filter((d) => {
-                                  const idx = LOL_RANK_STEPS.findIndex((r) => r.id === `${tierKey}_${d}`);
+                                  const idx = findRankStepIndex(tierKey, d);
                                   return idx !== -1 && idx > currentRankIndex;
                                 });
                                 if (validDivs.includes(tempDivision)) {
@@ -1714,8 +1751,7 @@ function ServiceBookingContent() {
                     </span>
                     <div className="grid grid-cols-4 gap-2">
                       {DIVISIONS.map((div) => {
-                        const stepId = `${tempTier}_${div}`;
-                        const stepIdx = LOL_RANK_STEPS.findIndex((r) => r.id === stepId);
+                        const stepIdx = findRankStepIndex(tempTier, div);
                         
                         // Validate:
                         // - Rank hiện tại: Phải < desiredRankIndex
@@ -1767,8 +1803,8 @@ function ServiceBookingContent() {
 
               {/* Footer Preview & Confirm */}
               {(() => {
-                const tempSelectedRankId = tempTier === 'MASTER' ? 'MASTER' : `${tempTier}_${tempDivision}`;
-                const tempRankIdx = LOL_RANK_STEPS.findIndex((r) => r.id === tempSelectedRankId);
+                const tempSelectedRankId = getRankStepId(tempTier, tempDivision);
+                const tempRankIdx = findRankStepIndex(tempTier, tempDivision);
                 const isSelectionValid = tempRankIdx !== -1 && (
                   rankModalTarget === 'CURRENT'
                     ? tempRankIdx < desiredRankIndex
