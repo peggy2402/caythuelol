@@ -79,9 +79,32 @@
   --sidebar-accent-foreground: oklch(0.21 0.006 285.885);
   --sidebar-border: oklch(0.92 0.004 286.32);
   --sidebar-ring: oklch(0.705 0.015 286.067);
+
+  /* Threads Comment System Tokens */
+  --thread-avatar-size: 2rem;          /* Nguồn: w-8 trong CommentItem.tsx */
+  --thread-avatar-size-reply: 1.75rem; /* Nguồn: w-7 trong CommentItem.tsx */
+  --thread-line-width: 2px;            /* Nguồn: w-[2px] trong CommentItem.tsx */
+  --thread-gap: 0.75rem;               /* Nguồn: sm:mr-3 trong CommentItem.tsx */
+  --thread-row-gap: 0.625rem;          /* Nguồn: --radius (0.625rem), nhỏ hơn --thread-thread-gap */
+  --thread-thread-gap: 1.5rem;         /* Nguồn: space-y-6 trong BlogDetailClient.tsx */
+  --thread-line-color: color-mix(in oklch, var(--foreground) 14%, var(--background));
+  --thread-line-hover: color-mix(in oklch, var(--foreground) 34%, var(--background));
+  --thread-curve-radius: var(--radius-lg); /* Nguồn: --radius trong globals.css */
+  --thread-surface: var(--secondary);
+  --thread-surface-hover: var(--muted);
+  --thread-surface-border: var(--border);
+  --thread-text: var(--foreground);
+  --thread-text-muted: var(--muted-foreground);
 }
 
 .dark {
+  --thread-line-color: color-mix(in oklch, var(--foreground) 16%, var(--background));
+  --thread-line-hover: color-mix(in oklch, var(--foreground) 36%, var(--background));
+  --thread-surface: oklch(0.21 0.006 285.885 / 65%);
+  --thread-surface-hover: oklch(0.274 0.006 286.033 / 85%);
+  --thread-surface-border: oklch(1 0 0 / 10%);
+  --thread-text: var(--foreground);
+  --thread-text-muted: var(--muted-foreground);
   --background: oklch(0.141 0.005 285.823);
   --foreground: oklch(0.985 0 0);
   --card: oklch(0.21 0.006 285.885);

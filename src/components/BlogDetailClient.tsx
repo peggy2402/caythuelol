@@ -172,7 +172,7 @@ export default function BlogDetailClient({ initialPost, initialComments, initial
         </div>
 
         {/* Comments Section */}
-        <div className="mt-16 pt-8 border-t border-zinc-800 w-full max-w-full min-w-0 overflow-hidden">
+        <div className="dark mt-16 pt-8 border-t border-zinc-800 w-full max-w-full min-w-0 overflow-hidden">
           <h3 className="text-2xl font-bold text-white mb-6 flex items-center gap-2">
             <MessageSquare className="w-6 h-6 text-blue-500" /> Bình luận ({comments.length})
           </h3>
@@ -201,7 +201,10 @@ export default function BlogDetailClient({ initialPost, initialComments, initial
             </div>
           )}
 
-          <div className="space-y-6 w-full max-w-full min-w-0 overflow-hidden">
+          <div
+            style={{ gap: 'var(--thread-thread-gap)' }}
+            className="flex flex-col w-full max-w-full min-w-0 overflow-hidden"
+          >
             {topLevelComments.map((comment) => (
               <CommentItem
                 key={comment._id}
