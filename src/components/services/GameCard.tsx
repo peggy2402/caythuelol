@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { ArrowRight, ShieldCheck } from 'lucide-react';
@@ -10,6 +11,7 @@ interface GameCardProps {
 }
 
 export default function GameCard({ game }: GameCardProps) {
+  const [imageError, setImageError] = useState(false);
   const servicesCount = game.defaultServices?.length || 0;
 
   return (
@@ -19,11 +21,12 @@ export default function GameCard({ game }: GameCardProps) {
     >
       {/* Header Banner Area with Artwork or Stylish Gradient */}
       <div className="relative h-48 w-full bg-zinc-950 overflow-hidden">
-        {game.banner ? (
+        {game.banner && !imageError ? (
           <Image
             src={game.banner}
             alt={game.name}
             fill
+            onError={() => setImageError(true)}
             className="object-cover group-hover:scale-105 transition-transform duration-700 opacity-70 group-hover:opacity-90"
           />
         ) : (
