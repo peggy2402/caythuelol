@@ -59,7 +59,7 @@ export default function BoosterGameSelectorModal({
 
   // Chuẩn hóa danh sách game mà booster hỗ trợ (mặc định luôn có LOL)
   const registeredCodes = (boosterGames.length > 0
-    ? boosterGames.map((g) => g.gameCode.toUpperCase())
+    ? boosterGames.map((g) => (g?.gameCode || (g as any)?.game || '').toUpperCase()).filter(Boolean)
     : ['LOL']
   );
 
@@ -338,8 +338,8 @@ export default function BoosterGameSelectorModal({
                         <span className="text-[10px] text-zinc-500 uppercase block">Bảng giá</span>
                         <span className="text-xs font-bold text-emerald-400 font-mono">
                           {svc.pricingType === 'PER_UNIT'
-                            ? `${svc.defaultPrice.toLocaleString('vi-VN')} đ / ${svc.unitName || 'đơn vị'}`
-                            : `Từ ${svc.defaultPrice.toLocaleString('vi-VN')} đ`}
+                            ? `${Number(svc.defaultPrice || 0).toLocaleString('vi-VN')} đ / ${svc.unitName || 'đơn vị'}`
+                            : `Từ ${Number(svc.defaultPrice || 0).toLocaleString('vi-VN')} đ`}
                         </span>
                       </div>
 

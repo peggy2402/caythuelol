@@ -1,8 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import Image from 'next/image';
 import { Star, User } from 'lucide-react';
+import BoosterAvatar from '@/components/BoosterAvatar';
 
 export default function RelatedBoosters({ currentBooster, relatedBoosters }: { currentBooster: any, relatedBoosters: any[] }) {
   if (!relatedBoosters || relatedBoosters.length === 0) {
@@ -24,13 +24,10 @@ export default function RelatedBoosters({ currentBooster, relatedBoosters }: { c
           >
             <div className="flex items-center gap-4">
               <div className="relative w-14 h-14 rounded-full overflow-hidden border-2 border-zinc-700 group-hover:border-blue-500 transition-colors">
-                {booster.profile?.avatar ? (
-                  <Image src={booster.profile.avatar} alt={booster.username} fill className="object-cover" />
-                ) : (
-                  <div className="w-full h-full bg-zinc-800 flex items-center justify-center">
-                    <User className="w-6 h-6 text-zinc-500" />
-                  </div>
-                )}
+                <BoosterAvatar
+                  src={booster.profile?.avatar}
+                  alt={booster.displayName || booster.username}
+                />
                 {/* Status Dot */}
                 <div className={`absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full border-2 border-zinc-800 ${isReady ? 'bg-green-500' : 'bg-zinc-500'}`} />
               </div>
