@@ -16,6 +16,7 @@ import {
 } from '../../database/schemas/Transaction';
 import { MailService } from '../../common/mail.service';
 import { PricingEngineService } from '../pricing/pricing-engine.service';
+import { LoyaltyService } from '../loyalty/loyalty.service';
 
 @Injectable()
 export class OrdersService {
@@ -26,6 +27,7 @@ export class OrdersService {
     @InjectConnection() private readonly connection: Connection,
     private mailService: MailService,
     private pricingEngine: PricingEngineService,
+    private loyaltyService: LoyaltyService,
   ) {}
 
   async checkout(userId: string, body: any) {
@@ -111,6 +113,15 @@ export class OrdersService {
       });
 
       await newOrder.save({ session });
+
+      if (pricing.coupon_code && String(pricing.coupon_code).toUpperCase().startsWith('LRV-')) {
+        await this.loyaltyService.markVoucherUsed(
+          userId,
+          pricing.coupon_code,
+          newOrder._id as Types.ObjectId,
+          session,
+        );
+      }
 
       user.wallet_balance -= amountToDeduct;
       await user.save({ session });
@@ -368,6 +379,16 @@ export class OrdersService {
       });
 
       await order.save({ session });
+
+      // Cộng điểm tích lũy cho Customer khi đơn hàng hoàn thành (1.000đ = 1 điểm)
+      await this.loyaltyService.awardOrderPoints(
+        order.customerId.toString(),
+        order._id as Types.ObjectId,
+        order.orderCode || order._id.toString().slice(-6),
+        actualTotal,
+        session,
+      );
+
       await session.commitTransaction();
 
       return { success: true, order };

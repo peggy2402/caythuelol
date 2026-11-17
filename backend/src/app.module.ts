@@ -19,6 +19,7 @@ import { CronModule } from './modules/cron/cron.module';
 import { PublicModule } from './modules/public/public.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { PricingModule } from './modules/pricing/pricing.module';
+import { LoyaltyModule } from './modules/loyalty/loyalty.module';
 
 @Module({
   imports: [
@@ -49,6 +50,7 @@ import { PricingModule } from './modules/pricing/pricing.module';
     PublicModule,
     NotificationsModule,
     PricingModule,
+    LoyaltyModule,
   ],
   controllers: [AppController],
   providers: [],
