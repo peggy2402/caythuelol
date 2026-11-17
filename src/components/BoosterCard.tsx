@@ -16,10 +16,87 @@ const formatGameName = (code: string) => {
   if (c === 'LOL' || c === 'LMHT' || c === 'LEAGUE OF LEGENDS' || c === 'LEAGUE_OF_LEGENDS') return 'LMHT';
   if (c === 'TFT' || c === 'DTCL') return 'ĐTCL';
   if (c === 'VALORANT' || c === 'VAL') return 'Valorant';
-  if (c === 'WILD_RIFT' || c === 'TOCCHIEN') return 'Tốc Chiến';
-  if (c === 'ARENA_OF_VALOR' || c === 'LIENQUAN') return 'Liên Quân';
+  if (c === 'WILD_RIFT' || c === 'TOCCHIEN' || c === 'WILDRIFT') return 'Tốc Chiến';
+  if (c === 'ARENA_OF_VALOR' || c === 'LIENQUAN' || c === 'AOV' || c === 'LQM') return 'Liên Quân';
   if (c === 'FC_ONLINE' || c === 'FO4') return 'FC Online';
+  if (c === 'CS2' || c === 'CS' || c === 'CSGO') return 'CS2';
   return code || 'LMHT';
+};
+
+// Màu sắc nhận diện từng tựa game
+const getGameBadgeStyle = (gameName: string) => {
+  const g = gameName.toLowerCase();
+  if (g.includes('lmht') || g.includes('lol')) {
+    return 'bg-blue-500/10 border-blue-500/25 text-blue-400';
+  }
+  if (g.includes('valorant') || g.includes('val')) {
+    return 'bg-rose-500/10 border-rose-500/25 text-rose-400';
+  }
+  if (g.includes('đtcl') || g.includes('tft')) {
+    return 'bg-purple-500/10 border-purple-500/25 text-purple-300';
+  }
+  if (g.includes('tốc chiến') || g.includes('wild')) {
+    return 'bg-cyan-500/10 border-cyan-500/25 text-cyan-300';
+  }
+  if (g.includes('liên quân')) {
+    return 'bg-amber-500/10 border-amber-500/25 text-amber-300';
+  }
+  if (g.includes('cs2') || g.includes('cs')) {
+    return 'bg-orange-500/10 border-orange-500/25 text-orange-400';
+  }
+  return 'bg-zinc-800/80 border-white/10 text-zinc-300';
+};
+
+// Trích xuất danh sách game có ít nhất 1 dịch vụ đang BẬT
+const getBoosterActiveGames = (booster: any): string[] => {
+  const customServices = 
+    booster.booster_info?.service_settings?.customServices ||
+    booster.service_settings?.customServices ||
+    booster.customServices;
+
+  if (Array.isArray(customServices) && customServices.length > 0) {
+    // Chỉ lấy game của các service có isActive !== false
+    const activeServices = customServices.filter((s: any) => s && s.isActive !== false);
+    const activeGameCodes = activeServices
+      .map((s: any) => s.gameCode || s.game || '')
+      .filter((code: string) => Boolean(code.trim()));
+    
+    return Array.from(new Set(activeGameCodes.map((code: string) => formatGameName(code))));
+  }
+
+  // Nếu booster có service_settings nhưng customServices rỗng (chưa tạo dịch vụ nào cho game đã chọn)
+  if (booster.booster_info?.service_settings || booster.service_settings) {
+    const enabledServices = 
+      booster.booster_info?.service_settings?.enabledServices ||
+      booster.service_settings?.enabledServices;
+    
+    if (Array.isArray(enabledServices) && enabledServices.length > 0) {
+      const mapped = enabledServices.map((srv: string) => {
+        const s = String(srv).toUpperCase();
+        if (s.includes('LOL') || s.includes('LMHT')) return 'LMHT';
+        if (s.includes('VAL')) return 'Valorant';
+        if (s.includes('TFT') || s.includes('DTCL')) return 'ĐTCL';
+        if (s.includes('WR') || s.includes('TOCCHIEN')) return 'Tốc Chiến';
+        return formatGameName(srv);
+      });
+      return Array.from(new Set(mapped.filter(Boolean)));
+    }
+
+    // Nếu có service_settings mà không có active service nào thì trả về rỗng
+    return [];
+  }
+
+  // Trường hợp dữ liệu cũ không có service_settings, lấy từ profile games
+  if (Array.isArray(booster.games) && booster.games.length > 0) {
+    const codes = booster.games.map((g: any) => g.gameCode || g.game).filter(Boolean);
+    return Array.from(new Set(codes.map((c: string) => formatGameName(String(c)))));
+  }
+
+  if (Array.isArray(booster.booster_info?.main_games) && booster.booster_info.main_games.length > 0) {
+    return Array.from(new Set(booster.booster_info.main_games.map((c: string) => formatGameName(String(c)))));
+  }
+
+  return [];
 };
 
 export default function BoosterCard({ booster, isBookmarked, onToggleBookmark }: BoosterCardProps) {
@@ -48,9 +125,11 @@ export default function BoosterCard({ booster, isBookmarked, onToggleBookmark }:
   const userRank = booster.games?.[0]?.ranks?.[0] || booster.booster_info?.currentRank || '';
   const cleanRankKey = userRank ? userRank.split(/[_ ]/)[0].toLowerCase() : '';
   
-  // Chuẩn hóa danh sách game nhận cày (LOL và LMHT đều quy về LMHT)
-  const rawGames = booster.games?.map((g: any) => g.gameCode || g.game) || booster.booster_info?.main_games || ['LMHT'];
-  const normalizedGames = Array.from(new Set(rawGames.map((g: any) => formatGameName(String(g)))));
+  // Chuẩn hóa danh sách game nhận cày thực tế (chỉ game đang BẬT dịch vụ, tối đa 3 badge + badge 3+)
+  const normalizedGames = getBoosterActiveGames(booster);
+  const displayedGames = normalizedGames.slice(0, 3);
+  const hasMoreGames = normalizedGames.length > 3;
+  const remainingGames = normalizedGames.slice(3);
   const winrate = booster.winrate || booster.booster_info?.winrate || null;
 
   const handleCardClick = (e: React.MouseEvent) => {
@@ -152,24 +231,44 @@ export default function BoosterCard({ booster, isBookmarked, onToggleBookmark }:
           </div>
         </div>
 
-        {/* Bậc Rank hoặc Game hỗ trợ (Chuẩn hóa LMHT thống nhất) */}
+        {/* Danh sách Game hỗ trợ (Chỉ hiển thị game có dịch vụ đang BẬT, tối đa 3 badge + badge 3+) */}
         <div className="flex flex-wrap justify-center items-center gap-1.5 my-2 min-h-[28px]">
-          {userRank ? (
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-xs font-bold text-blue-300">
+          {userRank && (
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-[11px] font-bold text-blue-300">
               <img 
                 src={`/images/ranks/${cleanRankKey}.png`} 
                 alt={userRank} 
-                className="w-4 h-4 object-contain" 
+                className="w-3.5 h-3.5 object-contain" 
                 onError={(e) => {
                   e.currentTarget.style.display = 'none';
                 }} 
               />
               <span>{userRank.replace(/_/g, ' ')}</span>
             </span>
-          ) : (
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/5 border border-white/10 text-[11px] font-medium text-zinc-400">
-              <Gamepad2 className="w-3 h-3 text-blue-400" />
-              <span>{normalizedGames.slice(0, 2).join(' / ')}</span>
+          )}
+
+          {displayedGames.map((game) => (
+            <span
+              key={game}
+              className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border text-[11px] font-bold ${getGameBadgeStyle(game)}`}
+            >
+              <Gamepad2 className="w-3 h-3 shrink-0" />
+              <span>{game}</span>
+            </span>
+          ))}
+
+          {hasMoreGames && (
+            <span 
+              title={`Các tựa game khác: ${remainingGames.join(', ')}`}
+              className="inline-flex items-center px-2 py-0.5 rounded-full bg-cyan-500/15 border border-cyan-500/30 text-[10px] font-black text-cyan-300 font-mono tracking-tight hover:bg-cyan-500/25 transition-colors cursor-help"
+            >
+              3+
+            </span>
+          )}
+
+          {!userRank && displayedGames.length === 0 && (
+            <span className="text-[11px] font-medium text-zinc-500 italic">
+              Chưa mở dịch vụ
             </span>
           )}
 

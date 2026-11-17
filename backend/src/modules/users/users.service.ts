@@ -114,7 +114,31 @@ export class UsersService {
       path: 'bookmarks',
       select: 'username avatar profile booster_info role isBanned',
     });
-    const bookmarks = (user as any)?.bookmarks || [];
+    const rawBookmarks = (user as any)?.bookmarks || [];
+    const boosterUserIds = rawBookmarks.map((b: any) => b._id).filter(Boolean);
+
+    let profileMap = new Map<string, any>();
+    if (boosterUserIds.length > 0) {
+      const profiles = await this.boosterProfileModel.find({ userId: { $in: boosterUserIds } }).lean();
+      for (const p of profiles) {
+        profileMap.set(p.userId.toString(), p);
+      }
+    }
+
+    const bookmarks = rawBookmarks.map((b: any) => {
+      const bObj = b.toObject ? b.toObject() : b;
+      const p = profileMap.get(bObj._id.toString());
+      return {
+        ...bObj,
+        displayName: p?.displayName || bObj.profile?.displayName || bObj.username,
+        avatar: bObj.profile?.avatar || bObj.avatar || p?.avatar || '',
+        rating: p?.rating || bObj.booster_info?.rating || 0,
+        completedOrders: p?.completedOrders || bObj.booster_info?.completed_orders || 0,
+        bio: p?.bio || bObj.booster_info?.bio || '',
+        games: p?.games || [],
+      };
+    });
+
     return {
       success: true,
       bookmarks,
