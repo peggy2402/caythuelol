@@ -809,7 +809,7 @@ function GameServicesContent() {
 
               {/* Footer Modal */}
               <div className="pt-3 border-t border-white/10 flex items-center justify-between text-xs text-zinc-400">
-                <span className="text-[11px] sm:text-xs">Bảo chứng giao dịch 100% qua LeoRank Escrow</span>
+                <span className="text-[11px] sm:text-xs">Bảo chứng giao dịch an toàn 100% qua LeoRank</span>
                 <button
                   type="button"
                   onClick={() => setSelectedBoosterForHire(null)}

@@ -2000,10 +2000,12 @@ function ServiceBookingContent() {
                 <div className="flex justify-between items-center pt-2 border-t border-zinc-800">
                   <div>
                     <span className="text-xs font-bold text-emerald-400 block">
-                      Tiền cọc giữ qua Escrow:
+                      {finalDeposit < finalPrice ? 'Bạn cần thanh toán tiền cọc:' : 'Số tiền thanh toán ngay:'}
                     </span>
                     <span className="text-[10px] text-zinc-500">
-                      Bảo chứng an toàn 100%, chỉ thanh toán khi hoàn thành
+                      {finalDeposit < finalPrice
+                        ? 'Tạm giữ an toàn — số tiền còn lại chỉ trả khi hoàn thành'
+                        : 'Hệ thống tạm giữ an toàn 100%, chỉ chuyển khi bạn hài lòng'}
                     </span>
                   </div>
                   <span className="text-xl font-black text-emerald-400 font-mono">
@@ -2048,7 +2050,8 @@ function ServiceBookingContent() {
                 </span>
               </div>
               <div className="text-[11px] font-semibold text-emerald-400">
-                Cọc giữ Escrow: {finalDeposit.toLocaleString('vi-VN')} đ
+                {finalDeposit < finalPrice ? 'Tiền cọc: ' : 'Thanh toán: '}
+                {finalDeposit.toLocaleString('vi-VN')} đ
               </div>
             </div>
 

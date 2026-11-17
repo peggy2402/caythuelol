@@ -596,7 +596,7 @@ export default function BookCustomServicePage() {
                     </span>
                   </div>
                   <p className="text-[11px] text-zinc-400">
-                    Tiền cọc được tạm giữ an toàn qua hệ thống Escrow và chỉ giải ngân cho Booster sau khi đơn hoàn thành.
+                    Tiền cọc được hệ thống tạm giữ an toàn và chỉ thanh toán cho tuyển thủ sau khi bạn xác nhận hoàn thành đơn.
                   </p>
                 </div>
               </div>
