@@ -31,6 +31,7 @@ import {
   ChevronRight,
   X,
   type LucideIcon,
+  AlertCircle,
 } from 'lucide-react';
 import { getGameById, GAMES_CATALOG, getServiceMeta, STANDARD_SERVICE_TEMPLATES } from '@/lib/games';
 
@@ -105,6 +106,23 @@ interface BoosterItem {
     services?: string[];
     completed_orders?: number;
     rating?: number;
+    service_settings?: {
+      selectedGames?: string[];
+      customServices?: Array<{
+        id: string;
+        gameCode?: string;
+        serviceType?: string;
+        slug?: string;
+        name: string;
+        desc?: string;
+        pricingType: string;
+        price?: number;
+        unitName?: string;
+        depositPercent?: number;
+        isActive?: boolean;
+      }>;
+      enabledServices?: string[];
+    };
   };
 }
 
@@ -246,9 +264,85 @@ function GameServicesContent() {
     });
   }, [services, game.id, searchTerm]);
 
-  // 4. Lọc Boosters
+  // Helper: Lấy danh sách dịch vụ đang HOẠT ĐỘNG (Active) của Booster cho tựa game này
+  const getBoosterActiveServices = (b: BoosterItem) => {
+    const normGame = game.id.toUpperCase();
+
+    // 1. Ưu tiên kiểm tra trong b.booster_info?.service_settings?.customServices (cấu hình studio của chính booster)
+    const customInBooster = b.booster_info?.service_settings?.customServices;
+    if (Array.isArray(customInBooster)) {
+      const activeForGame = customInBooster.filter((s) => {
+        const sGame = (s.gameCode || 'LOL').toUpperCase();
+        const matchGame = sGame === normGame || (normGame === 'LOL' && sGame === 'LMHT');
+        return matchGame && s.isActive !== false;
+      });
+
+      // Nếu booster có customServices: CHỈ TRẢ VỀ CÁC DỊCH VỤ ACTIVE CỦA HỌ
+      // (Nếu booster tắt hết dịch vụ thì activeForGame rỗng -> trả về rỗng, TUYỆT ĐỐI KHÔNG FALLBACK TẤT CẢ GÓI SÀN)
+      return activeForGame.map((s) => ({
+        slug: s.serviceType || s.slug || 'rank-boost',
+        name: s.name,
+        desc: s.desc || 'Dịch vụ được cung cấp bởi tuyển thủ.',
+        pricingType: s.pricingType,
+        depositPercent: s.depositPercent ?? 100,
+        price: s.price,
+        unitName: s.unitName,
+        iconName: getServiceMeta(normGame, s.serviceType || s.slug || '')?.iconName || 'Trophy',
+      }));
+    }
+
+    // 2. Tìm trong danh sách marketplace services đã fetch từ backend cho game này
+    const marketplaceActive = services.filter((s) => {
+      const matchBooster =
+        s.booster?._id === b._id ||
+        (s.booster?.username && s.booster.username.toLowerCase() === b.username.toLowerCase());
+      return matchBooster && s.isActive !== false;
+    });
+
+    if (marketplaceActive.length > 0) {
+      return marketplaceActive.map((s) => ({
+        slug: s.serviceType || s.slug || 'rank-boost',
+        name: s.name,
+        desc: s.desc || 'Dịch vụ được cung cấp bởi tuyển thủ.',
+        pricingType: s.pricingType,
+        depositPercent: s.depositPercent ?? 100,
+        price: s.price,
+        unitName: s.unitName,
+        iconName: getServiceMeta(normGame, s.serviceType || s.slug || '')?.iconName || 'Trophy',
+      }));
+    }
+
+    // 3. Nếu là booster cũ chưa cấu hình customServices: kiểm tra booster.services / booster_info.services
+    const profileServices = b.services || b.booster_info?.services;
+    if (Array.isArray(profileServices) && profileServices.length > 0) {
+      const standard =
+        STANDARD_SERVICE_TEMPLATES[normGame] || STANDARD_SERVICE_TEMPLATES['LOL'] || [];
+      return standard
+        .filter((st) => profileServices.includes(st.slug))
+        .map((st) => ({
+          slug: st.slug,
+          name: st.name,
+          desc: st.desc,
+          pricingType: st.pricingType,
+          depositPercent: st.depositPercent,
+          price: st.defaultPrice,
+          unitName: st.unitName,
+          iconName: st.iconName,
+        }));
+    }
+
+    return [];
+  };
+
+  // 4. Lọc Boosters: CHỈ hiển thị những booster thực sự có dịch vụ ACTIVE cho game này
   const filteredBoosters = useMemo(() => {
     return boosters.filter((b) => {
+      // Bắt buộc booster phải có ít nhất 1 dịch vụ đang kích hoạt (active) cho game này
+      const activeServices = getBoosterActiveServices(b);
+      if (activeServices.length === 0) {
+        return false;
+      }
+
       const q = searchTerm.toLowerCase().trim();
       const matchName =
         !q ||
@@ -261,49 +355,12 @@ function GameServicesContent() {
 
       return matchName && matchServer;
     });
-  }, [boosters, searchTerm, selectedServer]);
+  }, [boosters, searchTerm, selectedServer, services, game.id]);
 
   // 5. Danh sách dịch vụ cụ thể của Tuyển thủ đang được chọn để hiển thị trong Modal Thuê
   const boosterHireServices = useMemo(() => {
     if (!selectedBoosterForHire) return [];
-
-    // Tìm các dịch vụ tùy chỉnh do chính booster này niêm yết trong hệ thống cho game hiện tại
-    const custom = services.filter(
-      (s) =>
-        (s.booster?._id === selectedBoosterForHire._id ||
-          s.booster?.username?.toLowerCase() === selectedBoosterForHire.username?.toLowerCase()) &&
-        s.isActive !== false
-    );
-
-    if (custom.length > 0) {
-      return custom.map((s) => ({
-        slug: s.serviceType || s.slug || 'rank-boost',
-        name: s.name,
-        desc: s.desc || 'Dịch vụ được cung cấp bởi tuyển thủ.',
-        pricingType: s.pricingType,
-        depositPercent: s.depositPercent ?? 100,
-        price: s.price,
-        unitName: s.unitName,
-        iconName: getServiceMeta(game.id, s.serviceType || s.slug || '')?.iconName || 'Trophy',
-      }));
-    }
-
-    // Nếu booster chưa tùy biến bảng giá riêng, lấy danh mục mẫu chuẩn của game hiện tại
-    const standard =
-      STANDARD_SERVICE_TEMPLATES[game.id.toUpperCase()] ||
-      STANDARD_SERVICE_TEMPLATES['LOL'] ||
-      [];
-
-    return standard.map((st) => ({
-      slug: st.slug,
-      name: st.name,
-      desc: st.desc,
-      pricingType: st.pricingType,
-      depositPercent: st.depositPercent,
-      price: st.defaultPrice,
-      unitName: st.unitName,
-      iconName: st.iconName,
-    }));
+    return getBoosterActiveServices(selectedBoosterForHire);
   }, [selectedBoosterForHire, services, game.id]);
 
   return (
@@ -354,7 +411,7 @@ function GameServicesContent() {
               </div>
               <div className="px-4 py-3 rounded-2xl bg-black/40 border border-white/10 backdrop-blur-md text-center min-w-[100px]">
                 <div className="text-xl sm:text-2xl font-black text-emerald-400">
-                  {boosters.length}
+                  {filteredBoosters.length}
                 </div>
                 <div className="text-[11px] font-semibold text-zinc-400">
                   Tuyển Thủ
@@ -389,7 +446,7 @@ function GameServicesContent() {
               }`}
             >
               <Users size={16} />
-              <span>Danh Sách Tuyển Thủ ({boosters.length})</span>
+              <span>Danh Sách Tuyển Thủ ({filteredBoosters.length})</span>
             </button>
           </div>
 
@@ -753,8 +810,14 @@ function GameServicesContent() {
                     );
                   })
                 ) : (
-                  <div className="py-8 text-center text-zinc-500 text-xs">
-                    Tuyển thủ chưa đăng ký dịch vụ nào cho tựa game này.
+                  <div className="py-10 px-4 text-center border border-dashed border-white/10 rounded-2xl bg-zinc-950/40">
+                    <AlertCircle className="w-8 h-8 text-amber-400 mx-auto mb-2" />
+                    <h4 className="text-white font-bold text-sm mb-1">
+                      Tuyển thủ hiện chưa mở dịch vụ nào
+                    </h4>
+                    <p className="text-xs text-zinc-400 max-w-sm mx-auto">
+                      Tuyển thủ này chưa kích hoạt hoặc đã tạm tắt toàn bộ gói dịch vụ cho tựa game {game.name}. Vui lòng quay lại sau hoặc chọn tuyển thủ khác!
+                    </p>
                   </div>
                 )}
               </div>
