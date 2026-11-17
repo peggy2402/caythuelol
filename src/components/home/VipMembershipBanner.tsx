@@ -79,7 +79,7 @@ export default function VipMembershipBanner() {
               </div>
 
               <Link
-                href="/dashboard"
+                href="/vip"
                 className="px-8 py-3.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-bold text-sm shadow-[0_0_25px_rgba(16,185,129,0.4)] hover:shadow-[0_0_35px_rgba(16,185,129,0.6)] transition-all hover:scale-105"
               >
                 Đăng Ký Hội Viên VIP Ngay

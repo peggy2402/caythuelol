@@ -22,6 +22,7 @@ import {
   Trophy,
   Bell,
   Heart,
+  Crown,
   AlertTriangle,
   DoorOpen,
   Power
@@ -322,6 +323,7 @@ export default function Navbar() {
           <nav className="hidden md:flex items-center gap-8 text-sm font-medium" suppressHydrationWarning>
             <NavLink href="/services" label={t('services')} />
             <NavLink href="/boosters" label={t('boosters')} />
+            <NavLink href="/vip" label="Hội Viên VIP" />
             <NavLink href="/blogs" label={t('blog')} />
             {user?.role === 'BOOSTER' && (
               <NavLink href="/booster/jobs" label={t('jobMarket')} />
@@ -427,6 +429,14 @@ export default function Navbar() {
                     >
                       <Wallet className="h-4 w-4" />
                       {t('wallet')}
+                    </Link>
+
+                    <Link
+                      href="/vip"
+                      className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/5 text-emerald-400 font-semibold"
+                    >
+                      <Crown className="h-4 w-4 text-emerald-400" />
+                      Hội Viên VIP Pass
                     </Link>
 
                     {user.role === 'CUSTOMER' && (
@@ -595,6 +605,7 @@ export default function Navbar() {
                   <>
                     <Link href="/orders" onClick={closeMobileMenu} className="flex items-center gap-4 px-4 py-3 rounded-lg hover:bg-white/5 transition-colors"><FileText className="h-5 w-5 text-zinc-400" />{t('orders')}</Link>
                     <Link href="/wallet" onClick={closeMobileMenu} className="flex items-center gap-4 px-4 py-3 rounded-lg hover:bg-white/5 transition-colors"><Wallet className="h-5 w-5 text-zinc-400" />{t('wallet')}</Link>
+                    <Link href="/vip" onClick={closeMobileMenu} className="flex items-center gap-4 px-4 py-3 rounded-lg hover:bg-white/5 transition-colors text-emerald-400 font-bold"><Crown className="h-5 w-5 text-emerald-400" />Hội Viên VIP</Link>
                     <Link href="/favorites" onClick={closeMobileMenu} className="flex items-center gap-4 px-4 py-3 rounded-lg hover:bg-white/5 transition-colors"><Heart className="h-5 w-5 text-zinc-400" />Yêu thích</Link>
                     <Link href="/boosters/apply" onClick={closeMobileMenu} className="flex items-center gap-4 px-4 py-3 rounded-lg hover:bg-white/5 transition-colors text-yellow-500"><Trophy className="h-5 w-5" />{t('becomeBooster')}</Link>
                   </>
@@ -645,6 +656,7 @@ export default function Navbar() {
               <div className="flex-grow space-y-2" suppressHydrationWarning>
                 <Link href="/services" onClick={closeMobileMenu} suppressHydrationWarning className="block px-4 py-3 rounded-lg hover:bg-white/5 transition-colors">{t('services')}</Link>
                 <Link href="/boosters" onClick={closeMobileMenu} suppressHydrationWarning className="block px-4 py-3 rounded-lg hover:bg-white/5 transition-colors">{t('boosters')}</Link>
+                <Link href="/vip" onClick={closeMobileMenu} suppressHydrationWarning className="block px-4 py-3 rounded-lg hover:bg-white/5 transition-colors text-emerald-400 font-bold">Hội Viên VIP</Link>
                 <Link href="/blogs" onClick={closeMobileMenu} suppressHydrationWarning className="block px-4 py-3 rounded-lg hover:bg-white/5 transition-colors">{t('blog')}</Link>
               </div>
 
