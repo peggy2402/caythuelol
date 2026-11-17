@@ -1,9 +1,33 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import { Gamepad2, ChevronDown, ChevronUp, Sparkles } from 'lucide-react';
 import { getStoredGamesCatalog, GAMES_CATALOG, type GameDefinition } from '@/lib/games';
 import GameCard from '@/components/services/GameCard';
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.06,
+    },
+  },
+};
+
+const cardItemVariants = {
+  hidden: { opacity: 0, y: 30, scale: 0.98 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    transition: {
+      duration: 0.5,
+      ease: [0.22, 1, 0.36, 1] as const,
+    },
+  },
+};
 
 export default function EsportsGamesGrid() {
   const [games, setGames] = useState<GameDefinition[]>(() => {
@@ -50,12 +74,20 @@ export default function EsportsGamesGrid() {
           </p>
         </div>
 
-        {/* 4 Cards / 1 Hàng Grid (Chuẩn yêu cầu: 4 cards 1 hàng) */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+        {/* 4 Cards / 1 Hàng Grid (Staggered Wave Scroll Reveal) */}
+        <motion.div
+          variants={containerVariants}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.08 }}
+          className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5"
+        >
           {displayedGames.map((game, idx) => (
-            <GameCard key={game.id} game={game} priority={idx < 4} />
+            <motion.div key={game.id} variants={cardItemVariants}>
+              <GameCard game={game} priority={idx < 4} />
+            </motion.div>
           ))}
-        </div>
+        </motion.div>
 
         {/* Nút Xem thêm / Thu gọn các game còn lại */}
         {activeGames.length > 8 && (

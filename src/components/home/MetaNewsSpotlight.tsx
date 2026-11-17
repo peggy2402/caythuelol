@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { motion } from 'framer-motion';
 import { Flame, ChevronRight, ArrowRight, BookOpen, Clock } from 'lucide-react';
 
 interface BlogPost {
@@ -156,8 +157,14 @@ export default function MetaNewsSpotlight() {
         </div>
 
         <div className="grid lg:grid-cols-12 gap-6 items-stretch">
-          {/* 1. Featured Big Card (7 Cols) */}
-          <div className="lg:col-span-7">
+          {/* 1. Featured Big Card (7 Cols) with Smooth Slide-in */}
+          <motion.div
+            initial={{ opacity: 0, x: -35 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true, amount: 0.15 }}
+            transition={{ duration: 0.65, ease: [0.22, 1, 0.36, 1] }}
+            className="lg:col-span-7"
+          >
             <Link
               href={`/blogs/${featuredPost.slug}`}
               className="group relative rounded-3xl bg-zinc-900/90 border border-zinc-800/90 hover:border-cyan-500/50 overflow-hidden h-full flex flex-col justify-between transition-all duration-300 hover:shadow-[0_20px_50px_rgba(6,182,212,0.15)] hover:-translate-y-1"
@@ -200,10 +207,16 @@ export default function MetaNewsSpotlight() {
                 </div>
               </div>
             </Link>
-          </div>
+          </motion.div>
 
-          {/* 2. Sub Articles (5 Cols) */}
-          <div className="lg:col-span-5 flex flex-col justify-between gap-3.5">
+          {/* 2. Sub Articles (5 Cols) with Cascade from Right */}
+          <motion.div
+            initial={{ opacity: 0, x: 35 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true, amount: 0.15 }}
+            transition={{ duration: 0.65, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
+            className="lg:col-span-5 flex flex-col justify-between gap-3.5"
+          >
             {subPosts.map((art, idx) => {
               const tag = art.tags?.[0] || 'CẨM NANG';
               const colorClass = getCategoryColor(tag);
@@ -236,7 +249,7 @@ export default function MetaNewsSpotlight() {
                 </Link>
               );
             })}
-          </div>
+          </motion.div>
         </div>
       </div>
     </section>

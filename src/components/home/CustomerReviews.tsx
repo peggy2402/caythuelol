@@ -1,5 +1,6 @@
 'use client';
 
+import { motion } from 'framer-motion';
 import { Users, Star, Target, CheckCircle2 } from 'lucide-react';
 
 const REVIEWS = [
@@ -35,6 +36,28 @@ const REVIEWS = [
   }
 ];
 
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.12,
+    },
+  },
+};
+
+const cardVariants = {
+  hidden: { opacity: 0, y: 35 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.6,
+      ease: [0.22, 1, 0.36, 1] as const,
+    },
+  },
+};
+
 export default function CustomerReviews() {
   return (
     <section className="py-24 relative overflow-hidden">
@@ -53,12 +76,20 @@ export default function CustomerReviews() {
           </p>
         </div>
 
-        {/* Testimonials Grid */}
-        <div className="grid md:grid-cols-3 gap-6">
+        {/* Testimonials Grid with Staggered Parallax Cascade */}
+        <motion.div
+          variants={containerVariants}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.15 }}
+          className="grid md:grid-cols-3 gap-6"
+        >
           {REVIEWS.map((rev, idx) => (
-            <div
+            <motion.div
               key={idx}
-              className="rounded-2xl bg-zinc-900/80 border border-zinc-800 p-6 flex flex-col justify-between hover:border-zinc-700 transition-all hover:-translate-y-1 shadow-lg"
+              variants={cardVariants}
+              whileHover={{ y: -5 }}
+              className="rounded-2xl bg-zinc-900/80 border border-zinc-800 p-6 flex flex-col justify-between hover:border-cyan-500/40 transition-colors shadow-lg hover:shadow-[0_10px_30px_rgba(6,182,212,0.15)]"
             >
               <div>
                 {/* Stars & Winrate Badge */}
@@ -98,9 +129,9 @@ export default function CustomerReviews() {
                   </div>
                 </div>
               </div>
-            </div>
+            </motion.div>
           ))}
-        </div>
+        </motion.div>
 
       </div>
     </section>

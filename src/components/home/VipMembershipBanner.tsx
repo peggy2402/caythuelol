@@ -2,7 +2,21 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { motion } from 'framer-motion';
 import { Crown, Shield, Check } from 'lucide-react';
+
+const benefitVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: (i: number) => ({
+    opacity: 1,
+    y: 0,
+    transition: {
+      delay: i * 0.08,
+      duration: 0.45,
+      ease: [0.22, 1, 0.36, 1] as const,
+    },
+  }),
+};
 
 export default function VipMembershipBanner() {
   const [vipPrice, setVipPrice] = useState('199.000 đ');
@@ -38,15 +52,19 @@ export default function VipMembershipBanner() {
                 Đặc Quyền Thành Viên Cao Cấp
               </div>
 
-              {/* 3D Glowing Shield Motif */}
-              <div className="relative w-28 h-28 mb-6 flex items-center justify-center">
+              {/* 3D Glowing Shield Motif with Gentle Float */}
+              <motion.div
+                animate={{ y: [-6, 6, -6], rotate: [-1.5, 1.5, -1.5] }}
+                transition={{ repeat: Infinity, duration: 4.5, ease: 'easeInOut' }}
+                className="relative w-28 h-28 mb-6 flex items-center justify-center"
+              >
                 <div className="absolute inset-0 bg-emerald-500/30 blur-2xl rounded-full animate-pulse" />
                 <div className="relative w-24 h-24 rounded-2xl bg-gradient-to-br from-emerald-400 to-cyan-500 p-0.5 shadow-[0_0_40px_rgba(16,185,129,0.4)]">
                   <div className="w-full h-full bg-zinc-950 rounded-2xl flex items-center justify-center">
                     <Shield className="w-12 h-12 text-emerald-400" />
                   </div>
                 </div>
-              </div>
+              </motion.div>
 
               <h3 className="text-3xl sm:text-4xl font-black text-white tracking-tight mb-2">
                 {vipName}
@@ -68,7 +86,7 @@ export default function VipMembershipBanner() {
               </Link>
             </div>
 
-            {/* Right Card: VIP Benefits Grid */}
+            {/* Right Card: VIP Benefits Grid with Staggered Scroll Reveal */}
             <div className="lg:col-span-7">
               <div className="grid sm:grid-cols-2 gap-4">
                 {[
@@ -97,9 +115,14 @@ export default function VipMembershipBanner() {
                     desc: 'Nhận x2 điểm thưởng khi hoàn thành đơn để đổi Skin, Battle Pass hoặc thẻ cào.'
                   }
                 ].map((benefit, idx) => (
-                  <div
+                  <motion.div
                     key={idx}
-                    className="p-4 rounded-xl bg-zinc-900/60 border border-emerald-500/20 flex items-start gap-3 backdrop-blur-sm"
+                    custom={idx}
+                    variants={benefitVariants}
+                    initial="hidden"
+                    whileInView="visible"
+                    viewport={{ once: true, amount: 0.15 }}
+                    className="p-4 rounded-xl bg-zinc-900/60 border border-emerald-500/20 flex items-start gap-3 backdrop-blur-sm hover:border-emerald-500/40 transition-colors"
                   >
                     <div className="p-1.5 rounded-lg bg-emerald-500/20 text-emerald-400 shrink-0 mt-0.5">
                       <Check className="w-4 h-4" />
@@ -108,7 +131,7 @@ export default function VipMembershipBanner() {
                       <h4 className="text-sm font-bold text-white mb-0.5">{benefit.title}</h4>
                       <p className="text-xs text-zinc-400 leading-relaxed">{benefit.desc}</p>
                     </div>
-                  </div>
+                  </motion.div>
                 ))}
               </div>
             </div>
