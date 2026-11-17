@@ -28,9 +28,12 @@ export async function apiFetch<T = any>(
     : `/api${cleanEndpoint}`;
   const url = `${API_BASE_URL}${normalizedPath}`;
 
+  const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+
   const defaultHeaders: Record<string, string> = {
     'Content-Type': 'application/json',
     Accept: 'application/json',
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
   };
 
   const config: RequestInit = {

@@ -62,6 +62,15 @@ export class BoostersController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.BOOSTER)
   @ApiBearerAuth()
+  @Post('availability')
+  @ApiOperation({ summary: 'Toggle booster availability (isReady) - alias for POST' })
+  async toggleAvailabilityPost(@ReqUser() user: any, @Body('isReady') isReady: boolean) {
+    return this.boostersService.toggleAvailability(user.userId, isReady);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.BOOSTER)
+  @ApiBearerAuth()
   @Get('market')
   @ApiOperation({ summary: 'Get job market available orders' })
   async getJobMarket(@ReqUser() user: any) {

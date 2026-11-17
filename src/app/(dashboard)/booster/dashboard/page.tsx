@@ -23,6 +23,7 @@ import {
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
+import { apiFetch } from '@/lib/api';
 
 export default function BoosterDashboardPage() {
   const { t } = useLanguage();
@@ -69,9 +70,8 @@ export default function BoosterDashboardPage() {
     }
 
     try {
-      await fetch('/api/boosters/availability', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      await apiFetch('/boosters/availability', {
+        method: 'PATCH',
         body: JSON.stringify({ isReady: newStatus }),
       });
       toast.success(newStatus ? 'Đã bật trạng thái Sẵn sàng nhận đơn' : 'Đã chuyển sang trạng thái Tạm nghỉ');

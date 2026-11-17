@@ -27,6 +27,7 @@ import { socket } from '@/lib/socket';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { apiFetch } from '@/lib/api';
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -209,8 +210,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     localStorage.setItem('user', JSON.stringify(updatedUser));
 
     try {
-        await fetch('/api/boosters/availability', {
-            method: 'POST',
+        await apiFetch('/boosters/availability', {
+            method: 'PATCH',
             body: JSON.stringify({ isReady: newStatus })
         });
         toast.success(newStatus ? 'Đã bật trạng thái Sẵn sàng nhận đơn' : 'Đã chuyển sang trạng thái Tạm nghỉ');

@@ -33,6 +33,7 @@ import { logout } from '@/lib/logout';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { apiFetch } from '@/lib/api';
 
 function LanguageSwitcher({
   language,
@@ -251,8 +252,8 @@ export default function Navbar() {
     localStorage.setItem('user', JSON.stringify(updatedUser));
 
     try {
-      await fetch('/api/boosters/availability', {
-        method: 'POST',
+      await apiFetch('/boosters/availability', {
+        method: 'PATCH',
         body: JSON.stringify({ isReady: newStatus })
       });
       toast.success(newStatus ? 'Đã bật trạng thái Sẵn sàng nhận đơn' : 'Đã chuyển sang trạng thái Tạm nghỉ');
