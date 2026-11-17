@@ -657,41 +657,16 @@ export class BoostersService {
 
       const gameRegex = new RegExp(`^(${normalized}|${targetGame})$`, 'i');
       andConditions.push({
-        $or: [
-          // 1. Booster đã cấu hình customServices: bắt buộc phải có ít nhất 1 dịch vụ thuộc game này và isActive !== false
-          {
-            'booster_info.service_settings.customServices': {
-              $elemMatch: {
-                $or: [
-                  { gameCode: { $regex: gameRegex } },
-                  ...(normalized === 'LOL' ? [{ gameCode: { $exists: false } }] : []),
-                ],
-                isActive: { $ne: false },
-              },
-            },
-          },
-          // 2. Hoặc Booster chưa từng cấu hình customServices (legacy): kiểm tra qua games / main_games / selectedGames
-          {
-            $and: [
-              {
-                $or: [
-                  { 'booster_info.service_settings.customServices': { $exists: false } },
-                  { 'booster_info.service_settings.customServices': { $size: 0 } },
-                  { 'booster_info.service_settings.customServices': null },
-                ],
-              },
-              {
-                $or: [
-                  { 'games.gameCode': { $regex: gameRegex } },
-                  { 'profileDoc.games.gameCode': { $regex: gameRegex } },
-                  { 'booster_info.main_games': { $regex: gameRegex } },
-                  { 'booster_info.service_settings.selectedGames': { $regex: gameRegex } },
-                  { selectedGames: { $regex: gameRegex } },
-                ],
-              },
+        // Bắt buộc booster phải có ít nhất 1 dịch vụ thực tế trong customServices thuộc tựa game này và đang bật (isActive !== false)
+        'booster_info.service_settings.customServices': {
+          $elemMatch: {
+            $or: [
+              { gameCode: { $regex: gameRegex } },
+              ...(normalized === 'LOL' ? [{ gameCode: { $exists: false } }] : []),
             ],
+            isActive: { $ne: false },
           },
-        ],
+        },
       });
     }
 

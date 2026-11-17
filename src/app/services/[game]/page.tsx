@@ -33,7 +33,7 @@ import {
   type LucideIcon,
   AlertCircle,
 } from 'lucide-react';
-import { getGameById, GAMES_CATALOG, getServiceMeta, STANDARD_SERVICE_TEMPLATES } from '@/lib/games';
+import { getGameById, GAMES_CATALOG, getServiceMeta } from '@/lib/games';
 
 const ICON_MAP: Record<string, LucideIcon> = {
   Trophy,
@@ -296,7 +296,9 @@ function GameServicesContent() {
       const matchBooster =
         s.booster?._id === b._id ||
         (s.booster?.username && s.booster.username.toLowerCase() === b.username.toLowerCase());
-      return matchBooster && s.isActive !== false;
+      const sGame = (s.gameCode || 'LOL').toUpperCase();
+      const matchGame = sGame === normGame || (normGame === 'LOL' && sGame === 'LMHT');
+      return matchBooster && matchGame && s.isActive !== false;
     });
 
     if (marketplaceActive.length > 0) {
@@ -312,25 +314,8 @@ function GameServicesContent() {
       }));
     }
 
-    // 3. Nếu là booster cũ chưa cấu hình customServices: kiểm tra booster.services / booster_info.services
-    const profileServices = b.services || b.booster_info?.services;
-    if (Array.isArray(profileServices) && profileServices.length > 0) {
-      const standard =
-        STANDARD_SERVICE_TEMPLATES[normGame] || STANDARD_SERVICE_TEMPLATES['LOL'] || [];
-      return standard
-        .filter((st) => profileServices.includes(st.slug))
-        .map((st) => ({
-          slug: st.slug,
-          name: st.name,
-          desc: st.desc,
-          pricingType: st.pricingType,
-          depositPercent: st.depositPercent,
-          price: st.defaultPrice,
-          unitName: st.unitName,
-          iconName: st.iconName,
-        }));
-    }
-
+    // TUYỆT ĐỐI KHÔNG DÙNG MOCKDATA / FALLBACK TẤT CẢ DỊCH VỤ SÀN!
+    // Nếu booster không có dịch vụ nào trong DB cho game này -> trả về mảng rỗng []
     return [];
   };
 
