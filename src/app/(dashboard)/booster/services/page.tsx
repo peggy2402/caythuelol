@@ -565,51 +565,81 @@ export default function BoosterServicesStudio() {
       {/* SECTION 2: DANH MỤC DỊCH VỤ BẠN CUNG CẤP                                   */}
       {/* ========================================================================= */}
       <div className="bg-zinc-900/60 border border-zinc-800/80 rounded-3xl p-5 sm:p-6 shadow-xl backdrop-blur-md space-y-6">
+        {/* HÀNG 1: HEADER & NÚT THÊM DỊCH VỤ ĐỘC LẬP */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-zinc-800">
           <div>
             <h2 className="text-base sm:text-lg font-black text-white flex items-center gap-2">
               <Trophy size={20} className="text-amber-400" />
-              <span>2. Danh mục dịch vụ bạn cung cấp ({currentGameDef.name})</span>
+              <span>2. Danh mục dịch vụ bạn cung cấp</span>
+              <span className="text-cyan-400 font-bold">({currentGameDef.name})</span>
             </h2>
             <p className="text-xs text-zinc-400 mt-0.5">
               Bật/Tắt và tự do cấu hình bảng giá, tỷ lệ cọc cho từng dịch vụ bạn nhận cày.
             </p>
           </div>
 
-          <div className="flex items-center gap-2.5">
-            <button
-              type="button"
-              onClick={handleOpenAddModal}
-              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-black font-extrabold text-xs shadow-md transition-all active:scale-95 shrink-0"
-            >
-              <Plus size={15} />
-              <span>+ Thêm Dịch Vụ Mới</span>
-            </button>
+          <button
+            type="button"
+            onClick={handleOpenAddModal}
+            className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-black font-extrabold text-xs shadow-md shadow-cyan-500/20 transition-all active:scale-95 shrink-0 self-start sm:self-auto cursor-pointer"
+          >
+            <Plus size={15} className="stroke-[3]" />
+            <span>+ Thêm Dịch Vụ Mới</span>
+          </button>
+        </div>
 
-            {selectedGames.length > 1 && (
-              <div className="flex items-center gap-1.5 p-1 bg-zinc-950 border border-zinc-800 rounded-2xl overflow-x-auto">
-                {selectedGames.map((gCode) => {
-                  const gObj = GAMES_CATALOG.find((g) => g.id.toUpperCase() === gCode);
-                  const isActive = activeGameCode === gCode;
-                  return (
-                    <button
-                      key={gCode}
-                      type="button"
-                      onClick={() => setActiveGameCode(gCode)}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+        {/* HÀNG 2: GAME SWITCHER BAR KHI BOOSTER CHỌN NHIỀU GAME */}
+        {selectedGames.length > 1 && (
+          <div className="space-y-2 pb-2">
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-zinc-400 font-medium flex items-center gap-1.5">
+                <span>Chọn tựa game để cấu hình dịch vụ:</span>
+                <strong className="text-cyan-300 font-bold font-mono">
+                  {currentGameDef.name}
+                </strong>
+              </span>
+              <span className="text-zinc-500 font-mono text-[11px]">
+                {selectedGames.length} tựa game đã chọn
+              </span>
+            </div>
+
+            <div className="p-1.5 bg-zinc-950/80 border border-zinc-800 rounded-2xl flex items-center gap-2 overflow-x-auto no-scrollbar scroll-smooth">
+              {selectedGames.map((gCode) => {
+                const gObj = GAMES_CATALOG.find((g) => g.id.toUpperCase() === gCode);
+                const isActive = activeGameCode === gCode;
+                const serviceCount = customServices.filter(
+                  (s) => (s.gameCode || 'LOL').toUpperCase() === gCode
+                ).length;
+
+                return (
+                  <button
+                    key={gCode}
+                    type="button"
+                    onClick={() => setActiveGameCode(gCode)}
+                    className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer shrink-0 ${
+                      isActive
+                        ? 'bg-cyan-500 text-black shadow-lg shadow-cyan-500/25 ring-1 ring-cyan-300'
+                        : 'bg-zinc-900/80 hover:bg-zinc-800 text-zinc-300 hover:text-white border border-zinc-800/80 hover:border-zinc-700'
+                    }`}
+                  >
+                    <span>{gObj?.shortName || gCode}</span>
+                    <span
+                      className={`text-[10px] px-1.5 py-0.5 rounded-full font-mono ${
                         isActive
-                          ? 'bg-cyan-500 text-black shadow-md'
-                          : 'text-zinc-400 hover:text-white'
+                          ? 'bg-black/20 text-black font-black'
+                          : serviceCount > 0
+                          ? 'bg-cyan-500/15 text-cyan-400 font-bold border border-cyan-500/30'
+                          : 'bg-zinc-800 text-zinc-500'
                       }`}
                     >
-                      {gObj?.shortName || gCode}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
+                      {serviceCount}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* NẾU CHƯA CÓ DỊCH VỤ NÀO: HIỂN THỊ EMPTY STATE */}
         {currentServices.length === 0 ? (
