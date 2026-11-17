@@ -1,7 +1,7 @@
 // src/app/(dashboard)/booster/services/page.tsx
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   Swords,
   Gamepad2,
@@ -29,6 +29,9 @@ import {
   type LucideIcon,
   HelpCircle,
   Crown,
+  ChevronDown,
+  Check,
+  Search,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -109,6 +112,24 @@ export default function BoosterServicesStudio() {
   // 1. Tựa game nhận cày (Mặc định LOL)
   const [selectedGames, setSelectedGames] = useState<string[]>(['LOL']);
   const [activeGameCode, setActiveGameCode] = useState<string>('LOL');
+  const [isGameSelectorOpen, setIsGameSelectorOpen] = useState(false);
+  const [gameSearchQuery, setGameSearchQuery] = useState('');
+  const gameSelectorRef = useRef<HTMLDivElement>(null);
+
+  // Đóng dropdown chọn game khi click ra ngoài
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (gameSelectorRef.current && !gameSelectorRef.current.contains(e.target as Node)) {
+        setIsGameSelectorOpen(false);
+      }
+    };
+    if (isGameSelectorOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isGameSelectorOpen]);
 
   // 2. Danh sách dịch vụ thực tế của Booster (Khởi tạo rỗng, hoàn toàn từ DB)
   const [customServices, setCustomServices] = useState<CustomService[]>([]);
@@ -572,7 +593,7 @@ export default function BoosterServicesStudio() {
         <div>
           <div className="flex items-center gap-3">
             <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-              Studio Dịch Vụ & Bảng Giá
+              Cấu Hình Dịch Vụ & Bảng Giá
             </h1>
             <span className="text-xs px-2.5 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 font-bold border border-cyan-500/20">
               Booster Studio
@@ -679,31 +700,187 @@ export default function BoosterServicesStudio() {
             </p>
           </div>
 
-          <button
-            type="button"
-            onClick={handleOpenAddModal}
-            className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-black font-extrabold text-xs shadow-md shadow-cyan-500/20 transition-all active:scale-95 shrink-0 self-start sm:self-auto cursor-pointer"
-          >
-            <Plus size={15} className="stroke-[3]" />
-            <span>+ Thêm Dịch Vụ Mới</span>
-          </button>
+          {/* Chỉ hiển thị nút thêm dịch vụ ở góc trên khi ĐÃ CÓ ít nhất 1 dịch vụ (Tránh trùng lặp với nút giữa khối khi empty) */}
+          {currentServices.length > 0 && (
+            <button
+              type="button"
+              onClick={handleOpenAddModal}
+              className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-black font-extrabold text-xs shadow-md shadow-cyan-500/20 transition-all active:scale-95 shrink-0 self-start sm:self-auto cursor-pointer"
+            >
+              <Plus size={15} className="stroke-[3]" />
+              <span>+ Thêm Dịch Vụ Mới</span>
+            </button>
+          )}
         </div>
 
-        {/* HÀNG 2: GAME SWITCHER BAR KHI BOOSTER CHỌN NHIỀU GAME */}
+        {/* HÀNG 2: BỘ CHỌN TỰA GAME THÔNG MINH (DROPDOWN POPOVER + QUICK CHIPS) */}
         {selectedGames.length > 1 && (
-          <div className="space-y-2 pb-2">
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-zinc-400 font-medium flex items-center gap-1.5">
-                <span>Chọn tựa game để cấu hình dịch vụ:</span>
-                <strong className="text-cyan-300 font-bold font-mono">
-                  {currentGameDef.name}
-                </strong>
-              </span>
-              <span className="text-zinc-500 font-mono text-[11px]">
-                {selectedGames.length} tựa game đã chọn
-              </span>
+          <div className="space-y-3 pb-2">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 sm:p-4 rounded-2xl bg-zinc-950/70 border border-zinc-800/80 shadow-inner">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/25 flex items-center justify-center text-cyan-400 shrink-0">
+                  <Gamepad2 size={20} />
+                </div>
+                <div>
+                  <div className="text-[11px] text-zinc-400 font-semibold uppercase tracking-wider flex items-center gap-1.5">
+                    <span>Đang cấu hình dịch vụ</span>
+                    <span className="text-zinc-600">•</span>
+                    <span className="text-zinc-400 font-mono font-normal">
+                      {selectedGames.length} tựa game đã chọn
+                    </span>
+                  </div>
+                  <div className="text-sm sm:text-base font-black text-white flex items-center gap-2 mt-0.5">
+                    <span className="text-cyan-400">{currentGameDef.name}</span>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">
+                      {currentServices.length} dịch vụ
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Nút bấm mở Dropdown chọn nhanh Tựa Game */}
+              <div className="relative" ref={gameSelectorRef}>
+                <button
+                  type="button"
+                  onClick={() => setIsGameSelectorOpen(!isGameSelectorOpen)}
+                  className={`w-full sm:w-auto flex items-center justify-between sm:justify-start gap-2.5 px-4 py-2.5 rounded-xl border text-xs font-bold transition-all shadow-md active:scale-95 cursor-pointer ${
+                    isGameSelectorOpen
+                      ? 'bg-cyan-500/10 border-cyan-400 text-cyan-300 ring-2 ring-cyan-500/20'
+                      : 'bg-zinc-900 hover:bg-zinc-800 border-cyan-500/40 hover:border-cyan-400 text-white'
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="text-cyan-400 font-black">Chọn tựa game:</span>
+                    <span className="text-zinc-200 max-w-[130px] sm:max-w-[180px] truncate font-extrabold">
+                      {currentGameDef.shortName || currentGameDef.name}
+                    </span>
+                  </div>
+                  <span className="px-1.5 py-0.5 rounded-md text-[10px] font-mono font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
+                    {selectedGames.length} game
+                  </span>
+                  <ChevronDown
+                    size={15}
+                    className={`text-zinc-400 transition-transform duration-200 ${
+                      isGameSelectorOpen ? 'rotate-180 text-cyan-400' : ''
+                    }`}
+                  />
+                </button>
+
+                {/* Popover Dropdown Chọn Nhanh Tựa Game */}
+                {isGameSelectorOpen && (
+                  <div className="absolute right-0 top-full mt-2 w-full sm:w-80 md:w-96 p-3 rounded-2xl bg-[#0b0f19] border border-cyan-500/30 shadow-[0_20px_50px_rgba(0,0,0,0.85)] z-50 animate-in fade-in zoom-in-95 duration-150 backdrop-blur-2xl">
+                    <div className="flex items-center justify-between pb-2.5 mb-2.5 border-b border-zinc-800">
+                      <div className="flex items-center gap-2">
+                        <Gamepad2 size={16} className="text-cyan-400" />
+                        <span className="text-xs font-black text-white">
+                          Chọn tựa game muốn cấu hình
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setIsGameSelectorOpen(false)}
+                        className="p-1 rounded-lg hover:bg-zinc-800 text-zinc-400 hover:text-white transition-colors"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+
+                    {/* Ô tìm kiếm nhanh nếu có từ 4 game trở lên */}
+                    {selectedGames.length > 3 && (
+                      <div className="relative mb-2.5">
+                        <Search
+                          size={14}
+                          className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500"
+                        />
+                        <input
+                          type="text"
+                          value={gameSearchQuery}
+                          onChange={(e) => setGameSearchQuery(e.target.value)}
+                          placeholder="Tìm nhanh tựa game..."
+                          className="w-full pl-9 pr-3 py-1.5 rounded-xl bg-zinc-900/90 border border-zinc-800 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-cyan-500/60"
+                        />
+                      </div>
+                    )}
+
+                    {/* Danh sách các tựa game dạng cuộn dọc gọn gàng */}
+                    <div className="max-h-64 overflow-y-auto space-y-1.5 pr-1 custom-scrollbar">
+                      {selectedGames
+                        .filter((gCode) => {
+                          if (!gameSearchQuery.trim()) return true;
+                          const gObj = GAMES_CATALOG.find((g) => g.id.toUpperCase() === gCode);
+                          const q = gameSearchQuery.toLowerCase().trim();
+                          return (
+                            gCode.toLowerCase().includes(q) ||
+                            (gObj?.name || '').toLowerCase().includes(q) ||
+                            (gObj?.shortName || '').toLowerCase().includes(q)
+                          );
+                        })
+                        .map((gCode) => {
+                          const gObj = GAMES_CATALOG.find((g) => g.id.toUpperCase() === gCode);
+                          const isCurrentActive = activeGameCode === gCode;
+                          const serviceCount = customServices.filter(
+                            (s) => (s.gameCode || 'LOL').toUpperCase() === gCode
+                          ).length;
+
+                          return (
+                            <button
+                              key={gCode}
+                              type="button"
+                              onClick={() => {
+                                setActiveGameCode(gCode);
+                                setIsGameSelectorOpen(false);
+                                setGameSearchQuery('');
+                              }}
+                              className={`w-full flex items-center justify-between p-2.5 rounded-xl text-left transition-all cursor-pointer ${
+                                isCurrentActive
+                                  ? 'bg-cyan-500/15 border border-cyan-500/40 text-cyan-300 font-extrabold shadow-sm'
+                                  : 'hover:bg-zinc-900/90 border border-transparent text-zinc-300 hover:text-white'
+                              }`}
+                            >
+                              <div className="flex items-center gap-2.5 min-w-0">
+                                <div
+                                  className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
+                                    isCurrentActive
+                                      ? 'bg-cyan-500 text-black font-black text-xs'
+                                      : 'bg-zinc-800 text-zinc-400'
+                                  }`}
+                                >
+                                  <Gamepad2 size={15} />
+                                </div>
+                                <div className="min-w-0 truncate">
+                                  <div className="text-xs font-bold truncate">
+                                    {gObj?.name || gCode}
+                                  </div>
+                                  <div className="text-[10px] text-zinc-500 font-mono">
+                                    {gObj?.shortName || gCode}
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div className="flex items-center gap-2 shrink-0 ml-2">
+                                <span
+                                  className={`text-[10px] px-2 py-0.5 rounded-full font-mono ${
+                                    serviceCount > 0
+                                      ? 'bg-cyan-500/20 text-cyan-300 font-bold border border-cyan-500/30'
+                                      : 'bg-zinc-800 text-zinc-500'
+                                  }`}
+                                >
+                                  {serviceCount} dịch vụ
+                                </span>
+                                {isCurrentActive && (
+                                  <Check size={16} className="text-cyan-400 shrink-0" />
+                                )}
+                              </div>
+                            </button>
+                          );
+                        })}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
 
+            {/* Quick Chips Bar: Vẫn giữ thanh phím tắt chuyển nhanh có thể click trực tiếp */}
             <div className="p-1.5 bg-zinc-950/80 border border-zinc-800 rounded-2xl flex items-center gap-2 overflow-x-auto no-scrollbar scroll-smooth">
               {selectedGames.map((gCode) => {
                 const gObj = GAMES_CATALOG.find((g) => g.id.toUpperCase() === gCode);
@@ -717,7 +894,7 @@ export default function BoosterServicesStudio() {
                     key={gCode}
                     type="button"
                     onClick={() => setActiveGameCode(gCode)}
-                    className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer shrink-0 ${
+                    className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer shrink-0 ${
                       isActive
                         ? 'bg-cyan-500 text-black shadow-lg shadow-cyan-500/25 ring-1 ring-cyan-300'
                         : 'bg-zinc-900/80 hover:bg-zinc-800 text-zinc-300 hover:text-white border border-zinc-800/80 hover:border-zinc-700'
