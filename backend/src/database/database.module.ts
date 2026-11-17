@@ -19,6 +19,8 @@ import VerificationCode from './schemas/VerificationCode';
 import Withdrawal from './schemas/Withdrawal';
 import Message from './schemas/Message';
 import AuditLog from './schemas/AuditLog';
+import Voucher from './schemas/Voucher';
+import PointTransaction from './schemas/PointTransaction';
 
 const models = [
   { name: 'User', schema: User.schema },
@@ -39,6 +41,8 @@ const models = [
   { name: 'Withdrawal', schema: Withdrawal.schema },
   { name: 'Message', schema: Message.schema },
   { name: 'AuditLog', schema: AuditLog.schema },
+  { name: 'Voucher', schema: Voucher.schema },
+  { name: 'PointTransaction', schema: PointTransaction.schema },
 ];
 
 @Global()

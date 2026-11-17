@@ -20,6 +20,7 @@ import { PublicModule } from './modules/public/public.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { PricingModule } from './modules/pricing/pricing.module';
 import { VipModule } from './modules/vip/vip.module';
+import { LoyaltyModule } from './modules/loyalty/loyalty.module';
 
 @Module({
   imports: [
@@ -51,6 +52,7 @@ import { VipModule } from './modules/vip/vip.module';
     NotificationsModule,
     PricingModule,
     VipModule,
+    LoyaltyModule,
   ],
   controllers: [AppController],
   providers: [],

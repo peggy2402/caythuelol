@@ -29,6 +29,7 @@ import {
   UserCheck,
   Gamepad2,
   Crown,
+  Gift,
   X
 } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n';
@@ -153,6 +154,7 @@ export default function Sidebar({ className = '', onLinkClick, onClose }: Sideba
             <NavItem href="/services" icon={Zap} label={t('rentNow')} />
             <NavItem href="/orders" icon={FileText} label={t('orders')} />
             <NavItem href="/wallet" icon={Wallet} label={t('wallet')} />
+            <NavItem href="/loyalty" icon={Gift} label="Tích điểm đổi quà" />
             <NavItem href="/favorites" icon={Heart} label="Yêu thích" />
             <NavItem href="/profile" icon={UserCircle} label={t('profile')} />
           </>

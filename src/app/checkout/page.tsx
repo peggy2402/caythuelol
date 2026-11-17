@@ -46,6 +46,9 @@ function CheckoutContent() {
       if (appliedCoupon.type === 'PERCENTAGE') {
           // Discount is applied on the total order value, not the deposit amount
           discountValue = (totalAmount * appliedCoupon.value) / 100;
+          if (appliedCoupon.maxDiscount) {
+            discountValue = Math.min(discountValue, appliedCoupon.maxDiscount);
+          }
       } else { // FIXED
           discountValue = appliedCoupon.value;
       }
@@ -64,21 +67,40 @@ function CheckoutContent() {
     }
     setIsApplyingCoupon(true);
     try {
-      // This API needs to be created.
-      const res = await fetch('/api/coupons/validate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-            code: couponCode, 
-            orderValue: totalAmount,
-            boosterId: booster?._id // Gửi thêm ID của Booster để check mã của họ
-        })
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Mã giảm giá không hợp lệ hoặc không thể áp dụng.');
+      const normalized = couponCode.trim().toUpperCase();
+      if (normalized.startsWith('LRV-')) {
+        const token = localStorage.getItem('token');
+        const res = await fetch('/api/loyalty/vouchers/validate', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          body: JSON.stringify({
+            code: normalized,
+            orderAmount: totalAmount,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || data.error || 'Voucher không hợp lệ.');
+        setAppliedCoupon(data.voucher);
+        toast.success(`Áp dụng voucher ${data.voucher.title} thành công!`);
+      } else {
+        const res = await fetch('/api/coupons/validate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+              code: normalized, 
+              orderValue: totalAmount,
+              boosterId: booster?._id // Gửi thêm ID của Booster để check mã của họ
+          })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Mã giảm giá không hợp lệ hoặc không thể áp dụng.');
 
-      setAppliedCoupon(data.coupon);
-      toast.success(`Áp dụng mã giảm giá thành công!`);
+        setAppliedCoupon(data.coupon);
+        toast.success(`Áp dụng mã giảm giá thành công!`);
+      }
     } catch (error: any) {
       toast.error(error.message);
       setAppliedCoupon(null);

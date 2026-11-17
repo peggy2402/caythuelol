@@ -16,6 +16,8 @@ export interface IUser extends Document {
   isEmailVerified: boolean;
   wallet_balance: number;
   pending_balance: number;
+  loyalty_points?: number;
+  total_points_earned?: number;
   isBanned?: boolean;
   debt_info?: {
     is_in_debt: boolean;
@@ -81,6 +83,8 @@ const UserSchema: Schema = new Schema(
     },
     wallet_balance: { type: Number, default: 0 },
     pending_balance: { type: Number, default: 0 },
+    loyalty_points: { type: Number, default: 0 },
+    total_points_earned: { type: Number, default: 0 },
     isBanned: { type: Boolean, default: false },
     staff_permissions: {
       type: [String],
