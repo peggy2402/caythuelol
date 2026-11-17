@@ -825,7 +825,7 @@ export default function BoosterServicesStudio() {
                 <Plus size={22} />
               </div>
               <span className="font-extrabold text-sm text-white group-hover:text-cyan-300">
-                + Thêm Dịch Vụ Mới
+                Thêm Dịch Vụ Mới
               </span>
               <span className="text-xs text-zinc-500 text-center max-w-[200px] leading-relaxed">
                 Tạo gói cày đặc thù mang dấu ấn riêng của bạn
