@@ -25,13 +25,13 @@ function ScrollSection({
 }) {
   return (
     <motion.section
-      initial={{ opacity: 0, y: 45 }}
+      initial={{ opacity: 0, y: 25 }}
       whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, amount: 0.12 }}
+      viewport={{ once: true, amount: 0.05 }}
       transition={{
-        duration: 0.75,
+        duration: 0.5,
         delay,
-        ease: [0.22, 1, 0.36, 1], // Smooth custom cubic bezier
+        ease: [0.22, 1, 0.36, 1],
       }}
       className={className}
     >
