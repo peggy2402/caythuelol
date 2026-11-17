@@ -2,6 +2,22 @@
 
 export type GameBadge = 'HOT' | 'Mới' | 'Phổ Biến' | 'Đề xuất' | 'Xu hướng';
 
+export interface GameMetrics {
+  totalOrders: number; // Tổng số đơn đã thực hiện
+  recentOrders: number; // Số đơn đặt gần đây (7-30 ngày qua)
+  activeBoosters: number; // Số lượng Booster đang sẵn sàng nhận kèo
+  averageRating: number; // Điểm đánh giá trung bình (1.0 - 5.0)
+  totalReviews: number; // Tổng lượt đánh giá từ khách hàng
+  isNew?: boolean; // Đánh dấu game mới thêm
+  createdAt?: string; // Ngày phát hành / ngày đưa lên hệ thống (ISO string)
+}
+
+export interface CalculatedBadgeResult {
+  badge: GameBadge | null;
+  reason: string;
+  isAuto: boolean;
+}
+
 export interface GameDefinition {
   id: string;
   name: string;
@@ -12,7 +28,9 @@ export interface GameDefinition {
   accentColor: string;
   banner: string; // Fallback local image path (e.g. /images/games/lol-card.jpg)
   bannerUrl?: string; // Online image URL (CDN, Imgur, Cloudinary...)
-  badge?: GameBadge; // Nhãn nổi bật: HOT, Mới, Phổ Biến, Đề xuất, Xu hướng
+  badge?: GameBadge; // Nhãn fallback hoặc gán thủ công: HOT, Mới, Phổ Biến, Đề xuất, Xu hướng
+  badgeMode?: 'AUTO' | 'MANUAL'; // Chế độ tính nhãn: AUTO (tự động theo metrics) hoặc MANUAL (chỉ định cứng)
+  metrics?: GameMetrics; // Số liệu thống kê vận hành thực tế
   active: boolean;
   standardRanks: string[];
   standardServers: { code: string; name: string }[];
@@ -29,6 +47,104 @@ export interface GameDefinition {
   }[];
 }
 
+/**
+ * Thuật toán tính toán "Badge" tự động dựa trên chất lượng & số liệu thực tế nền tảng LEORANK:
+ * - "HOT": Nhiều đơn + Nhiều boosters + Nhiều đánh giá + Tỉ lệ vote cao
+ * - "Xu hướng": Số lượng đơn tăng trưởng mạnh gần đây
+ * - "Đề xuất": Chất lượng cao (uy tín), tỉ lệ vote cao vượt trội
+ * - "Phổ biến": Nhiều đơn đặt liên tục
+ * - "Mới": Tựa game mới ra mắt / mới thêm vào sàn
+ * - Fallback: Nếu badgeMode === 'MANUAL', tôn trọng nhãn thủ công của Staff.
+ */
+export function resolveGameBadge(game: GameDefinition): CalculatedBadgeResult {
+  // 1. Nếu Staff chủ động chọn MANUAL Override
+  if (game.badgeMode === 'MANUAL' && game.badge) {
+    return {
+      badge: game.badge,
+      reason: 'Gán thủ công bởi Staff (Manual Override)',
+      isAuto: false,
+    };
+  }
+
+  const m = game.metrics;
+  if (!m) {
+    return {
+      badge: game.badge || null,
+      reason: game.badge ? 'Cấu hình fallback mặc định' : 'Chưa có số liệu',
+      isAuto: false,
+    };
+  }
+
+  const isNewlyAdded =
+    m.isNew ||
+    (m.createdAt && Date.now() - new Date(m.createdAt).getTime() < 45 * 24 * 60 * 60 * 1000);
+
+  // 2. "HOT": Nhiều đơn + Nhiều boosters + Nhiều đánh giá + Tỉ lệ vote cao
+  if (
+    m.totalOrders >= 25 &&
+    m.activeBoosters >= 6 &&
+    m.totalReviews >= 8 &&
+    m.averageRating >= 4.8
+  ) {
+    return {
+      badge: 'HOT',
+      reason: `Nhiều đơn (${m.totalOrders}), ${m.activeBoosters} boosters, ${m.totalReviews} đánh giá (${m.averageRating.toFixed(1)}★)`,
+      isAuto: true,
+    };
+  }
+
+  // 3. "Đề xuất": Chất lượng cao (uy tín), tỉ lệ vote cao
+  if (m.averageRating >= 4.85 && m.totalReviews >= 5) {
+    return {
+      badge: 'Đề xuất',
+      reason: `Chất lượng cao (${m.averageRating.toFixed(1)}★), ${m.totalReviews} lượt đánh giá uy tín`,
+      isAuto: true,
+    };
+  }
+
+  // 4. "Phổ biến": Nhiều đơn đặt liên tục
+  if (m.recentOrders >= 12 || m.totalOrders >= 20) {
+    return {
+      badge: 'Phổ Biến',
+      reason: `Khách hàng đặt liên tục (${m.recentOrders} đơn gần đây / ${m.totalOrders} tổng đơn)`,
+      isAuto: true,
+    };
+  }
+
+  // 5. "Xu hướng": Nhiều đơn tăng trưởng nhanh
+  if (m.recentOrders >= 6 || m.totalOrders >= 10) {
+    return {
+      badge: 'Xu hướng',
+      reason: `Nhiều đơn tăng nhanh gần đây (${m.recentOrders} đơn)`,
+      isAuto: true,
+    };
+  }
+
+  // 6. "Mới": Game mới ra mắt
+  if (isNewlyAdded) {
+    return {
+      badge: 'Mới',
+      reason: 'Tựa game mới đưa lên hệ thống LEORANK',
+      isAuto: true,
+    };
+  }
+
+  // 7. Fallback về manual badge nếu có
+  if (game.badge) {
+    return {
+      badge: game.badge,
+      reason: 'Nhãn mặc định fallback',
+      isAuto: false,
+    };
+  }
+
+  return {
+    badge: null,
+    reason: 'Chưa đủ điều kiện xếp hạng nhãn',
+    isAuto: true,
+  };
+}
+
 export const GAMES_CATALOG: GameDefinition[] = [
   // 1. LEAGUE OF LEGENDS
   {
@@ -41,6 +157,14 @@ export const GAMES_CATALOG: GameDefinition[] = [
     accentColor: 'text-blue-400',
     banner: '/images/games/lol-card.jpg',
     badge: 'HOT',
+    badgeMode: 'AUTO',
+    metrics: {
+      totalOrders: 154,
+      recentOrders: 42,
+      activeBoosters: 28,
+      averageRating: 4.95,
+      totalReviews: 86,
+    },
     active: true,
     standardRanks: [
       'Iron',
@@ -76,6 +200,14 @@ export const GAMES_CATALOG: GameDefinition[] = [
     accentColor: 'text-amber-400',
     banner: '/images/games/tft-card.jpg',
     badge: 'Đề xuất',
+    badgeMode: 'AUTO',
+    metrics: {
+      totalOrders: 68,
+      recentOrders: 14,
+      activeBoosters: 12,
+      averageRating: 4.92,
+      totalReviews: 35,
+    },
     active: true,
     standardRanks: [
       'Iron',
@@ -109,6 +241,14 @@ export const GAMES_CATALOG: GameDefinition[] = [
     accentColor: 'text-rose-400',
     banner: '/images/games/val-card.jpg',
     badge: 'Phổ Biến',
+    badgeMode: 'AUTO',
+    metrics: {
+      totalOrders: 89,
+      recentOrders: 26,
+      activeBoosters: 19,
+      averageRating: 4.82,
+      totalReviews: 45,
+    },
     active: true,
     standardRanks: [
       'Iron',
@@ -140,6 +280,14 @@ export const GAMES_CATALOG: GameDefinition[] = [
     accentColor: 'text-amber-400',
     banner: '/images/games/cs2-card.jpg',
     badge: 'Xu hướng',
+    badgeMode: 'AUTO',
+    metrics: {
+      totalOrders: 42,
+      recentOrders: 18,
+      activeBoosters: 9,
+      averageRating: 4.75,
+      totalReviews: 24,
+    },
     active: true,
     standardRanks: [
       'Silver I - Elite',
@@ -285,6 +433,16 @@ export const GAMES_CATALOG: GameDefinition[] = [
     accentColor: 'text-emerald-400',
     banner: '/images/games/deltaforce-card.jpg',
     badge: 'Mới',
+    badgeMode: 'AUTO',
+    metrics: {
+      totalOrders: 6,
+      recentOrders: 5,
+      activeBoosters: 4,
+      averageRating: 4.8,
+      totalReviews: 3,
+      isNew: true,
+      createdAt: '2026-11-08',
+    },
     active: true,
     standardRanks: [
       'Bronze',
@@ -312,6 +470,14 @@ export const GAMES_CATALOG: GameDefinition[] = [
     accentColor: 'text-purple-400',
     banner: '/images/games/marvelrivals-card.jpg',
     badge: 'Xu hướng',
+    badgeMode: 'AUTO',
+    metrics: {
+      totalOrders: 28,
+      recentOrders: 16,
+      activeBoosters: 8,
+      averageRating: 4.75,
+      totalReviews: 14,
+    },
     active: true,
     standardRanks: [
       'Bronze',
@@ -342,6 +508,16 @@ export const GAMES_CATALOG: GameDefinition[] = [
     accentColor: 'text-amber-500',
     banner: '/images/games/poe2-card.jpg',
     badge: 'Mới',
+    badgeMode: 'AUTO',
+    metrics: {
+      totalOrders: 8,
+      recentOrders: 7,
+      activeBoosters: 5,
+      averageRating: 5.0,
+      totalReviews: 4,
+      isNew: true,
+      createdAt: '2026-11-01',
+    },
     active: true,
     standardRanks: [
       'Act 1-6 Campaign',

@@ -3,8 +3,8 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { ArrowRight, Flame, Sparkles, ThumbsUp, Award, TrendingUp } from 'lucide-react';
-import type { GameDefinition } from '@/lib/games';
+import { ArrowRight, Flame, Sparkles, ThumbsUp, Award, TrendingUp, Info } from 'lucide-react';
+import { resolveGameBadge, type GameDefinition } from '@/lib/games';
 
 interface GameCardProps {
   game: GameDefinition;
@@ -59,7 +59,9 @@ export default function GameCard({ game }: GameCardProps) {
     }
   };
 
-  const badgeInfo = game.badge ? BADGE_CONFIG[game.badge] : null;
+  // Tính toán nhãn thông minh dựa trên số liệu thực tế của game (HOT, Mới, Đề xuất, Xu hướng, Phổ biến)
+  const resolved = resolveGameBadge(game);
+  const badgeInfo = resolved.badge ? BADGE_CONFIG[resolved.badge] : null;
   const BadgeIcon = badgeInfo?.icon;
   const servicesCount = game.defaultServices?.length || 0;
 
@@ -106,6 +108,7 @@ export default function GameCard({ game }: GameCardProps) {
 
           {badgeInfo && (
             <span
+              title={resolved.reason}
               className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider border backdrop-blur-md transition-all ${badgeInfo.style}`}
             >
               {BadgeIcon && <BadgeIcon size={10} className="stroke-[2.5]" />}
