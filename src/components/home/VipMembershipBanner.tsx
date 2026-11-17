@@ -1,9 +1,25 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Crown, Shield, Check } from 'lucide-react';
 
 export default function VipMembershipBanner() {
+  const [vipPrice, setVipPrice] = useState('199.000 đ');
+  const [vipName, setVipName] = useState('LeoRank VIP Pass');
+  const [discountPercent, setDiscountPercent] = useState(10);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('leorank_vip_config');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.price) setVipPrice(`${Number(parsed.price).toLocaleString('vi-VN')} đ`);
+        if (parsed.name) setVipName(parsed.name);
+        if (parsed.discountPercent) setDiscountPercent(parsed.discountPercent);
+      }
+    } catch {}
+  }, []);
   return (
     <section className="py-16 relative z-10">
       <div className="container mx-auto px-6">
@@ -33,14 +49,14 @@ export default function VipMembershipBanner() {
               </div>
 
               <h3 className="text-3xl sm:text-4xl font-black text-white tracking-tight mb-2">
-                LeoRank VIP Pass
+                {vipName}
               </h3>
               <p className="text-zinc-400 text-sm max-w-sm mb-6">
-                Tối ưu chi phí leo rank dài hạn với mức giảm giá 10% trọn đời và đặc quyền ghép nhanh tuyển thủ Pro.
+                Tối ưu chi phí leo rank dài hạn với mức giảm giá {discountPercent}% trọn đời và đặc quyền ghép nhanh tuyển thủ Pro.
               </p>
 
               <div className="flex items-baseline gap-2 mb-6">
-                <span className="text-4xl font-black text-white font-mono">199.000 đ</span>
+                <span className="text-4xl font-black text-white font-mono">{vipPrice}</span>
                 <span className="text-zinc-400 text-sm">/ tháng</span>
               </div>
 

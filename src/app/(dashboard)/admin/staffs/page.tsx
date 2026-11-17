@@ -24,6 +24,7 @@ import {
   Settings,
   CheckCircle2,
   Gamepad2,
+  Crown,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -100,6 +101,13 @@ const ALL_STAFF_PERMISSIONS = [
     desc: 'Quản lý danh mục game, bật/tắt hiển thị, gắn nhãn HOT/Mới và banner URL',
     icon: Gamepad2,
     color: 'text-cyan-400',
+  },
+  {
+    key: 'vip',
+    label: 'Hội Viên VIP (VIP Pass)',
+    desc: 'Quản lý danh sách hội viên VIP, cấp quyền và cấu hình gói LeoRank VIP Pass',
+    icon: Crown,
+    color: 'text-amber-400',
   },
   {
     key: 'settings',

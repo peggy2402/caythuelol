@@ -28,6 +28,7 @@ import {
   DoorOpen,
   UserCheck,
   Gamepad2,
+  Crown,
   X
 } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n';
@@ -199,6 +200,7 @@ export default function Sidebar({ className = '', onLinkClick, onClose }: Sideba
               {staffPerms.includes('blogs') && <NavItem href="/admin/blogs" icon={Newspaper} label={t('manageBlogs')} />}
               {staffPerms.includes('cron') && <NavItem href="/admin/cron" icon={ListTodo} label="Quản Lý Cron" />}
               {staffPerms.includes('games') && <NavItem href="/admin/games" icon={Gamepad2} label="Cấu hình Tựa Game" />}
+              {staffPerms.includes('vip') && <NavItem href="/admin/vip" icon={Crown} label="Hội Viên VIP" />}
               {staffPerms.includes('settings') && <NavItem href="/admin/settings" icon={Settings} label={t('systemSettings')} />}
             </>
           );
@@ -222,6 +224,7 @@ export default function Sidebar({ className = '', onLinkClick, onClose }: Sideba
             <NavItem href="/admin/disputes" icon={AlertTriangle} label="Quản lý Tranh chấp" />
             <NavItem href="/admin/cron" icon={ListTodo} label="Quản Lý Cron" />
             <NavItem href="/admin/games" icon={Gamepad2} label="Cấu hình Tựa Game" />
+            <NavItem href="/admin/vip" icon={Crown} label="Hội Viên VIP" />
             <NavItem href="/admin/settings" icon={Settings} label={t('systemSettings')} />
             <NavItem href="/admin/audit-logs" icon={ListTodo} label={t('auditLogs')} />
           </>
