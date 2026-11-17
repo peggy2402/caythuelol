@@ -311,6 +311,8 @@ export class BoostersService {
     search?: string;
     server?: string;
     service?: string;
+    game?: string;
+    gameCode?: string;
     sort?: string;
     page?: number;
     limit?: number;
@@ -341,6 +343,19 @@ export class BoostersService {
               { $ifNull: ['$booster_info.service_settings.enabledServices', []] },
             ],
           },
+          selectedGames: {
+            $setUnion: [
+              {
+                $map: {
+                  input: { $ifNull: ['$profileDoc.games', []] },
+                  as: 'g',
+                  in: '$$g.gameCode',
+                },
+              },
+              { $ifNull: ['$booster_info.main_games', []] },
+              { $ifNull: ['$booster_info.service_settings.selectedGames', []] },
+            ],
+          },
           rating: { $ifNull: ['$profileDoc.rating', '$booster_info.rating', 0] },
           completedOrders: {
             $ifNull: ['$profileDoc.completedOrders', '$booster_info.completed_orders', 0],
@@ -365,6 +380,29 @@ export class BoostersService {
         ],
       });
     }
+
+    const targetGame = (query.game || query.gameCode || '').trim();
+    if (targetGame) {
+      let normalized = targetGame.toUpperCase();
+      if (['VAL', 'VALORANT'].includes(normalized)) normalized = 'VALORANT';
+      else if (['LOL', 'LMHT', 'LEAGUE'].includes(normalized)) normalized = 'LOL';
+      else if (['TFT', 'DTCL'].includes(normalized)) normalized = 'TFT';
+      else if (['CS', 'CS2', 'CSGO'].includes(normalized)) normalized = 'CS2';
+      else if (['AOV', 'LQM', 'LIENQUAN'].includes(normalized)) normalized = 'AOV';
+      else if (['WILDRIFT', 'WR', 'TOCCHIEN'].includes(normalized)) normalized = 'WILDRIFT';
+
+      const gameRegex = new RegExp(`^(${normalized}|${targetGame})$`, 'i');
+      andConditions.push({
+        $or: [
+          { 'games.gameCode': { $regex: gameRegex } },
+          { 'profileDoc.games.gameCode': { $regex: gameRegex } },
+          { 'booster_info.main_games': { $regex: gameRegex } },
+          { 'booster_info.service_settings.selectedGames': { $regex: gameRegex } },
+          { selectedGames: { $regex: gameRegex } },
+        ],
+      });
+    }
+
     if (query.search) {
       andConditions.push({
         $or: [

@@ -78,13 +78,12 @@ export default function GameCard({ game }: GameCardProps) {
       {/* 2. Right Side Character Artwork / Banner with Smooth Gradient Fades */}
       <div className="absolute right-0 top-0 bottom-0 w-3/5 sm:w-1/2 overflow-hidden pointer-events-none z-0">
         {currentSrc && !isFailed ? (
-          <Image
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
             src={currentSrc}
             alt={game.name}
-            fill
-            sizes="(max-width: 768px) 50vw, 25vw"
             onError={handleImageError}
-            className="object-cover object-center group-hover:scale-105 transition-transform duration-700 opacity-65 group-hover:opacity-95"
+            className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-700 opacity-75 group-hover:opacity-100"
           />
         ) : (
           <div className="w-full h-full relative flex items-center justify-end pr-4">

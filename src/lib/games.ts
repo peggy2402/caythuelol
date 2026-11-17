@@ -768,12 +768,101 @@ export function resetStoredGamesCatalog(): void {
   }
 }
 
+export const GAME_ALIASES: Record<string, string> = {
+  // Valorant
+  val: 'valorant',
+  vlt: 'valorant',
+  valorant: 'valorant',
+  valmobile: 'valmobile',
+  valorantmobile: 'valmobile',
+  // League of Legends
+  lol: 'lol',
+  lmht: 'lol',
+  league: 'lol',
+  leagueoflegends: 'lol',
+  // Teamfight Tactics
+  tft: 'tft',
+  dtcl: 'tft',
+  dautruongchanly: 'tft',
+  // Counter-Strike 2
+  cs: 'cs2',
+  csgo: 'cs2',
+  cs2: 'cs2',
+  // Dota 2
+  dota: 'dota2',
+  dota2: 'dota2',
+  // Arena of Valor / Lien Quan
+  aov: 'aov',
+  lienquan: 'aov',
+  lqm: 'aov',
+  // Wild Rift
+  wildrift: 'wildrift',
+  tocchien: 'wildrift',
+  wr: 'wildrift',
+  // FC Online
+  fco: 'fco',
+  fconline: 'fco',
+  fifa: 'fco',
+  fifaonline4: 'fco',
+  fo4: 'fco',
+  // Apex Legends
+  apex: 'apex',
+  apexlegends: 'apex',
+  // Overwatch 2
+  ow: 'overwatch2',
+  ow2: 'overwatch2',
+  overwatch: 'overwatch2',
+  overwatch2: 'overwatch2',
+  // Naraka
+  naraka: 'naraka',
+  bladepoint: 'naraka',
+  // PUBG
+  pubg: 'pubg',
+  pubgpc: 'pubg',
+  pubgm: 'pubgm',
+  pubgmobile: 'pubgm',
+  // Free Fire
+  ff: 'freefire',
+  freefire: 'freefire',
+  // Call of Duty Mobile
+  codm: 'codm',
+  codmobile: 'codm',
+  callofduty: 'codm',
+  // POE 2
+  poe2: 'poe2',
+  poe: 'poe2',
+  // Delta Force
+  deltaforce: 'deltaforce',
+  df: 'deltaforce',
+  // Marvel Rivals
+  marvelrivals: 'marvelrivals',
+  marvel: 'marvelrivals',
+  // Truy Kich 2
+  truykich2: 'truykich2',
+  truykich: 'truykich2',
+};
+
 export function getGameById(gameId: string): GameDefinition | undefined {
+  if (!gameId) return undefined;
+  const raw = gameId.trim().toLowerCase();
+  const resolvedId = GAME_ALIASES[raw] || raw;
+
   const catalog = typeof window !== 'undefined' ? getStoredGamesCatalog() : GAMES_CATALOG;
-  return catalog.find(
-    (g) => g.id.toLowerCase() === gameId.toLowerCase()
-  ) || GAMES_CATALOG.find(
-    (g) => g.id.toLowerCase() === gameId.toLowerCase()
+  return (
+    catalog.find(
+      (g) =>
+        g.id.toLowerCase() === resolvedId ||
+        g.id.toLowerCase() === raw ||
+        g.shortName.toLowerCase() === raw ||
+        g.shortName.toLowerCase() === resolvedId
+    ) ||
+    GAMES_CATALOG.find(
+      (g) =>
+        g.id.toLowerCase() === resolvedId ||
+        g.id.toLowerCase() === raw ||
+        g.shortName.toLowerCase() === raw ||
+        g.shortName.toLowerCase() === resolvedId
+    )
   );
 }
 
