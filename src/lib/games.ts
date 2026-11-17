@@ -818,7 +818,7 @@ export interface ServiceTemplate {
   serviceType?: string;
   name: string;
   desc: string;
-  pricingType: 'FIXED' | 'PER_UNIT' | 'TIER_MATRIX';
+  pricingType: 'FIXED' | 'PER_UNIT' | 'TIER_MATRIX' | 'TIER_PER_POINT';
   defaultPrice: number;
   unitName?: string;
   depositPercent: number;
@@ -910,8 +910,8 @@ export const STANDARD_SERVICE_TEMPLATES: Record<string, ServiceTemplate[]> = {
       slug: 'net-wins',
       name: 'Cày Điểm RR (Immortal / Radiant)',
       desc: 'Cày điểm xếp hạng Rank Rating (RR) bậc Immortal và Radiant theo điểm số hoặc chuỗi trận.',
-      pricingType: 'PER_UNIT',
-      defaultPrice: 35000,
+      pricingType: 'TIER_PER_POINT',
+      defaultPrice: 5000,
       unitName: 'Điểm RR',
       depositPercent: 40,
       iconName: 'TrendingUp',

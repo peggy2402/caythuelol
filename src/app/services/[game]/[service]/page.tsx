@@ -523,7 +523,9 @@ function ServiceBookingContent() {
   // Point Boost States (Cày Điểm RR / LP)
   const pointTiers = useMemo(() => getPointBoostTiers(game.id), [game.id]);
   const [selectedPointSegment, setSelectedPointSegment] = useState<string>(isValorant ? 'immortal1_2' : 'master');
-  const [targetPoints, setTargetPoints] = useState<number>(50);
+  const [currentPoints, setCurrentPoints] = useState<number>(isValorant ? 40 : 0);
+  const [desiredPoints, setDesiredPoints] = useState<number>(isValorant ? 80 : 100);
+  const gainedPoints = useMemo(() => Math.max(0, desiredPoints - currentPoints), [desiredPoints, currentPoints]);
 
   // Modals States
   const [isRankModalOpen, setIsRankModalOpen] = useState(false);
@@ -696,7 +698,7 @@ function ServiceBookingContent() {
   // Tính toán bảng giá (Hỗ trợ Cày Điểm RR/LP và Cày Bậc Rank)
   const calculation = useMemo(() => {
     if (isPointBoost) {
-      const rawPointPrice = Math.round(targetPoints * segmentRate * lpMultiplier);
+      const rawPointPrice = Math.round(gainedPoints * segmentRate * lpMultiplier);
       let addonPercentage = 0;
       let addonFlatFee = 0;
       if (addons.duo && duoCfg.enabled) addonPercentage += (duoCfg.percent ?? 50) / 100;
@@ -713,7 +715,7 @@ function ServiceBookingContent() {
 
       return {
         basePrice: rawPointPrice,
-        stepsCount: targetPoints,
+        stepsCount: gainedPoints,
         addonsCost: totalAddons,
         totalPrice: total,
         depositAmount: Math.round(total * ratio),
@@ -734,7 +736,7 @@ function ServiceBookingContent() {
     });
   }, [
     isPointBoost,
-    targetPoints,
+    gainedPoints,
     segmentRate,
     currentRankId,
     desiredRankId,
@@ -934,7 +936,10 @@ function ServiceBookingContent() {
               is_point_boost: true,
               segment: selectedPointSegment,
               segment_label: selectedPointTierObj.label,
-              target_points: targetPoints,
+              current_points: currentPoints,
+              desired_points: desiredPoints,
+              gained_points: gainedPoints,
+              target_points: gainedPoints,
               unit: pointUnit,
               rate: segmentRate,
               lp_gain: lpGain,
@@ -1266,86 +1271,137 @@ function ServiceBookingContent() {
                     })}
                   </div>
 
-                  {/* Chọn Số Điểm Cần Cày (Target Points) */}
-                  <div className="p-4 sm:p-5 rounded-2xl bg-zinc-950/80 border border-zinc-800 space-y-3.5">
+                  {/* Nhập Điểm Hiện Tại & Điểm Mong Muốn (Dual Point Inputs) */}
+                  <div className="p-4 sm:p-5 rounded-2xl bg-zinc-950/80 border border-zinc-800 space-y-4">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
                       <div>
                         <span className="text-xs font-bold text-white flex items-center gap-2">
                           <Target size={14} className="text-amber-400" />
-                          <span>Số Điểm {pointUnit} Cần Cày Mục Tiêu</span>
+                          <span>Thiết Lập Điểm {pointUnit} (Hiện Tại → Mong Muốn)</span>
                           <span className="text-red-500">*</span>
                         </span>
                         <p className="text-[11px] text-zinc-400 mt-0.5">
-                          Tối thiểu 10 {pointUnit}, tuyển thủ sẽ cày tích lũy cho đến khi đạt đủ số điểm.
+                          Nhập số điểm thực tế hiện tại và mốc điểm bạn muốn đạt. Hệ thống sẽ tính số điểm chênh lệch cần cày.
                         </p>
                       </div>
 
                       <div className="text-right">
-                        <span className="text-xs text-zinc-400 block sm:inline">Tổng điểm:</span>{' '}
+                        <span className="text-xs text-zinc-400 block sm:inline">Cần cày:</span>{' '}
                         <span className="text-lg font-black font-mono text-amber-400">
-                          {targetPoints} {pointUnit}
+                          {gainedPoints} {pointUnit}
                         </span>
                       </div>
                     </div>
 
-                    {/* Stepper + Input */}
-                    <div className="flex items-center gap-3">
-                      <button
-                        type="button"
-                        onClick={() => setTargetPoints((prev) => Math.max(10, prev - 10))}
-                        className="w-10 h-10 rounded-xl bg-zinc-900 border border-zinc-700 text-white font-black hover:bg-zinc-800 active:scale-95 transition-all flex items-center justify-center shrink-0"
-                      >
-                        -
-                      </button>
-
-                      <div className="flex-1 relative">
-                        <input
-                          type="number"
-                          min="10"
-                          max="1000"
-                          step="5"
-                          value={targetPoints}
-                          onChange={(e) => {
-                            const val = parseInt(e.target.value);
-                            setTargetPoints(isNaN(val) ? 10 : Math.max(1, Math.min(1000, val)));
-                          }}
-                          className="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-2 text-center text-base font-black font-mono text-white outline-none focus:border-cyan-500"
-                        />
-                        <span className="text-xs text-zinc-500 font-bold absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
-                          {pointUnit}
-                        </span>
+                    {/* Dual Inputs Grid */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {/* 1. Điểm Hiện Tại */}
+                      <div className="p-3.5 rounded-xl bg-zinc-900 border border-zinc-800 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <label className="text-[11px] font-bold uppercase text-zinc-400">
+                            Điểm Hiện Tại
+                          </label>
+                          <span className="text-[10px] text-zinc-500 font-mono">Bắt đầu từ</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setCurrentPoints((p) => Math.max(0, p - 10))}
+                            className="w-8 h-8 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-white font-bold flex items-center justify-center shrink-0 cursor-pointer"
+                          >
+                            -
+                          </button>
+                          <div className="flex-1 relative">
+                            <input
+                              type="number"
+                              min="0"
+                              max="1000"
+                              value={currentPoints}
+                              onChange={(e) => {
+                                const val = parseInt(e.target.value);
+                                setCurrentPoints(isNaN(val) ? 0 : Math.max(0, val));
+                              }}
+                              className="w-full bg-zinc-950 border border-zinc-700 rounded-lg px-3 py-1.5 text-center text-sm font-bold font-mono text-white outline-none focus:border-cyan-500"
+                            />
+                            <span className="text-[10px] text-zinc-500 font-bold absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none">
+                              {pointUnit}
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setCurrentPoints((p) => p + 10)}
+                            className="w-8 h-8 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-white font-bold flex items-center justify-center shrink-0 cursor-pointer"
+                          >
+                            +
+                          </button>
+                        </div>
                       </div>
 
-                      <button
-                        type="button"
-                        onClick={() => setTargetPoints((prev) => Math.min(1000, prev + 10))}
-                        className="w-10 h-10 rounded-xl bg-zinc-900 border border-zinc-700 text-white font-black hover:bg-zinc-800 active:scale-95 transition-all flex items-center justify-center shrink-0"
-                      >
-                        +
-                      </button>
+                      {/* 2. Điểm Mong Muốn */}
+                      <div className="p-3.5 rounded-xl bg-zinc-900 border border-zinc-800 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <label className="text-[11px] font-bold uppercase text-emerald-400">
+                            Điểm Mong Muốn
+                          </label>
+                          <span className="text-[10px] text-zinc-500 font-mono">Mục tiêu</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setDesiredPoints((p) => Math.max(currentPoints + 1, p - 10))}
+                            className="w-8 h-8 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-white font-bold flex items-center justify-center shrink-0 cursor-pointer"
+                          >
+                            -
+                          </button>
+                          <div className="flex-1 relative">
+                            <input
+                              type="number"
+                              min={currentPoints + 1}
+                              max="1000"
+                              value={desiredPoints}
+                              onChange={(e) => {
+                                const val = parseInt(e.target.value);
+                                setDesiredPoints(isNaN(val) ? currentPoints + 10 : Math.max(0, val));
+                              }}
+                              className="w-full bg-zinc-950 border border-zinc-700 rounded-lg px-3 py-1.5 text-center text-sm font-bold font-mono text-emerald-400 outline-none focus:border-emerald-500"
+                            />
+                            <span className="text-[10px] text-zinc-500 font-bold absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none">
+                              {pointUnit}
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setDesiredPoints((p) => p + 10)}
+                            className="w-8 h-8 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-white font-bold flex items-center justify-center shrink-0 cursor-pointer"
+                          >
+                            +
+                          </button>
+                        </div>
+                      </div>
                     </div>
 
-                    {/* Quick Add Chips */}
+                    {/* Cảnh báo nếu điểm mong muốn <= điểm hiện tại */}
+                    {desiredPoints <= currentPoints && (
+                      <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs flex items-center gap-2">
+                        <span className="font-bold">⚠️ Lưu ý:</span>
+                        <span>Điểm mong muốn phải lớn hơn điểm hiện tại để tuyển thủ có thể thực hiện.</span>
+                      </div>
+                    )}
+
+                    {/* Quick presets */}
                     <div className="flex items-center gap-2 pt-1">
-                      <span className="text-[11px] text-zinc-500 shrink-0">Cộng nhanh:</span>
+                      <span className="text-[11px] text-zinc-500 shrink-0">Cộng thêm nhanh:</span>
                       <div className="flex items-center gap-1.5 flex-wrap">
-                        {[10, 25, 50, 100].map((pts) => (
+                        {[20, 40, 60, 80, 100].map((pts) => (
                           <button
                             key={pts}
                             type="button"
-                            onClick={() => setTargetPoints((prev) => Math.min(1000, prev + pts))}
-                            className="px-2.5 py-1 rounded-lg bg-zinc-900 hover:bg-zinc-800 border border-zinc-700/80 text-[11px] font-bold font-mono text-zinc-300 hover:text-white transition-colors"
+                            onClick={() => setDesiredPoints(currentPoints + pts)}
+                            className="px-2.5 py-1 rounded-lg bg-zinc-900 hover:bg-zinc-800 border border-zinc-700/80 text-[11px] font-bold font-mono text-zinc-300 hover:text-white transition-colors cursor-pointer"
                           >
-                            +{pts}
+                            +{pts} {pointUnit}
                           </button>
                         ))}
-                        <button
-                          type="button"
-                          onClick={() => setTargetPoints(100)}
-                          className="px-2.5 py-1 rounded-lg bg-cyan-950/40 hover:bg-cyan-950/80 border border-cyan-500/30 text-[11px] font-bold font-mono text-cyan-300 transition-colors ml-auto"
-                        >
-                          Chuẩn 100 {pointUnit}
-                        </button>
                       </div>
                     </div>
                   </div>
@@ -1808,7 +1864,7 @@ function ServiceBookingContent() {
               <h3 className="text-base font-extrabold text-white flex items-center justify-between">
                 <span>{isPointBoost ? `Tóm Tắt Đơn Cày Điểm ${pointUnit}` : 'Tóm Tắt Đơn Cày Rank'}</span>
                 <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">
-                  {isPointBoost ? `${targetPoints} ${pointUnit} mục tiêu` : `${calculation.stepsCount} bậc thăng hạng`}
+                  {isPointBoost ? `${gainedPoints} ${pointUnit} (+${gainedPoints})` : `${calculation.stepsCount} bậc thăng hạng`}
                 </span>
               </h3>
 
@@ -1823,9 +1879,21 @@ function ServiceBookingContent() {
                       </span>
                     </div>
                     <div className="flex justify-between text-zinc-400">
+                      <span>Điểm hiện tại:</span>
+                      <span className="font-bold font-mono text-zinc-300">
+                        {currentPoints} {pointUnit}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-zinc-400">
+                      <span>Điểm mong muốn:</span>
+                      <span className="font-bold font-mono text-emerald-400">
+                        {desiredPoints} {pointUnit}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-zinc-400">
                       <span>Số điểm cần cày:</span>
-                      <span className="font-bold font-mono text-white">
-                        {targetPoints} {pointUnit}
+                      <span className="font-bold font-mono text-amber-400">
+                        {gainedPoints} {pointUnit}
                       </span>
                     </div>
                     <div className="flex justify-between text-zinc-400">

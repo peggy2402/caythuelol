@@ -431,9 +431,27 @@ export default function BoosterServicesStudio() {
     setEditingServiceId(svc.id);
     setModalStep(1);
     const svcGame = (svc.gameCode || activeGameCode).toUpperCase();
+    const isVal = svcGame === 'VALORANT';
     const templates = STANDARD_SERVICE_TEMPLATES[svcGame] || STANDARD_SERVICE_TEMPLATES['UNIVERSAL'] || [];
     setAvailableServiceTypes(templates);
-    setFormData({ ...svc, gameCode: svcGame });
+
+    let cleanName = svc.name;
+    if (isVal && (cleanName.includes('Cao Thủ') || cleanName.includes('LP') || cleanName.toLowerCase() === 'cày điểm ...' || cleanName === 'Cày Điểm')) {
+      cleanName = 'Cày Điểm RR (Immortal / Radiant)';
+    }
+    let cleanDesc = svc.desc || '';
+    if (isVal && (cleanDesc.includes('Cao Thủ') || cleanDesc.includes('LP') || cleanDesc.includes('Đại Cao Thủ'))) {
+      cleanDesc = 'Cày điểm xếp hạng Rank Rating (RR) bậc Immortal và Radiant theo điểm số.';
+    }
+    const cleanUnit = isVal ? 'Điểm RR' : (svc.unitName || 'Điểm LP');
+
+    setFormData({
+      ...svc,
+      gameCode: svcGame,
+      name: cleanName,
+      desc: cleanDesc,
+      unitName: cleanUnit,
+    });
     setIsModalOpen(true);
   };
 
@@ -751,10 +769,34 @@ export default function BoosterServicesStudio() {
           /* NẾU CÓ DỊCH VỤ: HIỂN THỊ LƯỚI CARD DỊCH VỤ */
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             {currentServices.map((svc) => {
+              const svcGame = (svc.gameCode || activeGameCode || 'LOL').toUpperCase();
+              const isVal = svcGame === 'VALORANT';
               const isRankBoost = svc.serviceType === 'rank-boost' || svc.pricingType === 'TIER_MATRIX';
               const isPointBoost = svc.serviceType === 'net-wins' || svc.pricingType === 'TIER_PER_POINT';
               const isPerUnit = svc.pricingType === 'PER_UNIT';
               const isEnabled = svc.isActive;
+
+              // Tên hiển thị chuẩn xác (chuẩn hóa tên phù hợp với game)
+              let displayName = svc.name;
+              if (isVal && (displayName.includes('Cao Thủ') || displayName.includes('Thách Đấu') || displayName.includes('LP') || displayName === 'Cày Điểm ...' || displayName === 'Cày Điểm')) {
+                displayName = 'Cày Điểm RR (Immortal / Radiant)';
+              }
+
+              // Đơn vị điểm (RR đối với Valorant, LP đối với LOL)
+              const pointUnit = isVal ? 'Điểm RR' : 'Điểm LP';
+              const badgeText = isRankBoost
+                ? 'Bậc Rank'
+                : isPointBoost
+                ? `Theo ${pointUnit}`
+                : isPerUnit
+                ? `Theo ${svc.unitName || 'Đơn vị'}`
+                : 'Trọn Gói';
+
+              // Mô tả hiển thị phù hợp game
+              let displayDesc = svc.desc || 'Dịch vụ do bạn tự cấu hình.';
+              if (isVal && (displayDesc.includes('Cao Thủ') || displayDesc.includes('LP') || displayDesc.includes('Đại Cao Thủ'))) {
+                displayDesc = 'Cày điểm xếp hạng Rank Rating (RR) bậc Immortal và Radiant theo điểm số.';
+              }
 
               return (
                 <div
@@ -769,7 +811,7 @@ export default function BoosterServicesStudio() {
                     {/* Header: Title + Badges + Edit/Trash/Switch */}
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-2 min-w-0 pr-2">
-                        <span className="font-extrabold text-white text-sm truncate">{svc.name}</span>
+                        <span className="font-extrabold text-white text-sm" title={displayName}>{displayName}</span>
                         <span
                           className={`text-[10px] font-bold px-2 py-0.5 rounded-md border shrink-0 ${
                             isRankBoost
@@ -781,13 +823,7 @@ export default function BoosterServicesStudio() {
                               : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
                           }`}
                         >
-                          {isRankBoost
-                            ? 'Bậc Rank'
-                            : isPointBoost
-                            ? 'Theo Điểm LP'
-                            : isPerUnit
-                            ? `Theo ${svc.unitName || 'Đơn vị'}`
-                            : 'Trọn Gói'}
+                          {badgeText}
                         </span>
                       </div>
 
@@ -829,7 +865,7 @@ export default function BoosterServicesStudio() {
                     </div>
 
                     <p className="text-xs text-zinc-400 line-clamp-2 mb-4 leading-relaxed min-h-[32px]">
-                      {svc.desc || 'Dịch vụ do bạn tự cấu hình.'}
+                      {displayDesc}
                     </p>
                   </div>
 
