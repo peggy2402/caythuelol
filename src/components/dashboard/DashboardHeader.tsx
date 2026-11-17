@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { ShieldCheck, Zap, CreditCard, Wallet, Globe } from 'lucide-react';
+import { ShieldCheck, Zap, CreditCard, Wallet } from 'lucide-react';
 
 interface DashboardHeaderProps {
   user: any;
@@ -12,8 +12,8 @@ interface DashboardHeaderProps {
     color: string;
     bg: string;
   };
-  language: string;
-  setLanguage: (lang: any) => void;
+  language?: string;
+  setLanguage?: (lang: any) => void;
   onOpenDeposit: () => void;
 }
 
@@ -21,8 +21,6 @@ export default function DashboardHeader({
   user,
   activeOrdersCount,
   vip,
-  language,
-  setLanguage,
   onOpenDeposit
 }: DashboardHeaderProps) {
   return (
@@ -103,21 +101,6 @@ export default function DashboardHeader({
               <Wallet className="w-4 h-4 text-zinc-500" />
               <span>Ví Tiền</span>
             </Link>
-          </div>
-
-          {/* Language selector - desktop only to avoid mobile clutter */}
-          <div className="relative hidden md:block">
-            <select
-              value={language}
-              onChange={(e) => setLanguage(e.target.value)}
-              className="appearance-none rounded-xl bg-zinc-950/60 border border-zinc-800 py-3 pl-3.5 pr-8 text-xs font-bold text-zinc-300 hover:border-zinc-700 focus:outline-none focus:border-cyan-500 transition-colors cursor-pointer"
-            >
-              <option value="vi">VI (Tiếng Việt)</option>
-              <option value="en">EN (English)</option>
-              <option value="kr">KR (한국어)</option>
-              <option value="jp">JP (日本語)</option>
-            </select>
-            <Globe className="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-zinc-500" />
           </div>
         </div>
 
