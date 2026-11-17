@@ -245,6 +245,12 @@ export class AdminController {
   }
 
   // 9. Cài đặt hệ thống (Settings)
+  @Get('games-metrics')
+  @ApiOperation({ summary: 'Get real orders, ratings and boosters statistics per game' })
+  async getGameMetrics(): Promise<any> {
+    return this.adminService.getGameMetrics();
+  }
+
   @Get('settings')
   @ApiOperation({ summary: 'Get platform system settings list' })
   async getSettings(): Promise<any> {
