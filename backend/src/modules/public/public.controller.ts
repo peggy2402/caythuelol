@@ -5,6 +5,7 @@ import {
   Body,
   Param,
   Query,
+  Req,
   UseInterceptors,
   UploadedFile,
   BadRequestException,
@@ -24,6 +25,13 @@ export class PublicController {
   @ApiOperation({ summary: 'Get public platform settings and bank info' })
   async getPublicSettings() {
     return this.publicService.getPublicSettings();
+  }
+
+  @Public()
+  @Get('geo-locale')
+  @ApiOperation({ summary: 'Detect client geo country & suggest locale' })
+  async getGeoLocale(@Req() req: any) {
+    return this.publicService.detectGeoLocale(req);
   }
 
   @Public()
