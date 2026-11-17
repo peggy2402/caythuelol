@@ -815,6 +815,7 @@ export function getGameById(gameId: string): GameDefinition | undefined {
 
 export interface ServiceTemplate {
   slug: string;
+  serviceType?: string;
   name: string;
   desc: string;
   pricingType: 'FIXED' | 'PER_UNIT' | 'TIER_MATRIX';
@@ -822,6 +823,8 @@ export interface ServiceTemplate {
   unitName?: string;
   depositPercent: number;
   iconName: string;
+  requiresRankSteps?: boolean;
+  tierRates?: Record<string, number>;
 }
 
 export const STANDARD_SERVICE_TEMPLATES: Record<string, ServiceTemplate[]> = {
@@ -893,41 +896,11 @@ export const STANDARD_SERVICE_TEMPLATES: Record<string, ServiceTemplate[]> = {
       iconName: 'Swords',
     },
   ],
-  TFT: [
-    {
-      slug: 'rank-boost',
-      name: 'Cày Rank ĐTCL Siêu Tốc',
-      desc: 'Leo rank Đấu Trường Chân Lý top 4 đều đặn từ Sắt đến Thách Đấu.',
-      pricingType: 'TIER_MATRIX',
-      defaultPrice: 0,
-      depositPercent: 100,
-      iconName: 'Trophy',
-    },
-    {
-      slug: 'placements',
-      name: 'Phân Hạng ĐTCL (5 Trận)',
-      desc: 'Đảm bảo kết quả 5 trận phân hạng đầu mùa ĐTCL.',
-      pricingType: 'FIXED',
-      defaultPrice: 120000,
-      depositPercent: 100,
-      iconName: 'Medal',
-    },
-    {
-      slug: 'coaching',
-      name: 'Coaching ĐTCL 1-1',
-      desc: 'Hướng dẫn đọc meta, xoay bài, quản lý vàng và giữ máu hiệu quả.',
-      pricingType: 'PER_UNIT',
-      defaultPrice: 80000,
-      unitName: 'Giờ học',
-      depositPercent: 100,
-      iconName: 'Target',
-    },
-  ],
   VALORANT: [
     {
       slug: 'rank-boost',
-      name: 'Cày Rank Valorant Siêu Tốc',
-      desc: 'Leo rank từ Iron đến Radiant với aim sắc bén và tỷ lệ thắng ấn tượng.',
+      name: 'Cày Rank Valorant (Iron ➔ Radiant)',
+      desc: 'Leo rank từ Iron đến Radiant với aim sắc bén, tỷ lệ thắng cao và hoàn thành siêu tốc.',
       pricingType: 'TIER_MATRIX',
       defaultPrice: 0,
       depositPercent: 100,
@@ -935,8 +908,188 @@ export const STANDARD_SERVICE_TEMPLATES: Record<string, ServiceTemplate[]> = {
     },
     {
       slug: 'net-wins',
-      name: 'Cày Trận Thắng RR',
-      desc: 'Cày điểm xếp hạng RR hoặc thắng ròng theo số trận.',
+      name: 'Cày Điểm RR (Immortal / Radiant)',
+      desc: 'Cày điểm xếp hạng Rank Rating (RR) bậc Immortal và Radiant theo điểm số hoặc chuỗi trận.',
+      pricingType: 'PER_UNIT',
+      defaultPrice: 35000,
+      unitName: 'Điểm RR',
+      depositPercent: 40,
+      iconName: 'TrendingUp',
+    },
+    {
+      slug: 'placements',
+      name: 'Phân Hạng Valorant (5 Trận)',
+      desc: 'Đảm bảo kết quả 5 trận phân hạng đạt Rank khởi đầu cao nhất trong Episode/Act mới.',
+      pricingType: 'FIXED',
+      defaultPrice: 180000,
+      depositPercent: 100,
+      iconName: 'Medal',
+    },
+    {
+      slug: 'leveling',
+      name: 'Cày Cấp 20 Mở Khóa Đấu Xếp Hạng',
+      desc: 'Cày cấp tài khoản lên Level 20 để mở khóa chế độ Competitive (Đấu Xếp Hạng) nhanh chóng.',
+      pricingType: 'FIXED',
+      defaultPrice: 150000,
+      depositPercent: 100,
+      iconName: 'Users',
+    },
+    {
+      slug: 'coaching',
+      name: 'Huấn Luyện Coaching 1-1 (Aim & Lineup)',
+      desc: 'Hướng dẫn kê tâm, setup góc bắn, lineup kỹ năng và đọc map cùng tuyển thủ Radiant.',
+      pricingType: 'PER_UNIT',
+      defaultPrice: 120000,
+      unitName: 'Giờ học',
+      depositPercent: 50,
+      iconName: 'Target',
+    },
+    {
+      slug: 'battle-pass',
+      name: 'Cày Battle Pass / Hợp Đồng Đặc Vụ',
+      desc: 'Cày kinh nghiệm hoàn thành Battle Pass mùa giải hoặc mở khóa đặc vụ (Agent Contract).',
+      pricingType: 'FIXED',
+      defaultPrice: 140000,
+      depositPercent: 100,
+      iconName: 'Zap',
+    },
+  ],
+  TFT: [
+    {
+      slug: 'rank-boost',
+      name: 'Cày Rank ĐTCL (Sắt ➔ Thách Đấu)',
+      desc: 'Leo rank cờ ĐTCL chuẩn meta, tối ưu kinh tế và bài đấu lên Thách Đấu.',
+      pricingType: 'TIER_MATRIX',
+      defaultPrice: 0,
+      depositPercent: 100,
+      iconName: 'Trophy',
+    },
+    {
+      slug: 'net-wins',
+      name: 'Cày Top 1-4 & LP Thách Đấu',
+      desc: 'Đảm bảo tỷ lệ vào Top 4 và cày điểm LP bậc Cao Thủ / Thách Đấu ĐTCL.',
+      pricingType: 'PER_UNIT',
+      defaultPrice: 2000,
+      unitName: 'Điểm LP',
+      depositPercent: 30,
+      iconName: 'TrendingUp',
+    },
+    {
+      slug: 'placements',
+      name: 'Phân Hạng Đầu Mùa ĐTCL (5 Trận)',
+      desc: 'Bắn chuỗi phân hạng khởi đầu mùa giải đạt vị trí cao nhất.',
+      pricingType: 'FIXED',
+      defaultPrice: 140000,
+      depositPercent: 100,
+      iconName: 'Medal',
+    },
+    {
+      slug: 'coaching',
+      name: 'Huấn Luyện Xoay Bài & Eco 1-1',
+      desc: 'Kèm 1-1 trực tiếp trong trận, hướng dẫn quản lý vàng, xoay bài linh hoạt theo roll.',
+      pricingType: 'PER_UNIT',
+      defaultPrice: 100000,
+      unitName: 'Giờ học',
+      depositPercent: 50,
+      iconName: 'Target',
+    },
+  ],
+  CS2: [
+    {
+      slug: 'rank-boost',
+      name: 'Cày Điểm CS Rating Premier',
+      desc: 'Tăng điểm CS Rating từ 5.000 đến 25.000+ điểm Premier chuyên nghiệp.',
+      pricingType: 'PER_UNIT',
+      defaultPrice: 25000,
+      unitName: '1.000 Điểm',
+      depositPercent: 30,
+      iconName: 'TrendingUp',
+    },
+    {
+      slug: 'net-wins',
+      name: 'Cày Thắng Trận Competitive',
+      desc: 'Cày số trận thắng đảm bảo từng bản đồ (Dust II, Mirage, Inferno...).',
+      pricingType: 'PER_UNIT',
+      defaultPrice: 35000,
+      unitName: 'Trận thắng',
+      depositPercent: 50,
+      iconName: 'Trophy',
+    },
+    {
+      slug: 'placements',
+      name: 'Bắn 10 Trận Mở Xếp Hạng Premier',
+      desc: 'Đảm bảo 10 trận thắng đầu tiên để mở mốc xếp hạng CS Rating cao nhất.',
+      pricingType: 'FIXED',
+      defaultPrice: 200000,
+      depositPercent: 100,
+      iconName: 'Medal',
+    },
+    {
+      slug: 'coaching',
+      name: 'Huấn Luyện Aim & Nades 1-1',
+      desc: 'Dạy line-up smoke, flash, molly và chỉnh crosshair placement.',
+      pricingType: 'PER_UNIT',
+      defaultPrice: 120000,
+      unitName: 'Giờ học',
+      depositPercent: 50,
+      iconName: 'Target',
+    },
+  ],
+  DOTA2: [
+    {
+      slug: 'rank-boost',
+      name: 'Cày Điểm MMR Dota 2',
+      desc: 'Leo điểm MMR từ Herald đến Immortal cùng tuyển thủ top bảng xếp hạng.',
+      pricingType: 'PER_UNIT',
+      defaultPrice: 30000,
+      unitName: '100 MMR',
+      depositPercent: 40,
+      iconName: 'TrendingUp',
+    },
+    {
+      slug: 'net-wins',
+      name: 'Cày Trận Thắng Dota 2',
+      desc: 'Đảm bảo thắng ròng các trận đấu xếp hạng.',
+      pricingType: 'PER_UNIT',
+      defaultPrice: 40000,
+      unitName: 'Trận thắng',
+      depositPercent: 50,
+      iconName: 'Trophy',
+    },
+    {
+      slug: 'placements',
+      name: 'Phân Hạng Calibration (10 Trận)',
+      desc: 'Phân hạng điểm khởi đầu mùa giải cao nhất có thể.',
+      pricingType: 'FIXED',
+      defaultPrice: 220000,
+      depositPercent: 100,
+      iconName: 'Medal',
+    },
+    {
+      slug: 'coaching',
+      name: 'Coaching 1-1 Dota 2',
+      desc: 'Phân tích replay, kiểm soát laning phase, macro game.',
+      pricingType: 'PER_UNIT',
+      defaultPrice: 120000,
+      unitName: 'Giờ học',
+      depositPercent: 50,
+      iconName: 'Target',
+    },
+  ],
+  OVERWATCH2: [
+    {
+      slug: 'rank-boost',
+      name: 'Cày Rank Overwatch 2 (Bronze ➔ Grandmaster)',
+      desc: 'Leo rank theo bậc từ Bronze đến Grandmaster / Top 500.',
+      pricingType: 'TIER_MATRIX',
+      defaultPrice: 0,
+      depositPercent: 100,
+      iconName: 'Trophy',
+    },
+    {
+      slug: 'net-wins',
+      name: 'Cày Trận Thắng Overwatch 2',
+      desc: 'Đảm bảo chuỗi trận thắng ròng các vị trí Tank / Damage / Support.',
       pricingType: 'PER_UNIT',
       defaultPrice: 35000,
       unitName: 'Trận thắng',
@@ -945,19 +1098,69 @@ export const STANDARD_SERVICE_TEMPLATES: Record<string, ServiceTemplate[]> = {
     },
     {
       slug: 'placements',
-      name: 'Phân Hạng Valorant (5 Trận)',
-      desc: 'Bắn 5 trận phân hạng đạt Rank khởi đầu cao nhất.',
+      name: 'Phân Hạng Mùa Giải (5 Trận)',
+      desc: 'Đảm bảo kết quả 5 trận phân hạng cao nhất.',
       pricingType: 'FIXED',
       defaultPrice: 180000,
       depositPercent: 100,
       iconName: 'Medal',
+    },
+    {
+      slug: 'coaching',
+      name: 'Huấn Luyện Coaching 1-1',
+      desc: 'Hướng dẫn định vị trí, phối hợp combo chiêu cuối và aim.',
+      pricingType: 'PER_UNIT',
+      defaultPrice: 120000,
+      unitName: 'Giờ học',
+      depositPercent: 50,
+      iconName: 'Target',
+    },
+  ],
+  UNIVERSAL: [
+    {
+      slug: 'rank-boost',
+      name: 'Cày Rank Xếp Hạng Siêu Tốc',
+      desc: 'Leo rank thăng hạng nhanh chóng với tỷ lệ thắng vượt trội.',
+      pricingType: 'TIER_MATRIX',
+      defaultPrice: 0,
+      depositPercent: 100,
+      iconName: 'Trophy',
+    },
+    {
+      slug: 'net-wins',
+      name: 'Cày Trận Thắng Đảm Bảo',
+      desc: 'Đảm bảo số trận thắng ròng xếp hạng theo yêu cầu.',
+      pricingType: 'PER_UNIT',
+      defaultPrice: 30000,
+      unitName: 'Trận thắng',
+      depositPercent: 40,
+      iconName: 'TrendingUp',
+    },
+    {
+      slug: 'placements',
+      name: 'Cày Trận Phân Hạng Đầu Mùa',
+      desc: 'Đảm bảo kết quả tối đa các trận phân hạng mở màn mùa giải mới.',
+      pricingType: 'FIXED',
+      defaultPrice: 150000,
+      depositPercent: 100,
+      iconName: 'Medal',
+    },
+    {
+      slug: 'coaching',
+      name: 'Huấn Luyện Coaching 1-1',
+      desc: 'Dạy kèm 1-1, phân tích replay, hướng dẫn kỹ năng nâng cao cùng tuyển thủ.',
+      pricingType: 'PER_UNIT',
+      defaultPrice: 100000,
+      unitName: 'Giờ học',
+      depositPercent: 50,
+      iconName: 'Target',
     },
   ],
 };
 
 export function getServiceMeta(gameCode: string, slug: string): ServiceTemplate | undefined {
   const code = (gameCode || 'LOL').toUpperCase();
-  const list = STANDARD_SERVICE_TEMPLATES[code] || STANDARD_SERVICE_TEMPLATES['LOL'];
+  const list = STANDARD_SERVICE_TEMPLATES[code] || STANDARD_SERVICE_TEMPLATES['UNIVERSAL'] || STANDARD_SERVICE_TEMPLATES['LOL'];
   return list.find((s) => s.slug === slug);
 }
 

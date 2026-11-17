@@ -37,7 +37,12 @@ import {
   getServiceMeta,
   ServiceTemplate,
 } from '@/lib/games';
-import { LOL_RANK_STEPS } from '@/lib/rank-calculator';
+import {
+  LOL_RANK_STEPS,
+  VALORANT_RANK_STEPS,
+  getRankSteps,
+  getRankImage,
+} from '@/lib/rank-calculator';
 
 const ICON_MAP: Record<string, LucideIcon> = {
   Swords,
@@ -319,16 +324,64 @@ export default function BoosterServicesStudio() {
     await syncAllServices(updated);
   };
 
+  // Khi đổi tựa game trong Modal thêm/sửa dịch vụ
+  const handleGameChangeInModal = async (newGameCode: string) => {
+    const code = newGameCode.toUpperCase();
+    const fallbackTemplates =
+      STANDARD_SERVICE_TEMPLATES[code] || STANDARD_SERVICE_TEMPLATES['UNIVERSAL'] || [];
+    setAvailableServiceTypes(fallbackTemplates);
+
+    try {
+      const res = await fetch(`/api/boosters/service-types?gameCode=${code}`);
+      if (res.ok) {
+        const json = await res.json();
+        if (Array.isArray(json.data) && json.data.length > 0) {
+          setAvailableServiceTypes(json.data);
+        }
+      }
+    } catch (e) {
+      // fallback already set
+    }
+
+    const firstTpl = fallbackTemplates[0] || {
+      slug: 'rank-boost',
+      name: 'Cày Rank Xếp Hạng',
+      desc: 'Dịch vụ leo rank',
+      pricingType: 'TIER_MATRIX',
+      defaultPrice: 0,
+      depositPercent: 100,
+      iconName: 'Trophy',
+    };
+
+    setFormData((prev) => ({
+      ...prev,
+      gameCode: code,
+      serviceType: firstTpl.serviceType || firstTpl.slug || 'rank-boost',
+      slug: firstTpl.slug || firstTpl.serviceType || 'rank-boost',
+      name: firstTpl.name,
+      desc: firstTpl.desc,
+      pricingType: firstTpl.pricingType || 'TIER_MATRIX',
+      price: firstTpl.defaultPrice || 0,
+      unitName: firstTpl.unitName || (code === 'VALORANT' ? 'Điểm RR' : 'Điểm LP'),
+      depositPercent: firstTpl.depositPercent ?? (firstTpl.serviceType === 'net-wins' ? 40 : 100),
+      stepOverrides: {},
+    }));
+  };
+
   // Mở modal Thêm Dịch Vụ Mới
   const handleOpenAddModal = () => {
     setEditingServiceId(null);
     setModalStep(1);
 
-    const firstTpl = availableServiceTypes[0] || {
+    const templates =
+      STANDARD_SERVICE_TEMPLATES[activeGameCode] || STANDARD_SERVICE_TEMPLATES['UNIVERSAL'] || [];
+    setAvailableServiceTypes(templates);
+
+    const firstTpl = templates[0] || {
       serviceType: 'rank-boost',
       slug: 'rank-boost',
       name: 'Cày Rank / Elo Siêu Tốc',
-      desc: 'Leo rank bước nhảy từ Sắt IV đến Cao Thủ với tỷ lệ thắng cao và hoàn thành nhanh chóng.',
+      desc: 'Leo rank bước nhảy với tỷ lệ thắng cao và hoàn thành nhanh chóng.',
       pricingType: 'TIER_MATRIX',
       depositPercent: 100,
     };
@@ -342,8 +395,8 @@ export default function BoosterServicesStudio() {
       desc: firstTpl.desc || '',
       pricingType: firstTpl.pricingType || 'TIER_MATRIX',
       price: firstTpl.defaultPrice || 0,
-      unitName: firstTpl.unitName || 'Điểm LP',
-      depositPercent: firstTpl.serviceType === 'net-wins' ? 30 : 100,
+      unitName: firstTpl.unitName || (activeGameCode === 'VALORANT' ? 'Điểm RR' : 'Điểm LP'),
+      depositPercent: firstTpl.depositPercent ?? (firstTpl.serviceType === 'net-wins' ? 40 : 100),
       stepOverrides: {},
       tierRates: {
         master: 1000,
@@ -360,7 +413,10 @@ export default function BoosterServicesStudio() {
   const handleOpenEditModal = (svc: CustomService) => {
     setEditingServiceId(svc.id);
     setModalStep(1);
-    setFormData({ ...svc });
+    const svcGame = (svc.gameCode || activeGameCode).toUpperCase();
+    const templates = STANDARD_SERVICE_TEMPLATES[svcGame] || STANDARD_SERVICE_TEMPLATES['UNIVERSAL'] || [];
+    setAvailableServiceTypes(templates);
+    setFormData({ ...svc, gameCode: svcGame });
     setIsModalOpen(true);
   };
 
@@ -393,8 +449,8 @@ export default function BoosterServicesStudio() {
         desc: tpl.desc,
         pricingType: tpl.pricingType,
         price: tpl.defaultPrice || 0,
-        unitName: tpl.unitName || 'Điểm LP',
-        depositPercent: tpl.serviceType === 'net-wins' ? 30 : 100,
+        unitName: tpl.unitName || (prev.gameCode === 'VALORANT' ? 'Điểm RR' : 'Điểm LP'),
+        depositPercent: tpl.depositPercent ?? (tpl.serviceType === 'net-wins' ? 40 : 100),
         tierRates: tpl.tierRates || prev.tierRates || {
           master: 1000,
           grandmaster: 1500,
@@ -1344,128 +1400,145 @@ export default function BoosterServicesStudio() {
       </div>
 
       {/* ========================================================================= */}
-      {/* MODAL 1: BẢNG GIÁ 29 BẬC RANK CHO DỊCH VỤ CÀY RANK (SẮT IV -> CAO THỦ)    */}
+      {/* MODAL 1: BẢNG GIÁ BẬC RANK CHO DỊCH VỤ CÀY RANK                             */}
       {/* ========================================================================= */}
-      {showRankTableModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-200">
-          <div className="bg-zinc-900 border border-zinc-800 rounded-3xl w-full max-w-2xl max-h-[85vh] flex flex-col shadow-2xl overflow-hidden">
-            <div className="p-5 border-b border-zinc-800 flex justify-between items-center bg-zinc-950">
-              <div>
-                <h3 className="text-base font-bold text-white flex items-center gap-2">
-                  <Trophy size={18} className="text-amber-400" />
-                  <span>Bảng Giá 29 Bậc Rank LMHT (Sắt IV → Cao Thủ)</span>
-                </h3>
-                <p className="text-xs text-zinc-400 mt-0.5">
-                  Tùy chỉnh số tiền thực tế nhận cho từng bước nhảy rank (để trống để dùng giá sàn đề xuất).
-                </p>
+      {showRankTableModal && (() => {
+        const activeEditingService = activeRankEditingServiceId
+          ? customServices.find((s) => s.id === activeRankEditingServiceId)
+          : null;
+        const modalGameCode = (activeEditingService?.gameCode || activeGameCode || 'LOL').toUpperCase();
+        const currentRankSteps = getRankSteps(modalGameCode);
+        const gameDef = GAMES_CATALOG.find((g) => g.id.toUpperCase() === modalGameCode);
+
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-200">
+            <div className="bg-zinc-900 border border-zinc-800 rounded-3xl w-full max-w-2xl max-h-[85vh] flex flex-col shadow-2xl overflow-hidden">
+              <div className="p-5 border-b border-zinc-800 flex justify-between items-center bg-zinc-950">
+                <div>
+                  <h3 className="text-base font-bold text-white flex items-center gap-2">
+                    <Trophy size={18} className="text-amber-400" />
+                    <span>
+                      Bảng Giá Bậc Rank {gameDef?.name || modalGameCode} ({currentRankSteps[0]?.label} → {currentRankSteps[currentRankSteps.length - 1]?.label})
+                    </span>
+                  </h3>
+                  <p className="text-xs text-zinc-400 mt-0.5">
+                    Tùy chỉnh số tiền thực tế nhận cho từng bước nhảy rank (để trống để dùng giá sàn đề xuất).
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowRankTableModal(false)}
+                  className="text-zinc-500 hover:text-white"
+                >
+                  <X size={20} />
+                </button>
               </div>
-              <button
-                onClick={() => setShowRankTableModal(false)}
-                className="text-zinc-500 hover:text-white"
-              >
-                <X size={20} />
-              </button>
-            </div>
 
-            <div className="p-5 overflow-y-auto space-y-3 flex-1">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                {LOL_RANK_STEPS.slice(0, -1).map((step, idx) => {
-                  const nextStep = LOL_RANK_STEPS[idx + 1];
-                  const currentOverride = activeRankEditingServiceId
-                    ? customServices.find((s) => s.id === activeRankEditingServiceId)?.stepOverrides?.[step.id]
-                    : stepOverrides[step.id];
+              <div className="p-5 overflow-y-auto space-y-3 flex-1">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  {currentRankSteps.slice(0, -1).map((step, idx) => {
+                    const nextStep = currentRankSteps[idx + 1];
+                    const currentOverride = activeRankEditingServiceId
+                      ? customServices.find((s) => s.id === activeRankEditingServiceId)?.stepOverrides?.[step.id]
+                      : stepOverrides[step.id];
+                    const stepImg = getRankImage(modalGameCode, step);
+                    const nextImg = getRankImage(modalGameCode, nextStep);
 
-                  return (
-                    <div
-                      key={step.id}
-                      className="p-3 rounded-xl bg-zinc-950 border border-zinc-800 flex items-center justify-between gap-3"
-                    >
-                      <div className="text-xs font-semibold text-zinc-300">
-                        {step.label} → {nextStep.label}
-                      </div>
+                    return (
+                      <div
+                        key={step.id}
+                        className="p-3 rounded-xl bg-zinc-950 border border-zinc-800 flex items-center justify-between gap-3"
+                      >
+                        <div className="flex items-center gap-2 text-xs font-semibold text-zinc-300">
+                          <img src={stepImg} alt={step.label} className="w-5 h-5 object-contain shrink-0" />
+                          <span>{step.label}</span>
+                          <span className="text-zinc-500">➔</span>
+                          <img src={nextImg} alt={nextStep.label} className="w-5 h-5 object-contain shrink-0" />
+                          <span>{nextStep.label}</span>
+                        </div>
 
-                      <div className="relative w-32">
-                        <input
-                          type="number"
-                          placeholder={step.stepPrice.toLocaleString('vi-VN')}
-                          value={currentOverride || ''}
-                          onChange={(e) => {
-                            const val = parseInt(e.target.value);
-                            if (activeRankEditingServiceId) {
-                              const updated = customServices.map((s) => {
-                                if (s.id === activeRankEditingServiceId) {
-                                  const steps = { ...(s.stepOverrides || {}) };
-                                  if (isNaN(val) || val <= 0) {
-                                    delete steps[step.id];
-                                  } else {
-                                    steps[step.id] = val;
+                        <div className="relative w-28 shrink-0">
+                          <input
+                            type="number"
+                            placeholder={step.stepPrice.toLocaleString('vi-VN')}
+                            value={currentOverride || ''}
+                            onChange={(e) => {
+                              const val = parseInt(e.target.value);
+                              if (activeRankEditingServiceId) {
+                                const updated = customServices.map((s) => {
+                                  if (s.id === activeRankEditingServiceId) {
+                                    const steps = { ...(s.stepOverrides || {}) };
+                                    if (isNaN(val) || val <= 0) {
+                                      delete steps[step.id];
+                                    } else {
+                                      steps[step.id] = val;
+                                    }
+                                    return { ...s, stepOverrides: steps };
                                   }
-                                  return { ...s, stepOverrides: steps };
-                                }
-                                return s;
-                              });
-                              setCustomServices(updated);
-                            } else {
-                              setStepOverrides((prev) => {
-                                const updated = { ...prev };
-                                if (isNaN(val) || val <= 0) {
-                                  delete updated[step.id];
-                                } else {
-                                  updated[step.id] = val;
-                                }
-                                return updated;
-                              });
-                            }
-                          }}
-                          className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-2 py-1 text-xs text-white font-mono font-bold text-right outline-none focus:border-cyan-500"
-                        />
-                        <span className="text-[10px] text-zinc-500 absolute right-8 top-1/2 -translate-y-1/2">
-                          đ
-                        </span>
+                                  return s;
+                                });
+                                setCustomServices(updated);
+                              } else {
+                                setStepOverrides((prev) => {
+                                  const updated = { ...prev };
+                                  if (isNaN(val) || val <= 0) {
+                                    delete updated[step.id];
+                                  } else {
+                                    updated[step.id] = val;
+                                  }
+                                  return updated;
+                                });
+                              }
+                            }}
+                            className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-2 py-1 text-xs text-white font-mono font-bold text-right outline-none focus:border-cyan-500"
+                          />
+                          <span className="text-[10px] text-zinc-500 absolute right-7 top-1/2 -translate-y-1/2">
+                            đ
+                          </span>
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
               </div>
-            </div>
 
-            <div className="p-4 bg-zinc-950 border-t border-zinc-800 flex justify-between items-center">
-              <button
-                type="button"
-                onClick={() => {
-                  if (activeRankEditingServiceId) {
-                    const updated = customServices.map((s) => {
-                      if (s.id === activeRankEditingServiceId) {
-                        return { ...s, stepOverrides: {} };
-                      }
-                      return s;
-                    });
-                    setCustomServices(updated);
-                    syncAllServices(updated);
-                  } else {
-                    setStepOverrides({});
-                    syncAllServices(customServices, addonsConfig, coupon, {});
-                  }
-                  toast.success('Đã đặt lại về bảng giá chuẩn sàn!');
-                }}
-                className="text-xs text-zinc-400 hover:text-white"
-              >
-                Đặt lại về giá sàn mặc định
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setShowRankTableModal(false);
-                  syncAllServices(customServices);
-                }}
-                className="px-5 py-2 rounded-xl bg-cyan-500 text-black font-black text-xs"
-              >
-                Xong & Lưu Bảng Giá
-              </button>
+              <div className="p-4 bg-zinc-950 border-t border-zinc-800 flex justify-between items-center">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (activeRankEditingServiceId) {
+                      const updated = customServices.map((s) => {
+                        if (s.id === activeRankEditingServiceId) {
+                          return { ...s, stepOverrides: {} };
+                        }
+                        return s;
+                      });
+                      setCustomServices(updated);
+                      syncAllServices(updated);
+                    } else {
+                      setStepOverrides({});
+                      syncAllServices(customServices, addonsConfig, coupon, {});
+                    }
+                    toast.success('Đã đặt lại về bảng giá chuẩn sàn!');
+                  }}
+                  className="text-xs text-zinc-400 hover:text-white"
+                >
+                  Đặt lại về giá sàn mặc định
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowRankTableModal(false);
+                    syncAllServices(customServices);
+                  }}
+                  className="px-5 py-2 rounded-xl bg-cyan-500 text-black font-black text-xs"
+                >
+                  Xong & Lưu Bảng Giá
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* ========================================================================= */}
       {/* MODAL 2: THÊM / SỬA DỊCH VỤ - QUY TRÌNH 2 BƯỚC MẠCH LẠC                   */}
@@ -1498,7 +1571,25 @@ export default function BoosterServicesStudio() {
             {/* BƯỚC 1: CẤU HÌNH DỊCH VỤ CƠ BẢN */}
             {modalStep === 1 && (
               <form onSubmit={handleProceedToStep2} className="p-6 space-y-4 text-xs overflow-y-auto">
-                {/* Chọn loại hình dịch vụ lấy từ API */}
+                {/* 1. Tựa Game áp dụng */}
+                <div>
+                  <label className="text-zinc-400 font-bold uppercase block mb-1">
+                    Tựa Game Áp Dụng <span className="text-cyan-400 font-normal">(*Mẫu dịch vụ sẽ tự động thích ứng)</span>
+                  </label>
+                  <select
+                    value={formData.gameCode || activeGameCode}
+                    onChange={(e) => handleGameChangeInModal(e.target.value)}
+                    className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3.5 py-2.5 text-white font-bold outline-none focus:border-cyan-500 shadow-inner"
+                  >
+                    {GAMES_CATALOG.map((g) => (
+                      <option key={g.id} value={g.id.toUpperCase()}>
+                        {g.name} ({g.shortName})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* 2. Chọn loại hình dịch vụ lấy từ API/chuẩn sàn theo từng game */}
                 <div>
                   <label className="text-zinc-400 font-bold uppercase block mb-1">
                     Chọn Loại Hình Dịch Vụ
@@ -1508,7 +1599,13 @@ export default function BoosterServicesStudio() {
                     onChange={(e) => handleSelectTemplate(e.target.value)}
                     className="w-full bg-zinc-950 border border-cyan-500/40 rounded-xl px-3.5 py-2.5 text-white font-bold outline-none focus:border-cyan-400 shadow-inner"
                   >
-                    <optgroup label="Danh mục dịch vụ chuẩn sàn (API)">
+                    <optgroup
+                      label={`Danh mục dịch vụ chuẩn (${
+                        GAMES_CATALOG.find(
+                          (g) => g.id.toUpperCase() === (formData.gameCode || activeGameCode).toUpperCase()
+                        )?.shortName || (formData.gameCode || activeGameCode)
+                      })`}
+                    >
                       {availableServiceTypes.map((tpl) => (
                         <option key={tpl.serviceType || tpl.slug} value={tpl.serviceType || tpl.slug}>
                           {tpl.name}
@@ -1527,7 +1624,7 @@ export default function BoosterServicesStudio() {
                   <input
                     type="text"
                     required
-                    placeholder="VD: Cày Rank / Elo Siêu Tốc, Cày Điểm Cao Thủ..."
+                    placeholder="VD: Cày Rank Valorant, Cày Điểm RR..."
                     value={formData.name || ''}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3.5 py-2.5 text-white font-semibold outline-none focus:border-cyan-500"
@@ -1546,33 +1643,17 @@ export default function BoosterServicesStudio() {
                   />
                 </div>
 
-                {/* Tựa Game */}
-                <div>
-                  <label className="text-zinc-400 font-bold uppercase block mb-1">Tựa Game</label>
-                  <select
-                    value={formData.gameCode || activeGameCode}
-                    onChange={(e) => setFormData({ ...formData, gameCode: e.target.value })}
-                    className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-white font-medium outline-none"
-                  >
-                    {GAMES_CATALOG.map((g) => (
-                      <option key={g.id} value={g.id.toUpperCase()}>
-                        {g.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
                 <div className="pt-4 border-t border-zinc-800 flex justify-end gap-2.5">
                   <button
                     type="button"
                     onClick={() => setIsModalOpen(false)}
-                    className="px-4 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-bold transition-colors"
+                    className="px-4 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-bold transition-colors cursor-pointer"
                   >
                     Hủy Bỏ
                   </button>
                   <button
                     type="submit"
-                    className="flex items-center gap-1.5 px-5 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-black font-extrabold shadow-md transition-all active:scale-95"
+                    className="flex items-center gap-1.5 px-5 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-black font-extrabold shadow-md transition-all active:scale-95 cursor-pointer"
                   >
                     <span>Tiếp tục: Cấu hình giá</span>
                     <ArrowRight size={14} />
@@ -1591,69 +1672,80 @@ export default function BoosterServicesStudio() {
                   </div>
                 </div>
 
-                {/* TRƯỜNG HỢP 1: CÀY RANK / ELO SIÊU TỐC (29 BẬC RANK) */}
-                {formData.serviceType === 'rank-boost' && (
-                  <div className="space-y-3">
-                    <div className="p-3 rounded-xl bg-zinc-950 border border-zinc-800 text-[11px] text-zinc-400 flex items-center justify-between">
-                      <span>Thanh toán đơn hàng:</span>
-                      <span className="text-emerald-400 font-bold">Trọn gói 100% Escrow (Không cọc)</span>
-                    </div>
+                {/* TRƯỜNG HỢP 1: CÀY RANK / ELO SIÊU TỐC (THEO NẤC RANK CỦA TỰA GAME) */}
+                {formData.serviceType === 'rank-boost' && (() => {
+                  const modalGameCode = (formData.gameCode || activeGameCode || 'LOL').toUpperCase();
+                  const currentRankSteps = getRankSteps(modalGameCode);
 
-                    <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <label className="text-zinc-400 font-bold uppercase block">
-                          Bảng Giá 29 Bậc Rank (Sắt IV → Cao Thủ)
-                        </label>
-                        <button
-                          type="button"
-                          onClick={() => setFormData({ ...formData, stepOverrides: {} })}
-                          className="text-[11px] text-cyan-400 hover:underline"
-                        >
-                          Dùng giá sàn mặc định
-                        </button>
+                  return (
+                    <div className="space-y-3">
+                      <div className="p-3 rounded-xl bg-zinc-950 border border-zinc-800 text-[11px] text-zinc-400 flex items-center justify-between">
+                        <span>Thanh toán đơn hàng:</span>
+                        <span className="text-emerald-400 font-bold">Trọn gói 100% Escrow (Không cọc)</span>
                       </div>
 
-                      <div className="max-h-52 overflow-y-auto border border-zinc-800 rounded-xl p-3 bg-zinc-950 space-y-2">
-                        {LOL_RANK_STEPS.slice(0, -1).map((step, idx) => {
-                          const nextStep = LOL_RANK_STEPS[idx + 1];
-                          const overrideVal = formData.stepOverrides?.[step.id];
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <label className="text-zinc-400 font-bold uppercase block">
+                            Bảng Giá {currentRankSteps.length} Bậc Rank ({currentRankSteps[0]?.label} → {currentRankSteps[currentRankSteps.length - 1]?.label})
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() => setFormData({ ...formData, stepOverrides: {} })}
+                            className="text-[11px] text-cyan-400 hover:underline cursor-pointer"
+                          >
+                            Dùng giá sàn mặc định
+                          </button>
+                        </div>
 
-                          return (
-                            <div
-                              key={step.id}
-                              className="flex items-center justify-between text-xs py-1 border-b border-zinc-900 last:border-none"
-                            >
-                              <span className="text-zinc-300">
-                                {step.label} → {nextStep.label}
-                              </span>
-                              <div className="relative w-28">
-                                <input
-                                  type="number"
-                                  placeholder={step.stepPrice.toLocaleString('vi-VN')}
-                                  value={overrideVal || ''}
-                                  onChange={(e) => {
-                                    const val = parseInt(e.target.value);
-                                    const steps = { ...(formData.stepOverrides || {}) };
-                                    if (isNaN(val) || val <= 0) {
-                                      delete steps[step.id];
-                                    } else {
-                                      steps[step.id] = val;
-                                    }
-                                    setFormData({ ...formData, stepOverrides: steps });
-                                  }}
-                                  className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-2 py-1 text-xs text-white font-mono font-bold text-right outline-none focus:border-cyan-500"
-                                />
-                                <span className="text-[10px] text-zinc-500 absolute right-7 top-1/2 -translate-y-1/2">
-                                  đ
-                                </span>
+                        <div className="max-h-56 overflow-y-auto border border-zinc-800 rounded-xl p-3 bg-zinc-950 space-y-2">
+                          {currentRankSteps.slice(0, -1).map((step, idx) => {
+                            const nextStep = currentRankSteps[idx + 1];
+                            const overrideVal = formData.stepOverrides?.[step.id];
+                            const stepImg = getRankImage(modalGameCode, step);
+                            const nextImg = getRankImage(modalGameCode, nextStep);
+
+                            return (
+                              <div
+                                key={step.id}
+                                className="flex items-center justify-between text-xs py-1.5 border-b border-zinc-900 last:border-none gap-2"
+                              >
+                                <div className="flex items-center gap-2 text-zinc-300 font-medium truncate">
+                                  <img src={stepImg} alt={step.label} className="w-5 h-5 object-contain shrink-0" />
+                                  <span>{step.label}</span>
+                                  <span className="text-zinc-600">➔</span>
+                                  <img src={nextImg} alt={nextStep.label} className="w-5 h-5 object-contain shrink-0" />
+                                  <span>{nextStep.label}</span>
+                                </div>
+                                <div className="relative w-28 shrink-0">
+                                  <input
+                                    type="number"
+                                    placeholder={step.stepPrice.toLocaleString('vi-VN')}
+                                    value={overrideVal || ''}
+                                    onChange={(e) => {
+                                      const val = parseInt(e.target.value);
+                                      const steps = { ...(formData.stepOverrides || {}) };
+                                      if (isNaN(val) || val <= 0) {
+                                        delete steps[step.id];
+                                      } else {
+                                        steps[step.id] = val;
+                                      }
+                                      setFormData({ ...formData, stepOverrides: steps });
+                                    }}
+                                    className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-2 py-1 text-xs text-white font-mono font-bold text-right outline-none focus:border-cyan-500"
+                                  />
+                                  <span className="text-[10px] text-zinc-500 absolute right-7 top-1/2 -translate-y-1/2">
+                                    đ
+                                  </span>
+                                </div>
                               </div>
-                            </div>
-                          );
-                        })}
+                            );
+                          })}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                )}
+                  );
+                })()}
 
                 {/* TRƯỜNG HỢP 2: CÀY ĐIỂM CAO THỦ / THÁCH ĐẤU (3 MỨC RANK + CỌC) */}
                 {formData.serviceType === 'net-wins' && (

@@ -56,6 +56,69 @@ export const LOL_RANK_STEPS: RankDivision[] = [
   { id: 'MASTER', tier: 'MASTER', label: 'Cao Thủ', stepPrice: 0 },
 ];
 
+// 25 mốc rank chuẩn Valorant từ Iron 1 đến Radiant
+export const VALORANT_RANK_STEPS: RankDivision[] = [
+  // SẮT (IRON)
+  { id: 'IRON_1', tier: 'IRON', division: '1', label: 'Iron 1', stepPrice: 25000 },
+  { id: 'IRON_2', tier: 'IRON', division: '2', label: 'Iron 2', stepPrice: 25000 },
+  { id: 'IRON_3', tier: 'IRON', division: '3', label: 'Iron 3', stepPrice: 30000 },
+
+  // ĐỒNG (BRONZE)
+  { id: 'BRONZE_1', tier: 'BRONZE', division: '1', label: 'Bronze 1', stepPrice: 30000 },
+  { id: 'BRONZE_2', tier: 'BRONZE', division: '2', label: 'Bronze 2', stepPrice: 30000 },
+  { id: 'BRONZE_3', tier: 'BRONZE', division: '3', label: 'Bronze 3', stepPrice: 35000 },
+
+  // BẠC (SILVER)
+  { id: 'SILVER_1', tier: 'SILVER', division: '1', label: 'Silver 1', stepPrice: 35000 },
+  { id: 'SILVER_2', tier: 'SILVER', division: '2', label: 'Silver 2', stepPrice: 40000 },
+  { id: 'SILVER_3', tier: 'SILVER', division: '3', label: 'Silver 3', stepPrice: 45000 },
+
+  // VÀNG (GOLD)
+  { id: 'GOLD_1', tier: 'GOLD', division: '1', label: 'Gold 1', stepPrice: 45000 },
+  { id: 'GOLD_2', tier: 'GOLD', division: '2', label: 'Gold 2', stepPrice: 50000 },
+  { id: 'GOLD_3', tier: 'GOLD', division: '3', label: 'Gold 3', stepPrice: 55000 },
+
+  // BẠCH KIM (PLATINUM)
+  { id: 'PLATINUM_1', tier: 'PLATINUM', division: '1', label: 'Platinum 1', stepPrice: 60000 },
+  { id: 'PLATINUM_2', tier: 'PLATINUM', division: '2', label: 'Platinum 2', stepPrice: 65000 },
+  { id: 'PLATINUM_3', tier: 'PLATINUM', division: '3', label: 'Platinum 3', stepPrice: 75000 },
+
+  // KIM CƯƠNG (DIAMOND)
+  { id: 'DIAMOND_1', tier: 'DIAMOND', division: '1', label: 'Diamond 1', stepPrice: 85000 },
+  { id: 'DIAMOND_2', tier: 'DIAMOND', division: '2', label: 'Diamond 2', stepPrice: 95000 },
+  { id: 'DIAMOND_3', tier: 'DIAMOND', division: '3', label: 'Diamond 3', stepPrice: 110000 },
+
+  // HUYỀN THOẠI (ASCENDANT)
+  { id: 'ASCENDANT_1', tier: 'ASCENDANT', division: '1', label: 'Ascendant 1', stepPrice: 130000 },
+  { id: 'ASCENDANT_2', tier: 'ASCENDANT', division: '2', label: 'Ascendant 2', stepPrice: 150000 },
+  { id: 'ASCENDANT_3', tier: 'ASCENDANT', division: '3', label: 'Ascendant 3', stepPrice: 180000 },
+
+  // BẤT TỬ (IMMORTAL)
+  { id: 'IMMORTAL_1', tier: 'IMMORTAL', division: '1', label: 'Immortal 1', stepPrice: 220000 },
+  { id: 'IMMORTAL_2', tier: 'IMMORTAL', division: '2', label: 'Immortal 2', stepPrice: 280000 },
+  { id: 'IMMORTAL_3', tier: 'IMMORTAL', division: '3', label: 'Immortal 3', stepPrice: 350000 },
+
+  // RADIANT (Đỉnh cao Valorant)
+  { id: 'RADIANT', tier: 'RADIANT', label: 'Radiant', stepPrice: 0 },
+];
+
+export function getRankSteps(gameCode: string): RankDivision[] {
+  const code = (gameCode || 'LOL').toUpperCase();
+  if (code === 'VALORANT') return VALORANT_RANK_STEPS;
+  return LOL_RANK_STEPS;
+}
+
+export function getRankImage(gameCode: string, step: RankDivision): string {
+  const code = (gameCode || 'LOL').toUpperCase();
+  if (code === 'VALORANT') {
+    if (step.tier === 'RADIANT') return '/images/valorant/Radiant_Rank.png';
+    const capTier = step.tier.charAt(0).toUpperCase() + step.tier.slice(1).toLowerCase();
+    return `/images/valorant/${capTier}_${step.division || '1'}_Rank.png`;
+  }
+  const tierLower = step.tier.toLowerCase();
+  return `/images/ranks/${tierLower}.png`;
+}
+
 export interface AddonSelections {
   schedule?: boolean; // Đặt lịch cày
   specificRole?: boolean; // Tùy chọn vị trí / đường
