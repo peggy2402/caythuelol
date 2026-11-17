@@ -128,11 +128,11 @@ export default function HeroSection() {
             </a>
 
             <Link
-              href="/services/lol"
+              href="/services"
               className="flex h-14 w-full sm:w-auto items-center justify-center gap-3 rounded-xl bg-zinc-900/80 px-8 text-base font-bold text-zinc-300 border border-zinc-700/80 hover:border-zinc-500 hover:text-white hover:bg-zinc-800 transition-all backdrop-blur-md"
             >
               <Gamepad2 className="w-5 h-5 text-cyan-400" />
-              <span>Khám Phá Dịch Vụ LMHT</span>
+              <span>Khám Phá Dịch Vụ</span>
             </Link>
           </motion.div>
 

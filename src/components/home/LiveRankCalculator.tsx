@@ -325,7 +325,7 @@ export default function LiveRankCalculator() {
                 </div>
 
                 <Link
-                  href={`/services/lol/rank-boost?fromTier=${currentTier}&fromDiv=${currentDiv}&toTier=${desiredTier}&toDiv=${desiredDiv}&duo=${addonDuo}&express=${addonExpress}`}
+                  href="/services"
                   className="w-full flex items-center justify-center gap-2 py-4 rounded-xl bg-gradient-to-r from-cyan-500 via-blue-600 to-indigo-600 text-white font-black text-base shadow-[0_0_30px_rgba(6,182,212,0.4)] hover:shadow-[0_0_40px_rgba(6,182,212,0.6)] hover:scale-[1.01] active:scale-[0.99] transition-all"
                 >
                   <span>Tiến Hành Đặt Cày Ngay</span>
