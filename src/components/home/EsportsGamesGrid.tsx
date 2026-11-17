@@ -52,8 +52,8 @@ export default function EsportsGamesGrid() {
 
         {/* 4 Cards / 1 Hàng Grid (Chuẩn yêu cầu: 4 cards 1 hàng) */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
-          {displayedGames.map((game) => (
-            <GameCard key={game.id} game={game} />
+          {displayedGames.map((game, idx) => (
+            <GameCard key={game.id} game={game} priority={idx < 4} />
           ))}
         </div>
 

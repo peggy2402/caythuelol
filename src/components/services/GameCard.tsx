@@ -8,6 +8,7 @@ import { resolveGameBadge, type GameDefinition } from '@/lib/games';
 
 interface GameCardProps {
   game: GameDefinition;
+  priority?: boolean;
 }
 
 const BADGE_CONFIG = {
@@ -38,15 +39,17 @@ const BADGE_CONFIG = {
   },
 };
 
-export default function GameCard({ game }: GameCardProps) {
+export default function GameCard({ game, priority = false }: GameCardProps) {
   // Ưu tiên tải bannerUrl online trước, nếu lỗi hoặc trống thì fallback về banner local
   const initialImage = game.bannerUrl || game.banner || null;
   const [currentSrc, setCurrentSrc] = useState<string | null>(initialImage);
   const [isFailed, setIsFailed] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
     setCurrentSrc(game.bannerUrl || game.banner || null);
     setIsFailed(false);
+    setIsLoaded(false);
   }, [game.bannerUrl, game.banner]);
 
   const handleImageError = () => {
@@ -82,8 +85,14 @@ export default function GameCard({ game }: GameCardProps) {
           <img
             src={currentSrc}
             alt={game.name}
+            loading={priority ? 'eager' : 'lazy'}
+            decoding="async"
+            fetchPriority={priority ? 'high' : 'auto'}
+            onLoad={() => setIsLoaded(true)}
             onError={handleImageError}
-            className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-700 opacity-75 group-hover:opacity-100"
+            className={`w-full h-full object-cover object-center group-hover:scale-105 transition-all duration-700 ${
+              isLoaded ? 'opacity-75 group-hover:opacity-100' : 'opacity-0'
+            }`}
           />
         ) : (
           <div className="w-full h-full relative flex items-center justify-end pr-4">

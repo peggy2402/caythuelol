@@ -101,8 +101,8 @@ export default function ServicesHubPage() {
 
         {/* 2. Games Grid (4 Cards 1 Hàng trên Desktop) */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
-          {visibleGames.map((game) => (
-            <GameCard key={game.id} game={game} />
+          {visibleGames.map((game, idx) => (
+            <GameCard key={game.id} game={game} priority={idx < 4} />
           ))}
         </div>
 
