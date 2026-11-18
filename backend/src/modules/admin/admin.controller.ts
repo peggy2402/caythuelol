@@ -73,9 +73,13 @@ export class AdminController {
   async adjustBalance(
     @Param('id') userId: string,
     @Body('amount') amount: number,
-    @Body('note') note: string,
+    @Body('type') type?: 'ADD' | 'SUBTRACT',
+    @Body('reason') reason?: string,
+    @Body('note') note?: string,
+    @ReqUser() admin?: any,
+    @Req() req?: any,
   ) {
-    return this.adminService.adjustBalance(userId, amount, note);
+    return this.adminService.adjustBalance(userId, amount, type, reason || note, admin?.userId, req);
   }
 
   @Get('boosters')

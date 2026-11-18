@@ -15,6 +15,7 @@ import { IBlog } from '../../database/schemas/Blog';
 import { IWithdrawal } from '../../database/schemas/Withdrawal';
 import { IAuditLog } from '../../database/schemas/AuditLog';
 import { IBoosterProfile } from '../../database/schemas/BoosterProfile';
+import { getClientIp } from '../../common/utils/ip.util';
 import * as bcrypt from 'bcryptjs';
 
 @Injectable()
@@ -651,21 +652,64 @@ export class AdminService {
     return { success: true, isBanned: user?.isBanned };
   }
 
-  async adjustBalance(userId: string, amount: number, note: string) {
+  async adjustBalance(
+    userId: string,
+    amount: number,
+    type: 'ADD' | 'SUBTRACT' = 'ADD',
+    reason?: string,
+    adminId?: string,
+    req?: any,
+  ) {
     const user = await this.userModel.findById(userId);
     if (!user) throw new NotFoundException('Không tìm thấy người dùng');
 
-    user.wallet_balance += amount;
+    const numAmount = Math.abs(Number(amount));
+    if (isNaN(numAmount) || numAmount <= 0) {
+      throw new BadRequestException('Số tiền điều chỉnh không hợp lệ');
+    }
+
+    const isSubtract = type === 'SUBTRACT';
+    if (isSubtract && user.wallet_balance < numAmount) {
+      throw new BadRequestException(
+        `Số dư hiện tại (${user.wallet_balance.toLocaleString()}đ) không đủ để trừ ${numAmount.toLocaleString()}đ`,
+      );
+    }
+
+    const delta = isSubtract ? -numAmount : numAmount;
+    user.wallet_balance = Math.max(0, user.wallet_balance + delta);
     await user.save();
+
+    const txType = isSubtract ? TransactionType.DISPUTE_PENALTY : TransactionType.DEPOSIT;
+    const desc = reason
+      ? `Admin điều chỉnh ${isSubtract ? 'giảm' : 'tăng'} số dư: ${reason}`
+      : `Admin điều chỉnh ${isSubtract ? 'giảm' : 'tăng'} số dư: ${isSubtract ? '-' : '+'}${numAmount.toLocaleString('vi-VN')} đ`;
 
     await this.transactionModel.create({
       userId: user._id,
-      type: TransactionType.DEPOSIT,
-      amount,
+      type: txType,
+      amount: numAmount,
       balanceAfter: user.wallet_balance,
       status: TransactionStatus.SUCCESS,
-      description: `Admin điều chỉnh số dư: ${note}`,
+      description: desc,
+      metadata: {
+        adjustedBy: adminId || 'admin',
+        type,
+        delta,
+        reason,
+        ip: req ? getClientIp(req) : '127.0.0.1',
+      },
     });
+
+    if (adminId) {
+      this.createAuditLog({
+        actorId: adminId,
+        targetId: user._id,
+        action: isSubtract ? 'SUBTRACT_BALANCE' : 'ADD_BALANCE',
+        description: `Admin ${isSubtract ? 'trừ' : 'cộng'} ${numAmount.toLocaleString('vi-VN')} đ số dư của user ${user.username || user.email}${reason ? `: ${reason}` : ''}`,
+        metadata: { userId, amount: numAmount, type, balanceAfter: user.wallet_balance },
+        ipAddress: req ? getClientIp(req) : '127.0.0.1',
+      });
+    }
 
     return { success: true, balance: user.wallet_balance };
   }
