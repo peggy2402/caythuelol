@@ -1,38 +1,14 @@
 'use client';
 
 import React, { useState } from 'react';
-import Link from 'next/link';
 import Image from 'next/image';
 import {
   Gamepad2,
   Trophy,
-  Target,
-  Swords,
-  TrendingUp,
-  Zap,
-  Medal,
-  Users,
-  Banknote,
-  X,
+  Sparkles,
   ArrowRight,
-  Shield,
-  Star,
-  CheckCircle2,
-  type LucideIcon,
 } from 'lucide-react';
 import { GAMES_CATALOG, GameDefinition } from '@/lib/games';
-
-const ICON_MAP: Record<string, LucideIcon> = {
-  Trophy,
-  Target,
-  Swords,
-  TrendingUp,
-  Zap,
-  Medal,
-  Users,
-  Banknote,
-  Gamepad2,
-};
 
 interface BoosterGameItem {
   gameCode: string;
@@ -46,6 +22,89 @@ interface BoosterGameSelectorModalProps {
   boosterAvatar?: string;
   boosterGames?: BoosterGameItem[];
   customServices?: any[];
+  onSelectGameToHire?: (gameId: string) => void;
+}
+
+// Logo game chuyên nghiệp (khi chưa có file icon SVG/PNG riêng biệt)
+function GameLogoBadge({ game }: { game: GameDefinition }) {
+  const id = game.id.toLowerCase();
+  if (id === 'lol') {
+    return (
+      <div className="w-10 h-10 rounded-xl bg-black/90 border border-amber-500/60 flex items-center justify-center font-serif text-base font-black text-amber-400 shadow-[0_0_12px_rgba(245,158,11,0.25)] shrink-0">
+        L
+      </div>
+    );
+  }
+  if (id === 'valorant') {
+    return (
+      <div className="w-10 h-10 rounded-xl bg-black/90 border border-rose-500/60 flex items-center justify-center font-black text-base text-rose-500 shadow-[0_0_12px_rgba(244,63,94,0.25)] shrink-0">
+        V
+      </div>
+    );
+  }
+  if (id === 'aov') {
+    return (
+      <div className="w-10 h-10 rounded-xl bg-black/90 border border-sky-500/60 flex items-center justify-center font-black text-xs text-sky-400 shadow-[0_0_12px_rgba(14,165,233,0.25)] shrink-0">
+        AOV
+      </div>
+    );
+  }
+  if (id === 'tft') {
+    return (
+      <div className="w-10 h-10 rounded-xl bg-black/90 border border-amber-500/60 flex items-center justify-center font-black text-xs text-amber-300 shadow-[0_0_12px_rgba(245,158,11,0.25)] shrink-0">
+        ĐTCL
+      </div>
+    );
+  }
+  if (id === 'cs2') {
+    return (
+      <div className="w-10 h-10 rounded-xl bg-black/90 border border-orange-500/60 flex items-center justify-center font-black text-xs text-orange-400 shadow-[0_0_12px_rgba(249,115,22,0.25)] shrink-0">
+        CS2
+      </div>
+    );
+  }
+
+  // Fallback logo tròn / bo góc đa sắc
+  const accentColor = game.accentColor || '#3b82f6';
+  return (
+    <div
+      className="w-10 h-10 rounded-xl bg-black/90 border flex items-center justify-center font-black text-xs text-white shadow-md shrink-0"
+      style={{
+        borderColor: `${accentColor}70`,
+        boxShadow: `0 0 12px ${accentColor}30`,
+      }}
+    >
+      {game.shortName || game.id.toUpperCase().slice(0, 3)}
+    </div>
+  );
+}
+
+// Fallback banner game từ thư mục /images/games
+function getGameBanner(gameId: string, defaultBanner?: string): string {
+  const id = gameId.toLowerCase();
+  const map: Record<string, string> = {
+    lol: '/images/games/lol-card.jpg',
+    valorant: '/images/games/val-card.jpg',
+    val: '/images/games/val-card.jpg',
+    tft: '/images/games/tft-card.jpg',
+    aov: '/images/games/aov-card.jpg',
+    cs2: '/images/games/cs2-card.jpg',
+    deltaforce: '/images/games/deltaforce-card.jpg',
+    poe2: '/images/games/poe2-card.jpg',
+    pubg: '/images/games/pubg-card.jpg',
+    pubgm: '/images/games/pubgmobile-card.jpg',
+    codm: '/images/games/codm-card.jpg',
+    overwatch2: '/images/games/overwatch2-card.jpg',
+    naraka: '/images/games/naraka-card.jpg',
+    wildrift: '/images/games/wildrift-card.jpg',
+    wr: '/images/games/wildrift-card.jpg',
+    freefire: '/images/games/freefire-card.jpg',
+    dota2: '/images/games/dota2-card.jpg',
+    truykich2: '/images/games/truykich2-card.jpg',
+    valmobile: '/images/games/valmobile-card.jpg',
+    marvelrivals: '/images/games/marvelrivals-card.jpg',
+  };
+  return map[id] || defaultBanner || '/images/games/lol-card.jpg';
 }
 
 export default function BoosterGameSelectorModal({
@@ -54,14 +113,12 @@ export default function BoosterGameSelectorModal({
   boosterAvatar,
   boosterGames = [],
   customServices = [],
+  onSelectGameToHire,
 }: BoosterGameSelectorModalProps) {
-  const [activeGameModal, setActiveGameModal] = useState<GameDefinition | null>(null);
-
-  // Chuẩn hóa danh sách game mà booster hỗ trợ (mặc định luôn có LOL)
-  const registeredCodes = (boosterGames.length > 0
+  // Chuẩn hóa danh sách game mà booster hỗ trợ
+  const registeredCodes = boosterGames.length > 0
     ? boosterGames.map((g) => (g?.gameCode || (g as any)?.game || '').toUpperCase()).filter(Boolean)
-    : ['LOL']
-  );
+    : ['LOL'];
 
   const matchedGames = GAMES_CATALOG.filter((g) =>
     registeredCodes.includes(g.id.toUpperCase()) || registeredCodes.includes((g.shortName || '').toUpperCase())
@@ -69,310 +126,166 @@ export default function BoosterGameSelectorModal({
 
   const displayGames = matchedGames.length > 0 ? matchedGames : [GAMES_CATALOG[0]];
 
-  const handleOpenGame = (game: GameDefinition) => {
-    setActiveGameModal(game);
-  };
+  // Bộ lọc tag nhanh khi có nhiều game
+  const [filterCategory, setFilterCategory] = useState<'ALL' | 'MOBA' | 'FPS' | 'OTHER'>('ALL');
 
-  const handleClose = () => {
-    setActiveGameModal(null);
-  };
+  const filteredGames = displayGames.filter((g) => {
+    if (filterCategory === 'ALL') return true;
+    if (filterCategory === 'MOBA') return ['LOL', 'AOV', 'WR', 'DOTA2'].includes(g.id.toUpperCase());
+    if (filterCategory === 'FPS') return ['VALORANT', 'CS2', 'PUBG', 'PUBGM', 'CODM', 'OVERWATCH2', 'DELTAFORCE'].includes(g.id.toUpperCase());
+    return true;
+  });
 
   return (
     <div className="space-y-4">
       {/* SECTION HEADER */}
-      <div className="flex items-center justify-between pb-3 border-b border-zinc-800">
+      <div className="flex items-center justify-between pb-3 border-b border-white/10">
         <div className="flex items-center gap-2.5">
           <div className="p-2 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400">
-            <Gamepad2 size={20} />
+            <Gamepad2 size={18} />
           </div>
           <div>
-            <h3 className="text-base sm:text-lg font-bold text-white">Tựa Game & Dịch Vụ Cung Cấp</h3>
-            <p className="text-xs text-zinc-400">
+            <h3 className="text-base font-bold text-white tracking-tight flex items-center gap-2">
+              <span>Tựa Game & Dịch Vụ Cung Cấp</span>
+            </h3>
+            <p className="text-[11px] text-zinc-400">
               Nhấn vào tựa game để xem chi tiết bảng giá các dịch vụ của {boosterName}
             </p>
           </div>
         </div>
-        <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-zinc-800 text-zinc-300 border border-zinc-700">
+
+        <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-zinc-800/80 text-zinc-300 border border-white/5">
           {displayGames.length} tựa game
         </span>
       </div>
 
-      {/* GAMES LAYOUT: Tự động điều chỉnh bố cục theo số lượng tựa game */}
-      {displayGames.length === 1 ? (
-        /* TRƯỜNG HỢP 1 GAME: Fill toàn bộ khối dạng Card Showcase hiện đại, thoáng đãng */
-        (() => {
-          const game = displayGames[0];
+      {/* FILTER PILLS NẾU CÀY NHIỀU GAME (> 3 GAME) */}
+      {displayGames.length > 3 && (
+        <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
+          {[
+            { id: 'ALL', label: `Tất cả (${displayGames.length})` },
+            { id: 'MOBA', label: 'MOBA (LMHT, LQ...)' },
+            { id: 'FPS', label: 'Bắn súng (Valorant, CS2...)' },
+          ].map((cat) => (
+            <button
+              key={cat.id}
+              onClick={() => setFilterCategory(cat.id as any)}
+              className={`px-3 py-1 rounded-xl text-xs font-semibold transition-all whitespace-nowrap border ${
+                filterCategory === cat.id
+                  ? 'bg-blue-600/30 text-blue-300 border-blue-500/50 shadow-[0_0_12px_rgba(59,130,246,0.25)]'
+                  : 'bg-zinc-900/60 text-zinc-400 border-white/5 hover:text-white hover:bg-zinc-800'
+              }`}
+            >
+              {cat.label}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* GRID SHOWCASE TỰA GAME VỚI ARTWORK NHÂN VẬT & NEON AURA Y HỆT ẢNH MẪU */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {filteredGames.map((game) => {
           const boosterGameInfo = boosterGames.find(
             (g) => g.gameCode.toUpperCase() === game.id.toUpperCase()
           );
           const topRank = boosterGameInfo?.ranks?.[0] || 'Cao Thủ / Thách Đấu';
+          const servicesCount = game.defaultServices?.length || 8;
+          const bannerSrc = getGameBanner(game.id, game.banner);
+
+          // Tùy biến accent & border theo màu của từng game
+          const isLol = game.id.toLowerCase() === 'lol';
+          const isVal = game.id.toLowerCase() === 'valorant' || game.id.toLowerCase() === 'val';
+
+          const borderColor = isLol
+            ? 'rgba(0, 188, 212, 0.4)'
+            : isVal
+            ? 'rgba(244, 63, 94, 0.4)'
+            : 'rgba(59, 130, 246, 0.35)';
+
+          const glowShadow = isLol
+            ? '0 0 25px rgba(0, 188, 212, 0.15)'
+            : isVal
+            ? '0 0 25px rgba(244, 63, 94, 0.15)'
+            : '0 0 20px rgba(59, 130, 246, 0.12)';
+
+          const actionColor = isLol ? '#00e5ff' : isVal ? '#ff4655' : '#60a5fa';
 
           return (
             <div
-              onClick={() => handleOpenGame(game)}
-              className="group relative w-full bg-gradient-to-br from-[#0c101d] via-[#101728] to-[#0c101d] hover:from-[#11172a] hover:via-[#162038] hover:to-[#11172a] border border-blue-500/25 hover:border-blue-500/50 rounded-3xl p-6 sm:p-7 cursor-pointer transition-all duration-300 shadow-xl hover:shadow-[0_10px_35px_rgba(59,130,246,0.18)] flex flex-col gap-5 overflow-hidden"
+              key={game.id}
+              onClick={() => onSelectGameToHire?.(game.id)}
+              className="group relative bg-[#0d1017]/90 hover:bg-[#10141f] border rounded-2xl p-5 transition-all duration-300 flex flex-col justify-between overflow-hidden cursor-pointer min-h-[200px]"
+              style={{
+                borderColor,
+                boxShadow: glowShadow,
+              }}
             >
-              {/* Ánh sáng ambient phía sau */}
-              <div className="absolute top-0 right-0 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl pointer-events-none group-hover:bg-blue-500/15 transition-all" />
+              {/* Artwork nhân vật game bên phải card với fade-out gradient cực ảo diệu (Ảnh mẫu) */}
+              <div className="absolute top-0 right-0 bottom-0 w-[58%] pointer-events-none overflow-hidden select-none">
+                <Image
+                  src={bannerSrc}
+                  alt={game.name}
+                  fill
+                  sizes="(max-width: 768px) 100vw, 300px"
+                  className="object-cover object-right opacity-60 group-hover:opacity-85 group-hover:scale-105 transition-all duration-500"
+                />
+                {/* Lớp phủ Gradient đen mờ dần sang trái để text luôn cực kỳ sắc nét */}
+                <div className="absolute inset-0 bg-gradient-to-r from-[#0d1017] via-[#0d1017]/85 to-transparent z-10" />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#0d1017] via-transparent to-transparent opacity-90 z-10" />
+              </div>
 
-              {/* Hàng 1: Header Game (Logo + Tên + Badge) */}
-              <div className="flex flex-wrap items-center justify-between gap-3 relative z-10">
-                <div className="flex items-center gap-3.5">
-                  <div className="w-13 h-13 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 text-white flex items-center justify-center font-black text-base sm:text-lg shadow-lg shadow-blue-600/30 shrink-0 group-hover:scale-105 transition-transform duration-300">
-                    {game.shortName || game.id.toUpperCase()}
-                  </div>
+              {/* Viền sáng bao quanh khi hover */}
+              <div
+                className="absolute inset-0 rounded-2xl pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300 border-2 z-20"
+                style={{
+                  borderColor: actionColor,
+                  boxShadow: `inset 0 0 15px ${actionColor}20, 0 0 25px ${actionColor}30`,
+                }}
+              />
+
+              {/* Nội dung bên trái Card */}
+              <div className="space-y-3 relative z-20 max-w-[70%]">
+                {/* Header Card: Logo Game + Tên Game + Số Gói Dịch Vụ */}
+                <div className="flex items-center gap-3">
+                  <GameLogoBadge game={game} />
                   <div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <h4 className="font-extrabold text-white text-lg sm:text-xl group-hover:text-blue-400 transition-colors">
-                        {game.name}
-                      </h4>
-                      <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-blue-500/15 border border-blue-500/30 text-blue-400 font-bold">
-                        {game.defaultServices?.length || 8} gói dịch vụ
-                      </span>
-                    </div>
-                    <p className="text-xs text-zinc-400 mt-0.5">Tựa game thi đấu chính nhận cày thuê & cải thiện elo</p>
+                    <h4 className="font-extrabold text-white text-base tracking-tight group-hover:text-cyan-300 transition-colors">
+                      {game.name}
+                    </h4>
+                    <span className="text-[11px] text-zinc-400 font-medium">
+                      {servicesCount} gói dịch vụ
+                    </span>
                   </div>
+                </div>
+
+                {/* Mô tả ngắn */}
+                <p className="text-xs text-zinc-300 leading-relaxed line-clamp-2">
+                  {game.desc || `Dịch vụ leo rank, cày trận thắng đảm bảo và phân hạng chuyên nghiệp cùng tuyển thủ.`}
+                </p>
+
+                {/* Badge Trình độ: Cao Thủ */}
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-semibold">
+                  <Trophy size={13} className="text-amber-400 shrink-0" />
+                  <span>
+                    Trình độ: <strong className="text-amber-200">{topRank}</strong>
+                  </span>
                 </div>
               </div>
 
-              {/* Hàng 2: Mô tả tựa game (Trải rộng toàn khối, thoáng đãng không bị ép cột) */}
-              <p className="text-xs sm:text-sm text-zinc-300 leading-relaxed max-w-4xl relative z-10">
-                {game.desc}
-              </p>
-
-              {/* Hàng 3: Trình độ Rank và Nút CTA */}
-              <div className="pt-4 border-t border-white/5 flex flex-wrap items-center justify-between gap-4 relative z-10">
-                <div className="inline-flex items-center gap-2 text-xs text-amber-300 bg-amber-500/10 px-3.5 py-1.5 rounded-xl border border-amber-500/25 font-medium">
-                  <Trophy size={14} className="text-amber-400 shrink-0" />
-                  <span>Trình độ đảm nhận: <strong className="text-amber-200">{topRank}</strong></span>
-                </div>
-
-                <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-extrabold text-xs shadow-lg shadow-blue-600/25 group-hover:shadow-blue-500/40 group-hover:scale-105 active:scale-95 transition-all">
-                  <span>Xem chi tiết các dịch vụ</span>
-                  <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
-                </div>
+              {/* Bottom: Action link Xem các dịch vụ */}
+              <div className="pt-4 mt-4 relative z-20 flex items-center justify-between">
+                <span
+                  className="text-xs font-bold flex items-center gap-1.5 group-hover:translate-x-1 transition-all"
+                  style={{ color: actionColor }}
+                >
+                  <span>Xem các dịch vụ</span>
+                  <ArrowRight size={13} />
+                </span>
               </div>
             </div>
           );
-        })()
-      ) : displayGames.length >= 5 ? (
-        /* TRƯỜNG HỢP 5 GAMES TRỞ LÊN: Hàng ngang có thể scroll mượt mà */
-        <div className="flex overflow-x-auto gap-4 pb-4 pt-1 scrollbar-thin scrollbar-thumb-zinc-700/60 scrollbar-track-zinc-900/40 snap-x">
-          {displayGames.map((game) => {
-            const boosterGameInfo = boosterGames.find(
-              (g) => g.gameCode.toUpperCase() === game.id.toUpperCase()
-            );
-            const topRank = boosterGameInfo?.ranks?.[0] || 'Cao Thủ / Thách Đấu';
-
-            return (
-              <div
-                key={game.id}
-                onClick={() => handleOpenGame(game)}
-                className="group relative min-w-[280px] sm:min-w-[320px] max-w-[340px] flex-shrink-0 snap-start bg-zinc-900/80 hover:bg-zinc-850 border border-white/10 hover:border-blue-500/50 rounded-2xl p-5 cursor-pointer transition-all duration-300 hover:shadow-xl hover:shadow-blue-500/10 hover:-translate-y-1 flex flex-col justify-between"
-              >
-                <div className="space-y-3">
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 text-white flex items-center justify-center font-bold text-sm shadow-md">
-                        {game.shortName || game.id.toUpperCase()}
-                      </div>
-                      <div>
-                        <h4 className="font-bold text-white text-base group-hover:text-blue-400 transition-colors">
-                          {game.name}
-                        </h4>
-                        <span className="text-[11px] text-zinc-400 font-medium">
-                          {game.defaultServices?.length || 8} gói dịch vụ
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <p className="text-xs text-zinc-400 line-clamp-2 leading-relaxed">
-                    {game.desc}
-                  </p>
-
-                  <div className="flex items-center gap-1.5 text-xs text-amber-400 bg-amber-500/10 px-2.5 py-1 rounded-lg border border-amber-500/20 w-fit">
-                    <Trophy size={13} />
-                    <span>Trình độ: <strong>{topRank}</strong></span>
-                  </div>
-                </div>
-
-                <div className="pt-4 mt-4 border-t border-zinc-800/80 flex items-center justify-between text-xs font-semibold text-blue-400 group-hover:text-blue-300">
-                  <span>Xem các dịch vụ</span>
-                  <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      ) : (
-        /* TRƯỜNG HỢP 2, 3, 4 GAMES: Lưới 2 cột (hoặc 2x2, hoặc 2 hàng 1 và 1 hàng 2) */
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {displayGames.map((game, index) => {
-            const boosterGameInfo = boosterGames.find(
-              (g) => g.gameCode.toUpperCase() === game.id.toUpperCase()
-            );
-            const topRank = boosterGameInfo?.ranks?.[0] || 'Cao Thủ / Thách Đấu';
-            // Khi có đúng 3 game: game thứ 3 span-full ở hàng 2
-            const isThirdInThree = displayGames.length === 3 && index === 2;
-
-            return (
-              <div
-                key={game.id}
-                onClick={() => handleOpenGame(game)}
-                className={`group relative bg-zinc-900/80 hover:bg-zinc-850 border border-white/10 hover:border-blue-500/50 rounded-2xl p-5 cursor-pointer transition-all duration-300 hover:shadow-xl hover:shadow-blue-500/10 hover:-translate-y-1 flex flex-col justify-between ${
-                  isThirdInThree ? 'md:col-span-2' : ''
-                }`}
-              >
-                <div className="space-y-3">
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 text-white flex items-center justify-center font-bold text-sm shadow-md">
-                        {game.shortName || game.id.toUpperCase()}
-                      </div>
-                      <div>
-                        <h4 className="font-bold text-white text-base group-hover:text-blue-400 transition-colors">
-                          {game.name}
-                        </h4>
-                        <span className="text-[11px] text-zinc-400 font-medium">
-                          {game.defaultServices?.length || 8} gói dịch vụ
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <p className="text-xs text-zinc-400 line-clamp-2 leading-relaxed">
-                    {game.desc}
-                  </p>
-
-                  <div className="flex items-center gap-1.5 text-xs text-amber-400 bg-amber-500/10 px-2.5 py-1 rounded-lg border border-amber-500/20 w-fit">
-                    <Trophy size={13} />
-                    <span>Trình độ: <strong>{topRank}</strong></span>
-                  </div>
-                </div>
-
-                <div className="pt-4 mt-4 border-t border-zinc-800/80 flex items-center justify-between text-xs font-semibold text-blue-400 group-hover:text-blue-300">
-                  <span>Xem các dịch vụ</span>
-                  <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {/* --- MODAL POPUP GIỮA MÀN HÌNH: DANH SÁCH DỊCH VỤ CỦA TỰA GAME ĐƯỢC CHỌN --- */}
-      {activeGameModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
-          <div className="bg-zinc-900 border border-zinc-800 rounded-3xl w-full max-w-4xl p-6 sm:p-7 space-y-6 shadow-2xl max-h-[90vh] overflow-y-auto animate-in zoom-in-95 duration-200">
-            {/* Modal Header */}
-            <div className="flex items-center justify-between pb-4 border-b border-zinc-800">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 text-white flex items-center justify-center font-black text-lg shadow-lg">
-                  {activeGameModal.shortName || activeGameModal.id.toUpperCase()}
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-xl font-extrabold text-white">
-                      {activeGameModal.name}
-                    </h3>
-                    <span className="px-2 py-0.5 rounded text-xs font-semibold bg-blue-500/20 text-blue-300 border border-blue-500/30">
-                      {boosterName}
-                    </span>
-                  </div>
-                  <p className="text-xs text-zinc-400 mt-0.5">
-                    Chọn dịch vụ bạn cần để xem bảng giá và đặt lịch cày trực tiếp với tuyển thủ.
-                  </p>
-                </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={handleClose}
-                className="p-2 text-zinc-400 hover:text-white rounded-xl hover:bg-zinc-800 transition-colors"
-              >
-                <X size={20} />
-              </button>
-            </div>
-
-            {/* Services Grid trong Modal */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {activeGameModal.defaultServices.map((svc) => {
-                const IconComponent = ICON_MAP[svc.iconName] || Trophy;
-                const isDeposit = svc.depositPercent < 100;
-                const targetUrl = `/services/${activeGameModal.id}/${svc.slug}?booster=@${encodeURIComponent(boosterUsername)}`;
-
-                return (
-                  <div
-                    key={svc.slug}
-                    className="p-4 rounded-2xl bg-zinc-950/70 border border-zinc-800/80 hover:border-blue-500/50 hover:bg-zinc-950 transition-all flex flex-col justify-between group"
-                  >
-                    <div className="space-y-2.5">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex items-center gap-2.5">
-                          <div className="p-2 rounded-xl bg-blue-500/10 text-blue-400 border border-blue-500/20 shrink-0">
-                            <IconComponent size={18} />
-                          </div>
-                          <h4 className="font-bold text-white text-sm group-hover:text-blue-400 transition-colors">
-                            {svc.name}
-                          </h4>
-                        </div>
-                        <span
-                          className={`text-[10px] font-bold px-2 py-0.5 rounded-full border shrink-0 ${
-                            isDeposit
-                              ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
-                              : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-                          }`}
-                        >
-                          {isDeposit ? `Cọc ${svc.depositPercent}%` : 'Trọn gói'}
-                        </span>
-                      </div>
-
-                      <p className="text-xs text-zinc-400 leading-relaxed">
-                        {svc.desc}
-                      </p>
-                    </div>
-
-                    <div className="pt-3 mt-3 border-t border-zinc-800/60 flex items-center justify-between">
-                      <div>
-                        <span className="text-[10px] text-zinc-500 uppercase block">Bảng giá</span>
-                        <span className="text-xs font-bold text-emerald-400 font-mono">
-                          {svc.pricingType === 'PER_UNIT'
-                            ? `${Number(svc.defaultPrice || 0).toLocaleString('vi-VN')} đ / ${svc.unitName || 'đơn vị'}`
-                            : `Từ ${Number(svc.defaultPrice || 0).toLocaleString('vi-VN')} đ`}
-                        </span>
-                      </div>
-
-                      <Link
-                        href={targetUrl}
-                        className="px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs flex items-center gap-1.5 shadow-md shadow-blue-600/20 transition-all hover:scale-105"
-                      >
-                        <span>Chọn dịch vụ</span>
-                        <ArrowRight size={13} />
-                      </Link>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Modal Footer */}
-            <div className="pt-4 border-t border-zinc-800 flex justify-between items-center text-xs text-zinc-400">
-              <span className="flex items-center gap-1.5">
-                <Shield size={14} className="text-emerald-400" />
-                Mọi giao dịch được bảo chứng Escrow 100% bởi LeoRank.
-              </span>
-              <button
-                type="button"
-                onClick={handleClose}
-                className="px-4 py-2 rounded-xl text-zinc-300 hover:text-white font-medium hover:bg-zinc-800 transition-colors"
-              >
-                Đóng
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+        })}
+      </div>
     </div>
   );
 }
