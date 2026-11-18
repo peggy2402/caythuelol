@@ -2227,16 +2227,6 @@ function ServiceBookingContent() {
                 </div>
               </div>
 
-              {/* Phụ phí Addons */}
-              {calculation.addonsCost > 0 && (
-                <div className="flex justify-between text-xs py-1 border-t border-zinc-800 text-zinc-400">
-                  <span>Phụ phí tùy chọn mở rộng:</span>
-                  <span className="font-mono text-amber-400 font-bold">
-                    +{calculation.addonsCost.toLocaleString('vi-VN')} đ
-                  </span>
-                </div>
-              )}
-
               {/* Voucher Input */}
               <div className="pt-2">
                 <div className="flex gap-2">
