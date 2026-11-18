@@ -685,9 +685,10 @@ function ServiceBookingContent() {
   const [isBoosterModalOpen, setIsBoosterModalOpen] = useState(false);
   const [boosterSearchTerm, setBoosterSearchTerm] = useState('');
 
-  // 5. States cho Mã giảm giá & Submit
+  // 5. States cho Mã giảm giá, Phí sàn & Submit
   const [couponCode, setCouponCode] = useState('');
   const [appliedCoupon, setAppliedCoupon] = useState<any>(null);
+  const [platformFeePercent, setPlatformFeePercent] = useState<number>(5);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Helper lấy token
@@ -698,6 +699,18 @@ function ServiceBookingContent() {
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     };
   };
+
+  // Fetch phí sàn từ cấu hình hệ thống
+  useEffect(() => {
+    fetch('/api/settings/platform-fee')
+      .then((res) => res.json())
+      .then((data) => {
+        if (typeof data?.fee === 'number') {
+          setPlatformFeePercent(data.fee);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   // Fetch danh sách booster của game để khách chọn nếu muốn
   useEffect(() => {
@@ -2242,7 +2255,45 @@ function ServiceBookingContent() {
               {/* TỔNG TIỀN VÀ TIỀN CỌC ESCROW */}
               <div className="p-4 rounded-2xl bg-zinc-950 border border-blue-500/20 space-y-2.5">
                 <div className="flex justify-between items-center text-xs text-zinc-400">
-                  <span>Tổng giá dịch vụ:</span>
+                  <span>Tạm tính gói cày:</span>
+                  <span className="font-bold text-white font-mono">
+                    {calculation.basePrice.toLocaleString('vi-VN')} đ
+                  </span>
+                </div>
+
+                {calculation.addonsCost > 0 && (
+                  <div className="flex justify-between items-center text-xs text-zinc-400">
+                    <span>Phụ phí tùy chọn:</span>
+                    <span className="font-bold text-amber-400 font-mono">
+                      +{calculation.addonsCost.toLocaleString('vi-VN')} đ
+                    </span>
+                  </div>
+                )}
+
+                {/* Phí dịch vụ sàn */}
+                <div className="flex justify-between items-center text-xs text-zinc-400">
+                  <span className="flex items-center gap-1.5">
+                    <span>Phí dịch vụ:</span>
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold">
+                      Bảo chứng Escrow ({platformFeePercent}%)
+                    </span>
+                  </span>
+                  <span className="font-mono text-emerald-400 font-bold">
+                    0 đ
+                  </span>
+                </div>
+
+                {appliedCoupon && (
+                  <div className="flex justify-between items-center text-xs text-emerald-400 font-medium">
+                    <span>Mã giảm giá ({appliedCoupon.code} -{appliedCoupon.discountPercent}%):</span>
+                    <span className="font-mono font-bold">
+                      -{Math.round((calculation.totalPrice * appliedCoupon.discountPercent) / 100).toLocaleString('vi-VN')} đ
+                    </span>
+                  </div>
+                )}
+
+                <div className="flex justify-between items-center pt-2 border-t border-zinc-800 text-xs">
+                  <span className="font-bold text-zinc-300">Tổng giá dịch vụ:</span>
                   <span className="text-base font-bold text-white font-mono">
                     {finalPrice.toLocaleString('vi-VN')} đ
                   </span>
