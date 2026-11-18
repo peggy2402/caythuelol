@@ -217,11 +217,29 @@ export default function BoosterServicesStudio() {
       const steps = updatedStepOverrides || stepOverrides;
       const games = updatedSelectedGames || selectedGames;
 
+      // Đảm bảo những dịch vụ thuộc tựa game không được chọn sẽ tự động chuyển sang isActive: false
+      const sanitizedServices = updatedCustomServices.map((s) => {
+        const sGame = (s.gameCode || 'LOL').toUpperCase();
+        const isGameSelected = games.some((g) => {
+          const cg = g.toUpperCase();
+          return (
+            cg === sGame ||
+            (sGame === 'LOL' && (cg === 'LMHT' || cg === 'LEAGUE')) ||
+            (sGame === 'TFT' && cg === 'DTCL') ||
+            (sGame === 'AOV' && cg === 'LIENQUAN')
+          );
+        });
+        return {
+          ...s,
+          isActive: isGameSelected ? s.isActive !== false : false,
+        };
+      });
+
       const payload = {
         selectedGames: games,
-        customServices: updatedCustomServices,
+        customServices: sanitizedServices,
         coupon: cpn,
-        enabledServices: updatedCustomServices
+        enabledServices: sanitizedServices
           .filter((s) => s.isActive)
           .map((s) => s.slug || s.serviceType || s.name),
         addonsConfig: addons,
@@ -331,12 +349,23 @@ export default function BoosterServicesStudio() {
   const handleToggleGame = async (gameId: string) => {
     const code = gameId.toUpperCase();
     let updated: string[];
+    let updatedServices = customServices;
+
     if (selectedGames.includes(code)) {
       if (selectedGames.length === 1) {
         toast.warning('Bạn cần chọn ít nhất một tựa game');
         return;
       }
       updated = selectedGames.filter((g) => g !== code);
+      // Tự động tắt (isActive = false) các dịch vụ của tựa game vừa bỏ chọn
+      updatedServices = customServices.map((s) => {
+        const sGame = (s.gameCode || 'LOL').toUpperCase();
+        if (sGame === code || (code === 'LOL' && sGame === 'LMHT')) {
+          return { ...s, isActive: false };
+        }
+        return s;
+      });
+      setCustomServices(updatedServices);
       setSelectedGames(updated);
       if (activeGameCode === code) {
         setActiveGameCode(updated[0] || 'LOL');
@@ -346,7 +375,7 @@ export default function BoosterServicesStudio() {
       setSelectedGames(updated);
       setActiveGameCode(code);
     }
-    await syncAllServices(customServices, addonsConfig, coupon, stepOverrides, updated);
+    await syncAllServices(updatedServices, addonsConfig, coupon, stepOverrides, updated);
   };
 
   // Bật/Tắt một dịch vụ

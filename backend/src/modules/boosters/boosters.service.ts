@@ -471,13 +471,30 @@ export class BoostersService {
       const coupon = b.booster_info?.service_settings?.coupon || null;
       const profile = profileMap.get(b._id.toString());
 
+      // Lấy danh sách tựa game booster thực tế nhận cày (selectedGames)
+      const rawSelectedGames = b.booster_info?.service_settings?.selectedGames;
+      const selectedGamesList: string[] | null = Array.isArray(rawSelectedGames) && rawSelectedGames.length > 0
+        ? rawSelectedGames.map((g: any) => normalizeGameCode(typeof g === 'string' ? g : g.gameCode))
+        : null;
+
+      // NẾU BOOSTER KHÔNG NHẬN CÀY TỰA GAME ĐANG TÌM KIẾM -> BỎ QUA HOÀN TOÀN!
+      if (selectedGamesList && targetGameCode && !selectedGamesList.includes(targetGameCode)) {
+        continue;
+      }
+
       if (Array.isArray(customServices) && customServices.length > 0) {
         for (const s of customServices) {
           if (s.isActive === false) continue;
 
+          const serviceGameCode = normalizeGameCode(s.gameCode);
+
+          // Bắt buộc: Tựa game của dịch vụ phải nằm trong selectedGames của booster!
+          if (selectedGamesList && !selectedGamesList.includes(serviceGameCode)) {
+            continue;
+          }
+
           // Filter by gameCode
           if (targetGameCode) {
-            const serviceGameCode = normalizeGameCode(s.gameCode);
             if (serviceGameCode && serviceGameCode !== targetGameCode) {
               continue;
             }
@@ -614,17 +631,27 @@ export class BoostersService {
             ],
           },
           selectedGames: {
-            $setUnion: [
-              {
-                $map: {
-                  input: { $ifNull: ['$profileDoc.games', []] },
-                  as: 'g',
-                  in: '$$g.gameCode',
-                },
+            $cond: {
+              if: {
+                $and: [
+                  { $isArray: '$booster_info.service_settings.selectedGames' },
+                  { $gt: [{ $size: '$booster_info.service_settings.selectedGames' }, 0] },
+                ],
               },
-              { $ifNull: ['$booster_info.main_games', []] },
-              { $ifNull: ['$booster_info.service_settings.selectedGames', []] },
-            ],
+              then: '$booster_info.service_settings.selectedGames',
+              else: {
+                $setUnion: [
+                  {
+                    $map: {
+                      input: { $ifNull: ['$profileDoc.games', []] },
+                      as: 'g',
+                      in: '$$g.gameCode',
+                    },
+                  },
+                  { $ifNull: ['$booster_info.main_games', []] },
+                ],
+              },
+            },
           },
           rating: { $ifNull: ['$profileDoc.rating', '$booster_info.rating', 0] },
           completedOrders: {
@@ -663,14 +690,30 @@ export class BoostersService {
 
       const gameRegex = new RegExp(`^(${normalized}|${targetGame})$`, 'i');
       andConditions.push({
-        // Bắt buộc booster phải có ít nhất 1 dịch vụ thực tế trong customServices thuộc tựa game này và đang bật (isActive !== false)
+        // 1. Tựa game bắt buộc phải nằm trong selectedGames của booster
+        $or: [
+          {
+            'booster_info.service_settings.selectedGames': {
+              $elemMatch: { $regex: gameRegex },
+            },
+          },
+          // Fallback nếu booster chưa từng cấu hình studio selectedGames
+          {
+            'booster_info.service_settings.selectedGames': { $exists: false },
+            $or: [
+              { 'booster_info.main_games': { $in: [normalized.toLowerCase(), targetGame.toLowerCase(), normalized, targetGame] } },
+              { 'profileDoc.games.gameCode': { $regex: gameRegex } },
+            ],
+          },
+        ],
+        // 2. Bắt buộc booster phải có ít nhất 1 dịch vụ thực tế trong customServices thuộc tựa game này và đang bật (isActive === true)
         'booster_info.service_settings.customServices': {
           $elemMatch: {
             $or: [
               { gameCode: { $regex: gameRegex } },
               ...(normalized === 'LOL' ? [{ gameCode: { $exists: false } }] : []),
             ],
-            isActive: { $ne: false },
+            isActive: true,
           },
         },
       });
@@ -974,16 +1017,58 @@ export class BoostersService {
   }
 
   async saveServiceSettings(userId: string, settings: any) {
+    const normalizeGameCode = (c?: string) => {
+      const code = (c || '').toUpperCase().trim();
+      if (code === 'LMHT' || code === 'LOL') return 'LOL';
+      if (code === 'DTCL' || code === 'TFT') return 'TFT';
+      if (code === 'LIENQUAN' || code === 'AOV') return 'AOV';
+      if (code === 'TOCCHIEN' || code === 'WILDRIFT') return 'WILDRIFT';
+      if (code === 'FCO' || code === 'FCONLINE') return 'FCONLINE';
+      return code;
+    };
+
+    const normalizedSelectedGames = Array.isArray(settings.selectedGames)
+      ? settings.selectedGames.map((g: any) => normalizeGameCode(typeof g === 'string' ? g : g.gameCode))
+      : [];
+
+    // Tự động vô hiệu hóa (isActive = false) các dịch vụ thuộc tựa game mà booster đã bỏ chọn
+    if (Array.isArray(settings.customServices) && normalizedSelectedGames.length > 0) {
+      settings.customServices = settings.customServices.map((s: any) => {
+        const sGame = normalizeGameCode(s.gameCode);
+        const isGameSelected = normalizedSelectedGames.includes(sGame);
+        return {
+          ...s,
+          isActive: isGameSelected ? s.isActive !== false : false,
+        };
+      });
+    }
+
+    // Cập nhật enabledServices chỉ bao gồm các dịch vụ active của tựa game được chọn
+    if (Array.isArray(settings.customServices)) {
+      settings.enabledServices = settings.customServices
+        .filter((s: any) => s.isActive === true)
+        .map((s: any) => s.slug || s.serviceType || s.id);
+    }
+
+    const userUpdate: any = {
+      'booster_info.service_settings': settings,
+    };
+    if (normalizedSelectedGames.length > 0) {
+      userUpdate['booster_info.main_games'] = normalizedSelectedGames.map((g) => g.toLowerCase());
+    }
+
     await this.userModel.collection.updateOne(
       { _id: new Types.ObjectId(userId) },
-      { $set: { 'booster_info.service_settings': settings } },
+      { $set: userUpdate },
     );
 
     const updateDoc: any = {};
     if (settings.enabledServices) {
       updateDoc.services = settings.enabledServices;
     } else if (Array.isArray(settings.customServices)) {
-      updateDoc.services = settings.customServices.map((s: any) => s.slug || s.name || s.id);
+      updateDoc.services = settings.customServices
+        .filter((s: any) => s.isActive !== false)
+        .map((s: any) => s.slug || s.name || s.id);
     }
 
     if (Array.isArray(settings.selectedGames)) {

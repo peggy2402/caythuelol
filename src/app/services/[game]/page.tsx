@@ -95,6 +95,7 @@ interface BoosterItem {
   rating: number;
   completedOrders?: number;
   services: string[];
+  selectedGames?: string[];
   games: {
     gameCode: string;
     ranks: string[];
@@ -222,9 +223,33 @@ function GameServicesContent() {
   // 3. Gom nhóm dịch vụ theo serviceType dựa trên dữ liệu thật từ DB (Chuẩn hóa hiển thị theo bản vẽ của User)
   const groupedServices = useMemo(() => {
     const map = new Map<string, GroupedService>();
+    const normGame = game.id.toUpperCase();
 
     for (const s of services) {
       if (s.isActive === false) continue;
+
+      const sGame = (s.gameCode || 'LOL').toUpperCase();
+      const matchGame = sGame === normGame || (normGame === 'LOL' && sGame === 'LMHT');
+      if (!matchGame) continue;
+
+      // Kiểm tra booster của dịch vụ có chọn nhận cày tựa game này không
+      if (s.booster) {
+        const boosterSelectedGames =
+          (s.booster as any).booster_info?.service_settings?.selectedGames ||
+          (s.booster as any).selectedGames;
+        if (Array.isArray(boosterSelectedGames) && boosterSelectedGames.length > 0) {
+          const isSelected = boosterSelectedGames.some((g: string) => {
+            const code = (g || '').toUpperCase();
+            return (
+              code === normGame ||
+              (normGame === 'LOL' && (code === 'LMHT' || code === 'LEAGUE')) ||
+              (normGame === 'TFT' && code === 'DTCL') ||
+              (normGame === 'AOV' && code === 'LIENQUAN')
+            );
+          });
+          if (!isSelected) continue;
+        }
+      }
 
       const sType = s.serviceType || s.slug || 'custom';
       if (!map.has(sType)) {
@@ -267,6 +292,30 @@ function GameServicesContent() {
   // Helper: Lấy danh sách dịch vụ đang HOẠT ĐỘNG (Active) của Booster cho tựa game này
   const getBoosterActiveServices = (b: BoosterItem) => {
     const normGame = game.id.toUpperCase();
+
+    // 0. BẮT BUỘC: Kiểm tra Booster có nhận cày tựa game này trong selectedGames không!
+    const boosterSelectedGames =
+      b.booster_info?.service_settings?.selectedGames ||
+      b.selectedGames ||
+      b.games?.map((g) => g.gameCode) ||
+      [];
+
+    if (Array.isArray(boosterSelectedGames) && boosterSelectedGames.length > 0) {
+      const isGameSelected = boosterSelectedGames.some((g: string) => {
+        const s = (g || '').toUpperCase();
+        return (
+          s === normGame ||
+          (normGame === 'LOL' && (s === 'LMHT' || s === 'LEAGUE')) ||
+          (normGame === 'TFT' && s === 'DTCL') ||
+          (normGame === 'AOV' && s === 'LIENQUAN') ||
+          (normGame === 'WILDRIFT' && (s === 'WR' || s === 'TOCCHIEN'))
+        );
+      });
+      // Nếu booster không chọn nhận cày tựa game này -> trả về [] ngay lập tức
+      if (!isGameSelected) {
+        return [];
+      }
+    }
 
     // 1. Ưu tiên kiểm tra trong b.booster_info?.service_settings?.customServices (cấu hình studio của chính booster)
     const customInBooster = b.booster_info?.service_settings?.customServices;

@@ -262,6 +262,11 @@ export default async function ShortProfilePage({ params }: Props) {
     data.user?.booster_info?.service_settings?.customServices ||
     [];
 
+  const selectedGamesList: string[] =
+    boosterData?.service_settings?.selectedGames ||
+    data.user?.booster_info?.service_settings?.selectedGames ||
+    [];
+
   const coupon =
     boosterData?.service_settings?.coupon ||
     data.user?.booster_info?.service_settings?.coupon;
@@ -271,6 +276,21 @@ export default async function ShortProfilePage({ params }: Props) {
   if (Array.isArray(customServicesList) && customServicesList.length > 0) {
     customServicesList.forEach((s) => {
       if (s.isActive === false) return;
+
+      // Nếu booster có danh sách tựa game nhận cày, chỉ hiển thị dịch vụ thuộc các game đó
+      if (selectedGamesList.length > 0) {
+        const sGame = (s.gameCode || 'LOL').toUpperCase();
+        const isGameSelected = selectedGamesList.some((g) => {
+          const code = (g || '').toUpperCase();
+          return (
+            code === sGame ||
+            (sGame === 'LOL' && (code === 'LMHT' || code === 'LEAGUE')) ||
+            (sGame === 'TFT' && code === 'DTCL') ||
+            (sGame === 'AOV' && code === 'LIENQUAN')
+          );
+        });
+        if (!isGameSelected) return;
+      }
       matchedServices.push({
         key: s.id,
         name: s.name,
