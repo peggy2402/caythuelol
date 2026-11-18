@@ -892,14 +892,26 @@ function ServiceBookingContent() {
     boosterAddonsConfig,
   ]);
 
-  // Tính giá sau khi áp dụng coupon
-  const finalPrice = useMemo(() => {
+  // Tính giá sau khi áp dụng coupon và cộng phí dịch vụ hệ thống
+  const discountAmount = useMemo(() => {
     if (appliedCoupon && appliedCoupon.discountPercent > 0) {
-      const discount = Math.round((calculation.totalPrice * appliedCoupon.discountPercent) / 100);
-      return Math.max(0, calculation.totalPrice - discount);
+      return Math.round((calculation.totalPrice * appliedCoupon.discountPercent) / 100);
     }
-    return calculation.totalPrice;
+    return 0;
   }, [calculation.totalPrice, appliedCoupon]);
+
+  const subtotalAfterDiscount = useMemo(() => {
+    return Math.max(0, calculation.totalPrice - discountAmount);
+  }, [calculation.totalPrice, discountAmount]);
+
+  const serviceFee = useMemo(() => {
+    if (platformFeePercent <= 0) return 0;
+    return Math.round((subtotalAfterDiscount * platformFeePercent) / 100);
+  }, [subtotalAfterDiscount, platformFeePercent]);
+
+  const finalPrice = useMemo(() => {
+    return subtotalAfterDiscount + serviceFee;
+  }, [subtotalAfterDiscount, serviceFee]);
 
   const finalDeposit = useMemo(() => {
     const ratio = (serviceDef.depositPercent || (isPointBoost ? 40 : 100)) / 100;
@@ -1062,7 +1074,13 @@ function ServiceBookingContent() {
         boosterId: assignedBooster?.user?._id || null,
         pricing: {
           original_price: calculation.totalPrice,
+          base_price: calculation.basePrice,
+          addons_cost: calculation.addonsCost,
+          service_fee: serviceFee,
+          platform_fee_percent: platformFeePercent,
+          discount_amount: discountAmount,
           final_price: finalPrice,
+          total_amount: finalPrice,
           deposit_amount: finalDeposit,
           deposit_percent: serviceDef.depositPercent || (isPointBoost ? 40 : 100),
         },
@@ -2270,27 +2288,22 @@ function ServiceBookingContent() {
                   </div>
                 )}
 
-                {/* Phí dịch vụ sàn */}
-                <div className="flex justify-between items-center text-xs text-zinc-400">
-                  <span className="flex items-center gap-1.5">
-                    <span>Phí dịch vụ:</span>
-                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold">
-                      Bảo chứng Escrow ({platformFeePercent}%)
-                    </span>
-                  </span>
-                  <span className="font-mono text-emerald-400 font-bold">
-                    0 đ
-                  </span>
-                </div>
-
-                {appliedCoupon && (
+                {appliedCoupon && discountAmount > 0 && (
                   <div className="flex justify-between items-center text-xs text-emerald-400 font-medium">
                     <span>Mã giảm giá ({appliedCoupon.code} -{appliedCoupon.discountPercent}%):</span>
                     <span className="font-mono font-bold">
-                      -{Math.round((calculation.totalPrice * appliedCoupon.discountPercent) / 100).toLocaleString('vi-VN')} đ
+                      -{discountAmount.toLocaleString('vi-VN')} đ
                     </span>
                   </div>
                 )}
+
+                {/* Phí dịch vụ */}
+                <div className="flex justify-between items-center text-xs text-zinc-400">
+                  <span>Phí dịch vụ ({platformFeePercent}%):</span>
+                  <span className="font-mono text-cyan-400 font-bold">
+                    +{serviceFee.toLocaleString('vi-VN')} đ
+                  </span>
+                </div>
 
                 <div className="flex justify-between items-center pt-2 border-t border-zinc-800 text-xs">
                   <span className="font-bold text-zinc-300">Tổng giá dịch vụ:</span>
