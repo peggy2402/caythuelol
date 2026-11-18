@@ -83,14 +83,17 @@ export class UsersService {
 
   async updateBoosterProfile(
     userId: string,
-    data: { bio?: string; displayName?: string; games?: any[] },
+    data: { bio?: string; displayName?: string; games?: any[]; currentRank?: string; highestRank?: string },
   ) {
     const user = await this.userModel.findById(userId);
     if (!user) throw new NotFoundException('Không tìm thấy người dùng');
 
     if (!user.booster_info) user.booster_info = {};
     if (data.bio !== undefined) user.booster_info.bio = data.bio;
-    await user.save();
+
+    // Cho phép thay đổi trực tiếp currentRank & highestRank tổng
+    if (data.currentRank !== undefined) user.booster_info.currentRank = data.currentRank;
+    if (data.highestRank !== undefined) user.booster_info.highestRank = data.highestRank;
 
     let boosterProfile = await this.boosterProfileModel.findOne({ userId: user._id });
     if (!boosterProfile) {
@@ -106,11 +109,29 @@ export class UsersService {
       if (data.displayName !== undefined) boosterProfile.displayName = data.displayName;
       if (data.games !== undefined) boosterProfile.games = data.games;
     }
+
+    // Tự động sync rank game chính vào booster_info nếu chưa truyền cụ thể
+    if (data.games && data.games.length > 0) {
+      const activeGame = data.games.find((g: any) => g.ranks && g.ranks.length > 0 && g.ranks.some((r: any) => r && r !== 'N/A' && r.trim() !== '')) || data.games[0];
+      if (activeGame && activeGame.ranks && activeGame.ranks.length > 0) {
+        if (!data.highestRank && activeGame.ranks[0] && activeGame.ranks[0] !== 'N/A') {
+          user.booster_info.highestRank = activeGame.ranks[0];
+        }
+        if (!data.currentRank && activeGame.ranks[1] && activeGame.ranks[1] !== 'N/A') {
+          user.booster_info.currentRank = activeGame.ranks[1];
+        } else if (!data.currentRank && activeGame.ranks[0] && activeGame.ranks[0] !== 'N/A') {
+          user.booster_info.currentRank = activeGame.ranks[0];
+        }
+      }
+    }
+
+    await user.save();
     await boosterProfile.save();
 
     return {
       success: true,
       message: 'Cập nhật thông tin tuyển thủ thành công',
+      booster_info: user.booster_info,
       booster_profile: boosterProfile,
     };
   }

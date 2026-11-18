@@ -25,7 +25,7 @@ interface BoosterRankShowcaseProps {
 // Helper lấy icon rank chuẩn theo từng game và bậc rank
 function getGameRankIcon(gameCode: string, rankName: string, isHighest: boolean = false): string {
   const g = (gameCode || 'LOL').toUpperCase();
-  const r = (rankName || '').toLowerCase();
+  const r = (rankName || '').toLowerCase().trim();
 
   // 1. VALORANT
   if (g === 'VALORANT' || g === 'VAL') {
@@ -40,14 +40,18 @@ function getGameRankIcon(gameCode: string, rankName: string, isHighest: boolean 
     return isHighest ? '/images/valorant/Radiant_Rank.png' : '/images/valorant/Diamond_3_Rank.png';
   }
 
-  // 2. LIÊN QUÂN (AOV)
+  // 2. LIÊN QUÂN (AOV) - Trỏ đúng tên file tồn tại trong public/images/aov/
   if (g === 'AOV' || g === 'LIENQUAN') {
-    if (r.includes('thách đấu') || r.includes('challenger')) return '/images/aov/challenger.png';
-    if (r.includes('chiến tướng') || r.includes('grandmaster')) return '/images/aov/grandmaster.png';
-    if (r.includes('cao thủ') || r.includes('master')) return '/images/aov/master.png';
-    if (r.includes('tinh anh') || r.includes('commander')) return '/images/aov/commander.png';
-    if (r.includes('kim cương') || r.includes('diamond')) return '/images/aov/diamond.png';
-    return isHighest ? '/images/aov/challenger.png' : '/images/aov/master.png';
+    if (r.includes('thách đấu') || r.includes('challenger') || r.includes('conqueror') || r.includes('chiến tướng')) return '/images/aov/Conqueror.png';
+    if (r.includes('đại cao thủ') || r.includes('grandmaster')) return '/images/aov/Grandmaster_I.png';
+    if (r.includes('cao thủ') || r.includes('master')) return '/images/aov/Master.png';
+    if (r.includes('tinh anh') || r.includes('veteran') || r.includes('commander')) return '/images/aov/Veteran.png';
+    if (r.includes('kim cương') || r.includes('diamond')) return '/images/aov/Diamond.png';
+    if (r.includes('bạch kim') || r.includes('platinum') || r.includes('platium')) return '/images/aov/Platium.png';
+    if (r.includes('vàng') || r.includes('gold')) return '/images/aov/Gold.png';
+    if (r.includes('bạc') || r.includes('silver')) return '/images/aov/Silver.png';
+    if (r.includes('đồng') || r.includes('bronze')) return '/images/aov/Bronze.png';
+    return isHighest ? '/images/aov/Conqueror.png' : '/images/aov/Master.png';
   }
 
   // 3. LMHT / LOL (Mặc định)
@@ -62,6 +66,7 @@ function getGameRankIcon(gameCode: string, rankName: string, isHighest: boolean 
   if (r.includes('bronze') || r.includes('đồng')) return '/images/ranks/bronze.png';
   if (r.includes('iron') || r.includes('sắt')) return '/images/ranks/iron.png';
 
+  // Fallback icon
   return isHighest ? '/images/ranks/challenger.png' : '/images/ranks/diamond.png';
 }
 
@@ -78,45 +83,55 @@ const TIER_META: Record<string, { color: string; bg: string; border: string; glo
 
 export default function BoosterRankShowcase({
   boosterGames = [],
-  defaultCurrentRank = 'Cao Thủ',
-  defaultHighestRank = 'Thách Đấu',
+  defaultCurrentRank,
+  defaultHighestRank,
   performanceScore = 88,
   tier = 'DIAMOND',
   tierName = 'Diamond',
 }: BoosterRankShowcaseProps) {
-  // Lấy danh sách các game booster hỗ trợ
-  const gamesList = boosterGames.length > 0 ? boosterGames : [{ gameCode: 'LOL', ranks: ['Thách Đấu', 'Cao Thủ'], servers: ['VN'] }];
-  
+  // CHỈ LẤY NHỮNG GAME ĐÃ ĐƯỢC CẤU HÌNH RANK (loại bỏ hoàn toàn các game có ranks rỗng [])
+  const configuredGames = (boosterGames || []).filter(
+    (g) => g.ranks && g.ranks.length > 0 && g.ranks.some((r) => r && r !== 'N/A' && r.trim() !== '')
+  );
+
+  const gamesList = configuredGames.length > 0
+    ? configuredGames
+    : [{ gameCode: 'LOL', ranks: [defaultHighestRank || 'Thách Đấu', defaultCurrentRank || 'Cao Thủ'], servers: ['VN'] }];
+
   // Game đang được chọn để xem rank
   const [selectedGameCode, setSelectedGameCode] = useState<string>(
     gamesList[0]?.gameCode?.toUpperCase() || 'LOL'
   );
 
+  // Đảm bảo selectedGameCode luôn nằm trong danh sách gamesList hợp lệ
+  const activeCode = gamesList.some((g) => g.gameCode.toUpperCase() === selectedGameCode.toUpperCase())
+    ? selectedGameCode
+    : gamesList[0].gameCode;
+
   const currentGameItem = gamesList.find(
-    (g) => g.gameCode.toUpperCase() === selectedGameCode.toUpperCase()
+    (g) => g.gameCode.toUpperCase() === activeCode.toUpperCase()
   ) || gamesList[0];
 
   const matchedCatalogGame = GAMES_CATALOG.find(
-    (g) => g.id.toUpperCase() === selectedGameCode.toUpperCase() || (g.shortName || '').toUpperCase() === selectedGameCode.toUpperCase()
+    (g) => g.id.toUpperCase() === activeCode.toUpperCase() || (g.shortName || '').toUpperCase() === activeCode.toUpperCase()
   );
 
-  const gameDisplayName = matchedCatalogGame?.name || selectedGameCode;
+  const gameDisplayName = matchedCatalogGame?.name || activeCode;
 
-  // Lấy rank của game đang chọn
+  // Lấy rank của game đang chọn trực tiếp từ cấu hình của tuyển thủ
   const ranksList = currentGameItem?.ranks || [];
-  const hasSpecificRank = ranksList.length > 0;
-  
-  const highestRankDisplay = hasSpecificRank
-    ? ranksList[0]
-    : defaultHighestRank && defaultHighestRank !== 'N/A'
-    ? defaultHighestRank
-    : 'Thách Đấu';
 
-  const currentRankDisplay = hasSpecificRank && ranksList.length > 1
+  // Rank cao nhất (ưu tiên ranksList[0], không bị ghi đè thành Thách Đấu nếu có rank tùy chỉnh như TEST)
+  const highestRankDisplay = (ranksList.length > 0 && ranksList[0] && ranksList[0] !== 'N/A')
+    ? ranksList[0]
+    : defaultHighestRank || 'Thách Đấu';
+
+  // Rank hiện tại (ưu tiên ranksList[1], fallback ranksList[0])
+  const currentRankDisplay = (ranksList.length > 1 && ranksList[1] && ranksList[1] !== 'N/A')
     ? ranksList[1]
-    : defaultCurrentRank && defaultCurrentRank !== 'N/A'
-    ? defaultCurrentRank
-    : highestRankDisplay;
+    : (ranksList.length > 0 && ranksList[0] && ranksList[0] !== 'N/A')
+    ? ranksList[0]
+    : defaultCurrentRank || highestRankDisplay;
 
   const currentTierKey = (tier || 'DIAMOND').toUpperCase();
   const tierMeta = TIER_META[currentTierKey] || TIER_META.DIAMOND;
@@ -143,32 +158,41 @@ export default function BoosterRankShowcase({
         </div>
       </div>
 
-      {/* 2. Tabs Chuyển Đổi Nhanh Giữa Các Game Tuyển Thủ Cày */}
+      {/* 2. Tabs Chuyển Đổi Nhanh Giữa Các Game Tuyển Thủ Cày (Chỉ hiển thị các game ĐÃ CẤU HÌNH) */}
       {gamesList.length > 1 && (
         <div>
           <div className="text-[11px] text-zinc-400 mb-1.5 font-medium flex items-center justify-between">
             <span>Chọn tựa game để xem chi tiết rank:</span>
-            <span className="text-zinc-500">{gamesList.length} game</span>
+            <span className="text-zinc-500">{gamesList.length} game đã xác thực</span>
           </div>
-          <div className="flex gap-1.5 overflow-x-auto pb-1 no-scrollbar">
+          <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
             {gamesList.map((g) => {
               const code = g.gameCode.toUpperCase();
-              const isSelected = selectedGameCode === code;
+              const isSelected = activeCode.toUpperCase() === code;
               const catGame = GAMES_CATALOG.find((cg) => cg.id.toUpperCase() === code || (cg.shortName || '').toUpperCase() === code);
               const label = catGame?.shortName || code;
+              const bannerImg = catGame?.banner || `/images/games/${code.toLowerCase()}-card.jpg`;
 
               return (
                 <button
                   key={code}
                   type="button"
                   onClick={() => setSelectedGameCode(code)}
-                  className={`px-3 py-1 rounded-xl text-xs font-bold transition-all whitespace-nowrap border ${
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap border ${
                     isSelected
                       ? 'bg-blue-600 text-white border-blue-400 shadow-[0_0_12px_rgba(59,130,246,0.35)]'
                       : 'bg-zinc-950/80 text-zinc-400 border-white/5 hover:text-white hover:bg-zinc-800'
                   }`}
                 >
-                  {label}
+                  <div className="relative w-4 h-4 rounded overflow-hidden shrink-0">
+                    <Image
+                      src={bannerImg}
+                      alt={label}
+                      fill
+                      className="object-cover"
+                    />
+                  </div>
+                  <span>{label}</span>
                 </button>
               );
             })}
@@ -182,7 +206,7 @@ export default function BoosterRankShowcase({
         <div className="bg-[#090d16] p-3 rounded-2xl border border-cyan-500/30 flex items-center gap-2.5 relative overflow-hidden shadow-[0_0_15px_rgba(6,182,212,0.1)]">
           <div className="relative w-11 h-11 shrink-0">
             <Image
-              src={getGameRankIcon(selectedGameCode, currentRankDisplay, false)}
+              src={getGameRankIcon(activeCode, currentRankDisplay, false)}
               alt="Current Rank"
               fill
               className="object-contain drop-shadow"
@@ -196,7 +220,7 @@ export default function BoosterRankShowcase({
               {currentRankDisplay}
             </div>
             <div className="text-[10px] text-zinc-500 truncate">
-              {matchedCatalogGame?.shortName || selectedGameCode}
+              {matchedCatalogGame?.shortName || activeCode}
             </div>
           </div>
         </div>
@@ -205,7 +229,7 @@ export default function BoosterRankShowcase({
         <div className="bg-[#140a1c] p-3 rounded-2xl border border-purple-500/30 flex items-center gap-2.5 relative overflow-hidden shadow-[0_0_15px_rgba(168,85,247,0.1)]">
           <div className="relative w-11 h-11 shrink-0">
             <Image
-              src={getGameRankIcon(selectedGameCode, highestRankDisplay, true)}
+              src={getGameRankIcon(activeCode, highestRankDisplay, true)}
               alt="Highest Rank"
               fill
               className="object-contain drop-shadow"
@@ -219,7 +243,7 @@ export default function BoosterRankShowcase({
               {highestRankDisplay}
             </div>
             <div className="text-[10px] text-zinc-500 truncate">
-              {matchedCatalogGame?.shortName || selectedGameCode}
+              {matchedCatalogGame?.shortName || activeCode}
             </div>
           </div>
         </div>

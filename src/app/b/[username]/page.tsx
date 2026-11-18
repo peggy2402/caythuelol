@@ -56,7 +56,7 @@ async function getLatestDDragonVersion(): Promise<string> {
 async function getBooster(username: string) {
   try {
     const res = await fetch(`${API_BASE_URL}/api/boosters/${encodeURIComponent(username)}`, {
-      next: { revalidate: 60 },
+      cache: 'no-store',
     });
     if (!res.ok) return null;
     const data = await res.json();

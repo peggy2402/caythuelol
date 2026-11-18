@@ -818,15 +818,15 @@ export class BoostersService {
       addonsConfig: existingSettings.addonsConfig || existingSettings.standardConfig?.addonsConfig,
       profile: user.profile || profile,
       currentRank:
-        (application as any)?.currentRank ||
+        (profile as any)?.games?.find((g: any) => g.ranks?.length > 1 && g.ranks[1] && g.ranks[1] !== 'N/A')?.ranks?.[1] ||
+        (profile as any)?.games?.find((g: any) => g.ranks?.length > 0 && g.ranks[0] && g.ranks[0] !== 'N/A')?.ranks?.[0] ||
         user.booster_info?.currentRank ||
-        (profile as any)?.games?.find((g: any) => g.ranks?.length > 1)?.ranks?.[1] ||
-        (profile as any)?.games?.find((g: any) => g.ranks?.length > 0)?.ranks?.[0] ||
+        (application as any)?.currentRank ||
         'Cao Thủ',
       highestRank:
-        (application as any)?.highestRank ||
+        (profile as any)?.games?.find((g: any) => g.ranks?.length > 0 && g.ranks[0] && g.ranks[0] !== 'N/A')?.ranks?.[0] ||
         user.booster_info?.highestRank ||
-        (profile as any)?.games?.find((g: any) => g.ranks?.length > 0)?.ranks?.[0] ||
+        (application as any)?.highestRank ||
         'Thách Đấu',
       performanceScore: (profile as any)?.performanceScore || user.booster_info?.performanceScore || 85,
       tier: (profile as any)?.tier || user.booster_info?.tier || 'DIAMOND',

@@ -57,7 +57,7 @@ export class UsersController {
   @ApiOperation({ summary: 'Update booster game ranks and profile' })
   async updateBoosterProfile(
     @ReqUser() user: any,
-    @Body() body: { bio?: string; displayName?: string; games?: any[] },
+    @Body() body: { bio?: string; displayName?: string; games?: any[]; currentRank?: string; highestRank?: string },
   ) {
     return this.usersService.updateBoosterProfile(user.userId, body);
   }

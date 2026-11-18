@@ -4,11 +4,13 @@ import { useState, useEffect, ReactNode } from 'react';
 import { useLanguage } from '@/lib/i18n';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import {
   User, Key, Trash2, Save, Camera, X, Loader2, Sparkles, ChevronsUpDown, Check,
   Search, Copy, ExternalLink, Share2, Shield, Trophy, Flame, Star, Award,
   Wallet, ShoppingBag, Gift, ArrowRight, Settings, CheckCircle2, AlertCircle,
-  Gamepad2, Plus, Edit3, Activity, Clock, CheckCheck, RefreshCw, Layers
+  Gamepad2, Plus, Edit3, Activity, Clock, CheckCheck, RefreshCw, Layers,
+  Eye
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -374,6 +376,10 @@ export default function ProfilePage() {
   const [bio, setBio] = useState('');
 
   // Booster Specific States
+  const [globalCurrentRank, setGlobalCurrentRank] = useState('Cao Thủ');
+  const [globalHighestRank, setGlobalHighestRank] = useState('Thách Đấu');
+  const [selectedEditGame, setSelectedEditGame] = useState<string>('LOL');
+
   const [boosterGames, setBoosterGames] = useState<BoosterGameItem[]>([]);
   const [boosterProfile, setBoosterProfile] = useState<BoosterProfileData | null>(null);
   const [isReady, setIsReady] = useState<boolean>(true);
@@ -417,6 +423,9 @@ export default function ProfilePage() {
         setBio(parsedUser.booster_info?.bio || parsedUser.profile?.booster_info?.bio || '');
         setIsReady(parsedUser.isReady !== false && parsedUser.booster_info?.isReady !== false);
 
+        if (parsedUser.booster_info?.currentRank) setGlobalCurrentRank(parsedUser.booster_info.currentRank);
+        if (parsedUser.booster_info?.highestRank) setGlobalHighestRank(parsedUser.booster_info.highestRank);
+
         if (parsedUser.profile?.bank_info) {
           setBankName(parsedUser.profile.bank_info.bankName || '');
           setAccountNumber(parsedUser.profile.bank_info.accountNumber || '');
@@ -450,6 +459,9 @@ export default function ProfilePage() {
             if (freshUser.booster_info?.bio || freshUser.profile?.booster_info?.bio) {
               setBio(freshUser.booster_info?.bio || freshUser.profile?.booster_info?.bio || '');
             }
+            if (freshUser.booster_info?.currentRank) setGlobalCurrentRank(freshUser.booster_info.currentRank);
+            if (freshUser.booster_info?.highestRank) setGlobalHighestRank(freshUser.booster_info.highestRank);
+
             if (freshUser.profile?.bank_info) {
               setBankName(freshUser.profile.bank_info.bankName || '');
               setAccountNumber(freshUser.profile.bank_info.accountNumber || '');
@@ -603,6 +615,8 @@ export default function ProfilePage() {
         body: JSON.stringify({
           bio,
           displayName: username,
+          currentRank: globalCurrentRank,
+          highestRank: globalHighestRank,
           games: boosterGames,
         }),
       });
@@ -612,6 +626,17 @@ export default function ProfilePage() {
       toast.success('Đã lưu thông tin trình độ & các tựa game thành công! 🎉');
       if (data.booster_profile) {
         setBoosterProfile(data.booster_profile);
+      }
+      if (data.booster_info) {
+        const updatedUser = {
+          ...user,
+          booster_info: {
+            ...user.booster_info,
+            ...data.booster_info,
+          },
+        };
+        setUser(updatedUser);
+        localStorage.setItem('user', JSON.stringify(updatedUser));
       }
     } catch (err: any) {
       toast.error(err.message || 'Lỗi lưu thông tin game');
@@ -660,6 +685,18 @@ export default function ProfilePage() {
         ];
       }
     });
+  };
+
+  const handleRemoveGame = (gameCode: string) => {
+    setBoosterGames((prev) =>
+      prev.map((g) => {
+        if (g.gameCode.toUpperCase() === gameCode.toUpperCase()) {
+          return { ...g, ranks: [] };
+        }
+        return g;
+      })
+    );
+    toast.success(`Đã xóa cấu hình rank của ${gameCode}`);
   };
 
   const handleVerifyEmailOtp = async (otp: string) => {
@@ -821,6 +858,15 @@ export default function ProfilePage() {
   const currentTier = boosterProfile?.tierName || user.booster_info?.tierName || 'Diamond';
   const currentScore = boosterProfile?.performanceScore || user.booster_info?.performanceScore || 88;
   const tierStyle = getTierBadgeDetails(currentTier);
+
+  // Active game details for studio editor
+  const selectedCatGame = GAMES_CATALOG.find((x) => x.id.toUpperCase() === selectedEditGame.toUpperCase()) || GAMES_CATALOG[0];
+  const matchedActiveBoosterGame = boosterGames.find((bg) => bg.gameCode.toUpperCase() === selectedEditGame.toUpperCase());
+  const activeGameHasRank = !!(matchedActiveBoosterGame && matchedActiveBoosterGame.ranks && matchedActiveBoosterGame.ranks.length > 0 && matchedActiveBoosterGame.ranks.some((r) => r && r !== 'N/A' && r.trim() !== ''));
+  const currentEditHighestRank = matchedActiveBoosterGame?.ranks?.[0] || 'N/A';
+  const currentEditCurrentRank = matchedActiveBoosterGame?.ranks?.[1] || matchedActiveBoosterGame?.ranks?.[0] || 'N/A';
+  const currentEditOpgg = matchedActiveBoosterGame?.metadata?.opggLink || '';
+  const currentEditProof = matchedActiveBoosterGame?.metadata?.rankImageUrl || '';
 
   return (
     <div className="space-y-8 animate-fade-in pb-12">
@@ -1055,156 +1101,232 @@ export default function ProfilePage() {
             </button>
           </div>
 
-          {/* TAB 1: GAME RANKS & PROOF */}
+          {/* TAB 1: GAME RANKS & PROOF (NEW STUDIO UX) */}
           {activeTab === 'ranks' && (
             <div className="space-y-6">
-              <SettingsCard
-                title="Quản Lý Trình Độ & Xếp Hạng Các Tựa Game"
-                description="Cấu hình Rank hiện tại, Rank cao nhất và link chứng minh năng lực để khách hàng tin tưởng và thuê bạn."
-                badge={
+              {/* 1. KHỐI CẤU HÌNH RANK ĐẠI DIỆN TOÀN SÀN */}
+              <div className="rounded-2xl border border-blue-500/30 bg-gradient-to-r from-blue-950/40 via-zinc-900 to-indigo-950/40 p-5 shadow-lg space-y-4">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                  <div>
+                    <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                      <Award className="w-4 h-4 text-amber-400" />
+                      Bậc Rank Đại Diện Toàn Sàn Của Tuyển Thủ
+                    </h3>
+                    <p className="text-xs text-zinc-400 mt-0.5">
+                      Hiển thị trực tiếp trên danh thiếp tuyển thủ, kết quả tìm kiếm và trang hồ sơ.
+                    </p>
+                  </div>
+                  <span className="text-[10px] uppercase font-bold px-2.5 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                    Global Ranks
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-cyan-400 mb-1.5 flex items-center gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5" />
+                      Rank Hiện Tại (Current Rank)
+                    </label>
+                    <input
+                      type="text"
+                      value={globalCurrentRank}
+                      onChange={(e) => setGlobalCurrentRank(e.target.value)}
+                      placeholder="VD: Cao Thủ, Radiant, Master..."
+                      className="w-full rounded-xl border border-cyan-500/30 bg-zinc-900/90 px-4 py-2.5 text-sm font-bold text-white focus:border-cyan-400 focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-purple-400 mb-1.5 flex items-center gap-1.5">
+                      <Trophy className="w-3.5 h-3.5" />
+                      Rank Cao Nhất / Đỉnh Cao (Highest Rank Peak)
+                    </label>
+                    <input
+                      type="text"
+                      value={globalHighestRank}
+                      onChange={(e) => setGlobalHighestRank(e.target.value)}
+                      placeholder="VD: Thách Đấu, TEST, Radiant..."
+                      className="w-full rounded-xl border border-purple-500/30 bg-zinc-900/90 px-4 py-2.5 text-sm font-bold text-white focus:border-purple-400 focus:outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* 2. KHỐI CHỌN TỰA GAME ĐỂ THIẾT LẬP (STUDIO CAROUSEL / GRID VỚI ẢNH BÌA) */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="text-sm font-bold text-white flex items-center gap-2">
+                    <Gamepad2 className="w-4 h-4 text-blue-400" />
+                    Chọn tựa game để thiết lập trình độ & rank:
+                  </div>
+                  <span className="text-xs text-zinc-400">
+                    Đang chọn: <span className="text-blue-400 font-bold">{selectedCatGame?.name || selectedEditGame}</span>
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+                  {GAMES_CATALOG.map((g) => {
+                    const code = g.id.toUpperCase();
+                    const isSelected = selectedEditGame.toUpperCase() === code;
+                    const matched = boosterGames.find((bg) => bg.gameCode.toUpperCase() === code);
+                    const hasConfiguredRank = matched && matched.ranks && matched.ranks.length > 0 && matched.ranks.some((r) => r && r !== 'N/A' && r.trim() !== '');
+                    const bannerImg = g.banner || `/images/games/${code.toLowerCase()}-card.jpg`;
+
+                    return (
+                      <button
+                        key={code}
+                        type="button"
+                        onClick={() => setSelectedEditGame(code)}
+                        className={`relative rounded-2xl overflow-hidden p-3 text-left border transition-all flex flex-col justify-between h-[110px] group ${
+                          isSelected
+                            ? 'border-blue-500 bg-blue-950/40 shadow-lg shadow-blue-500/20 ring-2 ring-blue-500/40'
+                            : hasConfiguredRank
+                            ? 'border-emerald-500/30 bg-zinc-900/70 hover:border-emerald-500/50'
+                            : 'border-white/5 bg-zinc-950/60 hover:border-white/20 opacity-75 hover:opacity-100'
+                        }`}
+                      >
+                        {/* Background overlay */}
+                        <div className="absolute inset-0 z-0">
+                          <Image
+                            src={bannerImg}
+                            alt={g.name}
+                            fill
+                            className="object-cover opacity-25 group-hover:opacity-40 transition-opacity"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/70 to-transparent" />
+                        </div>
+
+                        <div className="relative z-10 flex items-start justify-between w-full">
+                          <div className="w-7 h-7 rounded-lg overflow-hidden border border-white/20 relative shrink-0 shadow">
+                            <Image src={bannerImg} alt={g.shortName} fill className="object-cover" />
+                          </div>
+                          {hasConfiguredRank ? (
+                            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]" title="Đã có rank" />
+                          ) : (
+                            <span className="w-2 h-2 rounded-full bg-zinc-600" title="Chưa cấu hình" />
+                          )}
+                        </div>
+
+                        <div className="relative z-10 min-w-0">
+                          <div className="text-xs font-bold text-white truncate">{g.name}</div>
+                          <div className="text-[10px] text-zinc-400 truncate">
+                            {hasConfiguredRank ? (
+                              <span className="text-emerald-400 font-semibold">{matched?.ranks?.[0]}</span>
+                            ) : (
+                              <span className="text-zinc-500">Chưa nhận cày</span>
+                            )}
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* 3. KHU VỰC CHỈNH SỬA CHI TIẾT TỰA GAME ĐANG CHỌN */}
+              <div className="rounded-2xl border border-white/10 bg-zinc-900/80 p-6 backdrop-blur-md space-y-6">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-white/5">
+                  <div className="flex items-center gap-4">
+                    <div className="relative w-16 h-16 rounded-2xl overflow-hidden border border-white/15 shadow-xl shrink-0">
+                      <Image
+                        src={selectedCatGame?.banner || `/images/games/${selectedEditGame.toLowerCase()}-card.jpg`}
+                        alt={selectedCatGame?.name || selectedEditGame}
+                        fill
+                        className="object-cover"
+                      />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h4 className="text-lg font-black text-white">{selectedCatGame?.name || selectedEditGame}</h4>
+                        <span className="text-xs px-2 py-0.5 rounded-md bg-zinc-800 text-zinc-300 font-mono">
+                          {selectedEditGame}
+                        </span>
+                      </div>
+                      <p className="text-xs text-zinc-400 mt-1">
+                        {activeGameHasRank
+                          ? `Đang kích hoạt nhận đơn cày với Rank: ${currentEditHighestRank}`
+                          : 'Tựa game này chưa được cấu hình rank. Điền thông tin bên dưới để mở nhận cày!'}
+                      </p>
+                    </div>
+                  </div>
+
+                  {activeGameHasRank && (
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveGame(selectedEditGame)}
+                      className="px-3.5 py-1.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 text-xs font-bold transition-all flex items-center gap-1.5"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      Xóa cấu hình game này
+                    </button>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-zinc-300 mb-1.5">
+                      Rank Cao Nhất (Peak Rank) cho {selectedCatGame?.shortName || selectedEditGame}
+                    </label>
+                    <input
+                      type="text"
+                      value={currentEditHighestRank === 'N/A' ? '' : currentEditHighestRank}
+                      onChange={(e) => handleUpdateGameRank(selectedEditGame, 'highestRank', e.target.value)}
+                      placeholder="VD: Thách Đấu, Radiant, TEST, Global Elite..."
+                      className="w-full rounded-xl border border-zinc-700 bg-zinc-800/90 px-4 py-2.5 text-sm text-white font-bold focus:border-blue-500 focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-zinc-300 mb-1.5">
+                      Rank Hiện Tại (Current Rank) cho {selectedCatGame?.shortName || selectedEditGame}
+                    </label>
+                    <input
+                      type="text"
+                      value={currentEditCurrentRank === 'N/A' ? '' : currentEditCurrentRank}
+                      onChange={(e) => handleUpdateGameRank(selectedEditGame, 'currentRank', e.target.value)}
+                      placeholder="VD: Cao Thủ, Immortal 3..."
+                      className="w-full rounded-xl border border-zinc-700 bg-zinc-800/90 px-4 py-2.5 text-sm text-white font-bold focus:border-blue-500 focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-zinc-300 mb-1.5">
+                      Link OPGG / Tracker / Hồ Sơ Ingame
+                    </label>
+                    <input
+                      type="text"
+                      value={currentEditOpgg}
+                      onChange={(e) => handleUpdateGameRank(selectedEditGame, 'opggLink', e.target.value)}
+                      placeholder="https://op.gg/summoners/..."
+                      className="w-full rounded-xl border border-zinc-700 bg-zinc-800/90 px-4 py-2.5 text-xs text-white focus:border-blue-500 focus:outline-none font-mono"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-zinc-300 mb-1.5">
+                      Link Ảnh Bằng Chứng Rank (Screenshot proof)
+                    </label>
+                    <input
+                      type="text"
+                      value={currentEditProof}
+                      onChange={(e) => handleUpdateGameRank(selectedEditGame, 'rankImageUrl', e.target.value)}
+                      placeholder="https://i.imgur.com/..."
+                      className="w-full rounded-xl border border-zinc-700 bg-zinc-800/90 px-4 py-2.5 text-xs text-white focus:border-blue-500 focus:outline-none font-mono"
+                    />
+                  </div>
+                </div>
+
+                <div className="pt-2 flex justify-end">
                   <button
                     onClick={handleSaveBoosterGames}
                     disabled={isSavingGames}
-                    className="flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-lg shadow-blue-600/20 transition-all disabled:opacity-50"
+                    className="flex items-center gap-2 px-8 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm shadow-xl shadow-blue-600/30 transition-all disabled:opacity-50"
                   >
                     {isSavingGames ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                    Lưu Thay Đổi
+                    Lưu Tất Cả Cấu Hình Trình Độ
                   </button>
-                }
-              >
-                <div className="space-y-6">
-                  {/* Public Link Share Widget */}
-                  <div className="bg-blue-950/30 border border-blue-500/20 rounded-2xl p-4 flex flex-col md:flex-row items-center justify-between gap-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center text-blue-400 shrink-0">
-                        <Share2 className="w-5 h-5" />
-                      </div>
-                      <div>
-                        <div className="text-sm font-bold text-white">Link Hồ Sơ Công Khai Của Bạn</div>
-                        <div className="text-xs text-zinc-400 font-mono mt-0.5">{origin}/b/{username}</div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 w-full md:w-auto">
-                      <button
-                        onClick={copyShortLink}
-                        className="flex-1 md:flex-none px-3.5 py-2 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-bold transition-all flex items-center justify-center gap-1.5"
-                      >
-                        <Copy className="w-3.5 h-3.5" />
-                        Sao chép
-                      </button>
-                      <a
-                        href={`/b/${username}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="flex-1 md:flex-none px-3.5 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition-all flex items-center justify-center gap-1.5"
-                      >
-                        <ExternalLink className="w-3.5 h-3.5" />
-                        Xem trang khách hàng
-                      </a>
-                    </div>
-                  </div>
-
-                  {/* List of Supported Games */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {GAMES_CATALOG.map((g) => {
-                      const matched = boosterGames.find((bg) => bg.gameCode.toUpperCase() === g.id.toUpperCase());
-                      const highestRank = matched?.ranks?.[0] || 'N/A';
-                      const currentRank = matched?.ranks?.[1] || matched?.ranks?.[0] || 'N/A';
-                      const opggLink = matched?.metadata?.opggLink || '';
-                      const rankImageUrl = matched?.metadata?.rankImageUrl || '';
-
-                      return (
-                        <div
-                          key={g.id}
-                          className="rounded-2xl border border-white/5 bg-zinc-950/60 p-5 hover:border-white/10 transition-all space-y-4"
-                        >
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 rounded-xl bg-zinc-900 border border-white/10 flex items-center justify-center font-black text-xs text-white">
-                                {g.shortName}
-                              </div>
-                              <div>
-                                <h3 className="text-sm font-bold text-white">{g.name}</h3>
-                                <p className="text-[11px] text-zinc-500 uppercase font-mono">{g.id}</p>
-                              </div>
-                            </div>
-                            {matched && (
-                              <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                                Đang nhận cày
-                              </span>
-                            )}
-                          </div>
-
-                          <div className="grid grid-cols-2 gap-3">
-                            <div>
-                              <label className="block text-[11px] font-medium text-zinc-400 mb-1">
-                                Rank Hiện Tại
-                              </label>
-                              <input
-                                type="text"
-                                value={currentRank === 'N/A' ? '' : currentRank}
-                                onChange={(e) => handleUpdateGameRank(g.id, 'currentRank', e.target.value)}
-                                placeholder="VD: Cao Thủ, Radiant..."
-                                className="w-full rounded-lg border border-zinc-700 bg-zinc-800/80 px-3 py-2 text-xs text-white focus:border-blue-500 focus:outline-none"
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-[11px] font-medium text-zinc-400 mb-1">
-                                Rank Cao Nhất (Peak)
-                              </label>
-                              <input
-                                type="text"
-                                value={highestRank === 'N/A' ? '' : highestRank}
-                                onChange={(e) => handleUpdateGameRank(g.id, 'highestRank', e.target.value)}
-                                placeholder="VD: Thách Đấu, Top 1..."
-                                className="w-full rounded-lg border border-zinc-700 bg-zinc-800/80 px-3 py-2 text-xs text-white focus:border-blue-500 focus:outline-none"
-                              />
-                            </div>
-                          </div>
-
-                          <div className="space-y-2">
-                            <div>
-                              <label className="block text-[11px] font-medium text-zinc-400 mb-1">
-                                Link OPGG / Tracker / Hồ Sơ Ingame
-                              </label>
-                              <input
-                                type="text"
-                                value={opggLink}
-                                onChange={(e) => handleUpdateGameRank(g.id, 'opggLink', e.target.value)}
-                                placeholder="https://op.gg/summoners/..."
-                                className="w-full rounded-lg border border-zinc-700 bg-zinc-800/80 px-3 py-2 text-xs text-white focus:border-blue-500 focus:outline-none"
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-[11px] font-medium text-zinc-400 mb-1">
-                                Link Ảnh Bằng Chứng Rank (Screenshot)
-                              </label>
-                              <input
-                                type="text"
-                                value={rankImageUrl}
-                                onChange={(e) => handleUpdateGameRank(g.id, 'rankImageUrl', e.target.value)}
-                                placeholder="https://i.imgur.com/..."
-                                className="w-full rounded-lg border border-zinc-700 bg-zinc-800/80 px-3 py-2 text-xs text-white focus:border-blue-500 focus:outline-none"
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                  <div className="pt-2 flex justify-end">
-                    <button
-                      onClick={handleSaveBoosterGames}
-                      disabled={isSavingGames}
-                      className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm shadow-lg shadow-blue-600/20 transition-all disabled:opacity-50"
-                    >
-                      {isSavingGames ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                      Lưu Kỹ Năng & Rank Game
-                    </button>
-                  </div>
                 </div>
-              </SettingsCard>
+              </div>
             </div>
           )}
 
@@ -1687,98 +1809,98 @@ export default function ProfilePage() {
                       <div className="fixed inset-0 z-40" onClick={() => setIsBankOpen(false)} />
                       <div className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-xl border border-zinc-700 bg-zinc-900 py-1 text-base shadow-2xl ring-1 ring-black ring-opacity-5">
                         <div className="sticky top-0 z-10 bg-zinc-900 p-2 border-b border-zinc-700">
-                          <div className="relative">
-                            <Search className="absolute left-2 top-2.5 h-4 w-4 text-zinc-500" />
-                            <input
-                              className="w-full bg-zinc-800 text-white rounded-lg py-2 pl-8 pr-4 text-sm focus:outline-none border border-zinc-700"
-                              placeholder="Tìm kiếm ngân hàng..."
-                              value={bankSearch}
-                              onChange={(e) => setBankSearch(e.target.value)}
-                              autoFocus
-                            />
-                          </div>
-                        </div>
-                        {banks
-                          .filter(
-                            (b) =>
-                              b.shortName.toLowerCase().includes(bankSearch.toLowerCase()) ||
-                              b.name.toLowerCase().includes(bankSearch.toLowerCase()) ||
-                              b.code.toLowerCase().includes(bankSearch.toLowerCase())
-                          )
-                          .map((bank) => (
-                            <div
-                              key={bank.id}
-                              className="relative flex cursor-pointer select-none items-center py-2.5 pl-3 pr-9 hover:bg-blue-600/20 hover:text-blue-400 text-zinc-300"
-                              onClick={() => {
-                                setBankName(bank.shortName);
-                                setIsBankOpen(false);
-                              }}
-                            >
-                              <div className="flex items-center gap-3">
-                                <img
-                                  src={bank.logo}
-                                  alt={bank.code}
-                                  className="h-8 w-8 object-contain bg-white rounded-md p-0.5"
+                              <div className="relative">
+                                <Search className="absolute left-2 top-2.5 h-4 w-4 text-zinc-500" />
+                                <input
+                                  className="w-full bg-zinc-800 text-white rounded-lg py-2 pl-8 pr-4 text-sm focus:outline-none border border-zinc-700"
+                                  placeholder="Tìm kiếm ngân hàng..."
+                                  value={bankSearch}
+                                  onChange={(e) => setBankSearch(e.target.value)}
+                                  autoFocus
                                 />
-                                <div className="flex flex-col">
-                                  <div className="flex items-center gap-2">
-                                    <span className="font-bold text-white">{bank.shortName}</span>
-                                    <span className="text-[10px] text-zinc-400 bg-zinc-800 px-1.5 py-0.5 rounded border border-zinc-700">
-                                      {bank.code}
-                                    </span>
-                                  </div>
-                                  <span className="text-xs text-zinc-500 truncate max-w-[250px]">{bank.name}</span>
-                                </div>
                               </div>
-                              {bankName === bank.shortName && (
-                                <span className="absolute inset-y-0 right-0 flex items-center pr-4 text-blue-500">
-                                  <Check className="h-4 w-4" />
-                                </span>
-                              )}
                             </div>
-                          ))}
-                      </div>
-                    </>
-                  )}
+                            {banks
+                              .filter(
+                                (b) =>
+                                  b.shortName.toLowerCase().includes(bankSearch.toLowerCase()) ||
+                                  b.name.toLowerCase().includes(bankSearch.toLowerCase()) ||
+                                  b.code.toLowerCase().includes(bankSearch.toLowerCase())
+                              )
+                              .map((bank) => (
+                                <div
+                                  key={bank.id}
+                                  className="relative flex cursor-pointer select-none items-center py-2.5 pl-3 pr-9 hover:bg-blue-600/20 hover:text-blue-400 text-zinc-300"
+                                  onClick={() => {
+                                    setBankName(bank.shortName);
+                                    setIsBankOpen(false);
+                                  }}
+                                >
+                                  <div className="flex items-center gap-3">
+                                    <img
+                                      src={bank.logo}
+                                      alt={bank.code}
+                                      className="h-8 w-8 object-contain bg-white rounded-md p-0.5"
+                                    />
+                                    <div className="flex flex-col">
+                                      <div className="flex items-center gap-2">
+                                        <span className="font-bold text-white">{bank.shortName}</span>
+                                        <span className="text-[10px] text-zinc-400 bg-zinc-800 px-1.5 py-0.5 rounded border border-zinc-700">
+                                          {bank.code}
+                                        </span>
+                                      </div>
+                                      <span className="text-xs text-zinc-500 truncate max-w-[250px]">{bank.name}</span>
+                                    </div>
+                                  </div>
+                                  {bankName === bank.shortName && (
+                                    <span className="absolute inset-y-0 right-0 flex items-center pr-4 text-blue-500">
+                                      <Check className="h-4 w-4" />
+                                    </span>
+                                  )}
+                                </div>
+                              ))}
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-zinc-400 mb-2">Số tài khoản</label>
+                    <input
+                      type="text"
+                      value={accountNumber}
+                      onChange={(e) => setAccountNumber(e.target.value)}
+                      placeholder="0123456789"
+                      className="w-full rounded-xl border border-zinc-700 bg-zinc-800/80 px-4 py-2.5 text-white focus:border-blue-500"
+                    />
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-zinc-400 mb-2">
+                      Tên chủ tài khoản (In hoa không dấu)
+                    </label>
+                    <input
+                      type="text"
+                      value={accountHolder}
+                      onChange={(e) => setAccountHolder(e.target.value.toUpperCase())}
+                      placeholder="NGUYEN VAN A"
+                      className="w-full rounded-xl border border-zinc-700 bg-zinc-800/80 px-4 py-2.5 text-white focus:border-blue-500 uppercase font-mono"
+                    />
+                  </div>
                 </div>
-              </div>
 
-              <div>
-                <label className="block text-sm font-medium text-zinc-400 mb-2">Số tài khoản</label>
-                <input
-                  type="text"
-                  value={accountNumber}
-                  onChange={(e) => setAccountNumber(e.target.value)}
-                  placeholder="0123456789"
-                  className="w-full rounded-xl border border-zinc-700 bg-zinc-800/80 px-4 py-2.5 text-white focus:border-blue-500"
-                />
-              </div>
-
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-zinc-400 mb-2">
-                  Tên chủ tài khoản (In hoa không dấu)
-                </label>
-                <input
-                  type="text"
-                  value={accountHolder}
-                  onChange={(e) => setAccountHolder(e.target.value.toUpperCase())}
-                  placeholder="NGUYEN VAN A"
-                  className="w-full rounded-xl border border-zinc-700 bg-zinc-800/80 px-4 py-2.5 text-white focus:border-blue-500 uppercase font-mono"
-                />
-              </div>
-            </div>
-
-            <div className="pt-4 flex justify-end">
-              <button
-                onClick={handleSaveBankInfo}
-                disabled={isSavingBank}
-                className="flex items-center gap-2 rounded-xl bg-blue-600 px-6 py-2.5 text-sm font-bold text-white hover:bg-blue-500 transition-colors shadow-lg shadow-blue-500/20 disabled:opacity-50"
-              >
-                {isSavingBank ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                Lưu Tài Khoản Hoàn Tiền
-              </button>
-            </div>
-          </SettingsCard>
+                <div className="pt-4 flex justify-end">
+                  <button
+                    onClick={handleSaveBankInfo}
+                    disabled={isSavingBank}
+                    className="flex items-center gap-2 rounded-xl bg-blue-600 px-6 py-2.5 text-sm font-bold text-white hover:bg-blue-500 transition-colors shadow-lg shadow-blue-500/20 disabled:opacity-50"
+                  >
+                    {isSavingBank ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                    Lưu Tài Khoản Hoàn Tiền
+                  </button>
+                </div>
+              </SettingsCard>
         </div>
       )}
 
