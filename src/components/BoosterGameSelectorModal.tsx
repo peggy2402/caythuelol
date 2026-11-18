@@ -107,6 +107,17 @@ function getGameBanner(gameId: string, defaultBanner?: string): string {
   return map[id] || defaultBanner || '/images/games/lol-card.jpg';
 }
 
+// Chuẩn hóa mã game để match chính xác giữa các biến thể tên gọi
+function normalizeGameCode(code?: string): string {
+  const c = (code || '').toUpperCase().trim();
+  if (c === 'LMHT' || c === 'LOL') return 'LOL';
+  if (c === 'LIENQUAN' || c === 'AOV') return 'AOV';
+  if (c === 'VAL' || c === 'VALORANT') return 'VALORANT';
+  if (c === 'DTCL' || c === 'TFT') return 'TFT';
+  if (c === 'TOCCHIEN' || c === 'WR' || c === 'WILDRIFT') return 'WILDRIFT';
+  return c;
+}
+
 export default function BoosterGameSelectorModal({
   boosterUsername,
   boosterName,
@@ -186,10 +197,15 @@ export default function BoosterGameSelectorModal({
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {filteredGames.map((game) => {
           const boosterGameInfo = boosterGames.find(
-            (g) => g.gameCode.toUpperCase() === game.id.toUpperCase()
+            (g) => normalizeGameCode(g.gameCode) === normalizeGameCode(game.id)
           );
           const topRank = boosterGameInfo?.ranks?.[0] || 'Cao Thủ / Thách Đấu';
-          const servicesCount = game.defaultServices?.length || 8;
+          
+          // Đếm chính xác số dịch vụ thực tế mà Booster này đã cấu hình và bật cho game
+          const gameServices = (customServices || []).filter(
+            (s: any) => s.isActive !== false && normalizeGameCode(s.gameCode) === normalizeGameCode(game.id)
+          );
+          const servicesCount = gameServices.length;
           const bannerSrc = getGameBanner(game.id, game.banner);
 
           // Tùy biến accent & border theo màu của từng game
@@ -252,15 +268,17 @@ export default function BoosterGameSelectorModal({
                     <h4 className="font-extrabold text-white text-base tracking-tight group-hover:text-cyan-300 transition-colors">
                       {game.name}
                     </h4>
-                    <span className="text-[11px] text-zinc-400 font-medium">
-                      {servicesCount} gói dịch vụ
+                    <span className={`text-[11px] font-medium ${servicesCount > 0 ? 'text-cyan-400' : 'text-zinc-500'}`}>
+                      {servicesCount > 0 ? `${servicesCount} gói dịch vụ nhận cày` : 'Chưa mở gói dịch vụ'}
                     </span>
                   </div>
                 </div>
 
                 {/* Mô tả ngắn */}
                 <p className="text-xs text-zinc-300 leading-relaxed line-clamp-2">
-                  {game.desc || `Dịch vụ leo rank, cày trận thắng đảm bảo và phân hạng chuyên nghiệp cùng tuyển thủ.`}
+                  {servicesCount > 0
+                    ? (gameServices[0]?.desc || game.desc)
+                    : 'Tuyển thủ chưa thiết lập bảng giá dịch vụ cho tựa game này.'}
                 </p>
 
                 {/* Badge Trình độ: Cao Thủ */}
@@ -276,9 +294,9 @@ export default function BoosterGameSelectorModal({
               <div className="pt-4 mt-4 relative z-20 flex items-center justify-between">
                 <span
                   className="text-xs font-bold flex items-center gap-1.5 group-hover:translate-x-1 transition-all"
-                  style={{ color: actionColor }}
+                  style={{ color: servicesCount > 0 ? actionColor : '#71717a' }}
                 >
-                  <span>Xem các dịch vụ</span>
+                  <span>{servicesCount > 0 ? 'Xem các dịch vụ' : 'Chưa có dịch vụ'}</span>
                   <ArrowRight size={13} />
                 </span>
               </div>

@@ -84,6 +84,7 @@ export default function BoosterProfileRightSection({
         boosterAvatar={boosterAvatar}
         boosterId={boosterId}
         boosterGames={boosterGames}
+        customServices={customServices}
       />
     </div>
   );

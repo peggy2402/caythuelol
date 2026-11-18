@@ -18,9 +18,10 @@ import {
   Gamepad2,
   CheckCircle2,
   Flame,
+  AlertCircle,
   type LucideIcon,
 } from 'lucide-react';
-import { GAMES_CATALOG, GameDefinition, STANDARD_SERVICE_TEMPLATES } from '@/lib/games';
+import { GAMES_CATALOG, GameDefinition } from '@/lib/games';
 
 const ICON_MAP: Record<string, LucideIcon> = {
   Trophy,
@@ -48,6 +49,18 @@ interface HireBoosterModalProps {
   boosterAvatar?: string;
   boosterId?: string;
   boosterGames?: BoosterGameItem[];
+  customServices?: any[];
+}
+
+// Chuẩn hóa mã game để match chính xác giữa các biến thể tên gọi
+function normalizeGameCode(code?: string): string {
+  const c = (code || '').toUpperCase().trim();
+  if (c === 'LMHT' || c === 'LOL') return 'LOL';
+  if (c === 'LIENQUAN' || c === 'AOV') return 'AOV';
+  if (c === 'VAL' || c === 'VALORANT') return 'VALORANT';
+  if (c === 'DTCL' || c === 'TFT') return 'TFT';
+  if (c === 'TOCCHIEN' || c === 'WR' || c === 'WILDRIFT') return 'WILDRIFT';
+  return c;
 }
 
 export default function HireBoosterModal({
@@ -58,6 +71,7 @@ export default function HireBoosterModal({
   boosterAvatar,
   boosterId,
   boosterGames = [],
+  customServices = [],
 }: HireBoosterModalProps) {
   // Chuẩn hóa danh sách mã game mà booster hỗ trợ
   const registeredCodes = boosterGames.length > 0
@@ -77,13 +91,14 @@ export default function HireBoosterModal({
 
   const currentGame = availableGames.find((g) => g.id === selectedGameId) || availableGames[0];
   
-  // Lấy danh sách dịch vụ của game được chọn
-  const servicesList = currentGame?.defaultServices?.length > 0
-    ? currentGame.defaultServices
-    : (STANDARD_SERVICE_TEMPLATES[currentGame?.id?.toUpperCase()] || STANDARD_SERVICE_TEMPLATES['UNIVERSAL'] || []);
+  // LỌC CHÍNH XÁC CÁC DỊCH VỤ THỰC TẾ MÀ BOOSTER ĐÃ CẤU HÌNH VÀ BẬT CHO GAME NÀY
+  const activeCustomServices = (customServices || []).filter((s: any) => {
+    if (s.isActive === false) return false;
+    return normalizeGameCode(s.gameCode) === normalizeGameCode(currentGame?.id);
+  });
 
   const boosterGameInfo = boosterGames.find(
-    (g) => g.gameCode.toUpperCase() === currentGame?.id?.toUpperCase()
+    (g) => normalizeGameCode(g.gameCode) === normalizeGameCode(currentGame?.id)
   );
 
   return (
@@ -148,6 +163,11 @@ export default function HireBoosterModal({
             <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
               {availableGames.map((game) => {
                 const isSelected = game.id === currentGame?.id;
+                // Đếm số dịch vụ thực tế của booster cho game này
+                const svcCount = (customServices || []).filter(
+                  (s: any) => s.isActive !== false && normalizeGameCode(s.gameCode) === normalizeGameCode(game.id)
+                ).length;
+
                 return (
                   <button
                     key={game.id}
@@ -164,13 +184,20 @@ export default function HireBoosterModal({
                       style={{ backgroundColor: game.accentColor || '#3b82f6' }}
                     />
                     <span>{game.shortName || game.name}</span>
+                    {svcCount > 0 && (
+                      <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                        isSelected ? 'bg-white/20 text-white' : 'bg-blue-500/20 text-blue-400'
+                      }`}>
+                        {svcCount}
+                      </span>
+                    )}
                   </button>
                 );
               })}
             </div>
           </div>
 
-          {/* 2. Danh sách dịch vụ của Game đang chọn */}
+          {/* 2. Danh sách dịch vụ của Game đang chọn (CHỈ HIỂN THỊ DỊCH VỤ THỰC TẾ) */}
           <div>
             <div className="flex items-center justify-between mb-3">
               <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider flex items-center gap-1.5">
@@ -184,65 +211,90 @@ export default function HireBoosterModal({
               )}
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-              {servicesList.map((svc: any) => {
-                const IconComponent = ICON_MAP[svc.iconName] || Trophy;
-                const isDeposit = svc.depositPercent < 100;
-                
-                // Chuẩn hóa link điều hướng dịch vụ
-                const gameSlug = (currentGame.id || 'lol').toLowerCase();
-                const serviceSlug = (svc.slug || svc.serviceType || 'rank-boost').toLowerCase();
-                const targetUrl = `/services/${gameSlug}/${serviceSlug}?booster=@${encodeURIComponent(boosterUsername)}${boosterId ? `&boosterId=${boosterId}` : ''}`;
+            {activeCustomServices.length === 0 ? (
+              /* Trạng thái chưa cấu hình gói dịch vụ cho game này */
+              <div className="py-12 px-6 rounded-2xl bg-zinc-950/60 border border-dashed border-zinc-800 text-center flex flex-col items-center justify-center">
+                <div className="w-12 h-12 rounded-2xl bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-500 mb-3">
+                  <AlertCircle size={24} className="text-amber-400" />
+                </div>
+                <h4 className="text-sm font-bold text-zinc-200">
+                  Chưa có dịch vụ nào cho {currentGame?.name}
+                </h4>
+                <p className="text-xs text-zinc-400 max-w-md mt-1.5 leading-relaxed">
+                  Tuyển thủ <strong className="text-zinc-200">{boosterName}</strong> chưa bật gói dịch vụ nào cho tựa game này. Vui lòng chuyển sang tựa game khác có gắn số lượng dịch vụ hoặc liên hệ trao đổi trực tiếp!
+                </p>
+              </div>
+            ) : (
+              /* Danh sách dịch vụ thực tế mà Booster đã cấu hình */
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                {activeCustomServices.map((svc: any) => {
+                  const IconComponent = ICON_MAP[svc.iconName] || Trophy;
+                  const depositPercent = typeof svc.depositPercent === 'number' ? svc.depositPercent : 100;
+                  const isDeposit = depositPercent < 100;
+                  
+                  // Chuẩn hóa link điều hướng dịch vụ
+                  const gameSlug = (currentGame?.id || 'lol').toLowerCase();
+                  const serviceSlug = (svc.slug || svc.serviceType || 'rank-boost').toLowerCase();
+                  const targetUrl = `/services/${gameSlug}/${serviceSlug}?booster=@${encodeURIComponent(boosterUsername)}${boosterId ? `&boosterId=${boosterId}` : ''}`;
 
-                return (
-                  <Link
-                    key={svc.slug || svc.name}
-                    href={targetUrl}
-                    onClick={onClose}
-                    className="group p-4 rounded-2xl bg-zinc-950/70 border border-zinc-800/80 hover:border-blue-500/60 hover:bg-gradient-to-br hover:from-[#111728] hover:to-zinc-950 transition-all duration-200 flex flex-col justify-between shadow-md hover:shadow-blue-500/15 relative overflow-hidden"
-                  >
-                    <div className="space-y-2">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex items-center gap-2.5">
-                          <div className="p-2 rounded-xl bg-blue-500/10 text-blue-400 border border-blue-500/20 shrink-0 group-hover:scale-110 group-hover:bg-blue-600 group-hover:text-white transition-all">
-                            <IconComponent size={18} />
+                  // Format giá hiển thị
+                  let priceText = '';
+                  if (svc.pricingType === 'PER_UNIT') {
+                    priceText = `${Number(svc.price || svc.defaultPrice || 30000).toLocaleString('vi-VN')} đ / ${svc.unitName || 'đơn vị'}`;
+                  } else if (svc.pricingType === 'TIER_MATRIX') {
+                    priceText = `Từ ${Number(svc.price || svc.defaultPrice || 40000).toLocaleString('vi-VN')} đ`;
+                  } else {
+                    priceText = `${Number(svc.price || svc.defaultPrice || 50000).toLocaleString('vi-VN')} đ`;
+                  }
+
+                  return (
+                    <Link
+                      key={svc.id || svc.slug || svc.name}
+                      href={targetUrl}
+                      onClick={onClose}
+                      className="group p-4 rounded-2xl bg-zinc-950/70 border border-zinc-800/80 hover:border-blue-500/60 hover:bg-gradient-to-br hover:from-[#111728] hover:to-zinc-950 transition-all duration-200 flex flex-col justify-between shadow-md hover:shadow-blue-500/15 relative overflow-hidden"
+                    >
+                      <div className="space-y-2">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex items-center gap-2.5">
+                            <div className="p-2 rounded-xl bg-blue-500/10 text-blue-400 border border-blue-500/20 shrink-0 group-hover:scale-110 group-hover:bg-blue-600 group-hover:text-white transition-all">
+                              <IconComponent size={18} />
+                            </div>
+                            <h4 className="font-bold text-white text-sm group-hover:text-blue-300 transition-colors">
+                              {svc.name}
+                            </h4>
                           </div>
-                          <h4 className="font-bold text-white text-sm group-hover:text-blue-300 transition-colors">
-                            {svc.name}
-                          </h4>
+                          <span
+                            className={`text-[10px] font-bold px-2 py-0.5 rounded-full border shrink-0 ${
+                              isDeposit
+                                ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                                : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                            }`}
+                          >
+                            {isDeposit ? `Cọc ${depositPercent}%` : 'Trọn gói'}
+                          </span>
                         </div>
-                        <span
-                          className={`text-[10px] font-bold px-2 py-0.5 rounded-full border shrink-0 ${
-                            isDeposit
-                              ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
-                              : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-                          }`}
-                        >
-                          {isDeposit ? `Cọc ${svc.depositPercent}%` : 'Trọn gói'}
-                        </span>
+
+                        <p className="text-xs text-zinc-400 line-clamp-2 leading-relaxed">
+                          {svc.desc || 'Dịch vụ cày thuê chuyên nghiệp, bảo mật 100% tài khoản.'}
+                        </p>
                       </div>
 
-                      <p className="text-xs text-zinc-400 line-clamp-2 leading-relaxed">
-                        {svc.desc || 'Dịch vụ cày thuê chuyên nghiệp, bảo mật 100% tài khoản.'}
-                      </p>
-                    </div>
+                      <div className="pt-3 mt-3 border-t border-zinc-800/60 flex items-center justify-between">
+                        <span className="text-xs font-bold text-emerald-400 font-mono">
+                          {priceText}
+                        </span>
 
-                    <div className="pt-3 mt-3 border-t border-zinc-800/60 flex items-center justify-between">
-                      <span className="text-xs font-bold text-emerald-400 font-mono">
-                        {svc.pricingType === 'PER_UNIT'
-                          ? `${Number(svc.defaultPrice || 30000).toLocaleString('vi-VN')} đ / ${svc.unitName || 'đơn vị'}`
-                          : `Từ ${Number(svc.defaultPrice || 40000).toLocaleString('vi-VN')} đ`}
-                      </span>
-
-                      <span className="inline-flex items-center gap-1 text-xs font-bold text-blue-400 group-hover:text-blue-300 group-hover:translate-x-1 transition-all">
-                        <span>Đặt cày</span>
-                        <ArrowRight size={13} />
-                      </span>
-                    </div>
-                  </Link>
-                );
-              })}
-            </div>
+                        <span className="inline-flex items-center gap-1 text-xs font-bold text-blue-400 group-hover:text-blue-300 group-hover:translate-x-1 transition-all">
+                          <span>Đặt cày</span>
+                          <ArrowRight size={13} />
+                        </span>
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
 
