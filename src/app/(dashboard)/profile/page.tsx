@@ -10,7 +10,7 @@ import {
   Search, Copy, ExternalLink, Share2, Shield, Trophy, Flame, Star, Award,
   Wallet, ShoppingBag, Gift, ArrowRight, Settings, CheckCircle2, AlertCircle,
   Gamepad2, Plus, Edit3, Activity, Clock, CheckCheck, RefreshCw, Layers,
-  Eye
+  Eye, Landmark
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -19,6 +19,7 @@ import {
   InputOTPSlot,
 } from '@/components/ui/input-otp';
 import { GAMES_CATALOG } from '@/lib/games';
+import BankSelectModal from '@/components/BankSelectModal';
 
 interface Bank {
   id: number;
@@ -393,7 +394,6 @@ export default function ProfilePage() {
   // Bank Selector States
   const [banks, setBanks] = useState<Bank[]>([]);
   const [isBankOpen, setIsBankOpen] = useState(false);
-  const [bankSearch, setBankSearch] = useState('');
 
   // Password states
   const [currentPassword, setCurrentPassword] = useState('');
@@ -884,6 +884,13 @@ export default function ProfilePage() {
         onClose={() => setIsDeleteModalOpen(false)}
         onConfirm={handleDeleteAccount}
         loading={deleteLoading}
+      />
+      <BankSelectModal
+        isOpen={isBankOpen}
+        onClose={() => setIsBankOpen(false)}
+        banks={banks}
+        selectedBankName={bankName}
+        onSelectBank={(bank) => setBankName(bank.shortName)}
       />
 
       {/* =========================================================================
@@ -1432,87 +1439,48 @@ export default function ProfilePage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-zinc-400 mb-2">Ngân hàng thụ hưởng</label>
-                    <div className="relative">
-                      <div
-                        onClick={() => setIsBankOpen(!isBankOpen)}
-                        className="flex items-center justify-between w-full rounded-xl border border-zinc-700 bg-zinc-800/80 px-4 py-2.5 text-white focus:outline-none cursor-pointer h-[46px]"
-                      >
-                        {bankName ? (
-                          <div className="flex items-center gap-2">
-                            {banks.find((b) => b.shortName === bankName)?.logo && (
+                    <button
+                      type="button"
+                      onClick={() => setIsBankOpen(true)}
+                      className="flex items-center justify-between w-full rounded-xl border border-zinc-700 bg-zinc-800/80 hover:bg-zinc-800 hover:border-zinc-500 px-3.5 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/40 transition-all cursor-pointer min-h-[48px] group text-left shadow-sm"
+                    >
+                      {bankName ? (
+                        <div className="flex items-center gap-3 min-w-0 pr-2">
+                          <div className="w-8 h-8 rounded-lg bg-white p-1 flex items-center justify-center shrink-0 shadow-sm border border-black/10">
+                            {banks.find((b) => b.shortName === bankName)?.logo ? (
                               <img
                                 src={banks.find((b) => b.shortName === bankName)?.logo}
                                 alt="Bank Logo"
-                                className="w-6 h-6 object-contain bg-white rounded-full p-0.5"
+                                className="w-full h-full object-contain"
                               />
+                            ) : (
+                              <Landmark className="w-4 h-4 text-zinc-700" />
                             )}
-                            <span className="text-white font-medium truncate">{bankName}</span>
                           </div>
-                        ) : (
-                          <span className="text-zinc-500">Chọn ngân hàng...</span>
-                        )}
-                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                      </div>
-
-                      {isBankOpen && (
-                        <>
-                          <div className="fixed inset-0 z-40" onClick={() => setIsBankOpen(false)} />
-                          <div className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-xl border border-zinc-700 bg-zinc-900 py-1 text-base shadow-2xl ring-1 ring-black ring-opacity-5">
-                            <div className="sticky top-0 z-10 bg-zinc-900 p-2 border-b border-zinc-700">
-                              <div className="relative">
-                                <Search className="absolute left-2 top-2.5 h-4 w-4 text-zinc-500" />
-                                <input
-                                  className="w-full bg-zinc-800 text-white rounded-lg py-2 pl-8 pr-4 text-sm focus:outline-none border border-zinc-700"
-                                  placeholder="Tìm kiếm ngân hàng..."
-                                  value={bankSearch}
-                                  onChange={(e) => setBankSearch(e.target.value)}
-                                  autoFocus
-                                />
-                              </div>
+                          <div className="flex flex-col min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className="text-white font-bold text-sm truncate">{bankName}</span>
+                              {banks.find((b) => b.shortName === bankName)?.code && (
+                                <span className="text-[10px] font-semibold text-zinc-400 bg-zinc-900/90 px-1.5 py-0.5 rounded border border-white/5 shrink-0">
+                                  {banks.find((b) => b.shortName === bankName)?.code}
+                                </span>
+                              )}
                             </div>
-                            {banks
-                              .filter(
-                                (b) =>
-                                  b.shortName.toLowerCase().includes(bankSearch.toLowerCase()) ||
-                                  b.name.toLowerCase().includes(bankSearch.toLowerCase()) ||
-                                  b.code.toLowerCase().includes(bankSearch.toLowerCase())
-                              )
-                              .map((bank) => (
-                                <div
-                                  key={bank.id}
-                                  className="relative flex cursor-pointer select-none items-center py-2.5 pl-3 pr-9 hover:bg-blue-600/20 hover:text-blue-400 text-zinc-300"
-                                  onClick={() => {
-                                    setBankName(bank.shortName);
-                                    setIsBankOpen(false);
-                                  }}
-                                >
-                                  <div className="flex items-center gap-3">
-                                    <img
-                                      src={bank.logo}
-                                      alt={bank.code}
-                                      className="h-8 w-8 object-contain bg-white rounded-md p-0.5"
-                                    />
-                                    <div className="flex flex-col">
-                                      <div className="flex items-center gap-2">
-                                        <span className="font-bold text-white">{bank.shortName}</span>
-                                        <span className="text-[10px] text-zinc-400 bg-zinc-800 px-1.5 py-0.5 rounded border border-zinc-700">
-                                          {bank.code}
-                                        </span>
-                                      </div>
-                                      <span className="text-xs text-zinc-500 truncate max-w-[250px]">{bank.name}</span>
-                                    </div>
-                                  </div>
-                                  {bankName === bank.shortName && (
-                                    <span className="absolute inset-y-0 right-0 flex items-center pr-4 text-blue-500">
-                                      <Check className="h-4 w-4" />
-                                    </span>
-                                  )}
-                                </div>
-                              ))}
+                            {banks.find((b) => b.shortName === bankName)?.name && (
+                              <span className="text-xs text-zinc-400 truncate max-w-[280px]">
+                                {banks.find((b) => b.shortName === bankName)?.name}
+                              </span>
+                            )}
                           </div>
-                        </>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2.5 text-zinc-400 group-hover:text-zinc-300">
+                          <Landmark className="w-5 h-5 text-zinc-500" />
+                          <span className="text-sm">Chọn ngân hàng thụ hưởng...</span>
+                        </div>
                       )}
-                    </div>
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 text-zinc-400 group-hover:text-white transition-colors" />
+                    </button>
                   </div>
 
                   <div>
@@ -1781,89 +1749,50 @@ export default function ProfilePage() {
           >
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-zinc-400 mb-2">Ngân hàng</label>
-                <div className="relative">
-                  <div
-                    onClick={() => setIsBankOpen(!isBankOpen)}
-                    className="flex items-center justify-between w-full rounded-xl border border-zinc-700 bg-zinc-800/80 px-4 py-2.5 text-white focus:outline-none cursor-pointer h-[46px]"
-                  >
-                    {bankName ? (
-                      <div className="flex items-center gap-2">
-                        {banks.find((b) => b.shortName === bankName)?.logo && (
+                <label className="block text-sm font-medium text-zinc-400 mb-2">Ngân hàng thụ hưởng</label>
+                <button
+                  type="button"
+                  onClick={() => setIsBankOpen(true)}
+                  className="flex items-center justify-between w-full rounded-xl border border-zinc-700 bg-zinc-800/80 hover:bg-zinc-800 hover:border-zinc-500 px-3.5 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-blue-500/40 transition-all cursor-pointer min-h-[48px] group text-left shadow-sm"
+                >
+                  {bankName ? (
+                    <div className="flex items-center gap-3 min-w-0 pr-2">
+                      <div className="w-8 h-8 rounded-lg bg-white p-1 flex items-center justify-center shrink-0 shadow-sm border border-black/10">
+                        {banks.find((b) => b.shortName === bankName)?.logo ? (
                           <img
                             src={banks.find((b) => b.shortName === bankName)?.logo}
                             alt="Bank Logo"
-                            className="w-6 h-6 object-contain bg-white rounded-full p-0.5"
+                            className="w-full h-full object-contain"
                           />
+                        ) : (
+                          <Landmark className="w-4 h-4 text-zinc-700" />
                         )}
-                        <span className="text-white font-medium truncate">{bankName}</span>
                       </div>
-                    ) : (
-                      <span className="text-zinc-500">Chọn ngân hàng...</span>
-                    )}
-                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                  </div>
-
-                  {isBankOpen && (
-                    <>
-                      <div className="fixed inset-0 z-40" onClick={() => setIsBankOpen(false)} />
-                      <div className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-xl border border-zinc-700 bg-zinc-900 py-1 text-base shadow-2xl ring-1 ring-black ring-opacity-5">
-                        <div className="sticky top-0 z-10 bg-zinc-900 p-2 border-b border-zinc-700">
-                              <div className="relative">
-                                <Search className="absolute left-2 top-2.5 h-4 w-4 text-zinc-500" />
-                                <input
-                                  className="w-full bg-zinc-800 text-white rounded-lg py-2 pl-8 pr-4 text-sm focus:outline-none border border-zinc-700"
-                                  placeholder="Tìm kiếm ngân hàng..."
-                                  value={bankSearch}
-                                  onChange={(e) => setBankSearch(e.target.value)}
-                                  autoFocus
-                                />
-                              </div>
-                            </div>
-                            {banks
-                              .filter(
-                                (b) =>
-                                  b.shortName.toLowerCase().includes(bankSearch.toLowerCase()) ||
-                                  b.name.toLowerCase().includes(bankSearch.toLowerCase()) ||
-                                  b.code.toLowerCase().includes(bankSearch.toLowerCase())
-                              )
-                              .map((bank) => (
-                                <div
-                                  key={bank.id}
-                                  className="relative flex cursor-pointer select-none items-center py-2.5 pl-3 pr-9 hover:bg-blue-600/20 hover:text-blue-400 text-zinc-300"
-                                  onClick={() => {
-                                    setBankName(bank.shortName);
-                                    setIsBankOpen(false);
-                                  }}
-                                >
-                                  <div className="flex items-center gap-3">
-                                    <img
-                                      src={bank.logo}
-                                      alt={bank.code}
-                                      className="h-8 w-8 object-contain bg-white rounded-md p-0.5"
-                                    />
-                                    <div className="flex flex-col">
-                                      <div className="flex items-center gap-2">
-                                        <span className="font-bold text-white">{bank.shortName}</span>
-                                        <span className="text-[10px] text-zinc-400 bg-zinc-800 px-1.5 py-0.5 rounded border border-zinc-700">
-                                          {bank.code}
-                                        </span>
-                                      </div>
-                                      <span className="text-xs text-zinc-500 truncate max-w-[250px]">{bank.name}</span>
-                                    </div>
-                                  </div>
-                                  {bankName === bank.shortName && (
-                                    <span className="absolute inset-y-0 right-0 flex items-center pr-4 text-blue-500">
-                                      <Check className="h-4 w-4" />
-                                    </span>
-                                  )}
-                                </div>
-                              ))}
-                          </div>
-                        </>
-                      )}
+                      <div className="flex flex-col min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-white font-bold text-sm truncate">{bankName}</span>
+                          {banks.find((b) => b.shortName === bankName)?.code && (
+                            <span className="text-[10px] font-semibold text-zinc-400 bg-zinc-900/90 px-1.5 py-0.5 rounded border border-white/5 shrink-0">
+                              {banks.find((b) => b.shortName === bankName)?.code}
+                            </span>
+                          )}
+                        </div>
+                        {banks.find((b) => b.shortName === bankName)?.name && (
+                          <span className="text-xs text-zinc-400 truncate max-w-[280px]">
+                            {banks.find((b) => b.shortName === bankName)?.name}
+                          </span>
+                        )}
+                      </div>
                     </div>
-                  </div>
+                  ) : (
+                    <div className="flex items-center gap-2.5 text-zinc-400 group-hover:text-zinc-300">
+                      <Landmark className="w-4 h-4 text-zinc-500" />
+                      <span className="text-sm">Chọn ngân hàng hoàn tiền...</span>
+                    </div>
+                  )}
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 text-zinc-400 group-hover:text-white transition-colors" />
+                </button>
+              </div>
 
                   <div>
                     <label className="block text-sm font-medium text-zinc-400 mb-2">Số tài khoản</label>
