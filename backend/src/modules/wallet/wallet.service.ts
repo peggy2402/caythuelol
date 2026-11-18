@@ -8,12 +8,16 @@ import {
   TransactionType,
   TransactionStatus,
 } from '../../database/schemas/Transaction';
+import { IWithdrawal } from '../../database/schemas/Withdrawal';
+import { ISystemSetting } from '../../database/schemas/SystemSetting';
 
 @Injectable()
 export class WalletService {
   constructor(
     @InjectModel('User') private userModel: Model<IUser>,
     @InjectModel('Transaction') private transactionModel: Model<ITransaction>,
+    @InjectModel('Withdrawal') private withdrawalModel: Model<IWithdrawal>,
+    @InjectModel('SystemSetting') private settingModel: Model<ISystemSetting>,
   ) {}
 
   async getWallet(userId: string, page = 1, limit = 10) {
@@ -23,15 +27,19 @@ export class WalletService {
     const skip = (page - 1) * limit;
     const filter = { userId: new Types.ObjectId(userId) };
 
-    const [transactions, total] = await Promise.all([
+    const [transactions, total, adminBankSetting] = await Promise.all([
       this.transactionModel.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
       this.transactionModel.countDocuments(filter),
+      this.settingModel.findOne({ key: 'ADMIN_BANK_INFO' }).lean(),
     ]);
 
     return {
       success: true,
       balance: user.wallet_balance || 0,
+      availableBalance: Math.max(0, user.wallet_balance || 0),
       pendingBalance: user.pending_balance || 0,
+      userBankInfo: user.profile?.bank_info || null,
+      bankInfo: adminBankSetting?.value || null,
       transactions,
       pagination: {
         page,
@@ -121,7 +129,7 @@ export class WalletService {
     return { success: true, message: 'Đã hủy đơn nạp tiền thành công' };
   }
 
-  async requestWithdrawal(userId: string, amount: number, bankInfo: any) {
+  async requestWithdrawal(userId: string, amount: number, clientBankInfo?: any) {
     if (!amount || amount < 50000) {
       throw new BadRequestException('Số tiền rút tối thiểu là 50.000 VNĐ');
     }
@@ -129,30 +137,60 @@ export class WalletService {
     const user = await this.userModel.findById(userId);
     if (!user) throw new NotFoundException('Không tìm thấy người dùng');
 
+    const bankInfo = clientBankInfo || user.profile?.bank_info;
+    if (!bankInfo || !bankInfo.accountNumber || !bankInfo.bankName) {
+      throw new BadRequestException('Vui lòng cập nhật thông tin tài khoản ngân hàng trước khi thực hiện rút tiền');
+    }
+
     if (user.wallet_balance < amount) {
       throw new BadRequestException('Số dư ví không đủ để thực hiện yêu cầu rút tiền');
     }
 
-    // Deduct balance and create withdrawal transaction
+    // Lấy phí rút tiền từ SystemSetting (mặc định 5.000đ)
+    const feeSetting = await this.settingModel.findOne({ key: 'withdraw_fee' }).lean();
+    const fee = Number(feeSetting?.value || 5000);
+    const netAmount = Math.max(0, amount - fee);
+
+    // Trừ số dư khả dụng
     user.wallet_balance -= amount;
     await user.save();
 
-    const transaction = new this.transactionModel({
+    // 1. Tạo đơn rút tiền trong bảng Withdrawal để Admin quản lý và duyệt trên dashboard
+    const withdrawal = await this.withdrawalModel.create({
+      userId: user._id,
+      amount,
+      fee,
+      netAmount,
+      bankInfo: {
+        bankName: bankInfo.bankName,
+        accountNumber: bankInfo.accountNumber,
+        accountHolder: bankInfo.accountHolder || user.username,
+      },
+      status: 'PENDING',
+      note: 'Yêu cầu rút tiền qua hệ thống',
+    });
+
+    // 2. Tạo transaction để hiển thị trong lịch sử ví của người dùng
+    await this.transactionModel.create({
       userId: user._id,
       type: TransactionType.WITHDRAWAL,
       amount: -amount,
       balanceAfter: user.wallet_balance,
       status: TransactionStatus.PENDING,
       description: `Yêu cầu rút tiền về ${bankInfo.bankName} - ${bankInfo.accountNumber}`,
-      metadata: { bankInfo },
+      metadata: {
+        withdrawalId: withdrawal._id,
+        fee,
+        netAmount,
+        bankInfo,
+      },
     });
-
-    await transaction.save();
 
     return {
       success: true,
       message: 'Gửi yêu cầu rút tiền thành công. Admin sẽ duyệt trong 24h.',
       balance: user.wallet_balance,
+      withdrawalId: withdrawal._id,
     };
   }
 }

@@ -313,10 +313,14 @@ export default function WalletPage() {
 
   // Xử lý click nút Rút tiền
   const handleWithdrawClick = () => {
-    if (!userBankInfo || !userBankInfo.accountNumber) {
+    const activeBankInfo = userBankInfo || currentUser?.profile?.bank_info;
+    if (!activeBankInfo || !activeBankInfo.accountNumber) {
       toast.error('Vui lòng cập nhật thông tin ngân hàng trước khi rút tiền');
       router.push('/profile'); // Chuyển hướng sang trang Profile
       return;
+    }
+    if (!userBankInfo && activeBankInfo) {
+      setUserBankInfo(activeBankInfo);
     }
     setIsWithdrawModalOpen(true);
   };
@@ -334,11 +338,13 @@ export default function WalletPage() {
       return;
     }
 
+    const activeBankInfo = userBankInfo || currentUser?.profile?.bank_info;
+
     try {
       const res = await fetch('/api/wallet/withdraw', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount }),
+        body: JSON.stringify({ amount, bankInfo: activeBankInfo }),
       });
       const data = await res.json();
       if (res.ok) {
