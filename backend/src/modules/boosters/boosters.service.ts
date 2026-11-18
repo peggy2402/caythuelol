@@ -817,8 +817,20 @@ export class BoostersService {
       service_settings: mergedSettings,
       addonsConfig: existingSettings.addonsConfig || existingSettings.standardConfig?.addonsConfig,
       profile: user.profile || profile,
-      currentRank: (application as any)?.currentRank || 'N/A',
-      highestRank: (application as any)?.highestRank || 'N/A',
+      currentRank:
+        (application as any)?.currentRank ||
+        user.booster_info?.currentRank ||
+        (profile as any)?.games?.find((g: any) => g.ranks?.length > 1)?.ranks?.[1] ||
+        (profile as any)?.games?.find((g: any) => g.ranks?.length > 0)?.ranks?.[0] ||
+        'Cao Thủ',
+      highestRank:
+        (application as any)?.highestRank ||
+        user.booster_info?.highestRank ||
+        (profile as any)?.games?.find((g: any) => g.ranks?.length > 0)?.ranks?.[0] ||
+        'Thách Đấu',
+      performanceScore: (profile as any)?.performanceScore || user.booster_info?.performanceScore || 85,
+      tier: (profile as any)?.tier || user.booster_info?.tier || 'DIAMOND',
+      tierName: (profile as any)?.tierName || user.booster_info?.tierName || 'Diamond',
       completed_orders: completedOrdersCount,
       rating: user.booster_info?.rating || (profile as any)?.rating || 0,
       bio: user.booster_info?.bio || (profile as any)?.bio || '',

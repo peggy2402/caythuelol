@@ -731,16 +731,67 @@ export class AdminService {
     app.depositStatus = 'paid';
     await app.save();
 
+    // 1. Cập nhật User với đầy đủ thông tin từ đơn ứng tuyển
     await this.userModel.findByIdAndUpdate(app.userId, {
       role: UserRole.BOOSTER,
+      'profile.fullName': app.fullName,
+      'profile.phoneNumber': app.phoneNumber,
+      'profile.facebookUrl': app.facebookUrl,
+      'profile.discordTag': app.discordTag,
       'profile.bank_info': {
         bankName: app.bankName,
         accountNumber: app.bankAccountNumber,
         accountHolder: app.bankAccountName,
       },
+      'booster_info.currentRank': app.currentRank,
+      'booster_info.highestRank': app.highestRank,
+      'booster_info.isReady': true,
     });
 
-    return { success: true, message: 'Đã duyệt Booster thành công' };
+    // 2. Đồng bộ hoàn chỉnh sang BoosterProfile
+    const existingProfile = await this.boosterProfileModel.findOne({ userId: app.userId });
+    const gameLOLProfile = {
+      gameCode: 'LOL',
+      ranks: [app.highestRank, app.currentRank].filter(Boolean),
+      servers: ['VN'],
+      champions: [],
+      roles: [],
+      metadata: {
+        opggLink: app.opggLink,
+        rankImageUrl: app.rankImageUrl,
+      },
+    };
+
+    if (existingProfile) {
+      existingProfile.displayName = existingProfile.displayName || app.fullName;
+      const lolIndex = existingProfile.games.findIndex((g) => g.gameCode.toUpperCase() === 'LOL');
+      if (lolIndex >= 0) {
+        existingProfile.games[lolIndex].ranks = [app.highestRank, app.currentRank].filter(Boolean);
+        existingProfile.games[lolIndex].metadata = {
+          ...(existingProfile.games[lolIndex].metadata || {}),
+          opggLink: app.opggLink,
+          rankImageUrl: app.rankImageUrl,
+        };
+      } else {
+        existingProfile.games.push(gameLOLProfile);
+      }
+      await existingProfile.save();
+    } else {
+      await this.boosterProfileModel.create({
+        userId: app.userId,
+        displayName: app.fullName,
+        bio: `Tuyển thủ ${app.fullName} - Rank cao nhất: ${app.highestRank}. Tỉ lệ thắng cao, phục vụ chuyên nghiệp.`,
+        games: [gameLOLProfile],
+        services: ['rank-boost'],
+        rating: 5.0,
+        completedOrders: 0,
+        performanceScore: 50,
+        tier: 'SILVER',
+        tierName: 'Silver',
+      });
+    }
+
+    return { success: true, message: 'Đã duyệt Booster và đồng bộ hồ sơ năng lực thành công' };
   }
 
   async rejectBooster(appId: string, note?: string) {

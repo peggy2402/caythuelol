@@ -21,6 +21,7 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
 import { PricingModule } from './modules/pricing/pricing.module';
 import { VipModule } from './modules/vip/vip.module';
 import { LoyaltyModule } from './modules/loyalty/loyalty.module';
+import { RankingModule } from './modules/ranking/ranking.module';
 
 @Module({
   imports: [
@@ -53,6 +54,7 @@ import { LoyaltyModule } from './modules/loyalty/loyalty.module';
     PricingModule,
     VipModule,
     LoyaltyModule,
+    RankingModule,
   ],
   controllers: [AppController],
   providers: [],

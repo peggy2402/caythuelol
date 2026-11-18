@@ -2,19 +2,24 @@
 
 import React, { useState } from 'react';
 import Image from 'next/image';
-import { Trophy, Shield, Sparkles } from 'lucide-react';
+import { Trophy, Shield, Sparkles, Flame, Award, Zap } from 'lucide-react';
 import { GAMES_CATALOG } from '@/lib/games';
 
 interface BoosterGameItem {
   gameCode: string;
   ranks?: string[];
   servers?: string[];
+  performanceScore?: number;
+  tier?: string;
 }
 
 interface BoosterRankShowcaseProps {
   boosterGames: BoosterGameItem[];
   defaultCurrentRank?: string;
   defaultHighestRank?: string;
+  performanceScore?: number;
+  tier?: string;
+  tierName?: string;
 }
 
 // Helper lấy icon rank chuẩn theo từng game và bậc rank
@@ -60,13 +65,27 @@ function getGameRankIcon(gameCode: string, rankName: string, isHighest: boolean 
   return isHighest ? '/images/ranks/challenger.png' : '/images/ranks/diamond.png';
 }
 
+// Màu sắc và huy hiệu theo Tier
+const TIER_META: Record<string, { color: string; bg: string; border: string; glow: string }> = {
+  BRONZE: { color: 'text-amber-600', bg: 'bg-amber-950/40', border: 'border-amber-700/50', glow: 'shadow-amber-900/30' },
+  SILVER: { color: 'text-slate-300', bg: 'bg-slate-900/50', border: 'border-slate-500/40', glow: 'shadow-slate-500/20' },
+  GOLD: { color: 'text-yellow-400', bg: 'bg-yellow-950/40', border: 'border-yellow-500/50', glow: 'shadow-yellow-500/30' },
+  PLATINUM: { color: 'text-cyan-400', bg: 'bg-cyan-950/40', border: 'border-cyan-500/50', glow: 'shadow-cyan-500/30' },
+  DIAMOND: { color: 'text-sky-300', bg: 'bg-sky-950/50', border: 'border-sky-400/60', glow: 'shadow-sky-400/40' },
+  MASTER: { color: 'text-purple-400', bg: 'bg-purple-950/50', border: 'border-purple-500/60', glow: 'shadow-purple-500/40' },
+  GRANDMASTER: { color: 'text-rose-400', bg: 'bg-rose-950/50', border: 'border-rose-500/60', glow: 'shadow-rose-500/40' },
+};
+
 export default function BoosterRankShowcase({
   boosterGames = [],
-  defaultCurrentRank = 'N/A',
-  defaultHighestRank = 'N/A',
+  defaultCurrentRank = 'Cao Thủ',
+  defaultHighestRank = 'Thách Đấu',
+  performanceScore = 88,
+  tier = 'DIAMOND',
+  tierName = 'Diamond',
 }: BoosterRankShowcaseProps) {
   // Lấy danh sách các game booster hỗ trợ
-  const gamesList = boosterGames.length > 0 ? boosterGames : [{ gameCode: 'LOL', ranks: [], servers: ['VN'] }];
+  const gamesList = boosterGames.length > 0 ? boosterGames : [{ gameCode: 'LOL', ranks: ['Thách Đấu', 'Cao Thủ'], servers: ['VN'] }];
   
   // Game đang được chọn để xem rank
   const [selectedGameCode, setSelectedGameCode] = useState<string>(
@@ -87,14 +106,11 @@ export default function BoosterRankShowcase({
   const ranksList = currentGameItem?.ranks || [];
   const hasSpecificRank = ranksList.length > 0;
   
-  // Nếu game này có cấu hình rank cụ thể, lấy rank đó
-  // Nếu chưa có cấu hình riêng:
-  // Nếu là LOL và có defaultHighestRank hợp lệ thì dùng, ngược lại hiển thị rank mặc định cam kết
   const highestRankDisplay = hasSpecificRank
     ? ranksList[0]
     : defaultHighestRank && defaultHighestRank !== 'N/A'
     ? defaultHighestRank
-    : 'Cao Thủ / Thách Đấu';
+    : 'Thách Đấu';
 
   const currentRankDisplay = hasSpecificRank && ranksList.length > 1
     ? ranksList[1]
@@ -102,51 +118,69 @@ export default function BoosterRankShowcase({
     ? defaultCurrentRank
     : highestRankDisplay;
 
+  const currentTierKey = (tier || 'DIAMOND').toUpperCase();
+  const tierMeta = TIER_META[currentTierKey] || TIER_META.DIAMOND;
+
   return (
-    <div className="bg-[#0d1017]/90 border border-white/10 rounded-2xl p-5 shadow-lg backdrop-blur-md space-y-3.5">
-      {/* Header Khối Trình Độ */}
-      <div className="flex items-center justify-between">
+    <div className="bg-[#0d1017]/90 border border-white/10 rounded-2xl p-5 shadow-lg backdrop-blur-md space-y-4">
+      {/* 1. Header: Tiêu đề + Cấp Bậc Tier eSports & Performance Score */}
+      <div className="flex items-center justify-between flex-wrap gap-2 pb-3 border-b border-white/5">
         <h3 className="text-sm font-bold text-zinc-200 flex items-center gap-2">
           <Trophy size={16} className="text-amber-400" />
-          <span>Trình độ & Xếp hạng</span>
+          <span>Trình độ & Cấp bậc Tuyển thủ</span>
         </h3>
-        <span className="text-[11px] text-zinc-500 font-medium">
-          {gamesList.length} tựa game
-        </span>
+
+        {/* Tier Badge & Performance Score */}
+        <div className="flex items-center gap-2">
+          <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-black border ${tierMeta.bg} ${tierMeta.border} ${tierMeta.color} shadow-sm`}>
+            <Award size={13} />
+            <span>Tier: {tierName || 'Diamond'}</span>
+          </span>
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-blue-500/10 border border-blue-500/30 text-blue-400 text-xs font-mono font-bold">
+            <Zap size={12} className="text-amber-400" />
+            <span>{performanceScore}/100</span>
+          </span>
+        </div>
       </div>
 
-      {/* Tabs Chuyển Đổi Nhanh Giữa Các Game Tuyển Thủ Cày */}
+      {/* 2. Tabs Chuyển Đổi Nhanh Giữa Các Game Tuyển Thủ Cày */}
       {gamesList.length > 1 && (
-        <div className="flex gap-1.5 overflow-x-auto pb-1 no-scrollbar">
-          {gamesList.map((g) => {
-            const code = g.gameCode.toUpperCase();
-            const isSelected = selectedGameCode === code;
-            const catGame = GAMES_CATALOG.find((cg) => cg.id.toUpperCase() === code || (cg.shortName || '').toUpperCase() === code);
-            const label = catGame?.shortName || code;
+        <div>
+          <div className="text-[11px] text-zinc-400 mb-1.5 font-medium flex items-center justify-between">
+            <span>Chọn tựa game để xem chi tiết rank:</span>
+            <span className="text-zinc-500">{gamesList.length} game</span>
+          </div>
+          <div className="flex gap-1.5 overflow-x-auto pb-1 no-scrollbar">
+            {gamesList.map((g) => {
+              const code = g.gameCode.toUpperCase();
+              const isSelected = selectedGameCode === code;
+              const catGame = GAMES_CATALOG.find((cg) => cg.id.toUpperCase() === code || (cg.shortName || '').toUpperCase() === code);
+              const label = catGame?.shortName || code;
 
-            return (
-              <button
-                key={code}
-                type="button"
-                onClick={() => setSelectedGameCode(code)}
-                className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all whitespace-nowrap border ${
-                  isSelected
-                    ? 'bg-blue-600/30 text-blue-300 border-blue-500/60 shadow-[0_0_10px_rgba(59,130,246,0.3)]'
-                    : 'bg-zinc-950/60 text-zinc-400 border-white/5 hover:text-white hover:bg-zinc-800'
-                }`}
-              >
-                {label}
-              </button>
-            );
-          })}
+              return (
+                <button
+                  key={code}
+                  type="button"
+                  onClick={() => setSelectedGameCode(code)}
+                  className={`px-3 py-1 rounded-xl text-xs font-bold transition-all whitespace-nowrap border ${
+                    isSelected
+                      ? 'bg-blue-600 text-white border-blue-400 shadow-[0_0_12px_rgba(59,130,246,0.35)]'
+                      : 'bg-zinc-950/80 text-zinc-400 border-white/5 hover:text-white hover:bg-zinc-800'
+                  }`}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
         </div>
       )}
 
-      {/* 2 Card Rank Cho Game Đang Chọn */}
+      {/* 3. 2 Card Rank Cho Game Đang Chọn */}
       <div className="grid grid-cols-2 gap-3">
         {/* RANK HIỆN TẠI Card */}
         <div className="bg-[#090d16] p-3 rounded-2xl border border-cyan-500/30 flex items-center gap-2.5 relative overflow-hidden shadow-[0_0_15px_rgba(6,182,212,0.1)]">
-          <div className="relative w-10 h-10 shrink-0">
+          <div className="relative w-11 h-11 shrink-0">
             <Image
               src={getGameRankIcon(selectedGameCode, currentRankDisplay, false)}
               alt="Current Rank"
@@ -161,12 +195,15 @@ export default function BoosterRankShowcase({
             <div className="text-sm font-black text-cyan-300 truncate" title={currentRankDisplay}>
               {currentRankDisplay}
             </div>
+            <div className="text-[10px] text-zinc-500 truncate">
+              {matchedCatalogGame?.shortName || selectedGameCode}
+            </div>
           </div>
         </div>
 
         {/* RANK CAO NHẤT Card */}
         <div className="bg-[#140a1c] p-3 rounded-2xl border border-purple-500/30 flex items-center gap-2.5 relative overflow-hidden shadow-[0_0_15px_rgba(168,85,247,0.1)]">
-          <div className="relative w-10 h-10 shrink-0">
+          <div className="relative w-11 h-11 shrink-0">
             <Image
               src={getGameRankIcon(selectedGameCode, highestRankDisplay, true)}
               alt="Highest Rank"
@@ -181,14 +218,17 @@ export default function BoosterRankShowcase({
             <div className="text-sm font-black text-purple-300 truncate" title={highestRankDisplay}>
               {highestRankDisplay}
             </div>
+            <div className="text-[10px] text-zinc-500 truncate">
+              {matchedCatalogGame?.shortName || selectedGameCode}
+            </div>
           </div>
         </div>
       </div>
 
-      <div className="text-[11px] text-zinc-500 flex items-center gap-1.5 pt-0.5">
+      <div className="text-[11px] text-zinc-400 flex items-center gap-1.5 pt-0.5">
         <Sparkles size={12} className="text-amber-400 shrink-0" />
         <span className="truncate">
-          Trình độ thi đấu chuyên nghiệp tựa game <strong>{gameDisplayName}</strong>
+          Trình độ tuyển thủ xác thực cho tựa game <strong>{gameDisplayName}</strong>
         </span>
       </div>
     </div>

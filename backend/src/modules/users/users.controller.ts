@@ -53,6 +53,17 @@ export class UsersController {
 
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
+  @Put('booster-profile')
+  @ApiOperation({ summary: 'Update booster game ranks and profile' })
+  async updateBoosterProfile(
+    @ReqUser() user: any,
+    @Body() body: { bio?: string; displayName?: string; games?: any[] },
+  ) {
+    return this.usersService.updateBoosterProfile(user.userId, body);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @Post('bank-info')
   @ApiOperation({ summary: 'Update bank info' })
   async updateBankInfo(

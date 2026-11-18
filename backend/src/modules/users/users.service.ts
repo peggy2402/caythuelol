@@ -81,6 +81,40 @@ export class UsersService {
     };
   }
 
+  async updateBoosterProfile(
+    userId: string,
+    data: { bio?: string; displayName?: string; games?: any[] },
+  ) {
+    const user = await this.userModel.findById(userId);
+    if (!user) throw new NotFoundException('Không tìm thấy người dùng');
+
+    if (!user.booster_info) user.booster_info = {};
+    if (data.bio !== undefined) user.booster_info.bio = data.bio;
+    await user.save();
+
+    let boosterProfile = await this.boosterProfileModel.findOne({ userId: user._id });
+    if (!boosterProfile) {
+      boosterProfile = new this.boosterProfileModel({
+        userId: user._id,
+        displayName: data.displayName || user.username,
+        avatar: user.profile?.avatar,
+        bio: data.bio || '',
+        games: data.games || [],
+      });
+    } else {
+      if (data.bio !== undefined) boosterProfile.bio = data.bio;
+      if (data.displayName !== undefined) boosterProfile.displayName = data.displayName;
+      if (data.games !== undefined) boosterProfile.games = data.games;
+    }
+    await boosterProfile.save();
+
+    return {
+      success: true,
+      message: 'Cập nhật thông tin tuyển thủ thành công',
+      booster_profile: boosterProfile,
+    };
+  }
+
   async updateBankInfo(userId: string, bankInfo: { bankName: string; accountNumber: string; accountHolder: string }) {
     const user = await this.userModel.findById(userId);
     if (!user) {

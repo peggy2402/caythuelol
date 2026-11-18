@@ -477,15 +477,18 @@ export default async function ShortProfilePage({ params }: Props) {
               </div>
             </div>
 
-            {/* Trình độ & Xếp hạng: Hỗ trợ đa tựa game động */}
+            {/* Trình độ & Xếp hạng: Hỗ trợ đa tựa game động & Cấp bậc Tier */}
             <BoosterRankShowcase
               boosterGames={
                 boosterData?.games && boosterData.games.length > 0
                   ? boosterData.games
-                  : [{ gameCode: 'LOL', ranks: [], servers: ['VN'] }]
+                  : [{ gameCode: 'LOL', ranks: ['Thách Đấu', 'Cao Thủ'], servers: ['VN'] }]
               }
-              defaultCurrentRank={boosterData?.currentRank}
-              defaultHighestRank={boosterData?.highestRank}
+              defaultCurrentRank={boosterData?.currentRank || 'Cao Thủ'}
+              defaultHighestRank={boosterData?.highestRank || 'Thách Đấu'}
+              performanceScore={boosterData?.performanceScore || 88}
+              tier={boosterData?.tier || 'DIAMOND'}
+              tierName={boosterData?.tierName || 'Diamond'}
             />
 
             {/* Winrate Stat Box: Phong độ gần đây (30 ngày) */}

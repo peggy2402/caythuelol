@@ -21,6 +21,8 @@ import Message from './schemas/Message';
 import AuditLog from './schemas/AuditLog';
 import Voucher from './schemas/Voucher';
 import PointTransaction from './schemas/PointTransaction';
+import RankingConfig from './schemas/RankingConfig';
+import BoosterRankingHistory from './schemas/BoosterRankingHistory';
 
 const models = [
   { name: 'User', schema: User.schema },
@@ -43,6 +45,8 @@ const models = [
   { name: 'AuditLog', schema: AuditLog.schema },
   { name: 'Voucher', schema: Voucher.schema },
   { name: 'PointTransaction', schema: PointTransaction.schema },
+  { name: 'RankingConfig', schema: RankingConfig.schema },
+  { name: 'BoosterRankingHistory', schema: BoosterRankingHistory.schema },
 ];
 
 @Global()

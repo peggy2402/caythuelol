@@ -45,6 +45,11 @@ export interface IUser extends Document {
     completed_orders?: number;
     service_settings?: any;
     isReady?: boolean;
+    currentRank?: string;
+    highestRank?: string;
+    performanceScore?: number;
+    tier?: string;
+    tierName?: string;
   };
   staff_permissions?: string[];
   vip_info?: {
