@@ -23,6 +23,12 @@ import { OrderStatus } from '../../database/schemas/Order';
 export class OrdersController {
   constructor(private ordersService: OrdersService) {}
 
+  @Post()
+  @ApiOperation({ summary: 'Create and checkout an order' })
+  async createOrder(@ReqUser() user: any, @Body() body: any) {
+    return this.ordersService.checkout(user.userId, body);
+  }
+
   @Post('checkout')
   @ApiOperation({ summary: 'Checkout and book an order' })
   async checkout(@ReqUser() user: any, @Body() body: any) {
@@ -47,6 +53,18 @@ export class OrdersController {
   @ApiOperation({ summary: 'Booster takes an order' })
   async confirmOrder(@Param('id') id: string, @ReqUser() user: any) {
     return this.ordersService.confirmOrder(id, user.userId);
+  }
+
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.BOOSTER)
+  @Post(':id/respond')
+  @ApiOperation({ summary: 'Booster approves or rejects an available/direct order' })
+  async respondOrder(
+    @Param('id') id: string,
+    @ReqUser() user: any,
+    @Body('action') action: 'approve' | 'reject',
+  ) {
+    return this.ordersService.respondOrder(id, user.userId, action);
   }
 
   @UseGuards(RolesGuard)

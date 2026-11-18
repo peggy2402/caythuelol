@@ -149,7 +149,11 @@ const OrderSchema = new Schema<IOrder>(
       option_fees: Number,
       platform_fee: Number,
       booster_earnings: Number,
-      settlement_status: { type: String, enum: ['PENDING', 'CUSTOMER_OWES', 'REFUND_NEEDED', 'SETTLED'], default: 'PENDING' }
+      settlement_status: {
+        type: String,
+        enum: [...Object.values(SettlementStatus), 'PENDING'],
+        default: SettlementStatus.DEPOSIT_HELD,
+      },
     },
     payment: {
       is_locked: { type: Boolean, default: false },

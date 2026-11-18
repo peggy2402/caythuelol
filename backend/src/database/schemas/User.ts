@@ -28,6 +28,7 @@ export interface IUser extends Document {
   profile: {
     avatar?: string;
     discord_id?: string;
+    facebook_url?: string;
     bank_info?: {
       bankName: string;
       accountNumber: string;
@@ -100,6 +101,7 @@ const UserSchema: Schema = new Schema(
     profile: {
       avatar: { type: String, default: '' },
       discord_id: { type: String },
+      facebook_url: { type: String },
       bank_info: {
         bankName: { type: String },
         accountNumber: { type: String },

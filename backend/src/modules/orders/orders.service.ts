@@ -17,6 +17,7 @@ import {
 import { MailService } from '../../common/mail.service';
 import { PricingEngineService } from '../pricing/pricing-engine.service';
 import { LoyaltyService } from '../loyalty/loyalty.service';
+import { IBoosterProfile } from '../../database/schemas/BoosterProfile';
 
 @Injectable()
 export class OrdersService {
@@ -24,6 +25,7 @@ export class OrdersService {
     @InjectModel('Order') private orderModel: Model<IOrder>,
     @InjectModel('User') private userModel: Model<IUser>,
     @InjectModel('Transaction') private transactionModel: Model<ITransaction>,
+    @InjectModel('BoosterProfile') private boosterProfileModel: Model<IBoosterProfile>,
     @InjectConnection() private readonly connection: Connection,
     private mailService: MailService,
     private pricingEngine: PricingEngineService,
@@ -31,9 +33,42 @@ export class OrdersService {
   ) {}
 
   async checkout(userId: string, body: any) {
-    const { serviceType, boosterId, details, options, pricing } = body;
+    const serviceType = body.serviceType;
+    const boosterId = body.boosterId || body.booster_id || undefined;
+    const details =
+      body.details ||
+      (body.service_data
+        ? {
+            ...body.service_data,
+            game: body.game || body.service_data?.game || 'LOL',
+            account_info: body.account_credentials,
+            note: body.note,
+          }
+        : undefined);
+    const options = body.options || body.service_data?.addons || {};
 
-    if (!serviceType || !pricing || !details) {
+    const rawPricing = body.pricing || {};
+    const totalAmount = Number(
+      rawPricing.total_amount ??
+        rawPricing.final_price ??
+        rawPricing.original_price ??
+        body.total_amount ??
+        0,
+    );
+    const depositAmount = Number(rawPricing.deposit_amount ?? totalAmount);
+    const pricing = {
+      ...rawPricing,
+      total_amount: totalAmount,
+      deposit_amount: depositAmount,
+      deposit_percent:
+        rawPricing.deposit_percent ??
+        (totalAmount > 0 && depositAmount < totalAmount
+          ? Math.round((depositAmount / totalAmount) * 100)
+          : 100),
+      coupon_code: rawPricing.coupon_code || body.coupon_applied || undefined,
+    };
+
+    if (!serviceType || !details || totalAmount <= 0) {
       throw new BadRequestException('Vui lòng cung cấp đầy đủ thông tin đơn hàng');
     }
 
@@ -81,16 +116,23 @@ export class OrdersService {
         createdAt: new Date(),
       };
 
+      const validBoosterId =
+        boosterId && Types.ObjectId.isValid(boosterId)
+          ? new Types.ObjectId(boosterId)
+          : undefined;
+
       const newOrder = new this.orderModel({
         orderCode: customCode,
         customerId: user._id,
-        boosterId: boosterId ? new Types.ObjectId(boosterId) : undefined,
+        boosterId: validBoosterId,
         serviceType,
         status: OrderStatus.PAID,
         pricing: {
           ...pricing,
           base_price: pricing.basePrice || pricing.base_price,
           option_fees: pricing.optionFees || pricing.option_fees,
+          booster_earnings:
+            pricing.booster_earnings ?? Math.round(pricing.total_amount * 0.85),
           settlement_status: SettlementStatus.DEPOSIT_HELD,
         },
         payment: {
@@ -144,8 +186,8 @@ export class OrdersService {
       await session.commitTransaction();
 
       // Notify Booster via Email if directed order
-      if (boosterId) {
-        this.userModel.findById(boosterId).then((booster) => {
+      if (validBoosterId) {
+        this.userModel.findById(validBoosterId).then((booster) => {
           if (booster && booster.email) {
             this.mailService.sendNewOrderNotification(
               booster.email,
@@ -190,12 +232,19 @@ export class OrdersService {
     const order = await this.orderModel
       .findOne(filter)
       .populate('customerId', 'username profile email')
-      .populate('boosterId', 'username profile email')
+      .populate('boosterId', 'username profile email phoneNumber booster_info')
       .lean();
 
     if (!order) throw new NotFoundException('Không tìm thấy đơn hàng');
 
-    return { success: true, order };
+    let boosterProfile = null;
+    if (order.boosterId && (order.boosterId as any)._id) {
+      boosterProfile = await this.boosterProfileModel
+        .findOne({ userId: (order.boosterId as any)._id })
+        .lean();
+    }
+
+    return { success: true, order, boosterProfile };
   }
 
   async confirmOrder(orderId: string, boosterId: string) {
@@ -204,6 +253,10 @@ export class OrdersService {
 
     if (order.status !== OrderStatus.PAID) {
       throw new BadRequestException('Đơn hàng này không ở trạng thái chờ nhận');
+    }
+
+    if (order.boosterId && order.boosterId.toString() !== boosterId) {
+      throw new BadRequestException('Đơn hàng này đã được chỉ định hoặc đã có Booster khác nhận');
     }
 
     order.boosterId = new Types.ObjectId(boosterId);
@@ -218,6 +271,31 @@ export class OrdersService {
 
     await order.save();
     return { success: true, message: 'Nhận đơn thành công!', order };
+  }
+
+  async respondOrder(orderId: string, boosterId: string, action: 'approve' | 'reject') {
+    if (action === 'approve') {
+      return this.confirmOrder(orderId, boosterId);
+    }
+
+    if (action === 'reject') {
+      const order = await this.orderModel.findById(orderId);
+      if (!order) throw new NotFoundException('Không tìm thấy đơn hàng');
+      if (order.boosterId && order.boosterId.toString() === boosterId) {
+        order.boosterId = undefined;
+        if (!order.timeline) order.timeline = [];
+        order.timeline.push({
+          status: OrderStatus.PAID,
+          timestamp: new Date(),
+          actor: new Types.ObjectId(boosterId),
+          note: 'Booster đã từ chối yêu cầu chỉ định, chuyển đơn về Sàn việc làm công khai',
+        });
+        await order.save();
+      }
+      return { success: true, message: 'Đã từ chối đơn hàng.' };
+    }
+
+    throw new BadRequestException('Hành động không hợp lệ');
   }
 
   async updateOrderStatus(orderId: string, boosterId: string, status: OrderStatus) {

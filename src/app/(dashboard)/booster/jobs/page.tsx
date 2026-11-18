@@ -19,13 +19,19 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
+import { getGameById } from '@/lib/games';
 
 interface Job {
   _id: string;
+  orderCode?: string;
   serviceType: string;
   customerId: {
     username: string;
     profile?: { avatar?: string };
+  };
+  snapshot?: {
+    gameCode?: string;
+    serviceSlug?: string;
   };
   details: any;
   pricing: {
@@ -76,7 +82,7 @@ export default function JobMarketPage() {
       });
       const data = await res.json();
 
-      if (!res.ok) throw new Error(data.error);
+      if (!res.ok) throw new Error(data.message || data.error || 'Không thể xử lý đơn hàng');
 
       toast.success(data.message);
       if (action === 'approve') {
@@ -121,7 +127,7 @@ export default function JobMarketPage() {
       });
       const data = await res.json();
 
-      if (!res.ok) throw new Error(data.error);
+      if (!res.ok) throw new Error(data.message || data.error || 'Không thể xử lý đơn hàng');
 
       toast.success('Nhận đơn thành công!');
       router.push(`/orders/${jobId}`);
@@ -283,28 +289,61 @@ export default function JobMarketPage() {
   //   }
   // };
 
-  const JobCard = ({ job, type }: { job: Job, type: 'DIRECT' | 'PUBLIC' }) => (
+  const JobCard = ({ job, type }: { job: Job, type: 'DIRECT' | 'PUBLIC' }) => {
+    const gameCode = job.snapshot?.gameCode || job.details?.game || 'LOL';
+    const gameMeta = getGameById(gameCode);
+    const gameImg = gameMeta?.bannerUrl || gameMeta?.banner;
+    const gameName = gameMeta?.name || gameCode;
+
+    return (
     <div className={`group border rounded-xl p-5 transition-all hover:shadow-lg flex flex-col ${type === 'DIRECT' ? 'bg-blue-900/10 border-blue-500/30 hover:border-blue-500/50' : 'bg-zinc-900 border-zinc-800 hover:border-zinc-700'}`}>
+      {/* Game Identification Bar */}
+      <div className="flex items-center justify-between gap-2 pb-3 mb-3 border-b border-white/5">
+        <div className="flex items-center gap-2.5 min-w-0">
+          {gameImg ? (
+            <img
+              src={gameImg}
+              alt={gameName}
+              className="w-7 h-7 rounded-lg object-cover border border-white/10 shrink-0"
+            />
+          ) : (
+            <div className="w-7 h-7 rounded-lg bg-blue-500/15 border border-blue-500/30 flex items-center justify-center text-[10px] font-black text-blue-400 shrink-0">
+              {gameMeta?.shortName || gameCode}
+            </div>
+          )}
+          <div className="min-w-0">
+            <div className="text-xs font-bold text-white truncate">{gameName}</div>
+            {job.details?.server && (
+              <div className="text-[10px] text-zinc-400">Server: {job.details.server}</div>
+            )}
+          </div>
+        </div>
+
+        <span className="px-2 py-1 rounded text-[10px] font-bold uppercase bg-white/5 text-zinc-300 border border-white/10 shrink-0">
+          {job.serviceType.replace(/_/g, ' ')}
+        </span>
+      </div>
+
       {/* Header */}
       <div className="flex justify-between items-start mb-4">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-full bg-zinc-800 overflow-hidden flex items-center justify-center border border-zinc-700">
-            {job.customerId.profile?.avatar ? (
+            {job.customerId?.profile?.avatar ? (
               <img src={job.customerId.profile.avatar} alt="Avatar" className="w-full h-full object-cover" />
             ) : (
               <User className="w-5 h-5 text-zinc-500" />
             )}
           </div>
           <div>
-            <div className="font-bold text-white text-sm">{job.customerId.username}</div>
-            <div className="text-xs text-zinc-500 flex items-center gap-1">
+            <div className="font-bold text-white text-sm">{job.customerId?.username || 'Khách hàng'}</div>
+            <div className="text-xs text-zinc-500 flex items-center gap-1.5">
               <Clock className="w-3 h-3" /> {new Date(job.createdAt).toLocaleDateString('vi-VN')}
+              {job.orderCode && (
+                <span className="text-[10px] font-mono text-zinc-400">#{job.orderCode}</span>
+              )}
             </div>
           </div>
         </div>
-        <span className="px-2 py-1 rounded text-[10px] font-bold uppercase bg-white/5 text-zinc-400 border border-white/10">
-          {job.serviceType.replace('_', ' ')}
-        </span>
       </div>
 
       {/* Details */}
@@ -361,7 +400,8 @@ export default function JobMarketPage() {
         </div>
       </div>
     </div>
-  );
+    );
+  };
 
   return (
     <div className="space-y-8 animate-fade-in">
