@@ -89,8 +89,14 @@ export default function AuditLogsPage() {
                     <td className="px-6 py-4 text-zinc-300 max-w-md truncate" title={log.description}>
                       {log.description}
                     </td>
-                    <td className="px-6 py-4 text-zinc-500 font-mono text-xs">
-                      {log.ipAddress}
+                    <td className="px-6 py-4 font-mono text-xs">
+                      {log.ipAddress ? (
+                        <span className="px-2 py-0.5 rounded bg-zinc-800 text-zinc-300 border border-zinc-700/60 font-semibold">
+                          {log.ipAddress}
+                        </span>
+                      ) : (
+                        <span className="text-zinc-600">—</span>
+                      )}
                     </td>
                   </tr>
                 ))
@@ -123,7 +129,8 @@ export default function AuditLogsPage() {
                   <div className="bg-zinc-950 p-3 rounded-lg border border-zinc-800 text-xs space-y-2">
                      <div className="text-zinc-300 break-words">{log.description}</div>
                      <div className="flex items-center gap-2 text-zinc-500 font-mono pt-2 border-t border-zinc-800/50">
-                        <span className="uppercase text-[10px]">IP:</span> {log.ipAddress}
+                        <span className="uppercase text-[10px] text-zinc-400">IP:</span>
+                        <span className="text-zinc-300 font-semibold">{log.ipAddress || '—'}</span>
                      </div>
                   </div>
 

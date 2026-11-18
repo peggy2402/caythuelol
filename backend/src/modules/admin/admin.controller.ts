@@ -9,6 +9,7 @@ import {
   Param,
   Query,
   UseGuards,
+  Req,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { AdminService } from './admin.service';
@@ -17,6 +18,7 @@ import { RolesGuard } from '../../common/guards/roles.guard';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { ReqUser } from '../../common/decorators/current-user.decorator';
 import { UserRole } from '../../database/schemas/User';
+import { getClientIp } from '../../common/utils/ip.util';
 
 @ApiTags('Admin')
 @Controller('admin')
@@ -182,8 +184,22 @@ export class AdminController {
 
   @Post('withdrawals/action')
   @ApiOperation({ summary: 'Approve or reject a withdrawal request' })
-  async handleWithdrawalAction(@Body() dto: any): Promise<any> {
-    return this.adminService.handleWithdrawalAction(dto);
+  async handleWithdrawalAction(
+    @Body() dto: any,
+    @ReqUser() admin?: any,
+    @Req() req?: any,
+  ): Promise<any> {
+    const res = await this.adminService.handleWithdrawalAction(dto);
+    if (admin?.userId) {
+      this.adminService.createAuditLog({
+        actorId: admin.userId,
+        action: 'WITHDRAWAL_ACTION',
+        description: `${dto.action === 'APPROVE' ? 'Duyệt' : 'Từ chối'} yêu cầu rút tiền #${dto.withdrawalId || ''}`,
+        metadata: dto,
+        ipAddress: getClientIp(req),
+      });
+    }
+    return res;
   }
 
   // 5. Quản lý Tiền cọc (Escrow Deposits)
@@ -208,8 +224,23 @@ export class AdminController {
 
   @Post('transactions/reject')
   @ApiOperation({ summary: 'Reject a transaction' })
-  async rejectTransaction(@Body('transactionId') id: string, @Body('reason') reason?: string): Promise<any> {
-    return this.adminService.rejectTransaction(id, reason);
+  async rejectTransaction(
+    @Body('transactionId') id: string,
+    @Body('reason') reason?: string,
+    @ReqUser() admin?: any,
+    @Req() req?: any,
+  ): Promise<any> {
+    const res = await this.adminService.rejectTransaction(id, reason);
+    if (admin?.userId) {
+      this.adminService.createAuditLog({
+        actorId: admin.userId,
+        action: 'REJECT_TRANSACTION',
+        description: `Từ chối giao dịch #${id}: ${reason || 'Không hợp lệ'}`,
+        metadata: { transactionId: id, reason },
+        ipAddress: getClientIp(req),
+      });
+    }
+    return res;
   }
 
   // 7. Nhật ký hệ thống (Audit Logs)
@@ -231,8 +262,20 @@ export class AdminController {
   async resolveDispute(
     @Body('orderId') orderId: string,
     @Body('decision') decision: 'REFUND_CUSTOMER' | 'PAY_BOOSTER' | 'RESUME',
+    @ReqUser() admin?: any,
+    @Req() req?: any,
   ) {
-    return this.adminService.resolveDispute(orderId, decision);
+    const res = await this.adminService.resolveDispute(orderId, decision);
+    if (admin?.userId) {
+      this.adminService.createAuditLog({
+        actorId: admin.userId,
+        action: 'RESOLVE_DISPUTE',
+        description: `Xử lý khiếu nại đơn #${orderId}: ${decision}`,
+        metadata: { orderId, decision },
+        ipAddress: getClientIp(req),
+      });
+    }
+    return res;
   }
 
   @Post('disputes/note')
@@ -263,8 +306,20 @@ export class AdminController {
     @Body('key') key: string,
     @Body('value') value: any,
     @Body('description') description?: string,
+    @ReqUser() admin?: any,
+    @Req() req?: any,
   ): Promise<any> {
-    return this.adminService.updateSetting(key, value, description);
+    const res = await this.adminService.updateSetting(key, value, description);
+    if (admin?.userId) {
+      this.adminService.createAuditLog({
+        actorId: admin.userId,
+        action: 'UPDATE_SETTING',
+        description: `Cập nhật cấu hình [${key}]${description ? ` - ${description}` : ''}`,
+        metadata: { key, value },
+        ipAddress: getClientIp(req),
+      });
+    }
+    return res;
   }
 
   @Put('settings')
@@ -273,8 +328,20 @@ export class AdminController {
     @Body('key') key: string,
     @Body('value') value: any,
     @Body('description') description?: string,
+    @ReqUser() admin?: any,
+    @Req() req?: any,
   ): Promise<any> {
-    return this.adminService.updateSetting(key, value, description);
+    const res = await this.adminService.updateSetting(key, value, description);
+    if (admin?.userId) {
+      this.adminService.createAuditLog({
+        actorId: admin.userId,
+        action: 'UPDATE_SETTING',
+        description: `Cập nhật cấu hình [${key}]${description ? ` - ${description}` : ''}`,
+        metadata: { key, value },
+        ipAddress: getClientIp(req),
+      });
+    }
+    return res;
   }
 
   @Roles(UserRole.ADMIN)
@@ -287,8 +354,21 @@ export class AdminController {
   @Roles(UserRole.ADMIN)
   @Post('settings/riot')
   @ApiOperation({ summary: 'Save Riot API key' })
-  async saveRiotKey(@Body('apiKey') apiKey: string): Promise<any> {
-    return this.adminService.saveRiotKey(apiKey);
+  async saveRiotKey(
+    @Body('apiKey') apiKey: string,
+    @ReqUser() admin?: any,
+    @Req() req?: any,
+  ): Promise<any> {
+    const res = await this.adminService.saveRiotKey(apiKey);
+    if (admin?.userId) {
+      this.adminService.createAuditLog({
+        actorId: admin.userId,
+        action: 'UPDATE_RIOT_KEY',
+        description: 'Cập nhật Riot Games API Key',
+        ipAddress: getClientIp(req),
+      });
+    }
+    return res;
   }
 
   // --- QUẢN LÝ NHÂN VIÊN (STAFF & PERMISSIONS) ---

@@ -8,6 +8,10 @@ async function bootstrap() {
   const logger = new Logger('Bootstrap');
   const app = await NestFactory.create(AppModule);
 
+  // Trust proxy for accurate client IP detection behind Cloudflare/Nginx
+  const expressApp = app.getHttpAdapter().getInstance();
+  expressApp.set('trust proxy', 1);
+
   // Cookie parser
   app.use(cookieParser());
 

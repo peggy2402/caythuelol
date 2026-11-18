@@ -1135,6 +1135,28 @@ export class AdminService {
   }
 
   // 6. Nhật ký hệ thống (Audit Logs)
+  async createAuditLog(params: {
+    actorId: string | Types.ObjectId;
+    action: string;
+    description: string;
+    targetId?: string | Types.ObjectId;
+    metadata?: any;
+    ipAddress?: string;
+  }): Promise<void> {
+    try {
+      await this.auditLogModel.create({
+        actorId: new Types.ObjectId(params.actorId),
+        targetId: params.targetId ? new Types.ObjectId(params.targetId) : undefined,
+        action: params.action,
+        description: params.description,
+        metadata: params.metadata,
+        ipAddress: params.ipAddress || '127.0.0.1',
+      });
+    } catch (err) {
+      console.error('Failed to create audit log:', err);
+    }
+  }
+
   async getAuditLogs(page: number = 1, limit: number = 20): Promise<any> {
     const skip = (page - 1) * limit;
     const [logs, total] = await Promise.all([
@@ -1163,6 +1185,7 @@ export class AdminService {
         action: tx.type,
         description: tx.description || `Giao dịch ${tx.type}: ${tx.amount.toLocaleString()} đ`,
         actorId: tx.userId,
+        ipAddress: (tx.metadata as any)?.ip || (tx.metadata as any)?.ipAddress || '127.0.0.1',
         createdAt: (tx as any).createdAt || new Date(),
       }));
 
