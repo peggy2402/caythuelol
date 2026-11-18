@@ -9,6 +9,8 @@ import {
   ArrowRight,
   Flame,
   ChevronDown,
+  Swords,
+  Crosshair,
 } from 'lucide-react';
 import { GAMES_CATALOG, GameDefinition } from '@/lib/games';
 
@@ -25,60 +27,6 @@ interface BoosterGameSelectorModalProps {
   boosterGames?: BoosterGameItem[];
   customServices?: any[];
   onSelectGameToHire?: (gameId: string) => void;
-}
-
-// Logo game chuyên nghiệp (khi chưa có file icon SVG/PNG riêng biệt)
-function GameLogoBadge({ game }: { game: GameDefinition }) {
-  const id = game.id.toLowerCase();
-  if (id === 'lol') {
-    return (
-      <div className="w-10 h-10 rounded-xl bg-black/90 border border-amber-500/60 flex items-center justify-center font-serif text-base font-black text-amber-400 shadow-[0_0_12px_rgba(245,158,11,0.25)] shrink-0">
-        L
-      </div>
-    );
-  }
-  if (id === 'valorant') {
-    return (
-      <div className="w-10 h-10 rounded-xl bg-black/90 border border-rose-500/60 flex items-center justify-center font-black text-base text-rose-500 shadow-[0_0_12px_rgba(244,63,94,0.25)] shrink-0">
-        V
-      </div>
-    );
-  }
-  if (id === 'aov') {
-    return (
-      <div className="w-10 h-10 rounded-xl bg-black/90 border border-sky-500/60 flex items-center justify-center font-black text-xs text-sky-400 shadow-[0_0_12px_rgba(14,165,233,0.25)] shrink-0">
-        AOV
-      </div>
-    );
-  }
-  if (id === 'tft') {
-    return (
-      <div className="w-10 h-10 rounded-xl bg-black/90 border border-amber-500/60 flex items-center justify-center font-black text-xs text-amber-300 shadow-[0_0_12px_rgba(245,158,11,0.25)] shrink-0">
-        ĐTCL
-      </div>
-    );
-  }
-  if (id === 'cs2') {
-    return (
-      <div className="w-10 h-10 rounded-xl bg-black/90 border border-orange-500/60 flex items-center justify-center font-black text-xs text-orange-400 shadow-[0_0_12px_rgba(249,115,22,0.25)] shrink-0">
-        CS2
-      </div>
-    );
-  }
-
-  // Fallback logo tròn / bo góc đa sắc
-  const accentColor = game.accentColor || '#3b82f6';
-  return (
-    <div
-      className="w-10 h-10 rounded-xl bg-black/90 border flex items-center justify-center font-black text-xs text-white shadow-md shrink-0"
-      style={{
-        borderColor: `${accentColor}70`,
-        boxShadow: `0 0 12px ${accentColor}30`,
-      }}
-    >
-      {game.shortName || game.id.toUpperCase().slice(0, 3)}
-    </div>
-  );
 }
 
 // Fallback banner game từ thư mục /images/games
@@ -120,6 +68,8 @@ function normalizeGameCode(code?: string): string {
   return c;
 }
 
+type FilterCategoryType = 'SERVICES' | 'ALL' | 'MOBA' | 'FPS' | 'STRATEGY' | 'SURVIVAL_RPG';
+
 export default function BoosterGameSelectorModal({
   boosterUsername,
   boosterName,
@@ -146,23 +96,34 @@ export default function BoosterGameSelectorModal({
     );
   });
 
-  // Mặc định chọn tab "Sẵn sàng nhận cày" nếu có game đã mở gói dịch vụ, giúp UI cực kỳ gọn và đẹp!
-  const [filterCategory, setFilterCategory] = useState<'SERVICES' | 'ALL' | 'MOBA' | 'FPS'>(
+  // Mặc định chọn tab "Có dịch vụ" nếu có game đã mở gói cày, giúp UI cực kỳ gọn và đẹp!
+  const [filterCategory, setFilterCategory] = useState<FilterCategoryType>(
     gamesWithServices.length > 0 ? 'SERVICES' : 'ALL'
   );
 
   // State mở rộng thêm game khi xem tab "Tất cả"
   const [showAllCards, setShowAllCards] = useState(false);
 
-  // Lọc game theo tab
+  // Lọc game theo tab chuẩn xác theo yêu cầu người dùng
   const filteredGames = displayGames.filter((g) => {
+    const code = g.id.toUpperCase();
     if (filterCategory === 'SERVICES') {
       return (customServices || []).some(
         (s: any) => s.isActive !== false && normalizeGameCode(s.gameCode) === normalizeGameCode(g.id)
       );
     }
-    if (filterCategory === 'MOBA') return ['LOL', 'AOV', 'WR', 'DOTA2'].includes(g.id.toUpperCase());
-    if (filterCategory === 'FPS') return ['VALORANT', 'CS2', 'PUBG', 'PUBGM', 'CODM', 'OVERWATCH2', 'DELTAFORCE'].includes(g.id.toUpperCase());
+    if (filterCategory === 'MOBA') {
+      return ['LOL', 'LMHT', 'AOV', 'LIENQUAN', 'WR', 'WILDRIFT', 'TOCCHIEN', 'DOTA2'].includes(code);
+    }
+    if (filterCategory === 'FPS') {
+      return ['VALORANT', 'VAL', 'CS2', 'OVERWATCH2', 'DELTAFORCE', 'TRUYKICH2', 'CODM', 'VALMOBILE'].includes(code);
+    }
+    if (filterCategory === 'STRATEGY') {
+      return ['TFT', 'DTCL'].includes(code);
+    }
+    if (filterCategory === 'SURVIVAL_RPG') {
+      return ['PUBG', 'PUBGM', 'PUBGMOBILE', 'NARAKA', 'FREEFIRE', 'POE2', 'MARVELRIVALS'].includes(code);
+    }
     return true;
   });
 
@@ -199,8 +160,9 @@ export default function BoosterGameSelectorModal({
         </span>
       </div>
 
-      {/* FILTER TABS THÔNG MINH - ƯU TIÊN GAME ĐÃ MỞ GÓI DỊCH VỤ */}
-      <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
+      {/* FILTER TABS THÔNG MINH - Y HỆT ẢNH MẪU CỦA NGƯỜI DÙNG */}
+      <div className="flex gap-2 overflow-x-auto pb-1.5 no-scrollbar">
+        {/* Tab Có dịch vụ sẵn sàng */}
         {gamesWithServices.length > 0 && (
           <button
             type="button"
@@ -208,64 +170,103 @@ export default function BoosterGameSelectorModal({
               setFilterCategory('SERVICES');
               setShowAllCards(false);
             }}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 border ${
+            className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 border ${
               filterCategory === 'SERVICES'
-                ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white border-blue-400 shadow-[0_0_15px_rgba(59,130,246,0.35)]'
-                : 'bg-zinc-900/60 text-zinc-400 border-white/5 hover:text-white hover:bg-zinc-800'
+                ? 'bg-blue-600 text-white border-blue-400 shadow-[0_0_15px_rgba(59,130,246,0.35)]'
+                : 'bg-zinc-900/80 text-zinc-400 border-white/5 hover:text-white hover:bg-zinc-800'
             }`}
           >
             <Sparkles size={13} className="text-amber-300" />
-            <span>Gói cày sẵn sàng ({gamesWithServices.length})</span>
+            <span>Có dịch vụ ({gamesWithServices.length})</span>
           </button>
         )}
 
+        {/* Tab Tất cả */}
         <button
           type="button"
           onClick={() => {
             setFilterCategory('ALL');
             setShowAllCards(false);
           }}
-          className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap border ${
+          className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all whitespace-nowrap border ${
             filterCategory === 'ALL'
-              ? 'bg-blue-600/30 text-blue-300 border-blue-500/50 shadow-[0_0_12px_rgba(59,130,246,0.25)]'
-              : 'bg-zinc-900/60 text-zinc-400 border-white/5 hover:text-white hover:bg-zinc-800'
+              ? 'bg-blue-600 text-white border-blue-400 shadow-[0_0_12px_rgba(59,130,246,0.25)]'
+              : 'bg-zinc-900/80 text-zinc-400 border-white/5 hover:text-white hover:bg-zinc-800'
           }`}
         >
           Tất cả ({displayGames.length})
         </button>
 
+        {/* 1. MOBA */}
         <button
           type="button"
           onClick={() => {
             setFilterCategory('MOBA');
             setShowAllCards(false);
           }}
-          className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap border ${
+          className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 border ${
             filterCategory === 'MOBA'
-              ? 'bg-blue-600/30 text-blue-300 border-blue-500/50 shadow-[0_0_12px_rgba(59,130,246,0.25)]'
-              : 'bg-zinc-900/60 text-zinc-400 border-white/5 hover:text-white hover:bg-zinc-800'
+              ? 'bg-blue-600 text-white border-blue-400 shadow-[0_0_12px_rgba(59,130,246,0.25)]'
+              : 'bg-zinc-900/80 text-zinc-400 border-white/5 hover:text-white hover:bg-zinc-800'
           }`}
         >
-          MOBA
+          <Swords size={13} />
+          <span>MOBA</span>
         </button>
 
+        {/* 2. FPS / Bắn súng */}
         <button
           type="button"
           onClick={() => {
             setFilterCategory('FPS');
             setShowAllCards(false);
           }}
-          className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap border ${
+          className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 border ${
             filterCategory === 'FPS'
-              ? 'bg-blue-600/30 text-blue-300 border-blue-500/50 shadow-[0_0_12px_rgba(59,130,246,0.25)]'
-              : 'bg-zinc-900/60 text-zinc-400 border-white/5 hover:text-white hover:bg-zinc-800'
+              ? 'bg-blue-600 text-white border-blue-400 shadow-[0_0_12px_rgba(59,130,246,0.25)]'
+              : 'bg-zinc-900/80 text-zinc-400 border-white/5 hover:text-white hover:bg-zinc-800'
           }`}
         >
-          Bắn súng FPS
+          <Crosshair size={13} />
+          <span>FPS / Bắn súng</span>
+        </button>
+
+        {/* 3. Chiến thuật */}
+        <button
+          type="button"
+          onClick={() => {
+            setFilterCategory('STRATEGY');
+            setShowAllCards(false);
+          }}
+          className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 border ${
+            filterCategory === 'STRATEGY'
+              ? 'bg-blue-600 text-white border-blue-400 shadow-[0_0_12px_rgba(59,130,246,0.25)]'
+              : 'bg-zinc-900/80 text-zinc-400 border-white/5 hover:text-white hover:bg-zinc-800'
+          }`}
+        >
+          <Gamepad2 size={13} />
+          <span>Chiến thuật</span>
+        </button>
+
+        {/* 4. Sinh tồn / Nhập vai */}
+        <button
+          type="button"
+          onClick={() => {
+            setFilterCategory('SURVIVAL_RPG');
+            setShowAllCards(false);
+          }}
+          className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 border ${
+            filterCategory === 'SURVIVAL_RPG'
+              ? 'bg-blue-600 text-white border-blue-400 shadow-[0_0_12px_rgba(59,130,246,0.25)]'
+              : 'bg-zinc-900/80 text-zinc-400 border-white/5 hover:text-white hover:bg-zinc-800'
+          }`}
+        >
+          <Trophy size={13} />
+          <span>Sinh tồn / Nhập vai</span>
         </button>
       </div>
 
-      {/* GRID SHOWCASE TỰA GAME VỚI ARTWORK NHÂN VẬT & NEON AURA Y HỆT ẢNH MẪU */}
+      {/* GRID SHOWCASE TỰA GAME VỚI ARTWORK NHÂN VẬT & NEON AURA (ĐÃ LOẠI BỎ AVATAR BỊ VỠ CHỮ) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {visibleGames.map((game) => {
           const boosterGameInfo = boosterGames.find(
@@ -331,16 +332,20 @@ export default function BoosterGameSelectorModal({
                 }}
               />
 
-              {/* Nội dung bên trái Card */}
-              <div className="space-y-3 relative z-20 max-w-[70%]">
-                {/* Header Card: Logo Game + Tên Game + Số Gói Dịch Vụ */}
-                <div className="flex items-center gap-3">
-                  <GameLogoBadge game={game} />
-                  <div>
-                    <h4 className="font-extrabold text-white text-base tracking-tight group-hover:text-cyan-300 transition-colors">
-                      {game.name}
-                    </h4>
-                    <span className={`text-[11px] font-semibold ${servicesCount > 0 ? 'text-cyan-400' : 'text-zinc-500'}`}>
+              {/* Nội dung bên trái Card: ĐÃ BỎ AVATAR BỊ VỠ CHỮ, TÊN GAME RỘNG RÃI & SẮC NÉT */}
+              <div className="space-y-2.5 relative z-20 max-w-[70%]">
+                {/* Header Card: Tên Game + Trạng Thái Gói Cày */}
+                <div>
+                  <h4 className="font-extrabold text-white text-base sm:text-lg tracking-tight group-hover:text-cyan-300 transition-colors leading-snug">
+                    {game.name}
+                  </h4>
+                  <div className="mt-0.5">
+                    <span className={`text-[11px] font-semibold inline-flex items-center gap-1.5 ${
+                      servicesCount > 0 ? 'text-cyan-400' : 'text-zinc-500'
+                    }`}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${
+                        servicesCount > 0 ? 'bg-cyan-400 animate-pulse' : 'bg-zinc-600'
+                      }`} />
                       {servicesCount > 0 ? `${servicesCount} gói dịch vụ nhận cày` : 'Chưa mở gói dịch vụ'}
                     </span>
                   </div>
