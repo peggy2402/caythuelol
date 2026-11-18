@@ -9,6 +9,9 @@ import { IBoosterProfile } from '../../database/schemas/BoosterProfile';
 
 @Injectable()
 export class PublicService {
+  private systemConfigCache: { data: any; expiresAt: number } | null = null;
+  private readonly SYSTEM_CONFIG_TTL_MS = 10_000;
+
   constructor(
     @InjectModel('SystemSetting') private settingModel: Model<ISystemSetting>,
     @InjectModel('BoosterProfile') private boosterProfileModel: Model<IBoosterProfile>,
@@ -143,24 +146,38 @@ export class PublicService {
   }
 
   async getSystemConfig() {
-    const [banner, maintenance, adminBank, boosterReg] = await Promise.all([
-      this.settingModel.findOne({ key: 'banner_config' }).lean(),
-      this.settingModel.findOne({ key: 'maintenance_mode' }).lean(),
-      this.settingModel.findOne({ key: 'ADMIN_BANK_INFO' }).lean(),
-      this.settingModel.findOne({ key: 'booster_registration_config' }).lean(),
-    ]);
+    const now = Date.now();
+    if (this.systemConfigCache && now < this.systemConfigCache.expiresAt) {
+      return this.systemConfigCache.data;
+    }
 
-    const isMaintenance = Boolean(maintenance?.value || false);
+    const keys = [
+      'banner_config',
+      'maintenance_mode',
+      'ADMIN_BANK_INFO',
+      'booster_registration_config',
+    ];
+    const docs = await this.settingModel.find({ key: { $in: keys } }).lean();
+    const map = new Map<string, any>(docs.map((d) => [d.key, d.value]));
 
-    return {
+    const isMaintenance = Boolean(map.get('maintenance_mode') || false);
+
+    const payload = {
       success: true,
-      banner: banner?.value || null,
+      banner: map.get('banner_config') || null,
       maintenance: isMaintenance,
       maintenanceMode: isMaintenance,
       maintenance_mode: isMaintenance,
-      adminBank: adminBank?.value || null,
-      boosterRegistration: boosterReg?.value || null,
+      adminBank: map.get('ADMIN_BANK_INFO') || null,
+      boosterRegistration: map.get('booster_registration_config') || null,
     };
+
+    this.systemConfigCache = {
+      data: payload,
+      expiresAt: now + this.SYSTEM_CONFIG_TTL_MS,
+    };
+
+    return payload;
   }
 
   async submitContact(dto: any) {
