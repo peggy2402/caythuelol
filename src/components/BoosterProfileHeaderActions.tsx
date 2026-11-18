@@ -99,15 +99,23 @@ export default function BoosterProfileHeaderActions({
 
   return (
     <div className="flex flex-col lg:flex-row items-center lg:items-start justify-between gap-6 w-full pt-2">
-      {/* Key Metric Chips Y Hệt Ảnh Mẫu */}
+      {/* Key Metric Chips Chuẩn Xác Theo Dữ Liệu Thực Tế */}
       <div className="flex flex-wrap items-center justify-center lg:justify-start gap-2.5 text-xs">
         {/* Rating Chip */}
         <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#1c160c]/90 border border-amber-500/35 text-amber-300 font-bold shadow-sm">
           <Star size={14} className="fill-amber-400 text-amber-400" />
-          <span>{rating > 0 ? `${rating.toFixed(1)}/0` : '5/0'}</span>
-          <span className="text-[11px] text-amber-400/80 font-normal">
-            ({reviewsCount} đánh giá)
-          </span>
+          {reviewsCount > 0 ? (
+            <>
+              <span>{rating.toFixed(1)}</span>
+              <span className="text-[11px] text-amber-400/80 font-normal">
+                ({reviewsCount} đánh giá)
+              </span>
+            </>
+          ) : (
+            <span className="text-[11px] font-medium text-amber-300/80">
+              Chưa có đánh giá
+            </span>
+          )}
         </div>
 
         {/* Orders Completed Chip */}
@@ -115,20 +123,21 @@ export default function BoosterProfileHeaderActions({
           <span className="w-3.5 h-3.5 rounded-full border border-blue-400 flex items-center justify-center text-[9px] text-blue-300">
             ◎
           </span>
-          <span>{completedOrders > 0 ? completedOrders : 97} Compl</span>
-          <span className="text-emerald-400 text-[11px] font-bold flex items-center">
-            ↑ 0
-          </span>
+          <span>{completedOrders} đơn hoàn thành</span>
         </div>
 
         {/* Peak Rank Chip */}
-        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#1a0e26]/90 border border-purple-500/35 text-purple-300 font-bold shadow-sm">
-          <Sparkles size={13} className="text-purple-400" />
-          <span>{highestRank && highestRank !== 'N/A' ? highestRank : 'Radiant'}</span>
-          <span className="text-[11px] text-purple-400/70 font-normal">
-            Peak: {highestRank || 'N/A'}
-          </span>
-        </div>
+        {highestRank && highestRank !== 'N/A' ? (
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#1a0e26]/90 border border-purple-500/35 text-purple-300 font-bold shadow-sm">
+            <Sparkles size={13} className="text-purple-400" />
+            <span>Peak: {highestRank}</span>
+          </div>
+        ) : (
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#1a0e26]/90 border border-purple-500/35 text-purple-300 font-medium shadow-sm">
+            <Sparkles size={13} className="text-purple-400" />
+            <span>Verified Booster</span>
+          </div>
+        )}
 
         {/* Bookmark / Likes Count Chip */}
         <button

@@ -7,6 +7,8 @@ import {
   Trophy,
   Sparkles,
   ArrowRight,
+  Flame,
+  ChevronDown,
 } from 'lucide-react';
 import { GAMES_CATALOG, GameDefinition } from '@/lib/games';
 
@@ -137,15 +139,42 @@ export default function BoosterGameSelectorModal({
 
   const displayGames = matchedGames.length > 0 ? matchedGames : [GAMES_CATALOG[0]];
 
-  // Bộ lọc tag nhanh khi có nhiều game
-  const [filterCategory, setFilterCategory] = useState<'ALL' | 'MOBA' | 'FPS' | 'OTHER'>('ALL');
+  // 1. Phân loại các game ĐÃ CẤU HÌNH GÓI DỊCH VỤ THỰC TẾ
+  const gamesWithServices = displayGames.filter((game) => {
+    return (customServices || []).some(
+      (s: any) => s.isActive !== false && normalizeGameCode(s.gameCode) === normalizeGameCode(game.id)
+    );
+  });
 
+  // Mặc định chọn tab "Sẵn sàng nhận cày" nếu có game đã mở gói dịch vụ, giúp UI cực kỳ gọn và đẹp!
+  const [filterCategory, setFilterCategory] = useState<'SERVICES' | 'ALL' | 'MOBA' | 'FPS'>(
+    gamesWithServices.length > 0 ? 'SERVICES' : 'ALL'
+  );
+
+  // State mở rộng thêm game khi xem tab "Tất cả"
+  const [showAllCards, setShowAllCards] = useState(false);
+
+  // Lọc game theo tab
   const filteredGames = displayGames.filter((g) => {
-    if (filterCategory === 'ALL') return true;
+    if (filterCategory === 'SERVICES') {
+      return (customServices || []).some(
+        (s: any) => s.isActive !== false && normalizeGameCode(s.gameCode) === normalizeGameCode(g.id)
+      );
+    }
     if (filterCategory === 'MOBA') return ['LOL', 'AOV', 'WR', 'DOTA2'].includes(g.id.toUpperCase());
     if (filterCategory === 'FPS') return ['VALORANT', 'CS2', 'PUBG', 'PUBGM', 'CODM', 'OVERWATCH2', 'DELTAFORCE'].includes(g.id.toUpperCase());
     return true;
   });
+
+  // Giới hạn hiển thị nếu nhiều hơn 4 card để layout luôn cân đối tuyệt đối
+  const visibleGames = (filterCategory === 'ALL' && !showAllCards && filteredGames.length > 4)
+    ? filteredGames.slice(0, 4)
+    : filteredGames;
+
+  // Danh sách các game còn lại chưa mở gói dịch vụ để hiển thị chip nhỏ tinh tế
+  const otherGames = displayGames.filter(
+    (g) => !gamesWithServices.some((sg) => sg.id === g.id)
+  );
 
   return (
     <div className="space-y-4">
@@ -170,32 +199,75 @@ export default function BoosterGameSelectorModal({
         </span>
       </div>
 
-      {/* FILTER PILLS NẾU CÀY NHIỀU GAME (> 3 GAME) */}
-      {displayGames.length > 3 && (
-        <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
-          {[
-            { id: 'ALL', label: `Tất cả (${displayGames.length})` },
-            { id: 'MOBA', label: 'MOBA (LMHT, LQ...)' },
-            { id: 'FPS', label: 'Bắn súng (Valorant, CS2...)' },
-          ].map((cat) => (
-            <button
-              key={cat.id}
-              onClick={() => setFilterCategory(cat.id as any)}
-              className={`px-3 py-1 rounded-xl text-xs font-semibold transition-all whitespace-nowrap border ${
-                filterCategory === cat.id
-                  ? 'bg-blue-600/30 text-blue-300 border-blue-500/50 shadow-[0_0_12px_rgba(59,130,246,0.25)]'
-                  : 'bg-zinc-900/60 text-zinc-400 border-white/5 hover:text-white hover:bg-zinc-800'
-              }`}
-            >
-              {cat.label}
-            </button>
-          ))}
-        </div>
-      )}
+      {/* FILTER TABS THÔNG MINH - ƯU TIÊN GAME ĐÃ MỞ GÓI DỊCH VỤ */}
+      <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
+        {gamesWithServices.length > 0 && (
+          <button
+            type="button"
+            onClick={() => {
+              setFilterCategory('SERVICES');
+              setShowAllCards(false);
+            }}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 border ${
+              filterCategory === 'SERVICES'
+                ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white border-blue-400 shadow-[0_0_15px_rgba(59,130,246,0.35)]'
+                : 'bg-zinc-900/60 text-zinc-400 border-white/5 hover:text-white hover:bg-zinc-800'
+            }`}
+          >
+            <Sparkles size={13} className="text-amber-300" />
+            <span>Gói cày sẵn sàng ({gamesWithServices.length})</span>
+          </button>
+        )}
+
+        <button
+          type="button"
+          onClick={() => {
+            setFilterCategory('ALL');
+            setShowAllCards(false);
+          }}
+          className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap border ${
+            filterCategory === 'ALL'
+              ? 'bg-blue-600/30 text-blue-300 border-blue-500/50 shadow-[0_0_12px_rgba(59,130,246,0.25)]'
+              : 'bg-zinc-900/60 text-zinc-400 border-white/5 hover:text-white hover:bg-zinc-800'
+          }`}
+        >
+          Tất cả ({displayGames.length})
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            setFilterCategory('MOBA');
+            setShowAllCards(false);
+          }}
+          className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap border ${
+            filterCategory === 'MOBA'
+              ? 'bg-blue-600/30 text-blue-300 border-blue-500/50 shadow-[0_0_12px_rgba(59,130,246,0.25)]'
+              : 'bg-zinc-900/60 text-zinc-400 border-white/5 hover:text-white hover:bg-zinc-800'
+          }`}
+        >
+          MOBA
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            setFilterCategory('FPS');
+            setShowAllCards(false);
+          }}
+          className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap border ${
+            filterCategory === 'FPS'
+              ? 'bg-blue-600/30 text-blue-300 border-blue-500/50 shadow-[0_0_12px_rgba(59,130,246,0.25)]'
+              : 'bg-zinc-900/60 text-zinc-400 border-white/5 hover:text-white hover:bg-zinc-800'
+          }`}
+        >
+          Bắn súng FPS
+        </button>
+      </div>
 
       {/* GRID SHOWCASE TỰA GAME VỚI ARTWORK NHÂN VẬT & NEON AURA Y HỆT ẢNH MẪU */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {filteredGames.map((game) => {
+        {visibleGames.map((game) => {
           const boosterGameInfo = boosterGames.find(
             (g) => normalizeGameCode(g.gameCode) === normalizeGameCode(game.id)
           );
@@ -230,7 +302,7 @@ export default function BoosterGameSelectorModal({
             <div
               key={game.id}
               onClick={() => onSelectGameToHire?.(game.id)}
-              className="group relative bg-[#0d1017]/90 hover:bg-[#10141f] border rounded-2xl p-5 transition-all duration-300 flex flex-col justify-between overflow-hidden cursor-pointer min-h-[200px]"
+              className="group relative bg-[#0d1017]/90 hover:bg-[#10141f] border rounded-2xl p-5 transition-all duration-300 flex flex-col justify-between overflow-hidden cursor-pointer min-h-[195px]"
               style={{
                 borderColor,
                 boxShadow: glowShadow,
@@ -268,7 +340,7 @@ export default function BoosterGameSelectorModal({
                     <h4 className="font-extrabold text-white text-base tracking-tight group-hover:text-cyan-300 transition-colors">
                       {game.name}
                     </h4>
-                    <span className={`text-[11px] font-medium ${servicesCount > 0 ? 'text-cyan-400' : 'text-zinc-500'}`}>
+                    <span className={`text-[11px] font-semibold ${servicesCount > 0 ? 'text-cyan-400' : 'text-zinc-500'}`}>
                       {servicesCount > 0 ? `${servicesCount} gói dịch vụ nhận cày` : 'Chưa mở gói dịch vụ'}
                     </span>
                   </div>
@@ -291,12 +363,12 @@ export default function BoosterGameSelectorModal({
               </div>
 
               {/* Bottom: Action link Xem các dịch vụ */}
-              <div className="pt-4 mt-4 relative z-20 flex items-center justify-between">
+              <div className="pt-3.5 mt-3.5 relative z-20 flex items-center justify-between">
                 <span
                   className="text-xs font-bold flex items-center gap-1.5 group-hover:translate-x-1 transition-all"
                   style={{ color: servicesCount > 0 ? actionColor : '#71717a' }}
                 >
-                  <span>{servicesCount > 0 ? 'Xem các dịch vụ' : 'Chưa có dịch vụ'}</span>
+                  <span>{servicesCount > 0 ? 'Xem các dịch vụ' : 'Chưa mở dịch vụ'}</span>
                   <ArrowRight size={13} />
                 </span>
               </div>
@@ -304,6 +376,41 @@ export default function BoosterGameSelectorModal({
           );
         })}
       </div>
+
+      {/* Nút Xem thêm nếu đang ở Tab "Tất cả" và có nhiều game */}
+      {filterCategory === 'ALL' && filteredGames.length > 4 && (
+        <div className="pt-2 text-center">
+          <button
+            type="button"
+            onClick={() => setShowAllCards(!showAllCards)}
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-white border border-white/5 text-xs font-semibold transition-all"
+          >
+            <span>{showAllCards ? 'Thu gọn danh sách game' : `Xem thêm (${filteredGames.length - 4} tựa game khác)`}</span>
+            <ChevronDown size={14} className={`transition-transform duration-200 ${showAllCards ? 'rotate-180' : ''}`} />
+          </button>
+        </div>
+      )}
+
+      {/* THANH CHIP PHỤ TINH TẾ: CÁC GAME KHÁC TUYỂN THỦ CŨNG NHẬN CÀY */}
+      {otherGames.length > 0 && filterCategory === 'SERVICES' && (
+        <div className="pt-2 border-t border-white/5">
+          <div className="flex flex-wrap items-center gap-1.5 text-xs">
+            <span className="text-[11px] text-zinc-500 font-medium">
+              Nhận cày thêm theo yêu cầu:
+            </span>
+            {otherGames.map((og) => (
+              <button
+                key={og.id}
+                type="button"
+                onClick={() => onSelectGameToHire?.(og.id)}
+                className="px-2.5 py-1 rounded-lg bg-zinc-950/60 hover:bg-zinc-800 border border-white/5 hover:border-blue-500/30 text-zinc-400 hover:text-zinc-200 text-[11px] transition-all"
+              >
+                {og.shortName || og.name}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

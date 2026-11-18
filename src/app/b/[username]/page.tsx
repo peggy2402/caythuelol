@@ -27,6 +27,7 @@ import BoosterServicesList, { ServiceItem } from '@/components/BoosterServicesLi
 import BoosterGameSelectorModal from '@/components/BoosterGameSelectorModal';
 import BoosterProfileHeaderActions from '@/components/BoosterProfileHeaderActions';
 import BoosterProfileRightSection from '@/components/BoosterProfileRightSection';
+import BoosterRankShowcase from '@/components/BoosterRankShowcase';
 import BoosterAvatar from '@/components/BoosterAvatar';
 import { API_BASE_URL } from '@/lib/api';
 
@@ -476,70 +477,54 @@ export default async function ShortProfilePage({ params }: Props) {
               </div>
             </div>
 
-            {/* Rank Box Y Hệt Ảnh Mẫu */}
+            {/* Trình độ & Xếp hạng: Hỗ trợ đa tựa game động */}
+            <BoosterRankShowcase
+              boosterGames={
+                boosterData?.games && boosterData.games.length > 0
+                  ? boosterData.games
+                  : [{ gameCode: 'LOL', ranks: [], servers: ['VN'] }]
+              }
+              defaultCurrentRank={boosterData?.currentRank}
+              defaultHighestRank={boosterData?.highestRank}
+            />
+
+            {/* Winrate Stat Box: Phong độ gần đây (30 ngày) */}
             <div className="bg-[#0d1017]/90 border border-white/10 rounded-2xl p-5 shadow-lg backdrop-blur-md">
-              <h3 className="text-sm font-bold text-zinc-200 mb-3 flex items-center gap-2">
-                <Trophy size={16} className="text-amber-400" />
-                Trình độ & Xếp hạng
-              </h3>
-              <div className="grid grid-cols-2 gap-3">
-                {/* RANK HIỆN TẠI Card */}
-                <div className="bg-[#090d16] p-3 rounded-2xl border border-cyan-500/30 flex items-center gap-2.5 relative overflow-hidden shadow-[0_0_15px_rgba(6,182,212,0.1)]">
-                  <div className="relative w-10 h-10 shrink-0">
-                    <Image
-                      src={getRankIcon(boosterData?.currentRank || 'Diamond III', false)}
-                      alt="Current Rank"
-                      fill
-                      className="object-contain drop-shadow"
-                    />
-                  </div>
-                  <div className="min-w-0">
-                    <div className="text-[10px] text-zinc-400 uppercase font-bold tracking-wider truncate">
-                      RANK HIỆN TẠI
-                    </div>
-                    <div className="text-sm font-black text-cyan-300 truncate">
-                      {boosterData?.currentRank || 'DIAMOND III'}
-                    </div>
-                  </div>
-                </div>
-
-                {/* RANK CAO NHẤT Card */}
-                <div className="bg-[#140a1c] p-3 rounded-2xl border border-purple-500/30 flex items-center gap-2.5 relative overflow-hidden shadow-[0_0_15px_rgba(168,85,247,0.1)]">
-                  <div className="relative w-10 h-10 shrink-0">
-                    <Image
-                      src={getRankIcon(boosterData?.highestRank || 'Radiant', true)}
-                      alt="Highest Rank"
-                      fill
-                      className="object-contain drop-shadow"
-                    />
-                  </div>
-                  <div className="min-w-0">
-                    <div className="text-[10px] text-zinc-400 uppercase font-bold tracking-wider truncate">
-                      RANK CAO NHẤT
-                    </div>
-                    <div className="text-sm font-black text-purple-300 truncate">
-                      {boosterData?.highestRank || 'Radiant'}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Winrate Stat Box */}
-            <div className="bg-zinc-900/70 border border-white/10 rounded-2xl p-5 shadow-lg backdrop-blur-md">
-              <h3 className="text-sm font-bold text-zinc-200 mb-2 flex items-center gap-2">
-                <TrendingUp size={16} className="text-emerald-400" />
-                Phong độ gần đây (30 ngày)
-              </h3>
-              <div className="flex items-baseline gap-2 mb-2">
-                <span className="text-3xl font-black text-emerald-400">{winRate}%</span>
-                <span className="text-xs text-zinc-400">
-                  ({wins} Thắng - {losses} Thua)
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-sm font-bold text-zinc-200 flex items-center gap-2">
+                  <TrendingUp size={16} className="text-emerald-400" />
+                  Phong độ gần đây (30 ngày)
+                </h3>
+                <span className="text-[10px] text-zinc-500 font-mono">
+                  Match History
                 </span>
               </div>
-              {winRateTrendData.length > 0 && (
-                <div className="pt-2">
-                  <SparklineChart data={winRateTrendData} color="#34d399" height={50} />
+
+              {wins + losses > 0 ? (
+                <>
+                  <div className="flex items-baseline gap-2 mb-2">
+                    <span className="text-3xl font-black text-emerald-400">{winRate}%</span>
+                    <span className="text-xs text-zinc-400">
+                      ({wins} Thắng - {losses} Thua)
+                    </span>
+                  </div>
+                  {winRateTrendData.length > 0 && (
+                    <div className="pt-2">
+                      <SparklineChart data={winRateTrendData} color="#34d399" height={50} />
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="py-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-2xl font-black text-emerald-400">100%</span>
+                    <span className="text-xs text-emerald-400 font-semibold bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-0.5 rounded-full">
+                      Cam kết chất lượng
+                    </span>
+                  </div>
+                  <p className="text-xs text-zinc-400 mt-1.5 leading-relaxed">
+                    Chưa phát sinh trận đấu nào trong 30 ngày qua (0 Thắng - 0 Thua). Tuyển thủ sẵn sàng nhận đơn mới và cam kết tỉ lệ thắng cao nhất!
+                  </p>
                 </div>
               )}
             </div>
