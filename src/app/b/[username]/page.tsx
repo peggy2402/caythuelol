@@ -25,6 +25,8 @@ import BackButton from '@/components/BackButton';
 import ShareProfileButton from '@/components/ShareProfileButton';
 import BoosterServicesList, { ServiceItem } from '@/components/BoosterServicesList';
 import BoosterGameSelectorModal from '@/components/BoosterGameSelectorModal';
+import BoosterProfileHeaderActions from '@/components/BoosterProfileHeaderActions';
+import BoosterProfileRightSection from '@/components/BoosterProfileRightSection';
 import BoosterAvatar from '@/components/BoosterAvatar';
 import { API_BASE_URL } from '@/lib/api';
 
@@ -226,7 +228,7 @@ export default async function ShortProfilePage({ params }: Props) {
     notFound();
   }
 
-  const { boosterData, reviews, relatedBoosters, stats } = data;
+  const { user, boosterData, reviews, relatedBoosters, stats } = data;
   const wins = stats?.wins || 0;
   const losses = stats?.losses || 0;
   const winRate = stats?.winRate || 0;
@@ -309,10 +311,11 @@ export default async function ShortProfilePage({ params }: Props) {
 
   return (
     <div className="min-h-screen bg-[#09090b] text-white font-sans selection:bg-blue-500/30">
-      {/* Background ambient lighting */}
-      <div className="fixed inset-0 z-[-1] pointer-events-none opacity-20">
-        <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-blue-600/20 rounded-full blur-[140px]" />
-        <div className="absolute top-1/3 right-1/4 w-[500px] h-[500px] bg-purple-600/20 rounded-full blur-[140px]" />
+      {/* Background ambient lighting theo Ảnh 4 */}
+      <div className="fixed inset-0 z-[-1] pointer-events-none overflow-hidden">
+        <div className="absolute top-10 left-10 w-[550px] h-[380px] bg-blue-600/20 rounded-full blur-[130px]" />
+        <div className="absolute top-24 right-10 w-[500px] h-[420px] bg-purple-600/20 rounded-full blur-[140px]" />
+        <div className="absolute top-1/2 left-1/3 w-[450px] h-[350px] bg-rose-600/15 rounded-full blur-[150px]" />
       </div>
 
       <div className="max-w-6xl mx-auto py-8 px-4 sm:px-6 relative">
@@ -323,7 +326,7 @@ export default async function ShortProfilePage({ params }: Props) {
             <span
               className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border ${
                 isReady
-                  ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                  ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 shadow-[0_0_15px_rgba(16,185,129,0.2)]'
                   : 'bg-zinc-800/80 text-zinc-400 border-zinc-700/50'
               }`}
             >
@@ -338,9 +341,12 @@ export default async function ShortProfilePage({ params }: Props) {
         </div>
 
         {/* Hero Card Banner */}
-        <div className="relative p-6 sm:p-7 bg-zinc-900/70 border border-white/10 rounded-3xl shadow-xl mb-8 backdrop-blur-md">
-          <div className="flex flex-col sm:flex-row items-center sm:items-start justify-between gap-6">
-            <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5 text-center sm:text-left">
+        <div className="relative p-6 sm:p-7 bg-zinc-900/80 border border-white/10 rounded-3xl shadow-2xl mb-8 backdrop-blur-xl overflow-hidden">
+          {/* Subtle Ambient Behind Avatar */}
+          <div className="absolute -top-10 -left-10 w-60 h-60 bg-blue-500/15 rounded-full blur-3xl pointer-events-none" />
+
+          <div className="flex flex-col sm:flex-row items-center sm:items-start justify-between gap-6 relative z-10">
+            <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5 text-center sm:text-left flex-1 min-w-0">
               {/* Avatar */}
               <div className="relative shrink-0">
                 <div className="relative w-24 h-24 sm:w-28 sm:h-28 rounded-2xl overflow-hidden border-2 border-blue-500/60 shadow-lg bg-zinc-900">
@@ -361,8 +367,8 @@ export default async function ShortProfilePage({ params }: Props) {
                 </div>
               </div>
 
-              {/* Identity & Badges */}
-              <div className="space-y-2">
+              {/* Identity & Header Interactive Actions */}
+              <div className="space-y-3 flex-1 min-w-0">
                 <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
                   <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
                     {boosterName}
@@ -374,44 +380,18 @@ export default async function ShortProfilePage({ params }: Props) {
                 </div>
                 <p className="text-zinc-500 text-xs sm:text-sm font-medium">@{boosterUsername}</p>
 
-                {/* Key Metric Chips */}
-                <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2.5 pt-1 text-xs">
-                  <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 font-bold">
-                    <Star size={14} className="fill-amber-400 text-amber-400" />
-                    <span>{boosterData?.rating && boosterData.rating > 0 ? boosterData.rating.toFixed(1) : '0/0'}</span>
-                    <span className="text-[10px] text-amber-400/70 font-normal">
-                      ({reviews?.length || 0} đánh giá)
-                    </span>
-                  </div>
-
-                  <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-400 font-semibold">
-                    <CheckCircle2 size={14} />
-                    <span>{boosterData?.completed_orders || 0} đơn hoàn thành</span>
-                  </div>
-
-                  {boosterData?.highestRank && (
-                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-purple-500/10 border border-purple-500/20 text-purple-300 font-medium">
-                      <Flame size={13} className="text-purple-400" />
-                      <span>Peak: {boosterData.highestRank}</span>
-                    </div>
-                  )}
-                </div>
+                {/* Header Interactive: Metric Chips + Nút Thuê ngay + Nút Tim + Nút Share */}
+                <BoosterProfileHeaderActions
+                  boosterId={user._id.toString()}
+                  boosterUsername={boosterUsername}
+                  boosterName={boosterName}
+                  initialLikesCount={boosterData?.likes_count || boosterData?.favoritesCount || 0}
+                  rating={boosterData?.rating || 0}
+                  reviewsCount={reviews?.length || 0}
+                  completedOrders={boosterData?.completed_orders || 0}
+                  highestRank={boosterData?.highestRank || 'N/A'}
+                />
               </div>
-            </div>
-
-            {/* Actions */}
-            <div className="flex flex-row sm:flex-col gap-2.5 w-full sm:w-auto shrink-0 justify-center">
-              <Link
-                href={`/services/lol/rank-boost?booster=@${boosterUsername}`}
-                className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold rounded-xl transition-all duration-200 shadow-md shadow-blue-600/30 hover:scale-105 active:scale-95 text-sm"
-              >
-                <span>Thuê ngay</span>
-                <ArrowRight size={15} />
-              </Link>
-              <ShareProfileButton
-                username={boosterUsername}
-                displayName={boosterName}
-              />
             </div>
           </div>
         </div>
@@ -574,31 +554,27 @@ export default async function ShortProfilePage({ params }: Props) {
             )}
           </div>
 
-          {/* Right Column (7 Cols): Tựa Game & Modal Dịch Vụ + Reviews */}
-          <div className="lg:col-span-7 space-y-6">
-            {/* TỰA GAME VÀ MODAL POPUP DỊCH VỤ */}
-            <div className="bg-zinc-900/70 border border-white/10 rounded-2xl p-5 sm:p-6 shadow-xl backdrop-blur-md">
-              <BoosterGameSelectorModal
-                boosterUsername={boosterUsername}
-                boosterName={boosterName}
-                boosterAvatar={boosterData?.profile?.avatar}
-                boosterGames={
-                  boosterData?.games && boosterData.games.length > 0
-                    ? boosterData.games
-                    : [
-                        {
-                          gameCode: 'LOL',
-                          ranks: [boosterData?.highestRank || 'Thách Đấu'],
-                          servers: ['VN'],
-                        },
-                      ]
-                }
-                customServices={customServicesList}
-              />
-            </div>
-
-            {/* Customer Reviews Section */}
-            <BoosterReviewList reviews={reviews || []} />
+          {/* Right Column (7 Cols): Tựa Game Showcase & Reviews */}
+          <div className="lg:col-span-7">
+            <BoosterProfileRightSection
+              boosterId={user._id.toString()}
+              boosterUsername={boosterUsername}
+              boosterName={boosterName}
+              boosterAvatar={boosterData?.profile?.avatar}
+              boosterGames={
+                boosterData?.games && boosterData.games.length > 0
+                  ? boosterData.games
+                  : [
+                      {
+                        gameCode: 'LOL',
+                        ranks: [boosterData?.highestRank || 'Thách Đấu'],
+                        servers: ['VN'],
+                      },
+                    ]
+              }
+              customServices={customServicesList}
+              reviews={reviews || []}
+            />
           </div>
         </div>
 

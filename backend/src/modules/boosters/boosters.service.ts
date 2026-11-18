@@ -756,7 +756,7 @@ export class BoostersService {
     const user = await this.userModel.findOne(query).select('-password_hash').lean();
     if (!user) throw new NotFoundException('Không tìm thấy Booster');
 
-    const [profile, application, completedOrdersCount, reviews, relatedBoosters, ordersLast30Days] =
+    const [profile, application, completedOrdersCount, reviews, relatedBoosters, ordersLast30Days, likesCount] =
       await Promise.all([
         this.boosterProfileModel.findOne({ userId: user._id }).lean(),
         this.boosterAppModel.findOne({ userId: user._id }).lean(),
@@ -780,6 +780,7 @@ export class BoostersService {
           })
           .select('match_history')
           .lean(),
+        this.userModel.countDocuments({ bookmarks: user._id }),
       ]);
 
     const rawBoosterInfo = user.booster_info || (profile as any)?.booster_info || {};
@@ -821,6 +822,8 @@ export class BoostersService {
       completed_orders: completedOrdersCount,
       rating: user.booster_info?.rating || (profile as any)?.rating || 0,
       bio: user.booster_info?.bio || (profile as any)?.bio || '',
+      likes_count: likesCount || 0,
+      favoritesCount: likesCount || 0,
     };
 
     let wins = 0;
