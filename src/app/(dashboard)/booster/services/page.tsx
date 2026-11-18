@@ -432,8 +432,11 @@ export default function BoosterServicesStudio() {
     };
 
     const isVal = activeGameCode.toUpperCase() === 'VALORANT';
+    const isAov = activeGameCode.toUpperCase() === 'AOV' || activeGameCode.toUpperCase() === 'LIENQUAN';
     const initialTierRates: TierRates = isVal
       ? { immortal1_2: 5000, immortal2_3: 7000, immortal3_radiant: 10000, radiant_top100: 20000 }
+      : isAov
+      ? { master_stars: 8000, gm_iv_ii: 12000, gm_i: 15000, conqueror_stars: 22000, legend_stars: 35000 }
       : { master: 1000, grandmaster: 1500, challenger: 2000 };
 
     setFormData({
@@ -445,7 +448,7 @@ export default function BoosterServicesStudio() {
       desc: firstTpl.desc || '',
       pricingType: firstTpl.pricingType || 'TIER_MATRIX',
       price: firstTpl.defaultPrice || 0,
-      unitName: firstTpl.unitName || (isVal ? 'Điểm RR' : 'Điểm LP'),
+      unitName: firstTpl.unitName || (isVal ? 'Điểm RR' : isAov ? 'Sao' : 'Điểm LP'),
       depositPercent: firstTpl.depositPercent ?? (firstTpl.serviceType === 'net-wins' ? 40 : 100),
       stepOverrides: {},
       tierRates: initialTierRates,
@@ -461,18 +464,23 @@ export default function BoosterServicesStudio() {
     setModalStep(1);
     const svcGame = (svc.gameCode || activeGameCode).toUpperCase();
     const isVal = svcGame === 'VALORANT';
+    const isAov = svcGame === 'AOV' || svcGame === 'LIENQUAN';
     const templates = STANDARD_SERVICE_TEMPLATES[svcGame] || STANDARD_SERVICE_TEMPLATES['UNIVERSAL'] || [];
     setAvailableServiceTypes(templates);
 
     let cleanName = svc.name;
     if (isVal && (cleanName.includes('Cao Thủ') || cleanName.includes('LP') || cleanName.toLowerCase() === 'cày điểm ...' || cleanName === 'Cày Điểm')) {
       cleanName = 'Cày Điểm RR (Immortal / Radiant)';
+    } else if (isAov && (svc.serviceType === 'net-wins' || cleanName.includes('Trận Thắng') || cleanName.includes('LP') || cleanName.includes('RR'))) {
+      cleanName = 'Cày Rank Cao Cấp';
     }
     let cleanDesc = svc.desc || '';
     if (isVal && (cleanDesc.includes('Cao Thủ') || cleanDesc.includes('LP') || cleanDesc.includes('Đại Cao Thủ'))) {
       cleanDesc = 'Cày điểm xếp hạng Rank Rating (RR) bậc Immortal và Radiant theo điểm số.';
+    } else if (isAov && (cleanDesc.includes('MMR') || cleanDesc.includes('LP') || cleanDesc.includes('RR'))) {
+      cleanDesc = 'Cày số sao xếp hạng từ Cao Thủ, Đại Cao Thủ, Chiến Tướng đến Huyền Thoại.';
     }
-    const cleanUnit = isVal ? 'Điểm RR' : (svc.unitName || 'Điểm LP');
+    const cleanUnit = isVal ? 'Điểm RR' : isAov ? 'Sao' : (svc.unitName || 'Điểm LP');
 
     setFormData({
       ...svc,
@@ -505,6 +513,10 @@ export default function BoosterServicesStudio() {
     );
 
     if (tpl) {
+      const gCode = (tpl.gameCode || formData.gameCode || activeGameCode || '').toUpperCase();
+      const isVal = gCode === 'VALORANT';
+      const isAov = gCode === 'AOV' || gCode === 'LIENQUAN';
+
       setFormData((prev) => ({
         ...prev,
         serviceType: tpl.serviceType || tpl.slug,
@@ -513,13 +525,19 @@ export default function BoosterServicesStudio() {
         desc: tpl.desc,
         pricingType: tpl.pricingType,
         price: tpl.defaultPrice || 0,
-        unitName: tpl.unitName || (prev.gameCode === 'VALORANT' ? 'Điểm RR' : 'Điểm LP'),
+        unitName: tpl.unitName || (isVal ? 'Điểm RR' : isAov ? 'Sao' : 'Điểm LP'),
         depositPercent: tpl.depositPercent ?? (tpl.serviceType === 'net-wins' ? 40 : 100),
-        tierRates: tpl.tierRates || prev.tierRates || (prev.gameCode === 'VALORANT' ? {
+        tierRates: tpl.tierRates || prev.tierRates || (isVal ? {
           immortal1_2: 5000,
           immortal2_3: 7000,
           immortal3_radiant: 10000,
           radiant_top100: 20000,
+        } : isAov ? {
+          master_stars: 8000,
+          gm_iv_ii: 12000,
+          gm_i: 15000,
+          conqueror_stars: 22000,
+          legend_stars: 35000,
         } : {
           master: 1000,
           grandmaster: 1500,
@@ -1066,6 +1084,7 @@ export default function BoosterServicesStudio() {
             {currentServices.map((svc) => {
               const svcGame = (svc.gameCode || activeGameCode || 'LOL').toUpperCase();
               const isVal = svcGame === 'VALORANT';
+              const isAov = svcGame === 'AOV' || svcGame === 'LIENQUAN';
               const isRankBoost = svc.serviceType === 'rank-boost' || svc.pricingType === 'TIER_MATRIX';
               const isPointBoost = svc.serviceType === 'net-wins' || svc.pricingType === 'TIER_PER_POINT';
               const isPerUnit = svc.pricingType === 'PER_UNIT';
@@ -1075,10 +1094,12 @@ export default function BoosterServicesStudio() {
               let displayName = svc.name;
               if (isVal && (displayName.includes('Cao Thủ') || displayName.includes('Thách Đấu') || displayName.includes('LP') || displayName === 'Cày Điểm ...' || displayName === 'Cày Điểm')) {
                 displayName = 'Cày Điểm RR (Immortal / Radiant)';
+              } else if (isAov && (svc.serviceType === 'net-wins' || displayName.includes('Trận Thắng') || displayName.includes('LP') || displayName.includes('RR'))) {
+                displayName = 'Cày Rank Cao Cấp';
               }
 
-              // Đơn vị điểm (RR đối với Valorant, LP đối với LOL)
-              const pointUnit = isVal ? 'Điểm RR' : 'Điểm LP';
+              // Đơn vị điểm (RR đối với Valorant, Sao đối với Liên Quân, LP đối với LOL)
+              const pointUnit = isVal ? 'Điểm RR' : isAov ? 'Số Sao' : 'Điểm LP';
               const badgeText = isRankBoost
                 ? 'Bậc Rank'
                 : isPointBoost
@@ -1091,6 +1112,8 @@ export default function BoosterServicesStudio() {
               let displayDesc = svc.desc || 'Dịch vụ do bạn tự cấu hình.';
               if (isVal && (displayDesc.includes('Cao Thủ') || displayDesc.includes('LP') || displayDesc.includes('Đại Cao Thủ'))) {
                 displayDesc = 'Cày điểm xếp hạng Rank Rating (RR) bậc Immortal và Radiant theo điểm số.';
+              } else if (isAov && (isPointBoost || displayDesc.includes('MMR') || displayDesc.includes('LP') || displayDesc.includes('RR'))) {
+                displayDesc = 'Cày số sao xếp hạng từ Cao Thủ, Đại Cao Thủ, Chiến Tướng đến Huyền Thoại.';
               }
 
               return (
@@ -2119,19 +2142,21 @@ export default function BoosterServicesStudio() {
                   );
                 })()}
 
-                {/* TRƯỜNG HỢP 2: CÀY ĐIỂM (LP HOẶC RR THEO TỪNG MỨC RANK + CỌC) */}
+                {/* TRƯỜNG HỢP 2: CÀY ĐIỂM (LP HOẶC RR HOẶC SAO LIÊN QUÂN + CỌC) */}
                 {formData.serviceType === 'net-wins' && (() => {
-                  const pointTiers = getPointBoostTiers(formData.gameCode);
-                  const isVal = (formData.gameCode || '').toUpperCase() === 'VALORANT';
+                  const modalGameCode = (formData.gameCode || activeGameCode || 'LOL').toUpperCase();
+                  const isVal = modalGameCode === 'VALORANT';
+                  const isAov = modalGameCode === 'AOV' || modalGameCode === 'LIENQUAN';
+                  const pointTiers = getPointBoostTiers(modalGameCode);
                   return (
                     <div className="space-y-4">
                       <div className="space-y-3">
                         <div className="flex items-center justify-between">
                           <label className="text-zinc-400 font-bold uppercase block text-xs">
-                            Đơn Giá Cày Điểm {isVal ? 'RR Valorant' : 'LP Liên Minh'} Từng Mức Rank
+                            Đơn Giá Cày {isVal ? 'Điểm RR Valorant' : isAov ? 'Sao Liên Quân' : 'Điểm LP Liên Minh'} Từng Mức Rank
                           </label>
                           <span className="text-[11px] text-zinc-500">
-                            Đơn vị: {isVal ? 'đ / RR' : 'đ / LP'}
+                            Đơn vị: {isVal ? 'đ / RR' : isAov ? 'đ / Sao' : 'đ / LP'}
                           </span>
                         </div>
 
@@ -2173,18 +2198,23 @@ export default function BoosterServicesStudio() {
                         </div>
                       </div>
 
-                      {/* Tỷ lệ cọc riêng cho dịch vụ cày theo điểm */}
+                      {/* Tỷ lệ cọc riêng cho dịch vụ cày theo điểm / sao */}
                       <div>
-                        <label className="text-zinc-400 font-bold uppercase block mb-1 text-xs">
-                          Tỷ Lệ Cọc Escrow Giữ Chỗ
-                        </label>
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="text-zinc-400 font-bold uppercase block text-xs">
+                            Tỷ Lệ Cọc Escrow Giữ Chỗ
+                          </label>
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-500/15 border border-rose-500/30 text-rose-400 font-mono">
+                            Khuyên dùng
+                          </span>
+                        </div>
                         <select
-                          value={formData.depositPercent ?? (isVal ? 40 : 30)}
+                          value={formData.depositPercent ?? (isVal || isAov ? 40 : 30)}
                           onChange={(e) => setFormData({ ...formData, depositPercent: parseInt(e.target.value) })}
                           className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-white font-medium outline-none focus:border-cyan-500 text-xs"
                         >
                           <option value="30">Cọc 30% giữ chỗ</option>
-                          <option value="40">Cọc 40% giữ chỗ (Khuyên dùng cho cày RR/LP)</option>
+                          <option value="40">Cọc 40% giữ chỗ (Khuyên dùng)</option>
                           <option value="50">Cọc 50%</option>
                           <option value="100">Thanh toán trọn gói 100%</option>
                         </select>

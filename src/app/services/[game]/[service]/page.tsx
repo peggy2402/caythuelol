@@ -43,6 +43,7 @@ import { getGameById, GAMES_CATALOG, getServiceMeta } from '@/lib/games';
 import {
   LOL_RANK_STEPS,
   VALORANT_RANK_STEPS,
+  AOV_RANK_STEPS,
   calculateRankBoost,
   RankDivision,
   AddonSelections,
@@ -396,14 +397,102 @@ const TIER_CONFIG: Record<
   },
 };
 
+// 5. Cấu hình Tier Ranks Liên Quân Mobile (Đồng IV đến Cao Thủ)
+const AOV_TIER_CONFIG: Record<
+  string,
+  {
+    name: string;
+    image: string;
+    textColor: string;
+    borderColor: string;
+    activeBorder: string;
+    bgGradient: string;
+    glowClass: string;
+    badgeBg: string;
+  }
+> = {
+  BRONZE: {
+    name: 'Đồng',
+    image: '/images/aov/Bronze.png',
+    textColor: 'text-amber-500',
+    borderColor: 'border-amber-900/40',
+    activeBorder: 'border-amber-600 ring-2 ring-amber-600/40',
+    bgGradient: 'from-amber-950/30 to-zinc-950/90',
+    glowClass: 'shadow-[0_0_25px_rgba(217,119,6,0.15)]',
+    badgeBg: 'bg-amber-900/30 text-amber-400 border-amber-800/40',
+  },
+  SILVER: {
+    name: 'Bạc',
+    image: '/images/aov/Silver.png',
+    textColor: 'text-slate-300',
+    borderColor: 'border-slate-800',
+    activeBorder: 'border-slate-400 ring-2 ring-slate-400/40',
+    bgGradient: 'from-slate-900/40 to-zinc-950/90',
+    glowClass: 'shadow-[0_0_25px_rgba(203,213,225,0.15)]',
+    badgeBg: 'bg-slate-800/50 text-slate-300 border-slate-700',
+  },
+  GOLD: {
+    name: 'Vàng',
+    image: '/images/aov/Gold.png',
+    textColor: 'text-yellow-400',
+    borderColor: 'border-yellow-900/40',
+    activeBorder: 'border-yellow-500 ring-2 ring-yellow-500/40',
+    bgGradient: 'from-yellow-950/30 to-zinc-950/90',
+    glowClass: 'shadow-[0_0_25px_rgba(234,179,8,0.2)]',
+    badgeBg: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/30',
+  },
+  PLATINUM: {
+    name: 'Bạch Kim',
+    image: '/images/aov/Platium.png',
+    textColor: 'text-cyan-300',
+    borderColor: 'border-cyan-900/40',
+    activeBorder: 'border-cyan-400 ring-2 ring-cyan-400/40',
+    bgGradient: 'from-cyan-950/30 to-zinc-950/90',
+    glowClass: 'shadow-[0_0_25px_rgba(34,211,238,0.2)]',
+    badgeBg: 'bg-cyan-500/10 text-cyan-300 border-cyan-500/30',
+  },
+  DIAMOND: {
+    name: 'Kim Cương',
+    image: '/images/aov/Diamond.png',
+    textColor: 'text-blue-400',
+    borderColor: 'border-blue-900/40',
+    activeBorder: 'border-blue-500 ring-2 ring-blue-500/40',
+    bgGradient: 'from-blue-950/30 to-zinc-950/90',
+    glowClass: 'shadow-[0_0_25px_rgba(59,130,246,0.25)]',
+    badgeBg: 'bg-blue-500/10 text-blue-400 border-blue-500/30',
+  },
+  VETERAN: {
+    name: 'Tinh Anh',
+    image: '/images/aov/Veteran.png',
+    textColor: 'text-purple-300',
+    borderColor: 'border-purple-900/40',
+    activeBorder: 'border-purple-400 ring-2 ring-purple-400/40',
+    bgGradient: 'from-purple-950/30 to-zinc-950/90',
+    glowClass: 'shadow-[0_0_25px_rgba(168,85,247,0.25)]',
+    badgeBg: 'bg-purple-500/10 text-purple-400 border-purple-500/30',
+  },
+  MASTER: {
+    name: 'Cao Thủ',
+    image: '/images/aov/Master.png',
+    textColor: 'text-rose-400',
+    borderColor: 'border-rose-900/40',
+    activeBorder: 'border-rose-500 ring-2 ring-rose-500/40',
+    bgGradient: 'from-rose-950/30 to-zinc-950/90',
+    glowClass: 'shadow-[0_0_25px_rgba(244,63,94,0.25)]',
+    badgeBg: 'bg-rose-500/10 text-rose-400 border-rose-500/30',
+  },
+};
+
 const DIVISIONS = ['IV', 'III', 'II', 'I'];
 
-// Chuyển đổi hai chiều giữa số La Mã (IV, III, II, I) và số Ả Rập (4, 3, 2, 1) trong ID của LOL_RANK_STEPS
+// Chuyển đổi hai chiều giữa số La Mã (V, IV, III, II, I) và số Ả Rập (5, 4, 3, 2, 1) trong ID của RANK_STEPS
 const DIVISION_TO_NUM: Record<string, string> = {
+  V: '5',
   IV: '4',
   III: '3',
   II: '2',
   I: '1',
+  '5': '5',
   '4': '4',
   '3': '3',
   '2': '2',
@@ -411,10 +500,12 @@ const DIVISION_TO_NUM: Record<string, string> = {
 };
 
 const NUM_TO_DIVISION: Record<string, string> = {
+  '5': 'V',
   '4': 'IV',
   '3': 'III',
   '2': 'II',
   '1': 'I',
+  V: 'V',
   IV: 'IV',
   III: 'III',
   II: 'II',
@@ -433,6 +524,25 @@ const getRankStepId = (gameCode: string, tier: string, div?: string): string => 
   if (tier === 'MASTER') return 'MASTER';
   const num = DIVISION_TO_NUM[div || '4'] || div || '4';
   return `${tier}_${num}`;
+};
+
+// Helper: Lấy danh sách Divisions hợp lệ cho từng Tier của từng game
+const getDivisionsForTier = (gameCode: string, tier: string): string[] => {
+  const isVal = (gameCode || '').toUpperCase() === 'VALORANT';
+  if (isVal) {
+    if (tier === 'RADIANT') return [];
+    return VALORANT_DIVISIONS;
+  }
+  const isAovGame = (gameCode || '').toUpperCase() === 'AOV' || (gameCode || '').toUpperCase() === 'LIENQUAN';
+  if (isAovGame) {
+    if (tier === 'MASTER') return [];
+    if (['PLATINUM', 'DIAMOND', 'VETERAN'].includes(tier)) {
+      return ['V', 'IV', 'III', 'II', 'I'];
+    }
+    return ['IV', 'III', 'II', 'I'];
+  }
+  if (tier === 'MASTER') return [];
+  return DIVISIONS;
 };
 
 // Helper: Tìm index trong RANK_STEPS chính xác 100%
@@ -515,9 +625,10 @@ function ServiceBookingContent() {
     };
 
   const isValorant = (game.id || '').toUpperCase() === 'VALORANT';
+  const isAov = (game.id || '').toUpperCase() === 'AOV' || (game.id || '').toUpperCase() === 'LIENQUAN';
   const isPointBoost = serviceSlug === 'net-wins' || serviceDef.pricingType === 'PER_UNIT';
-  const activeRankSteps = isValorant ? VALORANT_RANK_STEPS : LOL_RANK_STEPS;
-  const activeTierConfig = isValorant ? VALORANT_TIER_CONFIG : TIER_CONFIG;
+  const activeRankSteps = isValorant ? VALORANT_RANK_STEPS : isAov ? AOV_RANK_STEPS : LOL_RANK_STEPS;
+  const activeTierConfig = isValorant ? VALORANT_TIER_CONFIG : isAov ? AOV_TIER_CONFIG : TIER_CONFIG;
   const activeDivisions = isValorant ? VALORANT_DIVISIONS : DIVISIONS;
   const activeGainOptions = isValorant ? RR_GAIN_OPTIONS : LP_GAIN_OPTIONS;
 
@@ -528,11 +639,13 @@ function ServiceBookingContent() {
   const [queueType, setQueueType] = useState<string>('SOLO_DUO');
   const [server, setServer] = useState<string>('VN');
 
-  // Point Boost States (Cày Điểm RR / LP)
+  // Point Boost States (Cày Điểm RR / LP / Sao)
   const pointTiers = useMemo(() => getPointBoostTiers(game.id), [game.id]);
-  const [selectedPointSegment, setSelectedPointSegment] = useState<string>(isValorant ? 'immortal1_2' : 'master');
-  const [currentPoints, setCurrentPoints] = useState<number>(isValorant ? 40 : 0);
-  const [desiredPoints, setDesiredPoints] = useState<number>(isValorant ? 80 : 100);
+  const [selectedPointSegment, setSelectedPointSegment] = useState<string>(
+    isValorant ? 'immortal1_2' : isAov ? 'master_stars' : 'master'
+  );
+  const [currentPoints, setCurrentPoints] = useState<number>(isValorant ? 40 : isAov ? 0 : 0);
+  const [desiredPoints, setDesiredPoints] = useState<number>(isValorant ? 80 : isAov ? 10 : 100);
   const gainedPoints = useMemo(() => Math.max(0, desiredPoints - currentPoints), [desiredPoints, currentPoints]);
 
   // Modals States
@@ -654,7 +767,7 @@ function ServiceBookingContent() {
   }, [activeGainOptions, lpGain]);
 
   // Point Boost Calculation Helpers
-  const pointUnit = isValorant ? 'RR' : 'LP';
+  const pointUnit = isValorant ? 'RR' : isAov ? 'Sao' : 'LP';
   const selectedPointTierObj = useMemo(() => {
     return pointTiers.find((t) => t.id === selectedPointSegment) || pointTiers[0];
   }, [pointTiers, selectedPointSegment]);
@@ -683,8 +796,8 @@ function ServiceBookingContent() {
     if (matchingBoosterService?.price && matchingBoosterService.price > 0) {
       return Number(matchingBoosterService.price);
     }
-    return selectedPointTierObj?.defaultPrice || (isValorant ? 5000 : 1000);
-  }, [matchingBoosterService, selectedPointSegment, selectedPointTierObj, isValorant]);
+    return selectedPointTierObj?.defaultPrice || (isValorant ? 5000 : isAov ? 15000 : 1000);
+  }, [matchingBoosterService, selectedPointSegment, selectedPointTierObj, isValorant, isAov]);
 
   const boosterStandardConfig = boosterSettings?.standardConfig;
   const boosterMultiplier = boosterStandardConfig?.rankPriceMultiplier || 1.0;
@@ -1261,22 +1374,26 @@ function ServiceBookingContent() {
 
             {/* 2. KHỐI THIẾT KẾ MỚI: VISUAL RANK SELECTOR / POINT BOOSTER SELECTOR */}
             <div className="bg-zinc-900/60 border border-white/10 rounded-3xl p-6 sm:p-7 shadow-xl backdrop-blur-md space-y-6">
-              {/* TRƯỜNG HỢP 1: CÀY ĐIỂM (LP HOẶC RR THEO TỪNG PHÂN KHÚC) */}
+              {/* TRƯỜNG HỢP 1: CÀY ĐIỂM (LP HOẶC RR THEO TỪNG PHÂN KHÚC HOẶC SAO CHO AOV) */}
               {isPointBoost ? (
                 <div className="space-y-5">
                   <div className="flex items-center justify-between">
                     <label className="text-xs font-bold text-zinc-300 flex items-center gap-2">
                       <TrendingUp size={15} className="text-cyan-400" />
-                      <span>Chọn Phân Khúc & Mức Giá Theo Điểm {pointUnit}</span>
+                      <span>
+                        {isAov
+                          ? 'Chọn Phân Khúc & Mức Giá Cày Rank Cao Cấp (Theo Sao)'
+                          : `Chọn Phân Khúc & Mức Giá Theo Điểm ${pointUnit}`}
+                      </span>
                       <span className="text-red-500">*</span>
                     </label>
                     <span className="text-[11px] text-cyan-400 font-semibold">
-                      Đơn vị tính: Điểm {pointUnit}
+                      {isAov ? 'Đơn vị tính: Sao' : `Đơn vị tính: Điểm ${pointUnit}`}
                     </span>
                   </div>
 
                   {/* Grid các Phân Khúc Rank */}
-                  <div className={`grid grid-cols-1 ${pointTiers.length === 4 ? 'sm:grid-cols-2' : 'sm:grid-cols-3'} gap-3`}>
+                  <div className={`grid grid-cols-1 ${pointTiers.length === 4 ? 'sm:grid-cols-2' : pointTiers.length >= 5 ? 'sm:grid-cols-3' : 'sm:grid-cols-3'} gap-3`}>
                     {pointTiers.map((tier) => {
                       const isSelected = selectedPointSegment === tier.id;
                       const customPrice = matchingBoosterService?.tierRates?.[tier.id] ?? tier.defaultPrice;
@@ -1323,11 +1440,17 @@ function ServiceBookingContent() {
                       <div>
                         <span className="text-xs font-bold text-white flex items-center gap-2">
                           <Target size={14} className="text-amber-400" />
-                          <span>Thiết Lập Điểm {pointUnit} (Hiện Tại → Mong Muốn)</span>
+                          <span>
+                            {isAov
+                              ? 'Thiết Lập Số Sao (Hiện Tại → Mong Muốn)'
+                              : `Thiết Lập Điểm ${pointUnit} (Hiện Tại → Mong Muốn)`}
+                          </span>
                           <span className="text-red-500">*</span>
                         </span>
                         <p className="text-[11px] text-zinc-400 mt-0.5">
-                          Nhập số điểm thực tế hiện tại và mốc điểm bạn muốn đạt. Hệ thống sẽ tính số điểm chênh lệch cần cày.
+                          {isAov
+                            ? 'Nhập số sao hiện tại và số sao bạn mong muốn đạt. Hệ thống sẽ tính số sao chênh lệch cần cày.'
+                            : 'Nhập số điểm thực tế hiện tại và mốc điểm bạn muốn đạt. Hệ thống sẽ tính số điểm chênh lệch cần cày.'}
                         </p>
                       </div>
 
@@ -1345,14 +1468,14 @@ function ServiceBookingContent() {
                       <div className="p-3.5 rounded-xl bg-zinc-900 border border-zinc-800 space-y-2">
                         <div className="flex items-center justify-between">
                           <label className="text-[11px] font-bold uppercase text-zinc-400">
-                            Điểm Hiện Tại
+                            {isAov ? 'Số Sao Hiện Tại' : 'Điểm Hiện Tại'}
                           </label>
                           <span className="text-[10px] text-zinc-500 font-mono">Bắt đầu từ</span>
                         </div>
                         <div className="flex items-center gap-2">
                           <button
                             type="button"
-                            onClick={() => setCurrentPoints((p) => Math.max(0, p - 10))}
+                            onClick={() => setCurrentPoints((p) => Math.max(0, p - (isAov ? 5 : 10)))}
                             className="w-8 h-8 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-white font-bold flex items-center justify-center shrink-0 cursor-pointer"
                           >
                             -
@@ -1375,7 +1498,7 @@ function ServiceBookingContent() {
                           </div>
                           <button
                             type="button"
-                            onClick={() => setCurrentPoints((p) => p + 10)}
+                            onClick={() => setCurrentPoints((p) => p + (isAov ? 5 : 10))}
                             className="w-8 h-8 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-white font-bold flex items-center justify-center shrink-0 cursor-pointer"
                           >
                             +
@@ -1387,14 +1510,14 @@ function ServiceBookingContent() {
                       <div className="p-3.5 rounded-xl bg-zinc-900 border border-zinc-800 space-y-2">
                         <div className="flex items-center justify-between">
                           <label className="text-[11px] font-bold uppercase text-emerald-400">
-                            Điểm Mong Muốn
+                            {isAov ? 'Số Sao Mong Muốn' : 'Điểm Mong Muốn'}
                           </label>
                           <span className="text-[10px] text-zinc-500 font-mono">Mục tiêu</span>
                         </div>
                         <div className="flex items-center gap-2">
                           <button
                             type="button"
-                            onClick={() => setDesiredPoints((p) => Math.max(currentPoints + 1, p - 10))}
+                            onClick={() => setDesiredPoints((p) => Math.max(currentPoints + 1, p - (isAov ? 5 : 10)))}
                             className="w-8 h-8 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-white font-bold flex items-center justify-center shrink-0 cursor-pointer"
                           >
                             -
@@ -1407,7 +1530,7 @@ function ServiceBookingContent() {
                               value={desiredPoints}
                               onChange={(e) => {
                                 const val = parseInt(e.target.value);
-                                setDesiredPoints(isNaN(val) ? currentPoints + 10 : Math.max(0, val));
+                                setDesiredPoints(isNaN(val) ? currentPoints + (isAov ? 5 : 10) : Math.max(0, val));
                               }}
                               className="w-full bg-zinc-950 border border-zinc-700 rounded-lg px-3 py-1.5 text-center text-sm font-bold font-mono text-emerald-400 outline-none focus:border-emerald-500"
                             />
@@ -1417,7 +1540,7 @@ function ServiceBookingContent() {
                           </div>
                           <button
                             type="button"
-                            onClick={() => setDesiredPoints((p) => p + 10)}
+                            onClick={() => setDesiredPoints((p) => p + (isAov ? 5 : 10))}
                             className="w-8 h-8 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-white font-bold flex items-center justify-center shrink-0 cursor-pointer"
                           >
                             +
@@ -1430,7 +1553,11 @@ function ServiceBookingContent() {
                     {desiredPoints <= currentPoints && (
                       <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs flex items-center gap-2">
                         <span className="font-bold">⚠️ Lưu ý:</span>
-                        <span>Điểm mong muốn phải lớn hơn điểm hiện tại để tuyển thủ có thể thực hiện.</span>
+                        <span>
+                          {isAov
+                            ? 'Số sao mong muốn phải lớn hơn số sao hiện tại để tuyển thủ có thể thực hiện.'
+                            : 'Điểm mong muốn phải lớn hơn điểm hiện tại để tuyển thủ có thể thực hiện.'}
+                        </span>
                       </div>
                     )}
 
@@ -1438,7 +1565,7 @@ function ServiceBookingContent() {
                     <div className="flex items-center gap-2 pt-1">
                       <span className="text-[11px] text-zinc-500 shrink-0">Cộng thêm nhanh:</span>
                       <div className="flex items-center gap-1.5 flex-wrap">
-                        {[20, 40, 60, 80, 100].map((pts) => (
+                        {(isAov ? [5, 10, 20, 30, 50] : [20, 40, 60, 80, 100]).map((pts) => (
                           <button
                             key={pts}
                             type="button"
@@ -1461,6 +1588,8 @@ function ServiceBookingContent() {
                       <span>
                         {isValorant
                           ? 'Lộ trình Cày Rank Valorant (Iron 1 → Radiant)'
+                          : isAov
+                          ? 'Lộ trình Cày Rank Liên Quân (Đồng IV → Cao Thủ)'
                           : 'Lộ trình Cày Rank (Sắt IV → Cao Thủ)'}
                       </span>
                       <span className="text-red-500">*</span>
@@ -1681,8 +1810,8 @@ function ServiceBookingContent() {
                 </div>
               </div>
 
-              {/* LOẠI HÀNG ĐỢI & CHỌN SERVER (CHỈ DÀNH CHO LMHT, VALORANT KHÔNG CÓ FLEX VÀ KHÔNG CẦN CHỌN SERVER) */}
-              {!isValorant && (
+              {/* LOẠI HÀNG ĐỢI & CHỌN SERVER (CHỈ DÀNH CHO LMHT, VALORANT VÀ LIÊN QUÂN KHÔNG CẦN CHỌN SERVER/FLEX) */}
+              {!isValorant && !isAov && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {/* Loại Hàng Đợi */}
                   <div>
@@ -1974,7 +2103,13 @@ function ServiceBookingContent() {
           <div className="lg:col-span-5 lg:sticky lg:top-24 self-start space-y-6 z-20">
             <div className="bg-zinc-900/80 border border-white/10 rounded-3xl p-6 shadow-2xl backdrop-blur-md space-y-5 max-h-[calc(100vh-7.5rem)] overflow-y-auto scrollbar-none">
               <h3 className="text-base font-extrabold text-white flex items-center justify-between">
-                <span>{isPointBoost ? `Tóm Tắt Đơn Cày Điểm ${pointUnit}` : 'Tóm Tắt Đơn Cày Rank'}</span>
+                <span>
+                  {isPointBoost
+                    ? isAov
+                      ? 'Tóm Tắt Đơn Cày Rank Cao Cấp'
+                      : `Tóm Tắt Đơn Cày Điểm ${pointUnit}`
+                    : 'Tóm Tắt Đơn Cày Rank'}
+                </span>
                 <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">
                   {isPointBoost ? `${gainedPoints} ${pointUnit} (+${gainedPoints})` : `${calculation.stepsCount} bậc thăng hạng`}
                 </span>
@@ -1991,19 +2126,19 @@ function ServiceBookingContent() {
                       </span>
                     </div>
                     <div className="flex justify-between text-zinc-400">
-                      <span>Điểm hiện tại:</span>
+                      <span>{isAov ? 'Số sao hiện tại:' : 'Điểm hiện tại:'}</span>
                       <span className="font-bold font-mono text-zinc-300">
                         {currentPoints} {pointUnit}
                       </span>
                     </div>
                     <div className="flex justify-between text-zinc-400">
-                      <span>Điểm mong muốn:</span>
+                      <span>{isAov ? 'Số sao mong muốn:' : 'Điểm mong muốn:'}</span>
                       <span className="font-bold font-mono text-emerald-400">
                         {desiredPoints} {pointUnit}
                       </span>
                     </div>
                     <div className="flex justify-between text-zinc-400">
-                      <span>Số điểm cần cày:</span>
+                      <span>{isAov ? 'Số sao cần cày:' : 'Số điểm cần cày:'}</span>
                       <span className="font-bold font-mono text-amber-400">
                         {gainedPoints} {pointUnit}
                       </span>
@@ -2026,7 +2161,7 @@ function ServiceBookingContent() {
                   </div>
                 )}
 
-                {!isValorant && (
+                {!isValorant && !isAov && (
                   <>
                     <div className="flex justify-between text-zinc-400">
                       <span>Loại hàng đợi:</span>
@@ -2259,7 +2394,7 @@ function ServiceBookingContent() {
                   <span className="text-xs font-bold text-zinc-300 block mb-2">
                     1. Chọn Hạng (Tier):
                   </span>
-                  <div className={`grid ${isValorant ? 'grid-cols-3 sm:grid-cols-5' : 'grid-cols-4'} gap-2 sm:gap-2.5`}>
+                  <div className={`grid ${isValorant ? 'grid-cols-3 sm:grid-cols-5' : isAov ? 'grid-cols-3 sm:grid-cols-4' : 'grid-cols-4'} gap-2 sm:gap-2.5`}>
                     {Object.entries(activeTierConfig).map(([tierKey, meta]) => {
                       // Validate Tier:
                       const tierSteps = activeRankSteps.filter((r) => r.tier === tierKey);
@@ -2285,8 +2420,9 @@ function ServiceBookingContent() {
                               setTempDivision('');
                             } else {
                               // Tự động tìm division hợp lệ nhất trong tier này
+                              const tierDivs = getDivisionsForTier(game.id, tierKey);
                               if (rankModalTarget === 'CURRENT') {
-                                const validDivs = activeDivisions.filter((d) => {
+                                const validDivs = tierDivs.filter((d) => {
                                   const idx = findRankStepIndex(game.id, tierKey, d);
                                   return idx !== -1 && idx < desiredRankIndex;
                                 });
@@ -2296,7 +2432,7 @@ function ServiceBookingContent() {
                                   setTempDivision(validDivs[validDivs.length - 1]);
                                 }
                               } else {
-                                const validDivs = activeDivisions.filter((d) => {
+                                const validDivs = tierDivs.filter((d) => {
                                   const idx = findRankStepIndex(game.id, tierKey, d);
                                   return idx !== -1 && idx > currentRankIndex;
                                 });
@@ -2345,47 +2481,52 @@ function ServiceBookingContent() {
                     <span className="text-xs font-bold text-zinc-300 block mb-2">
                       2. Chọn Phân Bậc (Division):
                     </span>
-                    <div className={`grid ${isValorant ? 'grid-cols-3' : 'grid-cols-4'} gap-2`}>
-                      {activeDivisions.map((div) => {
-                        const stepIdx = findRankStepIndex(game.id, tempTier, div);
-                        
-                        // Validate:
-                        // - Rank hiện tại: Phải < desiredRankIndex
-                        // - Rank mong muốn: Phải > currentRankIndex
-                        const isDivisionDisabled = rankModalTarget === 'CURRENT'
-                          ? stepIdx >= desiredRankIndex
-                          : stepIdx <= currentRankIndex;
+                    {(() => {
+                      const tierDivisions = getDivisionsForTier(game.id, tempTier);
+                      return (
+                        <div className={`grid ${isValorant ? 'grid-cols-3' : tierDivisions.length === 5 ? 'grid-cols-5' : 'grid-cols-4'} gap-2`}>
+                          {tierDivisions.map((div) => {
+                            const stepIdx = findRankStepIndex(game.id, tempTier, div);
+                            
+                            // Validate:
+                            // - Rank hiện tại: Phải < desiredRankIndex
+                            // - Rank mong muốn: Phải > currentRankIndex
+                            const isDivisionDisabled = rankModalTarget === 'CURRENT'
+                              ? stepIdx >= desiredRankIndex
+                              : stepIdx <= currentRankIndex;
 
-                        const isSelected = tempDivision === div;
+                            const isSelected = tempDivision === div;
 
-                        return (
-                          <button
-                            key={div}
-                            type="button"
-                            disabled={isDivisionDisabled}
-                            onClick={() => setTempDivision(div)}
-                            className={`py-3 px-2 rounded-xl border text-center transition-all flex flex-col items-center justify-center gap-1 ${
-                              isDivisionDisabled
-                                ? 'bg-zinc-950/30 border-zinc-900 opacity-25 cursor-not-allowed text-zinc-600 select-none'
-                                : isSelected
-                                ? 'bg-blue-600 border-blue-400 text-white shadow-lg shadow-blue-600/30 ring-1 ring-blue-300'
-                                : 'bg-zinc-950 border-zinc-800 text-zinc-300 hover:border-zinc-700 hover:bg-zinc-900'
-                            }`}
-                          >
-                            <span className="text-sm font-extrabold font-mono tracking-wider">
-                              Bậc {div}
-                            </span>
-                            {isDivisionDisabled && (
-                              <span className="text-[9px] text-zinc-500">
-                                {rankModalTarget === 'CURRENT'
-                                  ? stepIdx === desiredRankIndex ? 'Bằng rank đích' : 'Cao hơn'
-                                  : stepIdx === currentRankIndex ? 'Bằng rank hiện tại' : 'Thấp hơn'}
-                              </span>
-                            )}
-                          </button>
-                        );
-                      })}
-                    </div>
+                            return (
+                              <button
+                                key={div}
+                                type="button"
+                                disabled={isDivisionDisabled}
+                                onClick={() => setTempDivision(div)}
+                                className={`py-3 px-2 rounded-xl border text-center transition-all flex flex-col items-center justify-center gap-1 ${
+                                  isDivisionDisabled
+                                    ? 'bg-zinc-950/30 border-zinc-900 opacity-25 cursor-not-allowed text-zinc-600 select-none'
+                                    : isSelected
+                                    ? 'bg-blue-600 border-blue-400 text-white shadow-lg shadow-blue-600/30 ring-1 ring-blue-300'
+                                    : 'bg-zinc-950 border-zinc-800 text-zinc-300 hover:border-zinc-700 hover:bg-zinc-900'
+                                }`}
+                              >
+                                <span className="text-sm font-extrabold font-mono tracking-wider">
+                                  Bậc {div}
+                                </span>
+                                {isDivisionDisabled && (
+                                  <span className="text-[9px] text-zinc-500">
+                                    {rankModalTarget === 'CURRENT'
+                                      ? stepIdx === desiredRankIndex ? 'Bằng rank đích' : 'Cao hơn'
+                                      : stepIdx === currentRankIndex ? 'Bằng rank hiện tại' : 'Thấp hơn'}
+                                  </span>
+                                )}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      );
+                    })()}
                   </div>
                 ) : (
                   <div className="p-3.5 rounded-2xl bg-amber-950/20 border border-amber-500/30 text-amber-300 text-xs flex items-center gap-2.5">
