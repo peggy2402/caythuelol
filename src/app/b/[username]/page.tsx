@@ -217,6 +217,23 @@ const SERVICE_REGISTRY: Record<string, ServiceRegistryEntry> = {
   },
 };
 
+function getRankIcon(rankName: string, isHighest: boolean = false): string {
+  const r = (rankName || '').toLowerCase();
+  if (r.includes('radiant')) return '/images/valorant/Radiant_Rank.png';
+  if (r.includes('immortal')) return '/images/valorant/Immortal_3_Rank.png';
+  if (r.includes('challenger') || r.includes('thách đấu')) return '/images/ranks/challenger.png';
+  if (r.includes('grandmaster') || r.includes('đại cao thủ')) return '/images/ranks/grandmaster.png';
+  if (r.includes('master') || r.includes('cao thủ')) return '/images/ranks/master.png';
+  if (r.includes('diamond') || r.includes('kim cương')) return '/images/ranks/diamond.png';
+  if (r.includes('emerald') || r.includes('lục bảo')) return '/images/ranks/emerald.png';
+  if (r.includes('platinum') || r.includes('bạch kim')) return '/images/ranks/platinum.png';
+  if (r.includes('gold') || r.includes('vàng')) return '/images/ranks/gold.png';
+  if (r.includes('silver') || r.includes('bạc')) return '/images/ranks/silver.png';
+  if (r.includes('bronze') || r.includes('đồng')) return '/images/ranks/bronze.png';
+  if (r.includes('iron') || r.includes('sắt')) return '/images/ranks/iron.png';
+  return isHighest ? '/images/valorant/Radiant_Rank.png' : '/images/ranks/diamond.png';
+}
+
 export default async function ShortProfilePage({ params }: Props) {
   const { username } = await params;
   const [data, ddragonVersion] = await Promise.all([
@@ -313,9 +330,9 @@ export default async function ShortProfilePage({ params }: Props) {
     <div className="min-h-screen bg-[#09090b] text-white font-sans selection:bg-blue-500/30">
       {/* Background ambient lighting theo Ảnh 4 */}
       <div className="fixed inset-0 z-[-1] pointer-events-none overflow-hidden">
-        <div className="absolute top-10 left-10 w-[550px] h-[380px] bg-blue-600/20 rounded-full blur-[130px]" />
-        <div className="absolute top-24 right-10 w-[500px] h-[420px] bg-purple-600/20 rounded-full blur-[140px]" />
-        <div className="absolute top-1/2 left-1/3 w-[450px] h-[350px] bg-rose-600/15 rounded-full blur-[150px]" />
+        <div className="absolute top-6 left-10 w-[550px] h-[380px] bg-cyan-600/20 rounded-full blur-[140px]" />
+        <div className="absolute top-10 right-10 w-[550px] h-[400px] bg-rose-600/20 rounded-full blur-[150px]" />
+        <div className="absolute top-1/2 left-1/3 w-[450px] h-[350px] bg-indigo-600/15 rounded-full blur-[150px]" />
       </div>
 
       <div className="max-w-6xl mx-auto py-8 px-4 sm:px-6 relative">
@@ -324,9 +341,9 @@ export default async function ShortProfilePage({ params }: Props) {
           <BackButton fallbackUrl="/boosters" />
           <div className="flex items-center gap-2">
             <span
-              className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border ${
+              className={`inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-semibold border ${
                 isReady
-                  ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 shadow-[0_0_15px_rgba(16,185,129,0.2)]'
+                  ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30 shadow-[0_0_15px_rgba(16,185,129,0.2)]'
                   : 'bg-zinc-800/80 text-zinc-400 border-zinc-700/50'
               }`}
             >
@@ -341,28 +358,30 @@ export default async function ShortProfilePage({ params }: Props) {
         </div>
 
         {/* Hero Card Banner */}
-        <div className="relative p-6 sm:p-7 bg-zinc-900/80 border border-white/10 rounded-3xl shadow-2xl mb-8 backdrop-blur-xl overflow-hidden">
+        <div className="relative p-6 sm:p-7 bg-[#0d1017]/85 border border-white/10 rounded-3xl shadow-2xl mb-8 backdrop-blur-xl overflow-hidden">
           {/* Subtle Ambient Behind Avatar */}
-          <div className="absolute -top-10 -left-10 w-60 h-60 bg-blue-500/15 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute -top-10 -left-10 w-60 h-60 bg-cyan-500/15 rounded-full blur-3xl pointer-events-none" />
 
           <div className="flex flex-col sm:flex-row items-center sm:items-start justify-between gap-6 relative z-10">
             <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5 text-center sm:text-left flex-1 min-w-0">
-              {/* Avatar */}
+              {/* Avatar Y Hệt Ảnh Mẫu với viền phát sáng gradient */}
               <div className="relative shrink-0">
-                <div className="relative w-24 h-24 sm:w-28 sm:h-28 rounded-2xl overflow-hidden border-2 border-blue-500/60 shadow-lg bg-zinc-900">
-                  <BoosterAvatar
-                    src={boosterData?.profile?.avatar || '/default-avatar.png'}
-                    alt={boosterName}
-                  />
+                <div className="relative p-[2px] rounded-2xl bg-gradient-to-tr from-cyan-400 via-blue-500 to-rose-500 shadow-[0_0_20px_rgba(59,130,246,0.35)]">
+                  <div className="relative w-24 h-24 sm:w-28 sm:h-28 rounded-2xl overflow-hidden bg-zinc-950">
+                    <BoosterAvatar
+                      src={boosterData?.profile?.avatar || '/default-avatar.png'}
+                      alt={boosterName}
+                    />
+                  </div>
                 </div>
                 <div
-                  className={`absolute -bottom-1.5 -right-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wider uppercase border shadow-md flex items-center gap-1 ${
+                  className={`absolute -bottom-2 left-1/2 -translate-x-1/2 px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wider uppercase border shadow-lg flex items-center gap-1.5 whitespace-nowrap ${
                     isReady
-                      ? 'bg-emerald-500 text-black border-emerald-300'
-                      : 'bg-zinc-700 text-zinc-300 border-zinc-600'
+                      ? 'bg-[#090b10] text-emerald-400 border-emerald-500/60 shadow-[0_0_10px_rgba(16,185,129,0.3)]'
+                      : 'bg-zinc-800 text-zinc-300 border-zinc-600'
                   }`}
                 >
-                  <span className={`w-1.5 h-1.5 rounded-full ${isReady ? 'bg-black' : 'bg-zinc-400'}`} />
+                  <span className={`w-1.5 h-1.5 rounded-full ${isReady ? 'bg-emerald-400 animate-pulse' : 'bg-zinc-400'}`} />
                   {isReady ? 'ONLINE' : 'BUSY'}
                 </div>
               </div>
@@ -373,8 +392,8 @@ export default async function ShortProfilePage({ params }: Props) {
                   <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
                     {boosterName}
                   </h1>
-                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-blue-500/10 border border-blue-500/30 text-blue-400 text-xs font-semibold">
-                    <Sparkles size={12} />
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-semibold">
+                    <Sparkles size={12} className="text-amber-400" />
                     Verified Booster
                   </span>
                 </div>
@@ -457,20 +476,51 @@ export default async function ShortProfilePage({ params }: Props) {
               </div>
             </div>
 
-            {/* Rank Box */}
-            <div className="bg-zinc-900/70 border border-white/10 rounded-2xl p-5 shadow-lg backdrop-blur-md">
+            {/* Rank Box Y Hệt Ảnh Mẫu */}
+            <div className="bg-[#0d1017]/90 border border-white/10 rounded-2xl p-5 shadow-lg backdrop-blur-md">
               <h3 className="text-sm font-bold text-zinc-200 mb-3 flex items-center gap-2">
-                <Trophy size={16} className="text-yellow-400" />
+                <Trophy size={16} className="text-amber-400" />
                 Trình độ & Xếp hạng
               </h3>
               <div className="grid grid-cols-2 gap-3">
-                <div className="bg-zinc-950/60 p-3 rounded-xl border border-white/5">
-                  <div className="text-[11px] text-zinc-400 uppercase font-semibold">Rank Hiện Tại</div>
-                  <div className="text-sm font-bold text-blue-400 mt-1">{boosterData?.currentRank || 'N/A'}</div>
+                {/* RANK HIỆN TẠI Card */}
+                <div className="bg-[#090d16] p-3 rounded-2xl border border-cyan-500/30 flex items-center gap-2.5 relative overflow-hidden shadow-[0_0_15px_rgba(6,182,212,0.1)]">
+                  <div className="relative w-10 h-10 shrink-0">
+                    <Image
+                      src={getRankIcon(boosterData?.currentRank || 'Diamond III', false)}
+                      alt="Current Rank"
+                      fill
+                      className="object-contain drop-shadow"
+                    />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-[10px] text-zinc-400 uppercase font-bold tracking-wider truncate">
+                      RANK HIỆN TẠI
+                    </div>
+                    <div className="text-sm font-black text-cyan-300 truncate">
+                      {boosterData?.currentRank || 'DIAMOND III'}
+                    </div>
+                  </div>
                 </div>
-                <div className="bg-zinc-950/60 p-3 rounded-xl border border-white/5">
-                  <div className="text-[11px] text-zinc-400 uppercase font-semibold">Rank Cao Nhất</div>
-                  <div className="text-sm font-bold text-amber-400 mt-1">{boosterData?.highestRank || 'N/A'}</div>
+
+                {/* RANK CAO NHẤT Card */}
+                <div className="bg-[#140a1c] p-3 rounded-2xl border border-purple-500/30 flex items-center gap-2.5 relative overflow-hidden shadow-[0_0_15px_rgba(168,85,247,0.1)]">
+                  <div className="relative w-10 h-10 shrink-0">
+                    <Image
+                      src={getRankIcon(boosterData?.highestRank || 'Radiant', true)}
+                      alt="Highest Rank"
+                      fill
+                      className="object-contain drop-shadow"
+                    />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-[10px] text-zinc-400 uppercase font-bold tracking-wider truncate">
+                      RANK CAO NHẤT
+                    </div>
+                    <div className="text-sm font-black text-purple-300 truncate">
+                      {boosterData?.highestRank || 'Radiant'}
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -581,6 +631,17 @@ export default async function ShortProfilePage({ params }: Props) {
         {/* Related Boosters Section */}
         <div className="mt-10">
           <RelatedBoosters currentBooster={boosterData} relatedBoosters={relatedBoosters || []} />
+        </div>
+
+        {/* Footer Y Hệt Ảnh Mẫu */}
+        <div className="mt-14 pt-6 border-t border-white/5 flex flex-col sm:flex-row items-center justify-between text-xs text-zinc-500 gap-3">
+          <div className="flex items-center gap-4">
+            <span className="hover:text-zinc-300 transition-colors cursor-pointer">FAQ</span>
+            <span className="hover:text-zinc-300 transition-colors cursor-pointer">Liên hệ</span>
+          </div>
+          <div>
+            © Copyright All Reserved
+          </div>
         </div>
       </div>
     </div>
