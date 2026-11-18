@@ -47,6 +47,26 @@ export class OrdersController {
     return this.ordersService.getOrderDetails(id, user.userId);
   }
 
+  @Post(':id/cancel')
+  @ApiOperation({ summary: 'Customer cancels order before booster starts and gets full refund' })
+  async cancelOrder(
+    @Param('id') id: string,
+    @ReqUser() user: any,
+    @Body('reason') reason?: string,
+  ) {
+    return this.ordersService.cancelOrder(id, user.userId, reason);
+  }
+
+  @Patch(':id/account')
+  @ApiOperation({ summary: 'Customer updates account credentials before booster starts' })
+  async updateAccount(
+    @Param('id') id: string,
+    @ReqUser() user: any,
+    @Body() body: any,
+  ) {
+    return this.ordersService.updateOrderAccount(id, user.userId, body);
+  }
+
   @UseGuards(RolesGuard)
   @Roles(UserRole.BOOSTER)
   @Post(':id/confirm')

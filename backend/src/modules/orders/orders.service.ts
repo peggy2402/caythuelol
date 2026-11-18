@@ -224,8 +224,10 @@ export class OrdersService {
   }
 
   async getOrderDetails(orderId: string, userId: string) {
-    let filter: any = { _id: orderId };
-    if (!Types.ObjectId.isValid(orderId)) {
+    let filter: any;
+    if (Types.ObjectId.isValid(orderId)) {
+      filter = { $or: [{ _id: new Types.ObjectId(orderId) }, { orderCode: orderId }] };
+    } else {
       filter = { orderCode: orderId };
     }
 
@@ -245,6 +247,109 @@ export class OrdersService {
     }
 
     return { success: true, order, boosterProfile };
+  }
+
+  async cancelOrder(orderId: string, userId: string, reason?: string) {
+    let filter: any;
+    if (Types.ObjectId.isValid(orderId)) {
+      filter = { $or: [{ _id: new Types.ObjectId(orderId) }, { orderCode: orderId }] };
+    } else {
+      filter = { orderCode: orderId };
+    }
+
+    const order = await this.orderModel.findOne(filter);
+    if (!order) throw new NotFoundException('Không tìm thấy đơn hàng');
+
+    if (order.customerId.toString() !== userId) {
+      throw new ForbiddenException('Bạn không có quyền hủy đơn hàng này');
+    }
+
+    if (!['PENDING_PAYMENT', 'PAID'].includes(order.status)) {
+      throw new BadRequestException('Chỉ có thể hủy đơn hàng khi chưa có Tuyển thủ nhận việc');
+    }
+
+    const user = await this.userModel.findById(userId);
+    if (!user) throw new NotFoundException('Không tìm thấy người dùng');
+
+    const refundAmount = Number(order.pricing?.deposit_amount ?? order.pricing?.total_amount ?? 0);
+
+    // Hoàn lại tiền vào ví khách hàng
+    if (refundAmount > 0 && order.status === OrderStatus.PAID) {
+      user.wallet_balance = (user.wallet_balance || 0) + refundAmount;
+      await user.save();
+
+      await this.transactionModel.create({
+        userId: user._id,
+        type: TransactionType.REFUND,
+        amount: refundAmount,
+        balanceAfter: user.wallet_balance,
+        status: TransactionStatus.SUCCESS,
+        description: `Hoàn tiền 100% đơn hàng ${order.orderCode || order._id} do khách hủy trước khi nhận việc`,
+        metadata: {
+          orderId: order._id,
+          orderCode: order.orderCode,
+          reason: reason || 'Khách hàng tự hủy đơn',
+        },
+      });
+    }
+
+    order.status = OrderStatus.CANCELLED;
+    if (order.pricing) {
+      order.pricing.settlement_status = SettlementStatus.REFUNDED;
+    }
+    if (!order.timeline) order.timeline = [];
+    order.timeline.push({
+      status: OrderStatus.CANCELLED,
+      timestamp: new Date(),
+      actor: new Types.ObjectId(userId),
+      note: reason ? `Khách hàng hủy đơn: ${reason}` : 'Khách hàng đã hủy đơn và nhận lại 100% tiền cọc vào ví',
+    });
+
+    await order.save();
+
+    return {
+      success: true,
+      message: 'Hủy đơn hàng thành công. Toàn bộ tiền cọc đã được hoàn về ví của bạn.',
+      balance: user.wallet_balance,
+    };
+  }
+
+  async updateOrderAccount(orderId: string, userId: string, accountData: any) {
+    let filter: any;
+    if (Types.ObjectId.isValid(orderId)) {
+      filter = { $or: [{ _id: new Types.ObjectId(orderId) }, { orderCode: orderId }] };
+    } else {
+      filter = { orderCode: orderId };
+    }
+
+    const order = await this.orderModel.findOne(filter);
+    if (!order) throw new NotFoundException('Không tìm thấy đơn hàng');
+
+    if (order.customerId.toString() !== userId) {
+      throw new ForbiddenException('Bạn không có quyền sửa thông tin đơn hàng này');
+    }
+
+    if (!['PENDING_PAYMENT', 'PAID'].includes(order.status)) {
+      throw new BadRequestException('Không thể cập nhật thông tin tài khoản khi đơn hàng đã có Tuyển thủ xử lý');
+    }
+
+    order.details = order.details || {};
+    order.details.account_info = {
+      platform: accountData.platform || order.details.account_info?.platform || 'Riot',
+      username: accountData.username !== undefined ? accountData.username : order.details.account_info?.username,
+      password: accountData.password !== undefined ? accountData.password : order.details.account_info?.password,
+    };
+    if (accountData.server) order.details.server = accountData.server;
+    if (accountData.note !== undefined) order.details.note = accountData.note;
+
+    order.markModified('details');
+    await order.save();
+
+    return {
+      success: true,
+      message: 'Cập nhật thông tin tài khoản game thành công!',
+      account_info: order.details.account_info,
+    };
   }
 
   async confirmOrder(orderId: string, boosterId: string) {

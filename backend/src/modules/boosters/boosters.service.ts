@@ -884,7 +884,7 @@ export class BoostersService {
   }
 
   async getJobMarket(userId: string) {
-    const [directRequests, publicJobs] = await Promise.all([
+    const [rawDirectRequests, rawPublicJobs] = await Promise.all([
       this.orderModel
         .find({
           status: OrderStatus.PAID,
@@ -902,6 +902,28 @@ export class BoostersService {
         .sort({ createdAt: -1 })
         .lean(),
     ]);
+
+    // Bảo mật: Ẩn thông tin tài khoản game (username, password) cho đến khi Booster thực sự nhận đơn
+    const sanitizeJob = (job: any) => {
+      const sanitized = { ...job };
+      if (sanitized.details) {
+        sanitized.details = { ...sanitized.details };
+        if (sanitized.details.account_info) {
+          sanitized.details.account_info = {
+            platform: sanitized.details.account_info.platform || 'Riot',
+            username: '*** (Nhận đơn để xem)',
+            password: '••••••••',
+          };
+        }
+        delete sanitized.details.account_username;
+        delete sanitized.details.account_password;
+      }
+      delete sanitized.account_credentials;
+      return sanitized;
+    };
+
+    const directRequests = rawDirectRequests.map(sanitizeJob);
+    const publicJobs = rawPublicJobs.map(sanitizeJob);
 
     return {
       success: true,

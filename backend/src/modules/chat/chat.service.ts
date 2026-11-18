@@ -1,15 +1,17 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { v2 as cloudinary } from 'cloudinary';
 
 import { IMessage } from '../../database/schemas/Message';
+import { IOrder } from '../../database/schemas/Order';
 import { ChatGateway } from './chat.gateway';
 
 @Injectable()
 export class ChatService {
   constructor(
     @InjectModel('Message') private messageModel: Model<IMessage>,
+    @InjectModel('Order') private orderModel: Model<IOrder>,
     private chatGateway: ChatGateway,
   ) {
     cloudinary.config({
@@ -19,9 +21,29 @@ export class ChatService {
     });
   }
 
+  private async resolveOrder(orderIdOrCode: string) {
+    let order: any = null;
+    if (Types.ObjectId.isValid(orderIdOrCode)) {
+      order = await this.orderModel.findById(orderIdOrCode).lean();
+    }
+    if (!order) {
+      order = await this.orderModel.findOne({ orderCode: orderIdOrCode }).lean();
+    }
+    return order;
+  }
+
   async getMessages(orderId: string) {
+    let targetObjectId: Types.ObjectId;
+    if (Types.ObjectId.isValid(orderId)) {
+      targetObjectId = new Types.ObjectId(orderId);
+    } else {
+      const order = await this.resolveOrder(orderId);
+      if (!order) return { success: true, messages: [] };
+      targetObjectId = order._id as Types.ObjectId;
+    }
+
     const messages = await this.messageModel
-      .find({ order_id: new Types.ObjectId(orderId) })
+      .find({ order_id: targetObjectId })
       .populate('sender_id', 'username profile.avatar role')
       .populate('replyTo')
       .sort({ created_at: 1 })
@@ -37,8 +59,19 @@ export class ChatService {
     type: 'TEXT' | 'IMAGE' | 'COMMAND_RESULT' = 'TEXT',
     replyToId?: string,
   ) {
+    const order = await this.resolveOrder(orderId);
+    if (!order) {
+      throw new NotFoundException('Không tìm thấy đơn hàng tương ứng');
+    }
+
+    if (!order.boosterId) {
+      throw new BadRequestException('Kênh chat sẽ tự động mở khi có Tuyển thủ nhận đơn của bạn.');
+    }
+
+    const targetObjectId = order._id as Types.ObjectId;
+
     const message = new this.messageModel({
-      order_id: new Types.ObjectId(orderId),
+      order_id: targetObjectId,
       sender_id: new Types.ObjectId(senderId),
       content,
       type,
@@ -48,8 +81,11 @@ export class ChatService {
     await message.save();
     const populated = await message.populate('sender_id', 'username profile.avatar role');
 
-    // Broadcast to room via Gateway
-    this.chatGateway.broadcastMessageToOrder(orderId, populated);
+    // Broadcast to room via Gateway (broadcast theo cả orderId và orderCode)
+    this.chatGateway.broadcastMessageToOrder(targetObjectId.toString(), populated);
+    if (order.orderCode && order.orderCode !== targetObjectId.toString()) {
+      this.chatGateway.broadcastMessageToOrder(order.orderCode, populated);
+    }
 
     return { success: true, message: populated };
   }

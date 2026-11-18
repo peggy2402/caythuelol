@@ -19,7 +19,7 @@ interface ChatWindowProps {
 }
 
 export default function ChatWindow({ orderId, currentUser, title, initialMessages = [], partner, trigger = 'default' }: ChatWindowProps) {
-  const [isOpen, setIsOpen] = useState(true);
+  const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const [isMaximized, setIsMaximized] = useState(false);
   const [messages, setMessages] = useState<any[]>(initialMessages);
@@ -360,16 +360,17 @@ export default function ChatWindow({ orderId, currentUser, title, initialMessage
             setIsFirstLoad(true);
             setUnreadCount(0);
             }}
-            className={`fixed bottom-6 right-6 text-white p-4 rounded-full shadow-2xl z-[60] transition-all duration-300 hover:scale-110 group ${
+            className={`fixed bottom-20 right-4 sm:bottom-6 sm:right-6 text-white p-3.5 sm:p-4 rounded-full shadow-2xl z-[60] transition-all duration-300 hover:scale-105 active:scale-95 group ${
             unreadCount > 0
                 ? "bg-red-600 animate-shake shadow-[0_0_20px_rgba(220,38,38,0.6)]"
-                : "bg-blue-600 hover:bg-blue-500 shadow-[0_0_20px_rgba(37,99,235,0.5)]"
+                : "bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 shadow-[0_0_20px_rgba(37,99,235,0.4)]"
             }`}
+            title="Mở kênh chat với Booster"
         >
             {/* hiệu ứng glow */}
             <div className="absolute inset-0 rounded-full bg-white/20 animate-ping opacity-0 group-hover:opacity-30 duration-1000"></div>
 
-            <MessageCircle size={28} />
+            <MessageCircle size={24} className="sm:w-7 sm:h-7" />
 
             {/* Badge thông báo */}
             {unreadCount > 0 && (
@@ -387,8 +388,10 @@ export default function ChatWindow({ orderId, currentUser, title, initialMessage
     <div
         className={`fixed z-[60] flex flex-col bg-zinc-900/95 backdrop-blur-xl border border-zinc-800 shadow-2xl transition-all duration-300 ease-in-out
         ${isMinimized
-            ? 'bottom-0 right-4 w-72 h-12 rounded-t-xl border-b-0 cursor-pointer hover:bg-zinc-800'
-            : 'bottom-0 left-0 w-full h-[85dvh] rounded-t-2xl sm:left-auto sm:bottom-4 sm:right-4 sm:w-[400px] sm:h-[600px] sm:rounded-xl border-b-0 sm:border-b'}
+            ? 'bottom-20 right-4 sm:bottom-6 sm:right-6 w-64 h-12 rounded-xl cursor-pointer hover:bg-zinc-800 border'
+            : isMaximized
+            ? 'inset-2 sm:inset-6 rounded-2xl'
+            : 'bottom-20 right-3 left-3 sm:left-auto sm:bottom-6 sm:right-6 sm:w-[380px] h-[65vh] sm:h-[500px] rounded-2xl border'}
         `}
         onDragEnter={handleDragEnter}
         onDragLeave={handleDragLeave}
