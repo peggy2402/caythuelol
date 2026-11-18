@@ -42,6 +42,30 @@ export class WalletService {
     };
   }
 
+  async getUserTransactions(userId: string, role?: string, orderId?: string) {
+    const filter: any = {};
+    const isAdminOrStaff = role === 'ADMIN' || role === 'STAFF';
+
+    if (!isAdminOrStaff) {
+      filter.userId = new Types.ObjectId(userId);
+    }
+
+    if (orderId) {
+      if (!Types.ObjectId.isValid(orderId)) {
+        return { success: true, transactions: [] };
+      }
+      filter.orderId = new Types.ObjectId(orderId);
+    }
+
+    const transactions = await this.transactionModel
+      .find(filter)
+      .sort({ createdAt: -1 })
+      .limit(50)
+      .lean();
+
+    return { success: true, transactions };
+  }
+
   async confirmDeposit(userId: string, amount: number) {
     if (!amount || amount < 10000) {
       throw new BadRequestException('Số tiền nạp tối thiểu là 10.000 VNĐ');

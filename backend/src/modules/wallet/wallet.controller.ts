@@ -51,3 +51,20 @@ export class WalletController {
   }
 }
 
+@ApiTags('Transactions')
+@Controller('transactions')
+@UseGuards(JwtAuthGuard)
+@ApiBearerAuth()
+export class TransactionsController {
+  constructor(private walletService: WalletService) {}
+
+  @Get()
+  @ApiOperation({ summary: 'Get transactions for current user (optionally filtered by orderId)' })
+  async getTransactions(
+    @ReqUser() user: any,
+    @Query('orderId') orderId?: string,
+  ) {
+    return this.walletService.getUserTransactions(user.userId, user.role, orderId);
+  }
+}
+

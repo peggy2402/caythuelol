@@ -11,7 +11,7 @@ import {
   Shield, DollarSign, CreditCard,
   Play, CheckSquare, Lock, Flag, Swords, Trophy, Save, Crosshair, ArrowLeft, Search, RefreshCw, AlertTriangle
 } from 'lucide-react';
-import { Pencil, Trash2, X, Plus, Eye, EyeOff, History, ArrowUpRight, ArrowDownLeft, Star } from 'lucide-react';
+import { Pencil, Trash2, X, Plus, Eye, EyeOff, History, ArrowUpRight, ArrowDownLeft, Star, User, Award, Gamepad2, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
 import ChatWindow from '@/components/chat/ChatWindow';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -32,6 +32,7 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
   const router = useRouter();
   
   const [order, setOrder] = useState<any>(null);
+  const [boosterProfile, setBoosterProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
   const [dDragonVersion, setDDragonVersion] = useState('16.5.1'); // Phiên bản dự phòng
@@ -134,6 +135,7 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
         const orderData = await orderRes.json();
 
         setOrder(orderData.order);
+        setBoosterProfile(orderData.boosterProfile || null);
         
         if (orderData.order?.details?.ingame_name) {
             setIngameName(orderData.order.details.ingame_name);
@@ -746,6 +748,193 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                                     </div>
                                 )}
                             </div>
+
+                            {/* Booster Info */}
+                            {!isBooster && (
+                                <div>
+                                    <h3 className="text-sm font-bold text-zinc-400 uppercase mb-3 flex items-center gap-2">
+                                        <Award className="w-4 h-4 text-blue-400" /> Thông tin Tuyển thủ (Booster)
+                                    </h3>
+                                    {order.boosterId ? (
+                                        <div className="bg-zinc-950 p-5 rounded-xl border border-zinc-800 space-y-4">
+                                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                                <div className="flex items-center gap-3.5 min-w-0">
+                                                    <div className="w-12 h-12 rounded-full bg-zinc-800 overflow-hidden shrink-0 border border-zinc-700 flex items-center justify-center">
+                                                        {order.boosterId.profile?.avatar ? (
+                                                            <img
+                                                                src={order.boosterId.profile.avatar}
+                                                                alt={order.boosterId.username}
+                                                                className="w-full h-full object-cover"
+                                                            />
+                                                        ) : (
+                                                            <User className="w-6 h-6 text-zinc-500" />
+                                                        )}
+                                                    </div>
+                                                    <div className="min-w-0">
+                                                        <div className="flex items-center gap-2 flex-wrap">
+                                                            <span className="font-bold text-white text-base truncate">
+                                                                {boosterProfile?.displayName || order.boosterId.username}
+                                                            </span>
+                                                            <span className="text-xs text-zinc-500 font-mono">
+                                                                @{order.boosterId.username}
+                                                            </span>
+                                                            {order.boosterId.booster_info?.isReady !== undefined && (
+                                                                <span
+                                                                    className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                                                                        order.boosterId.booster_info.isReady
+                                                                            ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                                                                            : 'bg-zinc-800 text-zinc-400 border-zinc-700'
+                                                                    }`}
+                                                                >
+                                                                    {order.boosterId.booster_info.isReady ? 'Đang sẵn sàng' : 'Tạm nghỉ'}
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        <div className="flex items-center gap-3 text-xs text-zinc-400 mt-1 flex-wrap">
+                                                            <span className="inline-flex items-center gap-1 text-amber-400 font-semibold">
+                                                                <Star className="w-3.5 h-3.5 fill-amber-400" />
+                                                                {Number(boosterProfile?.rating ?? order.boosterId.booster_info?.rating ?? 5).toFixed(1)}
+                                                            </span>
+                                                            <span>
+                                                                {boosterProfile?.completedOrders ?? order.boosterId.booster_info?.completed_orders ?? 0} đơn hoàn thành
+                                                            </span>
+                                                            {order.boosterId.booster_info?.ingame_name && (
+                                                                <span className="text-zinc-300">
+                                                                    In-game: <strong className="font-mono text-white">{order.boosterId.booster_info.ingame_name}</strong>
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <Link
+                                                    href={`/b/${order.boosterId.username}`}
+                                                    target="_blank"
+                                                    className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-blue-600/15 hover:bg-blue-600/25 text-blue-400 border border-blue-500/30 text-xs font-bold transition-colors shrink-0"
+                                                >
+                                                    <span>Xem hồ sơ</span>
+                                                    <ExternalLink className="w-3.5 h-3.5" />
+                                                </Link>
+                                            </div>
+
+                                            {(boosterProfile?.bio || order.boosterId.booster_info?.bio) && (
+                                                <p className="text-xs text-zinc-300 leading-relaxed bg-zinc-900/70 p-3 rounded-lg border border-white/5">
+                                                    {boosterProfile?.bio || order.boosterId.booster_info?.bio}
+                                                </p>
+                                            )}
+
+                                            {/* Chi tiết liên hệ & thông tin game của Booster */}
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs pt-2 border-t border-zinc-800/80">
+                                                {order.boosterId.email && (
+                                                    <div>
+                                                        <span className="text-zinc-500 block">Email liên hệ</span>
+                                                        <span className="text-zinc-200 font-medium">{order.boosterId.email}</span>
+                                                    </div>
+                                                )}
+                                                {order.boosterId.profile?.discord_id && (
+                                                    <div>
+                                                        <span className="text-zinc-500 block">Discord ID</span>
+                                                        <span className="text-zinc-200 font-mono">{order.boosterId.profile.discord_id}</span>
+                                                    </div>
+                                                )}
+                                                {order.boosterId.phoneNumber && (
+                                                    <div>
+                                                        <span className="text-zinc-500 block">Số điện thoại</span>
+                                                        <a
+                                                            href={`tel:${order.boosterId.phoneNumber}`}
+                                                            className="text-emerald-400 hover:underline font-mono font-semibold"
+                                                        >
+                                                            {order.boosterId.phoneNumber}
+                                                        </a>
+                                                    </div>
+                                                )}
+                                                {order.boosterId.profile?.facebook_url && (
+                                                    <div>
+                                                        <span className="text-zinc-500 block">Facebook cá nhân</span>
+                                                        <a
+                                                            href={order.boosterId.profile.facebook_url}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="text-blue-400 hover:underline font-medium inline-flex items-center gap-1 break-all"
+                                                        >
+                                                            <span>{order.boosterId.profile.facebook_url}</span>
+                                                            <ExternalLink className="w-3 h-3 shrink-0" />
+                                                        </a>
+                                                    </div>
+                                                )}
+                                                {(boosterProfile?.services?.length > 0 || order.boosterId.booster_info?.services?.length > 0) && (
+                                                    <div className="sm:col-span-2">
+                                                        <span className="text-zinc-500 block mb-1.5">Dịch vụ cung cấp</span>
+                                                        <div className="flex flex-wrap gap-1.5">
+                                                            {(boosterProfile?.services || order.boosterId.booster_info?.services || []).map((svc: string) => (
+                                                                <span
+                                                                    key={svc}
+                                                                    className="px-2 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-zinc-300 text-[11px] font-medium"
+                                                                >
+                                                                    {svc.replace(/_/g, ' ')}
+                                                                </span>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {/* Danh sách Game & Rank sở trường */}
+                                            {Array.isArray(boosterProfile?.games) && boosterProfile.games.length > 0 && (
+                                                <div className="pt-3 border-t border-zinc-800/80 space-y-2.5">
+                                                    <div className="text-xs text-zinc-500 font-semibold flex items-center gap-1.5">
+                                                        <Gamepad2 className="w-3.5 h-3.5 text-blue-400" /> Hồ sơ Game & Rank sở trường
+                                                    </div>
+                                                    <div className="grid grid-cols-1 gap-2">
+                                                        {boosterProfile.games.map((g: any, idx: number) => (
+                                                            <div
+                                                                key={`${g.gameCode}-${idx}`}
+                                                                className="p-3 rounded-lg bg-zinc-900/60 border border-white/5 text-xs space-y-1.5"
+                                                            >
+                                                                <div className="flex items-center justify-between gap-2 flex-wrap">
+                                                                    <span className="font-bold text-white">{g.gameCode}</span>
+                                                                    {Array.isArray(g.servers) && g.servers.length > 0 && (
+                                                                        <span className="text-zinc-400">
+                                                                            Server: <strong className="text-zinc-200">{g.servers.join(', ')}</strong>
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                                {Array.isArray(g.ranks) && g.ranks.length > 0 && (
+                                                                    <div className="flex flex-wrap gap-1">
+                                                                        {g.ranks.map((r: string) => (
+                                                                            <span
+                                                                                key={r}
+                                                                                className="px-2 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20 text-[10px] font-bold"
+                                                                            >
+                                                                                {r}
+                                                                            </span>
+                                                                        ))}
+                                                                    </div>
+                                                                )}
+                                                                {(g.roles?.length > 0 || g.champions?.length > 0) && (
+                                                                    <div className="text-[11px] text-zinc-400 flex flex-wrap gap-x-4 gap-y-1">
+                                                                        {g.roles?.length > 0 && (
+                                                                            <span>Vị trí: <strong className="text-zinc-200">{g.roles.join(', ')}</strong></span>
+                                                                        )}
+                                                                        {g.champions?.length > 0 && (
+                                                                            <span>Tướng tủ: <strong className="text-zinc-200">{g.champions.slice(0, 6).join(', ')}</strong></span>
+                                                                        )}
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    ) : (
+                                        <div className="bg-zinc-950 p-4 rounded-xl border border-zinc-800 text-xs text-zinc-400 flex items-center gap-2">
+                                            <Clock className="w-4 h-4 text-amber-400 shrink-0" />
+                                            <span>Đơn hàng đang chờ Tuyển thủ trên Sàn việc làm nhận đơn.</span>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
 
                             {/* Account Info */}
                             <div>

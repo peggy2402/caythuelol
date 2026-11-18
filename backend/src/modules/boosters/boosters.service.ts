@@ -67,7 +67,7 @@ export class BoostersService {
     @InjectModel('Order') private orderModel: Model<IOrder>,
     @InjectModel('Transaction') private transactionModel: Model<ITransaction>,
     private jwtService: JwtService,
-  ) {}
+  ) { }
 
   getAvailableServiceTypes(gameCode?: string) {
     const code = (gameCode || 'LOL').toUpperCase();
@@ -784,7 +784,7 @@ export class BoostersService {
 
     const rawBoosterInfo = user.booster_info || (profile as any)?.booster_info || {};
     const existingSettings = rawBoosterInfo.service_settings || {};
-    
+
     // Đảm bảo luôn có service_settings và options hợp lệ để frontend hiển thị mượt mà
     const mergedSettings = {
       ...DEFAULT_SERVICE_SETTINGS,
@@ -884,15 +884,31 @@ export class BoostersService {
   }
 
   async getJobMarket(userId: string) {
-    const orders = await this.orderModel
-      .find({
-        status: OrderStatus.PAID,
-        boosterId: { $in: [null, undefined] },
-      })
-      .sort({ createdAt: -1 })
-      .lean();
+    const [directRequests, publicJobs] = await Promise.all([
+      this.orderModel
+        .find({
+          status: OrderStatus.PAID,
+          boosterId: new Types.ObjectId(userId),
+        })
+        .populate('customerId', 'username profile')
+        .sort({ createdAt: -1 })
+        .lean(),
+      this.orderModel
+        .find({
+          status: OrderStatus.PAID,
+          $or: [{ boosterId: null }, { boosterId: { $exists: false } }],
+        })
+        .populate('customerId', 'username profile')
+        .sort({ createdAt: -1 })
+        .lean(),
+    ]);
 
-    return { success: true, orders };
+    return {
+      success: true,
+      directRequests,
+      publicJobs,
+      orders: publicJobs,
+    };
   }
 
   async getMyOrders(userId: string, status?: string) {
@@ -900,7 +916,11 @@ export class BoostersService {
     if (status && status !== 'ALL') {
       filter.status = status;
     }
-    const orders = await this.orderModel.find(filter).sort({ createdAt: -1 }).lean();
+    const orders = await this.orderModel
+      .find(filter)
+      .populate('customerId', 'username profile')
+      .sort({ createdAt: -1 })
+      .lean();
     return { success: true, orders };
   }
 
