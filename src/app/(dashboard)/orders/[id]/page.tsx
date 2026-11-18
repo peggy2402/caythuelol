@@ -681,7 +681,19 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
   };
 
   if (loading) return <div className="min-h-screen bg-zinc-950 pt-24 flex justify-center"><Loader2 className="w-8 h-8 animate-spin text-blue-500" /></div>;
-  if (!order) return <div className="min-h-screen bg-zinc-950 pt-24 text-center text-zinc-500">Đơn hàng không tồn tại</div>;
+  if (!order) {
+    return (
+      <div className="min-h-screen bg-zinc-950 pt-24 px-4 flex flex-col items-center justify-center gap-4 text-center">
+        <p className="text-zinc-400 text-base">Đơn hàng không tồn tại hoặc đã bị xóa khỏi hệ thống.</p>
+        <Link
+          href={user?.role === 'BOOSTER' ? '/booster/my-orders' : user?.role === 'ADMIN' ? '/admin/orders' : '/orders'}
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white text-sm font-semibold transition-colors"
+        >
+          <ArrowLeft className="w-4 h-4" /> Quay lại danh sách đơn hàng
+        </Link>
+      </div>
+    );
+  }
 
   const isBooster = user?.role === 'BOOSTER';
   const isCustomer = user?.role === 'CUSTOMER';

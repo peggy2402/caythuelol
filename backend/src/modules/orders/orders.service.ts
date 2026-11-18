@@ -228,7 +228,7 @@ export class OrdersService {
     if (Types.ObjectId.isValid(orderId)) {
       filter = { $or: [{ _id: new Types.ObjectId(orderId) }, { orderCode: orderId }] };
     } else {
-      filter = { orderCode: orderId };
+      filter = { orderCode: orderId.trim().toUpperCase() };
     }
 
     const order = await this.orderModel
@@ -254,7 +254,7 @@ export class OrdersService {
     if (Types.ObjectId.isValid(orderId)) {
       filter = { $or: [{ _id: new Types.ObjectId(orderId) }, { orderCode: orderId }] };
     } else {
-      filter = { orderCode: orderId };
+      filter = { orderCode: orderId.trim().toUpperCase() };
     }
 
     const order = await this.orderModel.findOne(filter);
@@ -319,7 +319,7 @@ export class OrdersService {
     if (Types.ObjectId.isValid(orderId)) {
       filter = { $or: [{ _id: new Types.ObjectId(orderId) }, { orderCode: orderId }] };
     } else {
-      filter = { orderCode: orderId };
+      filter = { orderCode: orderId.trim().toUpperCase() };
     }
 
     const order = await this.orderModel.findOne(filter);
