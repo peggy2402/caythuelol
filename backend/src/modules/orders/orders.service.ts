@@ -378,7 +378,7 @@ export class OrdersService {
     return { success: true, message: 'Nhận đơn thành công!', order };
   }
 
-  async respondOrder(orderId: string, boosterId: string, action: 'approve' | 'reject') {
+  async respondOrder(orderId: string, boosterId: string, action: 'approve' | 'reject', reason?: string) {
     if (action === 'approve') {
       return this.confirmOrder(orderId, boosterId);
     }
@@ -388,19 +388,54 @@ export class OrdersService {
       if (!order) throw new NotFoundException('Không tìm thấy đơn hàng');
       if (order.boosterId && order.boosterId.toString() === boosterId) {
         order.boosterId = undefined;
+        order.status = OrderStatus.PAID;
         if (!order.timeline) order.timeline = [];
         order.timeline.push({
           status: OrderStatus.PAID,
           timestamp: new Date(),
           actor: new Types.ObjectId(boosterId),
-          note: 'Booster đã từ chối yêu cầu chỉ định, chuyển đơn về Sàn việc làm công khai',
+          note: `Booster từ chối nhận đơn (Lý do: ${reason || 'Bận việc cá nhân'}). Đơn được tự động chuyển giao về Sàn việc làm công khai để các Tuyển thủ khác tiếp nhận.`,
         });
         await order.save();
       }
-      return { success: true, message: 'Đã từ chối đơn hàng.' };
+      return { 
+        success: true, 
+        message: 'Đã từ chối đơn hàng thành công. Đơn đã được tự động chuyển giao lên Sàn việc làm công khai cho các Tuyển thủ khác tiếp nhận!' 
+      };
     }
 
     throw new BadRequestException('Hành động không hợp lệ');
+  }
+
+  async handoverOrder(orderId: string, boosterId: string, reason: string, currentProgress?: string) {
+    const order = await this.orderModel.findOne({
+      _id: orderId,
+      boosterId: new Types.ObjectId(boosterId),
+    });
+    if (!order) throw new NotFoundException('Không tìm thấy đơn hàng đang thực hiện');
+
+    if (!['APPROVED', 'IN_PROGRESS'].includes(order.status)) {
+      throw new BadRequestException('Chỉ có thể chuyển giao đơn hàng khi đang trong tiến trình nhận cày');
+    }
+
+    // Chuyển giao đơn: gỡ boosterId hiện tại, đưa đơn trở lại Sàn việc làm với ghi chú tiến độ
+    order.boosterId = undefined;
+    order.status = OrderStatus.PAID; // Chuyển về trạng thái chờ tuyển thủ mới
+    if (!order.timeline) order.timeline = [];
+    order.timeline.push({
+      status: OrderStatus.PAID,
+      timestamp: new Date(),
+      actor: new Types.ObjectId(boosterId),
+      note: `Tuyển thủ yêu cầu bàn giao lại đơn (Lý do: ${reason}). Tiến độ hiện tại: ${currentProgress || 'Giữ nguyên'}. Đơn đã được chuyển giao lên Sàn để tuyển thủ khác cày tiếp.`,
+    });
+
+    await order.save();
+
+    return {
+      success: true,
+      message: 'Đã bàn giao đơn hàng thành công! Đơn đã được đưa trở lại Sàn việc làm cho tuyển thủ khác nhận tiếp.',
+      order,
+    };
   }
 
   async updateOrderStatus(orderId: string, boosterId: string, status: OrderStatus) {

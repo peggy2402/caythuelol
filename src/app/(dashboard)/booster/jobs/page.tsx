@@ -15,11 +15,29 @@ import {
   XCircle,
   AlertCircle,
   RefreshCw,
-  PlusCircle
+  PlusCircle,
+  ArrowRightLeft,
+  ShieldAlert
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 import { getGameById } from '@/lib/games';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
+
+const REJECTION_REASONS = [
+  'Lịch cày / thi đấu cá nhân bị trùng lặp',
+  'Bận công việc đột xuất, không đảm bảo hoàn thành đúng hạn',
+  'Mục tiêu rank hoặc yêu cầu tướng/đường vượt ngoài sở trường',
+  'Máy chủ hoặc kết nối mạng hiện tại không ổn định',
+  'Lý do cá nhân khác',
+];
 
 interface Job {
   _id: string;
@@ -50,6 +68,19 @@ export default function JobMarketPage() {
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [seeding, setSeeding] = useState(false);
 
+  // Modal từ chối & chuyển giao đơn chỉ định
+  const [rejectModal, setRejectModal] = useState<{
+    isOpen: boolean;
+    job: Job | null;
+    reason: string;
+    customReason: string;
+  }>({
+    isOpen: false,
+    job: null,
+    reason: REJECTION_REASONS[0],
+    customReason: '',
+  });
+
   const fetchJobs = async () => {
     try {
       setLoading(true);
@@ -72,19 +103,19 @@ export default function JobMarketPage() {
   }, []);
 
   // Helper: Xử lý logic API Respond
-  const processRespond = async (jobId: string, action: 'approve' | 'reject') => {
+  const processRespond = async (jobId: string, action: 'approve' | 'reject', reason?: string) => {
     setProcessingId(jobId);
     try {
       const res = await fetch(`/api/orders/${jobId}/respond`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action }),
+        body: JSON.stringify({ action, reason }),
       });
       const data = await res.json();
 
       if (!res.ok) throw new Error(data.message || data.error || 'Không thể xử lý đơn hàng');
 
-      toast.success(data.message);
+      toast.success(data.message || (action === 'approve' ? 'Đã nhận đơn chỉ định!' : 'Đã từ chối và chuyển giao đơn lên Sàn công khai!'));
       if (action === 'approve') {
           router.push(`/orders/${jobId}`);
       } else {
@@ -97,25 +128,28 @@ export default function JobMarketPage() {
     }
   };
 
-  // Xử lý Approve/Reject cho Đơn chỉ định (Có Toast Confirm)
-  const handleRespond = (jobId: string, action: 'approve' | 'reject') => {
+  // Xử lý Approve/Reject cho Đơn chỉ định
+  const handleRespond = (job: Job, action: 'approve' | 'reject') => {
     if (action === 'reject') {
-      toast('Xác nhận từ chối đơn?', {
-        description: 'Tiền sẽ được hoàn lại cho khách hàng.',
-        action: {
-          label: 'Xác nhận',
-          onClick: () => processRespond(jobId, action),
-        },
-        cancel: {
-          label: "Hủy",
-          onClick: () => {
-            console.log("Đã hủy");
-          },
-        },
+      setRejectModal({
+        isOpen: true,
+        job,
+        reason: REJECTION_REASONS[0],
+        customReason: '',
       });
       return;
     }
-    processRespond(jobId, action);
+    processRespond(job._id, action);
+  };
+
+  const confirmReject = () => {
+    if (!rejectModal.job) return;
+    const finalReason = rejectModal.reason === 'Lý do cá nhân khác' && rejectModal.customReason.trim()
+      ? rejectModal.customReason.trim()
+      : rejectModal.reason;
+    const jobId = rejectModal.job._id;
+    setRejectModal((prev) => ({ ...prev, isOpen: false }));
+    processRespond(jobId, 'reject', finalReason);
   };
 
   // Helper: Xử lý logic API Claim
@@ -371,7 +405,7 @@ export default function JobMarketPage() {
             {type === 'DIRECT' ? (
                 <>
                     <button 
-                        onClick={() => handleRespond(job._id, 'reject')}
+                        onClick={() => handleRespond(job, 'reject')}
                         disabled={!!processingId}
                         className="p-2 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white rounded-lg transition-colors disabled:opacity-50"
                         title="Từ chối"
@@ -379,7 +413,7 @@ export default function JobMarketPage() {
                         <XCircle className="w-5 h-5" />
                     </button>
                     <button 
-                        onClick={() => handleRespond(job._id, 'approve')}
+                        onClick={() => handleRespond(job, 'approve')}
                         disabled={!!processingId}
                         className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold rounded-lg transition-colors shadow-lg shadow-blue-600/20 disabled:opacity-50 flex items-center gap-2"
                     >
@@ -471,6 +505,108 @@ export default function JobMarketPage() {
             </div>
         </div>
       )}
+
+      {/* MODAL XÁC NHẬN TỪ CHỐI & CHUYỂN GIAO ĐƠN CHỈ ĐỊNH (CĂN GIỮA MÀN HÌNH) */}
+      <Dialog open={rejectModal.isOpen} onOpenChange={(open) => !open && setRejectModal((prev) => ({ ...prev, isOpen: false }))}>
+        <DialogContent className="max-w-md bg-zinc-950 border border-white/10 text-white rounded-2xl p-6 shadow-2xl">
+          <DialogHeader className="space-y-2">
+            <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-400 flex items-center justify-center mx-auto mb-1 shadow-inner">
+              <ArrowRightLeft className="w-6 h-6" />
+            </div>
+            <DialogTitle className="text-lg font-bold text-center text-white">
+              Từ Chối & Chuyển Giao Đơn Hàng
+            </DialogTitle>
+            <DialogDescription className="text-xs text-zinc-400 text-center leading-relaxed">
+              Đơn hàng này sẽ <strong className="text-emerald-400">KHÔNG BỊ HỦY</strong>. Hệ thống sẽ tự động chuyển giao đơn lên <strong className="text-blue-400">Sàn việc làm công khai</strong> để các tuyển thủ khác cùng tựa game tiếp nhận ngay lập tức.
+            </DialogDescription>
+          </DialogHeader>
+
+          {/* Chi tiết tóm tắt đơn hàng */}
+          {rejectModal.job && (
+            <div className="bg-zinc-900/80 border border-white/5 rounded-xl p-3.5 space-y-2 my-2 text-xs">
+              <div className="flex items-center justify-between text-zinc-300">
+                <span className="text-zinc-500">Mã đơn hàng:</span>
+                <span className="font-mono font-bold text-white">
+                  #{rejectModal.job.orderCode || rejectModal.job._id.slice(-6).toUpperCase()}
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-zinc-300">
+                <span className="text-zinc-500">Dịch vụ:</span>
+                <span className="font-semibold text-blue-300">
+                  {rejectModal.job.snapshot?.gameCode || 'Game'} • {rejectModal.job.serviceType}
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-zinc-300">
+                <span className="text-zinc-500">Thù lao nhận được:</span>
+                <span className="font-bold text-emerald-400 font-mono text-sm">
+                  {new Intl.NumberFormat('vi-VN').format(
+                    rejectModal.job.pricing.booster_earnings || (rejectModal.job.pricing.total_amount * 0.8)
+                  )} đ
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* Chọn lý do từ chối */}
+          <div className="space-y-2 my-2">
+            <label className="text-xs font-bold text-zinc-300 block">
+              Lý do bạn không thể nhận đơn này:
+            </label>
+            <div className="space-y-1.5">
+              {REJECTION_REASONS.map((r) => (
+                <label
+                  key={r}
+                  className={`flex items-center gap-2.5 p-2.5 rounded-xl border text-xs cursor-pointer transition-all ${
+                    rejectModal.reason === r
+                      ? 'bg-blue-500/10 border-blue-500/50 text-white font-medium'
+                      : 'bg-zinc-900/50 border-white/5 text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="rejection_reason"
+                    checked={rejectModal.reason === r}
+                    onChange={() => setRejectModal((prev) => ({ ...prev, reason: r }))}
+                    className="accent-blue-500"
+                  />
+                  <span>{r}</span>
+                </label>
+              ))}
+            </div>
+
+            {rejectModal.reason === 'Lý do cá nhân khác' && (
+              <div className="pt-2">
+                <textarea
+                  value={rejectModal.customReason}
+                  onChange={(e) => setRejectModal((prev) => ({ ...prev, customReason: e.target.value }))}
+                  placeholder="Nhập lý do cụ thể để khách hàng nắm thông tin..."
+                  rows={2}
+                  className="w-full rounded-xl border border-white/10 bg-zinc-900 p-2.5 text-xs text-white placeholder-zinc-500 focus:border-blue-500 focus:outline-none"
+                />
+              </div>
+            )}
+          </div>
+
+          <DialogFooter className="flex items-center justify-end gap-2 pt-3 border-t border-white/10 sm:space-x-0">
+            <button
+              type="button"
+              onClick={() => setRejectModal((prev) => ({ ...prev, isOpen: false }))}
+              className="px-4 py-2 rounded-xl text-xs font-semibold text-zinc-400 hover:text-white bg-zinc-900 hover:bg-zinc-800 transition-colors"
+            >
+              Hủy bỏ (Giữ lại đơn)
+            </button>
+            <button
+              type="button"
+              disabled={!!processingId}
+              onClick={confirmReject}
+              className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 transition-all shadow-lg shadow-red-600/30 flex items-center gap-1.5 disabled:opacity-50"
+            >
+              {processingId ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ArrowRightLeft className="w-3.5 h-3.5" />}
+              <span>Xác nhận chuyển giao</span>
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

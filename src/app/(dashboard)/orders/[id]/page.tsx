@@ -11,7 +11,7 @@ import {
   Shield, DollarSign, CreditCard,
   Play, CheckSquare, Lock, Flag, Swords, Trophy, Save, Crosshair, ArrowLeft, Search, RefreshCw, AlertTriangle, XCircle
 } from 'lucide-react';
-import { Pencil, Trash2, X, Plus, Eye, EyeOff, History, ArrowUpRight, ArrowDownLeft, Star, User, Award, Gamepad2, ExternalLink } from 'lucide-react';
+import { Pencil, Trash2, X, Plus, Eye, EyeOff, History, ArrowUpRight, ArrowDownLeft, Star, User, Award, Gamepad2, ExternalLink, ChevronsUpDown, Globe } from 'lucide-react';
 import { toast } from 'sonner';
 import ChatWindow from '@/components/chat/ChatWindow';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -26,6 +26,8 @@ import CoachingOrderView from '@/components/orders/CoachingOrderView';
 import SettlementModal from '@/components/orders/SettlementModal';
 import RatingModal from '@/components/orders/RatingModal';
 import { GAMES_CATALOG, GameDefinition } from '@/lib/games';
+import ServerSelectModal from '@/components/ServerSelectModal';
+import { getServerByCode } from '@/lib/servers';
 
 // Helper lấy metadata tựa game
 function getGameMeta(gameCode?: string) {
@@ -108,6 +110,7 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
   const [settleAmount, setSettleAmount] = useState(0);
   const [isProcessingSettlement, setIsProcessingSettlement] = useState(false);
   const [isRatingModalOpen, setIsRatingModalOpen] = useState(false);
+  const [isServerModalOpen, setIsServerModalOpen] = useState(false);
   
   // Transactions State
   const [transactions, setTransactions] = useState<any[]>([]);
@@ -244,11 +247,18 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
         setIsCancelModalOpen(false);
         setOrder((prev: any) => ({ ...prev, status: 'CANCELLED' }));
         // Cập nhật số dư ví trong localStorage nếu có
-        if (user && data.balance !== undefined) {
-          const updatedUser = { ...user, wallet_balance: data.balance };
-          setUser(updatedUser);
-          localStorage.setItem('user', JSON.stringify(updatedUser));
+        const newBalance = data.balance;
+        if (newBalance !== undefined) {
+          const currentStoredUser = JSON.parse(localStorage.getItem('user') || '{}');
+          currentStoredUser.wallet_balance = newBalance;
+          localStorage.setItem('user', JSON.stringify(currentStoredUser));
+          if (user) {
+            setUser({ ...user, wallet_balance: newBalance });
+          }
         }
+        // Phát sự kiện toàn cục để Header / Navbar / Layout cập nhật tức thì số dư không cần F5
+        window.dispatchEvent(new Event('user-updated'));
+        window.dispatchEvent(new CustomEvent('wallet_update', { detail: { balance: newBalance } }));
       } else {
         toast.error(data.message || data.error || 'Lỗi khi hủy đơn hàng');
       }
@@ -669,9 +679,19 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
           IN_PROGRESS: 'bg-blue-500/10 text-blue-400 border-blue-500/20 shadow-[0_0_15px_rgba(59,130,246,0.2)] animate-pulse',
           APPROVED: 'bg-purple-500/10 text-purple-400 border-purple-500/20',
           DISPUTED: 'bg-red-500/10 text-red-400 border-red-500/20',
-          PAID: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20',
+          PAID: 'bg-amber-500/10 text-amber-400 border-amber-500/30',
       };
       const style = styles[status] || 'bg-zinc-800 text-zinc-400 border-zinc-700';
+
+      if (status === 'PAID') {
+        const hasBooster = !!order?.boosterId;
+        return (
+          <span className="px-4 py-1.5 rounded-full text-xs font-bold uppercase border tracking-wider bg-amber-500/10 text-amber-400 border-amber-500/30 inline-flex items-center gap-1.5 shadow-[0_0_15px_rgba(245,158,11,0.15)]">
+            <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-400 shrink-0" />
+            {hasBooster ? 'ĐANG CHỜ BOOSTER' : 'ĐANG CHỜ TUYỂN THỦ'}
+          </span>
+        );
+      }
       
       return (
           <span className={`px-4 py-1.5 rounded-full text-xs font-bold uppercase border tracking-wider ${style}`}>
@@ -709,7 +729,7 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
 
   // Tách riêng các tùy chọn phức tạp (Mảng) và đơn giản (Boolean)
   const scheduleOption = activeOptions.find(([k]) => k === 'schedule');
-  const rolesOption = activeOptions.find(([k]) => k === 'roles');
+  const rolesOption = activeOptions.find(([k]) => k === 'roles' || k === 'specificRole');
   
   // Kiểm tra giới hạn 7 ngày đánh giá
   const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
@@ -718,18 +738,24 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
 
   const simpleOptions = activeOptions.filter(([k, v]) => {
       if (k === 'schedule' && Array.isArray(v)) return false; // Nếu là mảng lịch -> ẩn khỏi list đơn giản
-      if (k === 'roles' && Array.isArray(v)) return false;    // Nếu là mảng roles -> ẩn khỏi list đơn giản
+      if ((k === 'roles' || k === 'specificRole') && Array.isArray(v)) return false; // Nếu là mảng roles -> ẩn khỏi list đơn giản
       return true;
   });
 
   const optionLabels: Record<string, string> = {
-      express: 'Cày siêu tốc',
-      duo: 'Chơi cùng Booster',
-      streaming: 'Streaming',
-      specificChamps: 'Tướng chỉ định',
-      schedule: 'Đặt lịch',
-      priority: 'Ưu tiên',
-      roles: 'Vị trí'
+      specificRole: 'Tùy chọn vị trí / đường',
+      roles: 'Tùy chọn vị trí / đường',
+      specificChamps: 'Tùy chọn tướng tủ',
+      champions: 'Tướng chỉ định',
+      schedule: 'Khung giờ chơi / cấm chơi',
+      livestream: 'Phát trực tiếp (Livestream)',
+      streaming: 'Phát trực tiếp (Livestream)',
+      flash: 'Vị trí Tốc Biến (Flash)',
+      flashPosition: 'Vị trí Tốc Biến (Flash)',
+      duo: 'Duo cùng Tuyển thủ',
+      express: 'Cày siêu tốc (Ưu tiên)',
+      priority: 'Cày ưu tiên hoàn thành',
+      coaching: 'Kèm riêng 1-1',
   };
 
   return (
@@ -1287,15 +1313,15 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                                                 )}
 
                                                 {/* 2. Vị trí (Roles Block) */}
-                                                {rolesOption && Array.isArray(rolesOption[1]) && rolesOption[1].length > 0 && (
+                                                {rolesOption && (
                                                     <div className="bg-zinc-900/50 rounded-lg p-3 border border-zinc-800/50">
-                                                        <span className="text-zinc-500 text-xs block mb-2 flex items-center gap-1.5 font-medium">
-                                                            <Crosshair size={12} /> Vị trí đi đường:
+                                                        <span className="text-zinc-400 text-xs block mb-2 flex items-center gap-1.5 font-medium">
+                                                            <Crosshair size={12} className="text-blue-400" /> Tùy chọn vị trí / đường:
                                                         </span>
                                                         <div className="flex flex-wrap gap-2">
-                                                            {rolesOption[1].map((role: string) => (
-                                                                <span key={role} className="text-xs font-bold px-2 py-1 bg-zinc-800 border border-zinc-700 rounded text-zinc-300">
-                                                                    {role}
+                                                            {(Array.isArray(rolesOption[1]) ? rolesOption[1] : [rolesOption[1]]).map((role: any) => (
+                                                                <span key={String(role)} className="text-xs font-bold px-2.5 py-1 bg-blue-500/10 border border-blue-500/20 rounded-md text-blue-300">
+                                                                    {String(role)}
                                                                 </span>
                                                             ))}
                                                         </div>
@@ -1706,14 +1732,43 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-zinc-400 block mb-1.5">Máy chủ (Server):</label>
-                  <input 
-                    type="text"
-                    className="w-full bg-zinc-950 border border-zinc-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:border-blue-500 outline-none"
-                    value={editAccountForm.server}
-                    onChange={e => setEditAccountForm({ ...editAccountForm, server: e.target.value })}
-                    placeholder="VN / SEA / KR..."
-                  />
+                  <label className="text-xs font-semibold text-zinc-400 block mb-1.5 flex items-center justify-between">
+                    <span>Máy chủ (Server):</span>
+                    <span 
+                      onClick={() => setIsServerModalOpen(true)}
+                      className="text-[11px] text-blue-400 hover:text-blue-300 font-semibold cursor-pointer"
+                    >
+                      Chọn từ danh sách
+                    </span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setIsServerModalOpen(true)}
+                    className="w-full bg-zinc-950 border border-zinc-700 hover:border-zinc-500 rounded-xl px-3.5 py-2.5 text-sm text-white focus:border-blue-500 outline-none flex items-center justify-between transition-all text-left group"
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      {getServerByCode(editAccountForm.server) ? (
+                        <>
+                          <span className="text-lg shrink-0">{getServerByCode(editAccountForm.server)?.flag}</span>
+                          <span className="font-semibold text-white truncate">{getServerByCode(editAccountForm.server)?.name}</span>
+                          <span className="text-[11px] text-zinc-400 bg-zinc-800 px-1.5 py-0.5 rounded border border-white/5 font-mono shrink-0">
+                            {getServerByCode(editAccountForm.server)?.code}
+                          </span>
+                        </>
+                      ) : editAccountForm.server ? (
+                        <div className="flex items-center gap-2">
+                          <Globe className="w-4 h-4 text-zinc-400" />
+                          <span className="font-mono text-white font-bold">{editAccountForm.server}</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2 text-zinc-500">
+                          <Globe className="w-4 h-4 text-zinc-500" />
+                          <span>Chọn máy chủ (VN, SEA, KR...)...</span>
+                        </div>
+                      )}
+                    </div>
+                    <ChevronsUpDown className="w-4 h-4 text-zinc-400 group-hover:text-white shrink-0 ml-2 transition-colors" />
+                  </button>
                 </div>
               </div>
 
@@ -1747,6 +1802,14 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
           </div>
         </div>
       )}
+
+      {/* Server Select Modal for Edit Account */}
+      <ServerSelectModal
+        isOpen={isServerModalOpen}
+        onClose={() => setIsServerModalOpen(false)}
+        selectedServer={editAccountForm.server}
+        onSelectServer={(code) => setEditAccountForm((prev) => ({ ...prev, server: code }))}
+      />
 
       {/* Unified Settlement Modal */}
       <SettlementModal

@@ -83,8 +83,20 @@ export class OrdersController {
     @Param('id') id: string,
     @ReqUser() user: any,
     @Body('action') action: 'approve' | 'reject',
+    @Body('reason') reason?: string,
   ) {
-    return this.ordersService.respondOrder(id, user.userId, action);
+    return this.ordersService.respondOrder(id, user.userId, action, reason);
+  }
+
+  @Post(':id/handover')
+  @ApiOperation({ summary: 'Booster requests to handover/transfer an IN_PROGRESS order to another booster' })
+  async handoverOrder(
+    @Param('id') id: string,
+    @ReqUser() user: any,
+    @Body('reason') reason: string,
+    @Body('currentProgress') currentProgress?: string,
+  ) {
+    return this.ordersService.handoverOrder(id, user.userId, reason, currentProgress);
   }
 
   @UseGuards(RolesGuard)

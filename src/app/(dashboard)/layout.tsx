@@ -43,13 +43,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const router = useRouter();
   
   useEffect(() => {
-    const updateUserData = () => {
-      const userData = localStorage.getItem('user');
-      if (userData) {
-        setUser(JSON.parse(userData));
-      }
-    };
-
     const userData = localStorage.getItem('user');
     if (userData) {
       const token = localStorage.getItem('token');
@@ -57,12 +50,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       setUser(parsedUser);
 
       // Hàm lấy dữ liệu mới nhất (Số dư + Thông báo) để đồng bộ
-      // *** FIX: Di chuyển khai báo lên đầu để tránh ReferenceError ***
       const fetchFreshData = () => {
         if (!token) return;
 
         // 1. Notifications
-        // Thêm timestamp để tránh cache trình duyệt
         fetch(`/api/notifications?t=${Date.now()}`, { headers: { Authorization: `Bearer ${token}` } })
             .then(res => res.json())
             .then(data => {
@@ -71,11 +62,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             })
             .catch(err => console.error("Failed to fetch notifications", err));
 
-        // 2. Wallet Balance (Quan trọng: Đồng bộ số dư nếu localStorage bị cũ)
+        // 2. Wallet Balance (Đồng bộ số dư thực tế không cần reload)
         fetch(`/api/wallet?t=${Date.now()}`, { headers: { Authorization: `Bearer ${token}` } })
             .then(res => res.json())
             .then(data => {
-                // KIỂM TRA BỊ KHÓA TÀI KHOẢN
                 if (data.isBanned) {
                     toast.error("Tài khoản của bạn đã bị khóa do vi phạm hoặc nợ cước.");
                     localStorage.removeItem('token');
@@ -87,14 +77,27 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     setUser((prev: any) => {
                         const currentUserState = prev || parsedUser;
                         const updated = { ...currentUserState, wallet_balance: data.balance };
-                        if (currentUserState.wallet_balance !== data.balance) {
-                            localStorage.setItem('user', JSON.stringify(updated));
-                        }
+                        localStorage.setItem('user', JSON.stringify(updated));
                         return updated;
                     });
                 }
             })
             .catch(() => {});
+      };
+
+      const updateUserData = () => {
+        const stored = localStorage.getItem('user');
+        if (stored) {
+          setUser(JSON.parse(stored));
+        }
+        fetchFreshData();
+      };
+
+      const handleCustomWalletUpdate = (e: any) => {
+        if (e.detail?.balance !== undefined) {
+          setUser((prev: any) => ({ ...prev, wallet_balance: e.detail.balance }));
+        }
+        fetchFreshData();
       };
 
       // Socket: Lắng nghe thay đổi số dư toàn cục để cập nhật Header
@@ -147,6 +150,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       socket.on('notification', handleNotification);
 
       window.addEventListener('user-updated', updateUserData);
+      window.addEventListener('wallet_update', handleCustomWalletUpdate);
 
       // Gọi ngay khi mount và khi focus lại tab
       fetchFreshData();
@@ -161,6 +165,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         socket.off('wallet_update', handleWalletUpdate);
         socket.off('notification', handleNotification);
         window.removeEventListener('user-updated', updateUserData);
+        window.removeEventListener('wallet_update', handleCustomWalletUpdate);
         window.removeEventListener('focus', fetchFreshData);
         clearInterval(intervalId);
       };

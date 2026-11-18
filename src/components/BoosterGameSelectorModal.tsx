@@ -272,13 +272,14 @@ export default function BoosterGameSelectorModal({
           const boosterGameInfo = boosterGames.find(
             (g) => normalizeGameCode(g.gameCode) === normalizeGameCode(game.id)
           );
-          const topRank = boosterGameInfo?.ranks?.[0] || 'Cao Thủ / Thách Đấu';
+          const rawRank = boosterGameInfo?.ranks?.find((r) => r && r !== 'N/A' && r.trim() !== '');
           
           // Đếm chính xác số dịch vụ thực tế mà Booster này đã cấu hình và bật cho game
           const gameServices = (customServices || []).filter(
             (s: any) => s.isActive !== false && normalizeGameCode(s.gameCode) === normalizeGameCode(game.id)
           );
           const servicesCount = gameServices.length;
+          const topRank = rawRank || (servicesCount > 0 ? 'Đã xác thực' : null);
           const bannerSrc = getGameBanner(game.id, game.banner);
 
           // Tùy biến accent & border theo màu của từng game
@@ -358,13 +359,15 @@ export default function BoosterGameSelectorModal({
                     : 'Tuyển thủ chưa thiết lập bảng giá dịch vụ cho tựa game này.'}
                 </p>
 
-                {/* Badge Trình độ: Cao Thủ */}
-                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-semibold">
-                  <Trophy size={13} className="text-amber-400 shrink-0" />
-                  <span>
-                    Trình độ: <strong className="text-amber-200">{topRank}</strong>
-                  </span>
-                </div>
+                {/* Badge Trình độ: Chỉ hiển thị khi có thông tin rank xác thực hoặc đã mở gói dịch vụ */}
+                {topRank && (
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-semibold">
+                    <Trophy size={13} className="text-amber-400 shrink-0" />
+                    <span>
+                      Trình độ: <strong className="text-amber-200">{topRank}</strong>
+                    </span>
+                  </div>
+                )}
               </div>
 
               {/* Bottom: Action link Xem các dịch vụ */}

@@ -52,31 +52,35 @@ function formatServiceName(serviceType?: string) {
 }
 
 // Helper status tiếng Việt và style
-function getStatusBadge(status: string) {
+function getStatusBadge(status: string, hasBooster?: boolean) {
   switch (status) {
     case 'COMPLETED':
       return {
         label: 'Hoàn thành',
         className: 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20',
         icon: CheckCircle2,
+        isSpinning: false,
       };
     case 'IN_PROGRESS':
       return {
         label: 'Đang cày',
         className: 'bg-blue-500/10 text-blue-400 border border-blue-500/20 animate-pulse',
         icon: PlayCircle,
+        isSpinning: false,
       };
     case 'APPROVED':
       return {
         label: 'Tuyển thủ đã nhận',
         className: 'bg-purple-500/10 text-purple-400 border border-purple-500/20',
         icon: CheckCircle2,
+        isSpinning: false,
       };
     case 'PAID':
       return {
-        label: 'Đang tìm tuyển thủ',
+        label: hasBooster ? 'Đang chờ Booster' : 'Đang chờ tuyển thủ',
         className: 'bg-amber-500/10 text-amber-400 border border-amber-500/30',
-        icon: Clock,
+        icon: Loader2,
+        isSpinning: true,
       };
     case 'PENDING_PAYMENT':
       return {
@@ -216,7 +220,7 @@ export default function OrdersPage() {
             const gameCode = order.snapshot?.gameCode || order.details?.game || 'LOL';
             const gameMeta = getGameMeta(gameCode);
             const serviceName = formatServiceName(order.serviceType || order.snapshot?.serviceSlug);
-            const statusBadge = getStatusBadge(order.status);
+            const statusBadge = getStatusBadge(order.status, !!order.boosterId);
             const StatusIcon = statusBadge.icon;
             const orderIdentifier = order.orderCode || order._id;
 
@@ -298,7 +302,7 @@ export default function OrdersPage() {
                         ) : (
                           <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 font-medium">
                             <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping"></span>
-                            <span>Đang tìm tuyển thủ trên sàn việc...</span>
+                            <span>Đang chờ tuyển thủ nhận việc trên sàn...</span>
                           </div>
                         )}
                       </div>
@@ -316,7 +320,7 @@ export default function OrdersPage() {
 
                     <div className="flex items-center gap-3">
                       <div className={`px-3.5 py-1.5 rounded-full text-xs font-bold tracking-wide flex items-center gap-1.5 ${statusBadge.className}`}>
-                        <StatusIcon className="w-3.5 h-3.5 shrink-0" />
+                        <StatusIcon className={`w-3.5 h-3.5 shrink-0 ${statusBadge.isSpinning ? 'animate-spin' : ''}`} />
                         <span>{statusBadge.label}</span>
                       </div>
 
