@@ -39,6 +39,24 @@ const REJECTION_REASONS = [
   'Lý do cá nhân khác',
 ];
 
+function getBoosterOrderValue(pricing?: any): number {
+  if (!pricing) return 0;
+  if (pricing.booster_order_value) return Number(pricing.booster_order_value);
+  const total = Number(pricing.total_amount || 0);
+  const serviceFee = Number(pricing.service_fee || 0);
+  if (serviceFee > 0) {
+    return Math.max(0, total - serviceFee);
+  }
+  if (pricing.original_price) {
+    const discount = Number(pricing.discount_amount || 0);
+    return Math.max(0, Number(pricing.original_price) - discount);
+  }
+  if (pricing.platform_fee_percent && pricing.platform_fee_percent > 0) {
+    return Math.round(total / (1 + Number(pricing.platform_fee_percent) / 100));
+  }
+  return total;
+}
+
 interface Job {
   _id: string;
   orderCode?: string;
@@ -419,14 +437,9 @@ export default function JobMarketPage() {
       {/* Footer */}
       <div className="pt-4 border-t border-white/5 flex items-center justify-between mt-auto">
         <div>
-          <div className="text-xs text-zinc-500">Giá trị đơn</div>
+          <div className="text-xs text-zinc-500">Giá trị đơn hàng nhận được</div>
           <div className="text-lg font-bold text-emerald-400 font-mono">
-            {new Intl.NumberFormat('vi-VN').format(
-              job.pricing.booster_order_value ??
-              (job.pricing.service_fee
-                ? Math.max(0, job.pricing.total_amount - job.pricing.service_fee)
-                : job.pricing.original_price || job.pricing.total_amount || 0)
-            )} đ
+            {new Intl.NumberFormat('vi-VN').format(getBoosterOrderValue(job.pricing))} đ
           </div>
         </div>
         
@@ -566,14 +579,9 @@ export default function JobMarketPage() {
                 </span>
               </div>
               <div className="flex items-center justify-between text-zinc-300">
-                <span className="text-zinc-500">Giá trị đơn:</span>
+                <span className="text-zinc-500">Giá trị đơn hàng nhận được:</span>
                 <span className="font-bold text-emerald-400 font-mono text-sm">
-                  {new Intl.NumberFormat('vi-VN').format(
-                    rejectModal.job.pricing.booster_order_value ??
-                    (rejectModal.job.pricing.service_fee
-                      ? Math.max(0, rejectModal.job.pricing.total_amount - rejectModal.job.pricing.service_fee)
-                      : rejectModal.job.pricing.original_price || rejectModal.job.pricing.total_amount || 0)
-                  )} đ
+                  {new Intl.NumberFormat('vi-VN').format(getBoosterOrderValue(rejectModal.job.pricing))} đ
                 </span>
               </div>
             </div>
@@ -681,14 +689,9 @@ export default function JobMarketPage() {
                 </div>
               )}
               <div className="flex items-center justify-between text-zinc-300 pt-1.5 border-t border-white/5">
-                <span className="text-zinc-500">Giá trị đơn:</span>
+                <span className="text-zinc-500">Giá trị đơn hàng nhận được:</span>
                 <span className="font-bold text-emerald-400 font-mono text-base">
-                  {new Intl.NumberFormat('vi-VN').format(
-                    acceptModal.job.pricing.booster_order_value ??
-                    (acceptModal.job.pricing.service_fee
-                      ? Math.max(0, acceptModal.job.pricing.total_amount - acceptModal.job.pricing.service_fee)
-                      : acceptModal.job.pricing.original_price || acceptModal.job.pricing.total_amount || 0)
-                  )} đ
+                  {new Intl.NumberFormat('vi-VN').format(getBoosterOrderValue(acceptModal.job.pricing))} đ
                 </span>
               </div>
             </div>

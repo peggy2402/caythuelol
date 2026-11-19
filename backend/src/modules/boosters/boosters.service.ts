@@ -965,17 +965,28 @@ export class BoostersService {
     const sanitizeJob = (job: any) => {
       const sanitized = { ...job };
       if (sanitized.pricing) {
+        const total = Number(sanitized.pricing.total_amount || 0);
         const serviceFee = Number(sanitized.pricing.service_fee || 0);
-        const netOrderValue = Math.max(
-          0,
-          Number(sanitized.pricing.total_amount || 0) - serviceFee,
-        );
+        let netOrderValue = serviceFee > 0 ? Math.max(0, total - serviceFee) : 0;
+
+        if (!netOrderValue && sanitized.pricing.original_price) {
+          netOrderValue = Math.max(
+            0,
+            Number(sanitized.pricing.original_price) - Number(sanitized.pricing.discount_amount || 0),
+          );
+        }
+
+        if (!netOrderValue && sanitized.pricing.platform_fee_percent && sanitized.pricing.platform_fee_percent > 0) {
+          netOrderValue = Math.round(total / (1 + Number(sanitized.pricing.platform_fee_percent) / 100));
+        }
+
+        if (!netOrderValue) {
+          netOrderValue = total;
+        }
+
         sanitized.pricing = {
           ...sanitized.pricing,
-          booster_order_value:
-            netOrderValue ||
-            sanitized.pricing.original_price ||
-            sanitized.pricing.total_amount,
+          booster_order_value: netOrderValue,
         };
       }
       if (sanitized.details) {

@@ -319,7 +319,7 @@ export default function OrdersPage() {
                   <div className="flex items-center justify-between lg:justify-end gap-5 border-t lg:border-t-0 border-white/5 pt-3 lg:pt-0">
                     <div className="text-left lg:text-right">
                       <p className="text-[11px] text-zinc-500 font-medium uppercase tracking-wider mb-0.5">
-                        {currentUser?.role === 'BOOSTER' ? 'Giá trị đơn' : 'Tổng thanh toán'}
+                        {currentUser?.role === 'BOOSTER' ? 'Giá trị đơn hàng nhận được' : 'Tổng thanh toán'}
                       </p>
                       <p className="text-lg font-bold text-emerald-400 font-mono">
                         {(currentUser?.role === 'BOOSTER'

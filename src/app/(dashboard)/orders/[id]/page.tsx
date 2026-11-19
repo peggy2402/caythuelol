@@ -1436,7 +1436,7 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                                 <h3 className="text-sm font-bold text-zinc-400 uppercase mb-3 flex items-center gap-2"><DollarSign className="w-4 h-4" /> Thanh toán</h3>
                                 <div className="bg-zinc-950 p-4 rounded-xl border border-zinc-800 space-y-3 text-sm">
                                     <div className="flex justify-between">
-                                        <span className="text-zinc-500">{isBooster ? 'Giá trị đơn:' : 'Tổng thanh toán:'}</span>
+                                        <span className="text-zinc-500">{isBooster ? 'Giá trị đơn hàng nhận được:' : 'Tổng thanh toán:'}</span>
                                         <span className="text-white font-bold">
                                             {(isBooster
                                                 ? Math.max(0, (order.pricing.total_amount || 0) - (order.pricing.service_fee || 0)) || order.pricing.original_price || order.pricing.total_amount
