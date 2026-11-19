@@ -55,6 +55,9 @@ interface Job {
   pricing: {
     booster_earnings: number;
     total_amount: number;
+    service_fee?: number;
+    original_price?: number;
+    booster_order_value?: number;
   };
   createdAt: string;
 }
@@ -417,9 +420,13 @@ export default function JobMarketPage() {
       <div className="pt-4 border-t border-white/5 flex items-center justify-between mt-auto">
         <div>
           <div className="text-xs text-zinc-500">Giá trị đơn</div>
-          <div className="text-lg font-bold text-emerald-400 flex items-center gap-1">
-            <DollarSign className="w-4 h-4" />
-            {new Intl.NumberFormat('vi-VN').format(job.pricing.total_amount || 0)} đ
+          <div className="text-lg font-bold text-emerald-400 font-mono">
+            {new Intl.NumberFormat('vi-VN').format(
+              job.pricing.booster_order_value ??
+              (job.pricing.service_fee
+                ? Math.max(0, job.pricing.total_amount - job.pricing.service_fee)
+                : job.pricing.original_price || job.pricing.total_amount || 0)
+            )} đ
           </div>
         </div>
         
@@ -559,10 +566,13 @@ export default function JobMarketPage() {
                 </span>
               </div>
               <div className="flex items-center justify-between text-zinc-300">
-                <span className="text-zinc-500">Thù lao nhận được:</span>
+                <span className="text-zinc-500">Giá trị đơn:</span>
                 <span className="font-bold text-emerald-400 font-mono text-sm">
                   {new Intl.NumberFormat('vi-VN').format(
-                    rejectModal.job.pricing.booster_earnings || (rejectModal.job.pricing.total_amount * 0.8)
+                    rejectModal.job.pricing.booster_order_value ??
+                    (rejectModal.job.pricing.service_fee
+                      ? Math.max(0, rejectModal.job.pricing.total_amount - rejectModal.job.pricing.service_fee)
+                      : rejectModal.job.pricing.original_price || rejectModal.job.pricing.total_amount || 0)
                   )} đ
                 </span>
               </div>
@@ -671,10 +681,13 @@ export default function JobMarketPage() {
                 </div>
               )}
               <div className="flex items-center justify-between text-zinc-300 pt-1.5 border-t border-white/5">
-                <span className="text-zinc-500">Thù lao nhận được:</span>
+                <span className="text-zinc-500">Giá trị đơn:</span>
                 <span className="font-bold text-emerald-400 font-mono text-base">
                   {new Intl.NumberFormat('vi-VN').format(
-                    acceptModal.job.pricing.booster_earnings || (acceptModal.job.pricing.total_amount * 0.8)
+                    acceptModal.job.pricing.booster_order_value ??
+                    (acceptModal.job.pricing.service_fee
+                      ? Math.max(0, acceptModal.job.pricing.total_amount - acceptModal.job.pricing.service_fee)
+                      : acceptModal.job.pricing.original_price || acceptModal.job.pricing.total_amount || 0)
                   )} đ
                 </span>
               </div>

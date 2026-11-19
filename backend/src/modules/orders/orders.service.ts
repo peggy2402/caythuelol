@@ -132,7 +132,10 @@ export class OrdersService {
           base_price: pricing.basePrice || pricing.base_price,
           option_fees: pricing.optionFees || pricing.option_fees,
           booster_earnings:
-            pricing.booster_earnings ?? Math.round(pricing.total_amount * 0.85),
+            pricing.booster_earnings ??
+            Math.round(
+              Math.max(0, Number(pricing.total_amount || 0) - Number(pricing.service_fee || 0)) * 0.85,
+            ),
           settlement_status: SettlementStatus.DEPOSIT_HELD,
         },
         payment: {

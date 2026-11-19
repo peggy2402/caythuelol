@@ -964,6 +964,20 @@ export class BoostersService {
     // Bảo mật: Ẩn thông tin tài khoản game (username, password) cho đến khi Booster thực sự nhận đơn
     const sanitizeJob = (job: any) => {
       const sanitized = { ...job };
+      if (sanitized.pricing) {
+        const serviceFee = Number(sanitized.pricing.service_fee || 0);
+        const netOrderValue = Math.max(
+          0,
+          Number(sanitized.pricing.total_amount || 0) - serviceFee,
+        );
+        sanitized.pricing = {
+          ...sanitized.pricing,
+          booster_order_value:
+            netOrderValue ||
+            sanitized.pricing.original_price ||
+            sanitized.pricing.total_amount,
+        };
+      }
       if (sanitized.details) {
         sanitized.details = { ...sanitized.details };
         if (sanitized.details.account_info) {

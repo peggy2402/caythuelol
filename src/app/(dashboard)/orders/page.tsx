@@ -126,8 +126,14 @@ export default function OrdersPage() {
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('ALL');
+  const [currentUser, setCurrentUser] = useState<any>(null);
 
   useEffect(() => {
+    try {
+      const stored = localStorage.getItem('user');
+      if (stored) setCurrentUser(JSON.parse(stored));
+    } catch (e) {}
+
     fetch('/api/orders')
       .then((res) => res.json())
       .then((data) => {
@@ -312,9 +318,14 @@ export default function OrdersPage() {
                   {/* Right: Price & Status */}
                   <div className="flex items-center justify-between lg:justify-end gap-5 border-t lg:border-t-0 border-white/5 pt-3 lg:pt-0">
                     <div className="text-left lg:text-right">
-                      <p className="text-[11px] text-zinc-500 font-medium uppercase tracking-wider mb-0.5">Tổng thanh toán</p>
+                      <p className="text-[11px] text-zinc-500 font-medium uppercase tracking-wider mb-0.5">
+                        {currentUser?.role === 'BOOSTER' ? 'Giá trị đơn' : 'Tổng thanh toán'}
+                      </p>
                       <p className="text-lg font-bold text-emerald-400 font-mono">
-                        {(order.pricing?.total_amount || 0).toLocaleString()} đ
+                        {(currentUser?.role === 'BOOSTER'
+                          ? Math.max(0, (order.pricing?.total_amount || 0) - (order.pricing?.service_fee || 0)) || order.pricing?.original_price || order.pricing?.total_amount || 0
+                          : (order.pricing?.total_amount || 0)
+                        ).toLocaleString()} đ
                       </p>
                     </div>
 

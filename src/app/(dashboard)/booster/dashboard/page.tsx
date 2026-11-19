@@ -365,9 +365,9 @@ export default function BoosterDashboardPage() {
                     </div>
 
                     <div className="flex items-center justify-between text-xs">
-                      <span className="text-zinc-500">Tiền công Booster</span>
+                      <span className="text-zinc-500">Giá trị đơn</span>
                       <span className="font-mono font-black text-emerald-400 text-sm">
-                        {order.pricing?.total_amount?.toLocaleString('vi-VN')} đ
+                        {(Math.max(0, (order.pricing?.total_amount || 0) - (order.pricing?.service_fee || 0)) || order.pricing?.original_price || order.pricing?.total_amount || 0).toLocaleString('vi-VN')} đ
                       </span>
                     </div>
 
@@ -425,7 +425,7 @@ export default function BoosterDashboardPage() {
                           {order.serviceType}
                         </td>
                         <td className="px-6 py-4 font-mono font-bold text-emerald-400 text-sm">
-                          {order.pricing?.total_amount?.toLocaleString('vi-VN')} đ
+                          {(Math.max(0, (order.pricing?.total_amount || 0) - (order.pricing?.service_fee || 0)) || order.pricing?.original_price || order.pricing?.total_amount || 0).toLocaleString('vi-VN')} đ
                         </td>
                         <td className="px-6 py-4">
                           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold border bg-cyan-500/15 border-cyan-500/30 text-cyan-400">
