@@ -80,6 +80,15 @@ export class BoostersController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.BOOSTER)
   @ApiBearerAuth()
+  @Post('jobs/:id/claim')
+  @ApiOperation({ summary: 'Claim a public job from market' })
+  async claimJob(@Param('id') id: string, @ReqUser() user: any) {
+    return this.boostersService.claimJob(id, user.userId);
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.BOOSTER)
+  @ApiBearerAuth()
   @Get('my-orders')
   @ApiOperation({ summary: 'Get current booster orders' })
   async getMyOrders(@ReqUser() user: any, @Query('status') status?: string) {

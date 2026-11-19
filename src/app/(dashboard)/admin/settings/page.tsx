@@ -194,7 +194,9 @@ export default function AdminSettingsPage() {
         </button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+        {/* Left Column: Financial & Booster Policies */}
+        <div className="space-y-6">
         {/* 1. Fees Configuration */}
         <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 hover:border-zinc-700 transition-colors">
             <div className="flex items-center gap-3 mb-6">
@@ -343,7 +345,9 @@ export default function AdminSettingsPage() {
             </div>
         </div>
 
-        {/* 2. Maintenance & System */}
+        </div>
+
+        {/* Right Column: Maintenance & System */}
         <div className="space-y-6">
           {/* Admin Bank Info */}
           <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 hover:border-zinc-700 transition-colors">

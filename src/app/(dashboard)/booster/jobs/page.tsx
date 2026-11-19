@@ -176,9 +176,14 @@ export default function JobMarketPage() {
   const processClaim = async (jobId: string) => {
     setProcessingId(jobId);
     try {
-      const res = await fetch(`/api/boosters/jobs/${jobId}/claim`, {
+      let res = await fetch(`/api/boosters/jobs/${jobId}/claim`, {
         method: 'POST',
       });
+      if (res.status === 404) {
+        res = await fetch(`/api/orders/${jobId}/confirm`, {
+          method: 'POST',
+        });
+      }
       const data = await res.json();
 
       if (!res.ok) throw new Error(data.message || data.error || 'Không thể xử lý đơn hàng');

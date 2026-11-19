@@ -1042,6 +1042,39 @@ export class BoostersService {
     };
   }
 
+  async claimJob(orderId: string, boosterId: string) {
+    let filter: any;
+    if (Types.ObjectId.isValid(orderId)) {
+      filter = { $or: [{ _id: new Types.ObjectId(orderId) }, { orderCode: orderId }] };
+    } else {
+      filter = { orderCode: orderId.trim().toUpperCase() };
+    }
+
+    const order = await this.orderModel.findOne(filter);
+    if (!order) throw new NotFoundException('Không tìm thấy đơn hàng');
+
+    if (order.status !== OrderStatus.PAID) {
+      throw new BadRequestException('Đơn hàng này không ở trạng thái chờ nhận');
+    }
+
+    if (order.boosterId && order.boosterId.toString() !== boosterId) {
+      throw new BadRequestException('Đơn hàng này đã được chỉ định hoặc đã có Booster khác nhận');
+    }
+
+    order.boosterId = new Types.ObjectId(boosterId);
+    order.status = OrderStatus.APPROVED;
+    if (!order.timeline) order.timeline = [];
+    order.timeline.push({
+      status: OrderStatus.APPROVED,
+      timestamp: new Date(),
+      actor: new Types.ObjectId(boosterId),
+      note: 'Booster đã nhận đơn thành công từ Sàn việc làm công khai',
+    });
+
+    await order.save();
+    return { success: true, message: 'Nhận đơn thành công!', order };
+  }
+
   async getMyOrders(userId: string, status?: string) {
     const filter: any = { boosterId: new Types.ObjectId(userId) };
     if (status && status !== 'ALL') {

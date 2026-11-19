@@ -209,20 +209,24 @@ export default function AdminDashboard() {
         )}
         {/* Top Spenders */}
         {stats.topSpenders && stats.topSpenders.length > 0 && (
-          <div className="lg:col-span-1 bg-zinc-900 border border-zinc-800 rounded-xl p-6">
+          <div className="lg:col-span-1 bg-zinc-900 border border-zinc-800 rounded-xl p-5 sm:p-6">
               <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-                  <DollarSign className="text-green-500" /> Top Khách hàng chi tiêu
+                  <DollarSign className="text-green-500 w-5 h-5" /> Top Khách hàng chi tiêu
               </h3>
               <div className="space-y-3">
                   {stats.topSpenders.map((user: any, index: number) => (
-                      <div key={user._id} className="flex items-center gap-4 p-3 bg-zinc-950 rounded-lg border border-zinc-800">
-                          <span className="font-bold text-lg text-zinc-500 w-6 text-center">{index + 1}</span>
-                          <img src={user.avatar || '/default-avatar.png'} alt={user.username} className="w-10 h-10 rounded-full object-cover" />
-                          <div className="flex-1">
-                              <div className="font-bold text-white">{user.username}</div>
+                      <div key={user._id} className="flex items-center gap-3 sm:gap-4 p-3 bg-zinc-950 rounded-xl border border-zinc-800/80 hover:border-zinc-700 transition-colors">
+                          <span className={`font-black text-sm w-6 text-center shrink-0 ${index === 0 ? 'text-amber-400' : index === 1 ? 'text-zinc-300' : index === 2 ? 'text-amber-600' : 'text-zinc-500'}`}>
+                            {index + 1}
+                          </span>
+                          <img src={user.avatar || '/default-avatar.png'} alt={user.username} className="w-10 h-10 rounded-full object-cover shrink-0 ring-1 ring-white/10" />
+                          <div className="flex-1 min-w-0">
+                              <div className="font-bold text-white truncate text-sm" title={user.username}>{user.username}</div>
                               <div className="text-xs text-zinc-400">{user.orderCount} đơn</div>
                           </div>
-                          <div className="font-bold text-blue-400 text-base font-mono">{(user.totalSpent || 0).toLocaleString()} đ</div>
+                          <div className="font-bold text-blue-400 text-sm sm:text-base font-mono shrink-0 whitespace-nowrap text-right">
+                            {(user.totalSpent || 0).toLocaleString()} đ
+                          </div>
                       </div>
                   ))}
               </div>
@@ -230,17 +234,23 @@ export default function AdminDashboard() {
         )}
         {/* Top Depositors */}
         {stats.topDepositors && stats.topDepositors.length > 0 && (
-          <div className="lg:col-span-1 bg-zinc-900 border border-zinc-800 rounded-xl p-6">
+          <div className="lg:col-span-1 bg-zinc-900 border border-zinc-800 rounded-xl p-5 sm:p-6">
               <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-                  <ArrowUpRight className="text-emerald-500" /> Top Khách hàng nạp tiền
+                  <ArrowUpRight className="text-emerald-500 w-5 h-5" /> Top Khách hàng nạp tiền
               </h3>
               <div className="space-y-3">
                   {stats.topDepositors.map((user: any, index: number) => (
-                      <div key={user._id} className="flex items-center gap-4 p-3 bg-zinc-950 rounded-lg border border-zinc-800">
-                          <span className="font-bold text-lg text-zinc-500 w-6 text-center">{index + 1}</span>
-                          <img src={user.avatar || '/default-avatar.png'} alt={user.username} className="w-10 h-10 rounded-full object-cover" />
-                          <div className="font-bold text-white flex-1">{user.username}</div>
-                          <div className="font-bold text-emerald-400 text-base font-mono">{(user.totalDeposited || 0).toLocaleString()} đ</div>
+                      <div key={user._id} className="flex items-center gap-3 sm:gap-4 p-3 bg-zinc-950 rounded-xl border border-zinc-800/80 hover:border-zinc-700 transition-colors">
+                          <span className={`font-black text-sm w-6 text-center shrink-0 ${index === 0 ? 'text-amber-400' : index === 1 ? 'text-zinc-300' : index === 2 ? 'text-amber-600' : 'text-zinc-500'}`}>
+                            {index + 1}
+                          </span>
+                          <img src={user.avatar || '/default-avatar.png'} alt={user.username} className="w-10 h-10 rounded-full object-cover shrink-0 ring-1 ring-white/10" />
+                          <div className="flex-1 min-w-0">
+                              <div className="font-bold text-white truncate text-sm" title={user.username}>{user.username}</div>
+                          </div>
+                          <div className="font-bold text-emerald-400 text-sm sm:text-base font-mono shrink-0 whitespace-nowrap text-right">
+                            {(user.totalDeposited || 0).toLocaleString()} đ
+                          </div>
                       </div>
                   ))}
               </div>
