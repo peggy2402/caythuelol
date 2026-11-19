@@ -12,6 +12,7 @@ import {
   Play, CheckSquare, Lock, Flag, Swords, Trophy, Save, Crosshair, ArrowLeft, Search, RefreshCw, AlertTriangle, XCircle, Zap
 } from 'lucide-react';
 import { Pencil, Trash2, X, Plus, Eye, EyeOff, History, ArrowUpRight, ArrowDownLeft, Star, User, Award, Gamepad2, ExternalLink, ChevronsUpDown, Globe } from 'lucide-react';
+import { format } from 'date-fns';
 import { toast } from 'sonner';
 import ChatWindow from '@/components/chat/ChatWindow';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -140,6 +141,22 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
   const [dDragonVersion, setDDragonVersion] = useState('16.5.1'); // Phiên bản dự phòng
+
+  // Countdown Timer cho thời hạn Khiếu nại 24h
+  const [currentTime, setCurrentTime] = useState<number>(Date.now());
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const formatCountdown = (ms: number) => {
+    if (ms <= 0) return '00:00:00';
+    const totalSecs = Math.floor(ms / 1000);
+    const h = Math.floor(totalSecs / 3600);
+    const m = Math.floor((totalSecs % 3600) / 60);
+    const s = totalSecs % 60;
+    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  };
   
   // UI States
   const [activeTab, setActiveTab] = useState<'INFO' | 'PROGRESS'>('INFO');
@@ -1320,11 +1337,12 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
       ? new Date(order.completedAt || completedEntry?.timestamp || order.updatedAt).getTime()
       : null;
   const disputeDeadline = completedTimeMs ? new Date(completedTimeMs + TWENTY_FOUR_HOURS_MS) : null;
+  const disputeRemainingMs = disputeDeadline ? Math.max(0, disputeDeadline.getTime() - currentTime) : 0;
   const isDisputeExpired =
     isCustomer &&
     order.status === 'COMPLETED' &&
     completedTimeMs !== null &&
-    Date.now() - completedTimeMs > TWENTY_FOUR_HOURS_MS;
+    disputeRemainingMs <= 0;
 
   const isRatingExpired = order.status === 'COMPLETED' && (new Date().getTime() - new Date(order.updatedAt).getTime() > SEVEN_DAYS_MS);
   const canRate = isCustomer && order.status === 'COMPLETED' && !order.rating && !isRatingExpired;
@@ -1398,7 +1416,7 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                                 <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight flex items-center gap-2">
                                     {serviceName}
                                 </h2>
-                                <p className="text-xs text-zinc-400 flex items-center gap-1.5 mt-1.5">
+                                <p className="text-xs text-zinc-400 flex items-center gap-1.5 mt-1.5 flex-wrap">
                                     <Clock size={12} /> {new Date(order.createdAt).toLocaleString('vi-VN')}
                                     {order.details?.server && (
                                         <>
@@ -1407,6 +1425,29 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                                         </>
                                     )}
                                 </p>
+
+                                {order.status === 'COMPLETED' && disputeDeadline && (
+                                    <div className="mt-2.5 flex flex-wrap items-center gap-2 text-xs sm:text-sm font-medium">
+                                        <div className="flex items-center gap-1.5 text-zinc-300">
+                                            <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
+                                            <span>Thời gian Báo lỗi / Khiếu nại:</span>
+                                            <span className="font-mono text-zinc-100 font-bold">
+                                                {format(disputeDeadline, 'HH:mm:ss dd/MM/yyyy')}
+                                            </span>
+                                        </div>
+
+                                        {disputeRemainingMs > 0 ? (
+                                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 font-mono text-xs font-bold shadow-[0_0_12px_rgba(245,158,11,0.2)] animate-pulse">
+                                                <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+                                                (Còn lại: {formatCountdown(disputeRemainingMs)})
+                                            </span>
+                                        ) : (
+                                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-zinc-800 text-zinc-400 border border-zinc-700 text-xs font-semibold">
+                                                <Lock className="w-3 h-3 text-emerald-400" /> Hết hạn khiếu nại
+                                            </span>
+                                        )}
+                                    </div>
+                                )}
                             </div>
                             <StatusBadge status={order.status} />
                         </div>
@@ -1462,16 +1503,9 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                                 <span>Đã quá thời hạn 24h khiếu nại — Số tiền đơn hàng đã thuộc hoàn toàn về Booster.</span>
                             </div>
                         ) : (
-                            <div className="space-y-1.5">
-                                <button onClick={() => setIsDisputeModalOpen(true)} className="w-full py-3 bg-red-900/20 hover:bg-red-900/40 text-red-400 font-bold rounded-xl flex items-center justify-center gap-2 transition-colors border border-red-500/20">
-                                    <AlertTriangle className="w-4 h-4" /> Báo lỗi / Có vấn đề
-                                </button>
-                                {isCustomer && order.status === 'COMPLETED' && disputeDeadline && (
-                                    <p className="text-[11px] text-zinc-500 text-center">
-                                        Chỉ được khiếu nại trong vòng 24h kể từ khi hoàn thành (đến {disputeDeadline.toLocaleString('vi-VN')}). Sau 24h tiền sẽ hoàn toàn thuộc về Booster.
-                                    </p>
-                                )}
-                            </div>
+                            <button onClick={() => setIsDisputeModalOpen(true)} className="w-full py-3 bg-red-900/20 hover:bg-red-900/40 text-red-400 font-bold rounded-xl flex items-center justify-center gap-2 transition-colors border border-red-500/20">
+                                <AlertTriangle className="w-4 h-4" /> Báo lỗi / Có vấn đề
+                            </button>
                         )
                     )}
 
