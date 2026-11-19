@@ -131,7 +131,7 @@ export class OrdersController {
   async rateBooster(
     @Param('id') id: string,
     @ReqUser() user: any,
-    @Body() body: { stars: number; comment?: string },
+    @Body() body: { stars?: number; rating?: number; comment?: string },
   ) {
     return this.ordersService.rateBooster(id, user.userId, body);
   }

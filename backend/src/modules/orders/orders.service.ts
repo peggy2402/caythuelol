@@ -698,7 +698,7 @@ export class OrdersService {
     }
   }
 
-  async rateBooster(orderId: string, customerId: string, rating: { stars: number; comment?: string }) {
+  async rateBooster(orderId: string, customerId: string, rating: { stars?: number; rating?: number; comment?: string }) {
     const order = await this.orderModel.findOne({
       _id: orderId,
       customerId: new Types.ObjectId(customerId),
@@ -706,8 +706,10 @@ export class OrdersService {
 
     if (!order) throw new NotFoundException('Không tìm thấy đơn hàng của bạn');
 
+    const stars = Number(rating.stars ?? rating.rating ?? (rating as any).score) || 5;
+
     (order as any).rating = {
-      stars: rating.stars,
+      stars,
       comment: rating.comment || '',
       createdAt: new Date(),
     };

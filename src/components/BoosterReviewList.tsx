@@ -15,10 +15,17 @@ const RatingStars = ({ rating, size = 14 }: { rating: number; size?: number }) =
   </div>
 );
 
+const getReviewStars = (review: any): number => {
+  if (typeof review?.rating?.stars === 'number') return review.rating.stars;
+  if (typeof review?.rating?.rating === 'number') return review.rating.rating;
+  if (typeof review?.rating === 'number') return review.rating;
+  return 5;
+};
+
 export default function BoosterReviewList({ reviews = [] }: { reviews: any[] }) {
   const totalReviews = reviews.length;
   const averageRating = totalReviews > 0
-    ? (reviews.reduce((acc, r) => acc + (r.rating?.stars || 5), 0) / totalReviews).toFixed(1)
+    ? (reviews.reduce((acc, r) => acc + getReviewStars(r), 0) / totalReviews).toFixed(1)
     : '5.0';
 
   return (
@@ -76,7 +83,7 @@ export default function BoosterReviewList({ reviews = [] }: { reviews: any[] }) 
                     </div>
                   </div>
                 </div>
-                <RatingStars rating={review.rating?.stars || 5} />
+                <RatingStars rating={getReviewStars(review)} />
               </div>
 
               {(review.rating?.comment || review.review) && (

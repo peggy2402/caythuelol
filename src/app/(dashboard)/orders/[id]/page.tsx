@@ -1474,7 +1474,7 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
 
                         {/* Footer description */}
                         <p className="text-xs text-zinc-400 leading-relaxed pt-1">
-                            Vui lòng gửi khiếu nại trước thời hạn trên. Sau thời gian này, bạn có thể không còn được hỗ trợ khiếu nại đơn hàng.
+                            Nếu chưa hài lòng hoặc gặp vấn đề với dịch vụ, đừng ngần ngại gửi khiếu nại để LeoRank hỗ trợ bạn nhé!
                         </p>
                     </div>
                 )}
@@ -2209,14 +2209,24 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                                 <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
                                     <h3 className="text-sm font-bold text-zinc-400 uppercase mb-3 flex items-center gap-2"><Star className="w-4 h-4" /> Đánh giá của bạn</h3>
                                     <div className="bg-zinc-950 p-4 rounded-xl border border-zinc-800 space-y-3">
-                                        <div className="flex items-center gap-2 text-yellow-400">
-                                            {[...Array(5)].map((_, i) => (
-                                                <Star key={i} size={18} className={i < order.rating.stars ? "fill-current" : "text-zinc-700"} />
-                                            ))}
-                                            <span className="text-white font-bold ml-2">
-                                                {order.rating.stars === 5 ? 'Tuyệt vời' : order.rating.stars === 4 ? 'Rất tốt' : order.rating.stars === 3 ? 'Bình thường' : order.rating.stars === 2 ? 'Tệ' : 'Rất tệ'}
-                                            </span>
-                                        </div>
+                                        {(() => {
+                                            const stars = typeof order.rating.stars === 'number'
+                                                ? order.rating.stars
+                                                : typeof order.rating.rating === 'number'
+                                                ? order.rating.rating
+                                                : 5;
+                                            const label = stars === 5 ? 'Tuyệt vời' : stars === 4 ? 'Rất tốt' : stars === 3 ? 'Bình thường' : stars === 2 ? 'Tệ' : 'Rất tệ';
+                                            return (
+                                                <div className="flex items-center gap-2 text-yellow-400">
+                                                    {[...Array(5)].map((_, i) => (
+                                                        <Star key={i} size={18} className={i < stars ? "fill-current" : "text-zinc-700"} />
+                                                    ))}
+                                                    <span className="text-white font-bold ml-2">
+                                                        {label}
+                                                    </span>
+                                                </div>
+                                            );
+                                        })()}
                                         {(order.rating.comment || order.review) && (
                                             <div className="p-3 bg-zinc-900 rounded-lg text-sm text-zinc-300 italic border border-zinc-800 break-words whitespace-pre-wrap">
                                                 "{order.rating.comment || order.review}"

@@ -25,7 +25,7 @@ export default function RatingModal({ isOpen, onClose, orderId, onSuccess }: Rat
       const res = await fetch(`/api/orders/${orderId}/rate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ rating, comment }),
+        body: JSON.stringify({ rating, stars: rating, comment }),
       });
       const data = await res.json();
       if (res.ok) {
@@ -48,7 +48,7 @@ export default function RatingModal({ isOpen, onClose, orderId, onSuccess }: Rat
         <DialogHeader>
           <DialogTitle className="text-center text-xl font-bold">Đánh giá Booster</DialogTitle>
           <DialogDescription className="text-center text-zinc-400">
-            Trải nghiệm thuê cày của bạn thế nào?
+            Hãy chia sẻ cảm nhận của bạn về Booster nhé!
           </DialogDescription>
         </DialogHeader>
 
