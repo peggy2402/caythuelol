@@ -28,6 +28,7 @@ import RatingModal from '@/components/orders/RatingModal';
 import { GAMES_CATALOG, GameDefinition } from '@/lib/games';
 import ServerSelectModal from '@/components/ServerSelectModal';
 import { getServerByCode } from '@/lib/servers';
+import { getBoosterOrderValue } from '@/lib/orderPricing';
 
 // Helper lấy metadata tựa game
 function getGameMeta(gameCode?: string) {
@@ -1439,7 +1440,7 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                                         <span className="text-zinc-500">{isBooster ? 'Giá trị đơn hàng nhận được:' : 'Tổng thanh toán:'}</span>
                                         <span className="text-white font-bold">
                                             {(isBooster
-                                                ? Math.max(0, (order.pricing.total_amount || 0) - (order.pricing.service_fee || 0)) || order.pricing.original_price || order.pricing.total_amount
+                                                ? getBoosterOrderValue(order.pricing)
                                                 : order.pricing.total_amount
                                             ).toLocaleString()} đ
                                         </span>

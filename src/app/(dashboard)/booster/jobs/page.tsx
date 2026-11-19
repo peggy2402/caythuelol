@@ -30,6 +30,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog';
+import { getBoosterOrderValue } from '@/lib/orderPricing';
 
 const REJECTION_REASONS = [
   'Lịch cày / thi đấu cá nhân bị trùng lặp',
@@ -38,24 +39,6 @@ const REJECTION_REASONS = [
   'Máy chủ hoặc kết nối mạng hiện tại không ổn định',
   'Lý do cá nhân khác',
 ];
-
-function getBoosterOrderValue(pricing?: any): number {
-  if (!pricing) return 0;
-  if (pricing.booster_order_value) return Number(pricing.booster_order_value);
-  const total = Number(pricing.total_amount || 0);
-  const serviceFee = Number(pricing.service_fee || 0);
-  if (serviceFee > 0) {
-    return Math.max(0, total - serviceFee);
-  }
-  if (pricing.original_price) {
-    const discount = Number(pricing.discount_amount || 0);
-    return Math.max(0, Number(pricing.original_price) - discount);
-  }
-  if (pricing.platform_fee_percent && pricing.platform_fee_percent > 0) {
-    return Math.round(total / (1 + Number(pricing.platform_fee_percent) / 100));
-  }
-  return total;
-}
 
 interface Job {
   _id: string;

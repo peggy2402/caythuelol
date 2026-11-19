@@ -121,6 +121,28 @@ export class OrdersService {
           ? new Types.ObjectId(boosterId)
           : undefined;
 
+      const basePrice = Number(pricing.basePrice || pricing.base_price || 0);
+      const optionFees = Number(pricing.optionFees || pricing.option_fees || pricing.addons_cost || 0);
+      let serviceFee = Number(pricing.service_fee || 0);
+      let boosterOrderValue = 0;
+      if (serviceFee > 0) {
+        boosterOrderValue = Math.max(0, totalAmount - serviceFee);
+      } else if (pricing.original_price && Number(pricing.original_price) < totalAmount) {
+        boosterOrderValue = Number(pricing.original_price) - Number(pricing.discount_amount || 0);
+        serviceFee = Math.max(0, totalAmount - boosterOrderValue);
+      } else if (basePrice + optionFees > 0 && basePrice + optionFees < totalAmount) {
+        boosterOrderValue = basePrice + optionFees;
+        serviceFee = Math.max(0, totalAmount - boosterOrderValue);
+      } else {
+        const candidate = Math.round(totalAmount / 1.02);
+        if (Math.abs(totalAmount - Math.round(candidate * 1.02)) <= 2) {
+          boosterOrderValue = candidate;
+          serviceFee = totalAmount - candidate;
+        } else {
+          boosterOrderValue = totalAmount;
+        }
+      }
+
       const newOrder = new this.orderModel({
         orderCode: customCode,
         customerId: user._id,
@@ -129,13 +151,15 @@ export class OrdersService {
         status: OrderStatus.PAID,
         pricing: {
           ...pricing,
-          base_price: pricing.basePrice || pricing.base_price,
-          option_fees: pricing.optionFees || pricing.option_fees,
+          base_price: basePrice,
+          option_fees: optionFees,
+          addons_cost: optionFees,
+          service_fee: serviceFee,
+          platform_fee_percent: pricing.platform_fee_percent || (serviceFee > 0 ? 2 : 0),
+          original_price: pricing.original_price || boosterOrderValue,
+          booster_order_value: boosterOrderValue,
           booster_earnings:
-            pricing.booster_earnings ??
-            Math.round(
-              Math.max(0, Number(pricing.total_amount || 0) - Number(pricing.service_fee || 0)) * 0.85,
-            ),
+            pricing.booster_earnings ?? Math.round(boosterOrderValue * 0.85),
           settlement_status: SettlementStatus.DEPOSIT_HELD,
         },
         payment: {

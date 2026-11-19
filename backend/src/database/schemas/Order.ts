@@ -85,6 +85,11 @@ export interface IOrder {
     base_price: number;
     option_fees: number;
     platform_fee: number;
+    service_fee?: number;
+    platform_fee_percent?: number;
+    original_price?: number;
+    addons_cost?: number;
+    booster_order_value?: number;
     booster_earnings: number;
     settlement_status?: SettlementStatus | string;
   };
@@ -148,6 +153,11 @@ const OrderSchema = new Schema<IOrder>(
       base_price: Number,
       option_fees: Number,
       platform_fee: Number,
+      service_fee: { type: Number, default: 0 },
+      platform_fee_percent: { type: Number, default: 0 },
+      original_price: Number,
+      addons_cost: Number,
+      booster_order_value: Number,
       booster_earnings: Number,
       settlement_status: {
         type: String,

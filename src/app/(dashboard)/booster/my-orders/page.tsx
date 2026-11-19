@@ -5,6 +5,7 @@ import { useLanguage } from '@/lib/i18n';
 import Link from 'next/link';
 import { FileText, Loader2, Clock, CheckCircle2, AlertCircle, PlayCircle, XCircle, Search, Briefcase, RefreshCw, ArrowRight, User } from 'lucide-react';
 import { toast } from 'sonner';
+import { getBoosterEarnings } from '@/lib/orderPricing';
 
 export default function BoosterOrdersPage() {
   const { t } = useLanguage();
@@ -254,7 +255,7 @@ export default function BoosterOrdersPage() {
                     <div className="flex justify-between items-center">
                         <span className="text-xs text-zinc-500">Thu nhập</span>
                         <span className="text-base font-bold text-emerald-400 font-mono">
-                            {(order.pricing?.booster_earnings ?? Math.round(Math.max(0, (order.pricing?.total_amount || 0) - (order.pricing?.service_fee || 0)) * 0.85)).toLocaleString('vi-VN')} đ
+                            {getBoosterEarnings(order.pricing).toLocaleString('vi-VN')} đ
                         </span>
                     </div>
                     
@@ -292,7 +293,7 @@ export default function BoosterOrdersPage() {
                     <div className="text-right">
                         <p className="text-xs text-zinc-500 mb-0.5">Thu nhập</p>
                         <p className="text-lg font-bold text-emerald-400 font-mono leading-none">
-                        {(order.pricing?.booster_earnings ?? Math.round(Math.max(0, (order.pricing?.total_amount || 0) - (order.pricing?.service_fee || 0)) * 0.85)).toLocaleString('vi-VN')} đ
+                        {getBoosterEarnings(order.pricing).toLocaleString('vi-VN')} đ
                         </p>
                     </div>
                     <div className={`px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider whitespace-nowrap ${

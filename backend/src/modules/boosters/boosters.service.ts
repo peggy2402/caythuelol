@@ -966,27 +966,53 @@ export class BoostersService {
       const sanitized = { ...job };
       if (sanitized.pricing) {
         const total = Number(sanitized.pricing.total_amount || 0);
-        const serviceFee = Number(sanitized.pricing.service_fee || 0);
-        let netOrderValue = serviceFee > 0 ? Math.max(0, total - serviceFee) : 0;
-
-        if (!netOrderValue && sanitized.pricing.original_price) {
-          netOrderValue = Math.max(
-            0,
-            Number(sanitized.pricing.original_price) - Number(sanitized.pricing.discount_amount || 0),
-          );
-        }
-
-        if (!netOrderValue && sanitized.pricing.platform_fee_percent && sanitized.pricing.platform_fee_percent > 0) {
-          netOrderValue = Math.round(total / (1 + Number(sanitized.pricing.platform_fee_percent) / 100));
-        }
+        let serviceFee = Number(sanitized.pricing.service_fee || 0);
+        let netOrderValue = Number(sanitized.pricing.booster_order_value || 0);
 
         if (!netOrderValue) {
-          netOrderValue = total;
+          if (serviceFee > 0) {
+            netOrderValue = Math.max(0, total - serviceFee);
+          } else if (sanitized.pricing.original_price && Number(sanitized.pricing.original_price) < total) {
+            netOrderValue = Number(sanitized.pricing.original_price) - Number(sanitized.pricing.discount_amount || 0);
+            serviceFee = total - netOrderValue;
+          } else if (sanitized.pricing.booster_earnings && Number(sanitized.pricing.booster_earnings) > 0) {
+            const candidateFromEarnings = Math.round(Number(sanitized.pricing.booster_earnings) / 0.85);
+            if (candidateFromEarnings < total && Math.abs(Math.round(candidateFromEarnings * 0.85) - Number(sanitized.pricing.booster_earnings)) <= 5) {
+              netOrderValue = candidateFromEarnings;
+              serviceFee = total - netOrderValue;
+            }
+          }
+
+          if (!netOrderValue) {
+            const basePrice = Number(sanitized.pricing.base_price || 0);
+            const optionFees = Number(sanitized.pricing.option_fees || sanitized.pricing.addons_cost || 0);
+            if (basePrice > 0 && basePrice + optionFees > 0 && basePrice + optionFees < total) {
+              netOrderValue = basePrice + optionFees;
+              serviceFee = total - netOrderValue;
+            }
+          }
+
+          if (!netOrderValue && sanitized.pricing.platform_fee_percent && sanitized.pricing.platform_fee_percent > 0) {
+            netOrderValue = Math.round(total / (1 + Number(sanitized.pricing.platform_fee_percent) / 100));
+            serviceFee = total - netOrderValue;
+          }
+
+          if (!netOrderValue && total > 0) {
+            const candidate = Math.round(total / 1.02);
+            if (Math.abs(total - Math.round(candidate * 1.02)) <= 2) {
+              netOrderValue = candidate;
+              serviceFee = total - candidate;
+            } else {
+              netOrderValue = total;
+            }
+          }
         }
 
         sanitized.pricing = {
           ...sanitized.pricing,
+          service_fee: serviceFee,
           booster_order_value: netOrderValue,
+          booster_earnings: Number(sanitized.pricing.booster_earnings) || Math.round(netOrderValue * 0.85),
         };
       }
       if (sanitized.details) {
@@ -1021,11 +1047,51 @@ export class BoostersService {
     if (status && status !== 'ALL') {
       filter.status = status;
     }
-    const orders = await this.orderModel
+    const rawOrders = await this.orderModel
       .find(filter)
       .populate('customerId', 'username profile')
       .sort({ createdAt: -1 })
       .lean();
+
+    const orders = rawOrders.map((o: any) => {
+      const order = { ...o };
+      if (order.pricing) {
+        const total = Number(order.pricing.total_amount || 0);
+        let serviceFee = Number(order.pricing.service_fee || 0);
+        let netOrderValue = Number(order.pricing.booster_order_value || 0);
+        if (!netOrderValue) {
+          if (serviceFee > 0) {
+            netOrderValue = Math.max(0, total - serviceFee);
+          } else if (order.pricing.original_price && Number(order.pricing.original_price) < total) {
+            netOrderValue = Number(order.pricing.original_price) - Number(order.pricing.discount_amount || 0);
+            serviceFee = total - netOrderValue;
+          } else if (order.pricing.booster_earnings && Number(order.pricing.booster_earnings) > 0) {
+            const candidateFromEarnings = Math.round(Number(order.pricing.booster_earnings) / 0.85);
+            if (candidateFromEarnings < total && Math.abs(Math.round(candidateFromEarnings * 0.85) - Number(order.pricing.booster_earnings)) <= 5) {
+              netOrderValue = candidateFromEarnings;
+              serviceFee = total - netOrderValue;
+            }
+          }
+          if (!netOrderValue && total > 0) {
+            const candidate = Math.round(total / 1.02);
+            if (Math.abs(total - Math.round(candidate * 1.02)) <= 2) {
+              netOrderValue = candidate;
+              serviceFee = total - candidate;
+            } else {
+              netOrderValue = total;
+            }
+          }
+        }
+        order.pricing = {
+          ...order.pricing,
+          service_fee: serviceFee,
+          booster_order_value: netOrderValue,
+          booster_earnings: Number(order.pricing.booster_earnings) || Math.round(netOrderValue * 0.85),
+        };
+      }
+      return order;
+    });
+
     return { success: true, orders };
   }
 

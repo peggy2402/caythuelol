@@ -10,6 +10,7 @@ import {
   Gamepad2, User, ChevronRight, Sparkles, Shield
 } from 'lucide-react';
 import { GAMES_CATALOG, GameDefinition } from '@/lib/games';
+import { getBoosterOrderValue } from '@/lib/orderPricing';
 
 // Helper lấy metadata tựa game
 function getGameMeta(gameCode?: string) {
@@ -323,7 +324,7 @@ export default function OrdersPage() {
                       </p>
                       <p className="text-lg font-bold text-emerald-400 font-mono">
                         {(currentUser?.role === 'BOOSTER'
-                          ? Math.max(0, (order.pricing?.total_amount || 0) - (order.pricing?.service_fee || 0)) || order.pricing?.original_price || order.pricing?.total_amount || 0
+                          ? getBoosterOrderValue(order.pricing)
                           : (order.pricing?.total_amount || 0)
                         ).toLocaleString()} đ
                       </p>
