@@ -273,6 +273,23 @@ export class PublicService {
             },
           ];
 
+          // 3. Lấy 20 trận gần nhất (Match IDs)
+          let recentMatches: string[] = [];
+          try {
+            const PLATFORM_TO_MATCH_REGION: Record<string, string> = {
+              VN2: 'sea', SG2: 'sea', PH2: 'sea', TH2: 'sea', TW2: 'sea', OC1: 'sea',
+              KR: 'asia', JP1: 'asia',
+              NA1: 'americas', BR1: 'americas', LA1: 'americas', LA2: 'americas',
+              EUW1: 'europe', EUN1: 'europe', TR1: 'europe', RU: 'europe',
+            };
+            const matchRegion = PLATFORM_TO_MATCH_REGION[platformId] || 'sea';
+            const matchHistoryUrl = `https://${matchRegion}.api.riotgames.com/lol/match/v5/matches/by-puuid/${accountData.puuid}/ids?start=0&count=20&api_key=${apiKey}`;
+            const matchHistoryRes = await axios.get(matchHistoryUrl, { headers });
+            recentMatches = matchHistoryRes.data || [];
+          } catch (mErr: any) {
+            console.warn('[Riot Match History Error]:', mErr.message);
+          }
+
           return {
             success: true,
             isMock: false,
@@ -280,6 +297,7 @@ export class PublicService {
             puuid: accountData.puuid,
             gameName: accountData.gameName,
             tagLine: accountData.tagLine,
+            recentMatches,
           };
         }
       } catch (err: any) {
@@ -312,6 +330,13 @@ export class PublicService {
       puuid: 'mock_puuid_' + Date.now(),
       gameName: gameName || 'Mary Tái Lâm',
       tagLine: tagLine || '2003',
+      recentMatches: [
+        'VN2_1640656388',
+        'VN2_1640608730',
+        'VN2_1640571634',
+        'VN2_1640492570',
+        'VN2_1640449961',
+      ],
       leagues: [
         {
           queueType: 'RANKED_SOLO_5x5',
@@ -333,16 +358,148 @@ export class PublicService {
     };
   }
 
-  async getRiotMatch(matchId: string) {
-    return {
-      success: true,
-      match: {
-        matchId,
-        gameMode: 'CLASSIC',
-        gameDuration: 1845,
-        win: true,
-      },
+  async getRiotMatch(dto: any) {
+    const matchId = typeof dto === 'string' ? dto : dto?.matchId;
+    const server = dto?.server;
+    const targetName = dto?.targetName;
+
+    if (!matchId) throw new BadRequestException('Vui lòng cung cấp ID trận đấu');
+
+    const SERVER_TO_PLATFORM: Record<string, string> = {
+      VN: 'VN2', KR: 'KR', JP: 'JP1', NA: 'NA1', EUW: 'EUW1', EUNE: 'EUN1', OC: 'OC1',
+      BR: 'BR1', LAS: 'LA2', LAN: 'LA1', RU: 'RU', TR: 'TR1', PH: 'PH2', SG: 'SG2',
+      TH: 'TH2', TW: 'TW2',
     };
+
+    const PLATFORM_TO_MATCH_REGION: Record<string, string> = {
+      VN2: 'sea', SG2: 'sea', PH2: 'sea', TH2: 'sea', TW2: 'sea', OC1: 'sea',
+      KR: 'asia', JP1: 'asia',
+      NA1: 'americas', BR1: 'americas', LA1: 'americas', LA2: 'americas',
+      EUW1: 'europe', EUN1: 'europe', TR1: 'europe', RU: 'europe',
+    };
+
+    const riotKeySettings = await this.settingModel.find({
+      key: { $in: ['RIOT_API_KEY', 'riot_api_key'] },
+    }).lean();
+
+    let apiKey = '';
+    for (const s of riotKeySettings) {
+      const val = typeof s?.value === 'string' ? s.value.trim() : '';
+      if (val) {
+        apiKey = val;
+        break;
+      }
+    }
+    if (!apiKey) {
+      apiKey = (process.env.RIOT_API_KEY || '').trim();
+    }
+
+    let platformId = 'VN2';
+    if (server && SERVER_TO_PLATFORM[server.toUpperCase()]) {
+      platformId = SERVER_TO_PLATFORM[server.toUpperCase()];
+    } else if (matchId.includes('_')) {
+      platformId = matchId.split('_')[0].toUpperCase();
+    }
+
+    const matchRegion = PLATFORM_TO_MATCH_REGION[platformId] || 'sea';
+    const formattedMatchId = matchId.includes('_') ? matchId.trim() : `${platformId}_${matchId.trim()}`;
+
+    if (!apiKey) {
+      // Mock fallback nếu chưa có Riot API Key
+      return {
+        success: true,
+        isMock: true,
+        match: {
+          matchId: formattedMatchId,
+          gameMode: 'CLASSIC',
+          gameDuration: 1845,
+          win: true,
+        },
+        participant: {
+          championName: 'Lee Sin',
+          win: true,
+          kills: 7,
+          deaths: 2,
+          assists: 8,
+          riotIdGameName: targetName || 'Player',
+          riotIdTagline: 'VN2',
+        },
+        leagueInfo: {
+          queueType: 'RANKED_SOLO_5x5',
+          tier: 'PLATINUM',
+          rank: 'I',
+          leaguePoints: 85,
+        },
+      };
+    }
+
+    try {
+      const headers = { 'X-Riot-Token': apiKey };
+      const matchUrl = `https://${matchRegion}.api.riotgames.com/lol/match/v5/matches/${formattedMatchId}?api_key=${apiKey}`;
+      const matchRes = await axios.get(matchUrl, { headers });
+      const data = matchRes.data;
+
+      let leagueInfo = null;
+      let participant = null;
+
+      if (data.info?.participants) {
+        if (targetName) {
+          const cleanTarget = targetName.toLowerCase().replace(/\s/g, '').replace('#', '');
+          participant = data.info.participants.find((p: any) => {
+            const pName = (p.riotIdGameName || p.summonerName || '').toLowerCase().replace(/\s/g, '');
+            const pTag = (p.riotIdTagline || '').toLowerCase();
+            const fullName = pName + pTag;
+            return fullName.includes(cleanTarget) || cleanTarget.includes(pName);
+          });
+        }
+
+        // Nếu không truyền targetName hoặc tìm không ra, nhưng có danh sách -> lấy người chơi đầu tiên hoặc giữ null
+        if (participant && participant.puuid) {
+          try {
+            const leagueUrl = `https://${platformId.toLowerCase()}.api.riotgames.com/lol/league/v4/entries/by-puuid/${participant.puuid}?api_key=${apiKey}`;
+            const leagueRes = await axios.get(leagueUrl, { headers });
+            const leagues = leagueRes.data || [];
+
+            const isFlex = data.info.queueId === 440;
+            const primaryQueue = isFlex ? 'RANKED_FLEX_SR' : 'RANKED_SOLO_5x5';
+            const fallbackQueue = isFlex ? 'RANKED_SOLO_5x5' : 'RANKED_FLEX_SR';
+
+            leagueInfo =
+              leagues.find((l: any) => l.queueType === primaryQueue) ||
+              leagues.find((l: any) => l.queueType === fallbackQueue);
+          } catch (leagueErr: any) {
+            console.warn('[Riot League V4 Error]:', leagueErr.message);
+          }
+        }
+      }
+
+      return {
+        success: true,
+        match: data,
+        leagueInfo,
+        participant: participant
+          ? {
+              championName: participant.championName,
+              win: participant.win,
+              kills: participant.kills,
+              deaths: participant.deaths,
+              assists: participant.assists,
+              riotIdGameName: participant.riotIdGameName,
+              riotIdTagline: participant.riotIdTagline,
+            }
+          : null,
+      };
+    } catch (err: any) {
+      const status = err.response?.status;
+      console.error(`[Riot Match Error]: HTTP ${status}`, err.response?.data || err.message);
+      if (status === 404) {
+        throw new NotFoundException(`Không tìm thấy trận đấu "${formattedMatchId}" trên máy chủ Riot ${matchRegion.toUpperCase()}.`);
+      } else if (status === 401 || status === 403) {
+        throw new BadRequestException('RIOT_API_KEY không hợp lệ hoặc đã hết hạn 24h. Vui lòng cập nhật API Key mới trong Quản trị.');
+      } else {
+        throw new BadRequestException(`Riot API lỗi (HTTP ${status || 'Unknown'}): ${err.response?.data?.status?.message || err.message}`);
+      }
+    }
   }
 
   detectGeoLocale(req: any) {

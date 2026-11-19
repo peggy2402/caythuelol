@@ -150,8 +150,8 @@ export class PublicController {
   @Public()
   @Post('riot/match')
   @ApiOperation({ summary: 'Lookup Riot match result' })
-  async getRiotMatch(@Body('matchId') matchId: string) {
-    return this.publicService.getRiotMatch(matchId);
+  async getRiotMatch(@Body() dto: any) {
+    return this.publicService.getRiotMatch(dto);
   }
 }
 

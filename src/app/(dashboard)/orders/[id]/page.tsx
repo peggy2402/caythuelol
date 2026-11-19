@@ -147,6 +147,7 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
   });
   const [isAddingMatch, setIsAddingMatch] = useState(false);
   const [riotMatchId, setRiotMatchId] = useState('');
+  const [recentMatches, setRecentMatches] = useState<string[]>([]);
   const [isFetchingRiot, setIsFetchingRiot] = useState(false);
   const [liveLeagueInfo, setLiveLeagueInfo] = useState<any>(null);
   const [editingMatchId, setEditingMatchId] = useState<string | null>(null);
@@ -633,6 +634,10 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                   ...prev, 
                   details: { ...prev.details, ...updateBody } 
               }));
+
+              if (Array.isArray(data.recentMatches) && data.recentMatches.length > 0) {
+                  setRecentMatches(data.recentMatches);
+              }
               
               // Real-time broadcast
               socket.emit('update_order', { room: order._id, data: { details: { ...order.details, ...updateBody } } });
@@ -656,13 +661,13 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ 
                   matchId: riotMatchId.trim(),
-                  server: order.details.server, // Gửi server để API tự thêm prefix (VN2, KR...)
-                  targetName: order.details.ingame_name || order.details.account_username // Gửi tên để tìm PUUID
+                  server: order.details?.server || 'VN', // Gửi server để API tự thêm prefix (VN2, KR...)
+                  targetName: order.details?.ingame_name || order.details?.account_username || ingameName // Gửi tên để tìm PUUID
               })
           });
           const data = await res.json();
           
-          if (!res.ok) throw new Error(data.error);
+          if (!res.ok) throw new Error(data.error || data.message || 'Lỗi lấy thông tin trận đấu');
           
           const participant = data.participant;
           const leagueInfo = data.leagueInfo;
@@ -2064,12 +2069,55 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                 
                 {/* Riot Match Fetcher (Only for new matches) */}
                 {!editingMatchId && (
-                    <div className="flex flex-col sm:flex-row gap-2 mb-6">
-                        <input type="text" placeholder="Nhập Match ID (VD: 123456 hoặc VN2_123456)" className="flex-1 bg-zinc-950 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white font-mono" value={riotMatchId} onChange={e => setRiotMatchId(e.target.value)} />
-                        <button onClick={handleFetchRiotMatch} disabled={isFetchingRiot} className="bg-zinc-800 hover:bg-zinc-700 text-white px-3 py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-2 w-full sm:w-auto">
-                            {isFetchingRiot ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
-                            Lấy Info
-                        </button>
+                    <div className="space-y-2 mb-6">
+                        <div className="flex flex-col sm:flex-row gap-2">
+                            <input 
+                                type="text" 
+                                placeholder="Nhập Match ID (VD: 1640656388 hoặc VN2_1640656388)" 
+                                className="flex-1 bg-zinc-950 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white font-mono" 
+                                value={riotMatchId} 
+                                onChange={e => setRiotMatchId(e.target.value)} 
+                            />
+                            <button 
+                                type="button"
+                                onClick={handleFetchRiotMatch} 
+                                disabled={isFetchingRiot} 
+                                className="bg-blue-600 hover:bg-blue-500 text-white px-3.5 py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-2 w-full sm:w-auto transition-colors disabled:opacity-50 cursor-pointer"
+                            >
+                                {isFetchingRiot ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+                                Lấy Info
+                            </button>
+                        </div>
+
+                        {recentMatches.length > 0 && (
+                            <div className="bg-zinc-950/80 border border-white/5 rounded-xl p-2.5 space-y-1.5">
+                                <div className="text-[11px] font-semibold text-zinc-400 flex items-center justify-between">
+                                    <span className="flex items-center gap-1.5">
+                                        <History className="w-3.5 h-3.5 text-blue-400" />
+                                        Trận đấu gần đây ({recentMatches.length}):
+                                    </span>
+                                    <span className="text-[10px] text-zinc-500">Bấm để tự điền</span>
+                                </div>
+                                <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto pr-1">
+                                    {recentMatches.slice(0, 10).map((mId) => (
+                                        <button
+                                            key={mId}
+                                            type="button"
+                                            onClick={() => {
+                                                setRiotMatchId(mId);
+                                            }}
+                                            className={`text-[11px] font-mono px-2 py-1 rounded border transition-colors cursor-pointer ${
+                                                riotMatchId === mId
+                                                    ? 'bg-blue-600/30 text-blue-300 border-blue-500/50 font-bold'
+                                                    : 'bg-zinc-900 text-zinc-300 border-white/5 hover:border-blue-500/30 hover:text-white'
+                                            }`}
+                                        >
+                                            {mId}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
                     </div>
                 )}
 
