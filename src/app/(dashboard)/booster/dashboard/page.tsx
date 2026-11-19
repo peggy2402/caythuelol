@@ -24,7 +24,7 @@ import Link from 'next/link';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { getBoosterOrderValue } from '@/lib/orderPricing';
-import { getOrderStatusInfo } from '@/lib/orderStatus';
+import { getOrderStatusInfo, formatServiceNameVi } from '@/lib/orderStatus';
 import { apiFetch } from '@/lib/api';
 import BoosterRecentForm from '@/components/BoosterRecentForm';
 
@@ -363,7 +363,7 @@ export default function BoosterDashboardPage() {
 
                     <div className="flex items-center justify-between text-xs">
                       <span className="text-zinc-500">Dịch vụ</span>
-                      <span className="font-semibold text-zinc-200">{order.serviceType}</span>
+                      <span className="font-semibold text-zinc-200">{formatServiceNameVi(order.serviceType)}</span>
                     </div>
 
                     <div className="flex items-center justify-between text-xs">
@@ -424,7 +424,7 @@ export default function BoosterDashboardPage() {
                           </div>
                         </td>
                         <td className="px-6 py-4 font-semibold text-zinc-300">
-                          {order.serviceType}
+                          {formatServiceNameVi(order.serviceType)}
                         </td>
                         <td className="px-6 py-4 font-mono font-bold text-emerald-400 text-sm">
                           {getBoosterOrderValue(order.pricing).toLocaleString('vi-VN')} đ

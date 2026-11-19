@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Loader2, ShieldCheck, Wallet, ArrowRight, AlertCircle, CheckCircle2, TicketPercent, X, Tag, User } from 'lucide-react';
 import { toast } from 'sonner';
 import Navbar from '@/components/Navbar';
+import { formatServiceNameVi } from '@/lib/orderStatus';
 
 function CheckoutContent() {
   const router = useRouter();
@@ -309,7 +310,7 @@ function CheckoutContent() {
               <div className="space-y-4 text-sm">
                 <div className="flex justify-between py-2 border-b border-zinc-800">
                   <span className="text-zinc-400">Dịch vụ</span>
-                  <span className="font-bold">{serviceType}</span>
+                  <span className="font-bold">{formatServiceNameVi(serviceType)}</span>
                 </div>
                 <div className="flex justify-between py-2 border-b border-zinc-800">
                   <span className="text-zinc-400">Booster</span>

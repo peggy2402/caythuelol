@@ -6,6 +6,8 @@ import Link from 'next/link';
 import { FileText, Loader2, Clock, CheckCircle2, AlertCircle, PlayCircle, XCircle, Search, Briefcase, RefreshCw, ArrowRight, User } from 'lucide-react';
 import { toast } from 'sonner';
 import { getBoosterEarnings } from '@/lib/orderPricing';
+import { formatServiceNameVi } from '@/lib/orderStatus';
+import { formatRankDisplayVi } from '@/lib/riotRanks';
 
 export default function BoosterOrdersPage() {
   const { t } = useLanguage();
@@ -230,16 +232,16 @@ export default function BoosterOrdersPage() {
                   </div>
                   <div className="min-w-0">
                     <h3 className="font-bold text-white text-base md:text-lg group-hover:text-blue-400 transition-colors truncate">
-                      {order.serviceType || order.service_type}
-                      <span className="ml-2 md:ml-3 text-[10px] md:text-xs font-normal text-zinc-500 font-mono">#{order._id.slice(-6).toUpperCase()}</span>
+                      {formatServiceNameVi(order.serviceType || order.service_type)}
+                      <span className="ml-2 md:ml-3 text-[10px] md:text-xs font-normal text-zinc-500 font-mono">#{order.orderCode || order._id.slice(-6).toUpperCase()}</span>
                     </h3>
                     <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs md:text-sm text-zinc-400 mt-1">
                       <span className="flex items-center gap-1 truncate">
-                        Khách: <span className="text-white font-medium">{order.customerId?.username || order.customer_id?.username || 'Unknown'}</span>
+                        Khách: <span className="text-white font-medium">{order.customerId?.username || order.customer_id?.username || 'Khách'}</span>
                       </span>
                       <span className="hidden xs:inline w-1 h-1 rounded-full bg-zinc-700 self-center"></span>
                       <span className="flex items-center gap-1 truncate max-w-full">
-                        {order.details?.current_rank || order.details?.current_level} <span className="text-zinc-600">&rarr;</span> {order.details?.desired_rank || order.details?.desired_level}
+                        {order.details?.current_rank ? formatRankDisplayVi(order.details.current_rank) : order.details?.current_level} <span className="text-zinc-600">&rarr;</span> {order.details?.desired_rank ? formatRankDisplayVi(order.details.desired_rank) : order.details?.desired_level}
                       </span>
                       <span className="hidden sm:inline w-1 h-1 rounded-full bg-zinc-700 self-center"></span>
                       <span className="text-[10px] md:text-xs opacity-70">{new Date(order.createdAt || order.created_at).toLocaleDateString('vi-VN')}</span>
