@@ -826,6 +826,20 @@ export class OrdersService {
       throw new ForbiddenException('Chỉ Tuyển thủ phụ trách hoặc Quản trị viên mới được thêm trận đấu');
     }
 
+    const orderQueue = (order.details?.queue_type || order.details?.queueType || 'SOLO_DUO').toUpperCase();
+    const isSoloDuo = ['SOLO', 'SOLO_DUO', 'RANKED_SOLO_5X5', 'RANK_SOLO'].includes(orderQueue);
+    const isFlex = ['FLEX', 'RANKED_FLEX_SR', 'RANK_FLEX'].includes(orderQueue);
+
+    if (body.detail?.info?.queueId) {
+      const qId = Number(body.detail.info.queueId);
+      if (isSoloDuo && qId !== 420) {
+        throw new BadRequestException('Vui lòng điền đúng ID trận đấu thuộc Chế độ Đơn / Đôi (Trận đấu này thuộc Chế độ Linh hoạt hoặc Đấu thường)');
+      }
+      if (isFlex && qId !== 440) {
+        throw new BadRequestException('Vui lòng điền đúng ID trận đấu thuộc Chế độ Linh hoạt (Trận đấu này không phải Chế độ Linh hoạt)');
+      }
+    }
+
     if (!Array.isArray(order.match_history)) {
       order.match_history = [];
     }
@@ -885,6 +899,10 @@ export class OrdersService {
       throw new ForbiddenException('Chỉ Tuyển thủ phụ trách hoặc Quản trị viên mới được thêm trận đấu');
     }
 
+    const orderQueue = (order.details?.queue_type || order.details?.queueType || 'SOLO_DUO').toUpperCase();
+    const isSoloDuo = ['SOLO', 'SOLO_DUO', 'RANKED_SOLO_5X5', 'RANK_SOLO'].includes(orderQueue);
+    const isFlex = ['FLEX', 'RANKED_FLEX_SR', 'RANK_FLEX'].includes(orderQueue);
+
     if (!Array.isArray(order.match_history)) {
       order.match_history = [];
     }
@@ -904,6 +922,16 @@ export class OrdersService {
         continue;
       }
       if (riotId) existingRiotIds.add(riotId);
+
+      if (m.detail?.info?.queueId) {
+        const qId = Number(m.detail.info.queueId);
+        if (isSoloDuo && qId !== 420) {
+          throw new BadRequestException(`Trận đấu ${riotId} không thuộc Chế độ Đơn / Đôi. Vui lòng chỉ thêm các trận Đơn / Đôi.`);
+        }
+        if (isFlex && qId !== 440) {
+          throw new BadRequestException(`Trận đấu ${riotId} không thuộc Chế độ Linh hoạt. Vui lòng chỉ thêm các trận Linh hoạt.`);
+        }
+      }
 
       const lp = Number(m.lp_change) || 0;
       netLpChange += lp;

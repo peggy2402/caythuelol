@@ -34,6 +34,14 @@ export class RiotPlayerLookupDto {
   @IsString()
   @IsOptional()
   tagLine?: string;
+
+  @ApiPropertyOptional({
+    example: 'SOLO_DUO',
+    description: 'Loại hàng chờ / Chế độ chơi: SOLO_DUO | FLEX | COMPETITIVE',
+  })
+  @IsString()
+  @IsOptional()
+  queueType?: string;
 }
 
 export class RiotMatchLookupDto {

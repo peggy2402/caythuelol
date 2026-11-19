@@ -30,7 +30,7 @@ import ServerSelectModal from '@/components/ServerSelectModal';
 import { getServerByCode } from '@/lib/servers';
 import { getBoosterOrderValue } from '@/lib/orderPricing';
 import { getOrderStatusInfo } from '@/lib/orderStatus';
-import { formatRankDisplayVi } from '@/lib/riotRanks';
+import { formatRankDisplayVi, LOL_QUEUE_NAMES, getLolQueueName } from '@/lib/riotRanks';
 import {
   Dialog,
   DialogContent,
@@ -213,6 +213,43 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
     const userStr = localStorage.getItem('user');
     if (userStr) setUser(JSON.parse(userStr));
   }, []);
+
+  // Tải danh sách trận gần nhất theo đúng chế độ chơi của đơn hàng (Đơn/Đôi hoặc Linh Hoạt)
+  const fetchRecentMatchesForOrder = async () => {
+    const nameToCheck = (ingameName && ingameName.trim()) || order?.details?.ingame_name || order?.details?.account_username;
+    if (!nameToCheck || !order?._id) return;
+
+    const orderGame = (order?.snapshot?.gameCode || order?.details?.game || order?.details?.gameCode || 'LOL').toUpperCase();
+    const isValorant = orderGame.includes('VAL');
+    const rawQueue = String(order?.details?.queueType || order?.details?.queue_type || order?.serviceType || '').toUpperCase();
+    const isFlexOrder = rawQueue.includes('FLEX') || rawQueue.includes('LINH');
+
+    try {
+      const res = await fetch('/api/games/player', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          game: orderGame,
+          server: order.details?.server || (isValorant ? 'ap' : 'VN'),
+          name: nameToCheck.trim(),
+          queueType: isFlexOrder ? 'FLEX' : 'SOLO_DUO',
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data.recentMatches)) {
+          setRecentMatches(data.recentMatches);
+        }
+      }
+    } catch (e) {}
+  };
+
+  // Tự động tải trận gần nhất khớp chế độ khi mở modal thêm trận
+  useEffect(() => {
+    if ((isMatchModalOpen || isBatchModalOpen) && recentMatches.length === 0) {
+      fetchRecentMatchesForOrder();
+    }
+  }, [isMatchModalOpen, isBatchModalOpen]);
 
   // Tự động lấy phiên bản DDragon mới nhất
   useEffect(() => {
@@ -509,6 +546,35 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
 
   const handleSaveMatch = async (e: React.FormEvent) => {
       e.preventDefault();
+
+      const orderGame = (order?.snapshot?.gameCode || order?.details?.game || order?.details?.gameCode || 'LOL').toUpperCase();
+      const isValorant = orderGame.includes('VAL');
+      const rawQueue = String(order?.details?.queueType || order?.details?.queue_type || order?.serviceType || '').toUpperCase();
+      const isFlexOrder = rawQueue.includes('FLEX') || rawQueue.includes('LINH');
+      const isSoloDuoOrder = !isFlexOrder;
+
+      // Validate Queue trước khi lưu nếu có dữ liệu chi tiết
+      if (!editingMatchId && fetchedMatchData) {
+        if (!isValorant && fetchedMatchData.info?.queueId !== undefined) {
+          const matchQueueId = Number(fetchedMatchData.info.queueId);
+          if (isSoloDuoOrder && matchQueueId !== 420) {
+            toast.error(`Vui lòng điền đúng ID trận đấu thuộc Chế độ Đơn / Đôi! (Trận đấu này thuộc ${getLolQueueName(matchQueueId)})`);
+            return;
+          }
+          if (isFlexOrder && matchQueueId !== 440) {
+            toast.error(`Vui lòng điền đúng ID trận đấu thuộc Chế độ Linh hoạt! (Trận đấu này thuộc ${getLolQueueName(matchQueueId)})`);
+            return;
+          }
+        }
+        if (isValorant) {
+          const mode = (fetchedMatchData.metadata?.mode || fetchedMatchData.mode || '').toLowerCase();
+          if (mode && mode !== 'competitive') {
+            toast.error(`Vui lòng điền đúng ID trận đấu thuộc Chế độ Xếp Hạng (Competitive)!`);
+            return;
+          }
+        }
+      }
+
       setIsAddingMatch(true);
       try {
           const method = editingMatchId ? 'PUT' : 'POST';
@@ -698,31 +764,66 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
       const server = order.details?.server || (isValorant ? 'ap' : 'VN');
       const targetName = order.details?.ingame_name || order.details?.account_username || ingameName;
 
+      const rawQueue = String(order?.details?.queueType || order?.details?.queue_type || order?.serviceType || '').toUpperCase();
+      const isFlexOrder = rawQueue.includes('FLEX') || rawQueue.includes('LINH');
+      const isSoloDuoOrder = !isFlexOrder;
+
+      const invalidQueueMatches: { matchId: string; queueName: string }[] = [];
+
       // Tự động kéo KDA & Detail cho bất kỳ trận nào chưa có trước khi lưu
       const matchesToSave = await Promise.all(
         parsedBatchMatches.map(async (m) => {
-          if (m.detail && m.champion) return m;
-          try {
-            const res = await fetch('/api/games/match', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ game: orderGame, matchId: m.matchId, server, targetName }),
-            });
-            if (res.ok) {
-              const data = await res.json();
-              const p = data.participant;
-              return {
-                ...m,
-                champion: p?.championName || m.champion || (isValorant ? 'Valorant Agent' : 'League Champion'),
-                result: p ? (p.win ? 'WIN' : 'LOSS') : m.result,
-                reason: p ? `KDA: ${p.kills}/${p.deaths}/${p.assists}${p.score ? ` (${p.score} pts)` : ''}` : m.reason,
-                detail: data.match || null,
-              };
+          let detail = m.detail;
+          let champion = m.champion;
+          let result = m.result;
+          let reason = m.reason;
+
+          if (!detail || !champion) {
+            try {
+              const res = await fetch('/api/games/match', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ game: orderGame, matchId: m.matchId, server, targetName }),
+              });
+              if (res.ok) {
+                const data = await res.json();
+                const p = data.participant;
+                detail = data.match || null;
+                champion = p?.championName || m.champion || (isValorant ? 'Valorant Agent' : 'League Champion');
+                result = p ? (p.win ? 'WIN' : 'LOSS') : m.result;
+                reason = p ? `KDA: ${p.kills}/${p.deaths}/${p.assists}${p.score ? ` (${p.score} pts)` : ''}` : m.reason;
+              }
+            } catch (e) {}
+          }
+
+          // Kiểm tra tính hợp lệ của chế độ trận đấu
+          if (!isValorant && detail?.info?.queueId !== undefined) {
+            const qId = Number(detail.info.queueId);
+            if (isSoloDuoOrder && qId !== 420) {
+              invalidQueueMatches.push({ matchId: m.matchId, queueName: getLolQueueName(qId) });
+            } else if (isFlexOrder && qId !== 440) {
+              invalidQueueMatches.push({ matchId: m.matchId, queueName: getLolQueueName(qId) });
             }
-          } catch (e) {}
-          return m;
+          }
+
+          return {
+            ...m,
+            champion,
+            result,
+            reason,
+            detail,
+          };
         })
       );
+
+      if (invalidQueueMatches.length > 0) {
+        toast.error(
+          `Vui lòng điền đúng ID trận đấu thuộc ${isSoloDuoOrder ? 'Chế độ Đơn / Đôi' : 'Chế độ Linh hoạt'}! Phát hiện ${invalidQueueMatches.length} trận sai chế độ: ${invalidQueueMatches.map(x => `${x.matchId} (${x.queueName})`).join(', ')}`,
+          { duration: 8000 }
+        );
+        setIsSubmittingBatch(false);
+        return;
+      }
 
       const res = await fetch(`/api/orders/${order._id}/matches/batch`, {
         method: 'POST',
@@ -887,6 +988,11 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
       const orderGame = (order?.snapshot?.gameCode || order?.details?.game || order?.details?.gameCode || 'LOL').toUpperCase();
       const isValorant = orderGame.includes('VAL');
 
+      const rawQueue = String(order.details?.queueType || order.details?.queue_type || order.serviceType || '').toUpperCase();
+      const isFlexOrder = rawQueue.includes('FLEX') || rawQueue.includes('LINH');
+      const targetQueue = isValorant ? 'COMPETITIVE' : (isFlexOrder ? 'RANKED_FLEX_SR' : 'RANKED_SOLO_5x5');
+      const targetQueueName = isValorant ? 'Competitive' : (isFlexOrder ? 'Linh Hoạt' : 'Đơn / Đôi');
+
       setIsCheckingRank(true);
       try {
           const res = await fetch('/api/games/player', {
@@ -895,7 +1001,8 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
               body: JSON.stringify({ 
                   game: orderGame,
                   server: order.details?.server || (isValorant ? 'ap' : 'VN'), 
-                  name: nameToCheck.trim() 
+                  name: nameToCheck.trim(),
+                  queueType: isFlexOrder ? 'FLEX' : 'SOLO_DUO'
               })
           });
           const data = await res.json();
@@ -906,11 +1013,6 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
           if (data.isMock) {
               toast.warning(`Chế độ giả lập (Mock): ${data.mockReason || 'Chưa kết nối API thật'}`);
           }
-
-          const rawQueue = String(order.details?.queueType || order.details?.queue_type || order.serviceType || '').toUpperCase();
-          const isFlexOrder = rawQueue.includes('FLEX') || rawQueue.includes('LINH');
-          const targetQueue = isValorant ? 'COMPETITIVE' : (isFlexOrder ? 'RANKED_FLEX_SR' : 'RANKED_SOLO_5x5');
-          const targetQueueName = isValorant ? 'Competitive' : (isFlexOrder ? 'Linh Hoạt' : 'Đơn / Đôi');
 
           // Lọc nghiêm ngặt: Chỉ lấy đúng rank khớp với chế độ của đơn hàng mà khách hàng đã chọn
           const matchedLeagues = Array.isArray(data.leagues)
@@ -992,7 +1094,47 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
           const data = await res.json();
           
           if (!res.ok) throw new Error(data.error || data.message || 'Lỗi lấy thông tin trận đấu');
-          
+
+          // VALIDATE QUEUE MODE: Kiểm tra khớp chế độ Đơn / Đôi hoặc Linh Hoạt
+          const rawQueue = String(order?.details?.queueType || order?.details?.queue_type || order?.serviceType || '').toUpperCase();
+          const isFlexOrder = rawQueue.includes('FLEX') || rawQueue.includes('LINH');
+          const isSoloDuoOrder = !isFlexOrder;
+
+          if (!isValorant && data.match?.info?.queueId !== undefined) {
+            const matchQueueId = Number(data.match.info.queueId);
+            const actualQueueName = getLolQueueName(matchQueueId);
+
+            if (isSoloDuoOrder && matchQueueId !== 420) {
+              setFetchedMatchData(null);
+              toast.error(
+                `Vui lòng điền đúng ID trận đấu thuộc Chế độ Đơn / Đôi! (Trận đấu ${riotMatchId.trim()} thuộc ${actualQueueName})`,
+                { duration: 7000 }
+              );
+              return;
+            }
+
+            if (isFlexOrder && matchQueueId !== 440) {
+              setFetchedMatchData(null);
+              toast.error(
+                `Vui lòng điền đúng ID trận đấu thuộc Chế độ Linh hoạt! (Trận đấu ${riotMatchId.trim()} thuộc ${actualQueueName})`,
+                { duration: 7000 }
+              );
+              return;
+            }
+          }
+
+          if (isValorant) {
+            const mode = (data.match?.metadata?.mode || data.match?.mode || '').toLowerCase();
+            if (mode && mode !== 'competitive') {
+              setFetchedMatchData(null);
+              toast.error(
+                `Vui lòng điền đúng ID trận đấu thuộc Chế độ Xếp Hạng (Competitive)! (Trận đấu này là ${data.match?.metadata?.mode || 'không phải Xếp Hạng'})`,
+                { duration: 7000 }
+              );
+              return;
+            }
+          }
+
           const participant = data.participant;
           const leagueInfo = data.leagueInfo;
           setFetchedMatchData(data.match); // Lưu lại full data để gửi khi save
@@ -2551,24 +2693,32 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
 
           <div className="flex-1 overflow-y-auto space-y-4 py-2 pr-1">
             {/* Quick Helper Button: Điền trận gần nhất */}
-            {recentMatches.length > 0 && (
-              <div className="flex items-center justify-between bg-zinc-900/60 border border-white/5 rounded-xl p-2.5 text-xs">
-                <div className="flex items-center gap-1.5 text-zinc-300">
-                  <History className="w-3.5 h-3.5 text-blue-400" />
-                  <span>Có <strong>{recentMatches.length}</strong> trận Riot gần nhất:</span>
+            {(() => {
+              const rawQueue = String(order?.details?.queueType || order?.details?.queue_type || order?.serviceType || '').toUpperCase();
+              const isFlex = rawQueue.includes('FLEX') || rawQueue.includes('LINH');
+              const queueLabel = isFlex ? 'Linh Hoạt' : 'Đơn / Đôi';
+
+              if (recentMatches.length === 0) return null;
+
+              return (
+                <div className="flex items-center justify-between bg-zinc-900/60 border border-white/5 rounded-xl p-2.5 text-xs">
+                  <div className="flex items-center gap-1.5 text-zinc-300">
+                    <History className="w-3.5 h-3.5 text-blue-400" />
+                    <span>Có <strong>{recentMatches.length}</strong> trận {queueLabel} gần nhất:</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const sampleText = recentMatches.slice(0, 5).map(id => `${id} +20`).join('\n');
+                      handleParseBatchText(sampleText);
+                    }}
+                    className="px-2.5 py-1 bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 border border-blue-500/30 rounded-lg text-[11px] font-semibold transition-colors cursor-pointer"
+                  >
+                    Dán nhanh {Math.min(5, recentMatches.length)} trận
+                  </button>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const sampleText = recentMatches.slice(0, 5).map(id => `${id} +20`).join('\n');
-                    handleParseBatchText(sampleText);
-                  }}
-                  className="px-2.5 py-1 bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 border border-blue-500/30 rounded-lg text-[11px] font-semibold transition-colors cursor-pointer"
-                >
-                  Dán nhanh 5 trận
-                </button>
-              </div>
-            )}
+              );
+            })()}
 
             {/* Textarea dán dữ liệu */}
             <div className="space-y-1.5">
@@ -2769,35 +2919,62 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                             </button>
                         </div>
 
-                        {recentMatches.length > 0 && (
-                            <div className="bg-zinc-950/80 border border-white/5 rounded-xl p-2.5 space-y-1.5">
-                                <div className="text-[11px] font-semibold text-zinc-400 flex items-center justify-between">
-                                    <span className="flex items-center gap-1.5">
-                                        <History className="w-3.5 h-3.5 text-blue-400" />
-                                        Trận đấu gần đây ({recentMatches.length}):
-                                    </span>
-                                    <span className="text-[10px] text-zinc-500">Bấm để tự điền</span>
+                        {(() => {
+                            const rawQueue = String(order?.details?.queueType || order?.details?.queue_type || order?.serviceType || '').toUpperCase();
+                            const isFlex = rawQueue.includes('FLEX') || rawQueue.includes('LINH');
+                            const queueBadge = isFlex ? 'Linh Hoạt' : 'Đơn / Đôi';
+
+                            return (
+                                <div className="bg-zinc-950/80 border border-white/5 rounded-xl p-2.5 space-y-1.5">
+                                    <div className="text-[11px] font-semibold text-zinc-400 flex items-center justify-between">
+                                        <span className="flex items-center gap-1.5 text-zinc-200">
+                                            <History className="w-3.5 h-3.5 text-blue-400" />
+                                            Trận đấu gần đây ({queueBadge}): <strong className="text-blue-400">{recentMatches.length}</strong>
+                                        </span>
+                                        <div className="flex items-center gap-2">
+                                            <button
+                                                type="button"
+                                                onClick={fetchRecentMatchesForOrder}
+                                                title="Tải lại danh sách trận từ Riot"
+                                                className="text-zinc-400 hover:text-blue-400 transition-colors p-0.5 cursor-pointer"
+                                            >
+                                                <RefreshCw className="w-3 h-3" />
+                                            </button>
+                                            <span className="text-[10px] text-zinc-500">Bấm để tự điền</span>
+                                        </div>
+                                    </div>
+                                    {recentMatches.length > 0 ? (
+                                        <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto pr-1">
+                                            {recentMatches.slice(0, 10).map((mId) => (
+                                                <button
+                                                    key={mId}
+                                                    type="button"
+                                                    onClick={() => setRiotMatchId(mId)}
+                                                    className={`text-[11px] font-mono px-2 py-1 rounded border transition-colors cursor-pointer ${
+                                                        riotMatchId === mId
+                                                            ? 'bg-blue-600/30 text-blue-300 border-blue-500/50 font-bold'
+                                                            : 'bg-zinc-900 text-zinc-300 border-white/5 hover:border-blue-500/30 hover:text-white'
+                                                    }`}
+                                                >
+                                                    {mId}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <div className="text-[11px] text-zinc-500 py-0.5 italic flex items-center justify-between">
+                                            <span>Chưa có trận {queueBadge} gần đây của tài khoản này.</span>
+                                            <button
+                                                type="button"
+                                                onClick={fetchRecentMatchesForOrder}
+                                                className="text-blue-400 hover:underline text-[10px] cursor-pointer"
+                                            >
+                                                Quét lại
+                                            </button>
+                                        </div>
+                                    )}
                                 </div>
-                                <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto pr-1">
-                                    {recentMatches.slice(0, 10).map((mId) => (
-                                        <button
-                                            key={mId}
-                                            type="button"
-                                            onClick={() => {
-                                                setRiotMatchId(mId);
-                                            }}
-                                            className={`text-[11px] font-mono px-2 py-1 rounded border transition-colors cursor-pointer ${
-                                                riotMatchId === mId
-                                                    ? 'bg-blue-600/30 text-blue-300 border-blue-500/50 font-bold'
-                                                    : 'bg-zinc-900 text-zinc-300 border-white/5 hover:border-blue-500/30 hover:text-white'
-                                            }`}
-                                        >
-                                            {mId}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
+                            );
+                        })()}
                     </div>
                 )}
 

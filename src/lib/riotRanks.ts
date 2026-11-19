@@ -48,3 +48,20 @@ export interface VerifiedRankInfo {
   tagLine: string;
 }
 
+export const LOL_QUEUE_NAMES: Record<number, string> = {
+  420: 'Chế độ Đơn / Đôi',
+  440: 'Chế độ Linh hoạt (Flex)',
+  400: 'Chế độ Đấu thường (Cấm/Chọn)',
+  430: 'Chế độ Đấu thường (Chọn ẩn)',
+  450: 'Chế độ ARAM',
+  490: 'Chế độ Đấu nhanh (Quickplay)',
+  700: 'Chế độ Clash',
+  1700: 'Chế độ Võ Đài (Arena)',
+};
+
+export const getLolQueueName = (queueId?: number | string): string => {
+  if (!queueId) return 'Không xác định';
+  const id = Number(queueId);
+  return LOL_QUEUE_NAMES[id] || `Queue ID: ${id}`;
+};
+

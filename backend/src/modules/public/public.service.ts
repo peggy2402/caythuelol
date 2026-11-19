@@ -291,9 +291,20 @@ export class PublicService {
               EUW1: 'europe', EUN1: 'europe', TR1: 'europe', RU: 'europe',
             };
             const matchRegion = PLATFORM_TO_MATCH_REGION[platformId] || 'sea';
-            const matchHistoryUrl = `https://${matchRegion}.api.riotgames.com/lol/match/v5/matches/by-puuid/${accountData.puuid}/ids?start=0&count=20&api_key=${apiKey}`;
+            
+            const targetQueue = (dto.queueType || dto.queue_type || '').toUpperCase();
+            let queueQuery = '';
+            if (['SOLO', 'SOLO_DUO', 'RANKED_SOLO_5X5', 'RANK_SOLO'].includes(targetQueue)) {
+              queueQuery = '&queue=420';
+            } else if (['FLEX', 'RANKED_FLEX_SR', 'RANK_FLEX'].includes(targetQueue)) {
+              queueQuery = '&queue=440';
+            } else {
+              queueQuery = '&type=ranked';
+            }
+
+            const matchHistoryUrl = `https://${matchRegion}.api.riotgames.com/lol/match/v5/matches/by-puuid/${accountData.puuid}/ids?start=0&count=20${queueQuery}&api_key=${apiKey}`;
             const matchHistoryRes = await axios.get(matchHistoryUrl, { headers });
-            recentMatches = matchHistoryRes.data || [];
+            recentMatches = Array.isArray(matchHistoryRes.data) ? matchHistoryRes.data : [];
           } catch (mErr: any) {
             console.warn('[Riot Match History Error]:', mErr.message);
           }
@@ -569,7 +580,7 @@ export class PublicService {
       // 2. Lấy danh sách trận gần nhất (size=20)
       let recentMatches: string[] = [];
       try {
-        const matchesUrl = `https://api.henrikdev.xyz/valorant/v3/matches/${region}/${encodeURIComponent(gameName)}/${encodeURIComponent(tagLine)}?size=20`;
+        const matchesUrl = `https://api.henrikdev.xyz/valorant/v3/matches/${region}/${encodeURIComponent(gameName)}/${encodeURIComponent(tagLine)}?mode=competitive&size=20`;
         const matchesRes = await axios.get(matchesUrl, { headers });
         if (Array.isArray(matchesRes.data?.data)) {
           recentMatches = matchesRes.data.data.map((m: any) => m.metadata?.matchid).filter(Boolean);
