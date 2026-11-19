@@ -132,6 +132,24 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
     targetStatus: '',
     loading: false,
   });
+
+  // Delete Match Confirmation Modal State
+  const [deleteMatchModal, setDeleteMatchModal] = useState<{
+    isOpen: boolean;
+    matchId: string | null;
+    matchInfo?: {
+      mode?: string;
+      champion?: string;
+      result?: string;
+      lp_change?: number | string;
+    } | null;
+    loading: boolean;
+  }>({
+    isOpen: false,
+    matchId: null,
+    matchInfo: null,
+    loading: false,
+  });
   
   // Transactions State
   const [transactions, setTransactions] = useState<any[]>([]);
@@ -522,17 +540,37 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
       setIsMatchModalOpen(true); // Mở modal thay vì scroll
   };
 
-  const handleDeleteMatch = async (matchId: string) => {
-      if (!confirm('Bạn có chắc chắn muốn xóa trận đấu này?')) return;
+  const handlePromptDeleteMatch = (match: any) => {
+      setDeleteMatchModal({
+          isOpen: true,
+          matchId: match._id || match.match_id,
+          matchInfo: {
+              mode: match.mode,
+              champion: match.champion,
+              result: match.result,
+              lp_change: match.lp_change,
+          },
+          loading: false,
+      });
+  };
+
+  const handleConfirmDeleteMatch = async () => {
+      if (!deleteMatchModal.matchId) return;
+      setDeleteMatchModal((prev) => ({ ...prev, loading: true }));
       try {
-          const res = await fetch(`/api/orders/${order._id}/matches?matchId=${matchId}`, { method: 'DELETE' });
+          const res = await fetch(`/api/orders/${order._id}/matches?matchId=${deleteMatchModal.matchId}`, { method: 'DELETE' });
           if (res.ok) {
               const data = await res.json();
               setOrder((prev: any) => ({ ...prev, match_history: data.match_history }));
-              toast.success('Đã xóa trận đấu');
+              toast.success('Đã xóa trận đấu thành công');
               socket.emit('update_order', { room: order._id, data: { match_history: data.match_history } });
-          } else { toast.error('Lỗi xóa trận đấu'); }
+              setDeleteMatchModal({ isOpen: false, matchId: null, matchInfo: null, loading: false });
+          } else {
+              const err = await res.json().catch(() => ({}));
+              toast.error(err.error || err.message || 'Lỗi xóa trận đấu');
+          }
       } catch (e) { toast.error('Lỗi kết nối'); }
+      finally { setDeleteMatchModal((prev) => ({ ...prev, loading: false })); }
   };
 
   const handleCancelEdit = () => {
@@ -1648,7 +1686,7 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                                                             <button onClick={() => handleEditMatch(match)} className="p-2 bg-zinc-900 hover:bg-yellow-600 hover:text-white text-zinc-400 rounded-lg transition-colors border border-zinc-800" title="Sửa">
                                                                 <Pencil size={16} />
                                                             </button>
-                                                            <button onClick={() => handleDeleteMatch(match._id)} className="p-2 bg-zinc-900 hover:bg-red-600 hover:text-white text-zinc-400 rounded-lg transition-colors border border-zinc-800" title="Xóa">
+                                                            <button onClick={() => handlePromptDeleteMatch(match)} className="p-2 bg-zinc-900 hover:bg-rose-600 hover:text-white text-zinc-400 rounded-lg transition-colors border border-zinc-800 cursor-pointer" title="Xóa trận đấu">
                                                                 <Trash2 size={16} />
                                                             </button>
                                                         </>
@@ -2026,6 +2064,108 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                 </>
               ) : (
                 <span>Đồng ý</span>
+              )}
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Centered Modal: Xác nhận xóa trận đấu */}
+      <Dialog
+        open={deleteMatchModal.isOpen}
+        onOpenChange={(open) => {
+          if (!deleteMatchModal.loading) {
+            setDeleteMatchModal((prev) => ({ ...prev, isOpen: open }));
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-[420px] bg-zinc-950 border border-white/10 text-white p-6 rounded-2xl shadow-2xl backdrop-blur-xl">
+          <DialogHeader className="flex flex-col items-center text-center space-y-3">
+            <div className="w-14 h-14 rounded-2xl flex items-center justify-center border shadow-lg bg-rose-500/10 border-rose-500/30 text-rose-400 shadow-rose-500/10">
+              <Trash2 className="w-7 h-7" />
+            </div>
+
+            <DialogTitle className="text-lg font-bold text-white">
+              Xác nhận xóa trận đấu
+            </DialogTitle>
+
+            <DialogDescription className="text-xs text-zinc-400 leading-relaxed max-w-[320px]">
+              Bạn có chắc chắn muốn xóa trận đấu này khỏi lịch sử cày rank? Hành động này không thể hoàn tác.
+            </DialogDescription>
+          </DialogHeader>
+
+          {/* Tóm tắt thông tin trận đấu cần xóa */}
+          {deleteMatchModal.matchInfo && (
+            <div className="bg-zinc-900/80 border border-white/5 rounded-xl p-3.5 space-y-2 my-2 text-xs">
+              <div className="flex items-center justify-between text-zinc-300">
+                <span className="text-zinc-500">Chế độ:</span>
+                <span className="font-medium text-white">
+                  {deleteMatchModal.matchInfo.mode || 'Rank Đơn/Đôi'}
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-zinc-300">
+                <span className="text-zinc-500">Tướng:</span>
+                <span className="font-semibold text-blue-300">
+                  {deleteMatchModal.matchInfo.champion || 'Chưa rõ'}
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-zinc-300">
+                <span className="text-zinc-500">Kết quả:</span>
+                <span
+                  className={`font-bold px-2 py-0.5 rounded text-[11px] ${
+                    deleteMatchModal.matchInfo.result === 'WIN'
+                      ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                      : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+                  }`}
+                >
+                  {deleteMatchModal.matchInfo.result === 'WIN' ? 'Thắng (Win)' : 'Thua (Loss)'}
+                </span>
+              </div>
+              {deleteMatchModal.matchInfo.lp_change !== undefined && deleteMatchModal.matchInfo.lp_change !== '' && (
+                <div className="flex items-center justify-between text-zinc-300">
+                  <span className="text-zinc-500">Điểm LP:</span>
+                  <span
+                    className={`font-mono font-bold ${
+                      Number(deleteMatchModal.matchInfo.lp_change) >= 0
+                        ? 'text-emerald-400'
+                        : 'text-rose-400'
+                    }`}
+                  >
+                    {Number(deleteMatchModal.matchInfo.lp_change) > 0
+                      ? `+${deleteMatchModal.matchInfo.lp_change}`
+                      : deleteMatchModal.matchInfo.lp_change}{' '}
+                    LP
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
+
+          <DialogFooter className="flex items-center justify-end gap-2.5 pt-3 border-t border-white/10 sm:space-x-0">
+            <button
+              type="button"
+              disabled={deleteMatchModal.loading}
+              onClick={() => setDeleteMatchModal((prev) => ({ ...prev, isOpen: false }))}
+              className="px-4 py-2.5 rounded-xl text-xs font-semibold text-zinc-300 hover:text-white bg-zinc-900 hover:bg-zinc-800 border border-white/10 transition-colors cursor-pointer disabled:opacity-50"
+            >
+              Hủy
+            </button>
+            <button
+              type="button"
+              disabled={deleteMatchModal.loading}
+              onClick={handleConfirmDeleteMatch}
+              className="px-4 py-2.5 rounded-xl text-xs font-bold text-white bg-rose-600 hover:bg-rose-500 shadow-lg shadow-rose-600/25 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+            >
+              {deleteMatchModal.loading ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <span>Đang xóa...</span>
+                </>
+              ) : (
+                <>
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Xác nhận xóa</span>
+                </>
               )}
             </button>
           </DialogFooter>
