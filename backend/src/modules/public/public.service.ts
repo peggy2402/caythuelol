@@ -238,7 +238,7 @@ export class PublicService {
     let apiKey = '';
     for (const s of riotKeySettings) {
       const val = typeof s?.value === 'string' ? s.value.trim() : '';
-      if (val.startsWith('RGAPI-')) {
+      if (val) {
         apiKey = val;
         break;
       }
@@ -261,7 +261,17 @@ export class PublicService {
         if (accountData?.puuid) {
           const leagueUrl = `https://${platformId.toLowerCase()}.api.riotgames.com/lol/league/v4/entries/by-puuid/${accountData.puuid}?api_key=${apiKey}`;
           const leagueRes = await axios.get(leagueUrl, { headers });
-          const leagues = leagueRes.data || [];
+          const rawLeagues = leagueRes.data || [];
+          const leagues = rawLeagues.length > 0 ? rawLeagues : [
+            {
+              queueType: 'RANKED_SOLO_5x5',
+              tier: 'UNRANKED',
+              rank: '',
+              leaguePoints: 0,
+              wins: 0,
+              losses: 0,
+            },
+          ];
 
           return {
             success: true,
@@ -284,6 +294,13 @@ export class PublicService {
         } else {
           mockReason = `Riot API lỗi (HTTP ${status || 'Unknown'}): ${err.response?.data?.status?.message || err.message}`;
         }
+
+        return {
+          success: false,
+          isMock: false,
+          error: mockReason,
+          mockReason,
+        };
       }
     }
 

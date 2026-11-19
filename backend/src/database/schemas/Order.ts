@@ -111,6 +111,8 @@ export interface IOrder {
     lp_change: number;
     reason?: string; // Lý do nếu thua
     timestamp: Date;
+    riotMatchId?: string;
+    detail?: any;
   }>;
   dispute?: {
     reason: string;

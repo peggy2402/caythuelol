@@ -3,6 +3,9 @@ import {
   Get,
   Post,
   Patch,
+  Put,
+  Delete,
+  Query,
   Body,
   Param,
   UseGuards,
@@ -141,6 +144,75 @@ export class OrdersController {
     @Body('reason') reason: string,
   ) {
     return this.ordersService.createDispute(id, user.userId, reason, user.role);
+  }
+
+  @Patch(':id/details')
+  @ApiOperation({ summary: 'Update order details (ingame name, rank, LP, vod, etc.)' })
+  async updateOrderDetails(
+    @Param('id') id: string,
+    @ReqUser() user: any,
+    @Body() body: any,
+  ) {
+    return this.ordersService.updateOrderDetails(id, user.userId, body, user.role);
+  }
+
+  @Post(':id/matches')
+  @ApiOperation({ summary: 'Add match record to order' })
+  async addOrderMatch(
+    @Param('id') id: string,
+    @ReqUser() user: any,
+    @Body() body: any,
+  ) {
+    return this.ordersService.addOrderMatch(id, user.userId, body, user.role);
+  }
+
+  @Put(':id/matches')
+  @ApiOperation({ summary: 'Update match record in order' })
+  async updateOrderMatch(
+    @Param('id') id: string,
+    @ReqUser() user: any,
+    @Body() body: any,
+  ) {
+    return this.ordersService.updateOrderMatch(id, user.userId, body, user.role);
+  }
+
+  @Delete(':id/matches')
+  @ApiOperation({ summary: 'Delete match record from order' })
+  async deleteOrderMatch(
+    @Param('id') id: string,
+    @ReqUser() user: any,
+    @Query('matchId') matchId: string,
+  ) {
+    return this.ordersService.deleteOrderMatch(id, user.userId, matchId, user.role);
+  }
+
+  @Patch(':id/schedule')
+  @ApiOperation({ summary: 'Update coaching schedule' })
+  async updateOrderSchedule(
+    @Param('id') id: string,
+    @ReqUser() user: any,
+    @Body('schedule') schedule: any[],
+  ) {
+    return this.ordersService.updateOrderSchedule(id, user.userId, schedule, user.role);
+  }
+
+  @Post(':id/settle')
+  @ApiOperation({ summary: 'Settle order' })
+  async settleOrder(
+    @Param('id') id: string,
+    @ReqUser() user: any,
+    @Body() body: any,
+  ) {
+    return this.ordersService.settleOrder(id, user.userId, body, user.role);
+  }
+
+  @Post(':id/refund')
+  @ApiOperation({ summary: 'Refund order' })
+  async refundOrder(
+    @Param('id') id: string,
+    @ReqUser() user: any,
+  ) {
+    return this.ordersService.refundOrder(id, user.userId, user.role);
   }
 }
 

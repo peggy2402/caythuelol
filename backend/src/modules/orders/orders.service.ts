@@ -762,4 +762,268 @@ export class OrdersService {
     await order.save();
     return { success: true, message: 'Đã gửi khiếu nại đến Admin. Admin sẽ can thiệp xử lý.' };
   }
+
+  async updateOrderDetails(
+    orderId: string,
+    userId: string,
+    updateData: any,
+    userRole?: string,
+  ) {
+    let filter: any;
+    if (Types.ObjectId.isValid(orderId)) {
+      filter = { $or: [{ _id: new Types.ObjectId(orderId) }, { orderCode: orderId }] };
+    } else {
+      filter = { orderCode: orderId.trim().toUpperCase() };
+    }
+
+    const order = await this.orderModel.findOne(filter);
+    if (!order) throw new NotFoundException('Không tìm thấy đơn hàng');
+
+    const isCustomer = String(order.customerId) === String(userId);
+    const isBooster = order.boosterId && String(order.boosterId) === String(userId);
+    const isAdmin = userRole === UserRole.ADMIN || userRole === UserRole.STAFF;
+
+    if (!isCustomer && !isBooster && !isAdmin) {
+      throw new ForbiddenException('Bạn không có quyền cập nhật chi tiết đơn hàng này');
+    }
+
+    const currentDetails = order.details || {};
+    order.details = {
+      ...currentDetails,
+      ...updateData,
+    };
+    order.markModified('details');
+    await order.save();
+
+    return {
+      success: true,
+      details: order.details,
+      order,
+    };
+  }
+
+  async addOrderMatch(orderId: string, userId: string, body: any, userRole?: string) {
+    let filter: any;
+    if (Types.ObjectId.isValid(orderId)) {
+      filter = { $or: [{ _id: new Types.ObjectId(orderId) }, { orderCode: orderId }] };
+    } else {
+      filter = { orderCode: orderId.trim().toUpperCase() };
+    }
+
+    const order = await this.orderModel.findOne(filter);
+    if (!order) throw new NotFoundException('Không tìm thấy đơn hàng');
+
+    const isBooster = order.boosterId && String(order.boosterId) === String(userId);
+    const isAdmin = userRole === UserRole.ADMIN || userRole === UserRole.STAFF;
+    if (!isBooster && !isAdmin) {
+      throw new ForbiddenException('Chỉ Tuyển thủ phụ trách hoặc Quản trị viên mới được thêm trận đấu');
+    }
+
+    if (!Array.isArray(order.match_history)) {
+      order.match_history = [];
+    }
+
+    const newMatch: any = {
+      match_id: new Types.ObjectId().toString(),
+      mode: body.mode || 'Rank Đơn/Đôi',
+      champion: body.champion || '',
+      result: body.result || 'WIN',
+      lp_change: Number(body.lp_change) || 0,
+      reason: body.reason || '',
+      riotMatchId: body.riotMatchId || '',
+      detail: body.detail || null,
+      timestamp: new Date(),
+    };
+
+    order.match_history.unshift(newMatch);
+
+    if (body.leagueInfo) {
+      const details = order.details || {};
+      order.details = {
+        ...details,
+        current_rank: `${body.leagueInfo.tier} ${body.leagueInfo.rank}`,
+        current_lp: body.leagueInfo.leaguePoints,
+      };
+      order.markModified('details');
+    }
+
+    order.markModified('match_history');
+    await order.save();
+
+    return {
+      success: true,
+      match_history: order.match_history,
+      details: order.details,
+    };
+  }
+
+  async updateOrderMatch(orderId: string, userId: string, body: any, userRole?: string) {
+    let filter: any;
+    if (Types.ObjectId.isValid(orderId)) {
+      filter = { $or: [{ _id: new Types.ObjectId(orderId) }, { orderCode: orderId }] };
+    } else {
+      filter = { orderCode: orderId.trim().toUpperCase() };
+    }
+
+    const order = await this.orderModel.findOne(filter);
+    if (!order) throw new NotFoundException('Không tìm thấy đơn hàng');
+
+    const isBooster = order.boosterId && String(order.boosterId) === String(userId);
+    const isAdmin = userRole === UserRole.ADMIN || userRole === UserRole.STAFF;
+    if (!isBooster && !isAdmin) {
+      throw new ForbiddenException('Chỉ Tuyển thủ phụ trách hoặc Quản trị viên mới được sửa trận đấu');
+    }
+
+    if (Array.isArray(order.match_history)) {
+      const targetId = String(body.matchId);
+      const match = order.match_history.find(
+        (m: any) => String((m as any)._id) === targetId || m.match_id === targetId,
+      );
+      if (match) {
+        if (body.mode) match.mode = body.mode;
+        if (body.champion) match.champion = body.champion;
+        if (body.result) match.result = body.result;
+        if (body.lp_change !== undefined) match.lp_change = Number(body.lp_change) || 0;
+        if (body.reason !== undefined) match.reason = body.reason;
+        if (body.riotMatchId !== undefined) match.riotMatchId = body.riotMatchId;
+        if (body.detail !== undefined) match.detail = body.detail;
+
+        order.markModified('match_history');
+        await order.save();
+      }
+    }
+
+    return {
+      success: true,
+      match_history: order.match_history,
+      details: order.details,
+    };
+  }
+
+  async deleteOrderMatch(orderId: string, userId: string, matchId: string, userRole?: string) {
+    let filter: any;
+    if (Types.ObjectId.isValid(orderId)) {
+      filter = { $or: [{ _id: new Types.ObjectId(orderId) }, { orderCode: orderId }] };
+    } else {
+      filter = { orderCode: orderId.trim().toUpperCase() };
+    }
+
+    const order = await this.orderModel.findOne(filter);
+    if (!order) throw new NotFoundException('Không tìm thấy đơn hàng');
+
+    const isBooster = order.boosterId && String(order.boosterId) === String(userId);
+    const isAdmin = userRole === UserRole.ADMIN || userRole === UserRole.STAFF;
+    if (!isBooster && !isAdmin) {
+      throw new ForbiddenException('Chỉ Tuyển thủ phụ trách hoặc Quản trị viên mới được xóa trận đấu');
+    }
+
+    if (Array.isArray(order.match_history)) {
+      order.match_history = order.match_history.filter(
+        (m: any) => String((m as any)._id) !== String(matchId) && m.match_id !== String(matchId),
+      );
+      order.markModified('match_history');
+      await order.save();
+    }
+
+    return {
+      success: true,
+      match_history: order.match_history,
+    };
+  }
+
+  async updateOrderSchedule(orderId: string, userId: string, schedule: any[], userRole?: string) {
+    let filter: any;
+    if (Types.ObjectId.isValid(orderId)) {
+      filter = { $or: [{ _id: new Types.ObjectId(orderId) }, { orderCode: orderId }] };
+    } else {
+      filter = { orderCode: orderId.trim().toUpperCase() };
+    }
+
+    const order = await this.orderModel.findOne(filter);
+    if (!order) throw new NotFoundException('Không tìm thấy đơn hàng');
+
+    const isCustomer = String(order.customerId) === String(userId);
+    const isBooster = order.boosterId && String(order.boosterId) === String(userId);
+    const isAdmin = userRole === UserRole.ADMIN || userRole === UserRole.STAFF;
+    if (!isCustomer && !isBooster && !isAdmin) {
+      throw new ForbiddenException('Bạn không có quyền cập nhật lịch buổi học');
+    }
+
+    const details = order.details || {};
+    order.details = { ...details, schedule };
+    order.markModified('details');
+    await order.save();
+
+    return {
+      success: true,
+      schedule,
+      details: order.details,
+    };
+  }
+
+  async settleOrder(orderId: string, userId: string, body?: any, userRole?: string) {
+    let filter: any;
+    if (Types.ObjectId.isValid(orderId)) {
+      filter = { $or: [{ _id: new Types.ObjectId(orderId) }, { orderCode: orderId }] };
+    } else {
+      filter = { orderCode: orderId.trim().toUpperCase() };
+    }
+
+    const order = await this.orderModel.findOne(filter);
+    if (!order) throw new NotFoundException('Không tìm thấy đơn hàng');
+
+    const isAdmin = userRole === UserRole.ADMIN || userRole === UserRole.STAFF;
+    const isCustomer = String(order.customerId) === String(userId);
+    const isBooster = order.boosterId && String(order.boosterId) === String(userId);
+    if (!isAdmin && !isCustomer && !isBooster) {
+      throw new ForbiddenException('Bạn không có quyền quyết toán đơn hàng này');
+    }
+
+    order.pricing.settlement_status = SettlementStatus.SETTLED;
+    order.payment.final_paid = true;
+    order.status = OrderStatus.COMPLETED;
+    if (!order.timeline) order.timeline = [];
+    order.timeline.push({
+      status: OrderStatus.COMPLETED,
+      timestamp: new Date(),
+      actor: new Types.ObjectId(userId),
+      note: 'Quyết toán đơn hàng thành công',
+    });
+    order.markModified('pricing');
+    order.markModified('payment');
+    await order.save();
+
+    return { success: true, message: 'Quyết toán đơn hàng thành công', order };
+  }
+
+  async refundOrder(orderId: string, userId: string, userRole?: string) {
+    let filter: any;
+    if (Types.ObjectId.isValid(orderId)) {
+      filter = { $or: [{ _id: new Types.ObjectId(orderId) }, { orderCode: orderId }] };
+    } else {
+      filter = { orderCode: orderId.trim().toUpperCase() };
+    }
+
+    const order = await this.orderModel.findOne(filter);
+    if (!order) throw new NotFoundException('Không tìm thấy đơn hàng');
+
+    const isAdmin = userRole === UserRole.ADMIN || userRole === UserRole.STAFF;
+    if (!isAdmin) {
+      throw new ForbiddenException('Chỉ Quản trị viên mới có quyền hoàn tiền đơn hàng');
+    }
+
+    order.pricing.settlement_status = SettlementStatus.REFUNDED;
+    order.status = OrderStatus.REFUNDED;
+    if (!order.timeline) order.timeline = [];
+    order.timeline.push({
+      status: OrderStatus.REFUNDED,
+      timestamp: new Date(),
+      actor: new Types.ObjectId(userId),
+      note: 'Hoàn tiền đơn hàng',
+    });
+    order.markModified('pricing');
+    await order.save();
+
+    return { success: true, message: 'Hoàn tiền đơn hàng thành công', order };
+  }
 }

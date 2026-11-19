@@ -575,21 +575,27 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
           const res = await fetch('/api/riot/player', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ server: order.details.server, name: nameToCheck.trim() })
+              body: JSON.stringify({ server: order.details?.server || 'VN', name: nameToCheck.trim() })
           });
           const data = await res.json();
-          if (!res.ok) throw new Error(data.error);
+          if (!res.ok || data.success === false) {
+              throw new Error(data.error || data.mockReason || 'Lỗi kiểm tra Riot Games');
+          }
 
-          const isSoloOrder = ['SOLO', 'SOLO_DUO'].includes(order.details.queueType);
+          if (data.isMock) {
+              toast.warning(`Chế độ giả lập (Mock): ${data.mockReason || 'Chưa kết nối API Riot thật'}`);
+          }
+
+          const isSoloOrder = ['SOLO', 'SOLO_DUO'].includes(order.details?.queueType || order.details?.queue_type);
           const primaryQueue = isSoloOrder ? 'RANKED_SOLO_5x5' : 'RANKED_FLEX_SR';
           const secondaryQueue = isSoloOrder ? 'RANKED_FLEX_SR' : 'RANKED_SOLO_5x5';
           
-          let league = data.leagues.find((l: any) => l.queueType === primaryQueue);
+          let league = data.leagues?.find((l: any) => l.queueType === primaryQueue);
           let usedSecondary = false;
 
           // If primary queue rank not found, try finding secondary
           if (!league) {
-              league = data.leagues.find((l: any) => l.queueType === secondaryQueue);
+              league = data.leagues?.find((l: any) => l.queueType === secondaryQueue);
               if (league) {
                   usedSecondary = true;
               }
@@ -601,17 +607,25 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
               // Tự động lưu vào DB luôn
               const updateBody = {
                   ingame_name: data.gameName ? `${data.gameName}#${data.tagLine}` : nameToCheck,
-                  current_rank: `${league.tier} ${league.rank}`,
-                  current_lp: league.leaguePoints
+                  current_rank: `${league.tier}${league.rank ? ' ' + league.rank : ''}`,
+                  current_lp: league.leaguePoints ?? 0
               };
 
-              // Gọi API update details (tái sử dụng logic update)
-              await fetch(`/api/orders/${order._id}/details`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(updateBody) });
+              // Gọi API update details
+              const patchRes = await fetch(`/api/orders/${order._id}/details`, {
+                  method: 'PATCH',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify(updateBody)
+              });
+              if (!patchRes.ok) {
+                  const patchErr = await patchRes.json().catch(() => ({}));
+                  throw new Error(patchErr.message || 'Lỗi khi lưu thông tin Rank vào đơn hàng');
+              }
               
               if (usedSecondary) {
                   toast.warning(`Không tìm thấy rank cho chế độ đã chọn. Đã cập nhật theo rank ${league.queueType === 'RANKED_SOLO_5x5' ? 'Đơn/Đôi' : 'Linh Hoạt'}.`);
               } else {
-                  toast.success(`Đã cập nhật & Lưu: ${league.tier} ${league.rank} - ${league.leaguePoints} LP`);
+                  toast.success(`Đã cập nhật & Lưu: ${league.tier} ${league.rank || ''} - ${league.leaguePoints ?? 0} LP`);
               }
               
               // Cập nhật UI local (để hiển thị ngay lập tức)
@@ -619,6 +633,9 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                   ...prev, 
                   details: { ...prev.details, ...updateBody } 
               }));
+              
+              // Real-time broadcast
+              socket.emit('update_order', { room: order._id, data: { details: { ...order.details, ...updateBody } } });
               
               // Nếu là Booster đang nhập, update luôn state input cho khớp
               if (data.gameName) setIngameName(`${data.gameName}#${data.tagLine}`);
