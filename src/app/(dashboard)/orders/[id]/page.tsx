@@ -30,6 +30,7 @@ import ServerSelectModal from '@/components/ServerSelectModal';
 import { getServerByCode } from '@/lib/servers';
 import { getBoosterOrderValue } from '@/lib/orderPricing';
 import { getOrderStatusInfo } from '@/lib/orderStatus';
+import { formatRankDisplayVi } from '@/lib/riotRanks';
 import {
   Dialog,
   DialogContent,
@@ -837,8 +838,9 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
   // Áp dụng và lưu bậc Rank được chọn từ danh sách Leagues của Riot
   const applySelectedLeague = async (league: any, playerTag?: string) => {
       if (!order?._id) return;
-      const isApexTier = ['MASTER', 'GRANDMASTER', 'CHALLENGER'].includes(league.tier?.toUpperCase());
-      const formattedRank = isApexTier ? league.tier : `${league.tier}${league.rank ? ' ' + league.rank : ''}`;
+      const isApexTier = ['MASTER', 'GRANDMASTER', 'CHALLENGER', 'RADIANT'].includes(league.tier?.toUpperCase());
+      const tierVi = formatRankDisplayVi(league.tier);
+      const formattedRank = isApexTier ? tierVi : `${tierVi}${league.rank ? ' ' + league.rank : ''}`;
       const nameToSave = playerTag || (ingameName && ingameName.trim()) || order.details?.ingame_name || order.details?.account_username;
 
       const updateBody = {
@@ -860,7 +862,7 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
               throw new Error(patchErr.message || 'Lỗi khi lưu thông tin Rank vào đơn hàng');
           }
 
-          toast.success(`Đã áp dụng: ${formattedRank} - ${league.leaguePoints ?? 0} LP (${league.queueType === 'RANKED_SOLO_5x5' ? 'Đơn/Đôi' : 'Linh Hoạt'})`);
+          toast.success(`Đã áp dụng: ${formattedRank} - ${league.leaguePoints ?? 0} LP (${league.queueType === 'RANKED_SOLO_5x5' ? 'Đơn/Đôi' : league.queueType === 'COMPETITIVE' ? 'Competitive' : 'Linh Hoạt'})`);
 
           // Cập nhật UI local
           setOrder((prev: any) => ({
@@ -905,43 +907,26 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
               toast.warning(`Chế độ giả lập (Mock): ${data.mockReason || 'Chưa kết nối API thật'}`);
           }
 
-          if (Array.isArray(data.leagues)) {
-              setAvailableLeagues(data.leagues);
-          }
-
           const rawQueue = String(order.details?.queueType || order.details?.queue_type || order.serviceType || '').toUpperCase();
           const isFlexOrder = rawQueue.includes('FLEX') || rawQueue.includes('LINH');
-          
-          let primaryQueue = 'RANKED_SOLO_5x5';
-          let secondaryQueue = 'RANKED_FLEX_SR';
-          if (isValorant) {
-              primaryQueue = 'COMPETITIVE';
-              secondaryQueue = 'COMPETITIVE';
-          } else if (isFlexOrder) {
-              primaryQueue = 'RANKED_FLEX_SR';
-              secondaryQueue = 'RANKED_SOLO_5x5';
-          }
-          
-          let league = data.leagues?.find((l: any) => l.queueType === primaryQueue);
-          let usedSecondary = false;
+          const targetQueue = isValorant ? 'COMPETITIVE' : (isFlexOrder ? 'RANKED_FLEX_SR' : 'RANKED_SOLO_5x5');
+          const targetQueueName = isValorant ? 'Competitive' : (isFlexOrder ? 'Linh Hoạt' : 'Đơn / Đôi');
 
-          // If primary queue rank not found, try finding secondary
-          if (!league) {
-              league = data.leagues?.find((l: any) => l.queueType === secondaryQueue);
-              if (league) {
-                  usedSecondary = true;
-              }
-          }
+          // Lọc nghiêm ngặt: Chỉ lấy đúng rank khớp với chế độ của đơn hàng mà khách hàng đã chọn
+          const matchedLeagues = Array.isArray(data.leagues)
+              ? data.leagues.filter((l: any) => l.queueType === targetQueue)
+              : [];
 
-          if (!league && Array.isArray(data.leagues) && data.leagues.length > 0) {
-              league = data.leagues[0];
-          }
+          setAvailableLeagues(matchedLeagues);
+
+          const league = matchedLeagues[0];
 
           if (league) {
               setLiveLeagueInfo(league);
               
               const isApexTier = ['MASTER', 'GRANDMASTER', 'CHALLENGER', 'RADIANT'].includes(league.tier?.toUpperCase());
-              const formattedRank = isApexTier ? league.tier : `${league.tier}${league.rank ? ' ' + league.rank : ''}`;
+              const tierVi = formatRankDisplayVi(league.tier);
+              const formattedRank = isApexTier ? tierVi : `${tierVi}${league.rank ? ' ' + league.rank : ''}`;
               const formattedName = data.gameName ? `${data.gameName}#${data.tagLine}` : nameToCheck;
               const rankUnit = isValorant ? 'RR' : 'LP';
 
@@ -963,11 +948,7 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                   throw new Error(patchErr.message || 'Lỗi khi lưu thông tin Rank vào đơn hàng');
               }
               
-              if (usedSecondary && !isValorant) {
-                  toast.warning(`Không tìm thấy rank ${isFlexOrder ? 'Linh Hoạt' : 'Đơn/Đôi'}. Đã tự động cập nhật theo rank ${league.queueType === 'RANKED_SOLO_5x5' ? 'Đơn/Đôi' : 'Linh Hoạt'}.`);
-              } else {
-                  toast.success(`Đã cập nhật: ${formattedRank} - ${league.leaguePoints ?? 0} ${rankUnit}`);
-              }
+              toast.success(`Đã cập nhật: ${formattedRank} - ${league.leaguePoints ?? 0} ${rankUnit} (${targetQueueName})`);
               
               // Cập nhật UI local (để hiển thị ngay lập tức)
               setOrder((prev: any) => ({ 
@@ -981,13 +962,12 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
               
               // Real-time broadcast
               socket.emit('update_order', { room: order._id, data: { details: { ...order.details, ...updateBody } } });
-              
-              // Nếu là Booster đang nhập, update luôn state input cho khớp
-              if (data.gameName) setIngameName(`${data.gameName}#${data.tagLine}`);
-
           } else {
-              toast.error('Chưa có thông tin Rank cho tài khoản này');
+              toast.warning(`Tài khoản chưa có bậc xếp hạng ở chế độ ${targetQueueName}.`);
           }
+              
+          // Nếu là Booster đang nhập, update luôn state input cho khớp
+          if (data.gameName) setIngameName(`${data.gameName}#${data.tagLine}`);
       } catch (e: any) { toast.error(e.message || 'Lỗi kiểm tra'); }
       finally { setIsCheckingRank(false); }
   };
@@ -1365,17 +1345,19 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                                                 <span className="text-xs text-zinc-500 block mb-1">Tiến độ rank mục tiêu:</span>
                                                 <div className="flex items-center gap-2 flex-wrap">
                                                     <span className="text-xl sm:text-2xl font-black text-white">
-                                                        {liveLeagueInfo 
-                                                            ? (['MASTER', 'GRANDMASTER', 'CHALLENGER'].includes(liveLeagueInfo.tier?.toUpperCase()) 
-                                                                ? liveLeagueInfo.tier 
-                                                                : `${liveLeagueInfo.tier} ${liveLeagueInfo.rank || ''}`) 
-                                                            : (order.details?.current_rank?.replace(/^(MASTER|GRANDMASTER|CHALLENGER)\s+I$/i, '$1') || 'Khởi điểm')}
+                                                        {formatRankDisplayVi(
+                                                            liveLeagueInfo 
+                                                                ? (['MASTER', 'GRANDMASTER', 'CHALLENGER', 'RADIANT'].includes(liveLeagueInfo.tier?.toUpperCase()) 
+                                                                    ? liveLeagueInfo.tier 
+                                                                    : `${liveLeagueInfo.tier} ${liveLeagueInfo.rank || ''}`.trim()) 
+                                                                : (order.details?.current_rank || 'Khởi điểm')
+                                                        )}
                                                     </span>
                                                     {order.details?.desired_rank && (
                                                         <>
                                                             <span className="text-blue-400 font-bold text-lg">&rarr;</span>
                                                             <span className="text-xl sm:text-2xl font-black text-cyan-300">
-                                                                {order.details.desired_rank}
+                                                                {formatRankDisplayVi(order.details.desired_rank)}
                                                             </span>
                                                         </>
                                                     )}
@@ -1422,7 +1404,7 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                                                 {availableLeagues.length > 0 && (
                                                     <div className="mt-3 p-3 bg-zinc-900/90 rounded-xl border border-zinc-800/80 space-y-2">
                                                         <span className="text-[11px] font-semibold text-zinc-400 flex items-center gap-1.5">
-                                                            <span>⚡</span> Bậc xếp hạng tìm thấy (bấm để chọn & áp dụng):
+                                                            <span>⚡</span> Bậc xếp hạng tìm thấy:
                                                         </span>
                                                         <div className="flex flex-wrap gap-2">
                                                             {availableLeagues.map((l: any, idx: number) => {
@@ -1431,7 +1413,8 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                                                                 const isCompVal = l.queueType === 'COMPETITIVE';
                                                                 const queueLabel = isCompVal ? 'Competitive' : (isSolo ? 'Đơn / Đôi' : 'Linh Hoạt');
                                                                 const isApex = ['MASTER', 'GRANDMASTER', 'CHALLENGER', 'RADIANT'].includes(l.tier?.toUpperCase());
-                                                                const rankText = isApex ? l.tier : `${l.tier} ${l.rank || ''}`;
+                                                                const tierVi = formatRankDisplayVi(l.tier);
+                                                                const rankText = isApex ? tierVi : `${tierVi} ${l.rank || ''}`.trim();
                                                                 const isSelected = liveLeagueInfo?.queueType === l.queueType;
                                                                 const unit = isVal ? 'RR' : 'LP';
                                                                 const icon = isCompVal ? '🎯' : (isSolo ? '👑' : '🛡️');
@@ -1746,12 +1729,13 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                                         <span className="text-blue-400 font-bold text-right">
                                             {(() => {
                                                 if (order.serviceType === 'NET_WINS') {
+                                                    const rankLabel = formatRankDisplayVi(order.details.current_rank || order.details.rank);
                                                     return order.details.calc_mode === 'BY_GAMES' 
-                                                        ? `+${order.details.num_games} Trận thắng (${order.details.current_rank || order.details.rank})`
-                                                        : `${order.details.start_lp ?? order.details.current_lp} LP ➜ ${order.details.target_lp} LP (${order.details.current_rank || order.details.rank})`;
+                                                        ? `+${order.details.num_games} Trận thắng (${rankLabel})`
+                                                        : `${order.details.start_lp ?? order.details.current_lp} LP ➜ ${order.details.target_lp} LP (${rankLabel})`;
                                                 }
                                                 if (order.serviceType === 'PLACEMENTS') {
-                                                    return `${order.details.num_games} Trận (Rank cũ: ${order.details.prev_rank})`;
+                                                    return `${order.details.num_games} Trận (Rank cũ: ${formatRankDisplayVi(order.details.prev_rank)})`;
                                                 }
                                                 if (order.serviceType === 'MASTERY') {
                                                     return `${order.details.champion} (Lv.${order.details.current_mastery} ➜ Lv.${order.details.desired_mastery})`;
@@ -1763,7 +1747,9 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                                                     return `${order.details.coaching_type} (${order.details.hours} Giờ)`;
                                                 }
                                                 // Default (Rank Boost, Leveling, Promotion)
-                                                return `${order.details.current_rank || order.details.current_level} ➜ ${order.details.desired_rank || order.details.desired_level}`;
+                                                const curr = order.details.current_rank ? formatRankDisplayVi(order.details.current_rank) : order.details.current_level;
+                                                const des = order.details.desired_rank ? formatRankDisplayVi(order.details.desired_rank) : order.details.desired_level;
+                                                return `${curr} ➜ ${des}`;
                                             })()}
                                         </span>
                                     </div>
