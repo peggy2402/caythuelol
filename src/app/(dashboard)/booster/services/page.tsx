@@ -26,6 +26,7 @@ import {
   TrendingUp,
   Medal,
   Users,
+  Zap,
   type LucideIcon,
   HelpCircle,
   Crown,
@@ -41,6 +42,7 @@ import {
   getServiceMeta,
   ServiceTemplate,
   LOL_MASTERY_STEPS,
+  LOL_PROMOTION_SERIES,
 } from '@/lib/games';
 import {
   LOL_RANK_STEPS,
@@ -590,7 +592,17 @@ export default function BoosterServicesStudio() {
   // Hoàn tất lưu Modal ở Bước 2
   const handleFinalSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (formData.serviceType !== 'rank-boost' && formData.serviceType !== 'duo-boost' && (!formData.price || formData.price <= 0)) {
+    if (formData.serviceType === 'promotion') {
+      if (!formData.price || formData.price <= 0) {
+        formData.price = 40000;
+      }
+    }
+    if (
+      formData.serviceType !== 'rank-boost' &&
+      formData.serviceType !== 'duo-boost' &&
+      formData.serviceType !== 'promotion' &&
+      (!formData.price || formData.price <= 0)
+    ) {
       toast.error('Vui lòng nhập đơn giá hợp lệ (> 0 VNĐ)');
       return;
     }
@@ -2548,6 +2560,101 @@ export default function BoosterServicesStudio() {
                   </div>
                 )}
 
+                {/* TRƯỜNG HỢP: CHUỖI THĂNG HẠNG (PROMOTION) */}
+                {formData.serviceType === 'promotion' && (
+                  <div className="space-y-4">
+                    <div className="p-3.5 rounded-xl bg-amber-950/20 border border-amber-500/20 text-xs text-zinc-300">
+                      <div className="flex items-center gap-2 font-bold text-amber-300 mb-1">
+                        <Zap size={15} />
+                        <span>Cấu Hình Giá Cho Từng Chuỗi Thăng Hạng (Bậc I ➔ Bậc Tiếp Theo)</span>
+                      </div>
+                      <p className="text-[11px] text-zinc-400 leading-relaxed">
+                        Khách hàng sẽ chọn rank hiện tại (Sắt I, Đồng I, Bạc I, Vàng I, Bạch Kim I, Lục Bảo I, Kim Cương I) để bạn cày thăng hạng lên bậc kế tiếp (ví dụ: Lục Bảo I ➔ Kim Cương IV). Bạn có thể tùy chỉnh đơn giá cho từng chuỗi dưới đây.
+                      </p>
+                    </div>
+
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <label className="text-zinc-400 font-bold uppercase block text-xs">
+                          Bảng Giá Chi Tiết Theo Từng Chuỗi (7 Nấc)
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setFormData({
+                              ...formData,
+                              price: 40000,
+                              stepOverrides: {},
+                            });
+                          }}
+                          className="text-[11px] text-cyan-400 hover:underline cursor-pointer"
+                        >
+                          Dùng giá mặc định
+                        </button>
+                      </div>
+
+                      <div className="border border-zinc-800 rounded-xl p-3 bg-zinc-950 space-y-2 max-h-64 overflow-y-auto">
+                        {LOL_PROMOTION_SERIES.map((promoStep) => {
+                          const overrideVal = formData.stepOverrides?.[promoStep.id] ?? promoStep.defaultPrice;
+                          return (
+                            <div
+                              key={promoStep.id}
+                              className="flex items-center justify-between text-xs py-2 border-b border-zinc-900 last:border-none gap-2"
+                            >
+                              <div className="flex items-center gap-2.5 min-w-0">
+                                <div className="flex items-center gap-1.5 shrink-0">
+                                  <img
+                                    src={promoStep.icon}
+                                    alt={promoStep.fromLabel}
+                                    className="w-6 h-6 object-contain"
+                                  />
+                                  <span className="text-zinc-500 text-[10px]">➔</span>
+                                  <img
+                                    src={promoStep.targetIcon}
+                                    alt={promoStep.toLabel}
+                                    className="w-6 h-6 object-contain"
+                                  />
+                                </div>
+                                <div>
+                                  <div className="font-bold text-white text-xs">
+                                    {promoStep.fromLabel} ➔ {promoStep.toLabel}
+                                  </div>
+                                  <div className="text-[10px] text-zinc-500">
+                                    Chuỗi BO3/BO5 · Cam kết thăng hạng
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-1.5 shrink-0">
+                                <input
+                                  type="number"
+                                  min="0"
+                                  value={overrideVal || ''}
+                                  onChange={(e) => {
+                                    const val = parseInt(e.target.value) || 0;
+                                    const steps = { ...(formData.stepOverrides || {}) };
+                                    if (val <= 0) {
+                                      delete steps[promoStep.id];
+                                    } else {
+                                      steps[promoStep.id] = val;
+                                    }
+                                    setFormData({
+                                      ...formData,
+                                      price: formData.price || promoStep.defaultPrice,
+                                      stepOverrides: steps,
+                                    });
+                                  }}
+                                  className="w-24 bg-zinc-900 border border-zinc-700 rounded-lg px-2 py-1 text-xs text-white font-mono font-bold text-right outline-none focus:border-cyan-500"
+                                />
+                                <span className="text-[10px] text-zinc-500 font-bold">đ</span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {/* TRƯỜNG HỢP 8: GÓI TÙY CHỈNH (CUSTOM) */}
                 {formData.serviceType === 'custom' && (
                   <div className="space-y-4">
@@ -2623,7 +2730,7 @@ export default function BoosterServicesStudio() {
                   </div>
                 )}
 
-                {/* TRƯỜNG HỢP 9: CÁC DỊCH VỤ TRỌN GÓI CỐ ĐỊNH KHÁC (PROMOTION, BATTLE-PASS,...) */}
+                {/* TRƯỜNG HỢP 9: CÁC DỊCH VỤ TRỌN GÓI CỐ ĐỊNH KHÁC (BATTLE-PASS,...) */}
                 {formData.serviceType !== 'rank-boost' &&
                   formData.serviceType !== 'duo-boost' &&
                   formData.serviceType !== 'net-wins' &&
@@ -2632,6 +2739,7 @@ export default function BoosterServicesStudio() {
                   formData.serviceType !== 'leveling' &&
                   formData.serviceType !== 'placements' &&
                   formData.serviceType !== 'matches' &&
+                  formData.serviceType !== 'promotion' &&
                   formData.serviceType !== 'custom' &&
                   formData.pricingType === 'FIXED' && (
                     <div className="space-y-3">
@@ -2664,6 +2772,7 @@ export default function BoosterServicesStudio() {
                   formData.serviceType !== 'leveling' &&
                   formData.serviceType !== 'placements' &&
                   formData.serviceType !== 'matches' &&
+                  formData.serviceType !== 'promotion' &&
                   formData.serviceType !== 'custom' &&
                   formData.pricingType === 'PER_UNIT' && (
                     <div className="space-y-3">
