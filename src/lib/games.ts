@@ -849,6 +849,106 @@ export const LOL_MASTERY_STEPS: MasteryStep[] = [
   { id: 'm9_10', from: 9, to: 10, label: 'Cấp 9 ➔ Cấp 10+ (Danh Hiệu)', pointsReq: '11.000 Điểm', marksReq: '2 Dấu Ấn', defaultPrice: 120000 },
 ];
 
+export interface PromotionTierItem {
+  id: string;
+  fromTier: string;
+  fromDivision: string;
+  fromLabel: string;
+  toTier: string;
+  toDivision: string;
+  toLabel: string;
+  icon: string;
+  targetIcon: string;
+  defaultPrice: number;
+}
+
+export const LOL_PROMOTION_SERIES: PromotionTierItem[] = [
+  {
+    id: 'promo_iron_1',
+    fromTier: 'IRON',
+    fromDivision: 'I',
+    fromLabel: 'Sắt I',
+    toTier: 'BRONZE',
+    toDivision: 'IV',
+    toLabel: 'Đồng IV',
+    icon: '/images/ranks/iron.png',
+    targetIcon: '/images/ranks/bronze.png',
+    defaultPrice: 40000,
+  },
+  {
+    id: 'promo_bronze_1',
+    fromTier: 'BRONZE',
+    fromDivision: 'I',
+    fromLabel: 'Đồng I',
+    toTier: 'SILVER',
+    toDivision: 'IV',
+    toLabel: 'Bạc IV',
+    icon: '/images/ranks/bronze.png',
+    targetIcon: '/images/ranks/silver.png',
+    defaultPrice: 50000,
+  },
+  {
+    id: 'promo_silver_1',
+    fromTier: 'SILVER',
+    fromDivision: 'I',
+    fromLabel: 'Bạc I',
+    toTier: 'GOLD',
+    toDivision: 'IV',
+    toLabel: 'Vàng IV',
+    icon: '/images/ranks/silver.png',
+    targetIcon: '/images/ranks/gold.png',
+    defaultPrice: 60000,
+  },
+  {
+    id: 'promo_gold_1',
+    fromTier: 'GOLD',
+    fromDivision: 'I',
+    fromLabel: 'Vàng I',
+    toTier: 'PLATINUM',
+    toDivision: 'IV',
+    toLabel: 'Bạch Kim IV',
+    icon: '/images/ranks/gold.png',
+    targetIcon: '/images/ranks/platinum.png',
+    defaultPrice: 80000,
+  },
+  {
+    id: 'promo_platinum_1',
+    fromTier: 'PLATINUM',
+    fromDivision: 'I',
+    fromLabel: 'Bạch Kim I',
+    toTier: 'EMERALD',
+    toDivision: 'IV',
+    toLabel: 'Lục Bảo IV',
+    icon: '/images/ranks/platinum.png',
+    targetIcon: '/images/ranks/emerald.png',
+    defaultPrice: 110000,
+  },
+  {
+    id: 'promo_emerald_1',
+    fromTier: 'EMERALD',
+    fromDivision: 'I',
+    fromLabel: 'Lục Bảo I',
+    toTier: 'DIAMOND',
+    toDivision: 'IV',
+    toLabel: 'Kim Cương IV',
+    icon: '/images/ranks/emerald.png',
+    targetIcon: '/images/ranks/diamond.png',
+    defaultPrice: 150000,
+  },
+  {
+    id: 'promo_diamond_1',
+    fromTier: 'DIAMOND',
+    fromDivision: 'I',
+    fromLabel: 'Kim Cương I',
+    toTier: 'MASTER',
+    toDivision: '',
+    toLabel: 'Cao Thủ',
+    icon: '/images/ranks/diamond.png',
+    targetIcon: '/images/ranks/master.png',
+    defaultPrice: 220000,
+  },
+];
+
 export const STANDARD_SERVICE_TEMPLATES: Record<string, ServiceTemplate[]> = {
   LOL: [
     {
@@ -902,8 +1002,8 @@ export const STANDARD_SERVICE_TEMPLATES: Record<string, ServiceTemplate[]> = {
     {
       slug: 'promotion',
       name: 'Chuỗi Thăng Hạng',
-      desc: 'Vượt chuỗi thăng hạng BO3/BO5 an toàn và nhanh gọn mà không lo rớt bậc.',
-      pricingType: 'FIXED',
+      desc: 'Vượt chuỗi thăng hạng từ Bậc I lên Bậc tiếp theo an toàn, tỷ lệ thắng cao.',
+      pricingType: 'TIER_MATRIX',
       defaultPrice: 80000,
       depositPercent: 100,
       iconName: 'Zap',

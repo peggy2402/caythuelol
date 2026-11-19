@@ -39,7 +39,7 @@ import {
   Layers,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { getGameById, GAMES_CATALOG, getServiceMeta } from '@/lib/games';
+import { getGameById, GAMES_CATALOG, getServiceMeta, LOL_PROMOTION_SERIES, PromotionTierItem } from '@/lib/games';
 import {
   LOL_RANK_STEPS,
   VALORANT_RANK_STEPS,
@@ -648,6 +648,13 @@ function ServiceBookingContent() {
   const [desiredPoints, setDesiredPoints] = useState<number>(isValorant ? 80 : isAov ? 10 : 100);
   const gainedPoints = useMemo(() => Math.max(0, desiredPoints - currentPoints), [desiredPoints, currentPoints]);
 
+  // States cho Chuỗi Thăng Hạng (Promotion Series)
+  const isPromotion = serviceSlug === 'promotion';
+  const [selectedPromoId, setSelectedPromoId] = useState<string>('promo_platinum_1');
+  const selectedPromo = useMemo(() => {
+    return LOL_PROMOTION_SERIES.find((p) => p.id === selectedPromoId) || LOL_PROMOTION_SERIES[4];
+  }, [selectedPromoId]);
+
   // Modals States
   const [isRankModalOpen, setIsRankModalOpen] = useState(false);
   const [rankModalTarget, setRankModalTarget] = useState<'CURRENT' | 'DESIRED'>('CURRENT');
@@ -830,8 +837,37 @@ function ServiceBookingContent() {
   const flashCfg = boosterAddonsConfig?.flash || { enabled: true, percent: 35 };
   const duoCfg = boosterAddonsConfig?.duo || { enabled: true, percent: 50 };
 
-  // Tính toán bảng giá (Hỗ trợ Cày Điểm RR/LP và Cày Bậc Rank)
+  // Tính toán bảng giá (Hỗ trợ Cày Điểm RR/LP, Chuỗi Thăng Hạng và Cày Bậc Rank)
   const calculation = useMemo(() => {
+    if (isPromotion) {
+      const basePromoPrice =
+        (isManualSelectBooster && assignedBooster?.stepOverrides?.[selectedPromo.id]) ??
+        matchingBoosterService?.stepOverrides?.[selectedPromo.id] ??
+        selectedPromo.defaultPrice;
+
+      let addonPercentage = 0;
+      let addonFlatFee = 0;
+      if (addons.duo && duoCfg.enabled) addonPercentage += (duoCfg.percent ?? 50) / 100;
+      if (addons.flash && flashCfg.enabled) addonPercentage += (flashCfg.percent ?? 35) / 100;
+      if (addons.specificChamps && specificChampsCfg.enabled) addonPercentage += (specificChampsCfg.percent ?? 30) / 100;
+      if (addons.specificRole && specificRoleCfg.enabled) addonPercentage += (specificRoleCfg.percent ?? 25) / 100;
+      if (addons.schedule && scheduleCfg.enabled) addonPercentage += (scheduleCfg.percent ?? 20) / 100;
+      if (addons.livestream && livestreamCfg.enabled) addonFlatFee += livestreamCfg.fee ?? 349000;
+
+      const percentageAddons = Math.round(basePromoPrice * addonPercentage);
+      const totalAddons = percentageAddons + addonFlatFee;
+      const total = basePromoPrice + totalAddons;
+
+      return {
+        basePrice: basePromoPrice,
+        stepsCount: 1,
+        addonsCost: totalAddons,
+        totalPrice: total,
+        depositAmount: total,
+        stepsBreakdown: [],
+      };
+    }
+
     if (isPointBoost) {
       const rawPointPrice = Math.round(gainedPoints * segmentRate * lpMultiplier);
       let addonPercentage = 0;
@@ -890,6 +926,9 @@ function ServiceBookingContent() {
     boosterMultiplier,
     boosterStepOverrides,
     boosterAddonsConfig,
+    isPromotion,
+    selectedPromo,
+    matchingBoosterService,
   ]);
 
   // Tính giá sau khi áp dụng coupon và cộng phí dịch vụ hệ thống
@@ -1084,7 +1123,23 @@ function ServiceBookingContent() {
           deposit_amount: finalDeposit,
           deposit_percent: serviceDef.depositPercent || (isPointBoost ? 40 : 100),
         },
-        service_data: isPointBoost
+        service_data: isPromotion
+          ? {
+              is_promotion: true,
+              promo_from: selectedPromo.fromLabel,
+              promo_to: selectedPromo.toLabel,
+              current_rank: selectedPromo.fromLabel,
+              desired_rank: selectedPromo.toLabel,
+              tier: selectedPromo.fromTier,
+              target_tier: selectedPromo.toTier,
+              division: selectedPromo.fromDivision,
+              target_division: selectedPromo.toDivision,
+              queue_type: queueType,
+              server,
+              addons,
+              steps_count: 1,
+            }
+          : isPointBoost
           ? {
               is_point_boost: true,
               segment: selectedPointSegment,
@@ -1610,6 +1665,128 @@ function ServiceBookingContent() {
                     </div>
                   </div>
                 </div>
+              ) : isPromotion ? (
+                /* TRƯỜNG HỢP: CHUỖI THĂNG HẠNG (PROMOTION SERIES) */
+                <div className="space-y-6">
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="text-xs font-bold text-zinc-300 flex items-center gap-2">
+                        <Zap size={14} className="text-amber-400" />
+                        <span>Rank hiện tại</span>
+                        <span className="text-red-500">*</span>
+                      </label>
+                      <span className="text-[11px] text-zinc-400">
+                        Chọn bậc hiện tại để cày thăng hạng lên bậc kế tiếp
+                      </span>
+                    </div>
+
+                    {/* Dãy 7 Huy Hiệu Rank Nằm Ngang (Sắt I -> Kim Cương I) */}
+                    <div className="relative pt-8 pb-3">
+                      <div className="flex items-center justify-between sm:justify-center gap-2 sm:gap-4 overflow-x-auto pb-2 scrollbar-none px-1">
+                        {LOL_PROMOTION_SERIES.map((promo) => {
+                          const isSelected = selectedPromoId === promo.id;
+                          return (
+                            <div key={promo.id} className="relative flex flex-col items-center shrink-0">
+                              {/* Tooltip Bong Bóng Nói (Speech Bubble) trên Badge Đang Chọn */}
+                              {isSelected && (
+                                <div className="absolute -top-9 z-20 pointer-events-none whitespace-nowrap animate-in fade-in zoom-in-95 duration-150">
+                                  <div className="bg-white text-zinc-950 font-extrabold text-[11px] px-2.5 py-0.5 rounded shadow-lg border border-zinc-200 relative">
+                                    {promo.fromLabel}
+                                    <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-white" />
+                                  </div>
+                                </div>
+                              )}
+
+                              <button
+                                type="button"
+                                onClick={() => setSelectedPromoId(promo.id)}
+                                className={`relative w-12 h-14 sm:w-16 sm:h-18 flex items-center justify-center rounded-xl transition-all duration-200 cursor-pointer ${
+                                  isSelected
+                                    ? 'border-2 border-red-500 bg-red-500/10 shadow-[0_0_18px_rgba(239,68,68,0.35)] scale-110 z-10'
+                                    : 'border border-transparent hover:border-zinc-700 bg-transparent hover:bg-zinc-800/40 opacity-70 hover:opacity-100 hover:scale-105'
+                                }`}
+                                title={promo.fromLabel}
+                              >
+                                <img
+                                  src={promo.icon}
+                                  alt={promo.fromLabel}
+                                  className="w-10 h-10 sm:w-13 sm:h-13 object-contain filter drop-shadow-[0_4px_10px_rgba(0,0,0,0.5)]"
+                                />
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Thẻ Lộ Trình Thăng Hạng & Cam Kết */}
+                    <div className="p-4 sm:p-5 rounded-2xl bg-zinc-950/80 border border-zinc-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4 mt-2">
+                      <div className="flex items-center gap-3 sm:gap-4">
+                        {/* Bắt đầu */}
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-12 h-12 rounded-2xl bg-black/50 border border-white/10 flex items-center justify-center p-1 shadow-inner">
+                            <img
+                              src={selectedPromo.icon}
+                              alt={selectedPromo.fromLabel}
+                              className="w-9 h-9 object-contain"
+                            />
+                          </div>
+                          <div>
+                            <span className="text-[10px] text-zinc-500 uppercase font-bold tracking-wider block">
+                              Rank bắt đầu
+                            </span>
+                            <span className="text-base font-extrabold text-white">
+                              {selectedPromo.fromLabel}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Mũi tên */}
+                        <div className="flex items-center justify-center text-amber-400 px-1">
+                          <ArrowRight size={20} />
+                        </div>
+
+                        {/* Đích đến */}
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-12 h-12 rounded-2xl bg-black/50 border border-emerald-500/30 flex items-center justify-center p-1 shadow-inner shadow-emerald-500/10">
+                            <img
+                              src={selectedPromo.targetIcon}
+                              alt={selectedPromo.toLabel}
+                              className="w-9 h-9 object-contain"
+                            />
+                          </div>
+                          <div>
+                            <span className="text-[10px] text-emerald-400 uppercase font-bold tracking-wider block">
+                              Mục tiêu thăng hạng
+                            </span>
+                            <span className="text-base font-extrabold text-emerald-400">
+                              {selectedPromo.toLabel}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Giá & Cam kết */}
+                      <div className="text-left sm:text-right pt-3 sm:pt-0 border-t sm:border-t-0 border-zinc-800/80">
+                        <div className="text-[10px] uppercase font-bold text-zinc-400 tracking-wider">
+                          Đơn Giá Chuỗi
+                        </div>
+                        <div className="text-xl font-black font-mono text-cyan-400">
+                          {(
+                            (isManualSelectBooster && assignedBooster?.stepOverrides?.[selectedPromo.id]) ??
+                            matchingBoosterService?.stepOverrides?.[selectedPromo.id] ??
+                            selectedPromo.defaultPrice
+                          ).toLocaleString('vi-VN')}{' '}
+                          <span className="text-xs font-sans text-zinc-500">đ</span>
+                        </div>
+                        <div className="text-[11px] text-emerald-400/90 font-medium mt-0.5 flex items-center sm:justify-end gap-1">
+                          <CheckCircle2 size={13} className="shrink-0" />
+                          <span>Cam kết vượt chuỗi 100%</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               ) : (
                 /* TRƯỜNG HỢP 2: LỘ TRÌNH RANK TƯƠNG TÁC (TỪ BẬC A ĐẾN BẬC B) */
                 <div>
@@ -1734,7 +1911,8 @@ function ServiceBookingContent() {
               )}
 
               {/* ĐIỂM CỘNG MỖI VÁN (LP/RR GAIN) - CẤU HÌNH HỆ SỐ TRỰC QUAN & TOOLTIP GIẢI THÍCH */}
-              <div className="relative">
+              {!isPromotion && (
+                <div className="relative">
                 <div className="flex items-center justify-between mb-2.5">
                   <div className="relative inline-flex items-center gap-1.5">
                     <label className="text-xs font-bold text-zinc-300 flex items-center gap-1.5">
@@ -1840,6 +2018,7 @@ function ServiceBookingContent() {
                   })}
                 </div>
               </div>
+              )}
 
               {/* LOẠI HÀNG ĐỢI & CHỌN SERVER (CHỈ DÀNH CHO LMHT, VALORANT VÀ LIÊN QUÂN KHÔNG CẦN CHỌN SERVER/FLEX) */}
               {!isValorant && !isAov && (
@@ -2135,20 +2314,45 @@ function ServiceBookingContent() {
             <div className="bg-zinc-900/80 border border-white/10 rounded-3xl p-6 shadow-2xl backdrop-blur-md space-y-5 max-h-[calc(100vh-7.5rem)] overflow-y-auto scrollbar-none">
               <h3 className="text-base font-extrabold text-white flex items-center justify-between">
                 <span>
-                  {isPointBoost
+                  {isPromotion
+                    ? 'Tóm Tắt Chuỗi Thăng Hạng'
+                    : isPointBoost
                     ? isAov
                       ? 'Tóm Tắt Đơn Cày Rank Cao Cấp'
                       : `Tóm Tắt Đơn Cày Điểm ${pointUnit}`
                     : 'Tóm Tắt Đơn Cày Rank'}
                 </span>
                 <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">
-                  {isPointBoost ? `${gainedPoints} ${pointUnit} (+${gainedPoints})` : `${calculation.stepsCount} bậc thăng hạng`}
+                  {isPromotion
+                    ? 'Chuỗi Thăng Hạng'
+                    : isPointBoost
+                    ? `${gainedPoints} ${pointUnit} (+${gainedPoints})`
+                    : `${calculation.stepsCount} bậc thăng hạng`}
                 </span>
               </h3>
 
               {/* Chi tiết lộ trình */}
               <div className="p-3.5 rounded-2xl bg-zinc-950/80 border border-white/5 space-y-2 text-xs">
-                {isPointBoost ? (
+                {isPromotion ? (
+                  <>
+                    <div className="flex justify-between text-zinc-300">
+                      <span>Chuỗi thăng hạng:</span>
+                      <span className="font-bold text-white flex items-center gap-1.5">
+                        <span className="text-amber-400">{selectedPromo.fromLabel}</span>
+                        <span>➔</span>
+                        <span className="text-emerald-400">{selectedPromo.toLabel}</span>
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-zinc-400">
+                      <span>Loại hình:</span>
+                      <span className="font-bold text-zinc-200">Chuỗi BO3/BO5 Bậc I</span>
+                    </div>
+                    <div className="flex justify-between text-zinc-400">
+                      <span>Cam kết:</span>
+                      <span className="font-medium text-emerald-400">Đạt {selectedPromo.toLabel} an toàn</span>
+                    </div>
+                  </>
+                ) : isPointBoost ? (
                   <>
                     <div className="flex justify-between text-zinc-300">
                       <span>Phân khúc:</span>
@@ -2209,15 +2413,17 @@ function ServiceBookingContent() {
                     </div>
                   </>
                 )}
-                <div className="flex justify-between text-zinc-400">
-                  <span>Điểm cộng / ván:</span>
-                  <span className="text-zinc-200 flex items-center gap-1">
-                    <span>{activeGainOptions.find((o) => o.id === lpGain)?.label}</span>
-                    <span className={`text-[10px] font-bold px-1 rounded ${activeGainOptions.find((o) => o.id === lpGain)?.badgeClass}`}>
-                      {activeGainOptions.find((o) => o.id === lpGain)?.discountLabel}
+                {!isPromotion && (
+                  <div className="flex justify-between text-zinc-400">
+                    <span>Điểm cộng / ván:</span>
+                    <span className="text-zinc-200 flex items-center gap-1">
+                      <span>{activeGainOptions.find((o) => o.id === lpGain)?.label}</span>
+                      <span className={`text-[10px] font-bold px-1 rounded ${activeGainOptions.find((o) => o.id === lpGain)?.badgeClass}`}>
+                        {activeGainOptions.find((o) => o.id === lpGain)?.discountLabel}
+                      </span>
                     </span>
-                  </span>
-                </div>
+                  </div>
+                )}
                 <div className="flex justify-between text-zinc-400">
                   <span>Loại tài khoản:</span>
                   <span className="text-zinc-200 flex items-center gap-1.5">
