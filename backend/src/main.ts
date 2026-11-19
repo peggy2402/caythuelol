@@ -55,11 +55,23 @@ async function bootstrap() {
     .setTitle('LeoRank API (CayThueLOL)')
     .setDescription('NestJS Backend API for LeoRank Game Boosting Platform')
     .setVersion('1.0')
+    .addTag('Riot Games', 'Tra cứu Rank người chơi & Lịch sử trận đấu trực tiếp từ Riot Games API')
+    .addTag('Orders', 'Quản lý đơn hàng & chi tiết đơn cày thuê')
+    .addTag('Boosters', 'Tuyển thủ & Sàn việc làm')
+    .addTag('Authentication', 'Xác thực & phân quyền người dùng')
+    .addTag('Public & Utilities', 'Cấu hình công khai & Tiện ích')
     .addBearerAuth()
     .build();
   const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('docs', app, document);
-  SwaggerModule.setup('api/docs', app, document);
+  const swaggerCustomOptions = {
+    swaggerOptions: {
+      persistAuthorization: true,
+      docExpansion: 'list',
+      filter: true, // Thêm thanh tìm kiếm filter trên Swagger UI
+    },
+  };
+  SwaggerModule.setup('docs', app, document, swaggerCustomOptions);
+  SwaggerModule.setup('api/docs', app, document, swaggerCustomOptions);
 
   const port = process.env.PORT || 4000;
   await app.listen(port);
