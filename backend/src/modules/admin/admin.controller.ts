@@ -11,7 +11,7 @@ import {
   UseGuards,
   Req,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiBody } from '@nestjs/swagger';
 import { AdminService } from './admin.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
@@ -349,15 +349,30 @@ export class AdminController {
   }
 
   @Roles(UserRole.ADMIN)
+  @ApiTags('Riot Games')
   @Get('settings/riot')
-  @ApiOperation({ summary: 'Get Riot API key' })
+  @ApiOperation({ summary: 'Lấy cấu hình Riot API Key hiện tại (Admin)' })
   async getRiotKey(): Promise<any> {
     return this.adminService.getRiotKey();
   }
 
   @Roles(UserRole.ADMIN)
+  @ApiTags('Riot Games')
   @Post('settings/riot')
-  @ApiOperation({ summary: 'Save Riot API key' })
+  @ApiOperation({ summary: 'Cập nhật Riot Games API Key (Admin)' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        apiKey: {
+          type: 'string',
+          example: 'RGAPI-12345678-abcd-ef01-2345-6789abcdef01',
+          description: 'Riot Games API Key (Development key 24h hoặc Production Key)',
+        },
+      },
+      required: ['apiKey'],
+    },
+  })
   async saveRiotKey(
     @Body('apiKey') apiKey: string,
     @ReqUser() admin?: any,

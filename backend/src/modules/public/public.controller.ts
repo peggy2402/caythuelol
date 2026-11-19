@@ -14,6 +14,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiTags, ApiOperation, ApiConsumes } from '@nestjs/swagger';
 import { PublicService } from './public.service';
 import { Public } from '../../common/decorators/public.decorator';
+import { RiotPlayerLookupDto, RiotMatchLookupDto } from './dto/riot.dto';
 
 @ApiTags('Public & Utilities')
 @Controller()
@@ -141,16 +142,24 @@ export class PublicController {
 
   // 6. Riot Games Proxy
   @Public()
+  @ApiTags('Riot Games')
   @Post('riot/player')
-  @ApiOperation({ summary: 'Lookup Riot player stats' })
-  async getRiotPlayer(@Body() dto: any) {
+  @ApiOperation({
+    summary: 'Tra cứu thông tin Rank & 20 trận gần nhất từ Riot Games',
+    description: 'Truy vấn Riot Account-V1 & League-V4 để lấy Bậc Rank, LP và danh sách Match ID 20 trận gần nhất',
+  })
+  async getRiotPlayer(@Body() dto: RiotPlayerLookupDto) {
     return this.publicService.getRiotPlayer(dto);
   }
 
   @Public()
+  @ApiTags('Riot Games')
   @Post('riot/match')
-  @ApiOperation({ summary: 'Lookup Riot match result' })
-  async getRiotMatch(@Body() dto: any) {
+  @ApiOperation({
+    summary: 'Tra cứu chi tiết trận đấu Riot Match V5',
+    description: 'Truy vấn Riot Match-V5 & League-V4 theo matchId và targetName để lấy KDA, Tướng đã chơi, kết quả Thắng/Thua và Rank hiện tại',
+  })
+  async getRiotMatch(@Body() dto: RiotMatchLookupDto) {
     return this.publicService.getRiotMatch(dto);
   }
 }
