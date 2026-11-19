@@ -408,7 +408,7 @@ export class AdminController {
       properties: {
         apiKey: {
           type: 'string',
-          example: 'HDEV-6f73cf76-7954-4fbe-bf3d-31eff121579c',
+          example: 'HDEV-EXAMPLE-OOOO-ZZZ-YYY-XXXX',
           description: 'HenrikDev Valorant API Key',
         },
       },

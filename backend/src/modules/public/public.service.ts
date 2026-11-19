@@ -660,13 +660,9 @@ export class PublicService {
         success: true,
         game: 'VALORANT',
         match: {
+          ...matchData,
+          isValorant: true,
           matchId: matchData.metadata?.matchid || rawMatchId,
-          map: matchData.metadata?.map,
-          gameMode: matchData.metadata?.mode,
-          gameDuration: matchData.metadata?.game_length,
-          roundsPlayed: matchData.metadata?.rounds_played,
-          win: !!isWin,
-          allPlayersCount: allPlayers.length,
         },
         participant: participant ? {
           puuid: participant.puuid,
