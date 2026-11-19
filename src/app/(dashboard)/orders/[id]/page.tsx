@@ -1185,9 +1185,9 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                                             )}
                                         </div>
                                     ) : (
-                                        <div className="bg-zinc-950 p-4 rounded-xl border border-zinc-800 text-xs text-zinc-400 flex items-center gap-2">
-                                            <Clock className="w-4 h-4 text-amber-400 shrink-0" />
-                                            <span>Đơn hàng đang chờ Tuyển thủ trên Sàn việc làm nhận đơn.</span>
+                                        <div className="bg-zinc-950 p-4 rounded-xl border border-amber-500/20 text-xs text-amber-300 flex items-center gap-2.5">
+                                            <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping shrink-0" />
+                                            <span className="font-medium">Tuyển thủ: <strong className="text-amber-200">Đang tìm kiếm...</strong> (Đơn hàng đang chờ tuyển thủ tiếp nhận trên sàn)</span>
                                         </div>
                                     )}
                                 </div>

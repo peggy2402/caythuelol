@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
-import { Save, Settings, DollarSign, Loader2, AlertTriangle, Image as ImageIcon, Power, Key, RefreshCw, Landmark, Check, ChevronsUpDown, Search, FileText } from 'lucide-react';
+import { Save, Settings, DollarSign, Loader2, AlertTriangle, Image as ImageIcon, Power, Key, RefreshCw, Landmark, Check, ChevronsUpDown, Search, FileText, ArrowRightLeft, Clock } from 'lucide-react';
 
 interface SystemSetting {
   _id: string;
@@ -47,6 +47,8 @@ export default function AdminSettingsPage() {
   const [bankSearchTerm, setBankSearchTerm] = useState('');
   // State cấu hình đăng ký Booster
   const [boosterRegConfig, setBoosterRegConfig] = useState({ depositRequired: false, depositAmount: 200000 });
+  // State thời gian chuyển giao đơn chỉ định (Mặc định 15 phút)
+  const [handoverTimeoutMinutes, setHandoverTimeoutMinutes] = useState<number>(15);
 
   useEffect(() => {
     fetchSettings();
@@ -107,6 +109,11 @@ export default function AdminSettingsPage() {
           if (brc) {
             setBoosterRegConfig(brc.value || { depositRequired: false, depositAmount: 200000 });
           }
+
+          const htm = data.find((s: SystemSetting) => s.key === 'HANDOVER_TIMEOUT_MINUTES');
+          if (htm) {
+            setHandoverTimeoutMinutes(Number(htm.value) || 15);
+          }
         }
       }
 
@@ -143,6 +150,7 @@ export default function AdminSettingsPage() {
         saveSetting('banner_config', bannerConfig, 'Cấu hình Banner trang chủ'),
         saveSetting('ADMIN_BANK_INFO', adminBankInfo, 'Tài khoản ngân hàng của Admin'),
         saveSetting('booster_registration_config', boosterRegConfig, 'Cấu hình đăng ký Booster (Cọc/Free)'),
+        saveSetting('HANDOVER_TIMEOUT_MINUTES', handoverTimeoutMinutes, 'Thời gian (phút) chờ Booster chỉ định nhận đơn trước khi tự động chuyển giao về Sàn công khai'),
         fetch('/api/admin/settings/riot', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -288,6 +296,50 @@ export default function AdminSettingsPage() {
                         </p>
                     </div>
                 )}
+            </div>
+        </div>
+
+        {/* 4. Order Handover Configuration */}
+        <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 hover:border-zinc-700 transition-colors">
+            <div className="flex items-center gap-3 mb-6">
+                <div className="p-3 bg-amber-500/10 rounded-xl text-amber-500 border border-amber-500/20">
+                    <ArrowRightLeft className="w-6 h-6" />
+                </div>
+                <div>
+                    <h3 className="text-lg font-bold text-white">Chuyển Giao Đơn Chỉ Định Tự Động</h3>
+                    <p className="text-sm text-zinc-400">Thời hạn chờ Booster tiếp nhận đơn chỉ định.</p>
+                </div>
+            </div>
+
+            <div className="space-y-4">
+                <div>
+                    <label className="block text-sm font-medium text-zinc-300 mb-2">Thời gian chờ chuyển giao</label>
+                    <div className="relative">
+                        <select
+                            value={handoverTimeoutMinutes}
+                            onChange={(e) => setHandoverTimeoutMinutes(Number(e.target.value))}
+                            className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-white focus:border-amber-500 focus:ring-1 focus:ring-amber-500/20 outline-none transition-all font-bold text-base cursor-pointer"
+                        >
+                            <option value={15}>15 phút (Khuyên dùng - Đảm bảo tốc độ phục vụ)</option>
+                            <option value={30}>30 phút</option>
+                            <option value={45}>45 phút</option>
+                            <option value={60}>60 phút (1 tiếng)</option>
+                            <option value={120}>120 phút (2 tiếng)</option>
+                        </select>
+                    </div>
+                    <div className="text-xs text-zinc-400 mt-2.5 bg-zinc-950/50 p-3 rounded-xl border border-zinc-800/50 space-y-1">
+                        <p className="flex items-center gap-1.5 text-amber-400 font-semibold">
+                            <Clock className="w-3.5 h-3.5 shrink-0" />
+                            <span>Cơ chế vận hành tự động:</span>
+                        </p>
+                        <p className="text-zinc-400 leading-relaxed text-[11px]">
+                            Nếu Booster được khách hàng chỉ định không bấm <strong>&quot;Nhận đơn&quot;</strong> trong vòng <strong className="text-white">{handoverTimeoutMinutes} phút</strong>, hệ thống sẽ tự động gỡ tuyển thủ chỉ định và chuyển giao đơn lên <strong className="text-blue-400">Sàn việc làm công khai</strong> để các tuyển thủ khác cùng tựa game tiếp nhận ngay lập tức.
+                        </p>
+                        <p className="text-zinc-500 text-[11px]">
+                            Trạng thái trên thẻ đơn hàng của khách sẽ tự động cập nhật: <span className="text-amber-300 font-medium">&quot;Tuyển thủ: Đang tìm kiếm...&quot;</span>.
+                        </p>
+                    </div>
+                </div>
             </div>
         </div>
 

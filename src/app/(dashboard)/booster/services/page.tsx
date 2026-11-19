@@ -40,6 +40,7 @@ import {
   STANDARD_SERVICE_TEMPLATES,
   getServiceMeta,
   ServiceTemplate,
+  LOL_MASTERY_STEPS,
 } from '@/lib/games';
 import {
   LOL_RANK_STEPS,
@@ -589,6 +590,10 @@ export default function BoosterServicesStudio() {
   // Hoàn tất lưu Modal ở Bước 2
   const handleFinalSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (formData.serviceType !== 'rank-boost' && formData.serviceType !== 'duo-boost' && (!formData.price || formData.price <= 0)) {
+      toast.error('Vui lòng nhập đơn giá hợp lệ (> 0 VNĐ)');
+      return;
+    }
     let updatedList: CustomService[];
 
     if (editingServiceId) {
@@ -2252,52 +2257,45 @@ export default function BoosterServicesStudio() {
                   );
                 })()}
 
-                {/* TRƯỜNG HỢP 3: CÁC GÓI TRỌN GÓI CỐ ĐỊNH (PHÂN HẠNG / CHUỖI / CẤP ĐỘ) */}
-                {formData.serviceType !== 'rank-boost' && formData.serviceType !== 'net-wins' && formData.pricingType === 'FIXED' && (
-                  <div className="space-y-3">
-                    <div>
-                      <label className="text-zinc-400 font-bold uppercase block mb-1">
-                        Giá Trọn Gói Dịch Vụ (VNĐ)
-                      </label>
-                      <input
-                        type="number"
-                        min="10000"
-                        step="10000"
-                        value={formData.price || 0}
-                        onChange={(e) => setFormData({ ...formData, price: parseInt(e.target.value) || 0 })}
-                        className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-white font-mono font-bold outline-none focus:border-cyan-500"
-                      />
+                {/* TRƯỜNG HỢP 3: HUẤN LUYỆN COACHING */}
+                {formData.serviceType === 'coaching' && (
+                  <div className="space-y-4">
+                    <div className="p-3.5 rounded-xl bg-emerald-950/20 border border-emerald-500/20 text-xs text-zinc-300">
+                      <div className="flex items-center gap-2 font-bold text-emerald-300 mb-1">
+                        <Target size={15} />
+                        <span>Huấn Luyện Coaching 1-1</span>
+                      </div>
+                      <p className="text-[11px] text-zinc-400 leading-relaxed">
+                        Dạy kèm kỹ năng, phân tích replay ván đấu hoặc duo kèm cặp trực tiếp theo thời gian.
+                      </p>
                     </div>
-                    <div className="flex items-center justify-between p-3 rounded-xl bg-zinc-950 border border-zinc-800 text-[11px] text-zinc-400">
-                      <span>Hình thức thanh toán:</span>
-                      <span className="text-emerald-400 font-bold">Trọn gói 100% Escrow</span>
-                    </div>
-                  </div>
-                )}
 
-                {/* TRƯỜNG HỢP 4: THEO ĐƠN VỊ (COACHING / THÔNG THẠO) */}
-                {formData.serviceType !== 'rank-boost' && formData.serviceType !== 'net-wins' && formData.pricingType === 'PER_UNIT' && (
-                  <div className="space-y-3">
                     <div className="grid grid-cols-2 gap-3">
                       <div>
                         <label className="text-zinc-400 font-bold uppercase block mb-1">Đơn Vị Tính</label>
-                        <input
-                          type="text"
-                          placeholder="VD: Giờ học, Cấp độ"
-                          value={formData.unitName || ''}
+                        <select
+                          value={formData.unitName || 'Giờ'}
                           onChange={(e) => setFormData({ ...formData, unitName: e.target.value })}
-                          className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-white font-medium outline-none focus:border-cyan-500"
-                        />
+                          className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-white font-medium outline-none focus:border-cyan-500 text-xs cursor-pointer"
+                        >
+                          <option value="Giờ">Giờ (Khuyên dùng)</option>
+                          <option value="Ngày">Ngày</option>
+                          <option value="Tuần">Tuần</option>
+                          <option value="Tháng">Tháng</option>
+                          <option value="Buổi học (2 giờ)">Buổi học (2 giờ)</option>
+                        </select>
                       </div>
                       <div>
-                        <label className="text-zinc-400 font-bold uppercase block mb-1">Đơn Giá (VNĐ)</label>
+                        <label className="text-zinc-400 font-bold uppercase block mb-1">
+                          Đơn Giá (VNĐ / {formData.unitName || 'Giờ'})
+                        </label>
                         <input
                           type="number"
-                          min="1000"
-                          step="5000"
-                          value={formData.price || 0}
+                          min="0"
+                          placeholder="VD: 100000"
+                          value={formData.price || ''}
                           onChange={(e) => setFormData({ ...formData, price: parseInt(e.target.value) || 0 })}
-                          className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-white font-mono font-bold outline-none focus:border-cyan-500"
+                          className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-white font-mono font-bold outline-none focus:border-cyan-500 text-xs"
                         />
                       </div>
                     </div>
@@ -2309,15 +2307,406 @@ export default function BoosterServicesStudio() {
                       <select
                         value={formData.depositPercent ?? 100}
                         onChange={(e) => setFormData({ ...formData, depositPercent: parseInt(e.target.value) })}
-                        className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-white font-medium outline-none focus:border-cyan-500"
+                        className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-white font-medium outline-none focus:border-cyan-500 text-xs"
                       >
-                        <option value="30">Cọc 30% giữ chỗ</option>
-                        <option value="50">Cọc 50%</option>
-                        <option value="100">Thanh toán trọn gói 100%</option>
+                        <option value="50">Cọc 50% giữ chỗ</option>
+                        <option value="100">Thanh toán trọn gói 100% (Khuyên dùng)</option>
                       </select>
                     </div>
                   </div>
                 )}
+
+                {/* TRƯỜNG HỢP 4: CÀY THÔNG THẠO TƯỚNG (CHUẨN RIOT CẤP 1 ĐẾN 10+) */}
+                {formData.serviceType === 'mastery' && (
+                  <div className="space-y-4">
+                    <div className="p-3.5 rounded-xl bg-amber-950/20 border border-amber-500/20 text-xs text-zinc-300">
+                      <div className="flex items-center gap-2 font-bold text-amber-300 mb-1">
+                        <Swords size={15} />
+                        <span>Cơ Chế Thông Thạo Riot Games Mới (Cấp 1 ➔ Cấp 10+)</span>
+                      </div>
+                      <p className="text-[11px] text-zinc-400 leading-relaxed">
+                        Cày điểm thông thạo và tích lũy dấu ấn từ Cấp 1 đến Cấp 10+ (mở khóa vĩnh viễn Danh hiệu tướng).
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-zinc-400 font-bold uppercase block mb-1">Đơn Vị Tính</label>
+                        <input
+                          type="text"
+                          value={formData.unitName || 'Cấp thông thạo'}
+                          onChange={(e) => setFormData({ ...formData, unitName: e.target.value })}
+                          className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-white font-medium outline-none focus:border-cyan-500 text-xs"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-zinc-400 font-bold uppercase block mb-1">
+                          Đơn Giá Bình Quân / Cấp (VNĐ)
+                        </label>
+                        <input
+                          type="number"
+                          min="0"
+                          placeholder="VD: 50000"
+                          value={formData.price || ''}
+                          onChange={(e) => setFormData({ ...formData, price: parseInt(e.target.value) || 0 })}
+                          className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-white font-mono font-bold outline-none focus:border-cyan-500 text-xs"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Bảng giá từng mốc cấp độ thông thạo */}
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <label className="text-zinc-400 font-bold uppercase block text-xs">
+                          Bảng Giá Chi Tiết Theo Nấc Thông Thạo (Cấp 1 ➔ Cấp 10+)
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => setFormData({ ...formData, stepOverrides: {} })}
+                          className="text-[11px] text-cyan-400 hover:underline cursor-pointer"
+                        >
+                          Dùng giá mặc định
+                        </button>
+                      </div>
+
+                      <div className="max-h-56 overflow-y-auto border border-zinc-800 rounded-xl p-3 bg-zinc-950 space-y-2">
+                        {LOL_MASTERY_STEPS.map((mStep) => {
+                          const overrideVal = formData.stepOverrides?.[mStep.id] ?? mStep.defaultPrice;
+                          return (
+                            <div
+                              key={mStep.id}
+                              className="flex items-center justify-between text-xs py-2 border-b border-zinc-900 last:border-none gap-2"
+                            >
+                              <div className="min-w-0">
+                                <div className="font-bold text-white text-xs">{mStep.label}</div>
+                                <div className="text-[10px] text-zinc-500">
+                                  {mStep.pointsReq} {mStep.marksReq !== 'Không có' ? `+ ${mStep.marksReq}` : ''}
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-1.5 shrink-0">
+                                <input
+                                  type="number"
+                                  min="0"
+                                  value={overrideVal || ''}
+                                  onChange={(e) => {
+                                    const val = parseInt(e.target.value) || 0;
+                                    const steps = { ...(formData.stepOverrides || {}) };
+                                    if (val <= 0) {
+                                      delete steps[mStep.id];
+                                    } else {
+                                      steps[mStep.id] = val;
+                                    }
+                                    setFormData({ ...formData, stepOverrides: steps });
+                                  }}
+                                  className="w-24 bg-zinc-900 border border-zinc-700 rounded-lg px-2 py-1 text-xs text-white font-mono font-bold text-right outline-none focus:border-cyan-500"
+                                />
+                                <span className="text-[10px] text-zinc-500 font-bold">đ</span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* TRƯỜNG HỢP 5: CÀY CẤP ĐỘ (LEVELING) */}
+                {formData.serviceType === 'leveling' && (
+                  <div className="space-y-4">
+                    <div className="p-3.5 rounded-xl bg-blue-950/20 border border-blue-500/20 text-xs text-zinc-300">
+                      <div className="flex items-center gap-2 font-bold text-blue-300 mb-1">
+                        <Users size={15} />
+                        <span>Cày Cấp Độ Tài Khoản (Từ Cấp Này ➔ Cấp Khác)</span>
+                      </div>
+                      <p className="text-[11px] text-zinc-400 leading-relaxed">
+                        Khách hàng chọn cấp độ bắt đầu và cấp độ đích. Giá được tính tự động theo số cấp chênh lệch.
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-zinc-400 font-bold uppercase block mb-1">Đơn Vị Tính</label>
+                        <input
+                          type="text"
+                          value={formData.unitName || 'Cấp độ'}
+                          onChange={(e) => setFormData({ ...formData, unitName: e.target.value })}
+                          className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-white font-medium outline-none focus:border-cyan-500 text-xs"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-zinc-400 font-bold uppercase block mb-1">
+                          Đơn Giá / 1 Cấp Độ (VNĐ)
+                        </label>
+                        <input
+                          type="number"
+                          min="0"
+                          placeholder="VD: 10000"
+                          value={formData.price || ''}
+                          onChange={(e) => setFormData({ ...formData, price: parseInt(e.target.value) || 0 })}
+                          className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-white font-mono font-bold outline-none focus:border-cyan-500 text-xs"
+                        />
+                      </div>
+                    </div>
+
+                    {formData.price > 0 && (
+                      <div className="p-3 rounded-xl bg-zinc-950 border border-zinc-800 text-[11px] text-zinc-300 flex items-center justify-between">
+                        <span>Ví dụ cày từ Cấp 1 lên 30 (29 cấp):</span>
+                        <span className="font-mono font-bold text-emerald-400 text-xs">
+                          {new Intl.NumberFormat('vi-VN').format((formData.price || 0) * 29)} đ
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* TRƯỜNG HỢP 6: PHÂN HẠNG ĐẦU MÙA (PLACEMENTS) */}
+                {formData.serviceType === 'placements' && (
+                  <div className="space-y-4">
+                    <div className="p-3.5 rounded-xl bg-purple-950/20 border border-purple-500/20 text-xs text-zinc-300">
+                      <div className="flex items-center gap-2 font-bold text-purple-300 mb-1">
+                        <Medal size={15} />
+                        <span>Phân Hạng Đầu Mùa (Tối Đa 5 Trận Phân Hạng)</span>
+                      </div>
+                      <p className="text-[11px] text-zinc-400 leading-relaxed">
+                        Cấu hình đơn giá theo từng trận phân hạng (Khách hàng được chọn từ 1 đến tối đa 5 trận).
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-zinc-400 font-bold uppercase block mb-1">Đơn Vị Tính</label>
+                        <input
+                          type="text"
+                          value={formData.unitName || 'Trận'}
+                          onChange={(e) => setFormData({ ...formData, unitName: e.target.value })}
+                          className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-white font-medium outline-none focus:border-cyan-500 text-xs"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-zinc-400 font-bold uppercase block mb-1">
+                          Đơn Giá / 1 Trận Phân Hạng (VNĐ)
+                        </label>
+                        <input
+                          type="number"
+                          min="0"
+                          placeholder="VD: 30000"
+                          value={formData.price || ''}
+                          onChange={(e) => setFormData({ ...formData, price: parseInt(e.target.value) || 0 })}
+                          className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-white font-mono font-bold outline-none focus:border-cyan-500 text-xs"
+                        />
+                      </div>
+                    </div>
+
+                    {formData.price > 0 && (
+                      <div className="p-3 rounded-xl bg-zinc-950 border border-zinc-800 text-[11px] text-zinc-300 flex items-center justify-between">
+                        <span>Trọn gói tối đa 5 trận phân hạng:</span>
+                        <span className="font-mono font-bold text-purple-400 text-xs">
+                          {new Intl.NumberFormat('vi-VN').format((formData.price || 0) * 5)} đ
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* TRƯỜNG HỢP 7: CÀY THEO SỐ TRẬN (MATCHES) */}
+                {formData.serviceType === 'matches' && (
+                  <div className="space-y-4">
+                    <div className="p-3.5 rounded-xl bg-cyan-950/20 border border-cyan-500/20 text-xs text-zinc-300">
+                      <div className="flex items-center gap-2 font-bold text-cyan-300 mb-1">
+                        <Gamepad2 size={15} />
+                        <span>Cày Theo Số Lượng Trận Đấu</span>
+                      </div>
+                      <p className="text-[11px] text-zinc-400 leading-relaxed">
+                        Khách hàng nhập số lượng trận mong muốn. Tuyển thủ cam kết tỷ lệ thắng cao nhất.
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-zinc-400 font-bold uppercase block mb-1">Đơn Vị Tính</label>
+                        <input
+                          type="text"
+                          value={formData.unitName || 'Trận'}
+                          onChange={(e) => setFormData({ ...formData, unitName: e.target.value })}
+                          className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-white font-medium outline-none focus:border-cyan-500 text-xs"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-zinc-400 font-bold uppercase block mb-1">
+                          Đơn Giá / 1 Trận (VNĐ)
+                        </label>
+                        <input
+                          type="number"
+                          min="0"
+                          placeholder="VD: 35000"
+                          value={formData.price || ''}
+                          onChange={(e) => setFormData({ ...formData, price: parseInt(e.target.value) || 0 })}
+                          className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-white font-mono font-bold outline-none focus:border-cyan-500 text-xs"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* TRƯỜNG HỢP 8: GÓI TÙY CHỈNH (CUSTOM) */}
+                {formData.serviceType === 'custom' && (
+                  <div className="space-y-4">
+                    <div className="p-3.5 rounded-xl bg-zinc-900 border border-white/10 text-xs text-zinc-300">
+                      <div className="font-bold text-white text-xs mb-1">Cấu Hình Mô Hình Giá Gói Tùy Chỉnh</div>
+                      <p className="text-[11px] text-zinc-400 leading-relaxed">
+                        Chọn rõ hình thức tính giá cho gói dịch vụ riêng của bạn để khách hàng hiểu chính xác khi đặt hàng.
+                      </p>
+                    </div>
+
+                    <div>
+                      <label className="text-zinc-400 font-bold uppercase block mb-1.5">Hình Thức Tính Giá</label>
+                      <div className="grid grid-cols-3 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setFormData({ ...formData, pricingType: 'PER_UNIT', unitName: 'Trận' })}
+                          className={`p-2.5 rounded-xl border text-center transition-all ${
+                            formData.pricingType === 'PER_UNIT' && formData.unitName === 'Trận'
+                              ? 'bg-blue-600 text-white border-blue-400 font-bold shadow-md'
+                              : 'bg-zinc-950 border-zinc-800 text-zinc-400 hover:text-white'
+                          }`}
+                        >
+                          Theo Số Trận
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setFormData({ ...formData, pricingType: 'PER_UNIT', unitName: 'Giờ' })}
+                          className={`p-2.5 rounded-xl border text-center transition-all ${
+                            formData.pricingType === 'PER_UNIT' && formData.unitName !== 'Trận'
+                              ? 'bg-blue-600 text-white border-blue-400 font-bold shadow-md'
+                              : 'bg-zinc-950 border-zinc-800 text-zinc-400 hover:text-white'
+                          }`}
+                        >
+                          Theo Thời Gian
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setFormData({ ...formData, pricingType: 'FIXED', unitName: 'Gói' })}
+                          className={`p-2.5 rounded-xl border text-center transition-all ${
+                            formData.pricingType === 'FIXED'
+                              ? 'bg-blue-600 text-white border-blue-400 font-bold shadow-md'
+                              : 'bg-zinc-950 border-zinc-800 text-zinc-400 hover:text-white'
+                          }`}
+                        >
+                          Trọn Gói Cố Định
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-zinc-400 font-bold uppercase block mb-1">Đơn Vị Tính</label>
+                        <input
+                          type="text"
+                          placeholder="VD: Trận, Giờ, Nhiệm vụ"
+                          value={formData.unitName || ''}
+                          onChange={(e) => setFormData({ ...formData, unitName: e.target.value })}
+                          className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-white font-medium outline-none focus:border-cyan-500 text-xs"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-zinc-400 font-bold uppercase block mb-1">Đơn Giá (VNĐ)</label>
+                        <input
+                          type="number"
+                          min="0"
+                          placeholder="Nhập giá VNĐ"
+                          value={formData.price || ''}
+                          onChange={(e) => setFormData({ ...formData, price: parseInt(e.target.value) || 0 })}
+                          className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-white font-mono font-bold outline-none focus:border-cyan-500 text-xs"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* TRƯỜNG HỢP 9: CÁC DỊCH VỤ TRỌN GÓI CỐ ĐỊNH KHÁC (PROMOTION, BATTLE-PASS,...) */}
+                {formData.serviceType !== 'rank-boost' &&
+                  formData.serviceType !== 'duo-boost' &&
+                  formData.serviceType !== 'net-wins' &&
+                  formData.serviceType !== 'coaching' &&
+                  formData.serviceType !== 'mastery' &&
+                  formData.serviceType !== 'leveling' &&
+                  formData.serviceType !== 'placements' &&
+                  formData.serviceType !== 'matches' &&
+                  formData.serviceType !== 'custom' &&
+                  formData.pricingType === 'FIXED' && (
+                    <div className="space-y-3">
+                      <div>
+                        <label className="text-zinc-400 font-bold uppercase block mb-1">
+                          Giá Trọn Gói Dịch Vụ (VNĐ)
+                        </label>
+                        <input
+                          type="number"
+                          min="0"
+                          placeholder="Nhập đơn giá (VNĐ)"
+                          value={formData.price || ''}
+                          onChange={(e) => setFormData({ ...formData, price: parseInt(e.target.value) || 0 })}
+                          className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-white font-mono font-bold outline-none focus:border-cyan-500 text-xs"
+                        />
+                      </div>
+                      <div className="flex items-center justify-between p-3 rounded-xl bg-zinc-950 border border-zinc-800 text-[11px] text-zinc-400">
+                        <span>Hình thức thanh toán:</span>
+                        <span className="text-emerald-400 font-bold">Trọn gói 100% Escrow</span>
+                      </div>
+                    </div>
+                  )}
+
+                {/* TRƯỜNG HỢP 10: CÁC DỊCH VỤ PER_UNIT CHUNG KHÁC */}
+                {formData.serviceType !== 'rank-boost' &&
+                  formData.serviceType !== 'duo-boost' &&
+                  formData.serviceType !== 'net-wins' &&
+                  formData.serviceType !== 'coaching' &&
+                  formData.serviceType !== 'mastery' &&
+                  formData.serviceType !== 'leveling' &&
+                  formData.serviceType !== 'placements' &&
+                  formData.serviceType !== 'matches' &&
+                  formData.serviceType !== 'custom' &&
+                  formData.pricingType === 'PER_UNIT' && (
+                    <div className="space-y-3">
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-zinc-400 font-bold uppercase block mb-1">Đơn Vị Tính</label>
+                          <input
+                            type="text"
+                            placeholder="VD: Trận, Giờ"
+                            value={formData.unitName || ''}
+                            onChange={(e) => setFormData({ ...formData, unitName: e.target.value })}
+                            className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-white font-medium outline-none focus:border-cyan-500 text-xs"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-zinc-400 font-bold uppercase block mb-1">Đơn Giá (VNĐ)</label>
+                          <input
+                            type="number"
+                            min="0"
+                            placeholder="Nhập đơn giá (VNĐ)"
+                            value={formData.price || ''}
+                            onChange={(e) => setFormData({ ...formData, price: parseInt(e.target.value) || 0 })}
+                            className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-white font-mono font-bold outline-none focus:border-cyan-500 text-xs"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="text-zinc-400 font-bold uppercase block mb-1">
+                          Tỷ Lệ Cọc Escrow
+                        </label>
+                        <select
+                          value={formData.depositPercent ?? 100}
+                          onChange={(e) => setFormData({ ...formData, depositPercent: parseInt(e.target.value) })}
+                          className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-white font-medium outline-none focus:border-cyan-500 text-xs"
+                        >
+                          <option value="30">Cọc 30% giữ chỗ</option>
+                          <option value="50">Cọc 50%</option>
+                          <option value="100">Thanh toán trọn gói 100%</option>
+                        </select>
+                      </div>
+                    </div>
+                  )}
 
                 <div className="pt-4 border-t border-zinc-800 flex justify-between gap-2.5">
                   <button

@@ -11,15 +11,21 @@ interface MasteryOrderViewProps {
 // Helper to get mastery level info
 const getMasteryInfo = (level: number) => {
     const info: Record<number, { color: string, name: string }> = {
-        1: { color: 'text-zinc-400', name: 'M1' },
-        2: { color: 'text-zinc-300', name: 'M2' },
-        3: { color: 'text-zinc-200', name: 'M3' },
-        4: { color: 'text-yellow-400', name: 'M4' },
-        5: { color: 'text-red-400', name: 'M5' },
-        6: { color: 'text-purple-400', name: 'M6' },
-        7: { color: 'text-blue-400', name: 'M7' },
+        1: { color: 'text-zinc-400', name: 'Cấp 1' },
+        2: { color: 'text-zinc-300', name: 'Cấp 2' },
+        3: { color: 'text-zinc-200', name: 'Cấp 3' },
+        4: { color: 'text-yellow-400', name: 'Cấp 4' },
+        5: { color: 'text-red-400', name: 'Cấp 5' },
+        6: { color: 'text-purple-400', name: 'Cấp 6' },
+        7: { color: 'text-blue-400', name: 'Cấp 7' },
+        8: { color: 'text-emerald-400', name: 'Cấp 8' },
+        9: { color: 'text-indigo-400', name: 'Cấp 9' },
+        10: { color: 'text-amber-300 font-extrabold', name: 'Cấp 10+ (Danh Hiệu)' },
     };
-    return info[level] || { color: 'text-zinc-500', name: `M${level}` };
+    if (level >= 10) {
+      return { color: 'text-amber-300 font-extrabold', name: `Cấp ${level}+ (Danh Hiệu)` };
+    }
+    return info[level] || { color: 'text-zinc-500', name: `Cấp ${level}` };
 };
 
 export default function MasteryOrderView({ order }: MasteryOrderViewProps) {

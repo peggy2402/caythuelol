@@ -300,9 +300,9 @@ export default function OrdersPage() {
                             <span>@{order.boosterId.username || 'Tuyển thủ'}</span>
                           </div>
                         ) : (
-                          <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 font-medium">
+                          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-300 font-medium">
                             <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping"></span>
-                            <span>Đang chờ tuyển thủ nhận việc trên sàn...</span>
+                            <span>Đang tìm kiếm...</span>
                           </div>
                         )}
                       </div>
