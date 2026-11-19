@@ -168,6 +168,7 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
   const [recentMatches, setRecentMatches] = useState<string[]>([]);
   const [isFetchingRiot, setIsFetchingRiot] = useState(false);
   const [liveLeagueInfo, setLiveLeagueInfo] = useState<any>(null);
+  const [availableLeagues, setAvailableLeagues] = useState<any[]>([]);
   const [editingMatchId, setEditingMatchId] = useState<string | null>(null);
   const [isMatchModalOpen, setIsMatchModalOpen] = useState(false);
   const [isCheckingRank, setIsCheckingRank] = useState(false);
@@ -736,6 +737,47 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
       finally { setIsUpdatingIngame(false); }
   };
 
+  // Áp dụng và lưu bậc Rank được chọn từ danh sách Leagues của Riot
+  const applySelectedLeague = async (league: any, playerTag?: string) => {
+      if (!order?._id) return;
+      const isApexTier = ['MASTER', 'GRANDMASTER', 'CHALLENGER'].includes(league.tier?.toUpperCase());
+      const formattedRank = isApexTier ? league.tier : `${league.tier}${league.rank ? ' ' + league.rank : ''}`;
+      const nameToSave = playerTag || (ingameName && ingameName.trim()) || order.details?.ingame_name || order.details?.account_username;
+
+      const updateBody = {
+          ingame_name: nameToSave,
+          current_rank: formattedRank,
+          current_lp: league.leaguePoints ?? 0
+      };
+
+      setLiveLeagueInfo(league);
+
+      try {
+          const patchRes = await fetch(`/api/orders/${order._id}/details`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(updateBody)
+          });
+          if (!patchRes.ok) {
+              const patchErr = await patchRes.json().catch(() => ({}));
+              throw new Error(patchErr.message || 'Lỗi khi lưu thông tin Rank vào đơn hàng');
+          }
+
+          toast.success(`Đã áp dụng: ${formattedRank} - ${league.leaguePoints ?? 0} LP (${league.queueType === 'RANKED_SOLO_5x5' ? 'Đơn/Đôi' : 'Linh Hoạt'})`);
+
+          // Cập nhật UI local
+          setOrder((prev: any) => ({
+              ...prev,
+              details: { ...prev.details, ...updateBody }
+          }));
+
+          // Real-time broadcast
+          socket.emit('update_order', { room: order._id, data: { details: { ...order.details, ...updateBody } } });
+      } catch (err: any) {
+          toast.error(err.message || 'Lỗi khi lưu bậc Rank');
+      }
+  };
+
   // Hàm check Rank và Lưu (Dùng chung cho cả nút Check & Lưu của Booster và nút Refresh)
   const handleCheckAndSaveRank = async () => {
       // Ưu tiên lấy từ input state (nếu booster đang nhập), nếu không thì lấy từ order details
@@ -759,9 +801,15 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
               toast.warning(`Chế độ giả lập (Mock): ${data.mockReason || 'Chưa kết nối API Riot thật'}`);
           }
 
-          const isSoloOrder = ['SOLO', 'SOLO_DUO'].includes(order.details?.queueType || order.details?.queue_type);
-          const primaryQueue = isSoloOrder ? 'RANKED_SOLO_5x5' : 'RANKED_FLEX_SR';
-          const secondaryQueue = isSoloOrder ? 'RANKED_FLEX_SR' : 'RANKED_SOLO_5x5';
+          if (Array.isArray(data.leagues)) {
+              setAvailableLeagues(data.leagues);
+          }
+
+          const rawQueue = String(order.details?.queueType || order.details?.queue_type || order.serviceType || '').toUpperCase();
+          const isFlexOrder = rawQueue.includes('FLEX') || rawQueue.includes('LINH');
+          // Mặc định luôn ưu tiên RANKED_SOLO_5x5 (Đơn/Đôi) trừ khi đơn ghi rõ là FLEX
+          const primaryQueue = isFlexOrder ? 'RANKED_FLEX_SR' : 'RANKED_SOLO_5x5';
+          const secondaryQueue = isFlexOrder ? 'RANKED_SOLO_5x5' : 'RANKED_FLEX_SR';
           
           let league = data.leagues?.find((l: any) => l.queueType === primaryQueue);
           let usedSecondary = false;
@@ -777,10 +825,14 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
           if (league) {
               setLiveLeagueInfo(league);
               
+              const isApexTier = ['MASTER', 'GRANDMASTER', 'CHALLENGER'].includes(league.tier?.toUpperCase());
+              const formattedRank = isApexTier ? league.tier : `${league.tier}${league.rank ? ' ' + league.rank : ''}`;
+              const formattedName = data.gameName ? `${data.gameName}#${data.tagLine}` : nameToCheck;
+
               // Tự động lưu vào DB luôn
               const updateBody = {
-                  ingame_name: data.gameName ? `${data.gameName}#${data.tagLine}` : nameToCheck,
-                  current_rank: `${league.tier}${league.rank ? ' ' + league.rank : ''}`,
+                  ingame_name: formattedName,
+                  current_rank: formattedRank,
                   current_lp: league.leaguePoints ?? 0
               };
 
@@ -796,9 +848,9 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
               }
               
               if (usedSecondary) {
-                  toast.warning(`Không tìm thấy rank cho chế độ đã chọn. Đã cập nhật theo rank ${league.queueType === 'RANKED_SOLO_5x5' ? 'Đơn/Đôi' : 'Linh Hoạt'}.`);
+                  toast.warning(`Không tìm thấy rank ${isFlexOrder ? 'Linh Hoạt' : 'Đơn/Đôi'}. Đã tự động cập nhật theo rank ${league.queueType === 'RANKED_SOLO_5x5' ? 'Đơn/Đôi' : 'Linh Hoạt'}.`);
               } else {
-                  toast.success(`Đã cập nhật & Lưu: ${league.tier} ${league.rank || ''} - ${league.leaguePoints ?? 0} LP`);
+                  toast.success(`Đã cập nhật: ${formattedRank} - ${league.leaguePoints ?? 0} LP (${league.queueType === 'RANKED_SOLO_5x5' ? 'Đơn/Đôi' : 'Linh Hoạt'})`);
               }
               
               // Cập nhật UI local (để hiển thị ngay lập tức)
@@ -818,7 +870,7 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
               if (data.gameName) setIngameName(`${data.gameName}#${data.tagLine}`);
 
           } else {
-              toast.error('Chưa có thông tin Rank cho chế độ này');
+              toast.error('Chưa có thông tin Rank cho tài khoản này');
           }
       } catch (e: any) { toast.error(e.message || 'Lỗi kiểm tra'); }
       finally { setIsCheckingRank(false); }
@@ -1193,7 +1245,11 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                                                 <span className="text-xs text-zinc-500 block mb-1">Tiến độ rank mục tiêu:</span>
                                                 <div className="flex items-center gap-2 flex-wrap">
                                                     <span className="text-xl sm:text-2xl font-black text-white">
-                                                        {liveLeagueInfo ? `${liveLeagueInfo.tier} ${liveLeagueInfo.rank}` : (order.details?.current_rank || 'Khởi điểm')}
+                                                        {liveLeagueInfo 
+                                                            ? (['MASTER', 'GRANDMASTER', 'CHALLENGER'].includes(liveLeagueInfo.tier?.toUpperCase()) 
+                                                                ? liveLeagueInfo.tier 
+                                                                : `${liveLeagueInfo.tier} ${liveLeagueInfo.rank || ''}`) 
+                                                            : (order.details?.current_rank?.replace(/^(MASTER|GRANDMASTER|CHALLENGER)\s+I$/i, '$1') || 'Khởi điểm')}
                                                     </span>
                                                     {order.details?.desired_rank && (
                                                         <>
@@ -1205,7 +1261,7 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                                                     )}
                                                 </div>
                                                 <div className="text-xs text-blue-400 font-bold mt-1">
-                                                    {liveLeagueInfo ? `${liveLeagueInfo.leaguePoints} LP` : order.details?.current_lp ? `${order.details.current_lp} LP` : order.details?.steps_count ? `${order.details.steps_count} Bậc Rank` : ''}
+                                                    {liveLeagueInfo ? `${liveLeagueInfo.leaguePoints ?? 0} LP` : (order.details?.current_lp !== undefined && order.details?.current_lp !== null) ? `${order.details.current_lp} LP` : order.details?.steps_count ? `${order.details.steps_count} Bậc Rank` : ''}
                                                 </div>
                                             </div>
 
@@ -1241,6 +1297,46 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                                                 <p className="text-[10px] text-zinc-500 mt-2">
                                                     * Nhập tên ingame chính xác để hệ thống tự động lấy Rank và LP từ Riot.
                                                 </p>
+
+                                                {/* Danh sách các bậc xếp hạng tìm thấy từ Riot */}
+                                                {availableLeagues.length > 0 && (
+                                                    <div className="mt-3 p-3 bg-zinc-900/90 rounded-xl border border-zinc-800/80 space-y-2">
+                                                        <span className="text-[11px] font-semibold text-zinc-400 flex items-center gap-1.5">
+                                                            <span>⚡</span> Bậc xếp hạng từ Riot (bấm để chọn & áp dụng):
+                                                        </span>
+                                                        <div className="flex flex-wrap gap-2">
+                                                            {availableLeagues.map((l: any, idx: number) => {
+                                                                const isSolo = l.queueType === 'RANKED_SOLO_5x5';
+                                                                const queueLabel = isSolo ? 'Đơn / Đôi' : 'Linh Hoạt';
+                                                                const isApex = ['MASTER', 'GRANDMASTER', 'CHALLENGER'].includes(l.tier?.toUpperCase());
+                                                                const rankText = isApex ? l.tier : `${l.tier} ${l.rank || ''}`;
+                                                                const isSelected = liveLeagueInfo?.queueType === l.queueType;
+
+                                                                return (
+                                                                    <button
+                                                                        key={idx}
+                                                                        type="button"
+                                                                        onClick={() => applySelectedLeague(l)}
+                                                                        className={`px-3 py-2 rounded-lg text-xs font-semibold flex items-center gap-2.5 transition-all border ${
+                                                                            isSelected
+                                                                                ? 'bg-blue-600/20 border-blue-500 text-blue-300 ring-1 ring-blue-500/40 shadow-sm'
+                                                                                : 'bg-zinc-950/80 border-zinc-800 hover:border-zinc-700 text-zinc-300 hover:text-white'
+                                                                        }`}
+                                                                    >
+                                                                        <span className="text-base">{isSolo ? '👑' : '🛡️'}</span>
+                                                                        <div className="text-left">
+                                                                            <div className="text-[10px] text-zinc-400 font-medium">{queueLabel}</div>
+                                                                            <div className="font-bold text-white text-xs">{rankText} <span className="text-cyan-400 font-normal">({l.leaguePoints ?? 0} LP)</span></div>
+                                                                        </div>
+                                                                        <span className="text-[10px] text-zinc-500 border-l border-zinc-800 pl-2">
+                                                                            {l.wins}W / {l.losses}L
+                                                                        </span>
+                                                                    </button>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    </div>
+                                                )}
                                             </div>
                                         )}
                                         
