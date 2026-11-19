@@ -29,6 +29,14 @@ import { GAMES_CATALOG, GameDefinition } from '@/lib/games';
 import ServerSelectModal from '@/components/ServerSelectModal';
 import { getServerByCode } from '@/lib/servers';
 import { getBoosterOrderValue } from '@/lib/orderPricing';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
 
 // Helper lấy metadata tựa game
 function getGameMeta(gameCode?: string) {
@@ -112,6 +120,17 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
   const [isProcessingSettlement, setIsProcessingSettlement] = useState(false);
   const [isRatingModalOpen, setIsRatingModalOpen] = useState(false);
   const [isServerModalOpen, setIsServerModalOpen] = useState(false);
+
+  // Status Change Confirmation Modal State
+  const [statusModal, setStatusModal] = useState<{
+    isOpen: boolean;
+    targetStatus: string;
+    loading: boolean;
+  }>({
+    isOpen: false,
+    targetStatus: '',
+    loading: false,
+  });
   
   // Transactions State
   const [transactions, setTransactions] = useState<any[]>([]);
@@ -328,41 +347,46 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
   }, [order?._id]);
 
   const handleUpdateStatus = (status: string) => {
-    const executeUpdate = async () => {
-        try {
-            const endpoint = status === 'COMPLETED' 
-                ? `/api/orders/${order._id}/complete` 
-                : `/api/orders/${order._id}/status`;
-                
-            const method = status === 'COMPLETED' ? 'POST' : 'PATCH';
-            const body = status === 'COMPLETED' ? {} : { status };
-
-            const res = await fetch(endpoint, {
-                method,
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(body)
-            });
-
-            if (res.ok) {
-                toast.success('Cập nhật trạng thái thành công');
-                setOrder((prev: any) => ({ ...prev, status }));
-                // Reload page to refresh data
-                // window.location.reload(); // No need to reload if we use socket
-                socket.emit('update_order', { room: order._id, data: { status } });
-            } else {
-                const err = await res.json();
-                toast.error(err.error || 'Lỗi cập nhật');
-            }
-        } catch (e) {
-            toast.error('Lỗi kết nối');
-        }
-    };
-
-    toast('Xác nhận thay đổi', {
-        description: `Bạn có chắc chắn muốn chuyển trạng thái thành ${status}?`,
-        action: { label: 'Đồng ý', onClick: executeUpdate },
-        cancel: { label: 'Hủy', onClick: () => {} }
+    setStatusModal({
+      isOpen: true,
+      targetStatus: status,
+      loading: false,
     });
+  };
+
+  const executeStatusUpdate = async () => {
+    const status = statusModal.targetStatus;
+    if (!status || !order?._id) return;
+
+    setStatusModal((prev) => ({ ...prev, loading: true }));
+    try {
+      const endpoint = status === 'COMPLETED' 
+          ? `/api/orders/${order._id}/complete` 
+          : `/api/orders/${order._id}/status`;
+          
+      const method = status === 'COMPLETED' ? 'POST' : 'PATCH';
+      const body = status === 'COMPLETED' ? {} : { status };
+
+      const res = await fetch(endpoint, {
+          method,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+      });
+
+      if (res.ok) {
+          toast.success(status === 'IN_PROGRESS' ? 'Đã bắt đầu cày đơn hàng!' : 'Đã báo cáo hoàn thành đơn hàng!');
+          setOrder((prev: any) => ({ ...prev, status }));
+          socket.emit('update_order', { room: order._id, data: { status } });
+          setStatusModal({ isOpen: false, targetStatus: '', loading: false });
+      } else {
+          const err = await res.json();
+          toast.error(err.error || err.message || 'Lỗi cập nhật');
+          setStatusModal((prev) => ({ ...prev, loading: false }));
+      }
+    } catch (e) {
+        toast.error('Lỗi kết nối');
+        setStatusModal((prev) => ({ ...prev, loading: false }));
+    }
   };
 
   const handleDispute = async () => {
@@ -1864,6 +1888,132 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
           orderId={order._id}
           onSuccess={() => window.location.reload()}
       />
+
+      {/* Centered Modal: Xác nhận thay đổi trạng thái đơn hàng */}
+      <Dialog
+        open={statusModal.isOpen}
+        onOpenChange={(open) => {
+          if (!statusModal.loading) {
+            setStatusModal((prev) => ({ ...prev, isOpen: open }));
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-[440px] bg-zinc-950 border border-white/10 text-white p-6 rounded-2xl shadow-2xl backdrop-blur-xl">
+          <DialogHeader className="flex flex-col items-center text-center space-y-3">
+            <div
+              className={`w-14 h-14 rounded-2xl flex items-center justify-center border shadow-lg ${
+                statusModal.targetStatus === 'IN_PROGRESS'
+                  ? 'bg-blue-500/10 border-blue-500/30 text-blue-400 shadow-blue-500/10'
+                  : statusModal.targetStatus === 'COMPLETED'
+                  ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 shadow-emerald-500/10'
+                  : 'bg-amber-500/10 border-amber-500/30 text-amber-400 shadow-amber-500/10'
+              }`}
+            >
+              {statusModal.targetStatus === 'IN_PROGRESS' ? (
+                <Play className="w-7 h-7 fill-blue-400/20" />
+              ) : statusModal.targetStatus === 'COMPLETED' ? (
+                <CheckCircle2 className="w-7 h-7" />
+              ) : (
+                <AlertCircle className="w-7 h-7" />
+              )}
+            </div>
+
+            <DialogTitle className="text-lg font-bold text-white">
+              {statusModal.targetStatus === 'IN_PROGRESS'
+                ? 'Xác nhận Bắt đầu cày'
+                : statusModal.targetStatus === 'COMPLETED'
+                ? 'Xác nhận Báo cáo hoàn thành'
+                : 'Xác nhận thay đổi trạng thái'}
+            </DialogTitle>
+
+            <DialogDescription className="text-xs text-zinc-400 leading-relaxed max-w-[340px]">
+              {statusModal.targetStatus === 'IN_PROGRESS'
+                ? 'Sau khi bắt đầu cày, trạng thái đơn sẽ chuyển sang "Đang thực hiện". Khách hàng sẽ nhận được thông báo để theo dõi tiến độ.'
+                : statusModal.targetStatus === 'COMPLETED'
+                ? 'Bạn xác nhận đã đạt mục tiêu đơn hàng. Đơn sẽ chuyển sang trạng thái "Hoàn thành" để tiến hành nghiệm thu và quyết toán.'
+                : `Bạn có chắc chắn muốn chuyển trạng thái đơn hàng sang "${statusModal.targetStatus}"?`}
+            </DialogDescription>
+          </DialogHeader>
+
+          {/* Chi tiết đơn tóm tắt */}
+          {order && (
+            <div className="bg-zinc-900/80 border border-white/5 rounded-xl p-3.5 space-y-2 my-2 text-xs">
+              <div className="flex items-center justify-between text-zinc-300">
+                <span className="text-zinc-500">Mã đơn hàng:</span>
+                <span className="font-mono font-bold text-white">
+                  #{order.orderCode || order._id.slice(-6).toUpperCase()}
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-zinc-300">
+                <span className="text-zinc-500">Dịch vụ:</span>
+                <span className="font-semibold text-blue-300">
+                  {order.snapshot?.gameCode || 'Game'} • {order.serviceType}
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-zinc-300">
+                <span className="text-zinc-500">Trạng thái mới:</span>
+                <span
+                  className={`font-bold px-2 py-0.5 rounded text-[11px] ${
+                    statusModal.targetStatus === 'IN_PROGRESS'
+                      ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
+                      : statusModal.targetStatus === 'COMPLETED'
+                      ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                      : 'bg-zinc-800 text-zinc-300'
+                  }`}
+                >
+                  {statusModal.targetStatus === 'IN_PROGRESS'
+                    ? 'Đang thực hiện'
+                    : statusModal.targetStatus === 'COMPLETED'
+                    ? 'Hoàn thành'
+                    : statusModal.targetStatus}
+                </span>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter className="flex items-center justify-end gap-2.5 pt-3 border-t border-white/10 sm:space-x-0">
+            <button
+              type="button"
+              disabled={statusModal.loading}
+              onClick={() => setStatusModal((prev) => ({ ...prev, isOpen: false }))}
+              className="px-4 py-2.5 rounded-xl text-xs font-semibold text-zinc-300 hover:text-white bg-zinc-900 hover:bg-zinc-800 border border-white/10 transition-colors cursor-pointer disabled:opacity-50"
+            >
+              Hủy
+            </button>
+            <button
+              type="button"
+              disabled={statusModal.loading}
+              onClick={executeStatusUpdate}
+              className={`px-5 py-2.5 rounded-xl text-xs font-bold text-white shadow-lg transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50 ${
+                statusModal.targetStatus === 'IN_PROGRESS'
+                  ? 'bg-blue-600 hover:bg-blue-500 shadow-blue-600/25'
+                  : statusModal.targetStatus === 'COMPLETED'
+                  ? 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-600/25'
+                  : 'bg-blue-600 hover:bg-blue-500'
+              }`}
+            >
+              {statusModal.loading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Đang xử lý...</span>
+                </>
+              ) : statusModal.targetStatus === 'IN_PROGRESS' ? (
+                <>
+                  <Play className="w-3.5 h-3.5 fill-white" />
+                  <span>Bắt đầu ngay</span>
+                </>
+              ) : statusModal.targetStatus === 'COMPLETED' ? (
+                <>
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  <span>Xác nhận hoàn thành</span>
+                </>
+              ) : (
+                <span>Đồng ý</span>
+              )}
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Dispute Modal */}
       {isDisputeModalOpen && (
