@@ -65,7 +65,7 @@ interface VoucherItem {
 
 interface PointTxItem {
   _id: string;
-  type: 'EARN_ORDER' | 'REDEEM_VOUCHER' | 'BONUS' | 'ADJUST';
+  type: 'EARN_ORDER' | 'REDEEM_VOUCHER' | 'REVOKE_REFUND' | 'BONUS' | 'ADJUST';
   points: number;
   balanceAfter: number;
   description: string;
@@ -86,7 +86,7 @@ export default function CustomerLoyaltyPage() {
     progressPercent: 0,
     remainingToTarget: 2000,
     hasReachedTarget: false,
-    earnRateDescription: '1.000đ chi tiêu = 1 điểm tích lũy',
+    earnRateDescription: '1.000 VNĐ chi tiêu (đơn hoàn thành 100%) = 1 điểm tích lũy',
   });
   const [catalog, setCatalog] = useState<RewardItem[]>([]);
   const [myVouchers, setMyVouchers] = useState<VoucherItem[]>([]);
@@ -276,6 +276,18 @@ export default function CustomerLoyaltyPage() {
                 Dùng trực tiếp tại trang Checkout
               </div>
             </div>
+          </div>
+        </div>
+
+        {/* Quy tắc tích điểm & thu hồi điểm minh bạch */}
+        <div className="mt-5 pt-4 border-t border-white/10 grid grid-cols-1 md:grid-cols-2 gap-3 text-xs text-zinc-300">
+          <div className="rounded-xl bg-zinc-950/60 border border-white/5 px-4 py-3">
+            <span className="font-bold text-amber-300">Điều kiện cộng điểm:</span>{' '}
+            Chỉ đơn hàng đã <strong className="text-white">hoàn thành 100%</strong> mới được tính là chi tiêu hợp lệ (1.000 VNĐ = 1 điểm).
+          </div>
+          <div className="rounded-xl bg-zinc-950/60 border border-white/5 px-4 py-3">
+            <span className="font-bold text-rose-400">Cơ chế thu hồi điểm:</span>{' '}
+            Nếu đơn hoàn thành bị khiếu nại (trong 24h) có đủ bằng chứng và được hoàn tiền, số điểm đã cộng từ đơn đó sẽ tự động bị trừ lại.
           </div>
         </div>
       </div>

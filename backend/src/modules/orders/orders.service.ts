@@ -8,7 +8,7 @@ import { InjectModel, InjectConnection } from '@nestjs/mongoose';
 import { Model, Types, Connection } from 'mongoose';
 
 import { IOrder, OrderStatus, SettlementStatus, IOrderSnapshot } from '../../database/schemas/Order';
-import { IUser } from '../../database/schemas/User';
+import { IUser, UserRole } from '../../database/schemas/User';
 import {
   ITransaction,
   TransactionType,
@@ -654,11 +654,32 @@ export class OrdersService {
     return { success: true, message: 'Đánh giá Booster thành công!' };
   }
 
-  async createDispute(orderId: string, userId: string, reason: string) {
+  async createDispute(orderId: string, userId: string, reason: string, userRole?: string) {
     const order = await this.orderModel.findById(orderId);
     if (!order) throw new NotFoundException('Không tìm thấy đơn hàng');
 
+    // Cơ chế 24h: Customer chỉ được khiếu nại trong vòng 24 giờ kể từ khi đơn hoàn thành
+    if (order.status === OrderStatus.COMPLETED && userRole !== UserRole.ADMIN && userRole !== UserRole.STAFF) {
+      const completedEntry = Array.isArray(order.timeline)
+        ? [...order.timeline].reverse().find((t: any) => t.status === OrderStatus.COMPLETED)
+        : null;
+      const completedAt = new Date(
+        (order as any).completedAt || completedEntry?.timestamp || order.updatedAt,
+      );
+      const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
+      if (Date.now() - completedAt.getTime() > TWENTY_FOUR_HOURS_MS) {
+        throw new BadRequestException(
+          'Đã quá thời hạn 24 giờ khiếu nại kể từ khi đơn hàng hoàn thành. Toàn bộ số tiền đã thuộc về Booster.',
+        );
+      }
+    }
+
     order.status = OrderStatus.DISPUTED;
+    order.dispute = {
+      reason,
+      status: 'PENDING',
+      fundsDeducted: false,
+    };
     if (!order.timeline) order.timeline = [];
     order.timeline.push({
       status: OrderStatus.DISPUTED,

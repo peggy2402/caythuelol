@@ -16,6 +16,7 @@ import { IWithdrawal } from '../../database/schemas/Withdrawal';
 import { IAuditLog } from '../../database/schemas/AuditLog';
 import { IBoosterProfile } from '../../database/schemas/BoosterProfile';
 import { getClientIp } from '../../common/utils/ip.util';
+import { LoyaltyService } from '../loyalty/loyalty.service';
 import * as bcrypt from 'bcryptjs';
 
 @Injectable()
@@ -31,6 +32,7 @@ export class AdminService {
     @InjectModel('Withdrawal') private withdrawalModel: Model<IWithdrawal>,
     @InjectModel('AuditLog') private auditLogModel: Model<IAuditLog>,
     @InjectConnection() private readonly connection: Connection,
+    private loyaltyService: LoyaltyService,
   ) {}
 
   async getStats(startDate?: string, endDate?: string): Promise<any> {
@@ -853,6 +855,19 @@ export class AdminService {
         }
 
         order.status = OrderStatus.REFUNDED;
+        order.dispute = {
+          ...(order.dispute || { reason: '' }),
+          status: 'RESOLVED',
+          fundsDeducted: Boolean(wasBoosterPaid),
+        };
+
+        // Tự động thu hồi điểm tích lũy đã cộng từ đơn này khi hoàn tiền khiếu nại cho Customer
+        await this.loyaltyService.revokeOrderPoints(
+          order.customerId.toString(),
+          order._id as Types.ObjectId,
+          order.orderCode || order._id.toString().slice(-6),
+          session,
+        );
 
         // Penalty debt system if booster was paid
         if (wasBoosterPaid && order.boosterId && order.pricing.booster_earnings > 0) {
@@ -908,6 +923,21 @@ export class AdminService {
           }
         }
         order.status = OrderStatus.COMPLETED;
+        order.dispute = {
+          ...(order.dispute || { reason: '' }),
+          status: 'REJECTED',
+          fundsDeducted: false,
+        };
+        const paidTotal = order.pricing?.final_amount || order.pricing?.total_amount || 0;
+        if (paidTotal > 0) {
+          await this.loyaltyService.awardOrderPoints(
+            order.customerId.toString(),
+            order._id as Types.ObjectId,
+            order.orderCode || order._id.toString().slice(-6),
+            paidTotal,
+            session,
+          );
+        }
       } else if (decision === 'RESUME') {
         order.status = OrderStatus.IN_PROGRESS;
       }

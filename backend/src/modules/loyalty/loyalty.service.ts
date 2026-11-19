@@ -136,7 +136,7 @@ export class LoyaltyService {
         progressPercent,
         remainingToTarget,
         hasReachedTarget: currentPoints >= LOYALTY_TARGET_POINTS,
-        earnRateDescription: `1.000đ chi tiêu = 1 điểm tích lũy`,
+        earnRateDescription: '1.000 VNĐ chi tiêu (đơn hoàn thành 100%) = 1 điểm tích lũy',
       },
       catalog: VOUCHER_CATALOG,
       myVouchers,
@@ -347,5 +347,54 @@ export class LoyaltyService {
     );
 
     return pointsToAdd;
+  }
+
+  async revokeOrderPoints(
+    customerId: string,
+    orderId: Types.ObjectId,
+    orderCode: string,
+    session?: ClientSession,
+  ) {
+    // Idempotency: tránh trừ trùng điểm cho cùng 1 đơn hoàn tiền
+    const alreadyRevoked = await this.pointTxModel
+      .findOne({
+        orderId,
+        type: PointTransactionType.REVOKE_REFUND,
+      })
+      .session(session || null);
+    if (alreadyRevoked) return 0;
+
+    // Tìm giao dịch đã cộng điểm cho đơn hàng này
+    const earnedTx = await this.pointTxModel
+      .findOne({
+        orderId,
+        type: PointTransactionType.EARN_ORDER,
+      })
+      .session(session || null);
+    if (!earnedTx || earnedTx.points <= 0) return 0;
+
+    const pointsToRevoke = earnedTx.points;
+    const customer = await this.userModel.findById(customerId).session(session || null);
+    if (!customer || customer.role !== UserRole.CUSTOMER) return 0;
+
+    customer.loyalty_points = Math.max(0, (customer.loyalty_points || 0) - pointsToRevoke);
+    customer.total_points_earned = Math.max(0, (customer.total_points_earned || 0) - pointsToRevoke);
+    await customer.save({ session });
+
+    await this.pointTxModel.create(
+      [
+        {
+          userId: customer._id,
+          orderId,
+          type: PointTransactionType.REVOKE_REFUND,
+          points: -pointsToRevoke,
+          balanceAfter: customer.loyalty_points,
+          description: `Thu hồi điểm đơn #${orderCode} do hoàn tiền khiếu nại`,
+        },
+      ],
+      { session },
+    );
+
+    return pointsToRevoke;
   }
 }

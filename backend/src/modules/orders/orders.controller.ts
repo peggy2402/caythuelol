@@ -140,7 +140,7 @@ export class OrdersController {
     @ReqUser() user: any,
     @Body('reason') reason: string,
   ) {
-    return this.ordersService.createDispute(id, user.userId, reason);
+    return this.ordersService.createDispute(id, user.userId, reason, user.role);
   }
 }
 
