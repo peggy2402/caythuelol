@@ -11,6 +11,9 @@ import { toast } from 'sonner';
 import { format } from 'date-fns';
 import Image from 'next/image';
 import UserSelectDropdown, { AdminUserItem } from '@/components/admin/UserSelectDropdown';
+import BoosterRecentForm from '@/components/BoosterRecentForm';
+import { apiFetch } from '@/lib/api';
+import { TrendingUp, TrendingDown, Minus, Activity } from 'lucide-react';
 
 // --- Types ---
 interface Application {
@@ -62,7 +65,7 @@ interface Booster {
 }
 
 export default function AdminBoostersPage() {
-  const [activeTab, setActiveTab] = useState<'applications' | 'list'>('applications');
+  const [activeTab, setActiveTab] = useState<'applications' | 'list' | 'recent-form'>('applications');
   const [isRefreshing, setIsRefreshing] = useState(false);
   const router = useRouter();
 
@@ -102,6 +105,15 @@ export default function AdminBoostersPage() {
             >
               Danh sách hoạt động
             </button>
+            <button
+              onClick={() => setActiveTab('recent-form')}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-all flex items-center gap-1.5 ${
+                activeTab === 'recent-form' ? 'bg-zinc-800 text-cyan-400 shadow-sm' : 'text-zinc-400 hover:text-white'
+              }`}
+            >
+              <Activity className="w-3.5 h-3.5" />
+              Phong độ (30 ngày)
+            </button>
           </div>
           {/* Refresh Button */}
           <button onClick={handleRefresh} disabled={isRefreshing} className="p-2.5 bg-zinc-900 border border-zinc-800 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
@@ -110,7 +122,13 @@ export default function AdminBoostersPage() {
         </div>
       </div>
 
-      {activeTab === 'applications' ? <ApplicationsTab /> : <ActiveBoostersTab />}
+      {activeTab === 'applications' ? (
+        <ApplicationsTab />
+      ) : activeTab === 'list' ? (
+        <ActiveBoostersTab />
+      ) : (
+        <RecentFormOverviewTab />
+      )}
     </div>
   );
 }
@@ -1162,6 +1180,174 @@ function ActiveBoostersTab() {
                 Xác nhận hủy tư cách
               </button>
             </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// --- TAB 3: PHONG ĐỘ GẦN ĐÂY (ADMIN OVERVIEW) ---
+function RecentFormOverviewTab() {
+  const [days, setDays] = useState<7 | 30 | 90>(30);
+  const [trendFilter, setTrendFilter] = useState<'ALL' | 'IMPROVING' | 'STABLE' | 'DECLINING'>('ALL');
+  const [loading, setLoading] = useState(true);
+  const [items, setItems] = useState<any[]>([]);
+  const [summary, setSummary] = useState({ total: 0, improving: 0, stable: 0, declining: 0 });
+  const [selectedBoosterId, setSelectedBoosterId] = useState<string | null>(null);
+
+  useEffect(() => {
+    setLoading(true);
+    apiFetch(`/api/ranking/admin/recent-form-overview?days=${days}`)
+      .then((res) => {
+        setItems(res.items || []);
+        setSummary(res.summary || { total: 0, improving: 0, stable: 0, declining: 0 });
+      })
+      .catch((err) => toast.error(err.message || 'Không thể tải dữ liệu phong độ Booster'))
+      .finally(() => setLoading(false));
+  }, [days]);
+
+  const filtered = items.filter((item) => trendFilter === 'ALL' || item.trend === trendFilter);
+
+  const trendBadge = (trend: string, label: string) => {
+    if (trend === 'IMPROVING') {
+      return (
+        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+          <TrendingUp className="w-3 h-3" /> {label}
+        </span>
+      );
+    }
+    if (trend === 'DECLINING') {
+      return (
+        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-500/15 text-rose-400 border border-rose-500/30">
+          <TrendingDown className="w-3 h-3" /> {label}
+        </span>
+      );
+    }
+    return (
+      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-500/15 text-blue-400 border border-blue-500/30">
+        <Minus className="w-3 h-3" /> {label}
+      </span>
+    );
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Filter & Summary */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex flex-wrap gap-2">
+          {([
+            { key: 'ALL', label: `Tất cả (${summary.total})` },
+            { key: 'IMPROVING', label: `Cải thiện (${summary.improving})` },
+            { key: 'STABLE', label: `Ổn định (${summary.stable})` },
+            { key: 'DECLINING', label: `Suy giảm (${summary.declining})` },
+          ] as const).map((f) => (
+            <button
+              key={f.key}
+              type="button"
+              onClick={() => setTrendFilter(f.key)}
+              className={`px-3.5 py-1.5 rounded-lg text-xs font-bold border transition-colors ${
+                trendFilter === f.key
+                  ? 'bg-blue-600 text-white border-blue-500'
+                  : 'bg-zinc-900 text-zinc-400 border-zinc-800 hover:text-white'
+              }`}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="inline-flex items-center rounded-xl bg-zinc-900 border border-zinc-800 p-1 self-start">
+          {([7, 30, 90] as const).map((d) => (
+            <button
+              key={d}
+              type="button"
+              onClick={() => setDays(d)}
+              className={`px-3 py-1 rounded-lg text-xs font-bold transition-colors ${
+                days === d ? 'bg-cyan-500 text-zinc-950' : 'text-zinc-400 hover:text-white'
+              }`}
+            >
+              {d} ngày
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {loading ? (
+        <div className="py-16 flex justify-center">
+          <Loader2 className="w-8 h-8 animate-spin text-cyan-400" />
+        </div>
+      ) : (
+        <div className="rounded-xl bg-zinc-900 border border-zinc-800 overflow-x-auto">
+          <table className="w-full text-left text-sm">
+            <thead className="bg-zinc-950 text-zinc-400 text-xs uppercase border-b border-zinc-800">
+              <tr>
+                <th className="px-4 py-3">Booster</th>
+                <th className="px-4 py-3">Xu hướng</th>
+                <th className="px-4 py-3 text-right">Đơn ({days}N / Kỳ trước)</th>
+                <th className="px-4 py-3 text-right">Thành công</th>
+                <th className="px-4 py-3 text-right">Rating</th>
+                <th className="px-4 py-3 text-right">Đúng hạn</th>
+                <th className="px-4 py-3 text-right">Khiếu nại</th>
+                <th className="px-4 py-3 text-right">Chi tiết</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-zinc-800 text-xs">
+              {filtered.map((item) => (
+                <tr key={item.boosterId} className="hover:bg-zinc-800/40 transition-colors">
+                  <td className="px-4 py-3 font-bold text-white">{item.displayName || item.username}</td>
+                  <td className="px-4 py-3">{trendBadge(item.trend, item.trendLabel)}</td>
+                  <td className="px-4 py-3 text-right font-mono text-zinc-200">
+                    {item.completedOrders} / <span className="text-zinc-500">{item.prevCompletedOrders}</span>
+                  </td>
+                  <td className="px-4 py-3 text-right font-mono text-zinc-200">
+                    {item.successRate !== null && item.successRate !== undefined ? `${item.successRate}%` : '--'}
+                  </td>
+                  <td className="px-4 py-3 text-right font-mono text-amber-400">
+                    {item.customerRating !== null && item.customerRating !== undefined ? `${item.customerRating}★` : '--'}
+                  </td>
+                  <td className="px-4 py-3 text-right font-mono text-zinc-200">
+                    {item.onTimeRate !== null && item.onTimeRate !== undefined ? `${item.onTimeRate}%` : '--'}
+                  </td>
+                  <td className="px-4 py-3 text-right font-mono text-rose-400">
+                    {item.complaintRate !== null && item.complaintRate !== undefined ? `${item.complaintRate}%` : '--'}
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedBoosterId(item.boosterId)}
+                      className="px-3 py-1 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-cyan-400 font-bold"
+                    >
+                      Xem chi tiết
+                    </button>
+                  </td>
+                </tr>
+              ))}
+              {filtered.length === 0 && (
+                <tr>
+                  <td colSpan={8} className="px-4 py-10 text-center text-zinc-500">
+                    Không có Booster nào khớp bộ lọc.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {selectedBoosterId && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+          <div className="w-full max-w-5xl max-h-[90vh] overflow-y-auto rounded-3xl bg-zinc-950 border border-white/10 p-4 sm:p-6 space-y-4">
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={() => setSelectedBoosterId(null)}
+                className="p-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <BoosterRecentForm boosterId={selectedBoosterId} />
           </div>
         </div>
       )}

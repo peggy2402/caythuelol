@@ -6,6 +6,7 @@ import { User, Star, Trophy, MapPin, MessageSquare, ShieldCheck, Clock, Loader2 
 import Link from 'next/link';
 import Image from 'next/image';
 import Navbar from '@/components/Navbar';
+import BoosterRecentForm from '@/components/BoosterRecentForm';
 
 export default function BoosterProfileView({ id }: { id: string }) {
   const { t } = useLanguage();
@@ -250,6 +251,12 @@ export default function BoosterProfileView({ id }: { id: string }) {
                 )}
               </div>
             </div>
+
+            {booster?._id && (
+              <div className="mt-8">
+                <BoosterRecentForm boosterId={booster._id} title="Phong độ gần đây (30 ngày)" />
+              </div>
+            )}
 
           </div>
         </div>

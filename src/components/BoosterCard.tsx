@@ -99,6 +99,30 @@ const getBoosterActiveGames = (booster: any): string[] => {
   return [];
 };
 
+// Ánh xạ tên rank (tiếng Anh hoặc tiếng Việt) sang tên file icon có sẵn trong public/images/ranks/
+const resolveRankImageKey = (rank: string): string | null => {
+  if (!rank) return null;
+  const normalized = rank
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/gi, 'd')
+    .toLowerCase()
+    .replace(/[_-]+/g, ' ')
+    .trim();
+
+  if (normalized.includes('challenger') || normalized.includes('thach dau')) return 'challenger';
+  if (normalized.includes('grandmaster') || normalized.includes('dai cao thu')) return 'grandmaster';
+  if (normalized.includes('master') || normalized.includes('cao thu')) return 'master';
+  if (normalized.includes('diamond') || normalized.includes('kim cuong')) return 'diamond';
+  if (normalized.includes('emerald') || normalized.includes('luc bao')) return 'emerald';
+  if (normalized.includes('platinum') || normalized.includes('bach kim')) return 'platinum';
+  if (normalized.includes('gold') || normalized.includes('vang')) return 'gold';
+  if (normalized.includes('silver') || normalized.includes('bac')) return 'silver';
+  if (normalized.includes('bronze') || normalized.includes('dong')) return 'bronze';
+  if (normalized.includes('iron') || normalized.includes('sat')) return 'iron';
+  return null;
+};
+
 export default function BoosterCard({ booster, isBookmarked, onToggleBookmark }: BoosterCardProps) {
   const router = useRouter();
   const [isNavigating, setIsNavigating] = useState(false);
@@ -123,7 +147,7 @@ export default function BoosterCard({ booster, isBookmarked, onToggleBookmark }:
   
   // Game & Rank thật
   const userRank = booster.games?.[0]?.ranks?.[0] || booster.booster_info?.currentRank || '';
-  const cleanRankKey = userRank ? userRank.split(/[_ ]/)[0].toLowerCase() : '';
+  const cleanRankKey = resolveRankImageKey(userRank);
   
   // Chuẩn hóa danh sách game nhận cày thực tế (chỉ game đang BẬT dịch vụ, tối đa 3 badge + badge 3+)
   const normalizedGames = getBoosterActiveGames(booster);
@@ -235,14 +259,16 @@ export default function BoosterCard({ booster, isBookmarked, onToggleBookmark }:
         <div className="flex flex-wrap justify-center items-center gap-1.5 my-2 min-h-[28px]">
           {userRank && (
             <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-[11px] font-bold text-blue-300">
-              <img 
-                src={`/images/ranks/${cleanRankKey}.png`} 
-                alt={userRank} 
-                className="w-3.5 h-3.5 object-contain" 
-                onError={(e) => {
-                  e.currentTarget.style.display = 'none';
-                }} 
-              />
+              {cleanRankKey && (
+                <img 
+                  src={`/images/ranks/${cleanRankKey}.png`} 
+                  alt={userRank} 
+                  className="w-3.5 h-3.5 object-contain" 
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                  }} 
+                />
+              )}
               <span>{userRank.replace(/_/g, ' ')}</span>
             </span>
           )}

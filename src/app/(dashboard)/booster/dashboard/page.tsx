@@ -24,6 +24,7 @@ import Link from 'next/link';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { apiFetch } from '@/lib/api';
+import BoosterRecentForm from '@/components/BoosterRecentForm';
 
 export default function BoosterDashboardPage() {
   const { t } = useLanguage();
@@ -449,6 +450,11 @@ export default function BoosterDashboardPage() {
           )}
         </div>
       </div>
+
+      {/* ========================================================================= */}
+      {/* 4. TRÌNH ĐỘ & XẾP HẠNG — PHONG ĐỘ GẦN ĐÂY (30 NGÀY)                       */}
+      {/* ========================================================================= */}
+      {user?._id && <BoosterRecentForm boosterId={user._id} />}
     </div>
   );
 }

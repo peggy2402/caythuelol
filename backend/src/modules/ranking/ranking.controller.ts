@@ -48,6 +48,30 @@ export class RankingController {
     return this.rankingService.getBoosterRankingDetail(boosterId);
   }
 
+  @Public()
+  @Get('booster/:id/recent-form')
+  @ApiOperation({ summary: 'Xem phong độ gần đây của Booster (7 / 30 / 90 ngày) so sánh kỳ liền trước' })
+  async getBoosterRecentForm(
+    @Param('id') boosterId: string,
+    @Query('days') days?: string,
+    @Query('granularity') granularity?: 'day' | 'week',
+  ) {
+    return this.rankingService.getBoosterRecentForm(
+      boosterId,
+      Number(days || 30),
+      granularity === 'week' ? 'week' : 'day',
+    );
+  }
+
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN, UserRole.STAFF)
+  @ApiBearerAuth()
+  @Get('admin/recent-form-overview')
+  @ApiOperation({ summary: 'Admin theo dõi và so sánh phong độ gần đây của toàn bộ Booster' })
+  async getAdminRecentFormOverview(@Query('days') days?: string) {
+    return this.rankingService.getAdminRecentFormOverview(Number(days || 30));
+  }
+
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @Post('recalculate/:id')
