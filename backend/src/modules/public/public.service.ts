@@ -6,6 +6,14 @@ import axios from 'axios';
 
 import { ISystemSetting } from '../../database/schemas/SystemSetting';
 import { IBoosterProfile } from '../../database/schemas/BoosterProfile';
+import {
+  RiotPlayerLookupDto,
+  RiotMatchLookupDto,
+  ValorantPlayerLookupDto,
+  ValorantMatchLookupDto,
+  GamePlayerLookupDto,
+  GameMatchLookupDto,
+} from './dto/riot.dto';
 
 @Injectable()
 export class PublicService {
@@ -500,6 +508,212 @@ export class PublicService {
         throw new BadRequestException(`Riot API lỗi (HTTP ${status || 'Unknown'}): ${err.response?.data?.status?.message || err.message}`);
       }
     }
+  }
+
+  // Helper lấy Valorant API Key từ DB hoặc .env
+  private async getValorantApiKey(): Promise<string> {
+    const valKeySettings = await this.settingModel.find({
+      key: { $in: ['VALORANT_API_KEY', 'HENRIKDEV_API_KEY', 'valorant_api_key', 'henrikdev_api_key'] },
+    }).lean();
+
+    for (const s of valKeySettings) {
+      const val = typeof s?.value === 'string' ? s.value.trim() : '';
+      if (val) return val;
+    }
+    return (process.env.HENRIKDEV_API_KEY || process.env.VALORANT_API_KEY || '').trim();
+  }
+
+  // Tra cứu thông tin Rank và Match History Valorant (qua HenrikDev)
+  async lookupValorantPlayer(input: ValorantPlayerLookupDto) {
+    let gameName = (input.gameName || '').trim();
+    let tagLine = (input.tagLine || '').trim();
+
+    if (input.name && input.name.includes('#')) {
+      const parts = input.name.split('#');
+      gameName = parts[0].trim();
+      tagLine = parts.slice(1).join('#').trim();
+    } else if (!gameName && input.name) {
+      gameName = input.name.trim();
+    }
+
+    if (!tagLine) tagLine = 'RIOT';
+
+    const s = (input.server || 'ap').toLowerCase();
+    const region = ['ap', 'na', 'eu', 'kr', 'latam', 'br'].includes(s)
+      ? s
+      : (['vn', 'sea', 'jp', 'tw', 'sg', 'th', 'ph', 'oc'].includes(s) ? 'ap' : 'ap');
+
+    const apiKey = await this.getValorantApiKey();
+    if (!apiKey) {
+      throw new BadRequestException('Chưa cấu hình HENRIKDEV_API_KEY / VALORANT_API_KEY trong hệ thống (.env hoặc Admin Settings)');
+    }
+
+    try {
+      const headers: Record<string, string> = {
+        'Authorization': apiKey,
+        'Accept': 'application/json',
+      };
+
+      // 1. Lấy thông tin MMR / Rank hiện tại
+      const mmrUrl = `https://api.henrikdev.xyz/valorant/v2/mmr/${region}/${encodeURIComponent(gameName)}/${encodeURIComponent(tagLine)}`;
+      const mmrRes = await axios.get(mmrUrl, { headers }).catch((err) => {
+        if (err.response?.status === 404) return null;
+        throw err;
+      });
+
+      const mmrData = mmrRes?.data?.data;
+      const currentTierPatched = mmrData?.current_data?.currenttierpatched || 'Unrated';
+      const currentLp = mmrData?.current_data?.ranking_in_tier ?? 0;
+      const elo = mmrData?.current_data?.elo ?? 0;
+
+      // 2. Lấy danh sách trận gần nhất (size=20)
+      let recentMatches: string[] = [];
+      try {
+        const matchesUrl = `https://api.henrikdev.xyz/valorant/v3/matches/${region}/${encodeURIComponent(gameName)}/${encodeURIComponent(tagLine)}?size=20`;
+        const matchesRes = await axios.get(matchesUrl, { headers });
+        if (Array.isArray(matchesRes.data?.data)) {
+          recentMatches = matchesRes.data.data.map((m: any) => m.metadata?.matchid).filter(Boolean);
+        }
+      } catch (err: any) {
+        // Không block nếu lấy trận gần nhất gặp lỗi
+      }
+
+      return {
+        success: true,
+        game: 'VALORANT',
+        gameName: mmrData?.name || gameName,
+        tagLine: mmrData?.tag || tagLine,
+        puuid: mmrData?.puuid || '',
+        currentTier: currentTierPatched,
+        currentLp,
+        elo,
+        tierImage: mmrData?.current_data?.images?.large || null,
+        leagues: [
+          {
+            queueType: 'COMPETITIVE',
+            tier: currentTierPatched.toUpperCase(),
+            rank: '',
+            leaguePoints: currentLp,
+            wins: mmrData?.by_season ? Object.values(mmrData.by_season).reduce((acc: number, s: any) => acc + (s?.wins || 0), 0) : 0,
+            losses: 0,
+          },
+        ],
+        recentMatches,
+      };
+    } catch (err: any) {
+      const status = err.response?.status;
+      if (status === 404) {
+        throw new NotFoundException(`Không tìm thấy người chơi Valorant: ${gameName}#${tagLine} trên khu vực ${region.toUpperCase()}`);
+      }
+      if (status === 401 || status === 403) {
+        throw new BadRequestException('HENRIKDEV_API_KEY không hợp lệ hoặc đã hết hạn/hết quota (HTTP 401/403).');
+      }
+      throw new BadRequestException(`HenrikDev API lỗi (HTTP ${status || 'Unknown'}): ${err.response?.data?.message || err.message}`);
+    }
+  }
+
+  // Tra cứu chi tiết 1 trận đấu Valorant (qua HenrikDev)
+  async lookupValorantMatch(input: ValorantMatchLookupDto) {
+    const rawMatchId = (input.matchId || '').trim();
+    if (!rawMatchId) throw new BadRequestException('Vui lòng cung cấp matchId');
+
+    const apiKey = await this.getValorantApiKey();
+    if (!apiKey) {
+      throw new BadRequestException('Chưa cấu hình HENRIKDEV_API_KEY / VALORANT_API_KEY trong hệ thống (.env hoặc Admin Settings)');
+    }
+
+    try {
+      const headers: Record<string, string> = {
+        'Authorization': apiKey,
+        'Accept': 'application/json',
+      };
+
+      const matchUrl = `https://api.henrikdev.xyz/valorant/v2/match/${rawMatchId}`;
+      const res = await axios.get(matchUrl, { headers });
+      const matchData = res.data?.data;
+
+      if (!matchData) {
+        throw new NotFoundException('Không tìm thấy dữ liệu trận đấu Valorant');
+      }
+
+      const allPlayers = matchData.players?.all_players || [];
+      const cleanTarget = (input.targetName || '').toLowerCase().replace(/\s/g, '');
+      const cleanTargetNameOnly = cleanTarget.includes('#') ? cleanTarget.split('#')[0] : cleanTarget;
+
+      let participant = null;
+      if (cleanTarget) {
+        participant = allPlayers.find((p: any) => {
+          const pFullName = `${p.name}#${p.tag}`.toLowerCase().replace(/\s/g, '');
+          const pName = (p.name || '').toLowerCase().replace(/\s/g, '');
+          return pFullName === cleanTarget || pName === cleanTargetNameOnly;
+        });
+      }
+
+      if (!participant && allPlayers.length > 0) {
+        participant = allPlayers[0];
+      }
+
+      const playerTeam = (participant?.team || '').toLowerCase(); // 'blue' or 'red'
+      const isWin = playerTeam === 'blue' ? matchData.teams?.blue?.has_won : matchData.teams?.red?.has_won;
+
+      return {
+        success: true,
+        game: 'VALORANT',
+        match: {
+          matchId: matchData.metadata?.matchid || rawMatchId,
+          map: matchData.metadata?.map,
+          gameMode: matchData.metadata?.mode,
+          gameDuration: matchData.metadata?.game_length,
+          roundsPlayed: matchData.metadata?.rounds_played,
+          win: !!isWin,
+          allPlayersCount: allPlayers.length,
+        },
+        participant: participant ? {
+          puuid: participant.puuid,
+          gameName: participant.name,
+          tagLine: participant.tag,
+          championName: participant.character, // Agent name: e.g. Sova, Jett
+          kills: participant.stats?.kills ?? 0,
+          deaths: participant.stats?.deaths ?? 0,
+          assists: participant.stats?.assists ?? 0,
+          score: participant.stats?.score ?? 0,
+          currentTier: participant.currenttier_patched || 'Unrated',
+          win: !!isWin,
+        } : null,
+        leagueInfo: participant ? {
+          queueType: 'COMPETITIVE',
+          tier: (participant.currenttier_patched || 'Unrated').toUpperCase(),
+          rank: '',
+          leaguePoints: 0,
+        } : null,
+      };
+    } catch (err: any) {
+      const status = err.response?.status;
+      if (status === 404) {
+        throw new NotFoundException(`Không tìm thấy trận đấu Valorant với ID: ${rawMatchId}`);
+      }
+      if (status === 401 || status === 403) {
+        throw new BadRequestException('HENRIKDEV_API_KEY không hợp lệ hoặc đã hết hạn/hết quota.');
+      }
+      throw new BadRequestException(`HenrikDev API lỗi (HTTP ${status || 'Unknown'}): ${err.response?.data?.message || err.message}`);
+    }
+  }
+
+  // Tra cứu Đa Năng (Unified Game Lookup) cho mọi game
+  async lookupUnifiedPlayer(input: GamePlayerLookupDto) {
+    const game = (input.game || 'LOL').toUpperCase();
+    if (game.includes('VAL')) {
+      return this.lookupValorantPlayer(input);
+    }
+    return this.getRiotPlayer(input);
+  }
+
+  async lookupUnifiedMatch(input: GameMatchLookupDto) {
+    const game = (input.game || 'LOL').toUpperCase();
+    if (game.includes('VAL')) {
+      return this.lookupValorantMatch(input);
+    }
+    return this.getRiotMatch(input);
   }
 
   detectGeoLocale(req: any) {

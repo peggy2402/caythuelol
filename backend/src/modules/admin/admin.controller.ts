@@ -390,6 +390,48 @@ export class AdminController {
     return res;
   }
 
+  @Roles(UserRole.ADMIN)
+  @ApiTags('Valorant')
+  @Get('settings/valorant')
+  @ApiOperation({ summary: 'Lấy cấu hình Valorant HenrikDev API Key hiện tại (Admin)' })
+  async getValorantKey(): Promise<any> {
+    return this.adminService.getValorantKey();
+  }
+
+  @Roles(UserRole.ADMIN)
+  @ApiTags('Valorant')
+  @Post('settings/valorant')
+  @ApiOperation({ summary: 'Cập nhật Valorant HenrikDev API Key (Admin)' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        apiKey: {
+          type: 'string',
+          example: 'HDEV-6f73cf76-7954-4fbe-bf3d-31eff121579c',
+          description: 'HenrikDev Valorant API Key',
+        },
+      },
+      required: ['apiKey'],
+    },
+  })
+  async saveValorantKey(
+    @Body('apiKey') apiKey: string,
+    @ReqUser() admin?: any,
+    @Req() req?: any,
+  ): Promise<any> {
+    const res = await this.adminService.saveValorantKey(apiKey);
+    if (admin?.userId) {
+      this.adminService.createAuditLog({
+        actorId: admin.userId,
+        action: 'UPDATE_VALORANT_KEY',
+        description: 'Cập nhật Valorant HenrikDev API Key',
+        ipAddress: getClientIp(req),
+      });
+    }
+    return res;
+  }
+
   // --- QUẢN LÝ NHÂN VIÊN (STAFF & PERMISSIONS) ---
 
   @Roles(UserRole.ADMIN)

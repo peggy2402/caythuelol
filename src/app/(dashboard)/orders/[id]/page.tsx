@@ -618,8 +618,11 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
       let foundLp = false;
 
       for (const token of tokens) {
-        if (!matchId && (/^[A-Za-z0-9]+_\d+$/.test(token) || /^\d{8,14}$/.test(token))) {
-          matchId = token.includes('_') ? token : `VN2_${token}`;
+        const isLolMatch = /^[A-Za-z0-9]+_\d+$/.test(token) || /^\d{8,14}$/.test(token);
+        const isValMatch = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(token) || /^[0-9a-fA-F]{32}$/.test(token);
+
+        if (!matchId && (isLolMatch || isValMatch)) {
+          matchId = token.includes('_') || isValMatch ? token : `VN2_${token}`;
         } else if (!foundLp && /^[+-]?\d+$/.test(token)) {
           lp = parseInt(token, 10);
           foundLp = true;
@@ -640,30 +643,32 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
     setParsedBatchMatches(parsed);
   };
 
-  // Tự động kéo thông tin Tướng & KDA từ Riot cho tất cả các trận
+  // Tự động kéo thông tin Tướng / Đặc vụ & KDA cho tất cả các trận
   const handleAutoFetchRiotForBatch = async () => {
     if (parsedBatchMatches.length === 0) return toast.warning('Chưa có trận đấu nào để tra cứu');
     setIsFetchingRiotBatch(true);
     try {
-      const server = order.details?.server || 'VN';
+      const orderGame = (order?.snapshot?.gameCode || order?.details?.game || order?.details?.gameCode || 'LOL').toUpperCase();
+      const isValorant = orderGame.includes('VAL');
+      const server = order.details?.server || (isValorant ? 'ap' : 'VN');
       const targetName = order.details?.ingame_name || order.details?.account_username || ingameName;
 
       const updated = await Promise.all(
         parsedBatchMatches.map(async (m) => {
           try {
-            const res = await fetch('/api/riot/match', {
+            const res = await fetch('/api/games/match', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ matchId: m.matchId, server, targetName }),
+              body: JSON.stringify({ game: orderGame, matchId: m.matchId, server, targetName }),
             });
             if (res.ok) {
               const data = await res.json();
               const p = data.participant;
               return {
                 ...m,
-                champion: p?.championName || m.champion || 'League Champion',
+                champion: p?.championName || m.champion || (isValorant ? 'Valorant Agent' : 'League Champion'),
                 result: p ? (p.win ? 'WIN' : 'LOSS') : m.result,
-                reason: p ? `KDA: ${p.kills}/${p.deaths}/${p.assists}` : m.reason,
+                reason: p ? `KDA: ${p.kills}/${p.deaths}/${p.assists}${p.score ? ` (${p.score} pts)` : ''}` : m.reason,
                 detail: data.match,
               };
             }
@@ -673,9 +678,9 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
       );
 
       setParsedBatchMatches(updated);
-      toast.success('Đã tải thông tin Tướng & KDA từ Riot Games!');
+      toast.success(`Đã tải thông tin ${isValorant ? 'Đặc vụ & KDA từ Valorant' : 'Tướng & KDA từ Riot Games'}!`);
     } catch (e) {
-      toast.error('Lỗi khi tải thông tin từ Riot');
+      toast.error('Lỗi khi tải thông tin trận đấu');
     } finally {
       setIsFetchingRiotBatch(false);
     }
@@ -785,20 +790,27 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
       
       if (!nameToCheck) return toast.error('Vui lòng nhập tên Ingame');
 
+      const orderGame = (order?.snapshot?.gameCode || order?.details?.game || order?.details?.gameCode || 'LOL').toUpperCase();
+      const isValorant = orderGame.includes('VAL');
+
       setIsCheckingRank(true);
       try {
-          const res = await fetch('/api/riot/player', {
+          const res = await fetch('/api/games/player', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ server: order.details?.server || 'VN', name: nameToCheck.trim() })
+              body: JSON.stringify({ 
+                  game: orderGame,
+                  server: order.details?.server || (isValorant ? 'ap' : 'VN'), 
+                  name: nameToCheck.trim() 
+              })
           });
           const data = await res.json();
           if (!res.ok || data.success === false) {
-              throw new Error(data.error || data.mockReason || 'Lỗi kiểm tra Riot Games');
+              throw new Error(data.error || data.message || data.mockReason || 'Lỗi kiểm tra thông tin người chơi');
           }
 
           if (data.isMock) {
-              toast.warning(`Chế độ giả lập (Mock): ${data.mockReason || 'Chưa kết nối API Riot thật'}`);
+              toast.warning(`Chế độ giả lập (Mock): ${data.mockReason || 'Chưa kết nối API thật'}`);
           }
 
           if (Array.isArray(data.leagues)) {
@@ -807,9 +819,16 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
 
           const rawQueue = String(order.details?.queueType || order.details?.queue_type || order.serviceType || '').toUpperCase();
           const isFlexOrder = rawQueue.includes('FLEX') || rawQueue.includes('LINH');
-          // Mặc định luôn ưu tiên RANKED_SOLO_5x5 (Đơn/Đôi) trừ khi đơn ghi rõ là FLEX
-          const primaryQueue = isFlexOrder ? 'RANKED_FLEX_SR' : 'RANKED_SOLO_5x5';
-          const secondaryQueue = isFlexOrder ? 'RANKED_SOLO_5x5' : 'RANKED_FLEX_SR';
+          
+          let primaryQueue = 'RANKED_SOLO_5x5';
+          let secondaryQueue = 'RANKED_FLEX_SR';
+          if (isValorant) {
+              primaryQueue = 'COMPETITIVE';
+              secondaryQueue = 'COMPETITIVE';
+          } else if (isFlexOrder) {
+              primaryQueue = 'RANKED_FLEX_SR';
+              secondaryQueue = 'RANKED_SOLO_5x5';
+          }
           
           let league = data.leagues?.find((l: any) => l.queueType === primaryQueue);
           let usedSecondary = false;
@@ -822,12 +841,17 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
               }
           }
 
+          if (!league && Array.isArray(data.leagues) && data.leagues.length > 0) {
+              league = data.leagues[0];
+          }
+
           if (league) {
               setLiveLeagueInfo(league);
               
-              const isApexTier = ['MASTER', 'GRANDMASTER', 'CHALLENGER'].includes(league.tier?.toUpperCase());
+              const isApexTier = ['MASTER', 'GRANDMASTER', 'CHALLENGER', 'RADIANT'].includes(league.tier?.toUpperCase());
               const formattedRank = isApexTier ? league.tier : `${league.tier}${league.rank ? ' ' + league.rank : ''}`;
               const formattedName = data.gameName ? `${data.gameName}#${data.tagLine}` : nameToCheck;
+              const rankUnit = isValorant ? 'RR' : 'LP';
 
               // Tự động lưu vào DB luôn
               const updateBody = {
@@ -847,10 +871,10 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                   throw new Error(patchErr.message || 'Lỗi khi lưu thông tin Rank vào đơn hàng');
               }
               
-              if (usedSecondary) {
+              if (usedSecondary && !isValorant) {
                   toast.warning(`Không tìm thấy rank ${isFlexOrder ? 'Linh Hoạt' : 'Đơn/Đôi'}. Đã tự động cập nhật theo rank ${league.queueType === 'RANKED_SOLO_5x5' ? 'Đơn/Đôi' : 'Linh Hoạt'}.`);
               } else {
-                  toast.success(`Đã cập nhật: ${formattedRank} - ${league.leaguePoints ?? 0} LP (${league.queueType === 'RANKED_SOLO_5x5' ? 'Đơn/Đôi' : 'Linh Hoạt'})`);
+                  toast.success(`Đã cập nhật: ${formattedRank} - ${league.leaguePoints ?? 0} ${rankUnit}`);
               }
               
               // Cập nhật UI local (để hiển thị ngay lập tức)
@@ -877,16 +901,20 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
   };
 
   const handleFetchRiotMatch = async () => {
-      if (!riotMatchId.trim()) return toast.error('Vui lòng nhập ID trận đấu (VD: VN2_123456)');
+      const orderGame = (order?.snapshot?.gameCode || order?.details?.game || order?.details?.gameCode || 'LOL').toUpperCase();
+      const isValorant = orderGame.includes('VAL');
+
+      if (!riotMatchId.trim()) return toast.error(`Vui lòng nhập ID trận đấu (VD: ${isValorant ? 'ba7a9a92-be79-494e-bdad-483131edb85c' : 'VN2_123456'})`);
       setIsFetchingRiot(true);
       try {
-          const res = await fetch('/api/riot/match', {
+          const res = await fetch('/api/games/match', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ 
+                  game: orderGame,
                   matchId: riotMatchId.trim(),
-                  server: order.details?.server || 'VN', // Gửi server để API tự thêm prefix (VN2, KR...)
-                  targetName: order.details?.ingame_name || order.details?.account_username || ingameName // Gửi tên để tìm PUUID
+                  server: order.details?.server || (isValorant ? 'ap' : 'VN'),
+                  targetName: order.details?.ingame_name || order.details?.account_username || ingameName
               })
           });
           const data = await res.json();
@@ -901,28 +929,28 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
               let calculatedLpChange = '';
               
               // Tự động tính LP Change nếu có dữ liệu League
-              if (leagueInfo) {
+              if (leagueInfo && leagueInfo.leaguePoints !== undefined && leagueInfo.leaguePoints !== 0) {
                   const currentLpInOrder = parseInt(order.details.current_lp || '0');
                   const realLp = leagueInfo.leaguePoints;
                   const diff = realLp - currentLpInOrder;
                   
                   setLiveLeagueInfo(leagueInfo); // Lưu lại để gửi khi submit
                   
-                  // Chỉ điền nếu chênh lệch hợp lý (tránh trường hợp mới lên hạng/rớt hạng làm âm quá lớn)
+                  // Chỉ điền nếu chênh lệch hợp lý
                   if (Math.abs(diff) < 100) {
                       calculatedLpChange = diff.toString();
                   }
-                  toast.info(`Rank hiện tại: ${leagueInfo.tier} ${leagueInfo.rank} - ${realLp} LP`);
+                  toast.info(`Rank hiện tại: ${leagueInfo.tier} ${leagueInfo.rank || ''} - ${realLp} ${isValorant ? 'RR' : 'LP'}`);
               }
 
               setMatchForm(prev => ({
                   ...prev,
-                  champion: participant.championName,
+                  champion: participant.championName || (isValorant ? 'Agent' : 'Champion'),
                   result: participant.win ? 'WIN' : 'LOSS',
                   lp_change: calculatedLpChange,
-                  reason: `KDA: ${participant.kills}/${participant.deaths}/${participant.assists}`
+                  reason: `KDA: ${participant.kills}/${participant.deaths}/${participant.assists}${participant.score ? ` (${participant.score} pts)` : ''}`
               }));
-              toast.success('Đã lấy thông tin trận đấu!');
+              toast.success(`Đã lấy thông tin trận đấu (${isValorant ? 'Valorant' : 'Riot'})!`);
           } else {
               toast.warning('Không tìm thấy người chơi. Hãy chắc chắn bạn đã cập nhật Tên Ingame đúng.');
           }
@@ -1295,22 +1323,26 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                                                     </button>
                                                 </div>
                                                 <p className="text-[10px] text-zinc-500 mt-2">
-                                                    * Nhập tên ingame chính xác để hệ thống tự động lấy Rank và LP từ Riot.
+                                                    * Nhập tên ingame chính xác để hệ thống tự động lấy Rank và {(order.snapshot?.gameCode || order.details?.game || order.details?.gameCode || '').toUpperCase().includes('VAL') ? 'RR' : 'LP'} từ {(order.snapshot?.gameCode || order.details?.game || order.details?.gameCode || '').toUpperCase().includes('VAL') ? 'Valorant' : 'Riot Games'}.
                                                 </p>
 
-                                                {/* Danh sách các bậc xếp hạng tìm thấy từ Riot */}
+                                                {/* Danh sách các bậc xếp hạng tìm thấy */}
                                                 {availableLeagues.length > 0 && (
                                                     <div className="mt-3 p-3 bg-zinc-900/90 rounded-xl border border-zinc-800/80 space-y-2">
                                                         <span className="text-[11px] font-semibold text-zinc-400 flex items-center gap-1.5">
-                                                            <span>⚡</span> Bậc xếp hạng từ Riot (bấm để chọn & áp dụng):
+                                                            <span>⚡</span> Bậc xếp hạng tìm thấy (bấm để chọn & áp dụng):
                                                         </span>
                                                         <div className="flex flex-wrap gap-2">
                                                             {availableLeagues.map((l: any, idx: number) => {
+                                                                const isVal = (order.snapshot?.gameCode || order.details?.game || order.details?.gameCode || '').toUpperCase().includes('VAL');
                                                                 const isSolo = l.queueType === 'RANKED_SOLO_5x5';
-                                                                const queueLabel = isSolo ? 'Đơn / Đôi' : 'Linh Hoạt';
-                                                                const isApex = ['MASTER', 'GRANDMASTER', 'CHALLENGER'].includes(l.tier?.toUpperCase());
+                                                                const isCompVal = l.queueType === 'COMPETITIVE';
+                                                                const queueLabel = isCompVal ? 'Competitive' : (isSolo ? 'Đơn / Đôi' : 'Linh Hoạt');
+                                                                const isApex = ['MASTER', 'GRANDMASTER', 'CHALLENGER', 'RADIANT'].includes(l.tier?.toUpperCase());
                                                                 const rankText = isApex ? l.tier : `${l.tier} ${l.rank || ''}`;
                                                                 const isSelected = liveLeagueInfo?.queueType === l.queueType;
+                                                                const unit = isVal ? 'RR' : 'LP';
+                                                                const icon = isCompVal ? '🎯' : (isSolo ? '👑' : '🛡️');
 
                                                                 return (
                                                                     <button
@@ -1323,14 +1355,16 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                                                                                 : 'bg-zinc-950/80 border-zinc-800 hover:border-zinc-700 text-zinc-300 hover:text-white'
                                                                         }`}
                                                                     >
-                                                                        <span className="text-base">{isSolo ? '👑' : '🛡️'}</span>
+                                                                        <span className="text-base">{icon}</span>
                                                                         <div className="text-left">
                                                                             <div className="text-[10px] text-zinc-400 font-medium">{queueLabel}</div>
-                                                                            <div className="font-bold text-white text-xs">{rankText} <span className="text-cyan-400 font-normal">({l.leaguePoints ?? 0} LP)</span></div>
+                                                                            <div className="font-bold text-white text-xs">{rankText} <span className="text-cyan-400 font-normal">({l.leaguePoints ?? 0} {unit})</span></div>
                                                                         </div>
-                                                                        <span className="text-[10px] text-zinc-500 border-l border-zinc-800 pl-2">
-                                                                            {l.wins}W / {l.losses}L
-                                                                        </span>
+                                                                        {l.wins > 0 && (
+                                                                            <span className="text-[10px] text-zinc-500 border-l border-zinc-800 pl-2">
+                                                                                {l.wins}W {l.losses > 0 ? `/ ${l.losses}L` : ''}
+                                                                            </span>
+                                                                        )}
                                                                     </button>
                                                                 );
                                                             })}
@@ -2456,13 +2490,19 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
             <div className="space-y-1.5">
               <label className="text-xs font-semibold text-zinc-300 flex items-center justify-between">
                 <span>Dán danh sách trận (Mỗi trận 1 dòng):</span>
-                <span className="text-[11px] text-zinc-500 font-mono">Định dạng: MatchID [+/-LP]</span>
+                <span className="text-[11px] text-zinc-500 font-mono">
+                  {(order.snapshot?.gameCode || order.details?.game || order.details?.gameCode || '').toUpperCase().includes('VAL')
+                    ? 'Định dạng: MatchID [+/-RR]'
+                    : 'Định dạng: MatchID [+/-LP]'}
+                </span>
               </label>
               <textarea
                 rows={5}
                 value={batchInputText}
                 onChange={(e) => handleParseBatchText(e.target.value)}
-                placeholder={`VN2_1640656388 +25\nVN2_1640608730 -14\nVN2_1640571634 +20\nVN2_1640492570 +21\nVN2_1640449961 -16`}
+                placeholder={(order.snapshot?.gameCode || order.details?.game || order.details?.gameCode || '').toUpperCase().includes('VAL')
+                  ? `ba7a9a92-be79-494e-bdad-483131edb85c +18\nba7a9a92-be79-494e-bdad-483131edb85c -14`
+                  : `VN2_1640656388 +25\nVN2_1640608730 -14\nVN2_1640571634 +20\nVN2_1640492570 +21\nVN2_1640449961 -16`}
                 className="w-full bg-zinc-900/90 border border-zinc-800 rounded-xl p-3 text-xs sm:text-sm font-mono text-white placeholder-zinc-600 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all resize-none"
               />
             </div>
@@ -2483,7 +2523,7 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                       Tổng:{' '}
                       <strong className={parsedBatchMatches.reduce((acc, m) => acc + m.lp_change, 0) >= 0 ? 'text-emerald-400' : 'text-rose-400'}>
                         {parsedBatchMatches.reduce((acc, m) => acc + m.lp_change, 0) >= 0 ? '+' : ''}
-                        {parsedBatchMatches.reduce((acc, m) => acc + m.lp_change, 0)} LP
+                        {parsedBatchMatches.reduce((acc, m) => acc + m.lp_change, 0)} {(order.snapshot?.gameCode || order.details?.game || order.details?.gameCode || '').toUpperCase().includes('VAL') ? 'RR' : 'LP'}
                       </strong>
                     </span>
                   </div>
@@ -2497,12 +2537,12 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                     {isFetchingRiotBatch ? (
                       <>
                         <Loader2 className="w-3 h-3 animate-spin" />
-                        <span>Đang kéo Riot...</span>
+                        <span>Đang kéo trận...</span>
                       </>
                     ) : (
                       <>
                         <Search className="w-3 h-3" />
-                        <span>Lấy KDA & Tướng từ Riot</span>
+                        <span>{(order.snapshot?.gameCode || order.details?.game || order.details?.gameCode || '').toUpperCase().includes('VAL') ? 'Lấy KDA & Agent' : 'Lấy KDA & Tướng'}</span>
                       </>
                     )}
                   </button>
@@ -2533,7 +2573,7 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                         <span className={`font-mono font-bold text-xs w-16 text-right ${
                           m.lp_change >= 0 ? 'text-emerald-400' : 'text-rose-400'
                         }`}>
-                          {m.lp_change > 0 ? `+${m.lp_change}` : m.lp_change} LP
+                          {m.lp_change > 0 ? `+${m.lp_change}` : m.lp_change} {(order.snapshot?.gameCode || order.details?.game || order.details?.gameCode || '').toUpperCase().includes('VAL') ? 'RR' : 'LP'}
                         </span>
                         <button
                           type="button"
@@ -2629,7 +2669,7 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                         <div className="flex flex-col sm:flex-row gap-2">
                             <input 
                                 type="text" 
-                                placeholder="Nhập Match ID (VD: 1640656388 hoặc VN2_1640656388)" 
+                                placeholder={(order?.snapshot?.gameCode || order?.details?.game || order?.details?.gameCode || '').toUpperCase().includes('VAL') ? "Nhập Match ID Valorant (VD: ba7a9a92-be79-494e-bdad-483131edb85c)" : "Nhập Match ID (VD: 1640656388 hoặc VN2_1640656388)"} 
                                 className="flex-1 bg-zinc-950 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white font-mono" 
                                 value={riotMatchId} 
                                 onChange={e => setRiotMatchId(e.target.value)} 

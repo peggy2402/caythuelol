@@ -62,3 +62,81 @@ export class RiotMatchLookupDto {
   @IsOptional()
   targetName?: string;
 }
+
+export class ValorantPlayerLookupDto {
+  @ApiPropertyOptional({
+    example: 'ap',
+    description: 'Vùng / Server Valorant (ap, na, eu, kr, latam, br hoặc VN)',
+    default: 'ap',
+  })
+  @IsString()
+  @IsOptional()
+  server?: string;
+
+  @ApiProperty({
+    example: '自分1#24632',
+    description: 'Riot ID Valorant kèm Tag (ví dụ: 自分1#24632, Ten#TAG)',
+  })
+  @IsString()
+  @IsNotEmpty()
+  name: string;
+
+  @ApiPropertyOptional({ example: '自分1' })
+  @IsString()
+  @IsOptional()
+  gameName?: string;
+
+  @ApiPropertyOptional({ example: '24632' })
+  @IsString()
+  @IsOptional()
+  tagLine?: string;
+}
+
+export class ValorantMatchLookupDto {
+  @ApiProperty({
+    example: 'ba7a9a92-be79-494e-bdad-483131edb85c',
+    description: 'Match ID Valorant (UUID trận đấu)',
+  })
+  @IsString()
+  @IsNotEmpty()
+  matchId: string;
+
+  @ApiPropertyOptional({
+    example: 'ap',
+    description: 'Vùng / Server Valorant (ap, na, eu, kr, latam, br hoặc VN)',
+    default: 'ap',
+  })
+  @IsString()
+  @IsOptional()
+  server?: string;
+
+  @ApiPropertyOptional({
+    example: '自分1#24632',
+    description: 'Tên Ingame kèm Tag của người chơi trong trận để trích xuất Agent, KDA, Điểm và Thắng/Thua',
+  })
+  @IsString()
+  @IsOptional()
+  targetName?: string;
+}
+
+export class GamePlayerLookupDto extends RiotPlayerLookupDto {
+  @ApiPropertyOptional({
+    example: 'VALORANT',
+    description: 'Tựa game: LOL | VALORANT | TFT',
+    default: 'LOL',
+  })
+  @IsString()
+  @IsOptional()
+  game?: string;
+}
+
+export class GameMatchLookupDto extends RiotMatchLookupDto {
+  @ApiPropertyOptional({
+    example: 'VALORANT',
+    description: 'Tựa game: LOL | VALORANT | TFT',
+    default: 'LOL',
+  })
+  @IsString()
+  @IsOptional()
+  game?: string;
+}

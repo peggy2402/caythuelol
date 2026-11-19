@@ -1450,6 +1450,23 @@ export class AdminService {
     return { success: true, apiKey };
   }
 
+  // 9.1 Cấu hình Valorant API (HenrikDev)
+  async getValorantKey(): Promise<any> {
+    const setting = await this.settingModel.findOne({
+      key: { $in: ['VALORANT_API_KEY', 'HENRIKDEV_API_KEY'] },
+    }).lean();
+    return { apiKey: setting?.value || process.env.HENRIKDEV_API_KEY || '' };
+  }
+
+  async saveValorantKey(apiKey: string): Promise<any> {
+    await this.settingModel.findOneAndUpdate(
+      { key: 'VALORANT_API_KEY' },
+      { $set: { value: apiKey, description: 'Valorant HenrikDev API Key' } },
+      { upsert: true, new: true },
+    );
+    return { success: true, apiKey };
+  }
+
   // 10. Phí rút tiền & Phí sàn
   async getWithdrawFee(): Promise<any> {
     const setting = await this.settingModel.findOne({ key: 'withdraw_fee' }).lean();

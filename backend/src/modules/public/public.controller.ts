@@ -14,7 +14,14 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiTags, ApiOperation, ApiConsumes } from '@nestjs/swagger';
 import { PublicService } from './public.service';
 import { Public } from '../../common/decorators/public.decorator';
-import { RiotPlayerLookupDto, RiotMatchLookupDto } from './dto/riot.dto';
+import {
+  RiotPlayerLookupDto,
+  RiotMatchLookupDto,
+  ValorantPlayerLookupDto,
+  ValorantMatchLookupDto,
+  GamePlayerLookupDto,
+  GameMatchLookupDto,
+} from './dto/riot.dto';
 
 @ApiTags('Public & Utilities')
 @Controller()
@@ -161,6 +168,52 @@ export class PublicController {
   })
   async getRiotMatch(@Body() dto: RiotMatchLookupDto) {
     return this.publicService.getRiotMatch(dto);
+  }
+
+  // 7. Valorant Proxy (HenrikDev)
+  @Public()
+  @ApiTags('Valorant')
+  @Post('valorant/player')
+  @ApiOperation({
+    summary: 'Tra cứu Rank & 20 trận gần nhất Valorant (HenrikDev)',
+    description: 'Truy vấn HenrikDev MMR & Matches để lấy Bậc Rank, LP (RR) và danh sách Match ID 20 trận gần nhất của Valorant',
+  })
+  async getValorantPlayer(@Body() dto: ValorantPlayerLookupDto) {
+    return this.publicService.lookupValorantPlayer(dto);
+  }
+
+  @Public()
+  @ApiTags('Valorant')
+  @Post('valorant/match')
+  @ApiOperation({
+    summary: 'Tra cứu chi tiết trận đấu Valorant (HenrikDev)',
+    description: 'Truy vấn HenrikDev Match v2 theo matchId và targetName để lấy KDA, Đặc vụ (Agent), Điểm, kết quả Thắng/Thua',
+  })
+  async getValorantMatch(@Body() dto: ValorantMatchLookupDto) {
+    return this.publicService.lookupValorantMatch(dto);
+  }
+
+  // 8. Unified Game Match & Player Lookup (Dùng chung cho mọi Game)
+  @Public()
+  @ApiTags('Game Match Lookup')
+  @Post('games/player')
+  @ApiOperation({
+    summary: 'Tra cứu Rank & Lịch sử trận đa năng (LOL, Valorant, TFT)',
+    description: 'Tự động định tuyến theo game: LOL -> Riot Games API, VALORANT -> HenrikDev API',
+  })
+  async getUnifiedPlayer(@Body() dto: GamePlayerLookupDto) {
+    return this.publicService.lookupUnifiedPlayer(dto);
+  }
+
+  @Public()
+  @ApiTags('Game Match Lookup')
+  @Post('games/match')
+  @ApiOperation({
+    summary: 'Tra cứu Chi tiết trận đấu đa năng (LOL, Valorant, TFT)',
+    description: 'Tự động định tuyến theo game để bóc tách thông tin Tướng/Agent, KDA, Thắng/Thua chuẩn hóa',
+  })
+  async getUnifiedMatch(@Body() dto: GameMatchLookupDto) {
+    return this.publicService.lookupUnifiedMatch(dto);
   }
 }
 
