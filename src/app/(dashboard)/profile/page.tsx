@@ -1092,8 +1092,8 @@ export default function ProfilePage() {
                   : 'bg-zinc-800/60 text-zinc-400 hover:text-white hover:bg-zinc-800'
               }`}
             >
-              <Wallet className="w-4 h-4" />
-              Tài Khoản Rút Tiền Thù Lao
+              <Landmark className="w-4 h-4" />
+              Tài Khoản Ngân Hàng (Rút Tiền)
             </button>
             <button
               onClick={() => setActiveTab('general')}
