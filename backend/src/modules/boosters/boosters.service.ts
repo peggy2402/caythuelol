@@ -1096,7 +1096,7 @@ export class BoostersService {
           ...sanitized.pricing,
           service_fee: serviceFee,
           booster_order_value: netOrderValue,
-          booster_earnings: Number(sanitized.pricing.booster_earnings) || Math.round(netOrderValue * 0.85),
+          booster_earnings: Number(sanitized.pricing.booster_order_value || netOrderValue),
         };
       }
       if (sanitized.details) {
@@ -1214,7 +1214,7 @@ export class BoostersService {
           ...order.pricing,
           service_fee: serviceFee,
           booster_order_value: netOrderValue,
-          booster_earnings: Number(order.pricing.booster_earnings) || Math.round(netOrderValue * 0.85),
+          booster_earnings: Number(order.pricing.booster_order_value || netOrderValue),
         };
       }
       return order;

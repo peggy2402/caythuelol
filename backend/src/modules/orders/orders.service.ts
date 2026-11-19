@@ -159,7 +159,7 @@ export class OrdersService {
           original_price: pricing.original_price || boosterOrderValue,
           booster_order_value: boosterOrderValue,
           booster_earnings:
-            pricing.booster_earnings ?? Math.round(boosterOrderValue * 0.85),
+            pricing.booster_earnings ?? boosterOrderValue,
           settlement_status: SettlementStatus.DEPOSIT_HELD,
         },
         payment: {
@@ -604,9 +604,16 @@ export class OrdersService {
         }
       }
 
-      let boosterEarnings = order.pricing.booster_earnings || Math.round(actualTotal * 0.85);
-      if (order.pricing.total_amount > 0) {
-        boosterEarnings = Math.round((actualTotal / order.pricing.total_amount) * (order.pricing.booster_earnings || actualTotal * 0.85));
+      // Thu nhập thực tế của Booster (toàn bộ 100% giá trị đơn hàng sau trừ phí dịch vụ sàn, không trừ 15%)
+      const baseBoosterValue = Number(order.pricing.booster_order_value)
+        || (order.pricing.service_fee > 0 ? Math.max(0, order.pricing.total_amount - order.pricing.service_fee) : 0)
+        || (order.pricing.total_amount > 0 ? Math.round(order.pricing.total_amount / 1.02) : 0)
+        || order.pricing.booster_earnings
+        || actualTotal;
+
+      let boosterEarnings = baseBoosterValue;
+      if (order.pricing.total_amount > 0 && actualTotal < order.pricing.total_amount) {
+        boosterEarnings = Math.round((actualTotal / order.pricing.total_amount) * baseBoosterValue);
       }
 
       // Xử lý tự động hoàn tiền nếu cày tụt hoặc cày thiếu (Refund dư cọc)
