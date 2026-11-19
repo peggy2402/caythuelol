@@ -81,6 +81,17 @@ export default function JobMarketPage() {
     customReason: '',
   });
 
+  // Modal xác nhận nhận đơn (Căn giữa màn hình)
+  const [acceptModal, setAcceptModal] = useState<{
+    isOpen: boolean;
+    job: Job | null;
+    mode: 'CLAIM' | 'APPROVE';
+  }>({
+    isOpen: false,
+    job: null,
+    mode: 'CLAIM',
+  });
+
   const fetchJobs = async () => {
     try {
       setLoading(true);
@@ -139,7 +150,12 @@ export default function JobMarketPage() {
       });
       return;
     }
-    processRespond(job._id, action);
+    // Xác nhận nhận đơn chỉ định với modal giữa màn hình
+    setAcceptModal({
+      isOpen: true,
+      job,
+      mode: 'APPROVE',
+    });
   };
 
   const confirmReject = () => {
@@ -173,19 +189,25 @@ export default function JobMarketPage() {
     }
   };
 
-  // Xử lý Claim cho Đơn công khai (Có Toast Confirm)
-  const handleClaim = (jobId: string) => {
-    toast('Xác nhận nhận đơn?', {
-      description: 'Sau khi nhận, đơn hàng sẽ chuyển sang trạng thái "Đã nhận". Bạn cần bắt đầu cày sớm nhất có thể.',
-      action: {
-        label: 'Nhận việc',
-        onClick: () => processClaim(jobId),
-      },
-      cancel: {
-        label: "Hủy",
-        onClick: () => {},
-      },
+  // Xử lý Claim cho Đơn công khai (Mở Modal Căn Giữa Màn Hình)
+  const handleClaim = (job: Job) => {
+    setAcceptModal({
+      isOpen: true,
+      job,
+      mode: 'CLAIM',
     });
+  };
+
+  const confirmAccept = () => {
+    if (!acceptModal.job) return;
+    const jobId = acceptModal.job._id;
+    const mode = acceptModal.mode;
+    setAcceptModal((prev) => ({ ...prev, isOpen: false }));
+    if (mode === 'CLAIM') {
+      processClaim(jobId);
+    } else {
+      processRespond(jobId, 'approve');
+    }
   };
 
   // Helper: Render thông tin chi tiết dựa trên loại dịch vụ
@@ -423,7 +445,7 @@ export default function JobMarketPage() {
                 </>
             ) : (
                 <button 
-                    onClick={() => handleClaim(job._id)}
+                    onClick={() => handleClaim(job)}
                     disabled={!!processingId}
                     className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-white text-sm font-bold rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
                 >
@@ -603,6 +625,83 @@ export default function JobMarketPage() {
             >
               {processingId ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ArrowRightLeft className="w-3.5 h-3.5" />}
               <span>Xác nhận chuyển giao</span>
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* MODAL XÁC NHẬN NHẬN ĐƠN / NHẬN VIỆC (CĂN GIỮA MÀN HÌNH) */}
+      <Dialog open={acceptModal.isOpen} onOpenChange={(open) => !open && setAcceptModal((prev) => ({ ...prev, isOpen: false }))}>
+        <DialogContent className="max-w-md bg-zinc-950 border border-white/10 text-white rounded-2xl p-6 shadow-2xl">
+          <DialogHeader className="space-y-2">
+            <div className="w-12 h-12 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 flex items-center justify-center mx-auto mb-1 shadow-inner shadow-emerald-500/10">
+              <CheckCircle2 className="w-6 h-6" />
+            </div>
+            <DialogTitle className="text-lg font-bold text-center text-white">
+              {acceptModal.mode === 'APPROVE' ? 'Xác Nhận Nhận Đơn Chỉ Định' : 'Xác Nhận Nhận Đơn Hàng'}
+            </DialogTitle>
+            <DialogDescription className="text-xs text-zinc-400 text-center leading-relaxed">
+              Sau khi nhận, đơn hàng sẽ chuyển sang trạng thái <strong className="text-emerald-400">"Đã nhận"</strong>. Bạn cần bắt đầu cày sớm nhất có thể để đảm bảo tiến độ và uy tín tuyển thủ.
+            </DialogDescription>
+          </DialogHeader>
+
+          {/* Chi tiết tóm tắt đơn hàng */}
+          {acceptModal.job && (
+            <div className="bg-zinc-900/80 border border-white/5 rounded-xl p-3.5 space-y-2 my-2 text-xs">
+              <div className="flex items-center justify-between text-zinc-300">
+                <span className="text-zinc-500">Mã đơn hàng:</span>
+                <span className="font-mono font-bold text-white">
+                  #{acceptModal.job.orderCode || acceptModal.job._id.slice(-6).toUpperCase()}
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-zinc-300">
+                <span className="text-zinc-500">Dịch vụ:</span>
+                <span className="font-semibold text-blue-300">
+                  {acceptModal.job.snapshot?.gameCode || 'Game'} • {acceptModal.job.serviceType}
+                </span>
+              </div>
+              {acceptModal.job.details && (acceptModal.job.details.current_rank || acceptModal.job.details.promo_from) && (
+                <div className="flex items-center justify-between text-zinc-300">
+                  <span className="text-zinc-500">Lộ trình:</span>
+                  <span className="font-medium text-zinc-200">
+                    {acceptModal.job.details.promo_from
+                      ? `${acceptModal.job.details.promo_from} ➔ ${acceptModal.job.details.promo_to}`
+                      : `${acceptModal.job.details.current_rank} ➔ ${acceptModal.job.details.desired_rank}`}
+                  </span>
+                </div>
+              )}
+              <div className="flex items-center justify-between text-zinc-300 pt-1.5 border-t border-white/5">
+                <span className="text-zinc-500">Thù lao nhận được:</span>
+                <span className="font-bold text-emerald-400 font-mono text-base">
+                  {new Intl.NumberFormat('vi-VN').format(
+                    acceptModal.job.pricing.booster_earnings || (acceptModal.job.pricing.total_amount * 0.8)
+                  )} đ
+                </span>
+              </div>
+            </div>
+          )}
+
+          <div className="p-3 rounded-xl bg-blue-500/10 border border-blue-500/20 text-[11px] text-blue-300 flex items-center gap-2">
+            <span>🛡️</span>
+            <span>Cam kết bảo mật tài khoản khách hàng và không giao dịch ngoài nền tảng LEORANK.</span>
+          </div>
+
+          <DialogFooter className="flex items-center justify-end gap-2.5 pt-3 border-t border-white/10 sm:space-x-0">
+            <button
+              type="button"
+              onClick={() => setAcceptModal((prev) => ({ ...prev, isOpen: false }))}
+              className="px-4 py-2.5 rounded-xl text-xs font-semibold text-zinc-300 hover:text-white bg-zinc-900 hover:bg-zinc-800 border border-white/10 transition-colors cursor-pointer"
+            >
+              Hủy
+            </button>
+            <button
+              type="button"
+              disabled={!!processingId}
+              onClick={confirmAccept}
+              className="px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 transition-all shadow-lg shadow-emerald-600/30 flex items-center gap-1.5 disabled:opacity-50 cursor-pointer"
+            >
+              {processingId ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
+              <span>{acceptModal.mode === 'APPROVE' ? 'Nhận đơn ngay' : 'Nhận việc'}</span>
             </button>
           </DialogFooter>
         </DialogContent>
