@@ -941,7 +941,86 @@ export class BoostersService {
     return { success: true, isReady };
   }
 
+  private isJobEligibleForBooster(job: any, serviceSettings: any): boolean {
+    const normalizeGameCode = (c?: string) => {
+      const code = (c || '').toUpperCase().trim();
+      if (code === 'LMHT' || code === 'LOL') return 'LOL';
+      if (code === 'DTCL' || code === 'TFT') return 'TFT';
+      if (code === 'LIENQUAN' || code === 'AOV') return 'AOV';
+      if (code === 'TOCCHIEN' || code === 'WILDRIFT') return 'WILDRIFT';
+      if (code === 'FCO' || code === 'FCONLINE') return 'FCONLINE';
+      if (code === 'VALORANT' || code === 'VAL') return 'VALORANT';
+      return code;
+    };
+
+    const normalizeServiceType = (t?: string) => {
+      return (t || '').toLowerCase().trim().replace(/[\s_-]+/g, '');
+    };
+
+    const selectedGames: string[] = Array.isArray(serviceSettings?.selectedGames)
+      ? serviceSettings.selectedGames.map((g: any) =>
+          normalizeGameCode(typeof g === 'string' ? g : g.gameCode),
+        )
+      : [];
+
+    const customServices: any[] = Array.isArray(serviceSettings?.customServices)
+      ? serviceSettings.customServices
+      : [];
+
+    const jobGame = normalizeGameCode(
+      job.snapshot?.gameCode || job.details?.game || 'LOL',
+    );
+    const jobService = normalizeServiceType(
+      job.serviceType || job.snapshot?.serviceSlug || '',
+    );
+
+    // 1. Kiểm tra tựa game: Nếu booster đã có danh sách game được chọn, game đơn hàng phải thuộc danh sách đó
+    if (selectedGames.length > 0 && !selectedGames.includes(jobGame)) {
+      return false;
+    }
+
+    // 2. Kiểm tra dịch vụ cụ thể:
+    if (customServices.length > 0) {
+      const gameServices = customServices.filter(
+        (s: any) => normalizeGameCode(s.gameCode) === jobGame,
+      );
+
+      // Nếu booster có cấu hình cho tựa game này:
+      // Phải có ít nhất một dịch vụ tương ứng và đang được BẬT (isActive !== false)
+      if (gameServices.length > 0) {
+        const matchingActiveService = gameServices.find((s: any) => {
+          if (s.isActive === false) return false;
+          const sType = normalizeServiceType(s.serviceType || s.slug || s.name || s.id);
+          return (
+            sType === jobService ||
+            jobService.includes(sType) ||
+            sType.includes(jobService)
+          );
+        });
+        return !!matchingActiveService;
+      }
+
+      // Nếu trong customServices không có dịch vụ nào cho tựa game này -> không đủ điều kiện
+      return false;
+    }
+
+    // 3. Fallback cho enabledServices (nếu chưa dùng customServices)
+    if (Array.isArray(serviceSettings?.enabledServices) && serviceSettings.enabledServices.length > 0) {
+      const hasActive = serviceSettings.enabledServices.some((s: string) => {
+        const sType = normalizeServiceType(s);
+        return sType === jobService || jobService.includes(sType) || sType.includes(jobService);
+      });
+      return hasActive;
+    }
+
+    // Mặc định: Nếu chưa cấu hình hoặc đã tắt hết dịch vụ -> không nhận đơn công khai
+    return false;
+  }
+
   async getJobMarket(userId: string) {
+    const user = await this.userModel.findById(userId).lean();
+    const serviceSettings = user?.booster_info?.service_settings || {};
+
     const [rawDirectRequests, rawPublicJobs] = await Promise.all([
       this.orderModel
         .find({
@@ -960,6 +1039,11 @@ export class BoostersService {
         .sort({ createdAt: -1 })
         .lean(),
     ]);
+
+    // Lọc đơn công khai: CHỈ hiển thị các đơn thuộc tựa game và dịch vụ mà booster đang BẬT (isActive = true)
+    const eligiblePublicJobs = rawPublicJobs.filter((job) =>
+      this.isJobEligibleForBooster(job, serviceSettings),
+    );
 
     // Bảo mật: Ẩn thông tin tài khoản game (username, password) cho đến khi Booster thực sự nhận đơn
     const sanitizeJob = (job: any) => {
@@ -1032,7 +1116,7 @@ export class BoostersService {
     };
 
     const directRequests = rawDirectRequests.map(sanitizeJob);
-    const publicJobs = rawPublicJobs.map(sanitizeJob);
+    const publicJobs = eligiblePublicJobs.map(sanitizeJob);
 
     return {
       success: true,
@@ -1059,6 +1143,17 @@ export class BoostersService {
 
     if (order.boosterId && order.boosterId.toString() !== boosterId) {
       throw new BadRequestException('Đơn hàng này đã được chỉ định hoặc đã có Booster khác nhận');
+    }
+
+    // Nếu đơn hàng là đơn công khai, kiểm tra Booster có đang bật dịch vụ này hay không
+    if (!order.boosterId) {
+      const user = await this.userModel.findById(boosterId).lean();
+      const serviceSettings = user?.booster_info?.service_settings || {};
+      if (!this.isJobEligibleForBooster(order, serviceSettings)) {
+        throw new BadRequestException(
+          'Dịch vụ này đang bị tắt hoặc bạn chưa kích hoạt trong mục Quản lý Dịch vụ.',
+        );
+      }
     }
 
     order.boosterId = new Types.ObjectId(boosterId);

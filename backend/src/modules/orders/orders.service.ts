@@ -391,6 +391,50 @@ export class OrdersService {
       throw new BadRequestException('Đơn hàng này đã được chỉ định hoặc đã có Booster khác nhận');
     }
 
+    // Nếu nhận đơn công khai, kiểm tra Booster có đang bật dịch vụ này hay không
+    if (!order.boosterId) {
+      const boosterUser = await this.userModel.findById(boosterId).lean();
+      const serviceSettings = boosterUser?.booster_info?.service_settings || {};
+      const customServices: any[] = Array.isArray(serviceSettings.customServices)
+        ? serviceSettings.customServices
+        : [];
+      const selectedGames: string[] = Array.isArray(serviceSettings.selectedGames)
+        ? serviceSettings.selectedGames.map((g: any) => {
+            const c = (typeof g === 'string' ? g : g.gameCode || '').toUpperCase().trim();
+            return (c === 'LMHT' || c === 'LOL') ? 'LOL' : c;
+          })
+        : [];
+
+      const normalizeService = (t?: string) => (t || '').toLowerCase().trim().replace(/[\s_-]+/g, '');
+      const normalizeGame = (c?: string) => {
+        const code = (c || '').toUpperCase().trim();
+        return (code === 'LMHT' || code === 'LOL') ? 'LOL' : code;
+      };
+
+      const jobGame = normalizeGame(order.snapshot?.gameCode || order.details?.game || 'LOL');
+      const jobService = normalizeService(order.serviceType || order.snapshot?.serviceSlug || '');
+
+      if (selectedGames.length > 0 && !selectedGames.includes(jobGame)) {
+        throw new BadRequestException('Bạn chưa đăng ký tựa game này trong mục Quản lý Dịch vụ.');
+      }
+
+      if (customServices.length > 0) {
+        const gameServices = customServices.filter(
+          (s: any) => normalizeGame(s.gameCode) === jobGame,
+        );
+        const matchingActiveService = gameServices.find((s: any) => {
+          if (s.isActive === false) return false;
+          const sType = normalizeService(s.serviceType || s.slug || s.name || s.id);
+          return sType === jobService || jobService.includes(sType) || sType.includes(jobService);
+        });
+        if (!matchingActiveService) {
+          throw new BadRequestException(
+            'Dịch vụ này đang bị tắt hoặc chưa được kích hoạt trong mục Quản lý Dịch vụ của bạn.',
+          );
+        }
+      }
+    }
+
     order.boosterId = new Types.ObjectId(boosterId);
     order.status = OrderStatus.APPROVED;
     if (!order.timeline) order.timeline = [];
