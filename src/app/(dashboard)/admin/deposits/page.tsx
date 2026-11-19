@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Loader2, Lock, ExternalLink, Search } from 'lucide-react';
 import Link from 'next/link';
 import { toast } from 'sonner';
+import { getOrderStatusInfo } from '@/lib/orderStatus';
 
 interface HeldOrder {
   _id: string;
@@ -89,8 +90,8 @@ export default function AdminDepositsPage() {
                     <div className="text-zinc-500 text-xs">B: {order.boosterId?.username || '---'}</div>
                   </td>
                   <td className="px-6 py-4">
-                    <span className="px-2 py-1 rounded text-[10px] font-bold bg-zinc-800 text-zinc-300 border border-zinc-700">
-                        {order.status || 'PENDING'}
+                    <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold border ${getOrderStatusInfo(order.status).style}`}>
+                      {getOrderStatusInfo(order.status).label}
                     </span>
                   </td>
                   <td className="px-6 py-4 text-right font-mono text-yellow-500 font-bold">

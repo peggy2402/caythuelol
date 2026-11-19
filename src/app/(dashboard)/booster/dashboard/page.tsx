@@ -24,6 +24,7 @@ import Link from 'next/link';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { getBoosterOrderValue } from '@/lib/orderPricing';
+import { getOrderStatusInfo } from '@/lib/orderStatus';
 import { apiFetch } from '@/lib/api';
 import BoosterRecentForm from '@/components/BoosterRecentForm';
 
@@ -355,8 +356,8 @@ export default function BoosterDashboardPage() {
                         </span>
                       </div>
 
-                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase bg-cyan-500/15 border border-cyan-500/30 text-cyan-400">
-                        {order.status}
+                      <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase border ${getOrderStatusInfo(order.status).style}`}>
+                        {getOrderStatusInfo(order.status).label}
                       </span>
                     </div>
 
@@ -429,9 +430,11 @@ export default function BoosterDashboardPage() {
                           {getBoosterOrderValue(order.pricing).toLocaleString('vi-VN')} đ
                         </td>
                         <td className="px-6 py-4">
-                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold border bg-cyan-500/15 border-cyan-500/30 text-cyan-400">
-                            <span className="h-1.5 w-1.5 rounded-full bg-cyan-400 animate-pulse" />
-                            {order.status}
+                          <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold border ${getOrderStatusInfo(order.status).style}`}>
+                            {['IN_PROGRESS', 'IN_PROCESS'].includes(order.status) && (
+                              <span className="h-1.5 w-1.5 rounded-full bg-blue-400 animate-pulse" />
+                            )}
+                            {getOrderStatusInfo(order.status).label}
                           </span>
                         </td>
                         <td className="px-6 py-4 text-zinc-400">

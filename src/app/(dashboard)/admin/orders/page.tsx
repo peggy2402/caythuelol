@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { Loader2, Search, Filter, ChevronLeft, ChevronRight, ExternalLink, ClipboardList } from 'lucide-react';
 import Link from 'next/link';
+import { getOrderStatusInfo } from '@/lib/orderStatus';
 
 const STATUS_OPTIONS = [
   'ALL', 'PENDING_PAYMENT', 'PAID', 'APPROVED', 'IN_PROGRESS', 
@@ -85,7 +86,11 @@ export default function AdminOrdersPage() {
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
         >
-          {STATUS_OPTIONS.map(s => <option key={s} value={s}>{s === 'ALL' ? 'Tất cả trạng thái' : s}</option>)}
+          {STATUS_OPTIONS.map(s => (
+            <option key={s} value={s}>
+              {s === 'ALL' ? 'Tất cả trạng thái' : getOrderStatusInfo(s).label}
+            </option>
+          ))}
         </select>
       </div>
 
@@ -127,8 +132,8 @@ export default function AdminOrdersPage() {
                       <div className="text-zinc-500 text-xs">B: {order.boosterId?.username || 'Chưa nhận'}</div>
                     </td>
                     <td className="px-6 py-4">
-                      <span className={`px-2 py-1 rounded-full text-[10px] font-bold ${STATUS_STYLES[order.status] || STATUS_STYLES.DEFAULT}`}>
-                        {order.status || 'PENDING'}
+                      <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold border ${getOrderStatusInfo(order.status).style}`}>
+                        {getOrderStatusInfo(order.status).label}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-right font-mono text-emerald-400 font-bold">

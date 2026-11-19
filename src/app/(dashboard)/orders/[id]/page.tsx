@@ -29,6 +29,7 @@ import { GAMES_CATALOG, GameDefinition } from '@/lib/games';
 import ServerSelectModal from '@/components/ServerSelectModal';
 import { getServerByCode } from '@/lib/servers';
 import { getBoosterOrderValue } from '@/lib/orderPricing';
+import { getOrderStatusInfo } from '@/lib/orderStatus';
 import {
   Dialog,
   DialogContent,
@@ -699,28 +700,30 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
 
   // --- UI COMPONENTS ---
   const StatusBadge = ({ status }: { status: string }) => {
-      const styles: Record<string, string> = {
-          COMPLETED: 'bg-green-500/10 text-green-400 border-green-500/20 shadow-[0_0_15px_rgba(34,197,94,0.2)]',
-          IN_PROGRESS: 'bg-blue-500/10 text-blue-400 border-blue-500/20 shadow-[0_0_15px_rgba(59,130,246,0.2)] animate-pulse',
-          APPROVED: 'bg-purple-500/10 text-purple-400 border-purple-500/20',
-          DISPUTED: 'bg-red-500/10 text-red-400 border-red-500/20',
-          PAID: 'bg-amber-500/10 text-amber-400 border-amber-500/30',
-      };
-      const style = styles[status] || 'bg-zinc-800 text-zinc-400 border-zinc-700';
+      const hasBooster = !!order?.boosterId;
+      const statusInfo = getOrderStatusInfo(status, hasBooster);
 
       if (status === 'PAID') {
-        const hasBooster = !!order?.boosterId;
         return (
-          <span className="px-4 py-1.5 rounded-full text-xs font-bold uppercase border tracking-wider bg-amber-500/10 text-amber-400 border-amber-500/30 inline-flex items-center gap-1.5 shadow-[0_0_15px_rgba(245,158,11,0.15)]">
+          <span className={`px-4 py-1.5 rounded-full text-xs font-bold uppercase border tracking-wider inline-flex items-center gap-1.5 ${statusInfo.style}`}>
             <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-400 shrink-0" />
-            {hasBooster ? 'ĐANG CHỜ BOOSTER' : 'ĐANG CHỜ TUYỂN THỦ'}
+            {statusInfo.label}
           </span>
         );
       }
       
+      if (status === 'IN_PROGRESS' || status === 'IN_PROCESS') {
+        return (
+          <span className={`px-4 py-1.5 rounded-full text-xs font-bold uppercase border tracking-wider inline-flex items-center gap-1.5 ${statusInfo.style}`}>
+            <span className="w-2 h-2 rounded-full bg-blue-400 animate-ping shrink-0" />
+            {statusInfo.label}
+          </span>
+        );
+      }
+
       return (
-          <span className={`px-4 py-1.5 rounded-full text-xs font-bold uppercase border tracking-wider ${style}`}>
-              {status === 'COMPLETED' ? 'HOÀN THÀNH' : status.replace('_', ' ')}
+          <span className={`px-4 py-1.5 rounded-full text-xs font-bold uppercase border tracking-wider ${statusInfo.style}`}>
+              {statusInfo.label}
           </span>
       );
   };
@@ -1927,11 +1930,11 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
             </DialogTitle>
 
             <DialogDescription className="text-xs text-zinc-400 leading-relaxed max-w-[340px]">
-              {statusModal.targetStatus === 'IN_PROGRESS'
-                ? 'Sau khi bắt đầu cày, trạng thái đơn sẽ chuyển sang "Đang thực hiện". Khách hàng sẽ nhận được thông báo để theo dõi tiến độ.'
+              {statusModal.targetStatus === 'IN_PROGRESS' || statusModal.targetStatus === 'IN_PROCESS'
+                ? 'Sau khi bắt đầu cày, trạng thái đơn sẽ chuyển sang "Đang cày...". Khách hàng sẽ nhận được thông báo để theo dõi tiến độ.'
                 : statusModal.targetStatus === 'COMPLETED'
                 ? 'Bạn xác nhận đã đạt mục tiêu đơn hàng. Đơn sẽ chuyển sang trạng thái "Hoàn thành" để tiến hành nghiệm thu và quyết toán.'
-                : `Bạn có chắc chắn muốn chuyển trạng thái đơn hàng sang "${statusModal.targetStatus}"?`}
+                : `Bạn có chắc chắn muốn chuyển trạng thái đơn hàng sang "${getOrderStatusInfo(statusModal.targetStatus).label}"?`}
             </DialogDescription>
           </DialogHeader>
 
@@ -1954,18 +1957,10 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                 <span className="text-zinc-500">Trạng thái mới:</span>
                 <span
                   className={`font-bold px-2 py-0.5 rounded text-[11px] ${
-                    statusModal.targetStatus === 'IN_PROGRESS'
-                      ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
-                      : statusModal.targetStatus === 'COMPLETED'
-                      ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                      : 'bg-zinc-800 text-zinc-300'
+                    getOrderStatusInfo(statusModal.targetStatus).style
                   }`}
                 >
-                  {statusModal.targetStatus === 'IN_PROGRESS'
-                    ? 'Đang thực hiện'
-                    : statusModal.targetStatus === 'COMPLETED'
-                    ? 'Hoàn thành'
-                    : statusModal.targetStatus}
+                  {getOrderStatusInfo(statusModal.targetStatus).label}
                 </span>
               </div>
             </div>

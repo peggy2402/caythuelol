@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Gamepad2, ArrowUpRight, ArrowRight, ChevronRight } from 'lucide-react';
+import { getOrderStatusInfo } from '@/lib/orderStatus';
 
 export interface Order {
   _id: string;
@@ -36,13 +37,13 @@ interface RecentOrdersTableProps {
 
 export const statusStyles: { [key: string]: { bg: string; text: string; dot: string; label: string } } = {
   COMPLETED: { bg: 'bg-emerald-500/15 border-emerald-500/30', text: 'text-emerald-400', dot: 'bg-emerald-400', label: 'Hoàn thành' },
-  IN_PROGRESS: { bg: 'bg-cyan-500/15 border-cyan-500/30', text: 'text-cyan-400', dot: 'bg-cyan-400 animate-pulse', label: 'Đang cày' },
+  IN_PROGRESS: { bg: 'bg-cyan-500/15 border-cyan-500/30', text: 'text-cyan-400', dot: 'bg-cyan-400 animate-pulse', label: 'Đang cày...' },
   APPROVED: { bg: 'bg-blue-500/15 border-blue-500/30', text: 'text-blue-400', dot: 'bg-blue-400', label: 'Đã nhận đơn' },
   PENDING_PAYMENT: { bg: 'bg-amber-500/15 border-amber-500/30', text: 'text-amber-400', dot: 'bg-amber-400', label: 'Chờ thanh toán' },
-  PAID: { bg: 'bg-indigo-500/15 border-indigo-500/30', text: 'text-indigo-400', dot: 'bg-indigo-400', label: 'Đã thanh toán' },
+  PAID: { bg: 'bg-indigo-500/15 border-indigo-500/30', text: 'text-indigo-400', dot: 'bg-indigo-400', label: 'Đang chờ tuyển thủ' },
   REJECTED: { bg: 'bg-red-500/15 border-red-500/30', text: 'text-red-400', dot: 'bg-red-400', label: 'Bị từ chối' },
   REFUNDED: { bg: 'bg-zinc-500/15 border-zinc-500/30', text: 'text-zinc-400', dot: 'bg-zinc-400', label: 'Đã hoàn tiền' },
-  DISPUTED: { bg: 'bg-orange-500/15 border-orange-500/30', text: 'text-orange-400', dot: 'bg-orange-400', label: 'Đang khiếu nại' },
+  DISPUTED: { bg: 'bg-rose-500/15 border-rose-500/30', text: 'text-rose-400', dot: 'bg-rose-400', label: 'Khiếu nại' },
   CANCELLED: { bg: 'bg-zinc-700/15 border-zinc-700/30', text: 'text-zinc-500', dot: 'bg-zinc-500', label: 'Đã hủy' }
 };
 
@@ -89,7 +90,12 @@ export default function RecentOrdersTable({ orders }: RecentOrdersTableProps) {
             {/* Mobile View: High-tech Card List */}
             <div className="grid gap-3 p-4 md:hidden">
               {orders.slice(0, 5).map((order) => {
-                const s = statusStyles[order.status] || { bg: 'bg-zinc-800 border-zinc-700', text: 'text-zinc-400', dot: 'bg-zinc-400', label: order.status };
+                const s = statusStyles[order.status] || { 
+                  bg: `${getOrderStatusInfo(order.status).badgeBg} ${getOrderStatusInfo(order.status).borderColor}`, 
+                  text: getOrderStatusInfo(order.status).textColor, 
+                  dot: 'bg-zinc-400', 
+                  label: getOrderStatusInfo(order.status).label 
+                };
                 return (
                   <div
                     key={order._id}
@@ -142,7 +148,12 @@ export default function RecentOrdersTable({ orders }: RecentOrdersTableProps) {
                 </thead>
                 <tbody className="divide-y divide-zinc-800/60 text-xs">
                   {orders.slice(0, 6).map((order) => {
-                    const s = statusStyles[order.status] || { bg: 'bg-zinc-800 border-zinc-700', text: 'text-zinc-400', dot: 'bg-zinc-400', label: order.status };
+                    const s = statusStyles[order.status] || { 
+                      bg: `${getOrderStatusInfo(order.status).badgeBg} ${getOrderStatusInfo(order.status).borderColor}`, 
+                      text: getOrderStatusInfo(order.status).textColor, 
+                      dot: 'bg-zinc-400', 
+                      label: getOrderStatusInfo(order.status).label 
+                    };
                     return (
                       <tr
                         key={order._id}
