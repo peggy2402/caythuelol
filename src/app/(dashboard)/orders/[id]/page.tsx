@@ -731,8 +731,23 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
   const scheduleOption = activeOptions.find(([k]) => k === 'schedule');
   const rolesOption = activeOptions.find(([k]) => k === 'roles' || k === 'specificRole');
   
-  // Kiểm tra giới hạn 7 ngày đánh giá
+  // Kiểm tra giới hạn 7 ngày đánh giá & 24 giờ khiếu nại sau khi đơn hoàn thành
   const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
+  const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
+  const completedEntry = Array.isArray(order.timeline)
+    ? [...order.timeline].reverse().find((t: any) => t.status === 'COMPLETED')
+    : null;
+  const completedTimeMs =
+    order.status === 'COMPLETED'
+      ? new Date(order.completedAt || completedEntry?.timestamp || order.updatedAt).getTime()
+      : null;
+  const disputeDeadline = completedTimeMs ? new Date(completedTimeMs + TWENTY_FOUR_HOURS_MS) : null;
+  const isDisputeExpired =
+    isCustomer &&
+    order.status === 'COMPLETED' &&
+    completedTimeMs !== null &&
+    Date.now() - completedTimeMs > TWENTY_FOUR_HOURS_MS;
+
   const isRatingExpired = order.status === 'COMPLETED' && (new Date().getTime() - new Date(order.updatedAt).getTime() > SEVEN_DAYS_MS);
   const canRate = isCustomer && order.status === 'COMPLETED' && !order.rating && !isRatingExpired;
 
@@ -861,11 +876,25 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                         </button>
                     )}
                     
-                    {/* Nút báo lỗi chung CHỈ hiển thị khi đơn đã có tuyển thủ nhận việc hoặc hoàn thành */}
+                    {/* Nút báo lỗi chung CHỈ hiển thị khi đơn đã có tuyển thủ nhận việc hoặc hoàn thành (Customer trong vòng 24h) */}
                     {['APPROVED', 'IN_PROGRESS', 'COMPLETED'].includes(order.status) && (
-                        <button onClick={() => setIsDisputeModalOpen(true)} className="w-full py-3 bg-red-900/20 hover:bg-red-900/40 text-red-400 font-bold rounded-xl flex items-center justify-center gap-2 transition-colors border border-red-500/20">
-                            <AlertTriangle className="w-4 h-4" /> Báo lỗi / Có vấn đề
-                        </button>
+                        isDisputeExpired ? (
+                            <div className="w-full py-3 px-4 bg-zinc-900/60 text-zinc-400 text-xs font-medium rounded-xl flex items-center justify-center gap-2 border border-zinc-800 text-center">
+                                <Lock className="w-4 h-4 text-emerald-400 shrink-0" />
+                                <span>Đã quá thời hạn 24h khiếu nại — Số tiền đơn hàng đã thuộc hoàn toàn về Booster.</span>
+                            </div>
+                        ) : (
+                            <div className="space-y-1.5">
+                                <button onClick={() => setIsDisputeModalOpen(true)} className="w-full py-3 bg-red-900/20 hover:bg-red-900/40 text-red-400 font-bold rounded-xl flex items-center justify-center gap-2 transition-colors border border-red-500/20">
+                                    <AlertTriangle className="w-4 h-4" /> Báo lỗi / Có vấn đề
+                                </button>
+                                {isCustomer && order.status === 'COMPLETED' && disputeDeadline && (
+                                    <p className="text-[11px] text-zinc-500 text-center">
+                                        Chỉ được khiếu nại trong vòng 24h kể từ khi hoàn thành (đến {disputeDeadline.toLocaleString('vi-VN')}). Sau 24h tiền sẽ hoàn toàn thuộc về Booster.
+                                    </p>
+                                )}
+                            </div>
+                        )
                     )}
 
                     {/* Nút Đánh giá Booster */}

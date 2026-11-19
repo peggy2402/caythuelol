@@ -3,6 +3,7 @@ import mongoose, { Schema, Document, Model } from 'mongoose';
 export enum PointTransactionType {
   EARN_ORDER = 'EARN_ORDER',
   REDEEM_VOUCHER = 'REDEEM_VOUCHER',
+  REVOKE_REFUND = 'REVOKE_REFUND',
   BONUS = 'BONUS',
   ADJUST = 'ADJUST',
 }
