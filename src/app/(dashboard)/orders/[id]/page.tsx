@@ -80,6 +80,56 @@ function formatServiceName(serviceType?: string) {
   }
 }
 
+// Helper làm gọn thông tin chi tiết trận đấu (loại bỏ challenges hàng trăm KB của Riot để tránh lỗi 413 Payload Too Large)
+function sanitizeMatchDetailClient(detail: any) {
+  if (!detail || typeof detail !== 'object') return null;
+  try {
+    if (detail.info && Array.isArray(detail.info.participants)) {
+      return {
+        metadata: detail.metadata || null,
+        info: {
+          gameCreation: detail.info.gameCreation,
+          gameDuration: detail.info.gameDuration,
+          gameEndTimestamp: detail.info.gameEndTimestamp,
+          gameId: detail.info.gameId,
+          gameMode: detail.info.gameMode,
+          gameType: detail.info.gameType,
+          gameVersion: detail.info.gameVersion,
+          mapId: detail.info.mapId,
+          queueId: detail.info.queueId,
+          teams: detail.info.teams,
+          participants: detail.info.participants.map((p: any) => ({
+            teamId: p.teamId,
+            win: p.win,
+            championName: p.championName,
+            champLevel: p.champLevel,
+            riotIdGameName: p.riotIdGameName,
+            summonerName: p.summonerName,
+            riotIdTagline: p.riotIdTagline,
+            kills: p.kills,
+            deaths: p.deaths,
+            assists: p.assists,
+            item0: p.item0,
+            item1: p.item1,
+            item2: p.item2,
+            item3: p.item3,
+            item4: p.item4,
+            item5: p.item5,
+            item6: p.item6,
+            totalDamageDealtToChampions: p.totalDamageDealtToChampions,
+            goldEarned: p.goldEarned,
+            totalMinionsKilled: p.totalMinionsKilled,
+            neutralMinionsKilled: p.neutralMinionsKilled,
+          })),
+        },
+      };
+    }
+    return detail;
+  } catch {
+    return detail;
+  }
+}
+
 export default function OrderDetailsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const { t } = useLanguage();
@@ -582,7 +632,7 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
               ...matchForm,
               matchId: editingMatchId, // Only for PUT
               leagueInfo: liveLeagueInfo,
-              detail: fetchedMatchData, // Gửi chi tiết trận đấu lấy từ Riot
+              detail: sanitizeMatchDetailClient(fetchedMatchData), // Gửi chi tiết trận đấu đã làm gọn siêu nhẹ
               riotMatchId // Gửi ID trận đấu
           };
 
@@ -664,7 +714,7 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
       setIsMatchModalOpen(false);
   };
 
-  // Parser xử lý chuỗi dán danh sách trận đấu
+  // Parser xử lý chuỗi dán danh sách trận đấu (Tự động deduplicate loại bỏ ID trùng lặp)
   const handleParseBatchText = (text: string) => {
     setBatchInputText(text);
     const lines = text.split('\n').map((l) => l.trim()).filter(Boolean);
@@ -676,6 +726,8 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
       reason?: string;
       detail?: any;
     }> = [];
+    const seenMatchIds = new Set<string>();
+    let duplicateCount = 0;
 
     for (const line of lines) {
       const tokens = line.split(/[\s,\t]+/).map((t) => t.trim()).filter(Boolean);
@@ -698,6 +750,12 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
       }
 
       if (matchId) {
+        if (seenMatchIds.has(matchId)) {
+          duplicateCount++;
+          continue; // Tự động loại bỏ ID trùng lặp
+        }
+        seenMatchIds.add(matchId);
+
         parsed.push({
           matchId,
           lp_change: lp,
@@ -709,6 +767,9 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
     }
 
     setParsedBatchMatches(parsed);
+    if (duplicateCount > 0) {
+      toast.info(`Đã tự động loại bỏ ${duplicateCount} ID trận đấu bị trùng lặp.`);
+    }
   };
 
   // Tự động kéo thông tin Tướng / Đặc vụ & KDA cho tất cả các trận
@@ -737,7 +798,7 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                 champion: p?.championName || m.champion || (isValorant ? 'Valorant Agent' : 'League Champion'),
                 result: p ? (p.win ? 'WIN' : 'LOSS') : m.result,
                 reason: p ? `KDA: ${p.kills}/${p.deaths}/${p.assists}${p.score ? ` (${p.score} pts)` : ''}` : m.reason,
-                detail: data.match,
+                detail: sanitizeMatchDetailClient(data.match),
               };
             }
           } catch (e) {}
@@ -808,10 +869,11 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
 
           return {
             ...m,
+            riotMatchId: m.matchId,
             champion,
             result,
             reason,
-            detail,
+            detail: sanitizeMatchDetailClient(detail),
           };
         })
       );

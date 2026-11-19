@@ -852,7 +852,7 @@ export class OrdersService {
       lp_change: Number(body.lp_change) || 0,
       reason: body.reason || '',
       riotMatchId: body.riotMatchId || '',
-      detail: body.detail || null,
+      detail: this.sanitizeMatchDetail(body.detail),
       timestamp: new Date(),
     };
 
@@ -914,14 +914,17 @@ export class OrdersService {
     );
 
     const newMatchesToAdd: any[] = [];
+    const seenBatchRiotIds = new Set<string>();
     let netLpChange = 0;
 
     for (const m of matches) {
       const riotId = (m.riotMatchId || m.matchId || '').trim();
-      if (riotId && existingRiotIds.has(riotId)) {
-        continue;
+      if (riotId) {
+        if (existingRiotIds.has(riotId) || seenBatchRiotIds.has(riotId)) {
+          continue; // Bỏ qua nếu đã có trong đơn hàng hoặc lặp trong batch
+        }
+        seenBatchRiotIds.add(riotId);
       }
-      if (riotId) existingRiotIds.add(riotId);
 
       if (m.detail?.info?.queueId) {
         const qId = Number(m.detail.info.queueId);
@@ -944,7 +947,7 @@ export class OrdersService {
         lp_change: lp,
         reason: m.reason || (riotId ? `Match: ${riotId}` : ''),
         riotMatchId: riotId,
-        detail: m.detail || null,
+        detail: this.sanitizeMatchDetail(m.detail),
         timestamp: m.timestamp ? new Date(m.timestamp) : new Date(),
       };
 
@@ -1150,5 +1153,49 @@ export class OrdersService {
     await order.save();
 
     return { success: true, message: 'Hoàn tiền đơn hàng thành công', order };
+  }
+
+  private sanitizeMatchDetail(detail: any): any {
+    if (!detail || typeof detail !== 'object') return null;
+    try {
+      // League of Legends Riot Match v5: Loại bỏ challenges và các trường đồ sộ không dùng đến
+      if (detail.info && Array.isArray(detail.info.participants)) {
+        return {
+          metadata: detail.metadata || null,
+          info: {
+            gameCreation: detail.info.gameCreation,
+            gameDuration: detail.info.gameDuration,
+            gameEndTimestamp: detail.info.gameEndTimestamp,
+            gameId: detail.info.gameId,
+            gameMode: detail.info.gameMode,
+            gameType: detail.info.gameType,
+            gameVersion: detail.info.gameVersion,
+            mapId: detail.info.mapId,
+            queueId: detail.info.queueId,
+            teams: detail.info.teams,
+            participants: detail.info.participants.map((p: any) => {
+              const { challenges, PlayerBehavior, ...cleanP } = p;
+              delete cleanP.missions;
+              delete cleanP.PlayerScore0;
+              delete cleanP.PlayerScore1;
+              delete cleanP.PlayerScore2;
+              delete cleanP.PlayerScore3;
+              delete cleanP.PlayerScore4;
+              delete cleanP.PlayerScore5;
+              delete cleanP.PlayerScore6;
+              delete cleanP.PlayerScore7;
+              delete cleanP.PlayerScore8;
+              delete cleanP.PlayerScore9;
+              delete cleanP.PlayerScore10;
+              delete cleanP.PlayerScore11;
+              return cleanP;
+            }),
+          },
+        };
+      }
+      return detail;
+    } catch {
+      return detail;
+    }
   }
 }
