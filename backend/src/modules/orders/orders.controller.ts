@@ -166,6 +166,16 @@ export class OrdersController {
     return this.ordersService.addOrderMatch(id, user.userId, body, user.role);
   }
 
+  @Post(':id/matches/batch')
+  @ApiOperation({ summary: 'Add multiple match records to order in batch' })
+  async addOrderMatchesBatch(
+    @Param('id') id: string,
+    @ReqUser() user: any,
+    @Body('matches') matches: any[],
+  ) {
+    return this.ordersService.addOrderMatchesBatch(id, user.userId, matches, user.role);
+  }
+
   @Put(':id/matches')
   @ApiOperation({ summary: 'Update match record in order' })
   async updateOrderMatch(

@@ -9,7 +9,7 @@ import { socket } from '@/lib/socket';
 import { 
   Loader2, CheckCircle2, AlertCircle, Clock, 
   Shield, DollarSign, CreditCard,
-  Play, CheckSquare, Lock, Flag, Swords, Trophy, Save, Crosshair, ArrowLeft, Search, RefreshCw, AlertTriangle, XCircle
+  Play, CheckSquare, Lock, Flag, Swords, Trophy, Save, Crosshair, ArrowLeft, Search, RefreshCw, AlertTriangle, XCircle, Zap
 } from 'lucide-react';
 import { Pencil, Trash2, X, Plus, Eye, EyeOff, History, ArrowUpRight, ArrowDownLeft, Star, User, Award, Gamepad2, ExternalLink, ChevronsUpDown, Globe } from 'lucide-react';
 import { toast } from 'sonner';
@@ -173,6 +173,20 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
   const [isCheckingRank, setIsCheckingRank] = useState(false);
   const [fetchedMatchData, setFetchedMatchData] = useState<any>(null);
   const [selectedMatchDetail, setSelectedMatchDetail] = useState<any>(null);
+
+  // Batch Matches State
+  const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
+  const [batchInputText, setBatchInputText] = useState('');
+  const [parsedBatchMatches, setParsedBatchMatches] = useState<Array<{
+    matchId: string;
+    lp_change: number;
+    result: 'WIN' | 'LOSS';
+    champion?: string;
+    reason?: string;
+    detail?: any;
+  }>>([]);
+  const [isSubmittingBatch, setIsSubmittingBatch] = useState(false);
+  const [isFetchingRiotBatch, setIsFetchingRiotBatch] = useState(false);
 
   // --- POLLING FALLBACK (Cứ 5s tải lại data 1 lần để chắc chắn cập nhật) ---
   useEffect(() => {
@@ -579,6 +593,126 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
       setFetchedMatchData(null);
       setRiotMatchId('');
       setIsMatchModalOpen(false);
+  };
+
+  // Parser xử lý chuỗi dán danh sách trận đấu
+  const handleParseBatchText = (text: string) => {
+    setBatchInputText(text);
+    const lines = text.split('\n').map((l) => l.trim()).filter(Boolean);
+    const parsed: Array<{
+      matchId: string;
+      lp_change: number;
+      result: 'WIN' | 'LOSS';
+      champion?: string;
+      reason?: string;
+      detail?: any;
+    }> = [];
+
+    for (const line of lines) {
+      const tokens = line.split(/[\s,\t]+/).map((t) => t.trim()).filter(Boolean);
+      if (tokens.length === 0) continue;
+
+      let matchId = '';
+      let lp = 0;
+      let foundLp = false;
+
+      for (const token of tokens) {
+        if (!matchId && (/^[A-Za-z0-9]+_\d+$/.test(token) || /^\d{8,14}$/.test(token))) {
+          matchId = token.includes('_') ? token : `VN2_${token}`;
+        } else if (!foundLp && /^[+-]?\d+$/.test(token)) {
+          lp = parseInt(token, 10);
+          foundLp = true;
+        }
+      }
+
+      if (matchId) {
+        parsed.push({
+          matchId,
+          lp_change: lp,
+          result: lp < 0 ? 'LOSS' : 'WIN',
+          champion: '',
+          reason: `Match: ${matchId}`,
+        });
+      }
+    }
+
+    setParsedBatchMatches(parsed);
+  };
+
+  // Tự động kéo thông tin Tướng & KDA từ Riot cho tất cả các trận
+  const handleAutoFetchRiotForBatch = async () => {
+    if (parsedBatchMatches.length === 0) return toast.warning('Chưa có trận đấu nào để tra cứu');
+    setIsFetchingRiotBatch(true);
+    try {
+      const server = order.details?.server || 'VN';
+      const targetName = order.details?.ingame_name || order.details?.account_username || ingameName;
+
+      const updated = await Promise.all(
+        parsedBatchMatches.map(async (m) => {
+          try {
+            const res = await fetch('/api/riot/match', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ matchId: m.matchId, server, targetName }),
+            });
+            if (res.ok) {
+              const data = await res.json();
+              const p = data.participant;
+              return {
+                ...m,
+                champion: p?.championName || m.champion || 'League Champion',
+                result: p ? (p.win ? 'WIN' : 'LOSS') : m.result,
+                reason: p ? `KDA: ${p.kills}/${p.deaths}/${p.assists}` : m.reason,
+                detail: data.match,
+              };
+            }
+          } catch (e) {}
+          return m;
+        })
+      );
+
+      setParsedBatchMatches(updated);
+      toast.success('Đã tải thông tin Tướng & KDA từ Riot Games!');
+    } catch (e) {
+      toast.error('Lỗi khi tải thông tin từ Riot');
+    } finally {
+      setIsFetchingRiotBatch(false);
+    }
+  };
+
+  // Lưu danh sách trận hàng loạt vào đơn hàng
+  const handleSaveBatchMatches = async () => {
+    if (parsedBatchMatches.length === 0) return toast.warning('Danh sách trận đấu đang trống');
+    setIsSubmittingBatch(true);
+    try {
+      const res = await fetch(`/api/orders/${order._id}/matches/batch`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ matches: parsedBatchMatches }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setOrder((prev: any) => ({
+          ...prev,
+          match_history: data.match_history,
+          details: data.details || prev.details,
+        }));
+        toast.success(data.message || `Đã thêm thành công ${parsedBatchMatches.length} trận đấu!`);
+        socket.emit('update_order', {
+          room: order._id,
+          data: { match_history: data.match_history, details: data.details },
+        });
+        setIsBatchModalOpen(false);
+        setBatchInputText('');
+        setParsedBatchMatches([]);
+      } else {
+        toast.error(data.message || data.error || 'Lỗi lưu danh sách trận');
+      }
+    } catch (e) {
+      toast.error('Lỗi kết nối khi lưu danh sách trận');
+    } finally {
+      setIsSubmittingBatch(false);
+    }
   };
 
   const handleUpdateIngame = async () => {
@@ -1709,16 +1843,26 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
 
                             {/* Add Match Form (Booster Only) */}
                             {isBooster && order.status === 'IN_PROGRESS' && (
-                                <button 
-                                    onClick={() => {
-                                        setMatchForm({ mode: 'Rank Đơn/Đôi', champion: '', result: 'WIN', lp_change: '', reason: '' });
-                                        setEditingMatchId(null);
-                                        setIsMatchModalOpen(true);
-                                    }}
-                                    className="w-full py-3 border-2 border-dashed border-zinc-800 rounded-xl text-zinc-500 hover:text-white hover:border-zinc-600 hover:bg-zinc-900 transition-all flex items-center justify-center gap-2 font-bold"
-                                >
-                                    <Plus className="w-5 h-5" /> Thêm trận đấu mới
-                                </button>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                                    <button 
+                                        type="button"
+                                        onClick={() => setIsBatchModalOpen(true)}
+                                        className="w-full py-3 bg-gradient-to-r from-blue-600/25 via-blue-600/15 to-indigo-600/25 border border-blue-500/40 hover:border-blue-400 rounded-xl text-blue-300 hover:text-white transition-all flex items-center justify-center gap-2 font-bold text-sm shadow-lg shadow-blue-500/10 cursor-pointer"
+                                    >
+                                        <Zap className="w-4 h-4 text-blue-400" /> Nhập nhanh danh sách (Paste)
+                                    </button>
+                                    <button 
+                                        type="button"
+                                        onClick={() => {
+                                            setMatchForm({ mode: 'Rank Đơn/Đôi', champion: '', result: 'WIN', lp_change: '', reason: '' });
+                                            setEditingMatchId(null);
+                                            setIsMatchModalOpen(true);
+                                        }}
+                                        className="w-full py-3 border-2 border-dashed border-zinc-800 hover:border-zinc-600 hover:bg-zinc-900/60 rounded-xl text-zinc-400 hover:text-white transition-all flex items-center justify-center gap-2 font-bold text-sm cursor-pointer"
+                                    >
+                                        <Plus className="w-4 h-4" /> Thêm thủ công 1 trận
+                                    </button>
+                                </div>
                             )}
                         </div>
                     )}
@@ -2165,6 +2309,182 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                 <>
                   <Trash2 className="w-3.5 h-3.5" />
                   <span>Xác nhận xóa</span>
+                </>
+              )}
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Centered Modal: Nhập nhanh hàng loạt trận đấu */}
+      <Dialog open={isBatchModalOpen} onOpenChange={setIsBatchModalOpen}>
+        <DialogContent className="sm:max-w-[620px] max-h-[90vh] flex flex-col bg-zinc-950 border border-white/10 text-white p-6 rounded-2xl shadow-2xl backdrop-blur-xl overflow-hidden">
+          <DialogHeader className="space-y-1.5 pb-2 border-b border-white/10">
+            <div className="flex items-center gap-2.5">
+              <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/30 text-blue-400 flex items-center justify-center shadow-lg shadow-blue-500/10">
+                <Zap className="w-5 h-5 text-blue-400" />
+              </div>
+              <div>
+                <DialogTitle className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
+                  Nhập nhanh danh sách trận đấu
+                </DialogTitle>
+                <DialogDescription className="text-xs text-zinc-400">
+                  Dán chuỗi Match ID kèm điểm LP để hệ thống tự động nhận diện và cập nhật
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+
+          <div className="flex-1 overflow-y-auto space-y-4 py-2 pr-1">
+            {/* Quick Helper Button: Điền trận gần nhất */}
+            {recentMatches.length > 0 && (
+              <div className="flex items-center justify-between bg-zinc-900/60 border border-white/5 rounded-xl p-2.5 text-xs">
+                <div className="flex items-center gap-1.5 text-zinc-300">
+                  <History className="w-3.5 h-3.5 text-blue-400" />
+                  <span>Có <strong>{recentMatches.length}</strong> trận Riot gần nhất:</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const sampleText = recentMatches.slice(0, 5).map(id => `${id} +20`).join('\n');
+                    handleParseBatchText(sampleText);
+                  }}
+                  className="px-2.5 py-1 bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 border border-blue-500/30 rounded-lg text-[11px] font-semibold transition-colors cursor-pointer"
+                >
+                  Dán nhanh 5 trận
+                </button>
+              </div>
+            )}
+
+            {/* Textarea dán dữ liệu */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-zinc-300 flex items-center justify-between">
+                <span>Dán danh sách trận (Mỗi trận 1 dòng):</span>
+                <span className="text-[11px] text-zinc-500 font-mono">Định dạng: MatchID [+/-LP]</span>
+              </label>
+              <textarea
+                rows={5}
+                value={batchInputText}
+                onChange={(e) => handleParseBatchText(e.target.value)}
+                placeholder={`VN2_1640656388 +25\nVN2_1640608730 -14\nVN2_1640571634 +20\nVN2_1640492570 +21\nVN2_1640449961 -16`}
+                className="w-full bg-zinc-900/90 border border-zinc-800 rounded-xl p-3 text-xs sm:text-sm font-mono text-white placeholder-zinc-600 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all resize-none"
+              />
+            </div>
+
+            {/* Parsed Preview Table */}
+            {parsedBatchMatches.length > 0 && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold text-white">Xem trước ({parsedBatchMatches.length} trận):</span>
+                    <span className="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[11px] font-bold">
+                      {parsedBatchMatches.filter(m => m.result === 'WIN').length} Thắng
+                    </span>
+                    <span className="px-2 py-0.5 rounded bg-rose-500/10 text-rose-400 border border-rose-500/20 text-[11px] font-bold">
+                      {parsedBatchMatches.filter(m => m.result === 'LOSS').length} Thua
+                    </span>
+                    <span className="font-mono text-zinc-400 text-[11px]">
+                      Tổng:{' '}
+                      <strong className={parsedBatchMatches.reduce((acc, m) => acc + m.lp_change, 0) >= 0 ? 'text-emerald-400' : 'text-rose-400'}>
+                        {parsedBatchMatches.reduce((acc, m) => acc + m.lp_change, 0) >= 0 ? '+' : ''}
+                        {parsedBatchMatches.reduce((acc, m) => acc + m.lp_change, 0)} LP
+                      </strong>
+                    </span>
+                  </div>
+
+                  <button
+                    type="button"
+                    disabled={isFetchingRiotBatch}
+                    onClick={handleAutoFetchRiotForBatch}
+                    className="px-2.5 py-1 bg-zinc-900 hover:bg-zinc-800 text-blue-300 border border-blue-500/30 rounded-lg text-[11px] font-semibold flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
+                  >
+                    {isFetchingRiotBatch ? (
+                      <>
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                        <span>Đang kéo Riot...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Search className="w-3 h-3" />
+                        <span>Lấy KDA & Tướng từ Riot</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                <div className="bg-zinc-900/70 border border-white/5 rounded-xl max-h-48 overflow-y-auto divide-y divide-white/5">
+                  {parsedBatchMatches.map((m, idx) => (
+                    <div key={idx} className="p-2.5 flex items-center justify-between text-xs hover:bg-white/[0.02]">
+                      <div className="flex items-center gap-2.5">
+                        <span className="text-zinc-500 font-mono text-[11px] w-4">{idx + 1}.</span>
+                        <div>
+                          <div className="font-mono font-bold text-white text-xs">{m.matchId}</div>
+                          <div className="text-[11px] text-zinc-400 flex items-center gap-1.5 mt-0.5">
+                            {m.champion && <span className="text-blue-300 font-semibold">{m.champion}</span>}
+                            {m.reason && <span className="text-zinc-500">• {m.reason}</span>}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-3">
+                        <span className={`px-2 py-0.5 rounded text-[11px] font-bold ${
+                          m.result === 'WIN'
+                            ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                            : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+                        }`}>
+                          {m.result === 'WIN' ? 'Thắng' : 'Thua'}
+                        </span>
+                        <span className={`font-mono font-bold text-xs w-16 text-right ${
+                          m.lp_change >= 0 ? 'text-emerald-400' : 'text-rose-400'
+                        }`}>
+                          {m.lp_change > 0 ? `+${m.lp_change}` : m.lp_change} LP
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setParsedBatchMatches(prev => prev.filter((_, i) => i !== idx));
+                          }}
+                          className="text-zinc-500 hover:text-rose-400 p-1 cursor-pointer transition-colors"
+                          title="Xóa trận này khỏi danh sách dán"
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter className="flex items-center justify-end gap-2.5 pt-3 border-t border-white/10 sm:space-x-0">
+            <button
+              type="button"
+              disabled={isSubmittingBatch}
+              onClick={() => {
+                setIsBatchModalOpen(false);
+                setBatchInputText('');
+                setParsedBatchMatches([]);
+              }}
+              className="px-4 py-2.5 rounded-xl text-xs font-semibold text-zinc-300 hover:text-white bg-zinc-900 hover:bg-zinc-800 border border-white/10 transition-colors cursor-pointer disabled:opacity-50"
+            >
+              Hủy
+            </button>
+            <button
+              type="button"
+              disabled={isSubmittingBatch || parsedBatchMatches.length === 0}
+              onClick={handleSaveBatchMatches}
+              className="px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 shadow-lg shadow-blue-600/25 transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isSubmittingBatch ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Đang lưu...</span>
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>Lưu tất cả ({parsedBatchMatches.length} trận)</span>
                 </>
               )}
             </button>

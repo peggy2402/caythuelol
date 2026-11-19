@@ -857,6 +857,96 @@ export class OrdersService {
     };
   }
 
+  async addOrderMatchesBatch(orderId: string, userId: string, matches: any[], userRole?: string) {
+    if (!Array.isArray(matches) || matches.length === 0) {
+      throw new BadRequestException('Danh sách trận đấu không hợp lệ hoặc đang trống');
+    }
+
+    let filter: any;
+    if (Types.ObjectId.isValid(orderId)) {
+      filter = { $or: [{ _id: new Types.ObjectId(orderId) }, { orderCode: orderId }] };
+    } else {
+      filter = { orderCode: orderId.trim().toUpperCase() };
+    }
+
+    const order = await this.orderModel.findOne(filter);
+    if (!order) throw new NotFoundException('Không tìm thấy đơn hàng');
+
+    const isBooster = order.boosterId && String(order.boosterId) === String(userId);
+    const isAdmin = userRole === UserRole.ADMIN || userRole === UserRole.STAFF;
+    if (!isBooster && !isAdmin) {
+      throw new ForbiddenException('Chỉ Tuyển thủ phụ trách hoặc Quản trị viên mới được thêm trận đấu');
+    }
+
+    if (!Array.isArray(order.match_history)) {
+      order.match_history = [];
+    }
+
+    const existingRiotIds = new Set(
+      order.match_history
+        .map((m: any) => m.riotMatchId)
+        .filter(Boolean),
+    );
+
+    const newMatchesToAdd: any[] = [];
+    let netLpChange = 0;
+
+    for (const m of matches) {
+      const riotId = (m.riotMatchId || m.matchId || '').trim();
+      if (riotId && existingRiotIds.has(riotId)) {
+        continue;
+      }
+      if (riotId) existingRiotIds.add(riotId);
+
+      const lp = Number(m.lp_change) || 0;
+      netLpChange += lp;
+
+      const newMatch: any = {
+        match_id: new Types.ObjectId().toString(),
+        mode: m.mode || 'Rank Đơn/Đôi',
+        champion: m.champion || 'League Champion',
+        result: m.result === 'LOSS' || lp < 0 ? 'LOSS' : 'WIN',
+        lp_change: lp,
+        reason: m.reason || (riotId ? `Match: ${riotId}` : ''),
+        riotMatchId: riotId,
+        detail: m.detail || null,
+        timestamp: m.timestamp ? new Date(m.timestamp) : new Date(),
+      };
+
+      newMatchesToAdd.push(newMatch);
+    }
+
+    if (newMatchesToAdd.length === 0) {
+      return {
+        success: true,
+        message: 'Các trận đấu này đã có sẵn trong lịch sử đơn hàng',
+        match_history: order.match_history,
+        addedCount: 0,
+      };
+    }
+
+    order.match_history.unshift(...newMatchesToAdd);
+
+    if (order.details && typeof order.details === 'object') {
+      const currentLp = parseInt(order.details.current_lp || '0', 10);
+      if (!isNaN(currentLp)) {
+        order.details.current_lp = Math.max(0, currentLp + netLpChange);
+        order.markModified('details');
+      }
+    }
+
+    order.markModified('match_history');
+    await order.save();
+
+    return {
+      success: true,
+      message: `Đã thêm thành công ${newMatchesToAdd.length} trận đấu`,
+      match_history: order.match_history,
+      addedCount: newMatchesToAdd.length,
+      details: order.details,
+    };
+  }
+
   async updateOrderMatch(orderId: string, userId: string, body: any, userRole?: string) {
     let filter: any;
     if (Types.ObjectId.isValid(orderId)) {
