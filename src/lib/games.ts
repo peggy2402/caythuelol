@@ -827,6 +827,28 @@ export interface ServiceTemplate {
   tierRates?: Record<string, number>;
 }
 
+export interface MasteryStep {
+  id: string;
+  from: number;
+  to: number;
+  label: string;
+  pointsReq: string;
+  marksReq: string;
+  defaultPrice: number;
+}
+
+export const LOL_MASTERY_STEPS: MasteryStep[] = [
+  { id: 'm1_2', from: 1, to: 2, label: 'Cấp 1 ➔ Cấp 2', pointsReq: '1.800 Điểm', marksReq: 'Không có', defaultPrice: 20000 },
+  { id: 'm2_3', from: 2, to: 3, label: 'Cấp 2 ➔ Cấp 3', pointsReq: '4.200 Điểm', marksReq: 'Không có', defaultPrice: 30000 },
+  { id: 'm3_4', from: 3, to: 4, label: 'Cấp 3 ➔ Cấp 4', pointsReq: '6.600 Điểm', marksReq: 'Không có', defaultPrice: 40000 },
+  { id: 'm4_5', from: 4, to: 5, label: 'Cấp 4 ➔ Cấp 5', pointsReq: '9.000 Điểm', marksReq: '1 Dấu Ấn', defaultPrice: 50000 },
+  { id: 'm5_6', from: 5, to: 6, label: 'Cấp 5 ➔ Cấp 6', pointsReq: '10.000 Điểm', marksReq: '1 Dấu Ấn', defaultPrice: 60000 },
+  { id: 'm6_7', from: 6, to: 7, label: 'Cấp 6 ➔ Cấp 7', pointsReq: '11.000 Điểm', marksReq: '1 Dấu Ấn', defaultPrice: 70000 },
+  { id: 'm7_8', from: 7, to: 8, label: 'Cấp 7 ➔ Cấp 8', pointsReq: '11.000 Điểm', marksReq: '1 Dấu Ấn', defaultPrice: 80000 },
+  { id: 'm8_9', from: 8, to: 9, label: 'Cấp 8 ➔ Cấp 9', pointsReq: '11.000 Điểm', marksReq: '1 Dấu Ấn', defaultPrice: 90000 },
+  { id: 'm9_10', from: 9, to: 10, label: 'Cấp 9 ➔ Cấp 10+ (Danh Hiệu)', pointsReq: '11.000 Điểm', marksReq: '2 Dấu Ấn', defaultPrice: 120000 },
+];
+
 export const STANDARD_SERVICE_TEMPLATES: Record<string, ServiceTemplate[]> = {
   LOL: [
     {
@@ -849,11 +871,31 @@ export const STANDARD_SERVICE_TEMPLATES: Record<string, ServiceTemplate[]> = {
       iconName: 'TrendingUp',
     },
     {
+      slug: 'matches',
+      name: 'Cày Theo Số Trận',
+      desc: 'Cày số lượng trận đấu theo yêu cầu với tỷ lệ thắng cam kết cao nhất.',
+      pricingType: 'PER_UNIT',
+      defaultPrice: 35000,
+      unitName: 'Trận',
+      depositPercent: 100,
+      iconName: 'Gamepad2',
+    },
+    {
+      slug: 'duo-boost',
+      name: 'Duo Cùng Tuyển Thủ',
+      desc: 'Leo rank đánh đôi cùng tuyển thủ từ Sắt IV đến Cao Thủ. Hướng dẫn trực tiếp, bảo mật danh tính.',
+      pricingType: 'TIER_MATRIX',
+      defaultPrice: 0,
+      depositPercent: 100,
+      iconName: 'Users',
+    },
+    {
       slug: 'placements',
-      name: 'Phân Hạng Đầu Mùa (5 Trận)',
-      desc: 'Đảm bảo kết quả 5 trận phân hạng cao nhất để khởi đầu mùa giải thuận lợi.',
-      pricingType: 'FIXED',
-      defaultPrice: 150000,
+      name: 'Phân Hạng Đầu Mùa (Tối đa 5 Trận)',
+      desc: 'Đảm bảo kết quả các trận phân hạng mở màn mùa giải thuận lợi nhất (Tối đa 5 trận).',
+      pricingType: 'PER_UNIT',
+      defaultPrice: 30000,
+      unitName: 'Trận',
       depositPercent: 100,
       iconName: 'Medal',
     },
@@ -869,29 +911,30 @@ export const STANDARD_SERVICE_TEMPLATES: Record<string, ServiceTemplate[]> = {
     {
       slug: 'leveling',
       name: 'Cày Cấp Độ 1-30',
-      desc: 'Cày cấp tài khoản lên cấp 30 nhanh nhất, tối đa Tinh Hoa Lam để mở xếp hạng.',
-      pricingType: 'FIXED',
-      defaultPrice: 120000,
+      desc: 'Cày cấp tài khoản theo số cấp độ mong muốn (Từ cấp này sang cấp khác), tối đa Tinh Hoa Lam.',
+      pricingType: 'PER_UNIT',
+      defaultPrice: 10000,
+      unitName: 'Cấp độ',
       depositPercent: 100,
       iconName: 'Users',
     },
     {
       slug: 'coaching',
       name: 'Huấn Luyện Coaching',
-      desc: 'Dạy kèm 1-1, phân tích replay, duo cùng tuyển thủ.',
+      desc: 'Dạy kèm 1-1, phân tích replay, hướng dẫn meta và nâng cao kỹ năng tư duy.',
       pricingType: 'PER_UNIT',
       defaultPrice: 100000,
-      unitName: 'Giờ học',
+      unitName: 'Giờ',
       depositPercent: 100,
       iconName: 'Target',
     },
     {
       slug: 'mastery',
-      name: 'Cày Thông Thạo Tướng',
-      desc: 'Cày điểm thông thạo & nâng cấp mốc biểu cảm cho vị tướng bạn yêu thích.',
+      name: 'Cày Thông Thạo Tướng (Cấp 1-10+)',
+      desc: 'Cày điểm thông thạo & dấu ấn nâng cấp từ Cấp 1 đến Cấp 10+ mở khóa vĩnh viễn Danh hiệu tướng.',
       pricingType: 'PER_UNIT',
-      defaultPrice: 60000,
-      unitName: 'Mốc cấp',
+      defaultPrice: 50000,
+      unitName: 'Cấp thông thạo',
       depositPercent: 100,
       iconName: 'Swords',
     },
@@ -917,11 +960,22 @@ export const STANDARD_SERVICE_TEMPLATES: Record<string, ServiceTemplate[]> = {
       iconName: 'TrendingUp',
     },
     {
+      slug: 'matches',
+      name: 'Cày Theo Số Trận',
+      desc: 'Cày số lượng trận đấu theo yêu cầu với tỷ lệ thắng cam kết cao nhất.',
+      pricingType: 'PER_UNIT',
+      defaultPrice: 35000,
+      unitName: 'Trận',
+      depositPercent: 100,
+      iconName: 'Gamepad2',
+    },
+    {
       slug: 'placements',
-      name: 'Phân Hạng Valorant (5 Trận)',
-      desc: 'Đảm bảo kết quả 5 trận phân hạng đạt Rank khởi đầu cao nhất trong Episode/Act mới.',
-      pricingType: 'FIXED',
-      defaultPrice: 180000,
+      name: 'Phân Hạng Valorant (Tối đa 5 Trận)',
+      desc: 'Đảm bảo kết quả các trận phân hạng đạt Rank khởi đầu cao nhất trong Episode/Act mới (Tối đa 5 trận).',
+      pricingType: 'PER_UNIT',
+      defaultPrice: 35000,
+      unitName: 'Trận',
       depositPercent: 100,
       iconName: 'Medal',
     },
@@ -929,8 +983,9 @@ export const STANDARD_SERVICE_TEMPLATES: Record<string, ServiceTemplate[]> = {
       slug: 'leveling',
       name: 'Cày Cấp 20 Mở Khóa Đấu Xếp Hạng',
       desc: 'Cày cấp tài khoản lên Level 20 để mở khóa chế độ Competitive (Đấu Xếp Hạng) nhanh chóng.',
-      pricingType: 'FIXED',
-      defaultPrice: 150000,
+      pricingType: 'PER_UNIT',
+      defaultPrice: 15000,
+      unitName: 'Cấp độ',
       depositPercent: 100,
       iconName: 'Users',
     },
@@ -940,8 +995,8 @@ export const STANDARD_SERVICE_TEMPLATES: Record<string, ServiceTemplate[]> = {
       desc: 'Hướng dẫn kê tâm, setup góc bắn, lineup kỹ năng và đọc map cùng tuyển thủ Radiant.',
       pricingType: 'PER_UNIT',
       defaultPrice: 120000,
-      unitName: 'Giờ học',
-      depositPercent: 50,
+      unitName: 'Giờ',
+      depositPercent: 100,
       iconName: 'Target',
     },
     {
@@ -1178,11 +1233,22 @@ export const STANDARD_SERVICE_TEMPLATES: Record<string, ServiceTemplate[]> = {
       iconName: 'TrendingUp',
     },
     {
+      slug: 'matches',
+      name: 'Cày Theo Số Trận',
+      desc: 'Cày số lượng trận đấu theo yêu cầu với tỷ lệ thắng cam kết cao nhất.',
+      pricingType: 'PER_UNIT',
+      defaultPrice: 35000,
+      unitName: 'Trận',
+      depositPercent: 100,
+      iconName: 'Gamepad2',
+    },
+    {
       slug: 'placements',
-      name: 'Cày Trận Phân Hạng Đầu Mùa',
+      name: 'Cày Trận Phân Hạng Đầu Mùa (Tối đa 5 Trận)',
       desc: 'Đảm bảo kết quả tối đa các trận phân hạng mở màn mùa giải mới.',
-      pricingType: 'FIXED',
-      defaultPrice: 150000,
+      pricingType: 'PER_UNIT',
+      defaultPrice: 35000,
+      unitName: 'Trận',
       depositPercent: 100,
       iconName: 'Medal',
     },
@@ -1192,8 +1258,8 @@ export const STANDARD_SERVICE_TEMPLATES: Record<string, ServiceTemplate[]> = {
       desc: 'Dạy kèm 1-1, phân tích replay, hướng dẫn kỹ năng nâng cao cùng tuyển thủ.',
       pricingType: 'PER_UNIT',
       defaultPrice: 100000,
-      unitName: 'Giờ học',
-      depositPercent: 50,
+      unitName: 'Giờ',
+      depositPercent: 100,
       iconName: 'Target',
     },
   ],

@@ -5,6 +5,7 @@ import { Model } from 'mongoose';
 
 import { IUser } from '../../database/schemas/User';
 import { IOrder, OrderStatus } from '../../database/schemas/Order';
+import { ISystemSetting } from '../../database/schemas/SystemSetting';
 import {
   ITransaction,
   TransactionType,
@@ -19,6 +20,7 @@ export class CronService {
     @InjectModel('User') private userModel: Model<IUser>,
     @InjectModel('Order') private orderModel: Model<IOrder>,
     @InjectModel('Transaction') private transactionModel: Model<ITransaction>,
+    @InjectModel('SystemSetting') private settingModel: Model<ISystemSetting>,
   ) {}
 
   // 1. Quét nợ và tự động khóa tài khoản mỗi ngày lúc nửa đêm
@@ -105,5 +107,49 @@ export class CronService {
 
     this.logger.log(`🔔 [Cron] Scanned ${upcomingOrders.length} coaching sessions.`);
     return { success: true, processed: upcomingOrders.length };
+  }
+
+  // 4. Tự động chuyển giao đơn chỉ định quá hạn nhận việc về Sàn việc làm công khai
+  @Cron(CronExpression.EVERY_MINUTE)
+  async handleHandoverTimeoutOrders() {
+    try {
+      // 1. Lấy cấu hình thời gian chuyển giao từ SystemSetting (Mặc định: 15 phút)
+      const setting = await this.settingModel.findOne({ key: 'HANDOVER_TIMEOUT_MINUTES' }).lean();
+      const timeoutMinutes = setting?.value ? Number(setting.value) : 15;
+      const timeoutMs = timeoutMinutes * 60 * 1000;
+      const deadline = new Date(Date.now() - timeoutMs);
+
+      // 2. Tìm các đơn PAID có boosterId (đơn chỉ định) chưa nhận (vẫn là PAID), tạo trước deadline
+      const timeoutOrders = await this.orderModel.find({
+        status: OrderStatus.PAID,
+        boosterId: { $ne: null },
+        createdAt: { $lt: deadline },
+      });
+
+      if (!timeoutOrders || timeoutOrders.length === 0) return;
+
+      this.logger.log(`⏳ [Cron] Tìm thấy ${timeoutOrders.length} đơn chỉ định quá hạn ${timeoutMinutes} phút không nhận. Đang chuyển giao...`);
+
+      for (const order of timeoutOrders) {
+        const oldBoosterId = order.boosterId;
+
+        // Cập nhật: $unset boosterId, ghi timeline
+        await this.orderModel.findByIdAndUpdate(order._id, {
+          $unset: { boosterId: 1 },
+          $set: { status: OrderStatus.PAID },
+          $push: {
+            timeline: {
+              status: OrderStatus.PAID,
+              timestamp: new Date(),
+              note: `Hết thời gian chờ (${timeoutMinutes} phút). Hệ thống tự động chuyển giao đơn hàng về Sàn việc làm công khai để các Tuyển thủ khác tiếp nhận.`,
+            },
+          },
+        });
+
+        this.logger.log(`🔄 [Cron] Đã tự động chuyển giao đơn #${order.orderCode || order._id} (Booster cũ: ${oldBoosterId}) về Sàn công khai`);
+      }
+    } catch (err: any) {
+      this.logger.error('❌ [Cron] Lỗi khi xử lý chuyển giao đơn quá hạn:', err.message);
+    }
   }
 }

@@ -387,16 +387,18 @@ export class OrdersService {
       const order = await this.orderModel.findById(orderId);
       if (!order) throw new NotFoundException('Không tìm thấy đơn hàng');
       if (order.boosterId && order.boosterId.toString() === boosterId) {
-        order.boosterId = undefined;
-        order.status = OrderStatus.PAID;
-        if (!order.timeline) order.timeline = [];
-        order.timeline.push({
-          status: OrderStatus.PAID,
-          timestamp: new Date(),
-          actor: new Types.ObjectId(boosterId),
-          note: `Booster từ chối nhận đơn (Lý do: ${reason || 'Bận việc cá nhân'}). Đơn được tự động chuyển giao về Sàn việc làm công khai để các Tuyển thủ khác tiếp nhận.`,
+        await this.orderModel.findByIdAndUpdate(orderId, {
+          $unset: { boosterId: 1 },
+          $set: { status: OrderStatus.PAID },
+          $push: {
+            timeline: {
+              status: OrderStatus.PAID,
+              timestamp: new Date(),
+              actor: new Types.ObjectId(boosterId),
+              note: `Booster từ chối nhận đơn (Lý do: ${reason || 'Bận việc cá nhân'}). Đơn được tự động chuyển giao về Sàn việc làm công khai để các Tuyển thủ khác tiếp nhận.`,
+            },
+          },
         });
-        await order.save();
       }
       return { 
         success: true, 
