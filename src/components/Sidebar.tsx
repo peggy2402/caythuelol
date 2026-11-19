@@ -47,6 +47,7 @@ interface SidebarProps {
 export default function Sidebar({ className = '', onLinkClick, onClose }: SidebarProps) {
   const [user, setUser] = useState<any>(null);
   const [showResignModal, setShowResignModal] = useState(false);
+  const [jobsCount, setJobsCount] = useState<number>(0);
   const pathname = usePathname();
   const { t } = useLanguage();
   const router = useRouter();
@@ -73,6 +74,48 @@ export default function Sidebar({ className = '', onLinkClick, onClose }: Sideba
     };
   }, []);
 
+  // Lấy và cập nhật số lượng việc làm trên Sàn việc làm cho Booster (Đơn chỉ định + Đơn công khai)
+  useEffect(() => {
+    if (user?.role !== 'BOOSTER') return;
+
+    let isMounted = true;
+    const fetchJobsCount = async () => {
+      try {
+        const res = await fetch('/api/boosters/market');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success && isMounted) {
+            const direct = Array.isArray(data.directRequests) ? data.directRequests.length : 0;
+            const pub = Array.isArray(data.publicJobs) ? data.publicJobs.length : 0;
+            setJobsCount(direct + pub);
+          }
+        }
+      } catch (e) {}
+    };
+
+    fetchJobsCount();
+
+    const handleJobsUpdated = (e: any) => {
+      if (e.detail?.count !== undefined) {
+        setJobsCount(e.detail.count);
+      } else {
+        fetchJobsCount();
+      }
+    };
+
+    window.addEventListener('booster-jobs-updated', handleJobsUpdated);
+    window.addEventListener('focus', fetchJobsCount);
+
+    const interval = setInterval(fetchJobsCount, 15000);
+
+    return () => {
+      isMounted = false;
+      window.removeEventListener('booster-jobs-updated', handleJobsUpdated);
+      window.removeEventListener('focus', fetchJobsCount);
+      clearInterval(interval);
+    };
+  }, [user?.role]);
+
   const handleResign = async () => {
     try {
       const res = await fetch('/api/boosters/resign', { method: 'POST' });
@@ -97,19 +140,30 @@ export default function Sidebar({ className = '', onLinkClick, onClose }: Sideba
 
   if (!user) return null;
 
-  const NavItem = ({ href, icon: Icon, label }: any) => {
+  const NavItem = ({ href, icon: Icon, label, badge }: any) => {
     const isActive = pathname === href || pathname.startsWith(href + '/');
     return (
       <Link
         href={href}
         onClick={onLinkClick}
-        className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${isActive
+        className={`flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-200 group ${isActive
           ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20'
           : 'text-zinc-400 hover:bg-white/5 hover:text-white'
           }`}
       >
-        <Icon className={`w-5 h-5 ${isActive ? 'text-white' : 'text-zinc-500 group-hover:text-white'}`} />
-        <span className="font-medium">{label}</span>
+        <div className="flex items-center gap-3 min-w-0">
+          <Icon className={`w-5 h-5 shrink-0 ${isActive ? 'text-white' : 'text-zinc-500 group-hover:text-white'}`} />
+          <span className="font-medium truncate">{label}</span>
+        </div>
+        {badge !== undefined && badge !== null && Number(badge) > 0 && (
+          <span className={`px-2 py-0.5 text-[11px] font-black rounded-full transition-all shrink-0 shadow-sm ${
+            isActive 
+              ? 'bg-white text-blue-600 shadow-white/20' 
+              : 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 group-hover:bg-cyan-500 group-hover:text-black'
+          }`}>
+            {Number(badge) > 99 ? '99+' : badge}
+          </span>
+        )}
       </Link>
     );
   };
@@ -165,7 +219,7 @@ export default function Sidebar({ className = '', onLinkClick, onClose }: Sideba
           <>
             <div className="px-4 py-2 text-xs font-bold text-zinc-500 uppercase tracking-wider mb-1">{t('boosterZone')}</div>
             <NavItem href="/booster/dashboard" icon={LayoutDashboard} label={t('dashboard')} />
-            <NavItem href="/booster/jobs" icon={Briefcase} label={t('jobMarket')} />
+            <NavItem href="/booster/jobs" icon={Briefcase} label={t('jobMarket')} badge={jobsCount} />
             <NavItem href="/booster/my-orders" icon={ListTodo} label={t('myActiveJobs')} />
             <NavItem href="/booster/services" icon={Zap} label={t('manageServices')} />
             <div className="my-2 border-t border-white/5" />

@@ -13,6 +13,7 @@ import {
   Loader2,
   CheckCircle2,
   XCircle,
+  X,
   AlertCircle,
   RefreshCw,
   PlusCircle,
@@ -22,6 +23,25 @@ import {
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 import { getGameById } from '@/lib/games';
+import { formatRankDisplayVi } from '@/lib/riotRanks';
+
+const formatServiceTypeVi = (serviceType?: string): string => {
+  if (!serviceType) return 'Cày Thuê';
+  const upper = serviceType.toUpperCase().replace(/-/g, '_');
+  const map: Record<string, string> = {
+    RANK_BOOST: 'Cày Cấp Bậc (Cày Rank)',
+    PROMOTION: 'Chuỗi Thăng Hạng',
+    NET_WINS: 'Cày Số Trận Thắng',
+    PLACEMENTS: 'Đấu Phân Hạng',
+    CHAMPION_RANK: 'Cày Rank Theo Tướng',
+    MASTERY: 'Cày Điểm Thông Thạo',
+    POINT_BOOST: 'Cày Điểm / Nâng Điểm',
+    COACHING: 'Huấn Luyện (Coaching)',
+    ONBET: 'Cày Theo Sự Kiện',
+    LEVELING: 'Cày Cấp Độ (Level)',
+  };
+  return map[upper] || upper.replace(/_/g, ' ');
+};
 import {
   Dialog,
   DialogContent,
@@ -104,6 +124,8 @@ export default function JobMarketPage() {
       if (data.success) {
         setDirectJobs(data.directRequests || []);
         setPublicJobs(data.publicJobs || []);
+        const total = (data.directRequests?.length || 0) + (data.publicJobs?.length || 0);
+        window.dispatchEvent(new CustomEvent('booster-jobs-updated', { detail: { count: total } }));
       }
     } catch (error) {
       console.error(error);
@@ -384,8 +406,8 @@ export default function JobMarketPage() {
           </div>
         </div>
 
-        <span className="px-2 py-1 rounded text-[10px] font-bold uppercase bg-white/5 text-zinc-300 border border-white/10 shrink-0">
-          {job.serviceType.replace(/_/g, ' ')}
+        <span className="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-cyan-500/10 text-cyan-300 border border-cyan-500/25 shrink-0 shadow-sm">
+          {formatServiceTypeVi(job.serviceType)}
         </span>
       </div>
 
@@ -423,42 +445,46 @@ export default function JobMarketPage() {
       </div>
 
       {/* Footer */}
-      <div className="pt-4 border-t border-white/5 flex items-center justify-between mt-auto">
-        <div>
-          <div className="text-xs text-zinc-500">Giá trị đơn hàng nhận được</div>
-          <div className="text-lg font-bold text-emerald-400 font-mono">
+      <div className="pt-4 border-t border-white/5 flex items-center justify-between gap-3 mt-auto">
+        <div className="min-w-0">
+          <div className="text-xs text-zinc-500 truncate">Giá trị đơn hàng nhận được</div>
+          <div className="text-base sm:text-lg font-bold text-emerald-400 font-mono">
             {new Intl.NumberFormat('vi-VN').format(getBoosterOrderValue(job.pricing))} đ
           </div>
         </div>
         
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2 shrink-0">
             {type === 'DIRECT' ? (
                 <>
                     <button 
+                        type="button"
                         onClick={() => handleRespond(job, 'reject')}
                         disabled={!!processingId}
-                        className="p-2 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white rounded-lg transition-colors disabled:opacity-50"
-                        title="Từ chối"
+                        className="h-10 px-3 sm:px-3.5 bg-red-500/10 hover:bg-red-500/20 active:bg-red-500/30 border border-red-500/25 text-red-400 hover:text-red-300 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-1.5 disabled:opacity-50 active:scale-95 shrink-0"
+                        title="Từ chối đơn chỉ định này"
                     >
-                        <XCircle className="w-5 h-5" />
+                        <X className="w-4 h-4" />
+                        <span className="hidden sm:inline">Từ chối</span>
                     </button>
                     <button 
+                        type="button"
                         onClick={() => handleRespond(job, 'approve')}
                         disabled={!!processingId}
-                        className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold rounded-lg transition-colors shadow-lg shadow-blue-600/20 disabled:opacity-50 flex items-center gap-2"
+                        className="h-10 px-4 sm:px-5 bg-gradient-to-r from-blue-600 via-blue-500 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 active:from-blue-700 active:to-cyan-600 text-white rounded-xl text-xs sm:text-sm font-bold transition-all duration-200 shadow-md shadow-blue-500/25 hover:shadow-cyan-500/30 flex items-center justify-center gap-2 whitespace-nowrap disabled:opacity-50 active:scale-95 shrink-0"
                     >
-                        {processingId === job._id ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
-                        Nhận đơn
+                        {processingId === job._id ? <Loader2 className="w-4 h-4 animate-spin shrink-0" /> : <CheckCircle2 className="w-4 h-4 shrink-0" />}
+                        <span>Nhận đơn</span>
                     </button>
                 </>
             ) : (
                 <button 
+                    type="button"
                     onClick={() => handleClaim(job)}
                     disabled={!!processingId}
-                    className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-white text-sm font-bold rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
+                    className="h-10 px-4 sm:px-5 bg-gradient-to-r from-blue-600 via-blue-500 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 active:from-blue-700 active:to-cyan-600 text-white rounded-xl text-xs sm:text-sm font-bold transition-all duration-200 shadow-md shadow-blue-500/25 hover:shadow-cyan-500/30 flex items-center justify-center gap-2 whitespace-nowrap disabled:opacity-50 active:scale-95 shrink-0"
                 >
-                    {processingId === job._id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Briefcase className="w-4 h-4" />}
-                    Nhận việc
+                    {processingId === job._id ? <Loader2 className="w-4 h-4 animate-spin shrink-0" /> : <Briefcase className="w-4 h-4 shrink-0" />}
+                    <span>Nhận việc</span>
                 </button>
             )}
         </div>
@@ -562,8 +588,8 @@ export default function JobMarketPage() {
               </div>
               <div className="flex items-center justify-between text-zinc-300">
                 <span className="text-zinc-500">Dịch vụ:</span>
-                <span className="font-semibold text-blue-300">
-                  {rejectModal.job.snapshot?.gameCode || 'Game'} • {rejectModal.job.serviceType}
+                <span className="font-semibold text-cyan-300">
+                  {rejectModal.job.snapshot?.gameCode || 'Game'} • {formatServiceTypeVi(rejectModal.job.serviceType)}
                 </span>
               </div>
               <div className="flex items-center justify-between text-zinc-300">
@@ -662,8 +688,8 @@ export default function JobMarketPage() {
               </div>
               <div className="flex items-center justify-between text-zinc-300">
                 <span className="text-zinc-500">Dịch vụ:</span>
-                <span className="font-semibold text-blue-300">
-                  {acceptModal.job.snapshot?.gameCode || 'Game'} • {acceptModal.job.serviceType}
+                <span className="font-semibold text-cyan-300">
+                  {acceptModal.job.snapshot?.gameCode || 'Game'} • {formatServiceTypeVi(acceptModal.job.serviceType)}
                 </span>
               </div>
               {acceptModal.job.details && (acceptModal.job.details.current_rank || acceptModal.job.details.promo_from) && (

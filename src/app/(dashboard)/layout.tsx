@@ -38,6 +38,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [unreadCount, setUnreadCount] = useState(0);
   const [isNotiOpen, setIsNotiOpen] = useState(false);
   const [showResignModal, setShowResignModal] = useState(false);
+  const [boosterJobsCount, setBoosterJobsCount] = useState<number>(0);
   const pathname = usePathname();
   const { t, language, setLanguage } = useLanguage();
   const router = useRouter();
@@ -201,6 +202,39 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }
     setShowResignModal(false);
   };
+
+  // Đồng bộ số lượng việc làm trên Sàn việc làm cho mobile bottom navigation
+  useEffect(() => {
+    if (user?.role !== 'BOOSTER') return;
+    let isMounted = true;
+    const fetchJobs = async () => {
+      try {
+        const res = await fetch('/api/boosters/market');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success && isMounted) {
+            const direct = Array.isArray(data.directRequests) ? data.directRequests.length : 0;
+            const pub = Array.isArray(data.publicJobs) ? data.publicJobs.length : 0;
+            setBoosterJobsCount(direct + pub);
+          }
+        }
+      } catch (e) {}
+    };
+
+    fetchJobs();
+    const handleUpdate = (e: any) => {
+      if (e.detail?.count !== undefined) setBoosterJobsCount(e.detail.count);
+      else fetchJobs();
+    };
+
+    window.addEventListener('booster-jobs-updated', handleUpdate);
+    const interval = setInterval(fetchJobs, 15000);
+    return () => {
+      isMounted = false;
+      window.removeEventListener('booster-jobs-updated', handleUpdate);
+      clearInterval(interval);
+    };
+  }, [user?.role]);
 
   const toggleAvailability = async () => {
     if (!user || user.role !== 'BOOSTER') return;
@@ -477,11 +511,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </Link>
             <Link
               href="/booster/jobs"
-              className={`flex flex-col items-center gap-1 py-1 px-2 rounded-xl text-[10px] font-bold transition-all ${
+              className={`flex flex-col items-center gap-1 py-1 px-2 rounded-xl text-[10px] font-bold transition-all relative ${
                 pathname === '/booster/jobs' ? 'text-cyan-400 scale-105' : 'text-zinc-400 hover:text-white'
               }`}
             >
-              <Briefcase className="w-5 h-5" />
+              <div className="relative">
+                <Briefcase className="w-5 h-5" />
+                {boosterJobsCount > 0 && (
+                  <span className="absolute -top-1.5 -right-2.5 px-1 min-w-[16px] h-4 bg-cyan-400 text-black text-[9px] font-black rounded-full flex items-center justify-center shadow-sm">
+                    {boosterJobsCount > 9 ? '9+' : boosterJobsCount}
+                  </span>
+                )}
+              </div>
               <span>Sàn việc</span>
             </Link>
             <Link
