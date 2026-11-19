@@ -80,12 +80,26 @@ export default function RatingModal({ isOpen, onClose, orderId, onSuccess }: Rat
              (hoveredRating || rating) === 2 ? 'Tệ' : 'Rất tệ'}
           </div>
           
-          <textarea
-            value={comment}
-            onChange={(e) => setComment(e.target.value)}
-            placeholder="Viết nhận xét của bạn (tùy chọn)..."
-            className="w-full h-28 bg-zinc-950 border border-zinc-800 rounded-xl p-3 text-sm text-white focus:border-blue-500 outline-none resize-none placeholder:text-zinc-600"
-          />
+          <div className="w-full space-y-1.5">
+            <div className="relative">
+              <textarea
+                value={comment}
+                maxLength={100}
+                onChange={(e) => setComment(e.target.value.slice(0, 100))}
+                placeholder="Viết nhận xét của bạn (tùy chọn)..."
+                className="w-full h-28 bg-zinc-950 border border-zinc-800 rounded-xl p-3 pb-7 text-sm text-white focus:border-blue-500 outline-none resize-none placeholder:text-zinc-600"
+              />
+              <div className="absolute bottom-2.5 right-3 text-[11px] font-mono text-zinc-500 select-none">
+                {comment.length}/100
+              </div>
+            </div>
+            <div className="flex justify-between items-center text-[11px] text-zinc-500 px-0.5">
+              <span>Đánh giá trải nghiệm thực tế của bạn</span>
+              <span className={comment.length >= 100 ? 'text-amber-400 font-medium' : ''}>
+                Tối đa 100 ký tự
+              </span>
+            </div>
+          </div>
         </div>
 
         <DialogFooter>

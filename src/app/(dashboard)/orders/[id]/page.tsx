@@ -157,6 +157,21 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
     const s = totalSecs % 60;
     return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
   };
+
+  const formatDisputeCountdown = (ms: number) => {
+    if (ms <= 0) return 'Đã hết hạn khiếu nại';
+    const totalSecs = Math.floor(ms / 1000);
+    const h = Math.floor(totalSecs / 3600);
+    const m = Math.floor((totalSecs % 3600) / 60);
+    const s = totalSecs % 60;
+    if (h > 0) {
+      return `Còn ${h} giờ ${m} phút`;
+    }
+    if (m > 0) {
+      return `Còn ${m} phút ${s} giây`;
+    }
+    return `Còn ${s} giây`;
+  };
   
   // UI States
   const [activeTab, setActiveTab] = useState<'INFO' | 'PROGRESS'>('INFO');
@@ -1425,34 +1440,44 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                                         </>
                                     )}
                                 </p>
-
-                                {order.status === 'COMPLETED' && disputeDeadline && (
-                                    <div className="mt-2.5 flex flex-wrap items-center gap-2 text-xs sm:text-sm font-medium">
-                                        <div className="flex items-center gap-1.5 text-zinc-300">
-                                            <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
-                                            <span>Thời gian Báo lỗi / Khiếu nại:</span>
-                                            <span className="font-mono text-zinc-100 font-bold">
-                                                {format(disputeDeadline, 'HH:mm:ss dd/MM/yyyy')}
-                                            </span>
-                                        </div>
-
-                                        {disputeRemainingMs > 0 ? (
-                                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 font-mono text-xs font-bold shadow-[0_0_12px_rgba(245,158,11,0.2)] animate-pulse">
-                                                <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
-                                                (Còn lại: {formatCountdown(disputeRemainingMs)})
-                                            </span>
-                                        ) : (
-                                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-zinc-800 text-zinc-400 border border-zinc-700 text-xs font-semibold">
-                                                <Lock className="w-3 h-3 text-emerald-400" /> Hết hạn khiếu nại
-                                            </span>
-                                        )}
-                                    </div>
-                                )}
                             </div>
                             <StatusBadge status={order.status} />
                         </div>
                     );
                 })()}
+
+                {/* Dispute Deadline Card (UI chuẩn theo ảnh 2) */}
+                {order.status === 'COMPLETED' && disputeDeadline && (
+                    <div className="mt-4 p-4 sm:p-5 rounded-2xl bg-zinc-950/80 border border-zinc-800 shadow-md space-y-3 relative z-10">
+                        {/* Title */}
+                        <div className="flex items-center gap-2 text-white font-bold text-sm sm:text-base">
+                            <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5 text-amber-500 shrink-0" />
+                            <span>Thời hạn gửi khiếu nại</span>
+                        </div>
+
+                        {/* Content: Hạn cuối + Thời gian + Badge đếm ngược */}
+                        <div className="space-y-1">
+                            <div className="text-xs text-zinc-400 font-medium">Hạn cuối</div>
+                            <div className="flex items-center justify-between gap-3 flex-wrap">
+                                <span className="text-xl sm:text-2xl font-bold font-mono text-white tracking-tight">
+                                    {format(disputeDeadline, 'HH:mm:ss dd/MM/yyyy')}
+                                </span>
+                                <span className={`px-3 py-1 rounded-full text-xs sm:text-sm font-semibold border ${
+                                    disputeRemainingMs > 0
+                                        ? 'bg-amber-950/50 border-amber-900/60 text-amber-500 shadow-[0_0_12px_rgba(245,158,11,0.15)] animate-pulse'
+                                        : 'bg-zinc-900 border-zinc-800 text-zinc-500'
+                                }`}>
+                                    {formatDisputeCountdown(disputeRemainingMs)}
+                                </span>
+                            </div>
+                        </div>
+
+                        {/* Footer description */}
+                        <p className="text-xs text-zinc-400 leading-relaxed pt-1">
+                            Vui lòng gửi khiếu nại trước thời hạn trên. Sau thời gian này, bạn có thể không còn được hỗ trợ khiếu nại đơn hàng.
+                        </p>
+                    </div>
+                )}
 
                 {/* Actions */}
                 <div className="mt-6 space-y-3">
