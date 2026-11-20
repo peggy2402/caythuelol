@@ -2133,9 +2133,38 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                             <div>
                                 <h3 className="text-sm font-bold text-zinc-400 uppercase mb-3 flex items-center gap-2"><DollarSign className="w-4 h-4" /> Thanh toán</h3>
                                 <div className="bg-zinc-950 p-4 rounded-xl border border-zinc-800 space-y-3 text-sm">
-                                    <div className="flex justify-between">
-                                        <span className="text-zinc-500">{isBooster ? 'Giá trị đơn hàng nhận được:' : 'Tổng thanh toán:'}</span>
-                                        <span className="text-white font-bold">
+                                    {isBooster && (order.pricing?.funding_source === 'PLATFORM' || (order.pricing?.platform_subsidy && order.pricing.platform_subsidy > 0)) && (
+                                        <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-xs space-y-1 mb-2">
+                                            <div className="flex items-center gap-1.5 text-emerald-400 font-bold">
+                                                <CheckCircle2 size={14} className="shrink-0" />
+                                                <span>Voucher do Hệ thống LeoRank tài trợ 100%</span>
+                                            </div>
+                                            <p className="text-zinc-400 leading-relaxed text-[11px]">
+                                                Khách hàng sử dụng voucher tri ân <b className="text-white font-mono">{order.pricing?.coupon_code || ''}</b> ({Number(order.pricing?.platform_subsidy || order.pricing?.discount_amount || 0).toLocaleString()} đ). Khoản này được Sàn tài trợ bù đủ, thu nhập của bạn được <b className="text-emerald-400">bảo toàn trọn vẹn 100%</b> theo giá niêm yết!
+                                            </p>
+                                        </div>
+                                    )}
+
+                                    {isBooster && (order.pricing?.listed_price || order.pricing?.original_price) && (order.pricing?.discount_amount && order.pricing.discount_amount > 0) && (
+                                        <>
+                                            <div className="flex justify-between text-xs text-zinc-400">
+                                                <span>Giá niêm yết dịch vụ:</span>
+                                                <span className="font-mono text-zinc-300">
+                                                    {(Number(order.pricing.listed_price || order.pricing.original_price)).toLocaleString()} đ
+                                                </span>
+                                            </div>
+                                            <div className="flex justify-between text-xs text-emerald-400">
+                                                <span>Voucher giảm giá (Khách dùng):</span>
+                                                <span className="font-mono">
+                                                    -{Number(order.pricing.discount_amount).toLocaleString()} đ {order.pricing.funding_source === 'PLATFORM' ? '(Sàn bù 100%)' : ''}
+                                                </span>
+                                            </div>
+                                        </>
+                                    )}
+
+                                    <div className="flex justify-between items-center pt-1 border-t border-zinc-800/60">
+                                        <span className="text-zinc-400">{isBooster ? 'Thu nhập thực nhận của bạn:' : 'Tổng thanh toán:'}</span>
+                                        <span className={`text-base font-bold ${isBooster ? 'text-emerald-400' : 'text-white'}`}>
                                             {(isBooster
                                                 ? getBoosterOrderValue(order.pricing)
                                                 : order.pricing.total_amount

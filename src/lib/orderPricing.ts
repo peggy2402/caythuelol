@@ -9,7 +9,21 @@
 export function getBoosterOrderValue(pricing?: any): number {
   if (!pricing) return 0;
 
-  // 1. Nếu đã lưu sẵn booster_order_value
+  // 1. Nếu đơn hàng có lưu sẵn booster_earnings và voucher do Sàn tài trợ (PLATFORM)
+  if (pricing.funding_source === 'PLATFORM') {
+    if (typeof pricing.booster_earnings === 'number' && pricing.booster_earnings > 0) {
+      return pricing.booster_earnings;
+    }
+    const listed = Number(pricing.listed_price || pricing.original_price || 0);
+    if (listed > 0) return listed;
+  }
+
+  // 2. Nếu đã lưu sẵn booster_earnings
+  if (typeof pricing.booster_earnings === 'number' && pricing.booster_earnings > 0) {
+    return pricing.booster_earnings;
+  }
+
+  // 3. Nếu đã lưu sẵn booster_order_value
   if (pricing.booster_order_value && Number(pricing.booster_order_value) > 0) {
     return Number(pricing.booster_order_value);
   }

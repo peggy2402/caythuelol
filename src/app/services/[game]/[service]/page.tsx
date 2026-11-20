@@ -1191,15 +1191,26 @@ function ServiceBookingContent() {
         boosterId: assignedBooster?.user?._id || null,
         pricing: {
           original_price: calculation.totalPrice,
+          listed_price: calculation.totalPrice,
           base_price: calculation.basePrice,
           addons_cost: calculation.addonsCost,
           service_fee: serviceFee,
           platform_fee_percent: platformFeePercent,
           discount_amount: discountAmount,
+          funding_source: appliedCoupon?.code?.toUpperCase().startsWith('LRV-')
+            ? 'PLATFORM'
+            : appliedCoupon?.isBooster
+            ? 'BOOSTER'
+            : appliedCoupon
+            ? 'PLATFORM'
+            : null,
+          platform_subsidy: appliedCoupon?.code?.toUpperCase().startsWith('LRV-') ? discountAmount : 0,
+          booster_discount: !appliedCoupon?.code?.toUpperCase().startsWith('LRV-') && appliedCoupon?.isBooster ? discountAmount : 0,
           final_price: finalPrice,
           total_amount: finalPrice,
           deposit_amount: finalDeposit,
           deposit_percent: serviceDef.depositPercent || (isPointBoost ? 40 : 100),
+          coupon_code: appliedCoupon ? appliedCoupon.code : null,
         },
         service_data: isPromotion
           ? {

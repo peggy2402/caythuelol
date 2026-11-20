@@ -91,6 +91,12 @@ export interface IOrder {
     addons_cost?: number;
     booster_order_value?: number;
     booster_earnings: number;
+    funding_source?: 'PLATFORM' | 'BOOSTER' | 'SHARED' | string;
+    platform_subsidy?: number; // Số tiền sàn tài trợ bù cho voucher (Booster được nhận nguyên vẹn)
+    booster_discount?: number; // Số tiền giảm do Booster tự chịu (nếu là coupon riêng của booster)
+    coupon_code?: string;
+    discount_amount?: number;
+    listed_price?: number; // Giá niêm yết ban đầu
     settlement_status?: SettlementStatus | string;
   };
   payment: {
@@ -161,6 +167,12 @@ const OrderSchema = new Schema<IOrder>(
       addons_cost: Number,
       booster_order_value: Number,
       booster_earnings: Number,
+      funding_source: { type: String, enum: ['PLATFORM', 'BOOSTER', 'SHARED', null], default: null },
+      platform_subsidy: { type: Number, default: 0 },
+      booster_discount: { type: Number, default: 0 },
+      coupon_code: String,
+      discount_amount: { type: Number, default: 0 },
+      listed_price: Number,
       settlement_status: {
         type: String,
         enum: [...Object.values(SettlementStatus), 'PENDING'],

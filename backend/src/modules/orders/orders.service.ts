@@ -123,25 +123,57 @@ export class OrdersService {
 
       const basePrice = Number(pricing.basePrice || pricing.base_price || 0);
       const optionFees = Number(pricing.optionFees || pricing.option_fees || pricing.addons_cost || 0);
+      const listedPrice = Number(pricing.listed_price || pricing.original_price || (basePrice + optionFees) || totalAmount);
+      const discountAmount = Number(pricing.discount_amount || 0);
       let serviceFee = Number(pricing.service_fee || 0);
-      let boosterOrderValue = 0;
-      if (serviceFee > 0) {
-        boosterOrderValue = Math.max(0, totalAmount - serviceFee);
-      } else if (pricing.original_price && Number(pricing.original_price) < totalAmount) {
-        boosterOrderValue = Number(pricing.original_price) - Number(pricing.discount_amount || 0);
-        serviceFee = Math.max(0, totalAmount - boosterOrderValue);
-      } else if (basePrice + optionFees > 0 && basePrice + optionFees < totalAmount) {
-        boosterOrderValue = basePrice + optionFees;
-        serviceFee = Math.max(0, totalAmount - boosterOrderValue);
-      } else {
-        const candidate = Math.round(totalAmount / 1.02);
-        if (Math.abs(totalAmount - Math.round(candidate * 1.02)) <= 2) {
-          boosterOrderValue = candidate;
-          serviceFee = totalAmount - candidate;
+
+      // Phân bổ tài chính và nguồn tài trợ Voucher
+      const rawCoupon = String(pricing.coupon_code || body.coupon_applied || '').trim().toUpperCase();
+      let fundingSource: 'PLATFORM' | 'BOOSTER' | 'SHARED' | null = pricing.funding_source || null;
+      let platformSubsidy = Number(pricing.platform_subsidy || 0);
+      let boosterDiscount = Number(pricing.booster_discount || 0);
+      let boosterEarnings = 0;
+
+      if (discountAmount > 0 || rawCoupon) {
+        if (!fundingSource) {
+          if (rawCoupon.startsWith('LRV-')) {
+            fundingSource = 'PLATFORM';
+          } else if (pricing.is_booster_coupon || body.is_booster_coupon) {
+            fundingSource = 'BOOSTER';
+          } else {
+            fundingSource = 'PLATFORM'; // Mặc định voucher hệ thống do Sàn tài trợ
+          }
+        }
+
+        if (fundingSource === 'PLATFORM') {
+          platformSubsidy = discountAmount;
+          boosterDiscount = 0;
+          // Sàn tài trợ 100% -> Thu nhập Booster được bảo toàn nguyên vẹn theo giá niêm yết!
+          boosterEarnings = listedPrice > 0 ? listedPrice : Math.max(0, totalAmount - serviceFee + discountAmount);
+        } else if (fundingSource === 'BOOSTER') {
+          platformSubsidy = 0;
+          boosterDiscount = discountAmount;
+          // Booster tự tài trợ -> Khấu trừ vào thu nhập của Booster
+          boosterEarnings = Math.max(0, (listedPrice > 0 ? listedPrice : totalAmount) - boosterDiscount);
         } else {
-          boosterOrderValue = totalAmount;
+          // SHARED
+          platformSubsidy = Number(pricing.platform_subsidy || 0);
+          boosterDiscount = Number(pricing.booster_discount || Math.max(0, discountAmount - platformSubsidy));
+          boosterEarnings = Math.max(0, (listedPrice > 0 ? listedPrice : totalAmount) - boosterDiscount);
+        }
+      } else {
+        // Đơn không áp voucher
+        fundingSource = null;
+        platformSubsidy = 0;
+        boosterDiscount = 0;
+        if (serviceFee > 0) {
+          boosterEarnings = Math.max(0, totalAmount - serviceFee);
+        } else {
+          boosterEarnings = listedPrice > 0 ? listedPrice : totalAmount;
         }
       }
+
+      const boosterOrderValue = boosterEarnings;
 
       const newOrder = new this.orderModel({
         orderCode: customCode,
@@ -156,10 +188,14 @@ export class OrdersService {
           addons_cost: optionFees,
           service_fee: serviceFee,
           platform_fee_percent: pricing.platform_fee_percent || (serviceFee > 0 ? 2 : 0),
-          original_price: pricing.original_price || boosterOrderValue,
+          original_price: listedPrice,
+          listed_price: listedPrice,
+          discount_amount: discountAmount,
+          funding_source: fundingSource,
+          platform_subsidy: platformSubsidy,
+          booster_discount: boosterDiscount,
           booster_order_value: boosterOrderValue,
-          booster_earnings:
-            pricing.booster_earnings ?? boosterOrderValue,
+          booster_earnings: boosterEarnings,
           settlement_status: SettlementStatus.DEPOSIT_HELD,
         },
         payment: {
