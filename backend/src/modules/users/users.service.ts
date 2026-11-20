@@ -25,6 +25,32 @@ export class UsersService {
       if (boosterProfile) {
         userObj.booster_profile = boosterProfile;
       }
+    } else if (user.role === 'CUSTOMER') {
+      // VIP Tier xác định theo VIP Pass đã mua HOẶC Tổng điểm tích luỹ lịch sử (total_points_earned)
+      // TUYỆT ĐỐI không bị hạ cấp khi khách dùng điểm khả dụng đổi quà!
+      let vipTierName = 'Thành Viên';
+      if (user.vip_info?.is_vip && user.vip_info?.package_type) {
+        vipTierName = user.vip_info.package_type;
+      } else {
+        const totalEarned = user.total_points_earned || 0;
+        if (totalEarned >= 5000) {
+          vipTierName = 'VIP Kim Cương';
+        } else if (totalEarned >= 2000) {
+          vipTierName = 'VIP Vàng';
+        } else if (totalEarned >= 500) {
+          vipTierName = 'VIP Bạc';
+        }
+      }
+      userObj.vip_tier = vipTierName;
+      if (!userObj.vip_info) {
+        userObj.vip_info = {
+          is_vip: vipTierName !== 'Thành Viên',
+          package_type: vipTierName,
+        };
+      } else if (!userObj.vip_info.package_type) {
+        userObj.vip_info.package_type = vipTierName;
+        userObj.vip_info.is_vip = vipTierName !== 'Thành Viên';
+      }
     }
     return userObj;
   }

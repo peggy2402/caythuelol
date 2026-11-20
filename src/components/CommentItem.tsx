@@ -384,11 +384,23 @@ function ThreadCommentNode({
               {comment.userId?.username || 'Người dùng'}
             </span>
 
-            <UserBadge
-              role={comment.userId?.role || 'CUSTOMER'}
-              vipTier={comment.userId?.vip_info?.package_type}
-              size="xs"
-            />
+            {(() => {
+              const uName = (comment.userId?.username || '').toLowerCase();
+              const derivedRole =
+                comment.userId?.role ||
+                (uName === 'admin' || uName.startsWith('admin_') || uName.startsWith('admin')
+                  ? 'ADMIN'
+                  : uName === 'staff' || uName.startsWith('staff_') || uName.startsWith('staff')
+                  ? 'STAFF'
+                  : 'CUSTOMER');
+              return (
+                <UserBadge
+                  role={derivedRole}
+                  vipTier={comment.userId?.vip_info?.package_type}
+                  size="xs"
+                />
+              );
+            })()}
 
             <span className="text-[11px] text-[var(--thread-text-muted)] shrink-0 ml-0.5">
               {timeAgo}

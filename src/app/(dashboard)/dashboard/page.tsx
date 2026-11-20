@@ -157,11 +157,29 @@ export default function DashboardPage() {
   const completedOrders = orders.filter((o) => o.status === 'COMPLETED');
   const spotlightOrder = activeOrders[0] || null;
 
-  // User VIP Tier calculation
+  // User VIP Tier calculation (Dựa trên VIP Pass, Tổng chi tiêu hoặc Tổng điểm tích luỹ lịch sử)
+  // TUYỆT ĐỐI không bị hạ cấp khi khách dùng điểm khả dụng đổi quà
   const getVipTier = (spent: number) => {
-    if (spent >= 5000000) return { name: 'VIP Kim Cương', discount: '15%', color: 'text-cyan-300', bg: 'bg-cyan-950/50 border-cyan-500/40' };
-    if (spent >= 2000000) return { name: 'VIP Vàng', discount: '10%', color: 'text-amber-300', bg: 'bg-amber-950/50 border-amber-500/40' };
-    if (spent >= 500000) return { name: 'VIP Bạc', discount: '5%', color: 'text-slate-300', bg: 'bg-slate-900/60 border-slate-600/40' };
+    if (user?.vip_info?.is_vip && user?.vip_info?.package_type) {
+      const pkg = user.vip_info.package_type.toUpperCase();
+      if (pkg.includes('KIM CƯƠNG') || pkg.includes('DIAMOND')) {
+        return { name: 'VIP Kim Cương', discount: '15%', color: 'text-cyan-300', bg: 'bg-cyan-950/50 border-cyan-500/40' };
+      }
+      if (pkg.includes('VÀNG') || pkg.includes('GOLD')) {
+        return { name: 'VIP Vàng', discount: '10%', color: 'text-amber-300', bg: 'bg-amber-950/50 border-amber-500/40' };
+      }
+      if (pkg.includes('BẠC') || pkg.includes('SILVER')) {
+        return { name: 'VIP Bạc', discount: '5%', color: 'text-slate-300', bg: 'bg-slate-900/60 border-slate-600/40' };
+      }
+      return { name: user.vip_info.package_type, discount: '5%', color: 'text-amber-300', bg: 'bg-amber-950/50 border-amber-500/40' };
+    }
+
+    const totalEarnedPoints = user?.total_points_earned || 0;
+    const effectivePoints = Math.max(spent / 1000, totalEarnedPoints);
+
+    if (effectivePoints >= 5000) return { name: 'VIP Kim Cương', discount: '15%', color: 'text-cyan-300', bg: 'bg-cyan-950/50 border-cyan-500/40' };
+    if (effectivePoints >= 2000) return { name: 'VIP Vàng', discount: '10%', color: 'text-amber-300', bg: 'bg-amber-950/50 border-amber-500/40' };
+    if (effectivePoints >= 500) return { name: 'VIP Bạc', discount: '5%', color: 'text-slate-300', bg: 'bg-slate-900/60 border-slate-600/40' };
     return { name: 'Thành Viên', discount: '0%', color: 'text-zinc-400', bg: 'bg-zinc-900 border-zinc-800' };
   };
 

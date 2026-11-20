@@ -67,7 +67,7 @@ export class BlogsService {
     const [blogs, total] = await Promise.all([
       this.blogModel
         .find(filter)
-        .populate('author', 'username profile.avatar')
+        .populate('author', 'username role profile.avatar')
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
@@ -118,7 +118,7 @@ export class BlogsService {
   async getBlogBySlug(slug: string) {
     const blog = await this.blogModel
       .findOneAndUpdate({ slug, isPublished: true }, { $inc: { views: 1 } }, { new: true })
-      .populate('author', 'username profile.avatar')
+      .populate('author', 'username role profile.avatar')
       .lean();
 
     if (!blog) throw new NotFoundException('Không tìm thấy bài viết');
@@ -128,7 +128,7 @@ export class BlogsService {
   async getComments(blogId: string) {
     const comments = await this.commentModel
       .find({ blogId: new Types.ObjectId(blogId) })
-      .populate('userId', 'username profile.avatar')
+      .populate('userId', 'username role vip_info profile.avatar')
       .sort({ createdAt: 1 })
       .lean();
 
@@ -143,7 +143,7 @@ export class BlogsService {
       parentId: parentId ? new Types.ObjectId(parentId) : null,
     });
     await comment.save();
-    const populated = await comment.populate('userId', 'username profile.avatar');
+    const populated = await comment.populate('userId', 'username role vip_info profile.avatar');
     return { success: true, comment: populated };
   }
 
