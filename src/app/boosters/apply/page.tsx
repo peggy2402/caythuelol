@@ -35,85 +35,81 @@ const GAME_OPTIONS = [
     code: 'LOL',
     name: 'Liên Minh Huyền Thoại',
     short: 'LMHT',
-    icon: '⚔️',
-    badge: 'PC MOBA',
     currentRankPlaceholder: 'Ví dụ: Cao Thủ 350 LP / Thách Đấu',
     highestRankPlaceholder: 'Ví dụ: Thách Đấu 1100 LP / Top 500',
-    trackerLabel: 'Link Hồ Sơ OP.GG Thi Đấu',
-    trackerPlaceholder: 'https://www.op.gg/summoners/vn/...',
-    trackerHint: 'Giúp ban quản trị kiểm tra lịch sử đấu và duyệt hồ sơ trong 15 phút',
+    trackerLabel: 'Link Hồ Sơ Hoặc Tên Ingame (OP.GG / Riot ID)',
+    trackerPlaceholder: 'Ví dụ: TênIngame#VN2 hoặc link https://www.op.gg/summoners/vn/...',
+    trackerHint: 'Nhập Riot ID (Tên#Tag) hoặc dán link OP.GG để đối soát',
   },
   {
     code: 'VALORANT',
     name: 'VALORANT',
     short: 'VAL',
-    icon: '🎯',
-    badge: 'PC Tactical FPS',
     currentRankPlaceholder: 'Ví dụ: Immortal 3 / Radiant',
     highestRankPlaceholder: 'Ví dụ: Radiant #120 / Top 500',
-    trackerLabel: 'Link Hồ Sơ Tracker.gg Thi Đấu',
-    trackerPlaceholder: 'https://tracker.gg/valorant/profile/...',
-    trackerHint: 'Giúp ban quản trị kiểm tra ACS, Headshot% và bậc xếp hạng',
+    trackerLabel: 'Link Hồ Sơ Hoặc Riot ID (Tracker.gg)',
+    trackerPlaceholder: 'Ví dụ: TênIngame#TAG hoặc link https://tracker.gg/valorant/profile/...',
+    trackerHint: 'Nhập Riot ID (Tên#Tag) hoặc link Tracker.gg để đối soát',
   },
   {
     code: 'AOV',
     name: 'Liên Quân Mobile',
     short: 'LQMB',
-    icon: '🛡️',
-    badge: 'Mobile MOBA',
     currentRankPlaceholder: 'Ví dụ: Chiến Tướng 50 Sao',
     highestRankPlaceholder: 'Ví dụ: Thách Đấu 100 Sao',
-    trackerLabel: 'Link Trang Cá Nhân Ingame / Open ID Garena',
-    trackerPlaceholder: 'Link trang cá nhân ingame / ID Garena / Ảnh profile',
-    trackerHint: 'Cung cấp Open ID hoặc Link trang cá nhân để đối soát nhanh',
+    trackerLabel: 'Tên Ingame Hoặc Open ID Garena',
+    trackerPlaceholder: 'Ví dụ: Tên ingame, ID Garena hoặc link trang cá nhân...',
+    trackerHint: 'Cung cấp tên tài khoản ingame hoặc Open ID Garena để ban quản trị kiểm tra',
   },
   {
     code: 'TFT',
     name: 'Đấu Trường Chân Lý (TFT)',
     short: 'ĐTCL',
-    icon: '♟️',
-    badge: 'Auto Battler',
     currentRankPlaceholder: 'Ví dụ: Đại Cao Thủ 450 LP',
     highestRankPlaceholder: 'Ví dụ: Thách Đấu 950 LP / Top 100',
-    trackerLabel: 'Link Hồ Sơ Tactics.tools / OP.GG TFT',
-    trackerPlaceholder: 'https://tactics.tools/player/vn/... hoặc OP.GG TFT',
-    trackerHint: 'Kiểm tra trung bình thứ hạng (AVP) và tỷ lệ top 4',
+    trackerLabel: 'Link Hồ Sơ Hoặc Tên Ingame (Tactics.tools / Riot ID)',
+    trackerPlaceholder: 'Ví dụ: TênIngame#VN2 hoặc link Tactics.tools / OP.GG TFT...',
+    trackerHint: 'Nhập Riot ID hoặc link Tactics.tools / OP.GG TFT để đối soát',
   },
   {
     code: 'CS2',
     name: 'Counter-Strike 2',
     short: 'CS2',
-    icon: '💥',
-    badge: 'PC Tactical FPS',
     currentRankPlaceholder: 'Ví dụ: 20,000 Premier / Faceit Level 10',
     highestRankPlaceholder: 'Ví dụ: 25,000+ Premier / Top Leaderboard',
-    trackerLabel: 'Link Hồ Sơ CSStats / Faceit Profile',
-    trackerPlaceholder: 'https://csstats.gg/player/... hoặc Faceit Profile',
-    trackerHint: 'Dùng link CSStats hoặc Faceit công khai',
+    trackerLabel: 'Link Profile Hoặc Steam ID / Faceit',
+    trackerPlaceholder: 'Ví dụ: Steam ID, tên tài khoản Faceit hoặc link CSStats...',
+    trackerHint: 'Nhập link CSStats, Faceit hoặc Steam Profile công khai',
   },
   {
     code: 'DOTA2',
     name: 'Dota 2',
     short: 'DOTA2',
-    icon: '🔥',
-    badge: 'PC MOBA',
     currentRankPlaceholder: 'Ví dụ: Divine 5 / Immortal',
     highestRankPlaceholder: 'Ví dụ: Immortal Top 1000',
-    trackerLabel: 'Link Hồ Sơ Dotabuff / Stratz',
-    trackerPlaceholder: 'https://www.dotabuff.com/players/...',
-    trackerHint: 'Đảm bảo bật tính năng Expose Public Match Data trong setting Dota 2',
+    trackerLabel: 'Link Hồ Sơ Hoặc Friend ID Steam / Dotabuff',
+    trackerPlaceholder: 'Ví dụ: Friend ID Dota 2 hoặc link Dotabuff / Stratz...',
+    trackerHint: 'Nhập Friend ID Dota 2 hoặc link Dotabuff / Stratz',
   },
   {
     code: 'OVERWATCH2',
     name: 'Overwatch 2',
     short: 'OW2',
-    icon: '⚡',
-    badge: 'PC Hero Shooter',
     currentRankPlaceholder: 'Ví dụ: Master 2 / Grandmaster',
     highestRankPlaceholder: 'Ví dụ: Top 500 GM1',
-    trackerLabel: 'Link Hồ Sơ Career Profile Blizzard / Overbuff',
-    trackerPlaceholder: 'https://overwatch.blizzard.com/en-us/career/...',
-    trackerHint: 'Hồ sơ Career Profile cần được đặt ở chế độ Public',
+    trackerLabel: 'BattleTag Hoặc Link Career Profile',
+    trackerPlaceholder: 'Ví dụ: BattleTag#1234 hoặc link Career Profile...',
+    trackerHint: 'Nhập BattleTag hoặc link hồ sơ Overwatch công khai',
+  },
+  {
+    code: 'OTHER',
+    name: 'Tựa Game Khác',
+    short: 'Khác',
+    currentRankPlaceholder: 'Ví dụ: Bậc xếp hạng cao nhất hiện tại của bạn',
+    highestRankPlaceholder: 'Ví dụ: Mốc rank kỷ lục bạn từng đạt được',
+    trackerLabel: 'Tên Ingame Hoặc Link Tra Cứu Trình Độ',
+    trackerPlaceholder: 'Ví dụ: Tên Ingame, ID tài khoản hoặc link hồ sơ bất kỳ...',
+    trackerHint: 'Nhập tên nhân vật trong game hoặc link chứng minh trình độ',
   },
 ];
 
@@ -129,9 +125,10 @@ const formSchema = z.object({
     }, "Link Facebook không hợp lệ (ví dụ: facebook.com/vtchn hoặc fb.com/vtchn)"),
   discordTag: z.string().min(3, "Discord Tag không hợp lệ"),
   primaryGame: z.string().min(1, "Vui lòng chọn game thế mạnh chính"),
+  customGameName: z.string().optional(),
   currentRank: z.string().min(1, "Vui lòng nhập Rank hiện tại"),
   highestRank: z.string().min(1, "Vui lòng nhập Rank cao nhất từng đạt"),
-  opggLink: z.string().min(3, "Vui lòng nhập link hoặc ID hồ sơ thi đấu"),
+  opggLink: z.string().min(2, "Vui lòng nhập link hoặc tên Ingame/ID thi đấu"),
   rankImageUrl: z.string().min(1, "Vui lòng tải lên ảnh bằng chứng rank"),
   bankName: z.string().min(1, "Vui lòng chọn ngân hàng thụ hưởng"),
   bankAccountName: z.string().min(1, "Vui lòng nhập tên chủ tài khoản"),
@@ -140,6 +137,16 @@ const formSchema = z.object({
   signatureImage: z.string().optional(),
   contractUrl: z.string().optional(),
   billImageUrl: z.string().optional(),
+}).superRefine((data, ctx) => {
+  if (data.primaryGame === 'OTHER') {
+    if (!data.customGameName || data.customGameName.trim().length < 2) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Vui lòng nhập tên tựa game bạn muốn đăng ký (tối thiểu 2 ký tự)",
+        path: ["customGameName"],
+      });
+    }
+  }
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -200,7 +207,11 @@ export default function BoosterApplyPage() {
   });
 
   const selectedGame = watch('primaryGame') || 'LOL';
+  const customGameName = watch('customGameName');
   const currentGameConfig = GAME_OPTIONS.find(g => g.code === selectedGame) || GAME_OPTIONS[0];
+  const displayGameName = selectedGame === 'OTHER' 
+    ? (customGameName?.trim() || 'Tựa game khác') 
+    : `${currentGameConfig.name} (${currentGameConfig.short})`;
 
   const fullName = watch('fullName');
   const signature = watch('agreementSigned_name');
@@ -328,7 +339,12 @@ export default function BoosterApplyPage() {
 
     let fieldsToValidate: (keyof FormData)[] = [];
     if (step === 1) fieldsToValidate = ['fullName', 'phoneNumber', 'facebookUrl', 'discordTag'];
-    if (step === 2) fieldsToValidate = ['primaryGame', 'currentRank', 'highestRank', 'opggLink', 'rankImageUrl', 'bankName', 'bankAccountName', 'bankAccountNumber'];
+    if (step === 2) {
+      fieldsToValidate = ['primaryGame', 'currentRank', 'highestRank', 'opggLink', 'rankImageUrl', 'bankName', 'bankAccountName', 'bankAccountNumber'];
+      if (watch('primaryGame') === 'OTHER') {
+        fieldsToValidate.push('customGameName');
+      }
+    }
 
     const isValid = await trigger(fieldsToValidate);
     if (isValid) {
@@ -523,6 +539,10 @@ export default function BoosterApplyPage() {
         ? data.facebookUrl.trim()
         : `https://${data.facebookUrl.trim()}`;
 
+      const resolvedPrimaryGame = (data.primaryGame === 'OTHER' && data.customGameName?.trim()) 
+        ? data.customGameName.trim() 
+        : data.primaryGame;
+
       const token = localStorage.getItem('token');
       const res = await fetch('/api/boosters/apply', {
         method: 'POST',
@@ -532,6 +552,7 @@ export default function BoosterApplyPage() {
         },
         body: JSON.stringify({ 
           ...data, 
+          primaryGame: resolvedPrimaryGame,
           facebookUrl: normalizedFb, 
           rankImageUrl: finalRankUrl,
           billImageUrl: finalBillUrl,
@@ -917,7 +938,7 @@ export default function BoosterApplyPage() {
                             >
                               {GAME_OPTIONS.map((g) => (
                                 <option key={g.code} value={g.code} className="bg-zinc-900 text-white py-2">
-                                  {g.icon} {g.name} ({g.short}) — {g.badge}
+                                  {g.code === 'OTHER' ? 'Khác (Nhập tên tựa game khác)' : `${g.name} (${g.short})`}
                                 </option>
                               ))}
                             </select>
@@ -927,6 +948,22 @@ export default function BoosterApplyPage() {
                           </div>
                           {errors.primaryGame && <p className="text-red-400 text-xs mt-1">{errors.primaryGame.message}</p>}
                         </div>
+
+                        {/* Input nhập tên game nếu chọn Khác */}
+                        {selectedGame === 'OTHER' && (
+                          <div className="space-y-2 md:col-span-2 animate-in fade-in slide-in-from-top-2 duration-200">
+                            <Label className="text-xs font-bold uppercase tracking-wider text-cyan-400 flex items-center justify-between">
+                              <span>Tên Tựa Game Của Bạn <span className="text-red-500 font-bold">*</span></span>
+                              <span className="text-[10px] text-zinc-500">Ví dụ: Naraka: Bladepoint, EA FC, PUBG, Apex Legends...</span>
+                            </Label>
+                            <Input 
+                              {...register('customGameName')} 
+                              placeholder="Nhập chính xác tên tựa game bạn muốn đăng ký thi đấu..." 
+                              className="bg-zinc-950 border-cyan-500/40 text-white rounded-xl h-11 text-sm focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400/30 transition-all placeholder:text-zinc-600" 
+                            />
+                            {errors.customGameName && <p className="text-red-400 text-xs mt-1">{errors.customGameName.message}</p>}
+                          </div>
+                        )}
 
                         <div className="space-y-2">
                           <Label className="text-xs font-bold uppercase tracking-wider text-zinc-300">
@@ -1139,7 +1176,7 @@ export default function BoosterApplyPage() {
                       <div>
                         <h3 className="text-base font-black text-white mb-1 flex items-center gap-2">
                           <Landmark className="w-4 h-4 text-cyan-400" />
-                          Tài Khoản Ngân Hàng Thụ Hưởng Thu Nhập
+                          Tài Khoản Ngân Hàng Thụ Hưởng Thu Nhập Của Bạn
                         </h3>
                         <p className="text-xs text-zinc-400">Tiền cày thuê sẽ được chuyển tự động về tài khoản này sau khi hoàn thành đơn.</p>
                       </div>
@@ -1434,7 +1471,7 @@ export default function BoosterApplyPage() {
 
           <div style={{ marginBottom: '20px' }}>
             <h3 style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '6px', margin: 0 }}>BÊN B: {fullName?.toUpperCase()} (Bên Tuyển thủ Booster)</h3>
-            <p style={{ margin: 0 }}>Tựa game thi đấu chính: {currentGameConfig.name} ({currentGameConfig.short})</p>
+            <p style={{ margin: 0 }}>Tựa game thi đấu chính: {displayGameName}</p>
             <p style={{ margin: 0 }}>Số điện thoại: {watch('phoneNumber')}</p>
             <p style={{ margin: 0 }}>Discord: {watch('discordTag')}</p>
             <p style={{ margin: 0 }}>Facebook: {watch('facebookUrl')}</p>
@@ -1497,7 +1534,7 @@ export default function BoosterApplyPage() {
             </div>
             <div className="flex justify-between items-center border-b border-zinc-900 pb-2">
               <span className="text-zinc-500">Tựa game chính:</span>
-              <span className="font-bold text-cyan-400">{currentGameConfig.icon} {currentGameConfig.name}</span>
+              <span className="font-bold text-cyan-400">{displayGameName}</span>
             </div>
             <div className="flex justify-between items-center border-b border-zinc-900 pb-2">
               <span className="text-zinc-500">Số điện thoại:</span>
