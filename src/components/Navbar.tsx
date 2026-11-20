@@ -555,13 +555,13 @@ export default function Navbar() {
                     </div>
 
                     <div className="text-left">
-                      <div className="text-xs font-semibold text-white flex items-center gap-1">
+                      <div className="text-xs font-semibold text-white flex items-center gap-1.5">
                         <span>{user.username}</span>
                         <UserBadge
                           role={user.role}
                           vipTier={user.vip_info?.package_type || user.vip_tier}
                           totalSpent={user.total_spent || (user.total_points_earned ? user.total_points_earned * 1000 : 0)}
-                          size="xs"
+                          size="sm"
                         />
                       </div>
                       <div className="text-[11px] font-medium text-emerald-400">
@@ -581,8 +581,20 @@ export default function Navbar() {
                       <motion.div
                         {...DROPDOWN_MOTION}
                         suppressHydrationWarning
-                        className="absolute right-0 mt-3 w-64 rounded-xl border border-white/10 bg-zinc-900/95 backdrop-blur-xl shadow-2xl z-50 origin-top-right"
+                        className="absolute right-0 mt-3 w-64 rounded-xl border border-white/10 bg-zinc-900/95 backdrop-blur-xl shadow-2xl z-50 origin-top-right overflow-hidden"
                       >
+                        <div className="p-3 border-b border-white/10 bg-white/[0.02]">
+                          <div className="flex items-center gap-1.5 mb-0.5">
+                            <span className="text-sm font-bold text-white truncate">{user.username}</span>
+                            <UserBadge
+                              role={user.role}
+                              vipTier={user.vip_info?.package_type || user.vip_tier}
+                              totalSpent={user.total_spent || (user.total_points_earned ? user.total_points_earned * 1000 : 0)}
+                              size="sm"
+                            />
+                          </div>
+                          <p className="text-xs text-zinc-400 truncate">{user.email}</p>
+                        </div>
                         <div className="p-2 space-y-1 text-sm">
                           <Link
                             href={dashboardHref}

@@ -549,7 +549,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                       role={user?.role}
                       vipTier={user?.vip_info?.package_type || user?.vip_tier}
                       totalSpent={user?.total_spent || (user?.total_points_earned ? user.total_points_earned * 1000 : 0)}
-                      size="xs"
+                      size="sm"
                     />
                   </div>
                   <div className="text-xs text-blue-400 font-medium">
@@ -581,7 +581,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                           role={user?.role}
                           vipTier={user?.vip_info?.package_type || user?.vip_tier}
                           totalSpent={user?.total_spent || (user?.total_points_earned ? user.total_points_earned * 1000 : 0)}
-                          size="xs"
+                          size="sm"
                         />
                       </div>
                       <p className="text-xs text-zinc-500 truncate">{user?.email}</p>
