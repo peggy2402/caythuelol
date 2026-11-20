@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Star, Heart, Loader2, ShieldCheck, Trophy, ArrowRight, Gamepad2 } from 'lucide-react';
+import UserBadge from '@/components/UserBadge';
 
 interface BoosterCardProps {
   booster: any;
@@ -228,9 +229,7 @@ export default function BoosterCard({ booster, isBookmarked, onToggleBookmark }:
         <div className="mb-2">
           <h3 className="text-base font-extrabold text-white group-hover:text-blue-400 transition-colors flex items-center justify-center gap-1.5">
             <span>{booster.displayName || booster.username}</span>
-            <span title="Tuyển thủ xác thực">
-              <ShieldCheck className="w-4 h-4 text-blue-400 shrink-0" />
-            </span>
+            <UserBadge role="BOOSTER" size="sm" />
           </h3>
           <span className="text-xs text-zinc-400 font-mono">@{booster.username}</span>
         </div>

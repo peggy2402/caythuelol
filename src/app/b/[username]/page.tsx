@@ -29,6 +29,7 @@ import BoosterProfileHeaderActions from '@/components/BoosterProfileHeaderAction
 import BoosterProfileRightSection from '@/components/BoosterProfileRightSection';
 import BoosterRankShowcase from '@/components/BoosterRankShowcase';
 import BoosterAvatar from '@/components/BoosterAvatar';
+import UserBadge from '@/components/UserBadge';
 import { API_BASE_URL } from '@/lib/api';
 
 type Props = {
@@ -431,12 +432,15 @@ export default async function ShortProfilePage({ params }: Props) {
                   <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
                     {boosterName}
                   </h1>
-                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-semibold">
-                    <Sparkles size={12} className="text-amber-400" />
-                    Verified Booster
+                  <UserBadge role="BOOSTER" size="lg" />
+                </div>
+                <div className="flex items-center justify-center sm:justify-start gap-2">
+                  <p className="text-zinc-400 text-xs sm:text-sm font-medium font-mono">@{boosterUsername}</p>
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-semibold">
+                    <CheckCircle2 size={12} className="text-emerald-400" />
+                    Verified
                   </span>
                 </div>
-                <p className="text-zinc-500 text-xs sm:text-sm font-medium">@{boosterUsername}</p>
 
                 {/* Header Interactive: Metric Chips + Nút Thuê ngay + Nút Tim + Nút Share */}
                 <BoosterProfileHeaderActions

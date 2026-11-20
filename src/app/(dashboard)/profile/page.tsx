@@ -2,6 +2,7 @@
 
 import { useState, useEffect, ReactNode } from 'react';
 import { useLanguage } from '@/lib/i18n';
+import UserBadge from '@/components/UserBadge';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -99,6 +100,12 @@ interface UserData {
   };
   booster_profile?: BoosterProfileData;
   staff_permissions?: string[];
+  vip_info?: {
+    is_vip?: boolean;
+    package_type?: string;
+    expires_at?: string;
+  };
+  total_spent?: number;
   isReady?: boolean;
   createdAt: string;
 }
@@ -919,32 +926,40 @@ export default function ProfilePage() {
             </div>
 
             <div>
-              <div className="flex flex-wrap items-center gap-2 mb-1.5">
+              {/* Tên + Huy hiệu gắn liền cạnh tên */}
+              <div className="flex items-center gap-2.5 mb-1.5">
                 <h1 className="text-2xl md:text-3xl font-black text-white tracking-tight">
                   {username}
                 </h1>
+                <UserBadge
+                  role={user.role}
+                  vipTier={user.vip_info?.package_type}
+                  size="md"
+                />
+              </div>
 
-                {/* ROLE BADGES */}
+              {/* Badge chức danh và thông tin đặt ở dòng dưới */}
+              <div className="flex flex-wrap items-center gap-2 mb-2">
                 {user.role === 'BOOSTER' && (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black tracking-wider uppercase bg-gradient-to-r from-blue-600/30 to-indigo-600/30 text-blue-400 border border-blue-500/40 shadow-sm">
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-black tracking-wider uppercase bg-gradient-to-r from-blue-600/30 to-indigo-600/30 text-blue-400 border border-blue-500/40 shadow-sm">
                     <Sparkles className="w-3.5 h-3.5 text-blue-400" />
                     Tuyển Thủ Pro
                   </span>
                 )}
                 {user.role === 'CUSTOMER' && (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold tracking-wider uppercase bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold tracking-wider uppercase bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
                     <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                    Khách Hàng Thành Viên
+                    {user.vip_info?.is_vip ? user.vip_info?.package_type || 'Hội Viên VIP' : 'Khách Hàng Thành Viên'}
                   </span>
                 )}
                 {user.role === 'STAFF' && (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold tracking-wider uppercase bg-amber-500/10 text-amber-400 border border-amber-500/30">
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold tracking-wider uppercase bg-amber-500/10 text-amber-400 border border-amber-500/30">
                     <Shield className="w-3.5 h-3.5 text-amber-400" />
                     Ban Điều Hành / Staff
                   </span>
                 )}
                 {user.role === 'ADMIN' && (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black tracking-wider uppercase bg-rose-500/10 text-rose-400 border border-rose-500/30">
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-black tracking-wider uppercase bg-rose-500/10 text-rose-400 border border-rose-500/30">
                     <Flame className="w-3.5 h-3.5 text-rose-400" />
                     Super Admin
                   </span>

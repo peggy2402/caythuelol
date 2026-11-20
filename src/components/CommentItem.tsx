@@ -18,6 +18,7 @@ import { vi } from 'date-fns/locale';
 import { toast } from 'sonner';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import ThreadsCommentLine from '@/components/ThreadsCommentLine';
+import UserBadge from '@/components/UserBadge';
 import {
   MAX_VISUAL_DEPTH,
   buildCommentChildrenMap,
@@ -374,7 +375,7 @@ function ThreadCommentNode({
           className="flex-1 min-w-0"
         >
           {/* Header: Tên đậm, thời gian & nhãn phụ nhạt nhỏ hơn, nút "..." khi hover/focus */}
-          <div className="flex items-center gap-2 mb-1 flex-wrap min-w-0">
+          <div className="flex items-center gap-1.5 mb-1 flex-wrap min-w-0">
             <span
               className={`font-bold text-[var(--thread-text)] truncate max-w-44 sm:max-w-xs ${
                 isReply ? 'text-[13px]' : 'text-sm'
@@ -383,7 +384,13 @@ function ThreadCommentNode({
               {comment.userId?.username || 'Người dùng'}
             </span>
 
-            <span className="text-[11px] text-[var(--thread-text-muted)] shrink-0">
+            <UserBadge
+              role={comment.userId?.role || 'CUSTOMER'}
+              vipTier={comment.userId?.vip_info?.package_type}
+              size="xs"
+            />
+
+            <span className="text-[11px] text-[var(--thread-text-muted)] shrink-0 ml-0.5">
               {timeAgo}
             </span>
 

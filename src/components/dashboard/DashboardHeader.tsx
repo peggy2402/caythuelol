@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { ShieldCheck, Zap, CreditCard, Wallet } from 'lucide-react';
+import UserBadge from '@/components/UserBadge';
 
 interface DashboardHeaderProps {
   user: any;
@@ -55,6 +56,11 @@ export default function DashboardHeader({
               <h1 className="text-lg sm:text-2xl md:text-3xl font-black text-white tracking-tight truncate max-w-[180px] xs:max-w-[240px] sm:max-w-none">
                 {user?.username}
               </h1>
+              <UserBadge
+                role={user?.role}
+                vipTier={vip?.name}
+                size="md"
+              />
               <span className={`px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold border shrink-0 ${vip.bg} ${vip.color}`}>
                 {vip.name}
               </span>

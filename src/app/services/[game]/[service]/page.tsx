@@ -9,6 +9,7 @@ import Navbar from '@/components/Navbar';
 import BackButton from '@/components/BackButton';
 import ServerFlag from '@/components/ServerFlag';
 import { AnimatePresence, motion } from 'framer-motion';
+import UserBadge from '@/components/UserBadge';
 import {
   Trophy,
   Target,
@@ -1402,15 +1403,18 @@ function ServiceBookingContent() {
                             )}
                           </div>
                           <div>
-                            <div className="flex items-center gap-2">
-                              <span className="font-extrabold text-white text-sm">
-                                {displayName}
-                              </span>
-                              <span className="text-xs text-zinc-400 font-mono">
+                            <div>
+                              <div className="flex items-center gap-1.5 min-w-0">
+                                <span className="font-extrabold text-white text-sm truncate">
+                                  {displayName}
+                                </span>
+                                <UserBadge role="BOOSTER" size="sm" />
+                              </div>
+                              <div className="text-xs text-zinc-400 font-mono truncate">
                                 @{username}
-                              </span>
+                              </div>
                             </div>
-                            <div className="flex items-center gap-2 text-xs text-zinc-400 mt-0.5">
+                            <div className="flex items-center gap-2 text-xs text-zinc-400 mt-1">
                               <span className={`flex items-center gap-1 font-bold ${rating > 0 ? 'text-amber-400' : 'text-zinc-500'}`}>
                                 <Star size={12} fill="currentColor" />
                                 {rating > 0 ? rating.toFixed(1) : '5.0'}
@@ -3238,13 +3242,16 @@ function ServiceBookingContent() {
                             )}
                           </div>
                           <div className="min-w-0">
-                            <div className="flex items-center gap-2">
-                              <span className="font-extrabold text-white text-xs sm:text-sm truncate">
-                                {b.displayName || b.username}
-                              </span>
-                              <span className="text-[11px] text-zinc-400 font-mono truncate">
+                            <div>
+                              <div className="flex items-center gap-1.5 min-w-0">
+                                <span className="font-extrabold text-white text-xs sm:text-sm truncate">
+                                  {b.displayName || b.username}
+                                </span>
+                                <UserBadge role="BOOSTER" size="sm" />
+                              </div>
+                              <div className="text-[11px] text-zinc-400 font-mono truncate">
                                 @{b.username}
-                              </span>
+                              </div>
                             </div>
 
                             <div className="flex flex-wrap items-center gap-2 mt-1 text-[11px] text-zinc-400">

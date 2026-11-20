@@ -9,6 +9,7 @@ import DOMPurify from 'dompurify';
 import Navbar from '@/components/Navbar';
 import SocialShare from '@/components/SocialShare'; // New
 import CommentItem from '@/components/CommentItem'; // New
+import UserBadge from '@/components/UserBadge';
 
 // This component will receive initial data as props
 export default function BlogDetailClient({ initialPost, initialComments, initialPopularPosts, initialRelatedPosts, slug }: any) {
@@ -115,7 +116,8 @@ export default function BlogDetailClient({ initialPost, initialComments, initial
                 <div className="flex items-center gap-6 text-sm text-zinc-400">
                   <div className="flex items-center gap-2">
                     <User className="w-4 h-4" />
-                    <span>{post.author?.username || 'Admin'}</span>
+                    <span className="font-semibold text-zinc-200">{post.author?.username || 'Admin'}</span>
+                    <UserBadge role={post.author?.role || 'ADMIN'} size="xs" />
                   </div>
                   <div className="flex items-center gap-2">
                     <Calendar className="w-4 h-4" />

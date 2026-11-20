@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { Calendar, User, ArrowRight, Eye } from 'lucide-react';
+import UserBadge from '@/components/UserBadge';
 
 interface FeaturedBlogCardProps {
   post: {
@@ -15,6 +16,7 @@ interface FeaturedBlogCardProps {
     views?: number;
     author?: {
       username?: string;
+      role?: string;
     };
   };
 }
@@ -72,7 +74,10 @@ export default function FeaturedBlogCard({ post }: FeaturedBlogCardProps) {
                 <div className="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center border border-zinc-700">
                   <User className="w-4 h-4 text-cyan-400" />
                 </div>
-                <span className="font-bold">{post.author?.username || 'LeoRank Meta Team'}</span>
+                <div className="flex items-center gap-1.5">
+                  <span className="font-bold">{post.author?.username || 'LeoRank Meta Team'}</span>
+                  <UserBadge role={post.author?.role || 'ADMIN'} size="xs" />
+                </div>
               </div>
 
               <span className="flex items-center gap-1 text-xs font-black text-cyan-400 group-hover:translate-x-1.5 transition-transform">
