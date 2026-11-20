@@ -8,7 +8,8 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import { Search, X, Check, Globe, RotateCcw } from 'lucide-react';
-import { GAME_SERVERS, GameServer } from '@/lib/servers';
+import { GAME_SERVERS } from '@/lib/servers';
+import ServerFlag from '@/components/ServerFlag';
 import { cn } from '@/lib/utils';
 
 interface ServerSelectModalProps {
@@ -24,35 +25,6 @@ const normalizeText = (str: string) =>
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .replace(/đ/g, 'd');
-
-function getRegionBadgeStyle(server: GameServer, isSelected: boolean): string {
-  if (isSelected) {
-    return 'bg-blue-500/20 text-blue-300 border-blue-400/50';
-  }
-  if (server.code === 'PBE') {
-    return 'bg-purple-500/12 text-purple-300 border-purple-500/25';
-  }
-  switch (server.region) {
-    case 'Vietnam':
-      return 'bg-rose-500/12 text-rose-300 border-rose-500/25';
-    case 'Southeast Asia':
-      return 'bg-emerald-500/12 text-emerald-300 border-emerald-500/25';
-    case 'Asia':
-      return 'bg-cyan-500/12 text-cyan-300 border-cyan-500/25';
-    case 'Europe':
-      return 'bg-blue-500/12 text-blue-300 border-blue-500/25';
-    case 'North America':
-      return 'bg-indigo-500/12 text-indigo-300 border-indigo-500/25';
-    case 'Americas':
-      return 'bg-sky-500/12 text-sky-300 border-sky-500/25';
-    case 'Oceania':
-      return 'bg-teal-500/12 text-teal-300 border-teal-500/25';
-    case 'Middle East':
-      return 'bg-amber-500/12 text-amber-300 border-amber-500/25';
-    default:
-      return 'bg-zinc-800/80 text-zinc-300 border-white/10';
-  }
-}
 
 export default function ServerSelectModal({
   isOpen,
@@ -207,7 +179,6 @@ export default function ServerSelectModal({
               {filteredServers.map((s) => {
                 const isSelected = (selectedServer || '').toUpperCase() === s.code.toUpperCase();
                 const isDefaultVN = s.code === 'VN';
-                const badgeClass = getRegionBadgeStyle(s, isSelected);
 
                 return (
                   <button
@@ -215,22 +186,15 @@ export default function ServerSelectModal({
                     type="button"
                     onClick={() => handleSelect(s.code)}
                     className={cn(
-                      'group relative w-full min-w-0 flex items-center justify-between gap-3 p-3 rounded-xl border text-left cursor-pointer transition-all active:scale-[0.99]',
+                      'group relative w-full min-w-0 flex items-center justify-between gap-3 p-3.5 rounded-xl border text-left cursor-pointer transition-all active:scale-[0.99]',
                       isSelected
                         ? 'bg-blue-500/12 border-blue-500/80 shadow-[0_0_20px_rgba(59,130,246,0.12)]'
                         : 'bg-[#121622]/90 border-white/[0.07] hover:border-blue-500/40 hover:bg-[#161B2A]'
                     )}
                   >
-                    <div className="flex items-center gap-3 min-w-0 flex-1">
-                      {/* Uniform crisp server code badge (không bị lệch emoji cờ trên Windows) */}
-                      <div
-                        className={cn(
-                          'w-10 h-10 rounded-xl border font-mono text-xs font-extrabold tracking-tight flex items-center justify-center shrink-0 transition-colors',
-                          badgeClass
-                        )}
-                      >
-                        {s.code}
-                      </div>
+                    <div className="flex items-center gap-3.5 min-w-0 flex-1">
+                      {/* Cờ quốc gia SVG sắc nét hiển thị chuẩn trên cả Windows, macOS & Mobile */}
+                      <ServerFlag code={s.code} size="md" />
 
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5 min-w-0">
@@ -249,15 +213,18 @@ export default function ServerSelectModal({
                           )}
                         </div>
                         <div className="flex items-center gap-1.5 text-xs text-zinc-400 truncate mt-0.5">
-                          <span className="truncate">{s.region}</span>
+                          <span className="font-mono font-semibold text-zinc-300 shrink-0">
+                            {s.code}
+                          </span>
                           {s.platformId && (
                             <>
                               <span className="text-zinc-600">·</span>
-                              <span className="font-mono text-[11px] text-zinc-500 shrink-0">
+                              <span className="font-mono text-[11px] text-zinc-400 shrink-0">
                                 {s.platformId}
                               </span>
                             </>
                           )}
+                          <span className="text-zinc-500 truncate">({s.region})</span>
                         </div>
                       </div>
                     </div>

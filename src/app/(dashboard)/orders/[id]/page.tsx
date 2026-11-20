@@ -28,6 +28,7 @@ import SettlementModal from '@/components/orders/SettlementModal';
 import RatingModal from '@/components/orders/RatingModal';
 import { GAMES_CATALOG, GameDefinition } from '@/lib/games';
 import ServerSelectModal from '@/components/ServerSelectModal';
+import ServerFlag from '@/components/ServerFlag';
 import { getServerByCode } from '@/lib/servers';
 import { getBoosterOrderValue } from '@/lib/orderPricing';
 import { getOrderStatusInfo } from '@/lib/orderStatus';
@@ -2502,7 +2503,7 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                     <div className="flex items-center gap-2.5 min-w-0">
                       {getServerByCode(editAccountForm.server) ? (
                         <>
-                          <span className="text-lg shrink-0">{getServerByCode(editAccountForm.server)?.flag}</span>
+                          <ServerFlag code={getServerByCode(editAccountForm.server)?.code} size="sm" />
                           <span className="font-semibold text-white truncate">{getServerByCode(editAccountForm.server)?.name}</span>
                           <span className="text-[11px] text-zinc-400 bg-zinc-800 px-1.5 py-0.5 rounded border border-white/5 font-mono shrink-0">
                             {getServerByCode(editAccountForm.server)?.code}

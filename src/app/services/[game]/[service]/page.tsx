@@ -7,6 +7,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import Navbar from '@/components/Navbar';
 import BackButton from '@/components/BackButton';
+import ServerFlag from '@/components/ServerFlag';
 import {
   Trophy,
   Target,
@@ -2070,7 +2071,7 @@ function ServiceBookingContent() {
                       className="w-full bg-zinc-950 border border-zinc-800 hover:border-zinc-700 rounded-xl px-3.5 py-2.5 text-xs text-white font-medium flex items-center justify-between transition-all group shadow-inner"
                     >
                       <div className="flex items-center gap-2.5 min-w-0">
-                        <span className="text-base shrink-0">{currentServerObj.flag}</span>
+                        <ServerFlag code={currentServerObj.code} size="sm" />
                         <span className="font-bold truncate text-white">{currentServerObj.name}</span>
                         <span className="text-[10px] px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-400 font-mono">
                           {currentServerObj.code} · {currentServerObj.platformId}
@@ -2406,8 +2407,8 @@ function ServiceBookingContent() {
                     </div>
                     <div className="flex justify-between text-zinc-400">
                       <span>Máy chủ (Server):</span>
-                      <span className="text-zinc-200 flex items-center gap-1">
-                        <span>{currentServerObj.flag}</span>
+                      <span className="text-zinc-200 flex items-center gap-1.5">
+                        <ServerFlag code={currentServerObj.code} size="sm" />
                         <span>{currentServerObj.name} ({currentServerObj.code})</span>
                       </span>
                     </div>
@@ -2926,7 +2927,7 @@ function ServiceBookingContent() {
               </div>
 
               {/* Server Grid Scrollable */}
-              <div className="overflow-y-auto space-y-2 pr-1 flex-1 min-h-[220px] max-h-[360px]">
+              <div className="overflow-y-auto custom-dark-scrollbar space-y-2 pr-1 flex-1 min-h-[220px] max-h-[360px]">
                 {filteredServers.length > 0 ? (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     {filteredServers.map((s) => {
@@ -2946,8 +2947,8 @@ function ServiceBookingContent() {
                               : 'bg-zinc-950/60 hover:bg-zinc-900 border-zinc-800/80 hover:border-zinc-700'
                           }`}
                         >
-                          <div className="flex items-center gap-2.5 min-w-0">
-                            <span className="text-xl shrink-0">{s.flag}</span>
+                          <div className="flex items-center gap-3 min-w-0">
+                            <ServerFlag code={s.code} size="md" />
                             <div className="min-w-0">
                               <div className="font-extrabold text-xs sm:text-sm text-white truncate">
                                 {s.name}

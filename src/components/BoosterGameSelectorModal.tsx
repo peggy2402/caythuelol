@@ -140,28 +140,28 @@ export default function BoosterGameSelectorModal({
   return (
     <div className="space-y-4">
       {/* SECTION HEADER */}
-      <div className="flex items-center justify-between pb-3 border-b border-white/10">
-        <div className="flex items-center gap-2.5">
-          <div className="p-2 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400">
+      <div className="flex items-center justify-between gap-3 pb-3 border-b border-white/10">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="p-2 rounded-xl bg-blue-500/10 border border-blue-500/20 text-blue-400 shrink-0">
             <Gamepad2 size={18} />
           </div>
-          <div>
-            <h3 className="text-base font-bold text-white tracking-tight flex items-center gap-2">
+          <div className="min-w-0">
+            <h3 className="text-base font-bold text-white tracking-tight flex items-center gap-2 truncate">
               <span>Tựa Game & Dịch Vụ Cung Cấp</span>
             </h3>
-            <p className="text-[11px] text-zinc-400">
+            <p className="text-[11px] text-zinc-400 truncate">
               Nhấn vào tựa game để xem chi tiết bảng giá các dịch vụ của {boosterName}
             </p>
           </div>
         </div>
 
-        <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-zinc-800/80 text-zinc-300 border border-white/5">
+        <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-zinc-800/80 text-zinc-300 border border-white/5 shrink-0 whitespace-nowrap">
           {displayGames.length} tựa game
         </span>
       </div>
 
-      {/* FILTER TABS THÔNG MINH - Y HỆT ẢNH MẪU CỦA NGƯỜI DÙNG */}
-      <div className="flex gap-2 overflow-x-auto pb-1.5 no-scrollbar">
+      {/* FILTER TABS: Cuộn ngang mượt trên mobile, tự xuống dòng đầy đủ trên PC (không bị cắt mép phải) */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar sm:flex-wrap sm:overflow-visible sm:pb-0">
         {/* Tab Có dịch vụ sẵn sàng */}
         {gamesWithServices.length > 0 && (
           <button
@@ -170,7 +170,7 @@ export default function BoosterGameSelectorModal({
               setFilterCategory('SERVICES');
               setShowAllCards(false);
             }}
-            className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 border ${
+            className={`shrink-0 cursor-pointer px-3 py-1.5 rounded-full text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 border ${
               filterCategory === 'SERVICES'
                 ? 'bg-blue-600 text-white border-blue-400 shadow-[0_0_15px_rgba(59,130,246,0.35)]'
                 : 'bg-zinc-900/80 text-zinc-400 border-white/5 hover:text-white hover:bg-zinc-800'
@@ -188,7 +188,7 @@ export default function BoosterGameSelectorModal({
             setFilterCategory('ALL');
             setShowAllCards(false);
           }}
-          className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all whitespace-nowrap border ${
+          className={`shrink-0 cursor-pointer px-3 py-1.5 rounded-full text-xs font-bold transition-all whitespace-nowrap border ${
             filterCategory === 'ALL'
               ? 'bg-blue-600 text-white border-blue-400 shadow-[0_0_12px_rgba(59,130,246,0.25)]'
               : 'bg-zinc-900/80 text-zinc-400 border-white/5 hover:text-white hover:bg-zinc-800'
@@ -204,7 +204,7 @@ export default function BoosterGameSelectorModal({
             setFilterCategory('MOBA');
             setShowAllCards(false);
           }}
-          className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 border ${
+          className={`shrink-0 cursor-pointer px-3 py-1.5 rounded-full text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 border ${
             filterCategory === 'MOBA'
               ? 'bg-blue-600 text-white border-blue-400 shadow-[0_0_12px_rgba(59,130,246,0.25)]'
               : 'bg-zinc-900/80 text-zinc-400 border-white/5 hover:text-white hover:bg-zinc-800'
@@ -221,7 +221,7 @@ export default function BoosterGameSelectorModal({
             setFilterCategory('FPS');
             setShowAllCards(false);
           }}
-          className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 border ${
+          className={`shrink-0 cursor-pointer px-3 py-1.5 rounded-full text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 border ${
             filterCategory === 'FPS'
               ? 'bg-blue-600 text-white border-blue-400 shadow-[0_0_12px_rgba(59,130,246,0.25)]'
               : 'bg-zinc-900/80 text-zinc-400 border-white/5 hover:text-white hover:bg-zinc-800'
@@ -238,7 +238,7 @@ export default function BoosterGameSelectorModal({
             setFilterCategory('STRATEGY');
             setShowAllCards(false);
           }}
-          className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 border ${
+          className={`shrink-0 cursor-pointer px-3 py-1.5 rounded-full text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 border ${
             filterCategory === 'STRATEGY'
               ? 'bg-blue-600 text-white border-blue-400 shadow-[0_0_12px_rgba(59,130,246,0.25)]'
               : 'bg-zinc-900/80 text-zinc-400 border-white/5 hover:text-white hover:bg-zinc-800'
@@ -255,7 +255,7 @@ export default function BoosterGameSelectorModal({
             setFilterCategory('SURVIVAL_RPG');
             setShowAllCards(false);
           }}
-          className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 border ${
+          className={`shrink-0 cursor-pointer px-3 py-1.5 rounded-full text-xs font-bold transition-all whitespace-nowrap flex items-center gap-1.5 border ${
             filterCategory === 'SURVIVAL_RPG'
               ? 'bg-blue-600 text-white border-blue-400 shadow-[0_0_12px_rgba(59,130,246,0.25)]'
               : 'bg-zinc-900/80 text-zinc-400 border-white/5 hover:text-white hover:bg-zinc-800'
@@ -267,6 +267,23 @@ export default function BoosterGameSelectorModal({
       </div>
 
       {/* GRID SHOWCASE TỰA GAME VỚI ARTWORK NHÂN VẬT & NEON AURA (ĐÃ LOẠI BỎ AVATAR BỊ VỠ CHỮ) */}
+      {visibleGames.length === 0 ? (
+        <div className="py-8 px-4 rounded-2xl bg-zinc-950/50 border border-dashed border-white/10 text-center flex flex-col items-center justify-center gap-2.5">
+          <p className="text-xs text-zinc-400">
+            Tuyển thủ <strong className="text-zinc-200">{boosterName}</strong> chưa đăng ký tựa game nào thuộc thể loại này.
+          </p>
+          <button
+            type="button"
+            onClick={() => {
+              setFilterCategory('ALL');
+              setShowAllCards(false);
+            }}
+            className="px-3.5 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-semibold text-zinc-200 hover:text-white transition-colors cursor-pointer"
+          >
+            Xem tất cả ({displayGames.length} tựa game)
+          </button>
+        </div>
+      ) : (
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {visibleGames.map((game) => {
           const boosterGameInfo = boosterGames.find(
@@ -384,6 +401,7 @@ export default function BoosterGameSelectorModal({
           );
         })}
       </div>
+      )}
 
       {/* Nút Xem thêm nếu đang ở Tab "Tất cả" và có nhiều game */}
       {filterCategory === 'ALL' && filteredGames.length > 4 && (
