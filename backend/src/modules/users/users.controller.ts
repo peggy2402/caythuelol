@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Put, Body, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Put, Delete, Body, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { UsersService } from './users.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -97,6 +97,22 @@ export class UsersController {
     @Body() body: { type: string; content: string; imageUrl?: string },
   ) {
     return this.usersService.sendFeedback(user?.userId || null, body);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @Delete('delete')
+  @ApiOperation({ summary: 'Delete current user account permanently (/api/user/delete)' })
+  async deleteAccount(@ReqUser() user: any) {
+    return this.usersService.deleteAccount(user.userId);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @Delete()
+  @ApiOperation({ summary: 'Delete current user account permanently (/api/user)' })
+  async deleteAccountRestful(@ReqUser() user: any) {
+    return this.usersService.deleteAccount(user.userId);
   }
 }
 

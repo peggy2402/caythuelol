@@ -802,11 +802,16 @@ export default function ProfilePage() {
   const handleDeleteAccount = async () => {
     setDeleteLoading(true);
     try {
+      const token = localStorage.getItem('token');
       const res = await fetch('/api/user/delete', {
         method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(t(data.error as any) || t('deleteAccountToastError'));
+      if (!res.ok) throw new Error(data.message || t(data.error as any) || t('deleteAccountToastError'));
 
       toast.success(t('deleteAccountToastSuccess'));
       localStorage.removeItem('user');

@@ -11,6 +11,8 @@ export class UsersService {
   constructor(
     @InjectModel('User') private userModel: Model<IUser>,
     @InjectModel('BoosterProfile') private boosterProfileModel: Model<IBoosterProfile>,
+    @InjectModel('Order') private orderModel: Model<any>,
+    @InjectModel('BoosterService') private boosterServiceModel: Model<any>,
   ) {}
 
   async getProfile(userId: string) {
@@ -258,6 +260,44 @@ export class UsersService {
       // Ignore webhook failure
     }
     return { success: true, message: 'Cảm ơn bạn đã đóng góp phản hồi!' };
+  }
+
+  async deleteAccount(userId: string) {
+    const user = await this.userModel.findById(userId);
+    if (!user) {
+      throw new NotFoundException('Không tìm thấy tài khoản người dùng');
+    }
+
+    if (user.role === 'ADMIN') {
+      throw new BadRequestException('Không thể xóa tài khoản Quản trị viên tối cao');
+    }
+
+    // Kiểm tra đơn hàng đang thực hiện
+    const activeOrders = await this.orderModel.countDocuments({
+      $or: [
+        { customerId: user._id },
+        { boosterId: user._id },
+      ],
+      status: { $in: ['IN_PROGRESS', 'PENDING_PAYMENT', 'DISPUTED'] },
+    });
+
+    if (activeOrders > 0) {
+      throw new BadRequestException('Bạn đang có đơn hàng đang tiến hành hoặc đang khiếu nại. Không thể xóa tài khoản lúc này.');
+    }
+
+    // Dọn dẹp dữ liệu của Booster nếu có
+    if (user.role === 'BOOSTER') {
+      await this.boosterProfileModel.deleteOne({ userId: user._id });
+      await this.boosterServiceModel.deleteMany({ boosterId: user._id });
+    }
+
+    // Xóa tài khoản vĩnh viễn
+    await this.userModel.findByIdAndDelete(userId);
+
+    return {
+      success: true,
+      message: 'Tài khoản của bạn đã được xóa vĩnh viễn khỏi hệ thống.',
+    };
   }
 }
 
