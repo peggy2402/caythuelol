@@ -269,13 +269,13 @@ export default function AdminSettingsPage() {
                 </div>
                 <div>
                     <h3 className="text-lg font-bold text-white">Cấu hình Đăng ký Booster</h3>
-                    <p className="text-sm text-zinc-400">Quản lý tiền cọc và quy trình tuyển dụng.</p>
+                    <p className="text-sm text-zinc-400">Quản lý phí đăng ký và quy trình tuyển dụng.</p>
                 </div>
             </div>
 
             <div className="space-y-4">
                 <div className="flex items-center justify-between bg-zinc-950 p-4 rounded-xl border border-zinc-800">
-                    <span className="text-zinc-300 font-medium">Yêu cầu Đặt cọc (Deposit)</span>
+                    <span className="text-zinc-300 font-medium">Bật/Tắt Số Tiền Đăng Ký</span>
                     <button 
                         onClick={() => setBoosterRegConfig({...boosterRegConfig, depositRequired: !boosterRegConfig.depositRequired})}
                         className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${boosterRegConfig.depositRequired ? 'bg-orange-500' : 'bg-zinc-700'}`}
@@ -286,15 +286,21 @@ export default function AdminSettingsPage() {
 
                 {boosterRegConfig.depositRequired && (
                     <div className="animate-in fade-in slide-in-from-top-2 duration-300">
-                        <label className="block text-xs text-zinc-500 mb-1">Số tiền cọc (VND)</label>
+                        <label className="block text-xs text-zinc-500 mb-1">Số tiền đăng ký (VND)</label>
                         <input 
-                            type="number" 
-                            value={boosterRegConfig.depositAmount}
-                            onChange={(e) => setBoosterRegConfig({...boosterRegConfig, depositAmount: Number(e.target.value)})}
+                            type="text"
+                            inputMode="numeric"
+                            value={boosterRegConfig.depositAmount === 0 ? '' : boosterRegConfig.depositAmount}
+                            onChange={(e) => {
+                              const cleaned = e.target.value.replace(/[^0-9]/g, '');
+                              const numVal = cleaned === '' ? 0 : Math.max(0, parseInt(cleaned, 10) || 0);
+                              setBoosterRegConfig({ ...boosterRegConfig, depositAmount: numVal });
+                            }}
                             className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-white text-sm focus:border-orange-500 outline-none font-bold"
+                            placeholder="0"
                         />
                         <p className="text-[10px] text-zinc-500 mt-2">
-                            Số tiền này sẽ hiển thị ở bước thanh toán khi Booster đăng ký.
+                            Số tiền này sẽ hiển thị ở bước thanh toán kích hoạt khi tuyển thủ đăng ký.
                         </p>
                     </div>
                 )}
@@ -565,15 +571,14 @@ export default function AdminSettingsPage() {
       </div>
 
       {/* Floating Save Button */}
-      <div className="fixed bottom-6 right-6 z-40 md:bottom-8 md:right-8">
+      <div className="fixed bottom-24 right-4 z-40 md:bottom-8 md:right-8">
         <button 
             onClick={handleSaveAll}
             disabled={saving}
-            className="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-6 md:px-8 rounded-full shadow-2xl shadow-blue-600/30 flex items-center gap-2 transition-all hover:scale-105 disabled:opacity-50 disabled:scale-100 active:scale-95"
+            className="bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-5 md:px-8 rounded-full shadow-2xl shadow-blue-600/40 border border-blue-400/30 flex items-center gap-2 transition-all hover:scale-105 disabled:opacity-50 disabled:scale-100 active:scale-95"
         >
             {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
-            <span className="hidden md:inline">Lưu Cấu Hình</span>
-            <span className="md:hidden">Lưu</span>
+            <span className="text-sm md:text-base font-bold">Lưu Cấu Hình</span>
         </button>
       </div>
     </div>

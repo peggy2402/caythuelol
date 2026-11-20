@@ -6,6 +6,7 @@ import axios from 'axios';
 
 import { ISystemSetting } from '../../database/schemas/SystemSetting';
 import { IBoosterProfile } from '../../database/schemas/BoosterProfile';
+import { decryptSecret } from '../../common/utils/crypto.util';
 import {
   RiotPlayerLookupDto,
   RiotMatchLookupDto,
@@ -40,8 +41,40 @@ export class PublicService {
       bank_account_no: process.env.BANK_ACCOUNT_NO || '',
       bank_account_name: process.env.BANK_ACCOUNT_NAME || '',
     };
+
+    const SENSITIVE_KEYS = new Set([
+      'RIOT_API_KEY',
+      'riot_api_key',
+      'VALORANT_API_KEY',
+      'HENRIKDEV_API_KEY',
+      'valorant_api_key',
+      'henrikdev_api_key',
+      'JWT_SECRET',
+      'DATABASE_URL',
+      'CLOUDINARY_API_SECRET',
+      'SMTP_PASS',
+      'MAIL_PASS',
+    ]);
+
+    const isSensitive = (key: string) => {
+      if (SENSITIVE_KEYS.has(key)) return true;
+      const lower = key.toLowerCase();
+      if (
+        lower.includes('api_key') ||
+        lower.includes('apikey') ||
+        lower.includes('secret') ||
+        lower.includes('password') ||
+        lower.includes('token')
+      ) {
+        return true;
+      }
+      return false;
+    };
+
     settings.forEach((s) => {
-      map[s.key] = s.value;
+      if (!isSensitive(s.key)) {
+        map[s.key] = s.value;
+      }
     });
     return { success: true, settings: map };
   }
@@ -254,6 +287,7 @@ export class PublicService {
     if (!apiKey) {
       apiKey = (process.env.RIOT_API_KEY || '').trim();
     }
+    apiKey = decryptSecret(apiKey);
 
     let mockReason = 'Chưa cấu hình RIOT_API_KEY trong hệ thống (cài đặt ở trang Admin > Cấu hình hệ thống)';
 
@@ -412,6 +446,7 @@ export class PublicService {
     if (!apiKey) {
       apiKey = (process.env.RIOT_API_KEY || '').trim();
     }
+    apiKey = decryptSecret(apiKey);
 
     let platformId = 'VN2';
     if (server && SERVER_TO_PLATFORM[server.toUpperCase()]) {
@@ -529,9 +564,10 @@ export class PublicService {
 
     for (const s of valKeySettings) {
       const val = typeof s?.value === 'string' ? s.value.trim() : '';
-      if (val) return val;
+      if (val) return decryptSecret(val);
     }
-    return (process.env.HENRIKDEV_API_KEY || process.env.VALORANT_API_KEY || '').trim();
+    const envKey = (process.env.HENRIKDEV_API_KEY || process.env.VALORANT_API_KEY || '').trim();
+    return decryptSecret(envKey);
   }
 
   // Tra cứu thông tin Rank và Match History Valorant (qua HenrikDev)

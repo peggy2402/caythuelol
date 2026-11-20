@@ -7,6 +7,7 @@ export interface IBoosterApplication {
   phoneNumber: string;
   facebookUrl: string;
   discordTag: string;
+  primaryGame?: string;
   currentRank: string;
   highestRank: string;
   opggLink: string;
@@ -41,6 +42,7 @@ const BoosterApplicationSchema = new Schema<IBoosterApplication>(
     phoneNumber: { type: String, required: true },
     facebookUrl: { type: String, required: true },
     discordTag: { type: String, required: true },
+    primaryGame: { type: String, default: 'LOL' },
     
     currentRank: { type: String, required: true },
     highestRank: { type: String, required: true },

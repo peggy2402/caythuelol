@@ -16,6 +16,7 @@ import { IWithdrawal } from '../../database/schemas/Withdrawal';
 import { IAuditLog } from '../../database/schemas/AuditLog';
 import { IBoosterProfile } from '../../database/schemas/BoosterProfile';
 import { getClientIp } from '../../common/utils/ip.util';
+import { encryptSecret, decryptSecret } from '../../common/utils/crypto.util';
 import { LoyaltyService } from '../loyalty/loyalty.service';
 import * as bcrypt from 'bcryptjs';
 
@@ -1438,16 +1439,20 @@ export class AdminService {
   // 9. Cấu hình Riot API
   async getRiotKey(): Promise<any> {
     const setting = await this.settingModel.findOne({ key: 'RIOT_API_KEY' }).lean();
-    return { apiKey: setting?.value || '' };
+    const rawVal = setting?.value || '';
+    const decrypted = decryptSecret(rawVal);
+    return { apiKey: decrypted };
   }
 
   async saveRiotKey(apiKey: string): Promise<any> {
+    const trimmed = (apiKey || '').trim();
+    const encrypted = trimmed ? encryptSecret(trimmed) : '';
     await this.settingModel.findOneAndUpdate(
       { key: 'RIOT_API_KEY' },
-      { $set: { value: apiKey, description: 'Riot Games API Key' } },
+      { $set: { value: encrypted, description: 'Riot Games API Key (Encrypted)' } },
       { upsert: true, new: true },
     );
-    return { success: true, apiKey };
+    return { success: true, apiKey: trimmed };
   }
 
   // 9.1 Cấu hình Valorant API (HenrikDev)
@@ -1455,16 +1460,19 @@ export class AdminService {
     const setting = await this.settingModel.findOne({
       key: { $in: ['VALORANT_API_KEY', 'HENRIKDEV_API_KEY'] },
     }).lean();
-    return { apiKey: setting?.value || process.env.HENRIKDEV_API_KEY || '' };
+    const rawVal = setting?.value || process.env.HENRIKDEV_API_KEY || '';
+    return { apiKey: decryptSecret(rawVal) };
   }
 
   async saveValorantKey(apiKey: string): Promise<any> {
+    const trimmed = (apiKey || '').trim();
+    const encrypted = trimmed ? encryptSecret(trimmed) : '';
     await this.settingModel.findOneAndUpdate(
       { key: 'VALORANT_API_KEY' },
-      { $set: { value: apiKey, description: 'Valorant HenrikDev API Key' } },
+      { $set: { value: encrypted, description: 'Valorant HenrikDev API Key (Encrypted)' } },
       { upsert: true, new: true },
     );
-    return { success: true, apiKey };
+    return { success: true, apiKey: trimmed };
   }
 
   // 10. Phí rút tiền & Phí sàn

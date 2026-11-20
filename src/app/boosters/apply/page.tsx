@@ -7,7 +7,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { 
-  Loader2, CheckCircle2, ShieldAlert, ChevronRight, ChevronLeft, 
+  Loader2, CheckCircle2, ShieldAlert, ChevronRight, ChevronLeft, ChevronDown, Gamepad2,
   AlertTriangle, Trophy, ChevronsUpDown, Check, CloudUpload, 
   X, Eraser, Download, DoorOpen, Landmark,
   ShieldCheck, Zap, Sparkles, Lock, ArrowRight, Wallet, UserCheck, Flame,
@@ -29,6 +29,94 @@ import Navbar from '@/components/Navbar';
 import { cn } from '@/lib/utils';
 import BankSelectModal from './bank-select-modal';
 
+// Danh sách tựa game thế mạnh chính được hỗ trợ
+const GAME_OPTIONS = [
+  {
+    code: 'LOL',
+    name: 'Liên Minh Huyền Thoại',
+    short: 'LMHT',
+    icon: '⚔️',
+    badge: 'PC MOBA',
+    currentRankPlaceholder: 'Ví dụ: Cao Thủ 350 LP / Thách Đấu',
+    highestRankPlaceholder: 'Ví dụ: Thách Đấu 1100 LP / Top 500',
+    trackerLabel: 'Link Hồ Sơ OP.GG Thi Đấu',
+    trackerPlaceholder: 'https://www.op.gg/summoners/vn/...',
+    trackerHint: 'Giúp ban quản trị kiểm tra lịch sử đấu và duyệt hồ sơ trong 15 phút',
+  },
+  {
+    code: 'VALORANT',
+    name: 'VALORANT',
+    short: 'VAL',
+    icon: '🎯',
+    badge: 'PC Tactical FPS',
+    currentRankPlaceholder: 'Ví dụ: Immortal 3 / Radiant',
+    highestRankPlaceholder: 'Ví dụ: Radiant #120 / Top 500',
+    trackerLabel: 'Link Hồ Sơ Tracker.gg Thi Đấu',
+    trackerPlaceholder: 'https://tracker.gg/valorant/profile/...',
+    trackerHint: 'Giúp ban quản trị kiểm tra ACS, Headshot% và bậc xếp hạng',
+  },
+  {
+    code: 'AOV',
+    name: 'Liên Quân Mobile',
+    short: 'LQMB',
+    icon: '🛡️',
+    badge: 'Mobile MOBA',
+    currentRankPlaceholder: 'Ví dụ: Chiến Tướng 50 Sao',
+    highestRankPlaceholder: 'Ví dụ: Thách Đấu 100 Sao',
+    trackerLabel: 'Link Trang Cá Nhân Ingame / Open ID Garena',
+    trackerPlaceholder: 'Link trang cá nhân ingame / ID Garena / Ảnh profile',
+    trackerHint: 'Cung cấp Open ID hoặc Link trang cá nhân để đối soát nhanh',
+  },
+  {
+    code: 'TFT',
+    name: 'Đấu Trường Chân Lý (TFT)',
+    short: 'ĐTCL',
+    icon: '♟️',
+    badge: 'Auto Battler',
+    currentRankPlaceholder: 'Ví dụ: Đại Cao Thủ 450 LP',
+    highestRankPlaceholder: 'Ví dụ: Thách Đấu 950 LP / Top 100',
+    trackerLabel: 'Link Hồ Sơ Tactics.tools / OP.GG TFT',
+    trackerPlaceholder: 'https://tactics.tools/player/vn/... hoặc OP.GG TFT',
+    trackerHint: 'Kiểm tra trung bình thứ hạng (AVP) và tỷ lệ top 4',
+  },
+  {
+    code: 'CS2',
+    name: 'Counter-Strike 2',
+    short: 'CS2',
+    icon: '💥',
+    badge: 'PC Tactical FPS',
+    currentRankPlaceholder: 'Ví dụ: 20,000 Premier / Faceit Level 10',
+    highestRankPlaceholder: 'Ví dụ: 25,000+ Premier / Top Leaderboard',
+    trackerLabel: 'Link Hồ Sơ CSStats / Faceit Profile',
+    trackerPlaceholder: 'https://csstats.gg/player/... hoặc Faceit Profile',
+    trackerHint: 'Dùng link CSStats hoặc Faceit công khai',
+  },
+  {
+    code: 'DOTA2',
+    name: 'Dota 2',
+    short: 'DOTA2',
+    icon: '🔥',
+    badge: 'PC MOBA',
+    currentRankPlaceholder: 'Ví dụ: Divine 5 / Immortal',
+    highestRankPlaceholder: 'Ví dụ: Immortal Top 1000',
+    trackerLabel: 'Link Hồ Sơ Dotabuff / Stratz',
+    trackerPlaceholder: 'https://www.dotabuff.com/players/...',
+    trackerHint: 'Đảm bảo bật tính năng Expose Public Match Data trong setting Dota 2',
+  },
+  {
+    code: 'OVERWATCH2',
+    name: 'Overwatch 2',
+    short: 'OW2',
+    icon: '⚡',
+    badge: 'PC Hero Shooter',
+    currentRankPlaceholder: 'Ví dụ: Master 2 / Grandmaster',
+    highestRankPlaceholder: 'Ví dụ: Top 500 GM1',
+    trackerLabel: 'Link Hồ Sơ Career Profile Blizzard / Overbuff',
+    trackerPlaceholder: 'https://overwatch.blizzard.com/en-us/career/...',
+    trackerHint: 'Hồ sơ Career Profile cần được đặt ở chế độ Public',
+  },
+];
+
 // Form Validation Schema
 const formSchema = z.object({
   fullName: z.string().min(2, "Họ tên quá ngắn (tối thiểu 2 ký tự)"),
@@ -40,9 +128,10 @@ const formSchema = z.object({
       return /^(https?:\/\/)?(www\.)?(facebook\.com|fb\.com)\/.+$/i.test(trimmed);
     }, "Link Facebook không hợp lệ (ví dụ: facebook.com/vtchn hoặc fb.com/vtchn)"),
   discordTag: z.string().min(3, "Discord Tag không hợp lệ"),
+  primaryGame: z.string().min(1, "Vui lòng chọn game thế mạnh chính"),
   currentRank: z.string().min(1, "Vui lòng nhập Rank hiện tại"),
   highestRank: z.string().min(1, "Vui lòng nhập Rank cao nhất từng đạt"),
-  opggLink: z.string().url("Link hồ sơ OP.GG/Tracker không hợp lệ"),
+  opggLink: z.string().min(3, "Vui lòng nhập link hoặc ID hồ sơ thi đấu"),
   rankImageUrl: z.string().min(1, "Vui lòng tải lên ảnh bằng chứng rank"),
   bankName: z.string().min(1, "Vui lòng chọn ngân hàng thụ hưởng"),
   bankAccountName: z.string().min(1, "Vui lòng nhập tên chủ tài khoản"),
@@ -104,8 +193,14 @@ export default function BoosterApplyPage() {
 
   const { register, handleSubmit, watch, trigger, setValue, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(formSchema),
-    mode: 'onChange'
+    mode: 'onChange',
+    defaultValues: {
+      primaryGame: 'LOL',
+    }
   });
+
+  const selectedGame = watch('primaryGame') || 'LOL';
+  const currentGameConfig = GAME_OPTIONS.find(g => g.code === selectedGame) || GAME_OPTIONS[0];
 
   const fullName = watch('fullName');
   const signature = watch('agreementSigned_name');
@@ -141,16 +236,26 @@ export default function BoosterApplyPage() {
       try {
         const res = await fetch(`/api/settings/public?t=${Date.now()}`, { cache: 'no-store' });
         const data = await res.json();
-        if (Array.isArray(data)) {
-          const bankInfo = data.find((s: any) => s.key === 'ADMIN_BANK_INFO')?.value;
-          const depositConfig = data.find((s: any) => s.key === 'booster_registration_config')?.value;
-          
-          setAdminSettings(prev => ({
-            ...prev,
-            adminBank: bankInfo || prev.adminBank,
-            depositConfig: depositConfig || prev.depositConfig
-          }));
-        }
+        const settings = data?.settings || (Array.isArray(data) ? data.reduce((acc: any, curr: any) => ({ ...acc, [curr.key]: curr.value }), {}) : data) || {};
+
+        const depositConfig = settings.booster_registration_config || settings.boosterRegistrationConfig;
+        const adminBankRaw = settings.ADMIN_BANK_INFO || {};
+        const bankName = adminBankRaw.bankName || settings.bank_id || 'MB';
+        const accountNumber = adminBankRaw.accountNumber || settings.bank_account_no || '';
+        const accountHolder = adminBankRaw.accountHolder || settings.bank_account_name || '';
+
+        setAdminSettings(prev => ({
+          ...prev,
+          adminBank: {
+            bankName: bankName || prev.adminBank.bankName,
+            accountNumber: accountNumber || prev.adminBank.accountNumber,
+            accountHolder: accountHolder || prev.adminBank.accountHolder,
+          },
+          depositConfig: depositConfig ? {
+            depositRequired: Boolean(depositConfig.depositRequired),
+            depositAmount: Number(depositConfig.depositAmount) || 49995,
+          } : prev.depositConfig
+        }));
       } catch (error) {
         console.error("Failed to fetch admin settings", error);
       }
@@ -183,7 +288,7 @@ export default function BoosterApplyPage() {
     { id: 'private', title: 'Giữ kín thông tin & Ẩn danh tuyệt đối', desc: 'Không chat trong trận, không kết bạn, không trả lời tin nhắn bạn bè của khách, luôn bật chế độ Offline.' },
     { id: 'stream', title: 'Quy tắc Livestream (nếu có)', desc: 'Chỉ livestream khi khách hàng có đăng ký gói add-on xem trực tiếp và tuân thủ che tên tài khoản ingame.' },
     { id: 'penalty', title: 'Cam kết bồi thường vi phạm', desc: 'Chịu trách nhiệm bồi thường 100% nếu gây ra sự cố khóa tài khoản do lỗi chủ quan của tuyển thủ booster.' },
-    { id: 'deposit', title: 'Quy tắc ký quỹ bảo chứng', desc: 'Khoản tiền ký quỹ bảo chứng (nếu có) sẽ được hoàn trả 100% khi booster kết thúc hợp tác đúng quy trình.' },
+    { id: 'deposit', title: 'Quy chế hoạt động tuyển thủ', desc: 'Cam kết tuân thủ nghiêm ngặt mọi quy chuẩn tác phong thi đấu, bảo mật thông tin khách hàng và quy chế hợp tác của hệ thống.' },
   ];
 
   // Stepper handlers
@@ -192,25 +297,30 @@ export default function BoosterApplyPage() {
       try {
         const res = await fetch(`/api/settings/public?t=${Date.now()}`, { cache: 'no-store' });
         const data = await res.json();
-        if (Array.isArray(data)) {
-          const serverDepositConfig = data.find((s: any) => s.key === 'booster_registration_config')?.value;
-          if (serverDepositConfig && serverDepositConfig.depositRequired !== adminSettings.depositConfig.depositRequired) {
-            setAdminSettings(prev => ({ ...prev, depositConfig: serverDepositConfig }));
-            toast.warning("Cấu hình hệ thống đã cập nhật", {
-              description: serverDepositConfig.depositRequired 
-                ? "Admin vừa bật yêu cầu ký quỹ. Vui lòng chuyển khoản để tiếp tục."
-                : "Admin vừa tắt yêu cầu ký quỹ. Bạn không cần chuyển khoản nữa."
-            });
-            return;
-          }
+        const settings = data?.settings || (Array.isArray(data) ? data.reduce((acc: any, curr: any) => ({ ...acc, [curr.key]: curr.value }), {}) : data) || {};
+        const serverDepositConfig = settings.booster_registration_config || settings.boosterRegistrationConfig;
+        if (serverDepositConfig && Boolean(serverDepositConfig.depositRequired) !== adminSettings.depositConfig.depositRequired) {
+          setAdminSettings(prev => ({
+            ...prev,
+            depositConfig: {
+              depositRequired: Boolean(serverDepositConfig.depositRequired),
+              depositAmount: Number(serverDepositConfig.depositAmount) || 49995,
+            }
+          }));
+          toast.warning("Cấu hình hệ thống đã cập nhật", {
+            description: serverDepositConfig.depositRequired 
+              ? "Hệ thống vừa bật yêu cầu thanh toán phí kích hoạt quyền tuyển thủ. Vui lòng chuyển khoản để tiếp tục."
+              : "Hệ thống vừa áp dụng miễn phí đăng ký tuyển thủ. Bạn không cần thanh toán nữa."
+          });
+          return;
         }
       } catch (e) { 
         console.error("Sync check failed", e); 
       }
 
-      if (adminSettings.depositConfig.depositRequired && !billImageUrl) {
-        toast.error("Thiếu ảnh chuyển khoản tiền ký quỹ", {
-          description: "Vui lòng tải lên ảnh Bill chuyển khoản để tiếp tục bước tiếp theo."
+      if (adminSettings.depositConfig.depositRequired && !billImageUrl && !billImageFile) {
+        toast.error("Thiếu ảnh Bill chuyển khoản", {
+          description: "Vui lòng tải lên ảnh Bill chuyển khoản phí kích hoạt quyền tuyển thủ để tiếp tục."
         });
         return;
       }
@@ -218,7 +328,7 @@ export default function BoosterApplyPage() {
 
     let fieldsToValidate: (keyof FormData)[] = [];
     if (step === 1) fieldsToValidate = ['fullName', 'phoneNumber', 'facebookUrl', 'discordTag'];
-    if (step === 2) fieldsToValidate = ['currentRank', 'highestRank', 'opggLink', 'rankImageUrl', 'bankName', 'bankAccountName', 'bankAccountNumber'];
+    if (step === 2) fieldsToValidate = ['primaryGame', 'currentRank', 'highestRank', 'opggLink', 'rankImageUrl', 'bankName', 'bankAccountName', 'bankAccountNumber'];
 
     const isValid = await trigger(fieldsToValidate);
     if (isValid) {
@@ -791,13 +901,40 @@ export default function BoosterApplyPage() {
                       </div>
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                        {/* Tựa Game Thế Mạnh Chính */}
+                        <div className="space-y-2 md:col-span-2">
+                          <Label className="text-xs font-bold uppercase tracking-wider text-zinc-300 flex items-center justify-between">
+                            <span className="flex items-center gap-1.5">
+                              <Gamepad2 className="w-3.5 h-3.5 text-cyan-400" />
+                              Tựa Game Thế Mạnh Chính <span className="text-red-500 font-bold">*</span>
+                            </span>
+                            <span className="text-[10px] text-zinc-500 hidden sm:inline">Có thể bổ sung thêm game khác sau khi được duyệt</span>
+                          </Label>
+                          <div className="relative">
+                            <select
+                              {...register('primaryGame')}
+                              className="w-full bg-zinc-950 border border-zinc-800 hover:border-zinc-700 text-white rounded-xl h-11 pl-4 pr-10 text-sm focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400/30 transition-all outline-none appearance-none cursor-pointer font-medium"
+                            >
+                              {GAME_OPTIONS.map((g) => (
+                                <option key={g.code} value={g.code} className="bg-zinc-900 text-white py-2">
+                                  {g.icon} {g.name} ({g.short}) — {g.badge}
+                                </option>
+                              ))}
+                            </select>
+                            <div className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-400">
+                              <ChevronDown className="w-4 h-4" />
+                            </div>
+                          </div>
+                          {errors.primaryGame && <p className="text-red-400 text-xs mt-1">{errors.primaryGame.message}</p>}
+                        </div>
+
                         <div className="space-y-2">
                           <Label className="text-xs font-bold uppercase tracking-wider text-zinc-300">
                             Bậc Rank Hiện Tại <span className="text-red-500 font-bold">*</span>
                           </Label>
                           <Input 
                             {...register('currentRank')} 
-                            placeholder="Ví dụ: Cao Thủ 350 LP / Radiant #120" 
+                            placeholder={currentGameConfig.currentRankPlaceholder}
                             className="bg-zinc-950 border-zinc-800 text-white rounded-xl h-11 text-sm focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400/30 transition-all" 
                           />
                           {errors.currentRank && <p className="text-red-400 text-xs mt-1">{errors.currentRank.message}</p>}
@@ -809,7 +946,7 @@ export default function BoosterApplyPage() {
                           </Label>
                           <Input 
                             {...register('highestRank')} 
-                            placeholder="Ví dụ: Thách Đấu 1100 LP / Top 500" 
+                            placeholder={currentGameConfig.highestRankPlaceholder}
                             className="bg-zinc-950 border-zinc-800 text-white rounded-xl h-11 text-sm focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400/30 transition-all" 
                           />
                           {errors.highestRank && <p className="text-red-400 text-xs mt-1">{errors.highestRank.message}</p>}
@@ -817,12 +954,12 @@ export default function BoosterApplyPage() {
 
                         <div className="space-y-2 md:col-span-2">
                           <Label className="text-xs font-bold uppercase tracking-wider text-zinc-300 flex items-center justify-between">
-                            <span>Link Hồ Sơ OP.GG hoặc Tracker Thi Đấu <span className="text-red-500 font-bold">*</span></span>
-                            <span className="text-[10px] text-zinc-500">Giúp duyệt hồ sơ trong 15 phút</span>
+                            <span>{currentGameConfig.trackerLabel} <span className="text-red-500 font-bold">*</span></span>
+                            <span className="text-[10px] text-zinc-500">{currentGameConfig.trackerHint}</span>
                           </Label>
                           <Input 
                             {...register('opggLink')} 
-                            placeholder="https://www.op.gg/summoners/vn/... hoặc https://tracker.gg/valorant/..." 
+                            placeholder={currentGameConfig.trackerPlaceholder}
                             className="bg-zinc-950 border-zinc-800 text-white rounded-xl h-11 text-sm focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400/30 transition-all" 
                           />
                           {errors.opggLink && <p className="text-red-400 text-xs mt-1">{errors.opggLink.message}</p>}
@@ -885,15 +1022,15 @@ export default function BoosterApplyPage() {
 
                     <div className="h-px bg-zinc-800/80" />
 
-                    {/* Deposit Section (Conditional based on Admin config) */}
+                    {/* Registration Fee Section (Conditional based on Admin config) */}
                     {adminSettings.depositConfig.depositRequired ? (
                       <div className="bg-amber-950/20 border border-amber-500/30 rounded-2xl p-5 sm:p-6 animate-in fade-in">
                         <div className="flex items-start gap-3">
                           <ShieldAlert className="text-amber-400 shrink-0 mt-0.5 w-5 h-5" />
                           <div className="w-full">
-                            <h4 className="font-black text-amber-300 text-sm">Khoản Ký Quỹ Bảo Chứng Uy Tín (Deposit Required)</h4>
+                            <h4 className="font-black text-amber-300 text-sm">Phí Kích Hoạt Quyền Tuyển Thủ (Booster Registration Fee)</h4>
                             <p className="text-xs text-zinc-300 mt-1 mb-4 leading-relaxed">
-                              Nhằm đảm bảo an toàn tài khoản của khách hàng, hệ thống yêu cầu khoản cọc bảo chứng là <span className="text-white font-bold">{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(adminSettings.depositConfig.depositAmount)}</span>. Khoản này được giữ an toàn và <b className="text-amber-300">hoàn lại 100%</b> khi bạn ngừng hợp tác đúng quy định.
+                              Để hoàn tất thủ tục xét duyệt và nâng cấp tài khoản từ Khách hàng lên Tuyển thủ (Booster), hệ thống yêu cầu thanh toán khoản phí kích hoạt là <span className="text-white font-bold">{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(adminSettings.depositConfig.depositAmount)}</span>. Sau khi chuyển khoản, vui lòng tải ảnh bill bên dưới để Admin duyệt hồ sơ.
                             </p>
                             
                             <div className="flex flex-col md:flex-row gap-5 items-center bg-black/40 p-4 rounded-2xl border border-white/5">
@@ -947,7 +1084,7 @@ export default function BoosterApplyPage() {
                             {/* Upload Bill */}
                             <div className="mt-4 pt-4 border-t border-amber-500/20">
                               <Label className="text-xs font-bold text-zinc-300 mb-2 block">
-                                Tải lên ảnh Bill chuyển khoản thành công <span className="text-red-500 font-bold">*</span>
+                                Tải lên ảnh Bill chuyển khoản phí đăng ký thành công <span className="text-red-500 font-bold">*</span>
                               </Label>
                               <div className="flex items-center gap-3">
                                 <div className="relative group flex-1">
@@ -989,9 +1126,9 @@ export default function BoosterApplyPage() {
                       <div className="bg-emerald-950/20 border border-emerald-500/30 rounded-2xl p-4 sm:p-5 flex items-start gap-3">
                         <CheckCircle2 className="text-emerald-400 shrink-0 mt-0.5 w-5 h-5" />
                         <div>
-                          <h4 className="font-black text-emerald-300 text-sm">Đặc Quyền: Miễn Phí Ký Quỹ</h4>
+                          <h4 className="font-black text-emerald-300 text-sm">Đặc Quyền: Miễn Phí Đăng Ký Tuyển Thủ</h4>
                           <p className="text-xs text-zinc-400 mt-1">
-                            Hệ thống hiện đang hỗ trợ <b className="text-emerald-300">miễn phí tiền cọc bảo chứng</b> cho các tuyển thủ đăng ký trong đợt này. Bạn không cần chuyển khoản tiền cọc.
+                            Hệ thống hiện đang áp dụng chính sách <b className="text-emerald-300">miễn phí kích hoạt quyền tuyển thủ</b> cho các ứng viên đăng ký trong đợt này. Bạn không cần thanh toán bất kỳ khoản phí nào để gia nhập đội ngũ Booster!
                           </p>
                         </div>
                       </div>
@@ -1297,6 +1434,7 @@ export default function BoosterApplyPage() {
 
           <div style={{ marginBottom: '20px' }}>
             <h3 style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '6px', margin: 0 }}>BÊN B: {fullName?.toUpperCase()} (Bên Tuyển thủ Booster)</h3>
+            <p style={{ margin: 0 }}>Tựa game thi đấu chính: {currentGameConfig.name} ({currentGameConfig.short})</p>
             <p style={{ margin: 0 }}>Số điện thoại: {watch('phoneNumber')}</p>
             <p style={{ margin: 0 }}>Discord: {watch('discordTag')}</p>
             <p style={{ margin: 0 }}>Facebook: {watch('facebookUrl')}</p>
@@ -1356,6 +1494,10 @@ export default function BoosterApplyPage() {
             <div className="flex justify-between items-center border-b border-zinc-900 pb-2">
               <span className="text-zinc-500">Họ và tên:</span>
               <span className="font-bold text-white">{fullName}</span>
+            </div>
+            <div className="flex justify-between items-center border-b border-zinc-900 pb-2">
+              <span className="text-zinc-500">Tựa game chính:</span>
+              <span className="font-bold text-cyan-400">{currentGameConfig.icon} {currentGameConfig.name}</span>
             </div>
             <div className="flex justify-between items-center border-b border-zinc-900 pb-2">
               <span className="text-zinc-500">Số điện thoại:</span>
