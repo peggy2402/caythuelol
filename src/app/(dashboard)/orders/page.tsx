@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { GAMES_CATALOG, GameDefinition } from '@/lib/games';
 import { getBoosterOrderValue } from '@/lib/orderPricing';
+import { formatRankDisplayVi } from '@/lib/riotRanks';
 
 // Helper lấy metadata tựa game
 function getGameMeta(gameCode?: string) {
@@ -271,12 +272,12 @@ export default function OrdersPage() {
                       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-zinc-400">
                         {order.details?.current_rank && order.details?.desired_rank ? (
                           <span className="flex items-center gap-1.5 font-medium text-zinc-200">
-                            <span>{order.details.current_rank}</span>
+                            <span>{formatRankDisplayVi(order.details.current_rank)}</span>
                             <span className="text-blue-400 font-bold">&rarr;</span>
-                            <span className="text-cyan-300 font-semibold">{order.details.desired_rank}</span>
+                            <span className="text-cyan-300 font-semibold">{formatRankDisplayVi(order.details.desired_rank)}</span>
                           </span>
                         ) : order.details?.rank ? (
-                          <span className="text-zinc-200">{order.details.rank}</span>
+                          <span className="text-zinc-200">{formatRankDisplayVi(order.details.rank)}</span>
                         ) : null}
 
                         {order.details?.server && (

@@ -1431,7 +1431,7 @@ function ServiceBookingContent() {
                     })()}
 
                     <Link
-                      href={`/boosters/@${assignedBooster?.user?.username || ''}`}
+                      href={`/b/${assignedBooster?.user?.username || ''}`}
                       target="_blank"
                       className="text-xs text-blue-400 hover:text-blue-300 font-semibold inline-flex items-center gap-1 self-start sm:self-auto"
                     >

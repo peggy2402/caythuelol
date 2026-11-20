@@ -29,7 +29,7 @@ export default function BoosterReviewList({ reviews = [] }: { reviews: any[] }) 
     : '5.0';
 
   return (
-    <div className="bg-[#090d16]/80 border border-white/10 rounded-2xl p-5 sm:p-6 shadow-xl backdrop-blur-md h-[320px] flex flex-col justify-between">
+    <div className="bg-[#090d16]/80 border border-white/10 rounded-2xl p-5 sm:p-6 shadow-xl backdrop-blur-md min-h-[440px] sm:min-h-[460px] flex flex-col justify-between">
       {/* Header cố định */}
       <div className="flex items-center justify-between pb-3 border-b border-white/10 shrink-0">
         <h3 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
