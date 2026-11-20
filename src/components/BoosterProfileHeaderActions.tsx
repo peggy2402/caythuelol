@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Heart, ArrowRight, Star, History, Sparkles } from 'lucide-react';
+import { Heart, ArrowRight, Star, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import ShareProfileButton from '@/components/ShareProfileButton';
 
@@ -155,28 +155,24 @@ export default function BoosterProfileHeaderActions({
         </button>
       </div>
 
-      {/* Action Buttons Y Hệt Ảnh Mẫu */}
-      <div className="flex flex-col items-center lg:items-end gap-2 shrink-0 w-full sm:w-auto">
-        <div className="flex items-center gap-2.5 w-full sm:w-auto">
-          {/* Nút Thuê ngay rực rỡ Gradient Neon */}
-          <button
-            type="button"
-            onClick={handleOpenHireModal}
-            className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-7 py-2.5 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-500 hover:via-indigo-500 hover:to-purple-500 text-white font-black rounded-2xl transition-all duration-300 shadow-[0_0_25px_rgba(99,102,241,0.5)] hover:scale-105 active:scale-95 text-sm"
-          >
-            <span>Thuê ngay</span>
-            <ArrowRight size={15} />
-          </button>
+      {/* Action Buttons: Thuê ngay & Chia sẻ cân đối hoàn hảo */}
+      <div className="flex items-center gap-3 shrink-0 w-full sm:w-auto">
+        {/* Nút Thuê ngay rực rỡ Gradient Neon */}
+        <button
+          type="button"
+          onClick={handleOpenHireModal}
+          className="flex-1 sm:flex-none h-11 flex items-center justify-center gap-2 px-6 sm:px-7 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-500 hover:via-indigo-500 hover:to-purple-500 text-white font-bold rounded-2xl transition-all duration-300 shadow-[0_0_20px_rgba(99,102,241,0.45)] hover:shadow-[0_0_28px_rgba(99,102,241,0.65)] hover:scale-[1.02] active:scale-95 text-sm cursor-pointer"
+        >
+          <span>Thuê ngay</span>
+          <ArrowRight size={16} />
+        </button>
 
-          {/* Nút Chia sẻ */}
-          <ShareProfileButton username={boosterUsername} displayName={boosterName} />
-        </div>
-
-        {/* Lịch sử hoạt động text link */}
-        <div className="flex items-center gap-1.5 text-zinc-500 text-[11px] hover:text-zinc-300 transition-colors cursor-pointer pt-0.5">
-          <History size={12} />
-          <span>Lịch sử hoạt động</span>
-        </div>
+        {/* Nút Chia sẻ */}
+        <ShareProfileButton
+          username={boosterUsername}
+          displayName={boosterName}
+          className="h-11 flex items-center justify-center gap-2 px-5 bg-zinc-900/90 hover:bg-zinc-800 text-zinc-200 hover:text-white font-semibold rounded-2xl border border-white/10 hover:border-white/20 transition-all duration-200 shadow-md hover:shadow-lg active:scale-95 text-sm cursor-pointer"
+        />
       </div>
     </div>
   );

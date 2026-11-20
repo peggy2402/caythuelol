@@ -9,11 +9,13 @@ interface ShareProfileButtonProps {
   username: string;
   displayName?: string;
   role?: string;
+  className?: string;
 }
 
 export default function ShareProfileButton({
   username,
   displayName,
+  className,
 }: ShareProfileButtonProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -188,11 +190,12 @@ export default function ShareProfileButton({
   return (
     <>
       <button
+        type="button"
         onClick={handleNativeShare}
-        className="flex items-center justify-center gap-2 px-5 py-3 bg-zinc-900/80 hover:bg-zinc-800 text-zinc-200 hover:text-white font-medium rounded-xl border border-zinc-700/60 hover:border-zinc-500 transition-all duration-200 shadow-md hover:shadow-lg active:scale-95 text-sm"
+        className={className || "h-11 flex items-center justify-center gap-2 px-5 bg-zinc-900/90 hover:bg-zinc-800 text-zinc-200 hover:text-white font-semibold rounded-2xl border border-white/10 hover:border-white/20 transition-all duration-200 shadow-md active:scale-95 text-sm cursor-pointer"}
         title="Chia sẻ hồ sơ"
       >
-        <Share2 size={18} className="text-blue-400" />
+        <Share2 size={16} className="text-blue-400" />
         <span>Chia sẻ</span>
       </button>
 
