@@ -699,6 +699,7 @@ function ServiceBookingContent() {
   // 5. States cho Mã giảm giá, Phí sàn & Submit
   const [couponCode, setCouponCode] = useState('');
   const [appliedCoupon, setAppliedCoupon] = useState<any>(null);
+  const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
   const [platformFeePercent, setPlatformFeePercent] = useState<number>(5);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -937,9 +938,26 @@ function ServiceBookingContent() {
 
   // Tính giá sau khi áp dụng coupon và cộng phí dịch vụ hệ thống
   const discountAmount = useMemo(() => {
-    if (appliedCoupon && appliedCoupon.discountPercent > 0) {
-      return Math.round((calculation.totalPrice * appliedCoupon.discountPercent) / 100);
+    if (!appliedCoupon) return 0;
+
+    // 1. Nếu là Loyalty Voucher hoặc voucher có số tiền giảm cố định (VND)
+    if (typeof appliedCoupon.discountAmount === 'number' && appliedCoupon.discountAmount > 0) {
+      return Math.min(calculation.totalPrice, appliedCoupon.discountAmount);
     }
+    if (appliedCoupon.type === 'FIXED' && typeof appliedCoupon.value === 'number') {
+      return Math.min(calculation.totalPrice, appliedCoupon.value);
+    }
+
+    // 2. Nếu là voucher theo % (Booster coupon hoặc coupon hệ thống)
+    const percent = appliedCoupon.discountPercent || (appliedCoupon.type === 'PERCENTAGE' ? appliedCoupon.value : 0);
+    if (percent > 0) {
+      const calcDiscount = Math.round((calculation.totalPrice * percent) / 100);
+      if (appliedCoupon.maxDiscount && calcDiscount > appliedCoupon.maxDiscount) {
+        return appliedCoupon.maxDiscount;
+      }
+      return calcDiscount;
+    }
+
     return 0;
   }, [calculation.totalPrice, appliedCoupon]);
 
@@ -1070,20 +1088,76 @@ function ServiceBookingContent() {
   };
 
   // Xử lý áp dụng mã giảm giá
-  const handleApplyCoupon = () => {
+  const handleApplyCoupon = async () => {
     if (!couponCode.trim()) {
       setAppliedCoupon(null);
       return;
     }
     const cleanCode = couponCode.trim().toUpperCase();
-    const boosterCoupon = assignedBooster?.boosterData?.service_settings?.coupon;
+    setIsApplyingCoupon(true);
 
-    if (boosterCoupon && boosterCoupon.isActive && boosterCoupon.code.toUpperCase() === cleanCode) {
-      setAppliedCoupon(boosterCoupon);
-      toast.success(`Đã áp dụng mã giảm giá ${boosterCoupon.discountPercent}% của tuyển thủ!`);
-    } else {
-      toast.error('Mã khuyến mãi không hợp lệ hoặc đã hết hạn');
+    try {
+      // 1. Nếu là mã Voucher đổi từ Tích Điểm Loyalty (bắt đầu bằng LRV-)
+      if (cleanCode.startsWith('LRV-')) {
+        const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+        if (!token) {
+          toast.error('Vui lòng đăng nhập để áp dụng voucher tích điểm của bạn');
+          return;
+        }
+
+        const res = await fetch('/api/loyalty/vouchers/validate', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            code: cleanCode,
+            orderAmount: calculation.totalPrice,
+          }),
+        });
+
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.message || data.error || 'Voucher không hợp lệ hoặc đã hết hạn');
+        }
+
+        setAppliedCoupon(data.voucher);
+        toast.success(`Đã áp dụng voucher ${data.voucher.title || cleanCode} thành công!`);
+        return;
+      }
+
+      // 2. Nếu là coupon riêng của tuyển thủ được chỉ định
+      const boosterCoupon = assignedBooster?.boosterData?.service_settings?.coupon;
+      if (boosterCoupon && boosterCoupon.isActive && boosterCoupon.code.toUpperCase() === cleanCode) {
+        setAppliedCoupon(boosterCoupon);
+        toast.success(`Đã áp dụng mã giảm giá ${boosterCoupon.discountPercent}% của tuyển thủ!`);
+        return;
+      }
+
+      // 3. Kiểm tra qua API coupon hệ thống
+      const res = await fetch('/api/coupons/validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          code: cleanCode,
+          orderValue: calculation.totalPrice,
+          boosterId: assignedBooster?.user?._id || assignedBooster?._id,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || data.message || 'Mã khuyến mãi không hợp lệ hoặc đã hết hạn');
+      }
+
+      setAppliedCoupon(data.coupon);
+      toast.success('Áp dụng mã giảm giá thành công!');
+    } catch (err: any) {
+      toast.error(err.message || 'Mã khuyến mãi không hợp lệ hoặc đã hết hạn');
       setAppliedCoupon(null);
+    } finally {
+      setIsApplyingCoupon(false);
     }
   };
 
@@ -2452,23 +2526,44 @@ function ServiceBookingContent() {
                   />
                   <button
                     type="button"
+                    disabled={isApplyingCoupon || !couponCode.trim()}
                     onClick={handleApplyCoupon}
-                    className="px-3 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-xs font-bold text-white transition-colors"
+                    className="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:bg-zinc-800 disabled:opacity-60 text-xs font-bold text-white transition-colors flex items-center gap-1.5"
                   >
-                    Áp dụng
+                    {isApplyingCoupon ? (
+                      <Loader2 size={13} className="animate-spin" />
+                    ) : (
+                      'Áp dụng'
+                    )}
                   </button>
                 </div>
 
                 {appliedCoupon && (
-                  <div className="flex items-center justify-between text-xs text-emerald-400 mt-2 font-medium">
-                    <span>Mã {appliedCoupon.code} (Giảm {appliedCoupon.discountPercent}%):</span>
-                    <span>
-                      -
-                      {Math.round(
-                        (calculation.totalPrice * appliedCoupon.discountPercent) / 100
-                      ).toLocaleString('vi-VN')}{' '}
-                      đ
-                    </span>
+                  <div className="flex items-center justify-between text-xs text-emerald-400 mt-2 px-3 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 font-medium">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <Tag size={13} className="text-emerald-400 shrink-0" />
+                      <span className="truncate">
+                        {appliedCoupon.title || `Mã ${appliedCoupon.code}`}
+                        {appliedCoupon.discountPercent ? ` (-${appliedCoupon.discountPercent}%)` : ''}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0 ml-2">
+                      <span className="font-mono font-bold">
+                        -{discountAmount.toLocaleString('vi-VN')} đ
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setAppliedCoupon(null);
+                          setCouponCode('');
+                          toast.info('Đã hủy áp dụng mã giảm giá');
+                        }}
+                        className="text-zinc-400 hover:text-red-400 p-0.5 rounded transition-colors"
+                        title="Gỡ mã giảm giá"
+                      >
+                        <X size={13} />
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
