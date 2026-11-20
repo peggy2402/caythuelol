@@ -43,7 +43,7 @@ const formSchema = z.object({
   currentRank: z.string().min(1, "Vui lòng nhập Rank hiện tại"),
   highestRank: z.string().min(1, "Vui lòng nhập Rank cao nhất từng đạt"),
   opggLink: z.string().url("Link hồ sơ OP.GG/Tracker không hợp lệ"),
-  rankImageUrl: z.string().url("Vui lòng tải lên ảnh bằng chứng rank"),
+  rankImageUrl: z.string().min(1, "Vui lòng tải lên ảnh bằng chứng rank"),
   bankName: z.string().min(1, "Vui lòng chọn ngân hàng thụ hưởng"),
   bankAccountName: z.string().min(1, "Vui lòng nhập tên chủ tài khoản"),
   bankAccountNumber: z.string().min(1, "Vui lòng nhập số tài khoản ngân hàng"),
@@ -75,6 +75,10 @@ export default function BoosterApplyPage() {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [isUploadingRank, setIsUploadingRank] = useState(false);
   const [isUploadingBill, setIsUploadingBill] = useState(false);
+  const [rankImageFile, setRankImageFile] = useState<File | null>(null);
+  const [billImageFile, setBillImageFile] = useState<File | null>(null);
+  const [rankImagePreview, setRankImagePreview] = useState<string | null>(null);
+  const [billImagePreview, setBillImagePreview] = useState<string | null>(null);
   const [agreements, setAgreements] = useState<Record<string, boolean>>({});
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const router = useRouter();
@@ -260,8 +264,8 @@ export default function BoosterApplyPage() {
   const transferContent = `BOOSTERAPPLY ${phoneNumber || 'SDT'}`;
   const qrCodeUrl = `https://img.vietqr.io/image/${adminSettings.adminBank.bankName}-${adminSettings.adminBank.accountNumber}-compact2.png?amount=${adminSettings.depositConfig.depositAmount}&addInfo=${encodeURIComponent(transferContent)}&accountName=${encodeURIComponent(adminSettings.adminBank.accountHolder)}`;
 
-  // Upload Handlers
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Upload Handlers (Deferred Upload - Tải lên cục bộ 0ms, chỉ upload Cloudinary khi nộp đơn)
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -270,25 +274,14 @@ export default function BoosterApplyPage() {
       return;
     }
 
-    setIsUploadingRank(true);
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
-      
-      const res = await fetch('/api/upload', { method: 'POST', body: formData });
-      if (!res.ok) throw new Error("Upload thất bại");
-      
-      const data = await res.json();
-      setValue('rankImageUrl', data.url, { shouldValidate: true });
-      toast.success("Đã tải ảnh bằng chứng thành công");
-    } catch (error) {
-      toast.error("Lỗi upload ảnh", { description: "Vui lòng thử lại" });
-    } finally {
-      setIsUploadingRank(false);
-    }
+    setRankImageFile(file);
+    const localUrl = URL.createObjectURL(file);
+    setRankImagePreview(localUrl);
+    setValue('rankImageUrl', localUrl, { shouldValidate: true });
+    toast.success("Đã chọn ảnh minh chứng Rank");
   };
 
-  const handleBillUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleBillUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -297,22 +290,20 @@ export default function BoosterApplyPage() {
       return;
     }
 
-    setIsUploadingBill(true);
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
-      
-      const res = await fetch('/api/upload', { method: 'POST', body: formData });
-      if (!res.ok) throw new Error("Upload thất bại");
-      
-      const data = await res.json();
-      setValue('billImageUrl', data.url, { shouldValidate: true });
-      toast.success("Đã tải ảnh Bill chuyển khoản thành công");
-    } catch (error) {
-      toast.error("Lỗi upload ảnh", { description: "Vui lòng thử lại" });
-    } finally {
-      setIsUploadingBill(false);
-    }
+    setBillImageFile(file);
+    const localUrl = URL.createObjectURL(file);
+    setBillImagePreview(localUrl);
+    setValue('billImageUrl', localUrl, { shouldValidate: true });
+    toast.success("Đã chọn ảnh Bill chuyển khoản");
+  };
+
+  const uploadSingleFile = async (file: File): Promise<string> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const res = await fetch('/api/upload', { method: 'POST', body: formData });
+    if (!res.ok) throw new Error("Không thể tải ảnh lên hệ thống. Vui lòng thử lại.");
+    const data = await res.json();
+    return data.url;
   };
 
   // PDF Contract Generation
@@ -402,9 +393,20 @@ export default function BoosterApplyPage() {
       
       await new Promise(resolve => setTimeout(resolve, 100));
 
-      toast.info("Đang xử lý hợp đồng điện tử...");
+      toast.info("Đang xử lý chứng từ & hợp đồng điện tử...");
+
+      // Upload ảnh Rank và Bill lên Cloudinary chỉ khi người dùng nộp đơn chính thức
+      let finalRankUrl = data.rankImageUrl;
+      if (rankImageFile) {
+        finalRankUrl = await uploadSingleFile(rankImageFile);
+      }
+
+      let finalBillUrl = data.billImageUrl;
+      if (billImageFile) {
+        finalBillUrl = await uploadSingleFile(billImageFile);
+      }
+
       const result = await generateAndUploadContract();
-      
       if (!result) throw new Error("Không thể tạo hợp đồng. Vui lòng thử lại.");
 
       const normalizedFb = data.facebookUrl.trim().startsWith('http')
@@ -418,7 +420,13 @@ export default function BoosterApplyPage() {
           'Content-Type': 'application/json',
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
-        body: JSON.stringify({ ...data, facebookUrl: normalizedFb, contractUrl: result.url }),
+        body: JSON.stringify({ 
+          ...data, 
+          facebookUrl: normalizedFb, 
+          rankImageUrl: finalRankUrl,
+          billImageUrl: finalBillUrl,
+          contractUrl: result.url 
+        }),
       });
 
       if (!res.ok) {
@@ -844,12 +852,12 @@ export default function BoosterApplyPage() {
                               {isUploadingRank ? (
                                 <div className="flex flex-col items-center gap-2 py-6">
                                   <Loader2 className="w-8 h-8 text-cyan-400 animate-spin" />
-                                  <span className="text-xs text-zinc-400">Đang tải ảnh lên Cloud...</span>
+                                  <span className="text-xs text-zinc-400">Đang xử lý ảnh minh chứng...</span>
                                 </div>
-                              ) : rankImageUrl ? (
+                              ) : (rankImagePreview || rankImageUrl) ? (
                                 <div className="relative w-full h-56 rounded-xl overflow-hidden border border-zinc-800 group-hover:opacity-80 transition-opacity">
                                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                                  <img src={rankImageUrl} alt="Rank Proof" className="w-full h-full object-cover" />
+                                  <img src={rankImagePreview || rankImageUrl} alt="Rank Proof" className="w-full h-full object-cover" />
                                   <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
                                     <span className="bg-cyan-500 text-black px-4 py-1.5 rounded-full text-xs font-black shadow-lg">
                                       Nhấn để thay đổi ảnh khác
@@ -952,24 +960,24 @@ export default function BoosterApplyPage() {
                                   />
                                   <div className={cn(
                                     "border border-dashed rounded-xl p-3 flex items-center justify-center gap-2 transition-all",
-                                    billImageUrl ? 'border-emerald-500/50 bg-emerald-500/10' : 'border-zinc-800 bg-zinc-950 hover:bg-zinc-900'
+                                    (billImagePreview || billImageUrl) ? 'border-emerald-500/50 bg-emerald-500/10' : 'border-zinc-800 bg-zinc-950 hover:bg-zinc-900'
                                   )}>
                                     {isUploadingBill ? (
                                       <Loader2 className="w-4 h-4 text-cyan-400 animate-spin" />
-                                    ) : billImageUrl ? (
+                                    ) : (billImagePreview || billImageUrl) ? (
                                       <div className="flex items-center gap-1.5 text-emerald-400 text-xs font-bold">
                                         <CheckCircle2 className="w-4 h-4" />
-                                        <span>Đã tải ảnh Bill chuyển khoản</span>
+                                        <span>Đã chọn ảnh Bill chuyển khoản</span>
                                       </div>
                                     ) : (
                                       <span className="text-xs text-zinc-400">Nhấn để tải lên ảnh Bill chuyển khoản...</span>
                                     )}
                                   </div>
                                 </div>
-                                {billImageUrl && (
-                                  <a href={billImageUrl} target="_blank" rel="noreferrer" className="shrink-0 w-11 h-11 rounded-xl border border-zinc-800 overflow-hidden block">
+                                {(billImagePreview || billImageUrl) && (
+                                  <a href={billImagePreview || billImageUrl || '#'} target="_blank" rel="noreferrer" className="shrink-0 w-11 h-11 rounded-xl border border-zinc-800 overflow-hidden block">
                                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                                    <img src={billImageUrl} alt="Bill" className="w-full h-full object-cover" />
+                                    <img src={billImagePreview || billImageUrl} alt="Bill" className="w-full h-full object-cover" />
                                   </a>
                                 )}
                               </div>
