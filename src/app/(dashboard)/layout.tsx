@@ -28,6 +28,22 @@ import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { apiFetch } from '@/lib/api';
+import { AnimatePresence, motion } from 'framer-motion';
+import ServerFlag from '@/components/ServerFlag';
+
+const DROPDOWN_MOTION = {
+  initial: { opacity: 0, y: -8, scale: 0.96 },
+  animate: { opacity: 1, y: 0, scale: 1 },
+  exit: { opacity: 0, y: -6, scale: 0.96 },
+  transition: { duration: 0.18, ease: [0.22, 1, 0.36, 1] as const },
+};
+
+const DASHBOARD_LANGS = [
+  { code: 'vi' as const, label: 'Tiếng Việt', flagCode: 'VN' },
+  { code: 'en' as const, label: 'English', flagCode: 'NA' },
+  { code: 'kr' as const, label: '한국어', flagCode: 'KR' },
+  { code: 'jp' as const, label: '日本語', flagCode: 'JP' },
+];
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -65,6 +81,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         setIsLangMenuOpen(false);
         setIsNotiOpen(false);
         setIsUserMenuOpen(false);
+        setIsSidebarOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -81,7 +98,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     setIsLangMenuOpen(false);
     setIsNotiOpen(false);
     setIsUserMenuOpen(false);
+    setIsSidebarOpen(false);
   }, [pathname]);
+
+  // Khóa cuộn nền khi mở Mobile Sidebar
+  useEffect(() => {
+    if (!isSidebarOpen) return;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [isSidebarOpen]);
   
   useEffect(() => {
     const userData = localStorage.getItem('user');
@@ -337,20 +365,29 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 font-sans selection:bg-blue-500/30">
-      {/* Mobile Sidebar Overlay */}
-      {isSidebarOpen && (
-        <div
-          className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm md:hidden"
-          onClick={() => setIsSidebarOpen(false)}
-        />
-      )}
+      {/* Mobile Sidebar Overlay (có đủ fade-in & hậu animation fade-out) */}
+      <AnimatePresence>
+        {isSidebarOpen && (
+          <motion.div
+            key="dashboard-sidebar-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.24, ease: 'easeOut' }}
+            className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm md:hidden"
+            onClick={() => setIsSidebarOpen(false)}
+          />
+        )}
+      </AnimatePresence>
 
       {/* Desktop Sidebar */}
       <Sidebar className="hidden md:flex" />
 
-      {/* Mobile Sidebar */}
+      {/* Mobile Sidebar (slide-in & hậu animation slide-out mượt) */}
       <Sidebar 
-        className={`md:hidden ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`} 
+        className={`md:hidden transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] will-change-transform ${
+          isSidebarOpen ? 'translate-x-0 pointer-events-auto shadow-2xl' : '-translate-x-full pointer-events-none'
+        }`} 
         onLinkClick={() => setIsSidebarOpen(false)} 
         onClose={() => setIsSidebarOpen(false)}
       />
@@ -360,8 +397,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         {/* Topbar */}
         <header className="sticky top-0 z-30 flex h-20 items-center justify-between border-b border-white/5 bg-zinc-950/80 px-6 backdrop-blur-md">
           <button
+            type="button"
             onClick={() => setIsSidebarOpen(true)}
-            className="rounded-lg p-2 text-zinc-400 hover:bg-white/5 hover:text-white md:hidden"
+            aria-label="Mở menu điều hướng"
+            aria-expanded={isSidebarOpen}
+            className="rounded-lg p-2 text-zinc-400 hover:bg-white/5 hover:text-white md:hidden transition-colors cursor-pointer"
           >
             <Menu className="h-6 w-6" />
           </button>
@@ -397,27 +437,33 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 />
               </button>
 
-              {isLangMenuOpen && (
-                <div className="absolute right-0 top-full mt-2 z-50 w-32 rounded-xl border border-white/10 bg-zinc-900 p-1 shadow-xl animate-in fade-in zoom-in-95 duration-200">
-                  {(['vi', 'en', 'kr', 'jp'] as const).map((lang) => (
-                    <button
-                      key={lang}
-                      type="button"
-                      onClick={() => {
-                        setLanguage(lang);
-                        setIsLangMenuOpen(false);
-                      }}
-                      className={`flex w-full items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors cursor-pointer ${
-                        language === lang
-                          ? 'bg-blue-600/10 text-blue-400'
-                          : 'text-zinc-400 hover:bg-white/5 hover:text-white'
-                      }`}
-                    >
-                      {lang === 'vi' ? 'Tiếng Việt' : lang === 'en' ? 'English' : lang === 'kr' ? '한국어' : '日本語'}
-                    </button>
-                  ))}
-                </div>
-              )}
+              <AnimatePresence>
+                {isLangMenuOpen && (
+                  <motion.div
+                    {...DROPDOWN_MOTION}
+                    className="absolute right-0 top-full mt-2 z-50 w-40 rounded-xl border border-white/10 bg-zinc-900/95 backdrop-blur-xl p-1.5 shadow-2xl origin-top-right"
+                  >
+                    {DASHBOARD_LANGS.map((lang) => (
+                      <button
+                        key={lang.code}
+                        type="button"
+                        onClick={() => {
+                          setLanguage(lang.code);
+                          setIsLangMenuOpen(false);
+                        }}
+                        className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors cursor-pointer ${
+                          language === lang.code
+                            ? 'bg-blue-600/15 text-blue-400'
+                            : 'text-zinc-400 hover:bg-white/5 hover:text-white'
+                        }`}
+                      >
+                        <ServerFlag code={lang.flagCode} size="sm" className="w-5 h-5" />
+                        <span>{lang.label}</span>
+                      </button>
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
 
             <div ref={notiRef} className="relative">
@@ -433,29 +479,34 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 )}
               </button>
 
-              {isNotiOpen && (
-                <div className="absolute right-0 top-full mt-2 z-50 w-80 rounded-xl border border-white/10 bg-zinc-900 shadow-xl animate-in fade-in zoom-in-95 duration-200 overflow-hidden">
-                  <div className="p-3 border-b border-white/5 font-bold text-white text-sm">Thông báo</div>
-                  <div className="max-h-80 overflow-y-auto">
-                    {notifications.length === 0 ? (
-                      <div className="p-4 text-center text-zinc-500 text-xs">Không có thông báo mới</div>
-                    ) : (
-                      notifications.map((noti, idx) => (
-                        <Link 
-                          href={noti.link || '#'} 
-                          key={idx} 
-                          onClick={() => setIsNotiOpen(false)}
-                          className="block p-3 hover:bg-white/5 transition-colors border-b border-white/5 last:border-0"
-                        >
-                          <div className="text-sm font-bold text-white mb-1">{noti.title}</div>
-                          <div className="text-xs text-zinc-400 line-clamp-2">{noti.message}</div>
-                          <div className="text-[10px] text-zinc-600 mt-1">{new Date(noti.createdAt).toLocaleDateString()}</div>
-                        </Link>
-                      ))
-                    )}
-                  </div>
-                </div>
-              )}
+              <AnimatePresence>
+                {isNotiOpen && (
+                  <motion.div
+                    {...DROPDOWN_MOTION}
+                    className="absolute right-0 top-full mt-2 z-50 w-80 rounded-xl border border-white/10 bg-zinc-900/95 backdrop-blur-xl shadow-2xl overflow-hidden origin-top-right"
+                  >
+                    <div className="p-3 border-b border-white/5 font-bold text-white text-sm">Thông báo</div>
+                    <div className="max-h-80 overflow-y-auto custom-dark-scrollbar">
+                      {notifications.length === 0 ? (
+                        <div className="p-4 text-center text-zinc-500 text-xs">Không có thông báo mới</div>
+                      ) : (
+                        notifications.map((noti, idx) => (
+                          <Link 
+                            href={noti.link || '#'} 
+                            key={idx} 
+                            onClick={() => setIsNotiOpen(false)}
+                            className="block p-3 hover:bg-white/5 transition-colors border-b border-white/5 last:border-0"
+                          >
+                            <div className="text-sm font-bold text-white mb-1">{noti.title}</div>
+                            <div className="text-xs text-zinc-400 line-clamp-2">{noti.message}</div>
+                            <div className="text-[10px] text-zinc-600 mt-1">{new Date(noti.createdAt).toLocaleDateString()}</div>
+                          </Link>
+                        ))
+                      )}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
 
             <div className="h-8 w-[1px] bg-white/10" />
@@ -492,8 +543,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               </button>
 
               {/* User Dropdown Menu */}
-              {isUserMenuOpen && (
-                <div className="absolute right-0 top-full mt-2 z-50 w-56 rounded-xl border border-white/10 bg-zinc-900 p-2 shadow-xl animate-in fade-in zoom-in-95 duration-200 origin-top-right">
+              <AnimatePresence>
+                {isUserMenuOpen && (
+                  <motion.div
+                    {...DROPDOWN_MOTION}
+                    className="absolute right-0 top-full mt-2 z-50 w-56 rounded-xl border border-white/10 bg-zinc-900/95 backdrop-blur-xl p-2 shadow-2xl origin-top-right"
+                  >
                     <div className="px-3 py-2 border-b border-white/5 mb-1">
                       <p className="text-sm font-bold text-white">{user?.username}</p>
                       <p className="text-xs text-zinc-500 truncate">{user?.email}</p>
@@ -511,7 +566,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     {user?.role === 'BOOSTER' && (
                       <button 
                         onClick={() => { toggleAvailability(); setIsUserMenuOpen(false); }}
-                        className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
+                        className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors cursor-pointer ${
                           (user.booster_info?.isReady ?? true) ? 'text-green-400 hover:bg-white/5' : 'text-zinc-500 hover:bg-white/5'
                         }`}
                       >
@@ -522,7 +577,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     {user?.role === 'BOOSTER' && (
                       <button 
                         onClick={() => { setShowResignModal(true); setIsUserMenuOpen(false); }}
-                        className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-red-400 hover:bg-red-500/10 transition-colors"
+                        className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer"
                       >
                         <DoorOpen className="w-4 h-4" /> Gỡ Quyền Booster
                       </button>
@@ -536,13 +591,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         localStorage.removeItem('user');
                         window.location.href = '/login';
                       }}
-                      className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-red-400 hover:bg-red-500/10 transition-colors"
+                      className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer"
                     >
                       <LogOut className="w-4 h-4" />
                       {t('logout')}
                     </button>
-                  </div>
-              )}
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           </div>
         </header>

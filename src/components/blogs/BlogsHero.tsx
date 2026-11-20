@@ -3,6 +3,7 @@
 import { useRef } from 'react';
 import Link from 'next/link';
 import { Flame, Search, X, Loader2, ArrowRight } from 'lucide-react';
+import { AnimatePresence, motion } from 'framer-motion';
 
 export const BLOG_CATEGORIES = [
   { id: 'All', label: 'Tất Cả' },
@@ -106,46 +107,54 @@ export default function BlogsHero({
           )}
 
           {/* Live Search Suggestions Dropdown */}
-          {isDropdownOpen && (
-            <div className="absolute top-full mt-2 w-full md:w-[180%] max-w-lg bg-zinc-900/95 border border-zinc-800 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.7)] z-30 overflow-hidden backdrop-blur-xl animate-in fade-in slide-in-from-top-2">
-              {isSearching ? (
-                <div className="p-5 flex items-center justify-center text-cyan-400">
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                </div>
-              ) : searchResults.length > 0 ? (
-                <div className="max-h-96 overflow-y-auto divide-y divide-zinc-800">
-                  {searchResults.map((post) => (
-                    <Link
-                      key={post._id}
-                      href={`/blogs/${post.slug}`}
-                      onClick={() => setIsDropdownOpen(false)}
-                      className="block p-4 hover:bg-zinc-800/60 transition-colors"
-                    >
-                      <div className="flex justify-between items-start gap-2 mb-1">
-                        <h4 className="font-bold text-white text-xs sm:text-sm">
-                          <Highlight text={post.title} highlight={debouncedSearch} />
-                        </h4>
-                        {post.tags?.[0] && (
-                          <span className="text-[10px] bg-cyan-950/60 text-cyan-300 px-2 py-0.5 rounded-full border border-cyan-500/30 whitespace-nowrap">
-                            {post.tags[0]}
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-[11px] text-zinc-400 line-clamp-2 mb-2">
-                        <Highlight text={post.excerpt} highlight={debouncedSearch} />
-                      </p>
-                      <div className="flex justify-between items-center text-[10px] text-zinc-500">
-                        <span>{new Date(post.createdAt).toLocaleDateString('vi-VN')}</span>
-                        <span className="text-cyan-400 font-bold flex items-center gap-1">Đọc bài <ArrowRight className="w-3 h-3" /></span>
-                      </div>
-                    </Link>
-                  ))}
-                </div>
-              ) : (
-                <div className="p-5 text-center text-zinc-500 text-xs">Không tìm thấy bài viết phù hợp.</div>
-              )}
-            </div>
-          )}
+          <AnimatePresence>
+            {isDropdownOpen && (
+              <motion.div
+                initial={{ opacity: 0, y: -8, scale: 0.98 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -6, scale: 0.98 }}
+                transition={{ duration: 0.16, ease: [0.22, 1, 0.36, 1] }}
+                className="absolute top-full mt-2 w-full md:w-[180%] max-w-lg bg-zinc-900/95 border border-zinc-800 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.7)] z-30 overflow-hidden backdrop-blur-xl origin-top"
+              >
+                {isSearching ? (
+                  <div className="p-5 flex items-center justify-center text-cyan-400">
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  </div>
+                ) : searchResults.length > 0 ? (
+                  <div className="max-h-96 overflow-y-auto custom-dark-scrollbar divide-y divide-zinc-800">
+                    {searchResults.map((post) => (
+                      <Link
+                        key={post._id}
+                        href={`/blogs/${post.slug}`}
+                        onClick={() => setIsDropdownOpen(false)}
+                        className="block p-4 hover:bg-zinc-800/60 transition-colors"
+                      >
+                        <div className="flex justify-between items-start gap-2 mb-1">
+                          <h4 className="font-bold text-white text-xs sm:text-sm">
+                            <Highlight text={post.title} highlight={debouncedSearch} />
+                          </h4>
+                          {post.tags?.[0] && (
+                            <span className="text-[10px] bg-cyan-950/60 text-cyan-300 px-2 py-0.5 rounded-full border border-cyan-500/30 whitespace-nowrap">
+                              {post.tags[0]}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[11px] text-zinc-400 line-clamp-2 mb-2">
+                          <Highlight text={post.excerpt} highlight={debouncedSearch} />
+                        </p>
+                        <div className="flex justify-between items-center text-[10px] text-zinc-500">
+                          <span>{new Date(post.createdAt).toLocaleDateString('vi-VN')}</span>
+                          <span className="text-cyan-400 font-bold flex items-center gap-1">Đọc bài <ArrowRight className="w-3 h-3" /></span>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="p-5 text-center text-zinc-500 text-xs">Không tìm thấy bài viết phù hợp.</div>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
         {/* Category Filter Chips */}

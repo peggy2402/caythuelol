@@ -8,6 +8,7 @@ import Image from 'next/image';
 import Navbar from '@/components/Navbar';
 import BackButton from '@/components/BackButton';
 import ServerFlag from '@/components/ServerFlag';
+import { AnimatePresence, motion } from 'framer-motion';
 import {
   Trophy,
   Target,
@@ -2592,15 +2593,26 @@ function ServiceBookingContent() {
         {/* ========================================================================= */}
         {/* MODAL 1: VISUAL RANK PICKER MODAL (CHỌN TỪ SẮT IV ĐẾN CAO THỦ)           */}
         {/* ========================================================================= */}
-        {isRankModalOpen && (
-          <div
-            className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200"
-            onClick={() => setIsRankModalOpen(false)}
-          >
-            <div
-              className="bg-[#0e1017] border border-white/10 rounded-3xl p-5 sm:p-6 max-w-xl w-full shadow-2xl space-y-4 animate-in zoom-in-95 duration-150 relative max-h-[92vh] flex flex-col"
-              onClick={(e) => e.stopPropagation()}
+        <AnimatePresence>
+          {isRankModalOpen && (
+            <motion.div
+              key="rank-modal-backdrop"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2, ease: 'easeOut' }}
+              className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4"
+              onClick={() => setIsRankModalOpen(false)}
             >
+              <motion.div
+                key="rank-modal-panel"
+                initial={{ opacity: 0, y: 16, scale: 0.96 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 12, scale: 0.96 }}
+                transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+                className="bg-[#0e1017] border border-white/10 rounded-3xl p-5 sm:p-6 max-w-xl w-full shadow-2xl space-y-4 relative max-h-[92vh] flex flex-col will-change-transform"
+                onClick={(e) => e.stopPropagation()}
+              >
               {/* Header Modal */}
               <div className="flex items-center justify-between pb-3 border-b border-zinc-800/80 shrink-0">
                 <div className="flex items-center gap-2.5">
@@ -2855,25 +2867,37 @@ function ServiceBookingContent() {
                   </div>
                 );
               })()}
-            </div>
-          </div>
-        )}
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* ========================================================================= */}
         {/* MODAL 2: CHỌN MÁY CHỦ (SERVER POPUP GIỮA MÀN HÌNH)                       */}
         {/* ========================================================================= */}
-        {isServerModalOpen && (
-          <div
-            className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200"
-            onClick={() => {
-              setIsServerModalOpen(false);
-              setServerSearchTerm('');
-            }}
-          >
-            <div
-              className="bg-[#0e1017] border border-white/10 rounded-3xl p-5 sm:p-6 max-w-xl w-full shadow-2xl space-y-4 animate-in zoom-in-95 duration-150 relative max-h-[90vh] flex flex-col"
-              onClick={(e) => e.stopPropagation()}
+        <AnimatePresence>
+          {isServerModalOpen && (
+            <motion.div
+              key="server-modal-backdrop"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2, ease: 'easeOut' }}
+              className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4"
+              onClick={() => {
+                setIsServerModalOpen(false);
+                setServerSearchTerm('');
+              }}
             >
+              <motion.div
+                key="server-modal-panel"
+                initial={{ opacity: 0, y: 16, scale: 0.96 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 12, scale: 0.96 }}
+                transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+                className="bg-[#0e1017] border border-white/10 rounded-3xl p-5 sm:p-6 max-w-xl w-full shadow-2xl space-y-4 relative max-h-[90vh] flex flex-col will-change-transform"
+                onClick={(e) => e.stopPropagation()}
+              >
               {/* Header */}
               <div className="flex items-center justify-between pb-3 border-b border-zinc-800/80 shrink-0">
                 <div className="flex items-center gap-2.5">
@@ -2998,22 +3022,34 @@ function ServiceBookingContent() {
                   Đóng
                 </button>
               </div>
-            </div>
-          </div>
-        )}
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* ========================================================================= */}
         {/* MODAL 3: CHỌN LOẠI TÀI KHOẢN (RIOT, FACEBOOK, GOOGLE, APPLE, XBOX, PS)  */}
         {/* ========================================================================= */}
-        {isAccountTypeModalOpen && (
-          <div
-            className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200"
-            onClick={() => setIsAccountTypeModalOpen(false)}
-          >
-            <div
-              className="bg-[#0e1017] border border-white/10 rounded-3xl p-5 sm:p-6 max-w-lg w-full shadow-2xl space-y-4 animate-in zoom-in-95 duration-150 relative max-h-[90vh] flex flex-col"
-              onClick={(e) => e.stopPropagation()}
+        <AnimatePresence>
+          {isAccountTypeModalOpen && (
+            <motion.div
+              key="account-type-modal-backdrop"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2, ease: 'easeOut' }}
+              className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4"
+              onClick={() => setIsAccountTypeModalOpen(false)}
             >
+              <motion.div
+                key="account-type-modal-panel"
+                initial={{ opacity: 0, y: 16, scale: 0.96 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 12, scale: 0.96 }}
+                transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+                className="bg-[#0e1017] border border-white/10 rounded-3xl p-5 sm:p-6 max-w-lg w-full shadow-2xl space-y-4 relative max-h-[90vh] flex flex-col will-change-transform"
+                onClick={(e) => e.stopPropagation()}
+              >
               {/* Header */}
               <div className="flex items-center justify-between pb-3 border-b border-zinc-800/80 shrink-0">
                 <div className="flex items-center gap-2.5">
@@ -3099,25 +3135,37 @@ function ServiceBookingContent() {
                   Đóng
                 </button>
               </div>
-            </div>
-          </div>
-        )}
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* ========================================================================= */}
         {/* MODAL 4: CHỌN BOOSTER                                                     */}
         {/* ========================================================================= */}
-        {isBoosterModalOpen && (
-          <div
-            className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200"
-            onClick={() => {
-              setIsBoosterModalOpen(false);
-              setBoosterSearchTerm('');
-            }}
-          >
-            <div
-              className="bg-[#0e1017] border border-white/10 rounded-3xl p-5 sm:p-6 max-w-lg w-full shadow-2xl space-y-4 animate-in zoom-in-95 duration-150 relative max-h-[90vh] flex flex-col"
-              onClick={(e) => e.stopPropagation()}
+        <AnimatePresence>
+          {isBoosterModalOpen && (
+            <motion.div
+              key="booster-modal-backdrop"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2, ease: 'easeOut' }}
+              className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4"
+              onClick={() => {
+                setIsBoosterModalOpen(false);
+                setBoosterSearchTerm('');
+              }}
             >
+              <motion.div
+                key="booster-modal-panel"
+                initial={{ opacity: 0, y: 16, scale: 0.96 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 12, scale: 0.96 }}
+                transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+                className="bg-[#0e1017] border border-white/10 rounded-3xl p-5 sm:p-6 max-w-lg w-full shadow-2xl space-y-4 relative max-h-[90vh] flex flex-col will-change-transform"
+                onClick={(e) => e.stopPropagation()}
+              >
               {/* Modal Header */}
               <div className="flex items-center justify-between pb-3 border-b border-zinc-800/80 shrink-0">
                 <div className="flex items-center gap-2.5">
@@ -3265,9 +3313,10 @@ function ServiceBookingContent() {
                   Đóng
                 </button>
               </div>
-            </div>
-          </div>
-        )}
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </main>
     </div>
   );

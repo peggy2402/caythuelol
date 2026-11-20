@@ -3,6 +3,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { AnimatePresence, motion } from 'framer-motion';
 import {
   X,
   Trophy,
@@ -200,8 +201,6 @@ export default function HireBoosterModal({
     };
   }, [isOpen, onClose]);
 
-  if (!isOpen) return null;
-
   const currentGame = availableGames.find((g) => g.id === selectedGameId) || availableGames[0];
 
   // LỌC CHÍNH XÁC CÁC DỊCH VỤ THỰC TẾ MÀ BOOSTER ĐÃ CẤU HÌNH VÀ BẬT CHO GAME NÀY
@@ -215,17 +214,29 @@ export default function HireBoosterModal({
   );
 
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="hire-booster-modal-title"
-      onClick={onClose}
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-sm p-0 sm:p-4 animate-in fade-in duration-200"
-    >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        className="relative w-full max-w-3xl bg-[#0B0F1A] border-t sm:border border-white/[0.09] rounded-t-3xl sm:rounded-2xl shadow-[0_24px_80px_rgba(0,0,0,0.75)] flex flex-col max-h-[92dvh] sm:max-h-[86vh] overflow-hidden animate-in slide-in-from-bottom-4 sm:slide-in-from-bottom-0 sm:zoom-in-95 duration-200"
-      >
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div
+          key="hire-booster-backdrop"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="hire-booster-modal-title"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.2, ease: 'easeOut' }}
+          onClick={onClose}
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-sm p-0 sm:p-4"
+        >
+          <motion.div
+            key="hire-booster-panel"
+            initial={{ opacity: 0, y: 24, scale: 0.97 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 20, scale: 0.97 }}
+            transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+            onClick={(e) => e.stopPropagation()}
+            className="relative w-full max-w-3xl bg-[#0B0F1A] border-t sm:border border-white/[0.09] rounded-t-3xl sm:rounded-2xl shadow-[0_24px_80px_rgba(0,0,0,0.75)] flex flex-col max-h-[92dvh] sm:max-h-[86vh] overflow-hidden will-change-transform"
+          >
         {/* Subtle top accent line */}
         <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-blue-500/60 to-transparent pointer-events-none" />
         {/* Soft ambient glow */}
@@ -527,7 +538,9 @@ export default function HireBoosterModal({
             Đóng
           </button>
         </div>
-      </div>
-    </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }

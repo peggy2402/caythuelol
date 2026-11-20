@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Search, Loader2, User as UserIcon, Check, X, Shield, UserCheck } from 'lucide-react';
 import Image from 'next/image';
+import { AnimatePresence, motion } from 'framer-motion';
 
 export interface AdminUserItem {
   _id: string;
@@ -164,61 +165,69 @@ export default function UserSelectDropdown({
       </div>
 
       {/* Dropdown Options */}
-      {isOpen && (
-        <div className="absolute left-0 right-0 top-full mt-1.5 z-30 bg-zinc-900 border border-zinc-800 rounded-xl shadow-2xl overflow-hidden max-h-64 overflow-y-auto animate-in fade-in zoom-in-95 duration-150 divide-y divide-zinc-800/60">
-          {loading && users.length === 0 ? (
-            <div className="p-4 flex items-center justify-center gap-2 text-xs text-zinc-400">
-              <Loader2 className="w-4 h-4 animate-spin text-blue-500" /> Đang tìm kiếm...
-            </div>
-          ) : users.length === 0 ? (
-            <div className="p-4 text-center text-xs text-zinc-500">
-              Không tìm thấy người dùng nào phù hợp.
-            </div>
-          ) : (
-            users.map((u) => {
-              const disp = u.profile?.full_name || u.username;
-              return (
-                <div
-                  key={u._id}
-                  onClick={() => handleSelect(u)}
-                  className="flex items-center justify-between p-3 hover:bg-blue-600/10 cursor-pointer transition-colors group"
-                >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-8 h-8 rounded-full bg-zinc-800 overflow-hidden relative border border-zinc-700 shrink-0">
-                      {u.profile?.avatar ? (
-                        <Image src={u.profile.avatar} alt={u.username} fill className="object-cover" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-zinc-400">
-                          <UserIcon size={14} />
-                        </div>
-                      )}
-                    </div>
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-white text-xs truncate group-hover:text-blue-400">
-                          {disp}
-                        </span>
-                        <span className="text-[10px] px-1.5 py-0.2 rounded font-mono bg-zinc-800 text-zinc-400 border border-zinc-700">
-                          {u.role}
-                        </span>
-                      </div>
-                      <div className="text-[11px] text-zinc-400 font-mono truncate">
-                        @{u.username} · {u.email}
-                      </div>
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    className="px-2.5 py-1 rounded bg-zinc-800 group-hover:bg-blue-600 text-zinc-300 group-hover:text-white text-xs font-medium transition-colors shrink-0"
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: -6, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -6, scale: 0.98 }}
+            transition={{ duration: 0.16, ease: [0.22, 1, 0.36, 1] }}
+            className="absolute left-0 right-0 top-full mt-1.5 z-30 bg-zinc-900/95 backdrop-blur-xl border border-zinc-800 rounded-xl shadow-2xl overflow-hidden max-h-64 overflow-y-auto custom-dark-scrollbar divide-y divide-zinc-800/60 origin-top"
+          >
+            {loading && users.length === 0 ? (
+              <div className="p-4 flex items-center justify-center gap-2 text-xs text-zinc-400">
+                <Loader2 className="w-4 h-4 animate-spin text-blue-500" /> Đang tìm kiếm...
+              </div>
+            ) : users.length === 0 ? (
+              <div className="p-4 text-center text-xs text-zinc-500">
+                Không tìm thấy người dùng nào phù hợp.
+              </div>
+            ) : (
+              users.map((u) => {
+                const disp = u.profile?.full_name || u.username;
+                return (
+                  <div
+                    key={u._id}
+                    onClick={() => handleSelect(u)}
+                    className="flex items-center justify-between p-3 hover:bg-blue-600/10 cursor-pointer transition-colors group"
                   >
-                    Chọn
-                  </button>
-                </div>
-              );
-            })
-          )}
-        </div>
-      )}
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-8 h-8 rounded-full bg-zinc-800 overflow-hidden relative border border-zinc-700 shrink-0">
+                        {u.profile?.avatar ? (
+                          <Image src={u.profile.avatar} alt={u.username} fill className="object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-zinc-400">
+                            <UserIcon size={14} />
+                          </div>
+                        )}
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-white text-xs truncate group-hover:text-blue-400">
+                            {disp}
+                          </span>
+                          <span className="text-[10px] px-1.5 py-0.2 rounded font-mono bg-zinc-800 text-zinc-400 border border-zinc-700">
+                            {u.role}
+                          </span>
+                        </div>
+                        <div className="text-[11px] text-zinc-400 font-mono truncate">
+                          @{u.username} · {u.email}
+                        </div>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      className="px-2.5 py-1 rounded bg-zinc-800 group-hover:bg-blue-600 text-zinc-300 group-hover:text-white text-xs font-medium transition-colors shrink-0"
+                    >
+                      Chọn
+                    </button>
+                  </div>
+                );
+              })
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
