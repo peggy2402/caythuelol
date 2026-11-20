@@ -17,6 +17,7 @@ import {
   Users,
   Banknote,
   Shield,
+  ShieldCheck,
   Star,
   CheckCircle2,
   Info,
@@ -2508,41 +2509,44 @@ function ServiceBookingContent() {
                   </span>
                 </div>
 
-                <div className="flex justify-between items-center pt-2 border-t border-zinc-800">
-                  <div>
-                    <span className="text-xs font-bold text-emerald-400 block">
-                      {finalDeposit < finalPrice ? 'Bạn cần thanh toán tiền cọc:' : 'Số tiền thanh toán ngay:'}
+                <div className="pt-2.5 border-t border-zinc-800 space-y-2">
+                  <div className="flex justify-between items-baseline gap-2">
+                    <span className="text-xs sm:text-sm font-bold text-emerald-400 whitespace-nowrap">
+                      {finalDeposit < finalPrice ? 'Thanh toán tiền cọc:' : 'Số tiền thanh toán ngay:'}
                     </span>
-                    <span className="text-[10px] text-zinc-500">
-                      {finalDeposit < finalPrice
-                        ? 'Tạm giữ an toàn — số tiền còn lại chỉ trả khi hoàn thành'
-                        : 'Hệ thống tạm giữ an toàn 100%, chỉ chuyển khi bạn hài lòng'}
+                    <span className="text-xl sm:text-2xl font-black text-emerald-400 font-mono whitespace-nowrap tracking-tight">
+                      {finalDeposit.toLocaleString('vi-VN')} đ
                     </span>
                   </div>
-                  <span className="text-xl font-black text-emerald-400 font-mono">
-                    {finalDeposit.toLocaleString('vi-VN')} đ
-                  </span>
+                  <div className="flex items-center gap-1.5 text-[11px] text-zinc-400 bg-emerald-500/5 border border-emerald-500/15 px-2.5 py-1.5 rounded-xl">
+                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                    <span className="leading-tight">
+                      {finalDeposit < finalPrice
+                        ? 'Tạm giữ an toàn • Số tiền còn lại chỉ trả khi hoàn thành'
+                        : 'Tạm giữ Escrow an toàn • Chỉ chuyển tiền khi bạn hài lòng'}
+                    </span>
+                  </div>
                 </div>
               </div>
 
-              {/* Nút Đặt đơn */}
+              {/* Nút Đặt đơn (Desktop - Trên Mobile dùng thanh Sticky Footer ở đáy để tránh lặp nút) */}
               <button
                 type="button"
                 disabled={isSubmitting || calculation.totalPrice <= 0}
                 onClick={handlePlaceOrder}
-                className="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-extrabold text-sm shadow-xl shadow-blue-600/30 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2"
+                className="hidden lg:flex w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-extrabold text-sm shadow-xl shadow-blue-600/30 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 items-center justify-center gap-2"
               >
                 {isSubmitting ? (
                   <Loader2 className="w-5 h-5 animate-spin" />
                 ) : (
                   <>
-                    <span>Thanh Toán & Đặt Cày Ngay</span>
+                    <span>Đặt Cày Ngay</span>
                     <ArrowRight size={16} />
                   </>
                 )}
               </button>
 
-              <div className="text-[11px] text-zinc-500 text-center flex items-center justify-center gap-1.5">
+              <div className="hidden lg:flex text-[11px] text-zinc-500 text-center items-center justify-center gap-1.5">
                 <Shield size={12} className="text-emerald-400" />
                 <span>Hoàn tiền 100% nếu không hoàn thành đúng tiến độ.</span>
               </div>
