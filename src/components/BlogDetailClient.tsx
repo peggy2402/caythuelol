@@ -73,10 +73,30 @@ export default function BlogDetailClient({ initialPost, initialComments, initial
     }));
 
     try {
-      await fetch(`/api/comments/${commentId}/like`, { method: 'POST' });
+      const token = localStorage.getItem('token');
+      const res = await fetch(`/api/comments/${commentId}/like`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
+      if (!res.ok) {
+        throw new Error('Failed to like comment');
+      }
     } catch (e) {
       toast.error("Lỗi khi thích bình luận");
-      // Revert on error if needed, but for likes it's often acceptable to fail silently
+      // Revert optimistic update
+      setComments(prev => prev.map(c => {
+        if (c._id === commentId) {
+          const hasLiked = c.likes.includes(currentUser._id);
+          const newLikes = hasLiked
+            ? c.likes.filter((id: string) => id !== currentUser._id)
+            : [...c.likes, currentUser._id];
+          return { ...c, likes: newLikes };
+        }
+        return c;
+      }));
     }
   };
 
