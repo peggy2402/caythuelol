@@ -110,7 +110,7 @@ export default function BlogDetailClient({ initialPost, initialComments, initial
               </Link>
             </div>
 
-            <article className="prose prose-invert prose-lg max-w-none break-words prose-headings:font-bold prose-a:text-blue-400 hover:prose-a:text-blue-300 prose-img:rounded-xl w-full min-w-0 overflow-hidden">
+            <article className="prose prose-invert prose-lg max-w-none break-words prose-headings:font-bold prose-a:text-blue-400 hover:prose-a:text-blue-300 prose-img:rounded-xl w-full min-w-0">
               <header className="mb-12 border-b border-zinc-800 pb-8">
                 <h1 className="text-4xl md:text-5xl font-black text-white !mb-4">{post.title}</h1>
                 <div className="flex items-center gap-6 text-sm text-zinc-400">

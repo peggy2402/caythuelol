@@ -107,13 +107,37 @@ export default function UserBadge({
   tooltipText,
 }: UserBadgeProps) {
   const [showTooltip, setShowTooltip] = useState(false);
+  const [placement, setPlacement] = useState<'center' | 'left' | 'right'>('center');
+  const badgeRef = useRef<HTMLSpanElement>(null);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const pixelSize = typeof size === 'number' ? size : SIZE_MAP[size] || 18;
   const config = getUserBadgeConfig(role, vipTier, totalSpent, tooltipText);
 
+  const checkPosition = () => {
+    if (badgeRef.current && typeof window !== 'undefined') {
+      const rect = badgeRef.current.getBoundingClientRect();
+      const tooltipEstimateWidth = 240; // Ước lượng độ rộng tooltip
+      const halfWidth = tooltipEstimateWidth / 2;
+
+      if (rect.left < halfWidth) {
+        setPlacement('left'); // Lệch sang phải khi nằm quá sát mép trái
+      } else if (window.innerWidth - rect.right < halfWidth) {
+        setPlacement('right'); // Lệch sang trái khi nằm quá sát mép phải
+      } else {
+        setPlacement('center');
+      }
+    }
+  };
+
+  const handleMouseEnter = () => {
+    checkPosition();
+    setShowTooltip(true);
+  };
+
   const handleTrigger = (e: React.MouseEvent | React.TouchEvent) => {
     e.stopPropagation();
+    checkPosition();
     setShowTooltip((prev) => !prev);
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
     timeoutRef.current = setTimeout(() => {
@@ -129,11 +153,11 @@ export default function UserBadge({
 
   return (
     <span
+      ref={badgeRef}
       className={`relative inline-flex items-center justify-center shrink-0 cursor-pointer select-none group align-middle ${className}`}
-      onMouseEnter={() => setShowTooltip(true)}
+      onMouseEnter={handleMouseEnter}
       onMouseLeave={() => setShowTooltip(false)}
       onClick={handleTrigger}
-      title={config.tooltip}
     >
       <img
         src={config.src}
@@ -147,11 +171,25 @@ export default function UserBadge({
       {/* Floating Tooltip */}
       {showTooltip && (
         <span
-          className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2.5 py-1 rounded-lg bg-zinc-900/95 border border-white/15 text-white text-[11px] font-semibold whitespace-nowrap shadow-2xl backdrop-blur-md z-50 pointer-events-none animate-in fade-in zoom-in-95 duration-150 flex items-center gap-1.5"
+          className={`absolute bottom-full mb-2 px-2.5 py-1 rounded-lg bg-zinc-900/95 border border-white/15 text-white text-[11px] font-semibold whitespace-nowrap shadow-2xl backdrop-blur-md z-50 pointer-events-none animate-in fade-in zoom-in-95 duration-150 flex items-center gap-1.5 ${
+            placement === 'left'
+              ? 'left-0 translate-x-0'
+              : placement === 'right'
+              ? 'right-0 left-auto translate-x-0'
+              : 'left-1/2 -translate-x-1/2'
+          }`}
           style={{ minWidth: 'max-content' }}
         >
           <span>{config.tooltip}</span>
-          <span className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-zinc-900" />
+          <span
+            className={`absolute top-full border-4 border-transparent border-t-zinc-900 ${
+              placement === 'left'
+                ? 'left-3 translate-x-0'
+                : placement === 'right'
+                ? 'right-3 left-auto translate-x-0'
+                : 'left-1/2 -translate-x-1/2'
+            }`}
+          />
         </span>
       )}
     </span>
