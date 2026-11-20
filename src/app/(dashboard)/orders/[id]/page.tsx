@@ -1310,10 +1310,10 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
       );
   };
 
-  if (loading) return <div className="min-h-screen bg-zinc-950 pt-24 flex justify-center"><Loader2 className="w-8 h-8 animate-spin text-blue-500" /></div>;
+  if (loading) return <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-blue-500" /></div>;
   if (!order) {
     return (
-      <div className="min-h-screen bg-zinc-950 pt-24 px-4 flex flex-col items-center justify-center gap-4 text-center">
+      <div className="py-20 px-4 flex flex-col items-center justify-center gap-4 text-center">
         <p className="text-zinc-400 text-base">Đơn hàng không tồn tại hoặc đã bị xóa khỏi hệ thống.</p>
         <Link
           href={user?.role === 'BOOSTER' ? '/booster/my-orders' : user?.role === 'ADMIN' ? '/admin/orders' : '/orders'}
@@ -1385,13 +1385,13 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
   };
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-white font-sans pt-24 pb-10 px-4">
+    <div className="w-full text-white font-sans">
       <div className="max-w-5xl mx-auto">
         
-        <div className="mb-6">
+        <div className="mb-4">
           <Link 
             href={user?.role === 'BOOSTER' ? '/booster/my-orders' : user?.role === 'ADMIN' ? '/admin/orders' : '/orders'}
-            className="inline-flex items-center gap-2 text-zinc-500 hover:text-white transition-colors"
+            className="inline-flex items-center gap-2 text-sm font-medium text-zinc-400 hover:text-white transition-colors"
           >
             <ArrowLeft className="w-4 h-4" /> Quay lại danh sách đơn hàng
           </Link>

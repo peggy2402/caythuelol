@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { usePathname } from 'next/navigation';
@@ -42,6 +42,46 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const pathname = usePathname();
   const { t, language, setLanguage } = useLanguage();
   const router = useRouter();
+  const langMenuRef = useRef<HTMLDivElement>(null);
+  const notiRef = useRef<HTMLDivElement>(null);
+  const userMenuRef = useRef<HTMLDivElement>(null);
+
+  // Tự động đóng menu Ngôn ngữ / Thông báo / User khi click ra ngoài, nhấn ESC hoặc chuyển trang
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent | TouchEvent) => {
+      const target = e.target as Node;
+      if (langMenuRef.current && !langMenuRef.current.contains(target)) {
+        setIsLangMenuOpen(false);
+      }
+      if (notiRef.current && !notiRef.current.contains(target)) {
+        setIsNotiOpen(false);
+      }
+      if (userMenuRef.current && !userMenuRef.current.contains(target)) {
+        setIsUserMenuOpen(false);
+      }
+    };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsLangMenuOpen(false);
+        setIsNotiOpen(false);
+        setIsUserMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('touchstart', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []);
+
+  useEffect(() => {
+    setIsLangMenuOpen(false);
+    setIsNotiOpen(false);
+    setIsUserMenuOpen(false);
+  }, [pathname]);
   
   useEffect(() => {
     const userData = localStorage.getItem('user');
@@ -174,10 +214,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }, []);
 
   const handleReadNoti = async () => {
-    setIsNotiOpen(!isNotiOpen);
-    if (unreadCount > 0) {
-        await fetch('/api/notifications', { method: 'PATCH' });
-        setUnreadCount(0);
+    const nextOpen = !isNotiOpen;
+    setIsNotiOpen(nextOpen);
+    if (nextOpen) {
+      setIsLangMenuOpen(false);
+      setIsUserMenuOpen(false);
+    }
+    if (nextOpen && unreadCount > 0) {
+      await fetch('/api/notifications', { method: 'PATCH' });
+      setUnreadCount(0);
     }
   };
 
@@ -329,10 +374,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
           <div className="flex items-center gap-4">
             {/* Language Switcher Icon */}
-            <div className="relative">
+            <div ref={langMenuRef} className="relative">
               <button
-                onClick={() => setIsLangMenuOpen(!isLangMenuOpen)}
-                className="flex items-center justify-center rounded-lg p-2 transition-colors hover:bg-white/5"
+                type="button"
+                onClick={() => {
+                  const nextOpen = !isLangMenuOpen;
+                  setIsLangMenuOpen(nextOpen);
+                  if (nextOpen) {
+                    setIsNotiOpen(false);
+                    setIsUserMenuOpen(false);
+                  }
+                }}
+                aria-expanded={isLangMenuOpen}
+                className="flex items-center justify-center rounded-lg p-2 transition-colors hover:bg-white/5 cursor-pointer"
               >
                 <Image 
                   src="/language.svg" 
@@ -344,34 +398,34 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               </button>
 
               {isLangMenuOpen && (
-                <>
-                  <div className="fixed inset-0 z-40" onClick={() => setIsLangMenuOpen(false)} />
-                  <div className="absolute right-0 top-full mt-2 z-50 w-32 rounded-xl border border-white/10 bg-zinc-900 p-1 shadow-xl animate-in fade-in zoom-in-95 duration-200">
-                    {(['vi', 'en', 'kr', 'jp'] as const).map((lang) => (
-                      <button
-                        key={lang}
-                        onClick={() => {
-                          setLanguage(lang);
-                          setIsLangMenuOpen(false);
-                        }}
-                        className={`flex w-full items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                          language === lang
-                            ? 'bg-blue-600/10 text-blue-400'
-                            : 'text-zinc-400 hover:bg-white/5 hover:text-white'
-                        }`}
-                      >
-                        {lang === 'vi' ? 'Tiếng Việt' : lang === 'en' ? 'English' : lang === 'kr' ? '한국어' : '日本語'}
-                      </button>
-                    ))}
-                  </div>
-                </>
+                <div className="absolute right-0 top-full mt-2 z-50 w-32 rounded-xl border border-white/10 bg-zinc-900 p-1 shadow-xl animate-in fade-in zoom-in-95 duration-200">
+                  {(['vi', 'en', 'kr', 'jp'] as const).map((lang) => (
+                    <button
+                      key={lang}
+                      type="button"
+                      onClick={() => {
+                        setLanguage(lang);
+                        setIsLangMenuOpen(false);
+                      }}
+                      className={`flex w-full items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors cursor-pointer ${
+                        language === lang
+                          ? 'bg-blue-600/10 text-blue-400'
+                          : 'text-zinc-400 hover:bg-white/5 hover:text-white'
+                      }`}
+                    >
+                      {lang === 'vi' ? 'Tiếng Việt' : lang === 'en' ? 'English' : lang === 'kr' ? '한국어' : '日本語'}
+                    </button>
+                  ))}
+                </div>
               )}
             </div>
 
-            <div className="relative">
+            <div ref={notiRef} className="relative">
               <button 
+                type="button"
                 onClick={handleReadNoti}
-                className="relative rounded-full p-2 text-zinc-400 transition-colors hover:bg-white/5 hover:text-white"
+                aria-expanded={isNotiOpen}
+                className="relative rounded-full p-2 text-zinc-400 transition-colors hover:bg-white/5 hover:text-white cursor-pointer"
               >
                 <Bell className="h-5 w-5" />
                 {unreadCount > 0 && (
@@ -380,39 +434,45 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               </button>
 
               {isNotiOpen && (
-                <>
-                  <div className="fixed inset-0 z-40" onClick={() => setIsNotiOpen(false)} />
-                  <div className="absolute right-0 top-full mt-2 z-50 w-80 rounded-xl border border-white/10 bg-zinc-900 shadow-xl animate-in fade-in zoom-in-95 duration-200 overflow-hidden">
-                    <div className="p-3 border-b border-white/5 font-bold text-white text-sm">Thông báo</div>
-                    <div className="max-h-80 overflow-y-auto">
-                      {notifications.length === 0 ? (
-                        <div className="p-4 text-center text-zinc-500 text-xs">Không có thông báo mới</div>
-                      ) : (
-                        notifications.map((noti, idx) => (
-                          <Link 
-                            href={noti.link || '#'} 
-                            key={idx} 
-                            onClick={() => setIsNotiOpen(false)}
-                            className="block p-3 hover:bg-white/5 transition-colors border-b border-white/5 last:border-0"
-                          >
-                            <div className="text-sm font-bold text-white mb-1">{noti.title}</div>
-                            <div className="text-xs text-zinc-400 line-clamp-2">{noti.message}</div>
-                            <div className="text-[10px] text-zinc-600 mt-1">{new Date(noti.createdAt).toLocaleDateString()}</div>
-                          </Link>
-                        ))
-                      )}
-                    </div>
+                <div className="absolute right-0 top-full mt-2 z-50 w-80 rounded-xl border border-white/10 bg-zinc-900 shadow-xl animate-in fade-in zoom-in-95 duration-200 overflow-hidden">
+                  <div className="p-3 border-b border-white/5 font-bold text-white text-sm">Thông báo</div>
+                  <div className="max-h-80 overflow-y-auto">
+                    {notifications.length === 0 ? (
+                      <div className="p-4 text-center text-zinc-500 text-xs">Không có thông báo mới</div>
+                    ) : (
+                      notifications.map((noti, idx) => (
+                        <Link 
+                          href={noti.link || '#'} 
+                          key={idx} 
+                          onClick={() => setIsNotiOpen(false)}
+                          className="block p-3 hover:bg-white/5 transition-colors border-b border-white/5 last:border-0"
+                        >
+                          <div className="text-sm font-bold text-white mb-1">{noti.title}</div>
+                          <div className="text-xs text-zinc-400 line-clamp-2">{noti.message}</div>
+                          <div className="text-[10px] text-zinc-600 mt-1">{new Date(noti.createdAt).toLocaleDateString()}</div>
+                        </Link>
+                      ))
+                    )}
                   </div>
-                </>
+                </div>
               )}
             </div>
 
             <div className="h-8 w-[1px] bg-white/10" />
 
-            <div className="relative">
+            <div ref={userMenuRef} className="relative">
               <button 
-                onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-                className="flex items-center gap-3 hover:bg-white/5 p-2 rounded-xl transition-colors"
+                type="button"
+                onClick={() => {
+                  const nextOpen = !isUserMenuOpen;
+                  setIsUserMenuOpen(nextOpen);
+                  if (nextOpen) {
+                    setIsLangMenuOpen(false);
+                    setIsNotiOpen(false);
+                  }
+                }}
+                aria-expanded={isUserMenuOpen}
+                className="flex items-center gap-3 hover:bg-white/5 p-2 rounded-xl transition-colors cursor-pointer"
               >
                 <div className="text-right hidden sm:block">
                   <div className="text-sm font-bold text-white">{user?.username || 'User'}</div>
@@ -433,9 +493,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
               {/* User Dropdown Menu */}
               {isUserMenuOpen && (
-                <>
-                  <div className="fixed inset-0 z-40" onClick={() => setIsUserMenuOpen(false)} />
-                  <div className="absolute right-0 top-full mt-2 z-50 w-56 rounded-xl border border-white/10 bg-zinc-900 p-2 shadow-xl animate-in fade-in zoom-in-95 duration-200 origin-top-right">
+                <div className="absolute right-0 top-full mt-2 z-50 w-56 rounded-xl border border-white/10 bg-zinc-900 p-2 shadow-xl animate-in fade-in zoom-in-95 duration-200 origin-top-right">
                     <div className="px-3 py-2 border-b border-white/5 mb-1">
                       <p className="text-sm font-bold text-white">{user?.username}</p>
                       <p className="text-xs text-zinc-500 truncate">{user?.email}</p>
@@ -484,7 +542,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                       {t('logout')}
                     </button>
                   </div>
-                </>
               )}
             </div>
           </div>

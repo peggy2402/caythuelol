@@ -70,13 +70,22 @@ function LanguageDropdown({
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
+    const handleClickOutside = (e: MouseEvent | TouchEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
         setIsOpen(false);
       }
     };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsOpen(false);
+    };
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener('touchstart', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
   }, []);
 
   return (
@@ -138,10 +147,44 @@ export default function Navbar() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [isNotiOpen, setIsNotiOpen] = useState(false);
   const [showResignModal, setShowResignModal] = useState(false);
+  const notiRef = useRef<HTMLDivElement>(null);
+  const userMenuRef = useRef<HTMLDivElement>(null);
 
   const { t, language, setLanguage } = useLanguage();
   const router = useRouter();
   const pathname = usePathname();
+
+  // Tự động đóng menu Thông báo / Tài khoản khi bấm ra ngoài, nhấn ESC hoặc chuyển trang
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent | TouchEvent) => {
+      const target = e.target as Node;
+      if (notiRef.current && !notiRef.current.contains(target)) {
+        setIsNotiOpen(false);
+      }
+      if (userMenuRef.current && !userMenuRef.current.contains(target)) {
+        setIsDropdownOpen(false);
+      }
+    };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsNotiOpen(false);
+        setIsDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('touchstart', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []);
+
+  useEffect(() => {
+    setIsNotiOpen(false);
+    setIsDropdownOpen(false);
+  }, [pathname]);
 
   const fetchUserData = () => {
     const token = localStorage.getItem('token');
@@ -262,8 +305,12 @@ export default function Navbar() {
   }, []);
 
   const handleReadNoti = async () => {
-    setIsNotiOpen(!isNotiOpen);
-    if (unreadCount > 0) {
+    const nextOpen = !isNotiOpen;
+    setIsNotiOpen(nextOpen);
+    if (nextOpen) {
+      setIsDropdownOpen(false);
+    }
+    if (nextOpen && unreadCount > 0) {
       await fetch('/api/notifications', { method: 'PATCH' });
       setUnreadCount(0);
     }
@@ -414,11 +461,13 @@ export default function Navbar() {
 
               {/* Notification Bell */}
               {user && (
-                <div className="relative">
+                <div ref={notiRef} className="relative">
                   <button
+                    type="button"
                     onClick={handleReadNoti}
                     className="relative p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
                     aria-label="Thông báo"
+                    aria-expanded={isNotiOpen}
                   >
                     <Bell className="w-5 h-5" />
                     {unreadCount > 0 && (
@@ -434,7 +483,7 @@ export default function Navbar() {
                           <div className="p-4 text-center text-zinc-500 text-xs">Không có thông báo mới</div>
                         ) : (
                           notifications.map((noti, idx) => (
-                            <Link href={noti.link || '#'} key={idx} className="block p-3 hover:bg-zinc-800 transition-colors border-b border-zinc-800/50 last:border-0">
+                            <Link href={noti.link || '#'} key={idx} onClick={() => setIsNotiOpen(false)} className="block p-3 hover:bg-zinc-800 transition-colors border-b border-zinc-800/50 last:border-0">
                               <div className="text-sm font-bold text-white mb-1">{noti.title}</div>
                               <div className="text-xs text-zinc-400 line-clamp-2">{noti.message}</div>
                               <div className="text-[10px] text-zinc-600 mt-1">{new Date(noti.createdAt).toLocaleDateString()}</div>
@@ -448,9 +497,15 @@ export default function Navbar() {
               )}
 
               {user ? (
-                <div className="relative ml-1" suppressHydrationWarning>
+                <div ref={userMenuRef} className="relative ml-1" suppressHydrationWarning>
                   <button
-                    onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                    type="button"
+                    onClick={() => {
+                      const nextOpen = !isDropdownOpen;
+                      setIsDropdownOpen(nextOpen);
+                      if (nextOpen) setIsNotiOpen(false);
+                    }}
+                    aria-expanded={isDropdownOpen}
                     className="flex items-center gap-3 rounded-full border border-white/10 bg-zinc-900 px-3 py-1.5 hover:border-blue-500/40 transition cursor-pointer"
                   >
                     <div className="relative h-8 w-8 rounded-full overflow-hidden bg-gradient-to-br from-blue-500 to-purple-600 p-[1px]">
