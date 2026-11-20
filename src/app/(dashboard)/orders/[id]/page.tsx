@@ -1461,7 +1461,11 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                             <div className="text-xs text-zinc-400 font-medium">Hạn cuối</div>
                             <div className="flex items-center justify-between gap-3 flex-wrap">
                                 <span className="text-xl sm:text-2xl font-bold font-mono text-white tracking-tight">
-                                    {format(disputeDeadline, 'HH:mm:ss dd/MM/yyyy')}
+                                    {(() => {
+                                        const h = disputeDeadline.getHours();
+                                        const period = h < 6 ? 'Rạng sáng' : h < 12 ? 'Sáng' : h < 18 ? 'Chiều' : 'Tối';
+                                        return `${format(disputeDeadline, 'HH:mm:ss')} (${period}) • ${format(disputeDeadline, 'dd/MM/yyyy')}`;
+                                    })()}
                                 </span>
                                 <span className={`px-3 py-1 rounded-full text-xs sm:text-sm font-semibold border ${
                                     disputeRemainingMs > 0

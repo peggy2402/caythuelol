@@ -21,6 +21,20 @@ export const metadata: Metadata = {
     description: 'Chọn ngay Booster ưng ý để leo rank thần tốc trong mọi tựa game. Cam kết bảo mật tài khoản và hoàn tiền nếu không đạt yêu cầu.',
     type: 'website',
     url: '/services',
+    images: [
+      {
+        url: '/og-image.png',
+        width: 1200,
+        height: 630,
+        alt: 'LeoRank Dịch Vụ Cày Thuê Bảng Giá',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Dịch Vụ Cày Thuê Game Uy Tín - Bảng Giá & Thuê Booster | LEORANK',
+    description: 'Bảng giá cày rank LMHT, Tốc Chiến, Valorant, Liên Quân Mobile công khai, minh bạch, bảo mật tuyệt đối.',
+    images: ['/og-image.png'],
   },
   alternates: {
     canonical: '/services',

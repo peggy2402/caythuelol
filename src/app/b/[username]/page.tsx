@@ -79,16 +79,34 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     ? `⭐ ${rating.toFixed(1)} (${completedOrders} đơn)`
     : `⭐ 0/0 (${completedOrders} đơn)`;
 
+  const ogImage = user.profile?.avatar && user.profile.avatar.trim() ? user.profile.avatar : '/og-image.png';
+
   return {
     title: `${user.username} ${statsText} - Booster Chuyên Nghiệp | LeoRank`,
     description:
       boosterData?.bio ||
       `Thuê ${user.username} cày thuê LMHT uy tín, giá rẻ, tốc độ cao. Xem bảng giá và đánh giá chi tiết trên LeoRank.`,
+    alternates: {
+      canonical: `/b/${user.username}`,
+    },
     openGraph: {
-      title: `Thuê Booster ${user.username} ${statsText}`,
-      description: boosterData?.bio || `Xem hồ sơ, bảng giá và đánh giá của ${user.username}.`,
-      images: user.profile?.avatar ? [user.profile.avatar] : [],
+      title: `Thuê Booster ${user.username} ${statsText} | LeoRank`,
+      description: boosterData?.bio || `Xem hồ sơ, bảng giá và đánh giá của ${user.username}. Đội ngũ tuyển thủ rank Thách Đấu uy tín số 1 Việt Nam.`,
+      images: [
+        {
+          url: ogImage,
+          width: 1200,
+          height: 630,
+          alt: `Hồ sơ Booster ${user.username} - LeoRank`,
+        },
+      ],
       type: 'profile',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: `Thuê Booster ${user.username} ${statsText} | LeoRank`,
+      description: boosterData?.bio || `Xem hồ sơ và bảng giá của tuyển thủ ${user.username} trên LeoRank.`,
+      images: [ogImage],
     },
   };
 }

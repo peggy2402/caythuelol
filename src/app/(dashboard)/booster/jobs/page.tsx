@@ -250,7 +250,7 @@ export default function JobMarketPage() {
             <div className="flex items-center justify-between p-3 bg-black/20 rounded-lg border border-white/5">
                 <span className="text-zinc-400 text-xs">Mục tiêu</span>
                 <div className="flex items-center gap-2 font-bold text-white text-sm">
-                    {details?.current_rank} <ArrowRight className="w-3 h-3 text-zinc-600" /> <span className="text-blue-400">{details?.desired_rank}</span>
+                    {formatRankDisplayVi(details?.current_rank)} <ArrowRight className="w-3 h-3 text-zinc-600" /> <span className="text-blue-400">{formatRankDisplayVi(details?.desired_rank)}</span>
                 </div>
             </div>
         );
@@ -262,7 +262,7 @@ export default function JobMarketPage() {
                 <span className="text-zinc-400 text-xs">Mục tiêu</span>
                 <div className="text-right">
                     <div className="font-bold text-white text-sm">
-                        {details?.current_rank || details?.rank}
+                        {formatRankDisplayVi(details?.current_rank || details?.rank)}
                         {(details?.current_lp !== undefined && details?.current_lp !== '') && (
                             <span className="text-zinc-400 font-normal ml-1">({details.current_lp} LP)</span>
                         )}
@@ -280,7 +280,7 @@ export default function JobMarketPage() {
             <div className="flex items-center justify-between p-3 bg-black/20 rounded-lg border border-white/5">
                 <span className="text-zinc-400 text-xs">Yêu cầu</span>
                 <div className="text-right">
-                    <div className="font-bold text-white text-sm">{details?.prev_rank}</div>
+                    <div className="font-bold text-white text-sm">{formatRankDisplayVi(details?.prev_rank)}</div>
                     <div className="text-xs text-blue-400 font-bold">{details?.num_games} Trận đầu mùa</div>
                 </div>
             </div>
@@ -350,9 +350,9 @@ export default function JobMarketPage() {
         <div className="flex items-center justify-between p-3 bg-black/20 rounded-lg border border-white/5">
           <span className="text-zinc-400 text-xs">Mục tiêu</span>
           <div className="flex items-center gap-2 font-bold text-white text-sm">
-            {details?.current_rank || details?.current_level || 'Start'} 
+            {details?.current_rank ? formatRankDisplayVi(details.current_rank) : details?.current_level || 'Start'} 
             <ArrowRight className="w-3 h-3 text-zinc-600" /> 
-            <span className="text-blue-400">{details?.desired_rank || details?.desired_level || 'Target'}</span>
+            <span className="text-blue-400">{details?.desired_rank ? formatRankDisplayVi(details.desired_rank) : details?.desired_level || 'Target'}</span>
           </div>
         </div>
     );
@@ -445,32 +445,32 @@ export default function JobMarketPage() {
       </div>
 
       {/* Footer */}
-      <div className="pt-4 border-t border-white/5 flex items-center justify-between gap-3 mt-auto">
-        <div className="min-w-0">
-          <div className="text-xs text-zinc-500 truncate">Giá trị đơn hàng nhận được</div>
-          <div className="text-base sm:text-lg font-bold text-emerald-400 font-mono">
+      <div className="pt-4 border-t border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 mt-auto">
+        <div className="flex items-center justify-between sm:flex-col sm:items-start gap-0.5">
+          <span className="text-xs text-zinc-400 font-medium whitespace-nowrap">Thu nhập nhận được</span>
+          <span className="text-base sm:text-lg font-bold text-emerald-400 font-mono whitespace-nowrap">
             {new Intl.NumberFormat('vi-VN').format(getBoosterOrderValue(job.pricing))} đ
-          </div>
+          </span>
         </div>
         
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-2 w-full sm:w-auto">
             {type === 'DIRECT' ? (
                 <>
                     <button 
                         type="button"
                         onClick={() => handleRespond(job, 'reject')}
                         disabled={!!processingId}
-                        className="h-10 px-3 sm:px-3.5 bg-red-500/10 hover:bg-red-500/20 active:bg-red-500/30 border border-red-500/25 text-red-400 hover:text-red-300 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-1.5 disabled:opacity-50 active:scale-95 shrink-0"
+                        className="flex-1 sm:flex-none h-10 px-3.5 bg-red-500/10 hover:bg-red-500/20 active:bg-red-500/30 border border-red-500/25 text-red-400 hover:text-red-300 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-1.5 disabled:opacity-50 active:scale-95 whitespace-nowrap"
                         title="Từ chối đơn chỉ định này"
                     >
-                        <X className="w-4 h-4" />
-                        <span className="hidden sm:inline">Từ chối</span>
+                        <X className="w-4 h-4 shrink-0" />
+                        <span>Từ chối</span>
                     </button>
                     <button 
                         type="button"
                         onClick={() => handleRespond(job, 'approve')}
                         disabled={!!processingId}
-                        className="h-10 px-4 sm:px-5 bg-gradient-to-r from-blue-600 via-blue-500 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 active:from-blue-700 active:to-cyan-600 text-white rounded-xl text-xs sm:text-sm font-bold transition-all duration-200 shadow-md shadow-blue-500/25 hover:shadow-cyan-500/30 flex items-center justify-center gap-2 whitespace-nowrap disabled:opacity-50 active:scale-95 shrink-0"
+                        className="flex-1 sm:flex-none h-10 px-4 sm:px-5 bg-gradient-to-r from-blue-600 via-blue-500 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 active:from-blue-700 active:to-cyan-600 text-white rounded-xl text-xs sm:text-sm font-bold transition-all duration-200 shadow-md shadow-blue-500/25 hover:shadow-cyan-500/30 flex items-center justify-center gap-1.5 whitespace-nowrap disabled:opacity-50 active:scale-95"
                     >
                         {processingId === job._id ? <Loader2 className="w-4 h-4 animate-spin shrink-0" /> : <CheckCircle2 className="w-4 h-4 shrink-0" />}
                         <span>Nhận đơn</span>
@@ -481,7 +481,7 @@ export default function JobMarketPage() {
                     type="button"
                     onClick={() => handleClaim(job)}
                     disabled={!!processingId}
-                    className="h-10 px-4 sm:px-5 bg-gradient-to-r from-blue-600 via-blue-500 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 active:from-blue-700 active:to-cyan-600 text-white rounded-xl text-xs sm:text-sm font-bold transition-all duration-200 shadow-md shadow-blue-500/25 hover:shadow-cyan-500/30 flex items-center justify-center gap-2 whitespace-nowrap disabled:opacity-50 active:scale-95 shrink-0"
+                    className="w-full sm:w-auto h-10 px-4 sm:px-5 bg-gradient-to-r from-blue-600 via-blue-500 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 active:from-blue-700 active:to-cyan-600 text-white rounded-xl text-xs sm:text-sm font-bold transition-all duration-200 shadow-md shadow-blue-500/25 hover:shadow-cyan-500/30 flex items-center justify-center gap-2 whitespace-nowrap disabled:opacity-50 active:scale-95 shrink-0"
                 >
                     {processingId === job._id ? <Loader2 className="w-4 h-4 animate-spin shrink-0" /> : <Briefcase className="w-4 h-4 shrink-0" />}
                     <span>Nhận việc</span>
@@ -698,7 +698,7 @@ export default function JobMarketPage() {
                   <span className="font-medium text-zinc-200">
                     {acceptModal.job.details.promo_from
                       ? `${acceptModal.job.details.promo_from} ➔ ${acceptModal.job.details.promo_to}`
-                      : `${acceptModal.job.details.current_rank} ➔ ${acceptModal.job.details.desired_rank}`}
+                      : `${formatRankDisplayVi(acceptModal.job.details.current_rank)} ➔ ${formatRankDisplayVi(acceptModal.job.details.desired_rank)}`}
                   </span>
                 </div>
               )}

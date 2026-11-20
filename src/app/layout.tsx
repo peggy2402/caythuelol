@@ -86,6 +86,59 @@ export default function RootLayout({
   return (
     <html lang="vi" className="overflow-x-clip" suppressHydrationWarning>
       <head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@graph": [
+                {
+                  "@type": "Organization",
+                  "@id": "https://www.leorank.site/#organization",
+                  "name": "LeoRank",
+                  "url": "https://www.leorank.site",
+                  "logo": {
+                    "@type": "ImageObject",
+                    "url": "https://www.leorank.site/og-image.png",
+                    "width": 1200,
+                    "height": 630
+                  },
+                  "description": "Hệ thống cày thuê game và kéo rank uy tín số 1 Việt Nam: LMHT, Liên Quân Mobile, Valorant, Tốc Chiến, ĐTCL, FC Online.",
+                  "email": "contact@leorank.site"
+                },
+                {
+                  "@type": "WebSite",
+                  "@id": "https://www.leorank.site/#website",
+                  "url": "https://www.leorank.site",
+                  "name": "LeoRank - Dịch Vụ Cày Thuê Game Uy Tín",
+                  "publisher": {
+                    "@id": "https://www.leorank.site/#organization"
+                  },
+                  "potentialAction": {
+                    "@type": "SearchAction",
+                    "target": "https://www.leorank.site/boosters?search={search_term_string}",
+                    "query-input": "required name=search_term_string"
+                  }
+                },
+                {
+                  "@type": "Service",
+                  "name": "Dịch vụ cày thuê & kéo rank game chuyên nghiệp",
+                  "provider": {
+                    "@id": "https://www.leorank.site/#organization"
+                  },
+                  "areaServed": "VN",
+                  "serviceType": "Game Boosting",
+                  "offers": {
+                    "@type": "AggregateOffer",
+                    "priceCurrency": "VND",
+                    "lowPrice": "10000",
+                    "highPrice": "5000000"
+                  }
+                }
+              ]
+            })
+          }}
+        />
         {process.env.NODE_ENV !== 'production' && (
           <script
             dangerouslySetInnerHTML={{

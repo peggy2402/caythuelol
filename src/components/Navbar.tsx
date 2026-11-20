@@ -433,7 +433,7 @@ export default function Navbar() {
           </Link>
 
           {/* Desktop */}
-          <div className="hidden md:flex items-center gap-5" suppressHydrationWarning>
+          <div className="hidden xl:flex items-center gap-5" suppressHydrationWarning>
             {/* Nav Links */}
             <nav className="flex items-center gap-7 text-sm font-medium" suppressHydrationWarning>
               <NavLink href="/services" label={t('services')} />
@@ -667,33 +667,50 @@ export default function Navbar() {
             </div>
           </div>
 
-          {/* Mobile Button */}
-          <button
-            suppressHydrationWarning
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="md:hidden text-zinc-400 hover:text-white"
-          >
-            {isMobileMenuOpen ? (
-              <X className="h-6 w-6" />
-            ) : (
-              <Menu className="h-6 w-6" />
+          {/* Mobile & Tablet Hamburger Button */}
+          <div className="flex xl:hidden items-center gap-2" suppressHydrationWarning>
+            {user && (
+              <Link href="/profile" className="flex items-center gap-2 p-1 rounded-full hover:bg-white/10 transition">
+                <div className="h-8 w-8 rounded-full overflow-hidden border border-white/20 bg-zinc-800 flex items-center justify-center">
+                  {user.profile?.avatar ? (
+                    <img src={user.profile.avatar} alt="Avatar" className="h-full w-full object-cover" />
+                  ) : (
+                    <span className="text-xs font-bold text-white">
+                      {user.username.slice(0, 2).toUpperCase()}
+                    </span>
+                  )}
+                </div>
+              </Link>
             )}
-          </button>
+
+            <button
+              suppressHydrationWarning
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-white/10 transition-colors"
+              aria-label="Menu"
+            >
+              {isMobileMenuOpen ? (
+                <X className="h-6 w-6" />
+              ) : (
+                <Menu className="h-6 w-6" />
+              )}
+            </button>
+          </div>
         </div>
       </header>
 
-      {/* Mobile Menu Overlay */}
+      {/* Mobile & Tablet Menu Overlay */}
       <div
         suppressHydrationWarning
-        className={`fixed inset-0 z-[55] bg-black/60 backdrop-blur-sm transition-opacity duration-300 md:hidden ${isMobileMenuOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        className={`fixed inset-0 z-[55] bg-black/60 backdrop-blur-sm transition-opacity duration-300 xl:hidden ${isMobileMenuOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
           }`}
         onClick={closeMobileMenu}
       />
 
-      {/* Mobile Menu Panel */}
+      {/* Mobile & Tablet Menu Panel */}
       <div
         suppressHydrationWarning
-        className={`fixed inset-y-0 right-0 z-[60] flex flex-col w-3/4 max-w-xs border-l border-white/10 bg-zinc-750/80 backdrop-blur-md shadow-2xl transition-all duration-300 ease-in-out md:hidden ${isMobileMenuOpen ? 'translate-x-0 opacity-100 pointer-events-auto' : 'translate-x-full opacity-0 pointer-events-none hidden'
+        className={`fixed inset-y-0 right-0 z-[60] flex flex-col w-3/4 max-w-xs sm:max-w-sm border-l border-white/10 bg-zinc-900/95 backdrop-blur-xl shadow-2xl transition-all duration-300 ease-in-out xl:hidden ${isMobileMenuOpen ? 'translate-x-0 opacity-100 pointer-events-auto' : 'translate-x-full opacity-0 pointer-events-none hidden'
           }`}
       >
         <div className="flex items-center justify-between border-b border-white/10 p-4" suppressHydrationWarning>

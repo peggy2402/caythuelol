@@ -689,6 +689,27 @@ export class OrdersService {
 
       await session.commitTransaction();
 
+      // Đồng bộ số đơn hoàn thành cho Booster
+      try {
+        if (order.boosterId) {
+          const completedCount = await this.orderModel.countDocuments({
+            boosterId: order.boosterId,
+            status: OrderStatus.COMPLETED,
+          });
+          await this.userModel.collection.updateOne(
+            { _id: order.boosterId },
+            { $set: { 'booster_info.completed_orders': completedCount } },
+          );
+          await this.boosterProfileModel.updateOne(
+            { userId: order.boosterId },
+            { $set: { completedOrders: completedCount } },
+            { upsert: true },
+          );
+        }
+      } catch (countErr) {
+        // Non-blocking
+      }
+
       return { success: true, order };
     } catch (err) {
       await session.abortTransaction();
@@ -722,11 +743,21 @@ export class OrdersService {
         { $group: { _id: null, avgStars: { $avg: '$rating.stars' }, count: { $sum: 1 } } },
       ]);
 
+      const completedOrdersCount = await this.orderModel.countDocuments({
+        boosterId: order.boosterId,
+        status: OrderStatus.COMPLETED,
+      });
+
       if (allRatings.length > 0) {
         const avg = Math.round(allRatings[0].avgStars * 10) / 10;
         await this.userModel.collection.updateOne(
           { _id: order.boosterId },
-          { $set: { 'booster_info.rating': avg, 'booster_info.completed_orders': allRatings[0].count } },
+          { $set: { 'booster_info.rating': avg, 'booster_info.completed_orders': completedOrdersCount } },
+        );
+        await this.boosterProfileModel.updateOne(
+          { userId: order.boosterId },
+          { $set: { rating: avg, completedOrders: completedOrdersCount } },
+          { upsert: true },
         );
       }
     }

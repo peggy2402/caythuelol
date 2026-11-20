@@ -653,9 +653,18 @@ export class BoostersService {
               },
             },
           },
-          rating: { $ifNull: ['$profileDoc.rating', '$booster_info.rating', 0] },
+          rating: {
+            $cond: {
+              if: { $gt: [{ $ifNull: ['$profileDoc.rating', 0] }, 0] },
+              then: '$profileDoc.rating',
+              else: { $ifNull: ['$booster_info.rating', 0] },
+            },
+          },
           completedOrders: {
-            $ifNull: ['$profileDoc.completedOrders', '$booster_info.completed_orders', 0],
+            $max: [
+              { $ifNull: ['$profileDoc.completedOrders', 0] },
+              { $ifNull: ['$booster_info.completed_orders', 0] },
+            ],
           },
           games: { $ifNull: ['$profileDoc.games', []] },
           bio: { $ifNull: ['$profileDoc.bio', '$booster_info.bio', ''] },
@@ -875,7 +884,30 @@ export class BoostersService {
       tier: (profile as any)?.tier || user.booster_info?.tier || 'DIAMOND',
       tierName: (profile as any)?.tierName || user.booster_info?.tierName || 'Diamond',
       completed_orders: completedOrdersCount,
-      rating: user.booster_info?.rating || (profile as any)?.rating || 0,
+      rating: (() => {
+        if (reviews && reviews.length > 0) {
+          const validReviews = reviews.filter(
+            (r: any) =>
+              typeof r.rating?.stars === 'number' ||
+              typeof r.rating?.rating === 'number' ||
+              typeof r.rating === 'number',
+          );
+          if (validReviews.length > 0) {
+            const sum = validReviews.reduce(
+              (acc: number, r: any) => acc + (r.rating?.stars ?? r.rating?.rating ?? r.rating ?? 5),
+              0,
+            );
+            return Math.round((sum / validReviews.length) * 10) / 10;
+          }
+        }
+        if (typeof user.booster_info?.rating === 'number' && user.booster_info.rating > 0) {
+          return user.booster_info.rating;
+        }
+        if (typeof (profile as any)?.rating === 'number' && (profile as any).rating > 0) {
+          return (profile as any).rating;
+        }
+        return 5.0;
+      })(),
       bio: user.booster_info?.bio || (profile as any)?.bio || '',
       likes_count: likesCount || 0,
       favoritesCount: likesCount || 0,
