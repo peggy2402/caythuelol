@@ -677,17 +677,10 @@ export class BoostersService {
     if (query.server) {
       andConditions.push({ 'games.servers': query.server });
     }
-    if (query.service) {
-      andConditions.push({
-        $or: [
-          { services: query.service },
-          { 'booster_info.services': query.service },
-          { 'profileDoc.services': query.service },
-        ],
-      });
-    }
 
+    const cleanService = (query.service || '').trim();
     const targetGame = (query.game || query.gameCode || '').trim();
+
     if (targetGame) {
       let normalized = targetGame.toUpperCase();
       if (['VAL', 'VALORANT'].includes(normalized)) normalized = 'VALORANT';
@@ -698,6 +691,30 @@ export class BoostersService {
       else if (['WILDRIFT', 'WR', 'TOCCHIEN'].includes(normalized)) normalized = 'WILDRIFT';
 
       const gameRegex = new RegExp(`^(${normalized}|${targetGame})$`, 'i');
+
+      const customServiceMatch: any = {
+        $or: [
+          { gameCode: { $regex: gameRegex } },
+          ...(normalized === 'LOL' ? [{ gameCode: { $exists: false } }] : []),
+        ],
+        isActive: true,
+      };
+
+      // Nếu có yêu cầu dịch vụ cụ thể (VD: net-wins, rank-boost...)
+      // Bắt buộc booster phải có chính xác gói dịch vụ đó và đang BẬT!
+      if (cleanService) {
+        const serviceRegex = new RegExp(`^${cleanService}$`, 'i');
+        customServiceMatch.$and = [
+          {
+            $or: [
+              { serviceType: { $regex: serviceRegex } },
+              { slug: { $regex: serviceRegex } },
+              { id: { $regex: serviceRegex } },
+            ],
+          },
+        ];
+      }
+
       andConditions.push({
         // 1. Tựa game bắt buộc phải nằm trong selectedGames của booster
         $or: [
@@ -715,12 +732,20 @@ export class BoostersService {
             ],
           },
         ],
-        // 2. Bắt buộc booster phải có ít nhất 1 dịch vụ thực tế trong customServices thuộc tựa game này và đang bật (isActive === true)
+        // 2. Bắt buộc booster phải có dịch vụ tương ứng trong customServices đang BẬT (isActive: true)
+        'booster_info.service_settings.customServices': {
+          $elemMatch: customServiceMatch,
+        },
+      });
+    } else if (cleanService) {
+      const serviceRegex = new RegExp(`^${cleanService}$`, 'i');
+      andConditions.push({
         'booster_info.service_settings.customServices': {
           $elemMatch: {
             $or: [
-              { gameCode: { $regex: gameRegex } },
-              ...(normalized === 'LOL' ? [{ gameCode: { $exists: false } }] : []),
+              { serviceType: { $regex: serviceRegex } },
+              { slug: { $regex: serviceRegex } },
+              { id: { $regex: serviceRegex } },
             ],
             isActive: true,
           },

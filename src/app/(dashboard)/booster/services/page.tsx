@@ -1896,11 +1896,14 @@ export default function BoosterServicesStudio() {
 
                         <div className="relative w-24 shrink-0">
                           <input
-                            type="number"
+                            type="text"
+                            inputMode="numeric"
+                            pattern="[0-9]*"
                             placeholder={step.stepPrice.toLocaleString('vi-VN')}
                             value={currentOverride || ''}
                             onChange={(e) => {
-                              const val = parseInt(e.target.value);
+                              const clean = e.target.value.replace(/\D/g, '').replace(/^0+/, '');
+                              const val = clean ? parseInt(clean, 10) : 0;
                               if (activeRankEditingServiceId) {
                                 const updated = customServices.map((s) => {
                                   if (s.id === activeRankEditingServiceId) {
@@ -1927,7 +1930,7 @@ export default function BoosterServicesStudio() {
                                 });
                               }
                             }}
-                            className="w-full bg-zinc-900 border border-zinc-700 rounded-lg pr-5 pl-2 py-1 text-xs text-white font-mono font-bold text-right outline-none focus:border-cyan-500"
+                            className="w-full bg-zinc-900 border border-zinc-700 rounded-lg pr-5 pl-2 py-1 text-xs text-white font-mono font-bold text-right outline-none focus:border-cyan-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                           />
                           <span className="text-[10px] text-zinc-500 absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none">
                             đ
@@ -2160,20 +2163,23 @@ export default function BoosterServicesStudio() {
                                 </div>
                                 <div className="relative w-28 shrink-0">
                                   <input
-                                    type="number"
+                                    type="text"
+                                    inputMode="numeric"
+                                    pattern="[0-9]*"
                                     placeholder={step.stepPrice.toLocaleString('vi-VN')}
                                     value={overrideVal || ''}
                                     onChange={(e) => {
-                                      const val = parseInt(e.target.value);
+                                      const clean = e.target.value.replace(/\D/g, '').replace(/^0+/, '');
+                                      const val = clean ? parseInt(clean, 10) : 0;
                                       const steps = { ...(formData.stepOverrides || {}) };
-                                      if (isNaN(val) || val <= 0) {
+                                      if (!val || val <= 0) {
                                         delete steps[step.id];
                                       } else {
                                         steps[step.id] = val;
                                       }
                                       setFormData({ ...formData, stepOverrides: steps });
                                     }}
-                                    className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-2 py-1 text-xs text-white font-mono font-bold text-right outline-none focus:border-cyan-500"
+                                    className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-2 py-1 text-xs text-white font-mono font-bold text-right outline-none focus:border-cyan-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                   />
                                   <span className="text-[10px] text-zinc-500 absolute right-7 top-1/2 -translate-y-1/2">
                                     đ
@@ -2220,12 +2226,14 @@ export default function BoosterServicesStudio() {
                                 </div>
                                 <div className="flex items-center gap-1.5 shrink-0">
                                   <input
-                                    type="number"
-                                    min="500"
-                                    step="500"
-                                    value={currentVal}
+                                    type="text"
+                                    inputMode="numeric"
+                                    pattern="[0-9]*"
+                                    value={currentVal === 0 ? '' : currentVal}
+                                    placeholder="0"
                                     onChange={(e) => {
-                                      const parsed = parseInt(e.target.value) || 0;
+                                      const clean = e.target.value.replace(/\D/g, '').replace(/^0+/, '');
+                                      const parsed = clean ? parseInt(clean, 10) : 0;
                                       setFormData((prev) => ({
                                         ...prev,
                                         tierRates: {
@@ -2234,7 +2242,7 @@ export default function BoosterServicesStudio() {
                                         },
                                       }));
                                     }}
-                                    className="w-24 bg-zinc-900 border border-zinc-700 rounded-lg px-2.5 py-1 text-xs text-white font-mono font-bold text-right outline-none focus:border-cyan-500"
+                                    className="w-24 bg-zinc-900 border border-zinc-700 rounded-lg px-2.5 py-1 text-xs text-white font-mono font-bold text-right outline-none focus:border-cyan-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                   />
                                   <span className="text-zinc-500 text-[11px] font-bold">đ / {tier.unit}</span>
                                 </div>
@@ -2302,12 +2310,16 @@ export default function BoosterServicesStudio() {
                           Đơn Giá (VNĐ / {formData.unitName || 'Giờ'})
                         </label>
                         <input
-                          type="number"
-                          min="0"
+                          type="text"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
                           placeholder="VD: 100000"
                           value={formData.price || ''}
-                          onChange={(e) => setFormData({ ...formData, price: parseInt(e.target.value) || 0 })}
-                          className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-white font-mono font-bold outline-none focus:border-cyan-500 text-xs"
+                          onChange={(e) => {
+                            const clean = e.target.value.replace(/\D/g, '').replace(/^0+/, '');
+                            setFormData({ ...formData, price: clean ? parseInt(clean, 10) : 0 });
+                          }}
+                          className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-white font-mono font-bold outline-none focus:border-cyan-500 text-xs [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                         />
                       </div>
                     </div>
@@ -2356,12 +2368,16 @@ export default function BoosterServicesStudio() {
                           Đơn Giá Bình Quân / Cấp (VNĐ)
                         </label>
                         <input
-                          type="number"
-                          min="0"
+                          type="text"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
                           placeholder="VD: 50000"
                           value={formData.price || ''}
-                          onChange={(e) => setFormData({ ...formData, price: parseInt(e.target.value) || 0 })}
-                          className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-white font-mono font-bold outline-none focus:border-cyan-500 text-xs"
+                          onChange={(e) => {
+                            const clean = e.target.value.replace(/\D/g, '').replace(/^0+/, '');
+                            setFormData({ ...formData, price: clean ? parseInt(clean, 10) : 0 });
+                          }}
+                          className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-white font-mono font-bold outline-none focus:border-cyan-500 text-xs [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                         />
                       </div>
                     </div>
@@ -2397,11 +2413,14 @@ export default function BoosterServicesStudio() {
                               </div>
                               <div className="flex items-center gap-1.5 shrink-0">
                                 <input
-                                  type="number"
-                                  min="0"
+                                  type="text"
+                                  inputMode="numeric"
+                                  pattern="[0-9]*"
                                   value={overrideVal || ''}
+                                  placeholder="0"
                                   onChange={(e) => {
-                                    const val = parseInt(e.target.value) || 0;
+                                    const clean = e.target.value.replace(/\D/g, '').replace(/^0+/, '');
+                                    const val = clean ? parseInt(clean, 10) : 0;
                                     const steps = { ...(formData.stepOverrides || {}) };
                                     if (val <= 0) {
                                       delete steps[mStep.id];
@@ -2410,7 +2429,7 @@ export default function BoosterServicesStudio() {
                                     }
                                     setFormData({ ...formData, stepOverrides: steps });
                                   }}
-                                  className="w-24 bg-zinc-900 border border-zinc-700 rounded-lg px-2 py-1 text-xs text-white font-mono font-bold text-right outline-none focus:border-cyan-500"
+                                  className="w-24 bg-zinc-900 border border-zinc-700 rounded-lg px-2 py-1 text-xs text-white font-mono font-bold text-right outline-none focus:border-cyan-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                 />
                                 <span className="text-[10px] text-zinc-500 font-bold">đ</span>
                               </div>
@@ -2450,12 +2469,16 @@ export default function BoosterServicesStudio() {
                           Đơn Giá / 1 Cấp Độ (VNĐ)
                         </label>
                         <input
-                          type="number"
-                          min="0"
+                          type="text"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
                           placeholder="VD: 10000"
                           value={formData.price || ''}
-                          onChange={(e) => setFormData({ ...formData, price: parseInt(e.target.value) || 0 })}
-                          className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-white font-mono font-bold outline-none focus:border-cyan-500 text-xs"
+                          onChange={(e) => {
+                            const clean = e.target.value.replace(/\D/g, '').replace(/^0+/, '');
+                            setFormData({ ...formData, price: clean ? parseInt(clean, 10) : 0 });
+                          }}
+                          className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-white font-mono font-bold outline-none focus:border-cyan-500 text-xs [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                         />
                       </div>
                     </div>
@@ -2499,12 +2522,16 @@ export default function BoosterServicesStudio() {
                           Đơn Giá / 1 Trận Phân Hạng (VNĐ)
                         </label>
                         <input
-                          type="number"
-                          min="0"
+                          type="text"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
                           placeholder="VD: 30000"
                           value={formData.price || ''}
-                          onChange={(e) => setFormData({ ...formData, price: parseInt(e.target.value) || 0 })}
-                          className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-white font-mono font-bold outline-none focus:border-cyan-500 text-xs"
+                          onChange={(e) => {
+                            const clean = e.target.value.replace(/\D/g, '').replace(/^0+/, '');
+                            setFormData({ ...formData, price: clean ? parseInt(clean, 10) : 0 });
+                          }}
+                          className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-white font-mono font-bold outline-none focus:border-cyan-500 text-xs [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                         />
                       </div>
                     </div>
@@ -2548,12 +2575,16 @@ export default function BoosterServicesStudio() {
                           Đơn Giá / 1 Trận (VNĐ)
                         </label>
                         <input
-                          type="number"
-                          min="0"
+                          type="text"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
                           placeholder="VD: 35000"
                           value={formData.price || ''}
-                          onChange={(e) => setFormData({ ...formData, price: parseInt(e.target.value) || 0 })}
-                          className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-white font-mono font-bold outline-none focus:border-cyan-500 text-xs"
+                          onChange={(e) => {
+                            const clean = e.target.value.replace(/\D/g, '').replace(/^0+/, '');
+                            setFormData({ ...formData, price: clean ? parseInt(clean, 10) : 0 });
+                          }}
+                          className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-white font-mono font-bold outline-none focus:border-cyan-500 text-xs [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                         />
                       </div>
                     </div>
@@ -2626,11 +2657,14 @@ export default function BoosterServicesStudio() {
                               </div>
                               <div className="flex items-center gap-1.5 shrink-0">
                                 <input
-                                  type="number"
-                                  min="0"
+                                  type="text"
+                                  inputMode="numeric"
+                                  pattern="[0-9]*"
                                   value={overrideVal || ''}
+                                  placeholder="0"
                                   onChange={(e) => {
-                                    const val = parseInt(e.target.value) || 0;
+                                    const clean = e.target.value.replace(/\D/g, '').replace(/^0+/, '');
+                                    const val = clean ? parseInt(clean, 10) : 0;
                                     const steps = { ...(formData.stepOverrides || {}) };
                                     if (val <= 0) {
                                       delete steps[promoStep.id];
@@ -2643,7 +2677,7 @@ export default function BoosterServicesStudio() {
                                       stepOverrides: steps,
                                     });
                                   }}
-                                  className="w-24 bg-zinc-900 border border-zinc-700 rounded-lg px-2 py-1 text-xs text-white font-mono font-bold text-right outline-none focus:border-cyan-500"
+                                  className="w-24 bg-zinc-900 border border-zinc-700 rounded-lg px-2 py-1 text-xs text-white font-mono font-bold text-right outline-none focus:border-cyan-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                 />
                                 <span className="text-[10px] text-zinc-500 font-bold">đ</span>
                               </div>
@@ -2718,12 +2752,16 @@ export default function BoosterServicesStudio() {
                       <div>
                         <label className="text-zinc-400 font-bold uppercase block mb-1">Đơn Giá (VNĐ)</label>
                         <input
-                          type="number"
-                          min="0"
+                          type="text"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
                           placeholder="Nhập giá VNĐ"
                           value={formData.price || ''}
-                          onChange={(e) => setFormData({ ...formData, price: parseInt(e.target.value) || 0 })}
-                          className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-white font-mono font-bold outline-none focus:border-cyan-500 text-xs"
+                          onChange={(e) => {
+                            const clean = e.target.value.replace(/\D/g, '').replace(/^0+/, '');
+                            setFormData({ ...formData, price: clean ? parseInt(clean, 10) : 0 });
+                          }}
+                          className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-white font-mono font-bold outline-none focus:border-cyan-500 text-xs [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                         />
                       </div>
                     </div>
@@ -2748,12 +2786,16 @@ export default function BoosterServicesStudio() {
                           Giá Trọn Gói Dịch Vụ (VNĐ)
                         </label>
                         <input
-                          type="number"
-                          min="0"
+                          type="text"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
                           placeholder="Nhập đơn giá (VNĐ)"
                           value={formData.price || ''}
-                          onChange={(e) => setFormData({ ...formData, price: parseInt(e.target.value) || 0 })}
-                          className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-white font-mono font-bold outline-none focus:border-cyan-500 text-xs"
+                          onChange={(e) => {
+                            const clean = e.target.value.replace(/\D/g, '').replace(/^0+/, '');
+                            setFormData({ ...formData, price: clean ? parseInt(clean, 10) : 0 });
+                          }}
+                          className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-white font-mono font-bold outline-none focus:border-cyan-500 text-xs [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                         />
                       </div>
                       <div className="flex items-center justify-between p-3 rounded-xl bg-zinc-950 border border-zinc-800 text-[11px] text-zinc-400">
@@ -2790,12 +2832,16 @@ export default function BoosterServicesStudio() {
                         <div>
                           <label className="text-zinc-400 font-bold uppercase block mb-1">Đơn Giá (VNĐ)</label>
                           <input
-                            type="number"
-                            min="0"
+                            type="text"
+                            inputMode="numeric"
+                            pattern="[0-9]*"
                             placeholder="Nhập đơn giá (VNĐ)"
                             value={formData.price || ''}
-                            onChange={(e) => setFormData({ ...formData, price: parseInt(e.target.value) || 0 })}
-                            className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-white font-mono font-bold outline-none focus:border-cyan-500 text-xs"
+                            onChange={(e) => {
+                              const clean = e.target.value.replace(/\D/g, '').replace(/^0+/, '');
+                              setFormData({ ...formData, price: clean ? parseInt(clean, 10) : 0 });
+                            }}
+                            className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-white font-mono font-bold outline-none focus:border-cyan-500 text-xs [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                           />
                         </div>
                       </div>

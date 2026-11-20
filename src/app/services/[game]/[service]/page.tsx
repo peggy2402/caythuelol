@@ -724,13 +724,13 @@ function ServiceBookingContent() {
       .catch(() => {});
   }, []);
 
-  // Fetch danh sách booster của game để khách chọn nếu muốn
+  // Fetch danh sách booster của game để khách chọn nếu muốn (lọc theo service)
   useEffect(() => {
-    fetch(`/api/boosters?game=${encodeURIComponent(game.id.toUpperCase())}`)
+    fetch(`/api/boosters?game=${encodeURIComponent(game.id.toUpperCase())}&service=${encodeURIComponent(serviceSlug)}`)
       .then((res) => res.json())
       .then((data) => setBoosterList(data.boosters || []))
       .catch(() => {});
-  }, [game.id]);
+  }, [game.id, serviceSlug]);
 
   // Nếu có query booster, fetch thông tin booster đó
   useEffect(() => {
@@ -842,6 +842,14 @@ function ServiceBookingContent() {
   const flashCfg = boosterAddonsConfig?.flash || { enabled: true, percent: 35 };
   const duoCfg = boosterAddonsConfig?.duo || { enabled: true, percent: 50 };
 
+  // Tỷ lệ cọc giữ chỗ: Ưu tiên tỷ lệ booster cấu hình riêng cho gói này, nếu không thì lấy mặc định theo dịch vụ
+  const effectiveDepositPercent = useMemo(() => {
+    if (isManualSelectBooster && typeof matchingBoosterService?.depositPercent === 'number' && matchingBoosterService.depositPercent > 0) {
+      return Number(matchingBoosterService.depositPercent);
+    }
+    return serviceDef.depositPercent || (isPointBoost ? 30 : 100);
+  }, [isManualSelectBooster, matchingBoosterService?.depositPercent, serviceDef.depositPercent, isPointBoost]);
+
   // Tính toán bảng giá (Hỗ trợ Cày Điểm RR/LP, Chuỗi Thăng Hạng và Cày Bậc Rank)
   const calculation = useMemo(() => {
     if (isPromotion) {
@@ -887,7 +895,7 @@ function ServiceBookingContent() {
       const percentageAddons = Math.round(rawPointPrice * addonPercentage);
       const totalAddons = percentageAddons + addonFlatFee;
       const total = rawPointPrice + totalAddons;
-      const ratio = (serviceDef.depositPercent ?? 40) / 100;
+      const ratio = effectiveDepositPercent / 100;
 
       return {
         basePrice: rawPointPrice,
@@ -906,7 +914,7 @@ function ServiceBookingContent() {
       lpGainMultiplier: lpMultiplier,
       addons,
       boosterPriceMultiplier: isManualSelectBooster && assignedBooster ? boosterMultiplier : 1.0,
-      depositPercent: serviceDef.depositPercent || 100,
+      depositPercent: effectiveDepositPercent,
       stepOverrides: isManualSelectBooster && assignedBooster ? boosterStepOverrides : undefined,
       addonsConfig: isManualSelectBooster && assignedBooster ? boosterAddonsConfig : undefined,
     });
@@ -925,7 +933,7 @@ function ServiceBookingContent() {
     specificRoleCfg,
     scheduleCfg,
     livestreamCfg,
-    serviceDef.depositPercent,
+    effectiveDepositPercent,
     isManualSelectBooster,
     assignedBooster,
     boosterMultiplier,
@@ -975,9 +983,9 @@ function ServiceBookingContent() {
   }, [subtotalAfterDiscount, serviceFee]);
 
   const finalDeposit = useMemo(() => {
-    const ratio = (serviceDef.depositPercent || (isPointBoost ? 40 : 100)) / 100;
+    const ratio = effectiveDepositPercent / 100;
     return Math.round(finalPrice * ratio);
-  }, [finalPrice, serviceDef.depositPercent, isPointBoost]);
+  }, [finalPrice, effectiveDepositPercent]);
 
   // Rank Objects
   const currentRankObj = useMemo(() => {
@@ -1209,7 +1217,7 @@ function ServiceBookingContent() {
           final_price: finalPrice,
           total_amount: finalPrice,
           deposit_amount: finalDeposit,
-          deposit_percent: serviceDef.depositPercent || (isPointBoost ? 40 : 100),
+          deposit_percent: effectiveDepositPercent,
           coupon_code: appliedCoupon ? appliedCoupon.code : null,
         },
         service_data: isPromotion
@@ -1571,7 +1579,7 @@ function ServiceBookingContent() {
                   </div>
 
                   {/* Grid các Phân Khúc Rank */}
-                  <div className={`grid grid-cols-1 ${pointTiers.length === 4 ? 'sm:grid-cols-2' : pointTiers.length >= 5 ? 'sm:grid-cols-3' : 'sm:grid-cols-3'} gap-3`}>
+                  <div className={`grid grid-cols-1 ${pointTiers.length === 4 ? 'sm:grid-cols-2' : pointTiers.length >= 5 ? 'sm:grid-cols-3' : 'sm:grid-cols-3'} gap-3 items-stretch`}>
                     {pointTiers.map((tier) => {
                       const isSelected = selectedPointSegment === tier.id;
                       const customPrice = matchingBoosterService?.tierRates?.[tier.id] ?? tier.defaultPrice;
@@ -1579,29 +1587,31 @@ function ServiceBookingContent() {
                         <div
                           key={tier.id}
                           onClick={() => setSelectedPointSegment(tier.id)}
-                          className={`p-4 rounded-2xl border transition-all cursor-pointer relative overflow-hidden group select-none ${
+                          className={`p-4 rounded-2xl border transition-all cursor-pointer relative overflow-hidden group select-none flex flex-col justify-between h-full ${
                             isSelected
                               ? 'bg-gradient-to-br from-cyan-950/40 via-zinc-900 to-zinc-950 border-cyan-500 shadow-[0_0_20px_rgba(6,182,212,0.15)] ring-1 ring-cyan-500/60'
                               : 'bg-zinc-950/70 border-zinc-800/80 hover:border-zinc-700 hover:bg-zinc-900/60'
                           }`}
                         >
-                          <div className="flex items-center justify-between mb-2">
-                            <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-md border ${tier.badgeColor}`}>
-                              {tier.shortLabel}
-                            </span>
-                            {isSelected && (
-                              <CheckCircle2 size={16} className="text-cyan-400 shrink-0" />
-                            )}
+                          <div className="flex-1">
+                            <div className="flex items-center justify-between mb-2">
+                              <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-md border ${tier.badgeColor}`}>
+                                {tier.shortLabel}
+                              </span>
+                              {isSelected && (
+                                <CheckCircle2 size={16} className="text-cyan-400 shrink-0" />
+                              )}
+                            </div>
+
+                            <div className="text-sm font-bold text-white mb-1">
+                              {tier.label}
+                            </div>
+                            <div className="text-[11px] text-zinc-400 mb-3 line-clamp-1">
+                              {tier.desc}
+                            </div>
                           </div>
 
-                          <div className="text-sm font-bold text-white mb-1">
-                            {tier.label}
-                          </div>
-                          <div className="text-[11px] text-zinc-400 mb-3 line-clamp-1">
-                            {tier.desc}
-                          </div>
-
-                          <div className="pt-2 border-t border-zinc-800/80 flex items-baseline justify-between">
+                          <div className="pt-2.5 border-t border-zinc-800/80 flex items-baseline justify-between mt-auto">
                             <span className="text-[11px] text-zinc-400">Đơn giá:</span>
                             <span className="text-sm font-black font-mono text-cyan-400">
                               {customPrice.toLocaleString('vi-VN')} <span className="text-[10px] font-sans text-zinc-500">đ/{tier.unit}</span>
@@ -1663,14 +1673,15 @@ function ServiceBookingContent() {
                               type="text"
                               inputMode="numeric"
                               pattern="[0-9]*"
-                              value={currentPoints}
+                              value={currentPoints === 0 ? '' : currentPoints}
+                              placeholder="0"
                               onChange={(e) => {
-                                const raw = e.target.value.replace(/\D/g, '');
-                                if (!raw) {
+                                const clean = e.target.value.replace(/\D/g, '').replace(/^0+/, '');
+                                if (!clean) {
                                   setCurrentPoints(0);
                                   return;
                                 }
-                                const val = parseInt(raw, 10);
+                                const val = parseInt(clean, 10);
                                 setCurrentPoints(isNaN(val) ? 0 : Math.min(1000, Math.max(0, val)));
                               }}
                               className="w-full h-9 sm:h-10 bg-zinc-950 border border-zinc-700/80 rounded-xl pl-3 pr-10 text-center text-base sm:text-lg font-black font-mono text-white outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none transition-all"
@@ -1710,14 +1721,15 @@ function ServiceBookingContent() {
                               type="text"
                               inputMode="numeric"
                               pattern="[0-9]*"
-                              value={desiredPoints}
+                              value={desiredPoints === 0 ? '' : desiredPoints}
+                              placeholder="0"
                               onChange={(e) => {
-                                const raw = e.target.value.replace(/\D/g, '');
-                                if (!raw) {
+                                const clean = e.target.value.replace(/\D/g, '').replace(/^0+/, '');
+                                if (!clean) {
                                   setDesiredPoints(0);
                                   return;
                                 }
-                                const val = parseInt(raw, 10);
+                                const val = parseInt(clean, 10);
                                 setDesiredPoints(isNaN(val) ? 0 : Math.min(1000, Math.max(0, val)));
                               }}
                               className="w-full h-9 sm:h-10 bg-zinc-950 border border-zinc-700/80 rounded-xl pl-3 pr-10 text-center text-base sm:text-lg font-black font-mono text-emerald-400 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none transition-all"
@@ -2607,14 +2619,19 @@ function ServiceBookingContent() {
                   </div>
                 )}
 
-                {appliedCoupon && discountAmount > 0 && (
-                  <div className="flex justify-between items-center text-xs text-emerald-400 font-medium">
-                    <span>Mã giảm giá ({appliedCoupon.code} -{appliedCoupon.discountPercent}%):</span>
-                    <span className="font-mono font-bold">
-                      -{discountAmount.toLocaleString('vi-VN')} đ
-                    </span>
-                  </div>
-                )}
+                {appliedCoupon && discountAmount > 0 && (() => {
+                  const percent = appliedCoupon.discountPercent || (appliedCoupon.type === 'PERCENTAGE' ? appliedCoupon.value : 0);
+                  const fixed = appliedCoupon.discountAmount || (appliedCoupon.type === 'FIXED' ? appliedCoupon.value : 0);
+                  const discountTag = percent > 0 ? ` -${percent}%` : fixed > 0 ? ` -${fixed.toLocaleString('vi-VN')} đ` : '';
+                  return (
+                    <div className="flex justify-between items-center text-xs text-emerald-400 font-medium">
+                      <span>Mã giảm giá ({appliedCoupon.code}{discountTag}):</span>
+                      <span className="font-mono font-bold">
+                        -{discountAmount.toLocaleString('vi-VN')} đ
+                      </span>
+                    </div>
+                  );
+                })()}
 
                 {/* Phí dịch vụ */}
                 <div className="flex justify-between items-center text-xs text-zinc-400">
@@ -2634,7 +2651,7 @@ function ServiceBookingContent() {
                 <div className="pt-2.5 border-t border-zinc-800 space-y-2">
                   <div className="flex justify-between items-baseline gap-2">
                     <span className="text-xs sm:text-sm font-bold text-emerald-400 whitespace-nowrap">
-                      {finalDeposit < finalPrice ? 'Thanh toán tiền cọc:' : 'Số tiền thanh toán ngay:'}
+                      {finalDeposit < finalPrice ? `Thanh toán tiền cọc (${effectiveDepositPercent}%):` : 'Số tiền thanh toán ngay:'}
                     </span>
                     <span className="text-xl sm:text-2xl font-black text-emerald-400 font-mono whitespace-nowrap tracking-tight">
                       {finalDeposit.toLocaleString('vi-VN')} đ
@@ -2687,7 +2704,7 @@ function ServiceBookingContent() {
                 </span>
               </div>
               <div className="text-[11px] font-semibold text-emerald-400">
-                {finalDeposit < finalPrice ? 'Tiền cọc: ' : 'Thanh toán: '}
+                {finalDeposit < finalPrice ? `Tiền cọc (${effectiveDepositPercent}%): ` : 'Thanh toán: '}
                 {finalDeposit.toLocaleString('vi-VN')} đ
               </div>
             </div>
