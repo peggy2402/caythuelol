@@ -1613,11 +1613,11 @@ function ServiceBookingContent() {
                   </div>
 
                   {/* Nhập Điểm Hiện Tại & Điểm Mong Muốn (Dual Point Inputs) */}
-                  <div className="p-4 sm:p-5 rounded-2xl bg-zinc-950/80 border border-zinc-800 space-y-4">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                  <div className="p-4 sm:p-5 rounded-2xl bg-zinc-950/80 border border-zinc-800/90 shadow-xl space-y-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-1">
                       <div>
-                        <span className="text-xs font-bold text-white flex items-center gap-2">
-                          <Target size={14} className="text-amber-400" />
+                        <span className="text-xs sm:text-sm font-bold text-white flex items-center gap-2">
+                          <Target size={16} className="text-amber-400 shrink-0" />
                           <span>
                             {isAov
                               ? 'Thiết Lập Số Sao (Hiện Tại → Mong Muốn)'
@@ -1625,16 +1625,16 @@ function ServiceBookingContent() {
                           </span>
                           <span className="text-red-500">*</span>
                         </span>
-                        <p className="text-[11px] text-zinc-400 mt-0.5">
+                        <p className="text-[11px] sm:text-xs text-zinc-400 mt-0.5">
                           {isAov
                             ? 'Nhập số sao hiện tại và số sao bạn mong muốn đạt. Hệ thống sẽ tính số sao chênh lệch cần cày.'
                             : 'Nhập số điểm thực tế hiện tại và mốc điểm bạn muốn đạt. Hệ thống sẽ tính số điểm chênh lệch cần cày.'}
                         </p>
                       </div>
 
-                      <div className="text-right">
-                        <span className="text-xs text-zinc-400 block sm:inline">Cần cày:</span>{' '}
-                        <span className="text-lg font-black font-mono text-amber-400">
+                      <div className="flex items-center gap-2 self-start sm:self-auto px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/30">
+                        <span className="text-xs text-amber-300/80 font-medium">Cần cày:</span>
+                        <span className="text-base sm:text-lg font-black font-mono text-amber-400 leading-none">
                           {gainedPoints} {pointUnit}
                         </span>
                       </div>
@@ -1643,9 +1643,9 @@ function ServiceBookingContent() {
                     {/* Dual Inputs Grid */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       {/* 1. Điểm Hiện Tại */}
-                      <div className="p-3.5 rounded-xl bg-zinc-900 border border-zinc-800 space-y-2">
+                      <div className="p-3.5 sm:p-4 rounded-xl bg-zinc-900/90 border border-zinc-800/90 hover:border-zinc-700/80 transition-all space-y-2.5">
                         <div className="flex items-center justify-between">
-                          <label className="text-[11px] font-bold uppercase text-zinc-400">
+                          <label className="text-[11px] font-bold uppercase tracking-wider text-zinc-400">
                             {isAov ? 'Số Sao Hiện Tại' : 'Điểm Hiện Tại'}
                           </label>
                           <span className="text-[10px] text-zinc-500 font-mono">Bắt đầu từ</span>
@@ -1654,30 +1654,35 @@ function ServiceBookingContent() {
                           <button
                             type="button"
                             onClick={() => setCurrentPoints((p) => Math.max(0, p - (isAov ? 5 : 10)))}
-                            className="w-8 h-8 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-white font-bold flex items-center justify-center shrink-0 cursor-pointer"
+                            className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-zinc-800/90 hover:bg-zinc-700 active:scale-95 text-zinc-200 hover:text-white font-bold text-base flex items-center justify-center shrink-0 border border-white/5 transition-all select-none cursor-pointer"
                           >
                             -
                           </button>
-                          <div className="flex-1 relative">
+                          <div className="flex-1 relative flex items-center">
                             <input
-                              type="number"
-                              min="0"
-                              max="1000"
+                              type="text"
+                              inputMode="numeric"
+                              pattern="[0-9]*"
                               value={currentPoints}
                               onChange={(e) => {
-                                const val = parseInt(e.target.value);
-                                setCurrentPoints(isNaN(val) ? 0 : Math.max(0, val));
+                                const raw = e.target.value.replace(/\D/g, '');
+                                if (!raw) {
+                                  setCurrentPoints(0);
+                                  return;
+                                }
+                                const val = parseInt(raw, 10);
+                                setCurrentPoints(isNaN(val) ? 0 : Math.min(1000, Math.max(0, val)));
                               }}
-                              className="w-full bg-zinc-950 border border-zinc-700 rounded-lg px-3 py-1.5 text-center text-sm font-bold font-mono text-white outline-none focus:border-cyan-500"
+                              className="w-full h-9 sm:h-10 bg-zinc-950 border border-zinc-700/80 rounded-xl pl-3 pr-10 text-center text-base sm:text-lg font-black font-mono text-white outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none transition-all"
                             />
-                            <span className="text-[10px] text-zinc-500 font-bold absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none">
+                            <span className="text-xs text-zinc-500 font-bold font-mono absolute right-3 pointer-events-none select-none uppercase">
                               {pointUnit}
                             </span>
                           </div>
                           <button
                             type="button"
-                            onClick={() => setCurrentPoints((p) => p + (isAov ? 5 : 10))}
-                            className="w-8 h-8 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-white font-bold flex items-center justify-center shrink-0 cursor-pointer"
+                            onClick={() => setCurrentPoints((p) => Math.min(1000, p + (isAov ? 5 : 10)))}
+                            className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-zinc-800/90 hover:bg-zinc-700 active:scale-95 text-zinc-200 hover:text-white font-bold text-base flex items-center justify-center shrink-0 border border-white/5 transition-all select-none cursor-pointer"
                           >
                             +
                           </button>
@@ -1685,9 +1690,9 @@ function ServiceBookingContent() {
                       </div>
 
                       {/* 2. Điểm Mong Muốn */}
-                      <div className="p-3.5 rounded-xl bg-zinc-900 border border-zinc-800 space-y-2">
+                      <div className="p-3.5 sm:p-4 rounded-xl bg-zinc-900/90 border border-zinc-800/90 hover:border-zinc-700/80 transition-all space-y-2.5">
                         <div className="flex items-center justify-between">
-                          <label className="text-[11px] font-bold uppercase text-emerald-400">
+                          <label className="text-[11px] font-bold uppercase tracking-wider text-emerald-400">
                             {isAov ? 'Số Sao Mong Muốn' : 'Điểm Mong Muốn'}
                           </label>
                           <span className="text-[10px] text-zinc-500 font-mono">Mục tiêu</span>
@@ -1695,31 +1700,36 @@ function ServiceBookingContent() {
                         <div className="flex items-center gap-2">
                           <button
                             type="button"
-                            onClick={() => setDesiredPoints((p) => Math.max(currentPoints + 1, p - (isAov ? 5 : 10)))}
-                            className="w-8 h-8 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-white font-bold flex items-center justify-center shrink-0 cursor-pointer"
+                            onClick={() => setDesiredPoints((p) => Math.max(0, p - (isAov ? 5 : 10)))}
+                            className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-zinc-800/90 hover:bg-zinc-700 active:scale-95 text-zinc-200 hover:text-white font-bold text-base flex items-center justify-center shrink-0 border border-white/5 transition-all select-none cursor-pointer"
                           >
                             -
                           </button>
-                          <div className="flex-1 relative">
+                          <div className="flex-1 relative flex items-center">
                             <input
-                              type="number"
-                              min={currentPoints + 1}
-                              max="1000"
+                              type="text"
+                              inputMode="numeric"
+                              pattern="[0-9]*"
                               value={desiredPoints}
                               onChange={(e) => {
-                                const val = parseInt(e.target.value);
-                                setDesiredPoints(isNaN(val) ? currentPoints + (isAov ? 5 : 10) : Math.max(0, val));
+                                const raw = e.target.value.replace(/\D/g, '');
+                                if (!raw) {
+                                  setDesiredPoints(0);
+                                  return;
+                                }
+                                const val = parseInt(raw, 10);
+                                setDesiredPoints(isNaN(val) ? 0 : Math.min(1000, Math.max(0, val)));
                               }}
-                              className="w-full bg-zinc-950 border border-zinc-700 rounded-lg px-3 py-1.5 text-center text-sm font-bold font-mono text-emerald-400 outline-none focus:border-emerald-500"
+                              className="w-full h-9 sm:h-10 bg-zinc-950 border border-zinc-700/80 rounded-xl pl-3 pr-10 text-center text-base sm:text-lg font-black font-mono text-emerald-400 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none transition-all"
                             />
-                            <span className="text-[10px] text-zinc-500 font-bold absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none">
+                            <span className="text-xs text-zinc-500 font-bold font-mono absolute right-3 pointer-events-none select-none uppercase">
                               {pointUnit}
                             </span>
                           </div>
                           <button
                             type="button"
-                            onClick={() => setDesiredPoints((p) => p + (isAov ? 5 : 10))}
-                            className="w-8 h-8 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-white font-bold flex items-center justify-center shrink-0 cursor-pointer"
+                            onClick={() => setDesiredPoints((p) => Math.min(1000, p + (isAov ? 5 : 10)))}
+                            className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-zinc-800/90 hover:bg-zinc-700 active:scale-95 text-zinc-200 hover:text-white font-bold text-base flex items-center justify-center shrink-0 border border-white/5 transition-all select-none cursor-pointer"
                           >
                             +
                           </button>
@@ -1729,7 +1739,7 @@ function ServiceBookingContent() {
 
                     {/* Cảnh báo nếu điểm mong muốn <= điểm hiện tại */}
                     {desiredPoints <= currentPoints && (
-                      <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs flex items-center gap-2">
+                      <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs flex items-center gap-2">
                         <span className="font-bold">⚠️ Lưu ý:</span>
                         <span>
                           {isAov
@@ -1740,15 +1750,15 @@ function ServiceBookingContent() {
                     )}
 
                     {/* Quick presets */}
-                    <div className="flex items-center gap-2 pt-1">
-                      <span className="text-[11px] text-zinc-500 shrink-0">Cộng thêm nhanh:</span>
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 pt-1">
+                      <span className="text-[11px] text-zinc-500 shrink-0 font-medium">Cộng thêm nhanh:</span>
                       <div className="flex items-center gap-1.5 flex-wrap">
                         {(isAov ? [5, 10, 20, 30, 50] : [20, 40, 60, 80, 100]).map((pts) => (
                           <button
                             key={pts}
                             type="button"
                             onClick={() => setDesiredPoints(currentPoints + pts)}
-                            className="px-2.5 py-1 rounded-lg bg-zinc-900 hover:bg-zinc-800 border border-zinc-700/80 text-[11px] font-bold font-mono text-zinc-300 hover:text-white transition-colors cursor-pointer"
+                            className="px-3 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800/90 border border-zinc-800 hover:border-cyan-500/50 text-xs font-bold font-mono text-zinc-300 hover:text-cyan-300 hover:shadow-[0_0_12px_rgba(6,182,212,0.2)] transition-all active:scale-95 cursor-pointer"
                           >
                             +{pts} {pointUnit}
                           </button>
