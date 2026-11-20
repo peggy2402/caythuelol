@@ -72,6 +72,22 @@ export default function DashboardPage() {
           setOrders(data.orders || []);
         }
 
+        // Fetch fresh user profile để đồng bộ VIP tier, role, total_points_earned
+        const profileRes = await fetch('/api/user/profile', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (profileRes.ok) {
+          const profileData = await profileRes.json();
+          if (profileData && (profileData._id || profileData.user)) {
+            const fresh = profileData.user || profileData;
+            setUser((prev: any) => {
+              const updated = { ...prev, ...fresh };
+              localStorage.setItem('user', JSON.stringify(updated));
+              return updated;
+            });
+          }
+        }
+
         const walletRes = await fetch('/api/wallet');
         const walletData = await walletRes.json();
         if (walletRes.ok) {

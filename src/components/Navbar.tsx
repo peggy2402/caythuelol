@@ -29,6 +29,7 @@ import {
   Check,
 } from 'lucide-react';
 import { useLanguage, Language } from '../lib/i18n';
+import UserBadge from '@/components/UserBadge';
 import { useRouter, usePathname } from 'next/navigation';
 import { socket } from '@/lib/socket';
 import { logout } from '@/lib/logout';
@@ -554,8 +555,14 @@ export default function Navbar() {
                     </div>
 
                     <div className="text-left">
-                      <div className="text-xs font-semibold text-white">
-                        {user.username}
+                      <div className="text-xs font-semibold text-white flex items-center gap-1">
+                        <span>{user.username}</span>
+                        <UserBadge
+                          role={user.role}
+                          vipTier={user.vip_info?.package_type || user.vip_tier}
+                          totalSpent={user.total_spent || (user.total_points_earned ? user.total_points_earned * 1000 : 0)}
+                          size="xs"
+                        />
                       </div>
                       <div className="text-[11px] font-medium text-emerald-400">
                         {user.wallet_balance?.toLocaleString('vi-VN')}đ
@@ -818,7 +825,15 @@ export default function Navbar() {
                         </div>
                       </div>
                       <div>
-                        <div className="text-base font-bold text-white leading-tight">{user.username}</div>
+                        <div className="text-base font-bold text-white leading-tight flex items-center gap-1.5">
+                          <span>{user.username}</span>
+                          <UserBadge
+                            role={user.role}
+                            vipTier={user.vip_info?.package_type || user.vip_tier}
+                            totalSpent={user.total_spent || (user.total_points_earned ? user.total_points_earned * 1000 : 0)}
+                            size="xs"
+                          />
+                        </div>
                         <div className="text-sm font-medium text-emerald-400">
                           {user.wallet_balance?.toLocaleString('vi-VN')} đ
                         </div>

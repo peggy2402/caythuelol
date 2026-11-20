@@ -28,6 +28,7 @@ import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { apiFetch } from '@/lib/api';
+import UserBadge from '@/components/UserBadge';
 import { AnimatePresence, motion } from 'framer-motion';
 import ServerFlag from '@/components/ServerFlag';
 
@@ -146,6 +147,22 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     setUser((prev: any) => {
                         const currentUserState = prev || parsedUser;
                         const updated = { ...currentUserState, wallet_balance: data.balance };
+                        localStorage.setItem('user', JSON.stringify(updated));
+                        return updated;
+                    });
+                }
+            })
+            .catch(() => {});
+
+        // 3. User Profile (Đồng bộ role, VIP tier, điểm số mới nhất)
+        fetch('/api/user/profile', { headers: { Authorization: `Bearer ${token}` } })
+            .then(res => res.json())
+            .then(data => {
+                if (data && (data._id || data.user)) {
+                    const fresh = data.user || data;
+                    setUser((prev: any) => {
+                        const currentUserState = prev || parsedUser;
+                        const updated = { ...currentUserState, ...fresh };
                         localStorage.setItem('user', JSON.stringify(updated));
                         return updated;
                     });
@@ -526,7 +543,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 className="flex items-center gap-3 hover:bg-white/5 p-2 rounded-xl transition-colors cursor-pointer"
               >
                 <div className="text-right hidden sm:block">
-                  <div className="text-sm font-bold text-white">{user?.username || 'User'}</div>
+                  <div className="text-sm font-bold text-white flex items-center gap-1.5 justify-end">
+                    <span>{user?.username || 'User'}</span>
+                    <UserBadge
+                      role={user?.role}
+                      vipTier={user?.vip_info?.package_type || user?.vip_tier}
+                      totalSpent={user?.total_spent || (user?.total_points_earned ? user.total_points_earned * 1000 : 0)}
+                      size="xs"
+                    />
+                  </div>
                   <div className="text-xs text-blue-400 font-medium">
                     {user?.wallet_balance?.toLocaleString('vi-VN') || 0} đ
                   </div>
@@ -550,7 +575,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     className="absolute right-0 top-full mt-2 z-50 w-56 rounded-xl border border-white/10 bg-zinc-900/95 backdrop-blur-xl p-2 shadow-2xl origin-top-right"
                   >
                     <div className="px-3 py-2 border-b border-white/5 mb-1">
-                      <p className="text-sm font-bold text-white">{user?.username}</p>
+                      <div className="flex items-center gap-1.5 mb-0.5">
+                        <p className="text-sm font-bold text-white">{user?.username}</p>
+                        <UserBadge
+                          role={user?.role}
+                          vipTier={user?.vip_info?.package_type || user?.vip_tier}
+                          totalSpent={user?.total_spent || (user?.total_points_earned ? user.total_points_earned * 1000 : 0)}
+                          size="xs"
+                        />
+                      </div>
                       <p className="text-xs text-zinc-500 truncate">{user?.email}</p>
                     </div>
                     

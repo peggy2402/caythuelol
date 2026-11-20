@@ -27,6 +27,7 @@ import { getBoosterOrderValue } from '@/lib/orderPricing';
 import { getOrderStatusInfo, formatServiceNameVi } from '@/lib/orderStatus';
 import { apiFetch } from '@/lib/api';
 import BoosterRecentForm from '@/components/BoosterRecentForm';
+import UserBadge from '@/components/UserBadge';
 
 export default function BoosterDashboardPage() {
   const { t } = useLanguage();
@@ -143,6 +144,7 @@ export default function BoosterDashboardPage() {
                 <h1 className="text-lg sm:text-2xl md:text-3xl font-black text-white tracking-tight truncate max-w-[180px] xs:max-w-[240px] sm:max-w-none">
                   {user?.username}
                 </h1>
+                <UserBadge role="BOOSTER" size="md" />
                 <span className="px-2.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold border bg-amber-950/50 border-amber-500/40 text-amber-300 shrink-0">
                   Tuyển Thủ Thách Đấu
                 </span>
@@ -354,6 +356,13 @@ export default function BoosterDashboardPage() {
                         <span className="font-bold text-white text-xs">
                           {order.customerId?.username || 'Khách ẩn danh'}
                         </span>
+                        {order.customerId?.username && (
+                          <UserBadge
+                            role={order.customerId?.role || 'CUSTOMER'}
+                            vipTier={order.customerId?.vip_info?.package_type || order.customerId?.vip_tier}
+                            size="xs"
+                          />
+                        )}
                       </div>
 
                       <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase border ${getOrderStatusInfo(order.status).style}`}>
@@ -421,6 +430,13 @@ export default function BoosterDashboardPage() {
                             <span className="font-bold text-white">
                               {order.customerId?.username || 'Khách ẩn danh'}
                             </span>
+                            {order.customerId?.username && (
+                              <UserBadge
+                                role={order.customerId?.role || 'CUSTOMER'}
+                                vipTier={order.customerId?.vip_info?.package_type || order.customerId?.vip_tier}
+                                size="xs"
+                              />
+                            )}
                           </div>
                         </td>
                         <td className="px-6 py-4 font-semibold text-zinc-300">

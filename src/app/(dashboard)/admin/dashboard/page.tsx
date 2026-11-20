@@ -18,6 +18,7 @@ import {
 import { BarChart as RechartsBarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 import { toast } from 'sonner';
 import Link from 'next/link';
+import UserBadge from '@/components/UserBadge';
 
 const formatDateForAPI = (date: Date) => date.toISOString().split('T')[0];
 
@@ -194,8 +195,11 @@ export default function AdminDashboard() {
                       <div key={booster._id} className="flex items-center gap-4 p-3 bg-zinc-950 rounded-lg border border-zinc-800">
                           <span className="font-bold text-lg text-zinc-500 w-6 text-center">{index + 1}</span>
                           <img src={booster.avatar || '/default-avatar.png'} alt={booster.username} className="w-10 h-10 rounded-full object-cover" />
-                          <div className="flex-1">
-                              <div className="font-bold text-white">{booster.username}</div>
+                          <div className="flex-1 min-w-0">
+                              <div className="font-bold text-white flex items-center gap-1.5">
+                                <span className="truncate">{booster.username}</span>
+                                <UserBadge role="BOOSTER" size="xs" />
+                              </div>
                               <div className="text-xs text-zinc-400">{booster.orderCount} đơn</div>
                           </div>
                           <div className="text-right font-mono">
@@ -221,7 +225,10 @@ export default function AdminDashboard() {
                           </span>
                           <img src={user.avatar || '/default-avatar.png'} alt={user.username} className="w-10 h-10 rounded-full object-cover shrink-0 ring-1 ring-white/10" />
                           <div className="flex-1 min-w-0">
-                              <div className="font-bold text-white truncate text-sm" title={user.username}>{user.username}</div>
+                              <div className="font-bold text-white truncate text-sm flex items-center gap-1.5" title={user.username}>
+                                <span className="truncate">{user.username}</span>
+                                <UserBadge role="CUSTOMER" totalSpent={user.totalSpent} size="xs" />
+                              </div>
                               <div className="text-xs text-zinc-400">{user.orderCount} đơn</div>
                           </div>
                           <div className="font-bold text-blue-400 text-sm sm:text-base font-mono shrink-0 whitespace-nowrap text-right">
@@ -246,7 +253,10 @@ export default function AdminDashboard() {
                           </span>
                           <img src={user.avatar || '/default-avatar.png'} alt={user.username} className="w-10 h-10 rounded-full object-cover shrink-0 ring-1 ring-white/10" />
                           <div className="flex-1 min-w-0">
-                              <div className="font-bold text-white truncate text-sm" title={user.username}>{user.username}</div>
+                              <div className="font-bold text-white truncate text-sm flex items-center gap-1.5" title={user.username}>
+                                <span className="truncate">{user.username}</span>
+                                <UserBadge role="CUSTOMER" totalSpent={user.totalDeposited} size="xs" />
+                              </div>
                           </div>
                           <div className="font-bold text-emerald-400 text-sm sm:text-base font-mono shrink-0 whitespace-nowrap text-right">
                             {(user.totalDeposited || 0).toLocaleString()} đ
