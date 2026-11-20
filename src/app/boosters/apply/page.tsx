@@ -33,7 +33,12 @@ import BankSelectModal from './bank-select-modal';
 const formSchema = z.object({
   fullName: z.string().min(2, "Họ tên quá ngắn (tối thiểu 2 ký tự)"),
   phoneNumber: z.string().regex(/^[0-9]{10,11}$/, "Số điện thoại không hợp lệ (10-11 số)"),
-  facebookUrl: z.string().url("Link Facebook không hợp lệ (cần có https://...)"),
+  facebookUrl: z.string()
+    .min(3, "Vui lòng nhập link Facebook")
+    .refine((val) => {
+      const trimmed = val.trim();
+      return /^(https?:\/\/)?(www\.)?(facebook\.com|fb\.com)\/.+$/i.test(trimmed);
+    }, "Link Facebook không hợp lệ (ví dụ: facebook.com/vtchn hoặc fb.com/vtchn)"),
   discordTag: z.string().min(3, "Discord Tag không hợp lệ"),
   currentRank: z.string().min(1, "Vui lòng nhập Rank hiện tại"),
   highestRank: z.string().min(1, "Vui lòng nhập Rank cao nhất từng đạt"),
@@ -402,6 +407,10 @@ export default function BoosterApplyPage() {
       
       if (!result) throw new Error("Không thể tạo hợp đồng. Vui lòng thử lại.");
 
+      const normalizedFb = data.facebookUrl.trim().startsWith('http')
+        ? data.facebookUrl.trim()
+        : `https://${data.facebookUrl.trim()}`;
+
       const token = localStorage.getItem('token');
       const res = await fetch('/api/boosters/apply', {
         method: 'POST',
@@ -409,7 +418,7 @@ export default function BoosterApplyPage() {
           'Content-Type': 'application/json',
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
-        body: JSON.stringify({ ...data, contractUrl: result.url }),
+        body: JSON.stringify({ ...data, facebookUrl: normalizedFb, contractUrl: result.url }),
       });
 
       if (!res.ok) {
@@ -696,7 +705,7 @@ export default function BoosterApplyPage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                       <div className="space-y-2">
                         <Label className="text-xs font-bold uppercase tracking-wider text-zinc-300 flex items-center justify-between">
-                          <span>Họ và tên thật *</span>
+                          <span>Họ và tên thật <span className="text-red-500 font-bold">*</span></span>
                           <span className="text-[10px] text-zinc-500 font-normal">Trùng tên thẻ ngân hàng</span>
                         </Label>
                         <Input 
@@ -709,7 +718,7 @@ export default function BoosterApplyPage() {
 
                       <div className="space-y-2">
                         <Label className="text-xs font-bold uppercase tracking-wider text-zinc-300 flex items-center justify-between">
-                          <span>Số điện thoại Zalo / SMS *</span>
+                          <span>Số điện thoại Zalo / SMS <span className="text-red-500 font-bold">*</span></span>
                           <span className="text-[10px] text-zinc-500 font-normal">Nhận thông báo đơn gấp</span>
                         </Label>
                         <Input 
@@ -722,12 +731,12 @@ export default function BoosterApplyPage() {
 
                       <div className="space-y-2">
                         <Label className="text-xs font-bold uppercase tracking-wider text-zinc-300 flex items-center justify-between">
-                          <span>Link Facebook cá nhân *</span>
+                          <span>Link Facebook cá nhân <span className="text-red-500 font-bold">*</span></span>
                           <span className="text-[10px] text-zinc-500 font-normal">Xác thực danh tính</span>
                         </Label>
                         <Input 
                           {...register('facebookUrl')} 
-                          placeholder="https://facebook.com/username" 
+                          placeholder="Ví dụ: facebook.com/vtchn hoặc fb.com/vtchn" 
                           className="bg-zinc-950 border-zinc-800 text-white rounded-xl h-11 text-sm focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400/30 transition-all" 
                         />
                         {errors.facebookUrl && <p className="text-red-400 text-xs mt-1">{errors.facebookUrl.message}</p>}
@@ -735,7 +744,7 @@ export default function BoosterApplyPage() {
 
                       <div className="space-y-2">
                         <Label className="text-xs font-bold uppercase tracking-wider text-zinc-300 flex items-center justify-between">
-                          <span>Discord Tag *</span>
+                          <span>Discord Tag <span className="text-red-500 font-bold">*</span></span>
                           <span className="text-[10px] text-zinc-500 font-normal">Nhận phòng chat & đơn hàng</span>
                         </Label>
                         <Input 
@@ -776,7 +785,7 @@ export default function BoosterApplyPage() {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                         <div className="space-y-2">
                           <Label className="text-xs font-bold uppercase tracking-wider text-zinc-300">
-                            Bậc Rank Hiện Tại *
+                            Bậc Rank Hiện Tại <span className="text-red-500 font-bold">*</span>
                           </Label>
                           <Input 
                             {...register('currentRank')} 
@@ -788,7 +797,7 @@ export default function BoosterApplyPage() {
 
                         <div className="space-y-2">
                           <Label className="text-xs font-bold uppercase tracking-wider text-zinc-300">
-                            Bậc Rank Cao Nhất Từng Đạt *
+                            Bậc Rank Cao Nhất Từng Đạt <span className="text-red-500 font-bold">*</span>
                           </Label>
                           <Input 
                             {...register('highestRank')} 
@@ -800,7 +809,7 @@ export default function BoosterApplyPage() {
 
                         <div className="space-y-2 md:col-span-2">
                           <Label className="text-xs font-bold uppercase tracking-wider text-zinc-300 flex items-center justify-between">
-                            <span>Link Hồ Sơ OP.GG hoặc Tracker Thi Đấu *</span>
+                            <span>Link Hồ Sơ OP.GG hoặc Tracker Thi Đấu <span className="text-red-500 font-bold">*</span></span>
                             <span className="text-[10px] text-zinc-500">Giúp duyệt hồ sơ trong 15 phút</span>
                           </Label>
                           <Input 
@@ -814,7 +823,7 @@ export default function BoosterApplyPage() {
                         {/* Rank Proof Screenshot */}
                         <div className="space-y-2 md:col-span-2">
                           <Label className="text-xs font-bold uppercase tracking-wider text-zinc-300 flex items-center justify-between">
-                            <span>Ảnh Bằng Chứng Màn Hình Trong Game *</span>
+                            <span>Ảnh Bằng Chứng Màn Hình Trong Game <span className="text-red-500 font-bold">*</span></span>
                             <span className="text-[10px] text-zinc-500">Chụp rõ Ingame Name & Bậc Rank</span>
                           </Label>
                           
@@ -929,7 +938,9 @@ export default function BoosterApplyPage() {
 
                             {/* Upload Bill */}
                             <div className="mt-4 pt-4 border-t border-amber-500/20">
-                              <Label className="text-xs font-bold text-zinc-300 mb-2 block">Tải lên ảnh Bill chuyển khoản thành công *</Label>
+                              <Label className="text-xs font-bold text-zinc-300 mb-2 block">
+                                Tải lên ảnh Bill chuyển khoản thành công <span className="text-red-500 font-bold">*</span>
+                              </Label>
                               <div className="flex items-center gap-3">
                                 <div className="relative group flex-1">
                                   <input 
@@ -990,7 +1001,9 @@ export default function BoosterApplyPage() {
 
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div className="space-y-2">
-                          <Label className="text-xs font-bold uppercase tracking-wider text-zinc-300">Ngân Hàng *</Label>
+                          <Label className="text-xs font-bold uppercase tracking-wider text-zinc-300">
+                            Ngân Hàng <span className="text-red-500 font-bold">*</span>
+                          </Label>
                           
                           <div 
                             onClick={() => setIsBankOpen(true)}
@@ -1028,7 +1041,9 @@ export default function BoosterApplyPage() {
                         </div>
 
                         <div className="space-y-2">
-                          <Label className="text-xs font-bold uppercase tracking-wider text-zinc-300">Số Tài Khoản *</Label>
+                          <Label className="text-xs font-bold uppercase tracking-wider text-zinc-300">
+                            Số Tài Khoản <span className="text-red-500 font-bold">*</span>
+                          </Label>
                           <Input 
                             {...register('bankAccountNumber')} 
                             placeholder="Nhập số tài khoản..."
@@ -1038,7 +1053,9 @@ export default function BoosterApplyPage() {
                         </div>
 
                         <div className="space-y-2">
-                          <Label className="text-xs font-bold uppercase tracking-wider text-zinc-300">Tên Chủ Tài Khoản *</Label>
+                          <Label className="text-xs font-bold uppercase tracking-wider text-zinc-300">
+                            Tên Chủ Tài Khoản <span className="text-red-500 font-bold">*</span>
+                          </Label>
                           <Input 
                             {...register('bankAccountName')} 
                             placeholder="NGUYEN VAN A"
@@ -1092,24 +1109,36 @@ export default function BoosterApplyPage() {
                             key={item.id} 
                             onClick={() => toggleAgreement(item.id)}
                             className={cn(
-                              "p-4 rounded-2xl border transition-all cursor-pointer flex justify-between items-start gap-4",
+                              "p-4 rounded-2xl border transition-all cursor-pointer flex justify-between items-start gap-4 select-none group",
                               isChecked 
                                 ? 'bg-emerald-950/20 border-emerald-500/50 shadow-[0_0_20px_rgba(16,185,129,0.15)]' 
-                                : 'bg-zinc-950/70 border-zinc-800/80 hover:border-zinc-700'
+                                : 'bg-zinc-950/70 border-zinc-800/80 hover:border-zinc-700 hover:bg-zinc-900/50'
                             )}
                           >
-                            <div>
+                            <div className="flex-1 pr-2">
                               <h4 className={cn("text-xs font-bold flex items-center gap-2", isChecked ? 'text-emerald-300' : 'text-zinc-200')}>
                                 <span className={cn("w-2 h-2 rounded-full", isChecked ? "bg-emerald-400 animate-pulse" : "bg-zinc-600")} />
                                 {item.title}
                               </h4>
                               <p className="text-[11px] text-zinc-400 mt-1.5 leading-relaxed">{item.desc}</p>
                             </div>
-                            <Switch 
-                              checked={isChecked}
-                              onCheckedChange={() => toggleAgreement(item.id)}
-                              className="data-[state=checked]:bg-emerald-500 shrink-0 mt-0.5"
-                            />
+                            
+                            {/* Custom Toggle Switch (An toàn 100%, không bị Radix Bubble Input click loop) */}
+                            <div
+                              role="switch"
+                              aria-checked={isChecked}
+                              className={cn(
+                                "w-11 h-6 rounded-full transition-colors p-0.5 shrink-0 mt-0.5 duration-200 ease-in-out relative flex items-center",
+                                isChecked ? "bg-emerald-500" : "bg-zinc-800 border border-zinc-700"
+                              )}
+                            >
+                              <div
+                                className={cn(
+                                  "w-5 h-5 rounded-full bg-white transition-transform duration-200 ease-in-out shadow-md",
+                                  isChecked ? "translate-x-5" : "translate-x-0"
+                                )}
+                              />
+                            </div>
                           </div>
                         );
                       })}
@@ -1121,7 +1150,7 @@ export default function BoosterApplyPage() {
                         <div>
                           <Label className="text-xs font-black uppercase tracking-wider text-white flex items-center gap-1.5">
                             <FileSignature className="w-4 h-4 text-cyan-400" />
-                            Chữ Ký Điện Tử Xác Nhận Hợp Đồng *
+                            <span>Chữ Ký Điện Tử Xác Nhận Hợp Đồng <span className="text-red-500 font-bold">*</span></span>
                           </Label>
                           <p className="text-xs text-zinc-400 mt-0.5">
                             Dùng chuột hoặc ngón tay để ký tên trực tiếp vào bảng ký hợp đồng bên dưới.
@@ -1151,7 +1180,7 @@ export default function BoosterApplyPage() {
 
                       <div className="space-y-2 pt-2">
                         <Label className="text-xs font-bold uppercase tracking-wider text-zinc-300 flex items-center justify-between">
-                          <span>Nhập lại họ tên để đối chiếu chữ ký *</span>
+                          <span>Nhập lại họ tên để đối chiếu chữ ký <span className="text-red-500 font-bold">*</span></span>
                           {fullName && (
                             <button
                               type="button"
