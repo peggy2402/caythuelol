@@ -1253,10 +1253,10 @@ function ServiceBookingContent() {
           </div>
         </div>
 
-        {/* Main Grid: Form Left (7 Cols), Summary Right (5 Cols) */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        {/* Main Grid: Form Left (7 Cols), Summary Right (5 Cols) on Desktop (xl+) */}
+        <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 items-start">
           {/* CỘT TRÁI: FORM CẤU HÌNH DỊCH VỤ */}
-          <div className="lg:col-span-7 space-y-6">
+          <div className="xl:col-span-7 space-y-6">
             {/* 1. LỰA CHỌN TUYỂN THỦ THỰC HIỆN */}
             <div className="bg-zinc-900/60 border border-white/10 rounded-3xl p-5 sm:p-6 shadow-xl backdrop-blur-md space-y-4">
               <div className="flex items-center justify-between">
@@ -2007,7 +2007,7 @@ function ServiceBookingContent() {
                           </span>
                         </div>
                         <div className="space-y-0.5">
-                          <div className="text-[11px] text-zinc-300 font-medium line-clamp-1">
+                          <div className="text-[11px] text-zinc-300 font-medium leading-tight">
                             {opt.desc}
                           </div>
                           <div className="text-[10px] text-zinc-500 font-mono">
@@ -2310,8 +2310,8 @@ function ServiceBookingContent() {
             </div>
           </div>
 
-          {/* CỘT PHẢI: BẢNG GIÁ TỔNG, CHI TIẾT BƯỚC NHẢY & THANH TOÁN ESCROW (Fixed / Sticky trên Desktop) */}
-          <div className="lg:col-span-5 lg:sticky lg:top-24 self-start space-y-6 z-20">
+          {/* CỘT PHẢI: BẢNG GIÁ TỔNG, CHI TIẾT BƯỚC NHẢY & THANH TOÁN ESCROW (Fixed / Sticky trên Desktop xl+) */}
+          <div className="xl:col-span-5 xl:sticky xl:top-24 self-start space-y-6 z-20">
             <div className="bg-zinc-900/80 border border-white/10 rounded-3xl p-6 shadow-2xl backdrop-blur-md space-y-5 max-h-[calc(100vh-7.5rem)] overflow-y-auto scrollbar-none">
               <h3 className="text-base font-extrabold text-white flex items-center justify-between">
                 <span>
@@ -2529,12 +2529,12 @@ function ServiceBookingContent() {
                 </div>
               </div>
 
-              {/* Nút Đặt đơn (Desktop - Trên Mobile dùng thanh Sticky Footer ở đáy để tránh lặp nút) */}
+              {/* Nút Đặt đơn (Desktop - Trên Mobile & Tablet dùng thanh Sticky Footer ở đáy để tránh lặp nút) */}
               <button
                 type="button"
                 disabled={isSubmitting || calculation.totalPrice <= 0}
                 onClick={handlePlaceOrder}
-                className="hidden lg:flex w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-extrabold text-sm shadow-xl shadow-blue-600/30 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 items-center justify-center gap-2"
+                className="hidden xl:flex w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-extrabold text-sm shadow-xl shadow-blue-600/30 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 items-center justify-center gap-2"
               >
                 {isSubmitting ? (
                   <Loader2 className="w-5 h-5 animate-spin" />
@@ -2546,7 +2546,7 @@ function ServiceBookingContent() {
                 )}
               </button>
 
-              <div className="hidden lg:flex text-[11px] text-zinc-500 text-center items-center justify-center gap-1.5">
+              <div className="hidden xl:flex text-[11px] text-zinc-500 text-center items-center justify-center gap-1.5">
                 <Shield size={12} className="text-emerald-400" />
                 <span>Hoàn tiền 100% nếu không hoàn thành đúng tiến độ.</span>
               </div>
@@ -2554,8 +2554,8 @@ function ServiceBookingContent() {
           </div>
         </div>
 
-        {/* STICKY BOTTOM CHECKOUT BAR (Mobile Only) */}
-        <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-zinc-950/95 backdrop-blur-xl border-t border-zinc-800 p-3 sm:p-4 shadow-[0_-10px_30px_rgba(0,0,0,0.8)]">
+        {/* STICKY BOTTOM CHECKOUT BAR (Mobile & Tablet - Dưới màn hình Desktop xl) */}
+        <div className="xl:hidden fixed bottom-0 left-0 right-0 z-40 bg-zinc-950/95 backdrop-blur-xl border-t border-zinc-800 p-3 sm:p-4 shadow-[0_-10px_30px_rgba(0,0,0,0.8)]">
           <div className="flex items-center justify-between gap-3 max-w-md mx-auto">
             <div>
               <div className="flex items-baseline gap-1.5">
