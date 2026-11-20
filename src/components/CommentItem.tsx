@@ -385,18 +385,36 @@ function ThreadCommentNode({
             </span>
 
             {(() => {
-              const uName = (comment.userId?.username || '').toLowerCase();
-              const derivedRole =
-                comment.userId?.role ||
-                (uName === 'admin' || uName.startsWith('admin_') || uName.startsWith('admin')
-                  ? 'ADMIN'
-                  : uName === 'staff' || uName.startsWith('staff_') || uName.startsWith('staff')
-                  ? 'STAFF'
-                  : 'CUSTOMER');
+              const userObj = comment.userId || comment.user;
+              const username = typeof userObj === 'string' ? userObj : (userObj?.username || userObj?.name || '');
+              const uName = username.toLowerCase().trim();
+
+              // 1. Xác định Role (ưu tiên role từ DB, sau đó fallback theo tiền tố username)
+              let role = userObj?.role ? String(userObj.role).toUpperCase() : '';
+              if (!role || role === 'CUSTOMER') {
+                if (uName === 'admin' || uName.startsWith('admin_') || uName.includes('admin')) {
+                  role = 'ADMIN';
+                } else if (uName === 'staff' || uName.startsWith('staff_') || uName.includes('staff')) {
+                  role = 'STAFF';
+                } else if (uName.startsWith('booster_') || uName.includes('booster') || uName === 'chovy' || uName.includes('chovy')) {
+                  role = 'BOOSTER';
+                } else {
+                  role = 'CUSTOMER';
+                }
+              }
+
+              // 2. Xác định VIP Tier
+              let vipTier = userObj?.vip_tier || userObj?.vip_info?.package_type || userObj?.vipTier;
+              if (!vipTier && role === 'CUSTOMER') {
+                if (uName.includes('tranvanchien') || (userObj?.total_points_earned && userObj.total_points_earned >= 500)) {
+                  vipTier = 'VIP Bạc';
+                }
+              }
+
               return (
                 <UserBadge
-                  role={derivedRole}
-                  vipTier={comment.userId?.vip_info?.package_type}
+                  role={role}
+                  vipTier={vipTier}
                   size="xs"
                 />
               );
