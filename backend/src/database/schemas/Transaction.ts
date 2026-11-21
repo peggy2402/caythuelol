@@ -9,6 +9,8 @@ export enum TransactionType {
   COMMISSION = 'COMMISSION',
   DISPUTE_PENALTY = 'DISPUTE_PENALTY',
   VIP_PURCHASE = 'VIP_PURCHASE',
+  TIP_SENT = 'TIP_SENT',
+  TIP_RECEIVED = 'TIP_RECEIVED',
 }
 
 export enum TransactionStatus {

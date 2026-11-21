@@ -21,6 +21,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   server: Server;
 
   private readonly logger = new Logger(ChatGateway.name);
+  private readonly onlineUsers = new Map<string, Set<string>>();
+  private readonly socketToUser = new Map<string, string>();
 
   handleConnection(client: Socket) {
     this.logger.log(`Client connected: ${client.id}`);
@@ -28,10 +30,51 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   handleDisconnect(client: Socket) {
     this.logger.log(`Client disconnected: ${client.id}`);
+    const userId = this.socketToUser.get(client.id);
+    if (userId) {
+      this.socketToUser.delete(client.id);
+      const sockets = this.onlineUsers.get(userId);
+      if (sockets) {
+        sockets.delete(client.id);
+        if (sockets.size === 0) {
+          this.onlineUsers.delete(userId);
+          this.server.emit('user_status', { userId, status: 'offline' });
+        }
+      }
+    }
+  }
+
+  private registerUserOnline(client: Socket, userId: string) {
+    if (!userId) return;
+    const id = userId.toString();
+    client.join(`user_${id}`);
+    this.socketToUser.set(client.id, id);
+
+    let sockets = this.onlineUsers.get(id);
+    const wasOffline = !sockets || sockets.size === 0;
+    if (!sockets) {
+      sockets = new Set();
+      this.onlineUsers.set(id, sockets);
+    }
+    sockets.add(client.id);
+
+    if (wasOffline) {
+      this.server.emit('user_status', { userId: id, status: 'online' });
+    }
   }
 
   @SubscribeMessage('join_order')
   handleJoinOrder(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() orderId: string,
+  ) {
+    client.join(`order_${orderId}`);
+    this.logger.log(`Socket ${client.id} joined room: order_${orderId}`);
+    return { status: 'joined', orderId };
+  }
+
+  @SubscribeMessage('join_order_room')
+  handleJoinOrderRoom(
     @ConnectedSocket() client: Socket,
     @MessageBody() orderId: string,
   ) {
@@ -54,17 +97,55 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @ConnectedSocket() client: Socket,
     @MessageBody() userId: string,
   ) {
-    client.join(`user_${userId}`);
+    this.registerUserOnline(client, userId);
     this.logger.log(`Socket ${client.id} joined user channel: user_${userId}`);
     return { status: 'joined', userId };
+  }
+
+  @SubscribeMessage('join_user_room')
+  handleJoinUserRoom(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() userId: string,
+  ) {
+    this.registerUserOnline(client, userId);
+    this.logger.log(`Socket ${client.id} joined user channel: user_${userId}`);
+    return { status: 'joined', userId };
+  }
+
+  @SubscribeMessage('check_online')
+  handleCheckOnline(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() targetUserId: string,
+  ) {
+    if (!targetUserId) return { status: 'offline' };
+    const id = targetUserId.toString();
+    const isOnline = (this.onlineUsers.get(id)?.size || 0) > 0;
+    const status = isOnline ? 'online' : 'offline';
+    client.emit('user_status', { userId: id, status });
+    return { userId: id, status };
   }
 
   @SubscribeMessage('typing')
   handleTyping(
     @ConnectedSocket() client: Socket,
-    @MessageBody() data: { orderId: string; username: string },
+    @MessageBody()
+    data: {
+      orderId?: string;
+      room?: string;
+      username?: string;
+      userId?: string;
+      isTyping?: boolean;
+    },
   ) {
-    client.to(`order_${data.orderId}`).emit('user_typing', data);
+    const roomId = data.orderId || data.room;
+    if (!roomId) return;
+    client.to(`order_${roomId}`).emit('user_typing', data);
+    if (typeof data.isTyping === 'boolean') {
+      client.to(`order_${roomId}`).emit('typing_status', {
+        userId: data.userId,
+        isTyping: data.isTyping,
+      });
+    }
   }
 
   @SubscribeMessage('stop_typing')
@@ -79,8 +160,28 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.server.to(`order_${orderId}`).emit('new_message', message);
   }
 
+  broadcastMessageDeleted(
+    orderId: string,
+    payload: { messageId: string; orderId: string },
+  ) {
+    this.server.to(`order_${orderId}`).emit('message_deleted', payload);
+  }
+
+  broadcastMessageReacted(
+    orderId: string,
+    payload: { messageId: string; reactions: any[] },
+  ) {
+    this.server.to(`order_${orderId}`).emit('message_reacted', payload);
+  }
+
+  broadcastMessageRead(
+    orderId: string,
+    payload: { orderId: string; userId: string },
+  ) {
+    this.server.to(`order_${orderId}`).emit('message_read', payload);
+  }
+
   broadcastBalanceUpdate(userId: string, balance: number, message: string) {
     this.server.to(`user_${userId}`).emit('balance_updated', { balance, message });
   }
 }
-

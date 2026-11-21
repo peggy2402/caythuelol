@@ -63,8 +63,8 @@ export default function TransactionDetailPage({ params }: { params: Promise<{ id
           <div className="grid grid-cols-2 gap-6">
             <div className="p-4 bg-zinc-950 rounded-xl border border-zinc-800">
               <div className="text-sm text-zinc-500 mb-1">Số tiền</div>
-              <div className={`text-2xl font-bold ${['DEPOSIT', 'PAYMENT_RELEASE', 'REFUND'].includes(transaction.type) ? 'text-green-500' : 'text-red-500'}`}>
-                {['DEPOSIT', 'PAYMENT_RELEASE', 'REFUND'].includes(transaction.type) ? '+' : ''}{formatCurrency(transaction.amount)}
+              <div className={`text-2xl font-bold ${['DEPOSIT', 'PAYMENT_RELEASE', 'REFUND', 'TIP_RECEIVED'].includes(transaction.type) ? 'text-green-500' : 'text-red-500'}`}>
+                {['DEPOSIT', 'PAYMENT_RELEASE', 'REFUND', 'TIP_RECEIVED'].includes(transaction.type) ? '+' : ''}{formatCurrency(transaction.amount)}
               </div>
             </div>
             <div className="p-4 bg-zinc-950 rounded-xl border border-zinc-800">

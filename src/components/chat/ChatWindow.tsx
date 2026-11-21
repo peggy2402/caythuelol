@@ -5,7 +5,11 @@ import { MessageSquare, X, Minimize2, Maximize2, Loader2, ArrowDown, UploadCloud
 import Image from 'next/image';
 import { toast } from 'sonner';
 import MessageItem from './MessageItem';
-import ChatInput from './ChatInput';
+import ChatInput, {
+  BoosterStatusCode,
+  OrderChatCapabilities,
+  OrderParticipantRole,
+} from './ChatInput';
 import { useLanguage } from '@/lib/i18n';
 import { socket } from '@/lib/socket';
 
@@ -15,10 +19,11 @@ interface ChatWindowProps {
   title?: string;
   initialMessages?: any[];
   partner?: any; // Thông tin người chat cùng
+  orderRole?: OrderParticipantRole; // Vai trò thực tế trên đơn hàng (CUSTOMER | BOOSTER | ADMIN)
   trigger?: 'default' | 'side'; // New prop
 }
 
-export default function ChatWindow({ orderId, currentUser, title, initialMessages = [], partner, trigger = 'default' }: ChatWindowProps) {
+export default function ChatWindow({ orderId, currentUser, title, initialMessages = [], partner, orderRole, trigger = 'default' }: ChatWindowProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const [isMaximized, setIsMaximized] = useState(false);
@@ -38,6 +43,16 @@ export default function ChatWindow({ orderId, currentUser, title, initialMessage
   const [isSearching, setIsSearching] = useState(false); // State bật/tắt tìm kiếm
   const [searchTerm, setSearchTerm] = useState(''); // Từ khóa tìm kiếm
   const [isPartnerOnline, setIsPartnerOnline] = useState(false); // Trạng thái Online của đối phương
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [participantRole, setParticipantRole] = useState<OrderParticipantRole | undefined>(
+    orderRole || (currentUser?.role as OrderParticipantRole | undefined),
+  );
+  const [capabilities, setCapabilities] = useState<OrderChatCapabilities | undefined>(undefined);
+
+  useEffect(() => {
+    if (orderRole) setParticipantRole(orderRole);
+  }, [orderRole]);
   // Ref để theo dõi trạng thái mở/đóng trong useEffect của socket mà không cần re-render
   const stateRef = useRef({ isOpen, isMinimized });
   useEffect(() => {
@@ -107,6 +122,7 @@ export default function ChatWindow({ orderId, currentUser, title, initialMessage
       try {
         const formData = new FormData();
         formData.append('file', file);
+        formData.append('folder', 'chat');
 
         const res = await fetch('/api/upload', { method: 'POST', body: formData });
         if (!res.ok) throw new Error('Tải ảnh thất bại');
@@ -205,6 +221,24 @@ export default function ChatWindow({ orderId, currentUser, title, initialMessage
         }
     };
 
+    // Lắng nghe sự kiện thu hồi tin nhắn
+    const handleMessageDeleted = (data: { messageId: string; orderId?: string }) => {
+      if (data?.messageId) {
+        setMessages((prev) => prev.filter((m) => m._id !== data.messageId));
+      }
+    };
+
+    // Lắng nghe sự kiện reaction realtime
+    const handleMessageReacted = (data: { messageId: string; reactions: any[] }) => {
+      if (data?.messageId && Array.isArray(data.reactions)) {
+        setMessages((prev) =>
+          prev.map((m) =>
+            m._id === data.messageId ? { ...m, reactions: data.reactions } : m,
+          ),
+        );
+      }
+    };
+
     // Lắng nghe sự kiện Online/Offline
     const handleUserStatus = (data: { userId: string, status: 'online' | 'offline' }) => {
         if (partner && data.userId === partner._id) {
@@ -213,6 +247,8 @@ export default function ChatWindow({ orderId, currentUser, title, initialMessage
     };
 
     socket.on('new_message', handleNewMessage);
+    socket.on('message_deleted', handleMessageDeleted);
+    socket.on('message_reacted', handleMessageReacted);
     socket.on('typing_status', handleTyping);
     socket.on('message_read', handleMessageRead);
     socket.on('user_status', handleUserStatus); // Cần backend emit sự kiện này
@@ -223,13 +259,19 @@ export default function ChatWindow({ orderId, currentUser, title, initialMessage
         const res = await fetch(`/api/orders/${orderId}/messages`);
         if (res.ok) {
             const data = await res.json();
+            if (data.participantRole) {
+              setParticipantRole(data.participantRole);
+            }
+            if (data.capabilities) {
+              setCapabilities(data.capabilities);
+            }
             // Cập nhật toàn bộ để đảm bảo đồng bộ (xử lý cả case xóa tin nhắn, react...)
             setMessages(prev => {
                 // FIX: Tính toán số lượng tin nhắn chưa đọc dựa trên readBy
                 // Nếu đang đóng/minimized -> Cộng dồn tin mới
                 // Nếu mới load lần đầu -> Đếm tổng tin chưa đọc
                 if (prev.length === 0) {
-                    const unread = data.messages.filter((m: any) => m.sender_id?._id !== currentUser?._id && (!m.readBy || !m.readBy.includes(currentUser?._id))).length;
+                    const unread = data.messages.filter((m: any) => (m.sender_id?._id || m.sender_id) !== currentUser?._id && (!m.readBy || !m.readBy.includes(currentUser?._id))).length;
                     setUnreadCount(unread);
                 } else if (data.messages.length > prev.length && (!stateRef.current.isOpen || stateRef.current.isMinimized)) {
                      // Chỉ tăng khi có tin mới VÀ đang đóng
@@ -252,6 +294,8 @@ export default function ChatWindow({ orderId, currentUser, title, initialMessage
     return () => {
         clearInterval(interval);
         socket.off('new_message', handleNewMessage);
+        socket.off('message_deleted', handleMessageDeleted);
+        socket.off('message_reacted', handleMessageReacted);
         socket.off('typing_status', handleTyping);
         socket.off('message_read', handleMessageRead);
         socket.off('user_status', handleUserStatus);
@@ -273,6 +317,13 @@ export default function ChatWindow({ orderId, currentUser, title, initialMessage
     }
   }, [isOpen, isMinimized, messages.length, unreadCount, orderId, currentUser?._id]);
 
+  const appendUniqueMessage = (msg: any) => {
+    if (!msg) return;
+    setMessages((prev) =>
+      prev.some((m) => m._id === msg._id) ? prev : [...prev, msg],
+    );
+  };
+
   const handleSendMessage = async (content: string, type = 'TEXT', metadata = {}) => {
     try {
       const res = await fetch(`/api/orders/${orderId}/messages`, {
@@ -280,14 +331,104 @@ export default function ChatWindow({ orderId, currentUser, title, initialMessage
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ content, type, metadata, replyToId: replyingTo?._id }),
       });
-      const data = await res.json();
-      if (res.ok) {
-        setMessages(prev => [...prev, data.message]);
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.message) {
+        appendUniqueMessage(data.message);
         setReplyingTo(null); // Clear reply after send
-        socket.emit('send_message', { room: orderId, message: data.message });
+        if (typeof data.newBalance === 'number') {
+          window.dispatchEvent(new Event('user-updated'));
+        }
+      } else {
+        toast.error(data?.message || data?.error || 'Không thể gửi tin nhắn');
       }
     } catch (error) {
       console.error(error);
+      toast.error('Lỗi kết nối khi gửi tin nhắn');
+    }
+  };
+
+  // [Customer only] Gửi tiền Tip trực tiếp sang ví Booster
+  const handleSendTip = async (amount: number, note?: string): Promise<boolean> => {
+    try {
+      const res = await fetch(`/api/orders/${orderId}/messages/tip`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount, note }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast.error(data?.message || data?.error || 'Không thể gửi tiền Tip');
+        return false;
+      }
+      appendUniqueMessage(data.message);
+      toast.success(`Đã gửi Tip ${amount.toLocaleString('vi-VN')}đ cho Booster!`);
+      window.dispatchEvent(new Event('user-updated'));
+      return true;
+    } catch {
+      toast.error('Lỗi kết nối khi gửi tiền Tip');
+      return false;
+    }
+  };
+
+  // [Customer & Booster] Gửi thẻ thông tin đơn hàng
+  const handleSendOrderInfo = async () => {
+    try {
+      const res = await fetch(`/api/orders/${orderId}/messages/order-info`, {
+        method: 'POST',
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast.error(data?.message || data?.error || 'Không thể lấy thông tin đơn hàng');
+        return;
+      }
+      appendUniqueMessage(data.message);
+    } catch {
+      toast.error('Lỗi kết nối khi gửi thông tin đơn hàng');
+    }
+  };
+
+  // [Booster only] Cập nhật trạng thái cày nhanh
+  const handleSendBoosterStatus = async (
+    statusCode: BoosterStatusCode,
+    note?: string,
+  ): Promise<boolean> => {
+    try {
+      const res = await fetch(`/api/orders/${orderId}/messages/booster-status`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ statusCode, note }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast.error(data?.message || data?.error || 'Không thể gửi trạng thái cày');
+        return false;
+      }
+      appendUniqueMessage(data.message);
+      toast.success('Đã gửi cập nhật trạng thái cho khách hàng');
+      return true;
+    } catch {
+      toast.error('Lỗi kết nối khi cập nhật trạng thái');
+      return false;
+    }
+  };
+
+  // [Booster only] Gửi thẻ báo cáo tiến độ trận đấu
+  const handleSendProgressReport = async (note?: string) => {
+    try {
+      const res = await fetch(`/api/orders/${orderId}/messages/progress`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ note }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast.error(data?.message || data?.error || 'Không thể gửi báo cáo tiến độ');
+        return;
+      }
+      appendUniqueMessage(data.message);
+      toast.success('Đã gửi báo cáo tiến độ trận đấu');
+    } catch {
+      toast.error('Lỗi kết nối khi gửi báo cáo tiến độ');
     }
   };
 
@@ -299,17 +440,20 @@ export default function ChatWindow({ orderId, currentUser, title, initialMessage
             body: JSON.stringify({ emoji })
         });
         if (res.ok) {
-            // Optimistic update
+            const data = await res.json();
             setMessages(prev => prev.map(m => {
                 if (m._id === msgId) {
-                    const reactions = m.reactions || [];
+                    if (Array.isArray(data?.reactions)) {
+                      return { ...m, reactions: data.reactions };
+                    }
+                    const reactions = [...(m.reactions || [])];
                     const existingIdx = reactions.findIndex((r: any) => r.userId === currentUser._id && r.emoji === emoji);
                     if (existingIdx > -1) {
                         reactions.splice(existingIdx, 1);
                     } else {
                         reactions.push({ emoji, userId: currentUser._id });
                     }
-                    return { ...m, reactions: [...reactions] };
+                    return { ...m, reactions };
                 }
                 return m;
             }));
@@ -319,19 +463,30 @@ export default function ChatWindow({ orderId, currentUser, title, initialMessage
       }
   };
 
-  const handleDelete = async (msgId: string) => {
-      if (!confirm('Bạn có chắc muốn thu hồi tin nhắn này?')) return;
-      try {
-         const res = await fetch(`/api/orders/${orderId}/messages/${msgId}`, {
-            method: 'DELETE'
-        });
-        if (res.ok) {
-            toast.success('Đã thu hồi tin nhắn');
-            setMessages(prev => prev.filter(m => m._id !== msgId));
-        }
-      } catch (e) {
-          toast.error('Lỗi khi thu hồi');
+  const handleDelete = (msgId: string) => {
+    setPendingDeleteId(msgId);
+  };
+
+  const confirmDeleteMessage = async () => {
+    if (!pendingDeleteId || isDeleting) return;
+    setIsDeleting(true);
+    try {
+      const res = await fetch(`/api/orders/${orderId}/messages/${pendingDeleteId}`, {
+        method: 'DELETE',
+      });
+      if (res.ok) {
+        toast.success('Đã thu hồi tin nhắn');
+        setMessages((prev) => prev.filter((m) => m._id !== pendingDeleteId));
+        setPendingDeleteId(null);
+      } else {
+        const errData = await res.json().catch(() => ({}));
+        toast.error(errData?.message || 'Không thể thu hồi tin nhắn');
       }
+    } catch {
+      toast.error('Lỗi khi thu hồi tin nhắn');
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   const handleTypingEvent = (isTyping: boolean) => {
@@ -411,7 +566,7 @@ export default function ChatWindow({ orderId, currentUser, title, initialMessage
         className={`flex items-center justify-between p-3 border-zinc-800 transition-colors h-12 sm:h-auto ${
           isMinimized
             ? 'rounded-full px-3.5 py-1.5 h-full bg-transparent border-none'
-            : 'border-b bg-zinc-900/50 rounded-t-xl cursor-pointer hover:bg-zinc-800/80'
+            : 'border-b bg-zinc-900/60 rounded-t-2xl cursor-pointer hover:bg-zinc-800/80'
         }`}
         onClick={() => {
             setIsMinimized(!isMinimized);
@@ -490,7 +645,38 @@ export default function ChatWindow({ orderId, currentUser, title, initialMessage
 
       {/* Body */}
       {/* FIX: Wrap toàn bộ body (Messages + Input) trong 1 div flex có min-h-0 để tránh bị đẩy input ra ngoài */}
-      <div className={`flex-1 flex flex-col min-h-0 bg-zinc-950/80 ${isMinimized ? 'hidden' : 'flex'}`}>
+      <div className={`relative flex-1 flex flex-col min-h-0 bg-zinc-950/85 rounded-b-2xl ${isMinimized ? 'hidden' : 'flex'}`}>
+            {/* Confirm Recall Dialog inside ChatWindow */}
+            {pendingDeleteId && (
+              <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/70 backdrop-blur-sm rounded-b-2xl p-4 animate-in fade-in duration-150">
+                <div className="w-full max-w-[270px] rounded-2xl bg-zinc-900 border border-zinc-800 p-4 shadow-2xl">
+                  <h4 className="text-sm font-bold text-white mb-1">Thu hồi tin nhắn?</h4>
+                  <p className="text-xs text-zinc-400 leading-relaxed mb-4">
+                    Tin nhắn này sẽ bị xóa vĩnh viễn khỏi cuộc trò chuyện của cả hai bên.
+                  </p>
+                  <div className="flex items-center justify-end gap-2">
+                    <button
+                      type="button"
+                      disabled={isDeleting}
+                      onClick={() => setPendingDeleteId(null)}
+                      className="px-3 py-1.5 rounded-lg text-xs font-semibold text-zinc-300 bg-zinc-800 hover:bg-zinc-700 transition-colors cursor-pointer disabled:opacity-50"
+                    >
+                      Hủy
+                    </button>
+                    <button
+                      type="button"
+                      disabled={isDeleting}
+                      onClick={confirmDeleteMessage}
+                      className="px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-red-600 hover:bg-red-500 transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                    >
+                      {isDeleting && <Loader2 size={12} className="animate-spin" />}
+                      Thu hồi
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* CSS Animation cho hiệu ứng Typing mượt mà - Moved to global css or style tag */}
             <style jsx>{`
                 @keyframes typing {
@@ -504,25 +690,39 @@ export default function ChatWindow({ orderId, currentUser, title, initialMessage
             <div 
                 ref={scrollViewportRef}
                 onScroll={handleScroll}
-                className="flex-1 overflow-y-auto p-4 relative [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-zinc-700 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-zinc-600"
+                className="flex-1 overflow-y-auto px-3.5 py-4 relative [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-zinc-700 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-zinc-600"
             >
                 {filteredMessages.map((msg, index) => {
-                    const isMe = msg.sender_id?._id === currentUser?._id;
+                    const msgSenderId = msg.sender_id?._id || msg.sender_id;
+                    const isMe = msgSenderId === currentUser?._id;
                     // Logic gộp tin nhắn: Cùng người gửi + cách nhau dưới 5 phút
                     const prevMsg = filteredMessages[index - 1];
-                    const isSequence = prevMsg && prevMsg.sender_id?._id === msg.sender_id?._id && (new Date(msg.created_at).getTime() - new Date(prevMsg.created_at).getTime() < 5 * 60 * 1000);
+                    const nextMsg = filteredMessages[index + 1];
+                    const prevSenderId = prevMsg?.sender_id?._id || prevMsg?.sender_id;
+                    const nextSenderId = nextMsg?.sender_id?._id || nextMsg?.sender_id;
+                    const msgTime = new Date(msg.created_at || msg.createdAt || 0).getTime();
+                    const prevTime = prevMsg ? new Date(prevMsg.created_at || prevMsg.createdAt || 0).getTime() : 0;
+                    const nextTime = nextMsg ? new Date(nextMsg.created_at || nextMsg.createdAt || 0).getTime() : 0;
+
+                    const isSequence = Boolean(prevMsg && prevSenderId === msgSenderId && (msgTime - prevTime < 5 * 60 * 1000));
+                    const isLastInSequence = !nextMsg || nextSenderId !== msgSenderId || (nextTime - msgTime >= 5 * 60 * 1000);
 
                     return (
                     <MessageItem
                         key={msg._id || index}
                         message={msg}
                         isMe={isMe}
-                        isSequence={!!isSequence}
+                        isSequence={isSequence}
+                        isLastInSequence={isLastInSequence}
+                        isMaximized={isMaximized}
                         isOnline={!isMe && isPartnerOnline} // Truyền trạng thái online xuống tin nhắn
                         searchTerm={searchTerm} // Truyền từ khóa xuống để highlight
                         onReact={(emoji) => handleReact(msg._id, emoji)}
                         onReply={() => setReplyingTo(msg)}
                         onDelete={() => handleDelete(msg._id)}
+                        onImageLoad={() => {
+                          if (!showScrollButton) scrollToBottom('smooth');
+                        }}
                     />
                 )})}
                 
@@ -558,6 +758,12 @@ export default function ChatWindow({ orderId, currentUser, title, initialMessage
                 onTyping={handleTypingEvent}
                 replyingTo={replyingTo}
                 onCancelReply={() => setReplyingTo(null)}
+                participantRole={participantRole}
+                capabilities={capabilities}
+                onSendTip={handleSendTip}
+                onSendOrderInfo={handleSendOrderInfo}
+                onSendBoosterStatus={handleSendBoosterStatus}
+                onSendProgressReport={handleSendProgressReport}
             />
       </div>
     </div>

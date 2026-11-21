@@ -203,6 +203,8 @@ export default function AdminTransactionsPage() {
           <option value="DEPOSIT">Nạp tiền</option>
           <option value="WITHDRAWAL">Rút tiền</option>
           <option value="PAYMENT_HOLD">Giữ tiền</option>
+          <option value="TIP_SENT">Gửi tiền Tip</option>
+          <option value="TIP_RECEIVED">Nhận tiền Tip</option>
         </select>
       </div>
 
@@ -243,9 +245,9 @@ export default function AdminTransactionsPage() {
                       </div>
                     </td>
                     <td className={`px-6 py-4 font-bold ${
-                      ['DEPOSIT', 'PAYMENT_RELEASE', 'REFUND'].includes(tx.type) ? 'text-green-500' : 'text-red-500'
+                      ['DEPOSIT', 'PAYMENT_RELEASE', 'REFUND', 'TIP_RECEIVED'].includes(tx.type) ? 'text-green-500' : 'text-red-500'
                     }`}>
-                      {['DEPOSIT', 'PAYMENT_RELEASE', 'REFUND'].includes(tx.type) ? '+' : ''}{formatCurrency(tx.amount)}
+                      {['DEPOSIT', 'PAYMENT_RELEASE', 'REFUND', 'TIP_RECEIVED'].includes(tx.type) ? '+' : ''}{formatCurrency(tx.amount)}
                     </td>
                     <td className="px-6 py-4">
                       <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
@@ -316,9 +318,9 @@ export default function AdminTransactionsPage() {
                         </div>
                      </div>
                      <div className={`text-sm font-bold whitespace-nowrap ${
-                        ['DEPOSIT', 'PAYMENT_RELEASE', 'REFUND'].includes(tx.type) ? 'text-green-500' : 'text-red-500'
+                        ['DEPOSIT', 'PAYMENT_RELEASE', 'REFUND', 'TIP_RECEIVED'].includes(tx.type) ? 'text-green-500' : 'text-red-500'
                       }`}>
-                        {['DEPOSIT', 'PAYMENT_RELEASE', 'REFUND'].includes(tx.type) ? '+' : ''}{formatCurrency(tx.amount)}
+                        {['DEPOSIT', 'PAYMENT_RELEASE', 'REFUND', 'TIP_RECEIVED'].includes(tx.type) ? '+' : ''}{formatCurrency(tx.amount)}
                      </div>
                   </div>
 

@@ -2219,8 +2219,10 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                                                                             : 'Thanh toán đơn hàng (100% Escrow)'
                                                                     ) :
                                                                      tx.type === 'PAYMENT_RELEASE' ? 'Thanh toán bổ sung' :
-                                                                     tx.type === 'REFUND' ? 'Hoàn tiền vào ví' : 
-                                                                     tx.metadata?.description || tx.type}
+                                                                     tx.type === 'REFUND' ? 'Hoàn tiền vào ví' :
+                                                                     tx.type === 'TIP_SENT' ? 'Gửi tiền Tip cho Booster' :
+                                                                     tx.type === 'TIP_RECEIVED' ? 'Nhận tiền Tip từ khách hàng' :
+                                                                     tx.metadata?.description || tx.description || tx.type}
                                                                 </div>
                                                                 <div className="text-xs text-zinc-500">{new Date(tx.createdAt).toLocaleString('vi-VN')}</div>
                                                             </div>
@@ -2399,6 +2401,13 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
           orderId={order.orderCode || order._id} 
           currentUser={user} 
           partner={partner} 
+          orderRole={
+            (order.customerId?._id || order.customerId) === user?._id
+              ? 'CUSTOMER'
+              : (order.boosterId?._id || order.boosterId) === user?._id
+                ? 'BOOSTER'
+                : (user?.role === 'ADMIN' || user?.role === 'STAFF' ? 'ADMIN' : undefined)
+          }
           trigger="side" 
         />
       )}

@@ -11,7 +11,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { ApiTags, ApiOperation, ApiConsumes } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiConsumes, ApiQuery } from '@nestjs/swagger';
 import { PublicService } from './public.service';
 import { Public } from '../../common/decorators/public.decorator';
 import {
@@ -80,16 +80,30 @@ export class PublicController {
   @Post('upload')
   @UseInterceptors(FileInterceptor('file'))
   @ApiConsumes('multipart/form-data')
-  @ApiOperation({ summary: 'Upload image or contract PDF to Cloudinary' })
+  @ApiQuery({
+    name: 'folder',
+    required: false,
+    description: 'Thư mục lưu trên Cloudinary: "chat" (caythuelol/chat - chỉ ảnh) hoặc "uploads" (caythuelol/uploads - ảnh/PDF hồ sơ, mặc định)',
+    enum: ['chat', 'uploads'],
+  })
+  @ApiOperation({
+    summary: 'Upload image or contract PDF to Cloudinary',
+    description:
+      'Hỗ trợ truyền folder qua FormData field "folder" hoặc query "?folder=chat|uploads". Mặc định lưu vào caythuelol/uploads; dùng "chat" để lưu vào caythuelol/chat (chỉ chấp nhận ảnh).',
+  })
   async uploadFile(
     @UploadedFile() file: any,
     @Body('resource_type') resourceType?: 'auto' | 'raw' | 'image',
+    @Body('folder') folderBody?: string,
+    @Query('folder') folderQuery?: string,
   ) {
     if (!file) throw new BadRequestException('Không tìm thấy file tải lên');
     return this.publicService.uploadFileBuffer(
       file.buffer,
       file.originalname,
       resourceType || 'auto',
+      folderBody || folderQuery,
+      file.mimetype,
     );
   }
 

@@ -423,9 +423,10 @@ export default function BoosterApplyPage() {
     toast.success("Đã chọn ảnh Bill chuyển khoản");
   };
 
-  const uploadSingleFile = async (file: File): Promise<string> => {
+  const uploadSingleFile = async (file: File, folder: 'uploads' | 'chat' = 'uploads'): Promise<string> => {
     const formData = new FormData();
     formData.append('file', file);
+    formData.append('folder', folder);
     const res = await fetch('/api/upload', { method: 'POST', body: formData });
     if (!res.ok) throw new Error("Không thể tải ảnh lên hệ thống. Vui lòng thử lại.");
     const data = await res.json();
@@ -473,6 +474,7 @@ export default function BoosterApplyPage() {
       const cleanFileName = `contract_${Date.now()}.pdf`;
       formData.append('file', pdfBlob, cleanFileName);
       formData.append('resource_type', 'raw');
+      formData.append('folder', 'uploads');
       
       const uploadRes = await fetch('/api/upload', {
         method: 'POST',

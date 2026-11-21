@@ -123,13 +123,53 @@ export class PublicService {
     };
   }
 
-  async uploadFileBuffer(buffer: Buffer, fileName: string, resourceType: 'auto' | 'raw' | 'image' = 'auto') {
+  private resolveUploadFolder(folder?: string): 'caythuelol/chat' | 'caythuelol/uploads' {
+    const normalized = (folder || '').trim().toLowerCase().replace(/^\/+|\/+$/g, '');
+    if (normalized === 'chat' || normalized === 'caythuelol/chat') {
+      return 'caythuelol/chat';
+    }
+    return 'caythuelol/uploads';
+  }
+
+  async uploadFileBuffer(
+    buffer: Buffer,
+    fileName: string,
+    resourceType: 'auto' | 'raw' | 'image' = 'auto',
+    folder?: string,
+    mimeType?: string,
+  ) {
+    const MAX_UPLOAD_BYTES = 10 * 1024 * 1024; // 10MB
+    if (buffer.length > MAX_UPLOAD_BYTES) {
+      throw new BadRequestException('Dung lượng file tối đa là 10MB');
+    }
+
+    const targetFolder = this.resolveUploadFolder(folder);
+    const normalizedMime = (mimeType || '').toLowerCase();
+    const isImageMime = normalizedMime.startsWith('image/');
+    const isPdfMime =
+      normalizedMime === 'application/pdf' ||
+      (fileName || '').toLowerCase().endsWith('.pdf');
+
+    // Phân tách chặt chẽ theo mục đích thư mục:
+    // - caythuelol/chat: chỉ cho phép ảnh gửi trong phòng chat
+    // - caythuelol/uploads: cho phép ảnh (bằng chứng rank, bill, góp ý) và PDF hợp đồng Booster
+    if (targetFolder === 'caythuelol/chat') {
+      if (normalizedMime && !isImageMime) {
+        throw new BadRequestException('Thư mục chat chỉ hỗ trợ tải lên file ảnh');
+      }
+    } else if (normalizedMime && !isImageMime && !isPdfMime) {
+      throw new BadRequestException('Chỉ hỗ trợ file ảnh hoặc PDF');
+    }
+
+    const effectiveResourceType: 'auto' | 'raw' | 'image' =
+      targetFolder === 'caythuelol/chat' ? 'image' : resourceType;
+
     const uploadOptions: any = {
-      folder: 'caythuelol/uploads',
-      resource_type: resourceType,
+      folder: targetFolder,
+      resource_type: effectiveResourceType,
     };
 
-    if (resourceType === 'raw') {
+    if (effectiveResourceType === 'raw') {
       uploadOptions.use_filename = true;
       uploadOptions.unique_filename = false;
       uploadOptions.overwrite = true;
