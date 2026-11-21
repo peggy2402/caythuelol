@@ -23,6 +23,7 @@ import {
   Trophy,
   KeyRound,
   BarChart3,
+  ArrowRight,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
@@ -137,6 +138,15 @@ export default function MessageItem({
   const handleViewProfile = () => {
     if (message.sender_id?._id && message.sender_id.role === 'BOOSTER') {
       router.push(`/boosters/${message.sender_id._id}`);
+    }
+  };
+
+  const handleViewProgressTab = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    window.dispatchEvent(new CustomEvent('switch-order-tab', { detail: 'PROGRESS' }));
+    const tabEl = document.getElementById('order-tabs-container');
+    if (tabEl) {
+      tabEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   };
 
@@ -360,28 +370,20 @@ export default function MessageItem({
               </div>
             )}
 
-            {recentMatches.length > 0 && (
-              <div className="pt-1.5 flex flex-wrap gap-1">
-                {recentMatches.map((m: any, idx: number) => (
-                  <span
-                    key={idx}
-                    className={`px-1.5 py-0.5 rounded text-[10px] font-medium border ${
-                      m.result === 'WIN'
-                        ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300'
-                        : 'bg-rose-500/15 border-rose-500/30 text-rose-300'
-                    }`}
-                  >
-                    {m.champion} ({m.result === 'WIN' ? 'W' : 'L'})
-                  </span>
-                ))}
-              </div>
-            )}
-
             {meta.note && (
               <div className="mt-1.5 rounded-lg bg-black/30 border border-white/10 px-2 py-1 text-[11px] text-zinc-200 break-words">
                 {meta.note}
               </div>
             )}
+
+            <button
+              type="button"
+              onClick={handleViewProgressTab}
+              className="mt-2 w-full py-1.5 px-3 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 active:scale-[0.98] text-emerald-300 border border-emerald-500/30 text-[11px] font-bold transition-all flex items-center justify-center gap-1.5 shadow-sm group cursor-pointer"
+            >
+              <span>Xem chi tiết</span>
+              <ArrowRight size={13} className="transition-transform group-hover:translate-x-0.5" />
+            </button>
           </div>
         </div>
       );

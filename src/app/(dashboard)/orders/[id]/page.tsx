@@ -176,6 +176,18 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
   
   // UI States
   const [activeTab, setActiveTab] = useState<'INFO' | 'PROGRESS'>('INFO');
+
+  // Lắng nghe sự kiện chuyển Tab từ Chat hoặc thẻ báo cáo tiến độ
+  useEffect(() => {
+    const handleSwitchTab = (e: any) => {
+      const target = e?.detail || 'PROGRESS';
+      if (target === 'PROGRESS' || target === 'INFO') {
+        setActiveTab(target);
+      }
+    };
+    window.addEventListener('switch-order-tab', handleSwitchTab);
+    return () => window.removeEventListener('switch-order-tab', handleSwitchTab);
+  }, []);
   const [isDisputeModalOpen, setIsDisputeModalOpen] = useState(false);
   const [disputeReason, setDisputeReason] = useState('');
   const [isSubmittingDispute, setIsSubmittingDispute] = useState(false);
@@ -1556,7 +1568,7 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
             </div>
 
             {/* TABS: Info vs Progress */}
-            <div className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden shadow-lg">
+            <div id="order-tabs-container" className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden shadow-lg scroll-mt-24">
                 <div className="flex border-b border-zinc-800">
                     <button onClick={() => setActiveTab('INFO')} className={`flex-1 py-4 text-sm font-bold transition-all border-b-2 ${activeTab === 'INFO' ? 'bg-zinc-800/50 text-white border-blue-500' : 'text-zinc-500 border-transparent hover:text-zinc-300 hover:bg-zinc-800/30'}`}>
                         Thông tin đơn hàng

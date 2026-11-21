@@ -369,6 +369,12 @@ export default function ChatWindow({ orderId, currentUser, title, initialMessage
     );
   };
 
+  const playMessageSound = () => {
+    try {
+      new Audio('/sounds/message.mp3').play().catch(() => {});
+    } catch (e) {}
+  };
+
   const handleSendMessage = async (content: string, type = 'TEXT', metadata = {}) => {
     try {
       const res = await fetch(`/api/orders/${orderId}/messages`, {
@@ -380,6 +386,7 @@ export default function ChatWindow({ orderId, currentUser, title, initialMessage
       if (res.ok && data.message) {
         appendUniqueMessage(data.message);
         setReplyingTo(null); // Clear reply after send
+        playMessageSound();
         if (typeof data.newBalance === 'number') {
           window.dispatchEvent(new Event('user-updated'));
         }
@@ -406,7 +413,8 @@ export default function ChatWindow({ orderId, currentUser, title, initialMessage
         return false;
       }
       appendUniqueMessage(data.message);
-      toast.success(`Đã gửi Tip ${amount.toLocaleString('vi-VN')}đ cho Booster!`);
+      playMessageSound();
+      toast.success(`Đã gửi tặng Tip ${amount.toLocaleString('vi-VN')}đ cho Booster thành công!`);
       window.dispatchEvent(new Event('user-updated'));
       return true;
     } catch {
@@ -427,6 +435,8 @@ export default function ChatWindow({ orderId, currentUser, title, initialMessage
         return;
       }
       appendUniqueMessage(data.message);
+      playMessageSound();
+      toast.success('Đã gửi thông tin đơn hàng vào phòng chat!');
     } catch {
       toast.error('Lỗi kết nối khi gửi thông tin đơn hàng');
     }
@@ -449,7 +459,8 @@ export default function ChatWindow({ orderId, currentUser, title, initialMessage
         return false;
       }
       appendUniqueMessage(data.message);
-      toast.success('Đã gửi cập nhật trạng thái cho khách hàng');
+      playMessageSound();
+      toast.success('Đã gửi cập nhật trạng thái cày cho khách hàng!');
       return true;
     } catch {
       toast.error('Lỗi kết nối khi cập nhật trạng thái');
@@ -471,7 +482,8 @@ export default function ChatWindow({ orderId, currentUser, title, initialMessage
         return;
       }
       appendUniqueMessage(data.message);
-      toast.success('Đã gửi báo cáo tiến độ trận đấu');
+      playMessageSound();
+      toast.success('Đã gửi báo cáo tiến độ trận đấu vào phòng chat!');
     } catch {
       toast.error('Lỗi kết nối khi gửi báo cáo tiến độ');
     }
