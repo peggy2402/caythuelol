@@ -156,6 +156,36 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     client.to(`order_${data.orderId}`).emit('user_stop_typing', data);
   }
 
+  @SubscribeMessage('mark_read')
+  handleMarkRead(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { orderId: string; userId: string },
+  ) {
+    if (!data?.orderId || !data?.userId) return;
+    client.to(`order_${data.orderId}`).emit('message_read', {
+      orderId: data.orderId,
+      userId: data.userId,
+    });
+  }
+
+  @SubscribeMessage('mark_delivered')
+  handleMarkDelivered(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { orderId: string; userId: string },
+  ) {
+    if (!data?.orderId || !data?.userId) return;
+    client.to(`order_${data.orderId}`).emit('message_delivered', {
+      orderId: data.orderId,
+      userId: data.userId,
+    });
+  }
+
+  isUserOnline(userId: string): boolean {
+    if (!userId) return false;
+    const sockets = this.onlineUsers.get(userId.toString());
+    return Boolean(sockets && sockets.size > 0);
+  }
+
   broadcastMessageToOrder(orderId: string, message: any) {
     this.server.to(`order_${orderId}`).emit('new_message', message);
   }
@@ -179,6 +209,13 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     payload: { orderId: string; userId: string },
   ) {
     this.server.to(`order_${orderId}`).emit('message_read', payload);
+  }
+
+  broadcastMessageDelivered(
+    orderId: string,
+    payload: { orderId: string; userId: string },
+  ) {
+    this.server.to(`order_${orderId}`).emit('message_delivered', payload);
   }
 
   broadcastBalanceUpdate(userId: string, balance: number, message: string) {

@@ -36,6 +36,7 @@ interface MessageProps {
   isMaximized?: boolean;
   searchTerm?: string;
   isOnline?: boolean;
+  partner?: any;
   onReact: (emoji: string) => void;
   onReply: () => void;
   onDelete?: () => void;
@@ -50,6 +51,7 @@ export default function MessageItem({
   isMaximized = false,
   searchTerm = '',
   isOnline = false,
+  partner,
   onReact,
   onReply,
   onDelete,
@@ -101,11 +103,36 @@ export default function MessageItem({
     {},
   );
 
-  const senderId = message.sender_id?._id || message.sender_id;
+  const senderId = (message.sender_id?._id || message.sender_id)?.toString();
+
+  // 1. ĐÃ XEM (Seen): Có đối phương trong danh sách readBy
   const isSeen =
     isMe &&
     Array.isArray(message.readBy) &&
-    message.readBy.some((id: string) => id && id.toString() !== senderId?.toString());
+    message.readBy.some((id: any) => {
+      const s = (id?._id || id)?.toString();
+      return s && s !== senderId;
+    });
+
+  // 2. ĐÃ NHẬN (Delivered): Đã xem, hoặc có đối phương trong danh sách deliveredTo, hoặc đối phương đang Online
+  const isDelivered =
+    isSeen ||
+    (isMe && (
+      (Array.isArray(message.deliveredTo) &&
+        message.deliveredTo.some((id: any) => {
+          const s = (id?._id || id)?.toString();
+          return s && s !== senderId;
+        })) ||
+      Boolean(isOnline)
+    ));
+
+  // Avatar đối phương để hiển thị avatar nhỏ khi đã xem (chuẩn Messenger)
+  const partnerAvatar =
+    partner?.profile?.avatar ||
+    partner?.avatar ||
+    (typeof partner?.username === 'string'
+      ? `https://ui-avatars.com/api/?name=${encodeURIComponent(partner.username)}&background=0284c7&color=fff`
+      : null);
 
   const handleViewProfile = () => {
     if (message.sender_id?._id && message.sender_id.role === 'BOOSTER') {
@@ -610,17 +637,40 @@ export default function MessageItem({
           </div>
         </div>
 
-        {/* Read Status Indicator */}
+        {/* Read / Delivered / Sent Status Indicator (Messenger style) */}
         {isMe && isLastInSequence && (
-          <div className="mt-0.5 pr-9 flex items-center justify-end gap-1 text-[10px] text-zinc-500">
+          <div className="mt-1 pr-9 flex items-center justify-end gap-1.5 text-[10px] select-none">
             {isSeen ? (
-              <span className="inline-flex items-center gap-0.5 text-blue-400" title="Đã xem">
-                <CheckCheck size={12} />
+              <span
+                className="inline-flex items-center gap-1 text-cyan-400 font-semibold"
+                title="Đã xem"
+              >
+                <CheckCheck size={13} className="text-cyan-400" />
                 <span>Đã xem</span>
+                {partnerAvatar && (
+                  <span className="relative inline-block w-3.5 h-3.5 rounded-full overflow-hidden border border-cyan-500/50 shadow-sm ml-0.5 ring-1 ring-cyan-500/20">
+                    <img
+                      src={partnerAvatar}
+                      alt="Seen"
+                      className="w-full h-full object-cover"
+                    />
+                  </span>
+                )}
+              </span>
+            ) : isDelivered ? (
+              <span
+                className="inline-flex items-center gap-0.5 text-zinc-300 font-normal"
+                title="Đã nhận (Đối phương đã nhận được tin nhắn)"
+              >
+                <CheckCheck size={13} className="text-zinc-400" />
+                <span>Đã nhận</span>
               </span>
             ) : (
-              <span className="inline-flex items-center gap-0.5 text-zinc-500" title="Đã gửi">
-                <Check size={12} />
+              <span
+                className="inline-flex items-center gap-0.5 text-zinc-500 font-normal"
+                title="Đã gửi (Tin nhắn đã được gửi lên hệ thống)"
+              >
+                <Check size={13} className="text-zinc-500" />
                 <span>Đã gửi</span>
               </span>
             )}

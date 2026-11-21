@@ -62,6 +62,12 @@ export class ChatController {
     return this.chatService.markAsRead(orderId, user.userId, user.role);
   }
 
+  @Post('delivered')
+  @ApiOperation({ summary: '[Customer & Booster] Đánh dấu đã nhận tin nhắn trong phòng chat' })
+  async markAsDelivered(@Param('id') orderId: string, @ReqUser() user: any) {
+    return this.chatService.markAsDelivered(orderId, user.userId, user.role);
+  }
+
   @Post('order-info')
   @ApiOperation({ summary: '[Customer & Booster] Gửi thẻ tóm tắt thông tin đơn hàng vào phòng chat' })
   async sendOrderInfo(@Param('id') orderId: string, @ReqUser() user: any) {

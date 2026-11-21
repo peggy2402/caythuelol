@@ -189,9 +189,29 @@ export class ChatService {
     };
   }
 
+  private resolvePartnerId(order: any, senderId: Types.ObjectId | string): Types.ObjectId | null {
+    const sId = senderId?.toString();
+    const customerId = this.extractId(order.customerId);
+    const boosterId = this.extractId(order.boosterId);
+
+    if (sId === customerId && boosterId) {
+      return new Types.ObjectId(boosterId);
+    }
+    if (sId === boosterId && customerId) {
+      return new Types.ObjectId(customerId);
+    }
+    if (customerId && sId !== customerId) {
+      return new Types.ObjectId(customerId);
+    }
+    if (boosterId && sId !== boosterId) {
+      return new Types.ObjectId(boosterId);
+    }
+    return null;
+  }
+
   private broadcastToOrderRooms(
     order: any,
-    event: 'message' | 'deleted' | 'reacted' | 'read',
+    event: 'message' | 'deleted' | 'reacted' | 'read' | 'delivered',
     payload: any,
   ) {
     const orderIdStr = order._id.toString();
@@ -206,6 +226,8 @@ export class ChatService {
         this.chatGateway.broadcastMessageReacted(roomKey, payload);
       } else if (event === 'read') {
         this.chatGateway.broadcastMessageRead(roomKey, payload);
+      } else if (event === 'delivered') {
+        this.chatGateway.broadcastMessageDelivered(roomKey, payload);
       }
     };
 
@@ -241,6 +263,12 @@ export class ChatService {
       }
     }
 
+    const partnerId = this.resolvePartnerId(order, senderObjectId);
+    const deliveredToArray = [senderObjectId];
+    if (partnerId && this.chatGateway.isUserOnline(partnerId.toString())) {
+      deliveredToArray.push(partnerId);
+    }
+
     const message = new this.messageModel({
       order_id: targetObjectId,
       sender_id: senderObjectId,
@@ -250,9 +278,23 @@ export class ChatService {
       replyTo: validReplyTo,
       is_system_message: Boolean(payload.isSystemMessage),
       readBy: [senderObjectId],
+      deliveredTo: deliveredToArray,
     });
 
     await message.save();
+
+    // Khi người này gửi tin nhắn trong phòng, chứng tỏ họ đã xem tất cả tin nhắn trước đó
+    await this.messageModel.updateMany(
+      {
+        order_id: targetObjectId,
+        sender_id: { $ne: senderObjectId },
+        readBy: { $ne: senderObjectId },
+      },
+      {
+        $addToSet: { readBy: senderObjectId, deliveredTo: senderObjectId },
+      },
+    );
+
     const populated = await message.populate([
       { path: 'sender_id', select: 'username profile.avatar role' },
       { path: 'replyTo' },
@@ -269,6 +311,20 @@ export class ChatService {
   async getMessages(orderId: string, userId: string, userRole?: string) {
     const { order, participantRole, capabilities } =
       await this.resolveOrderAndParticipant(orderId, userId, userRole);
+
+    const userObjectId = new Types.ObjectId(userId);
+
+    // Tự động đánh dấu đã nhận đối với các tin nhắn gửi tới người dùng này
+    await this.messageModel.updateMany(
+      {
+        order_id: order._id,
+        sender_id: { $ne: userObjectId },
+        deliveredTo: { $ne: userObjectId },
+      },
+      {
+        $addToSet: { deliveredTo: userObjectId },
+      },
+    );
 
     const messages = await this.messageModel
       .find({ order_id: order._id })
@@ -447,7 +503,7 @@ export class ChatService {
         readBy: { $ne: userObjectId },
       },
       {
-        $addToSet: { readBy: userObjectId },
+        $addToSet: { readBy: userObjectId, deliveredTo: userObjectId },
       },
     );
 
@@ -456,6 +512,36 @@ export class ChatService {
       userId,
     };
     this.broadcastToOrderRooms(order, 'read', payload);
+
+    return { success: true };
+  }
+
+  async markAsDelivered(orderId: string, userId: string, userRole?: string) {
+    const { order } = await this.resolveOrderAndParticipant(
+      orderId,
+      userId,
+      userRole,
+    );
+
+    const targetObjectId = order._id as Types.ObjectId;
+    const userObjectId = new Types.ObjectId(userId);
+
+    await this.messageModel.updateMany(
+      {
+        order_id: targetObjectId,
+        sender_id: { $ne: userObjectId },
+        deliveredTo: { $ne: userObjectId },
+      },
+      {
+        $addToSet: { deliveredTo: userObjectId },
+      },
+    );
+
+    const payload = {
+      orderId: order.orderCode || targetObjectId.toString(),
+      userId,
+    };
+    this.broadcastToOrderRooms(order, 'delivered', payload);
 
     return { success: true };
   }
@@ -738,6 +824,12 @@ export class ChatService {
               boosterUsername,
             },
             readBy: [new Types.ObjectId(userId)],
+            deliveredTo: [
+              new Types.ObjectId(userId),
+              ...(this.chatGateway.isUserOnline(boosterId)
+                ? [new Types.ObjectId(boosterId)]
+                : []),
+            ],
           },
         ],
         { session },

@@ -189,22 +189,57 @@ export default function ChatWindow({ orderId, currentUser, title, initialMessage
             try {
                 new Audio('/sounds/message.mp3').play().catch(() => {});
             } catch (e) {}
-        }
 
-        // Nếu đang đóng hoặc thu nhỏ -> Bật thông báo chưa đọc
-        // FIX: Chỉ tăng count nếu tin nhắn KHÔNG PHẢI của mình
-        if (!isMe && (!stateRef.current.isOpen || stateRef.current.isMinimized)) {
-            setUnreadCount(prev => prev + 1); // FIX: Tăng số lượng tin nhắn chưa đọc
+            // Nếu người nhận đang mở khung chat và không thu nhỏ -> Đánh dấu ĐÃ XEM ngay lập tức!
+            if (stateRef.current.isOpen && !stateRef.current.isMinimized) {
+                try {
+                    fetch(`/api/orders/${orderId}/messages/read`, { method: 'POST' });
+                    socket.emit('mark_read', { orderId, userId: currentUser?._id });
+                } catch (e) {}
+            } else {
+                // Nếu đang đóng hoặc thu nhỏ -> Đánh dấu ĐÃ NHẬN và tăng unreadCount
+                try {
+                    fetch(`/api/orders/${orderId}/messages/delivered`, { method: 'POST' });
+                    socket.emit('mark_delivered', { orderId, userId: currentUser?._id });
+                } catch (e) {}
+                setUnreadCount(prev => prev + 1); // FIX: Tăng số lượng tin nhắn chưa đọc
+            }
         }
     };
 
     // Xử lý sự kiện "Đã xem" từ người khác
     const handleMessageRead = (data: { userId: string, orderId: string }) => {
-        if (data.orderId === orderId && data.userId !== currentUser._id) {
+        const isTargetRoom = !data?.orderId || data.orderId === orderId || data.orderId.includes(orderId) || orderId.includes(data.orderId);
+        if (isTargetRoom && data?.userId !== currentUser?._id) {
             setMessages(prev => prev.map(msg => {
+                const sId = (msg.sender_id?._id || msg.sender_id)?.toString();
+                const myId = currentUser?._id?.toString();
                 // Nếu tin nhắn là của mình và chưa có người này trong readBy -> Thêm vào
-                if (msg.sender_id?._id === currentUser._id && !msg.readBy?.includes(data.userId)) {
-                    return { ...msg, readBy: [...(msg.readBy || []), data.userId] };
+                if (sId === myId && !msg.readBy?.some((id: any) => (id?._id || id)?.toString() === data.userId?.toString())) {
+                    return { 
+                      ...msg, 
+                      readBy: [...(msg.readBy || []), data.userId],
+                      deliveredTo: [...(msg.deliveredTo || []), data.userId] 
+                    };
+                }
+                return msg;
+            }));
+        }
+    };
+
+    // Xử lý sự kiện "Đã nhận" từ người khác
+    const handleMessageDelivered = (data: { userId: string, orderId: string }) => {
+        const isTargetRoom = !data?.orderId || data.orderId === orderId || data.orderId.includes(orderId) || orderId.includes(data.orderId);
+        if (isTargetRoom && data?.userId !== currentUser?._id) {
+            setMessages(prev => prev.map(msg => {
+                const sId = (msg.sender_id?._id || msg.sender_id)?.toString();
+                const myId = currentUser?._id?.toString();
+                // Nếu tin nhắn là của mình và chưa có người này trong deliveredTo -> Thêm vào
+                if (sId === myId && !msg.deliveredTo?.some((id: any) => (id?._id || id)?.toString() === data.userId?.toString())) {
+                    return { 
+                      ...msg, 
+                      deliveredTo: [...(msg.deliveredTo || []), data.userId] 
+                    };
                 }
                 return msg;
             }));
@@ -251,6 +286,7 @@ export default function ChatWindow({ orderId, currentUser, title, initialMessage
     socket.on('message_reacted', handleMessageReacted);
     socket.on('typing_status', handleTyping);
     socket.on('message_read', handleMessageRead);
+    socket.on('message_delivered', handleMessageDelivered);
     socket.on('user_status', handleUserStatus); // Cần backend emit sự kiện này
 
     // FIX: Tách hàm fetch ra để gọi được ngay lập tức
@@ -298,6 +334,7 @@ export default function ChatWindow({ orderId, currentUser, title, initialMessage
         socket.off('message_reacted', handleMessageReacted);
         socket.off('typing_status', handleTyping);
         socket.off('message_read', handleMessageRead);
+        socket.off('message_delivered', handleMessageDelivered);
         socket.off('user_status', handleUserStatus);
         socket.off('connect', onConnect);
     };
@@ -305,17 +342,25 @@ export default function ChatWindow({ orderId, currentUser, title, initialMessage
 
   // Effect: Đánh dấu đã đọc khi mở chat hoặc có tin nhắn mới
   useEffect(() => {
-    if (isOpen && !isMinimized && messages.length > 0 && unreadCount > 0) {
-        const markRead = async () => {
-            try {
-                await fetch(`/api/orders/${orderId}/messages/read`, { method: 'POST' });
-                socket.emit('mark_read', { orderId, userId: currentUser._id });
-                setUnreadCount(0);
-            } catch (e) {}
-        };
-        markRead();
+    if (isOpen && !isMinimized && messages.length > 0) {
+        const myId = currentUser?._id?.toString();
+        const hasUnreadFromPartner = messages.some((m: any) => {
+            const sId = (m.sender_id?._id || m.sender_id)?.toString();
+            return sId !== myId && (!m.readBy || !m.readBy.some((id: any) => (id?._id || id)?.toString() === myId));
+        });
+
+        if (hasUnreadFromPartner || unreadCount > 0) {
+            const markRead = async () => {
+                try {
+                    await fetch(`/api/orders/${orderId}/messages/read`, { method: 'POST' });
+                    socket.emit('mark_read', { orderId, userId: currentUser?._id });
+                    setUnreadCount(0);
+                } catch (e) {}
+            };
+            markRead();
+        }
     }
-  }, [isOpen, isMinimized, messages.length, unreadCount, orderId, currentUser?._id]);
+  }, [isOpen, isMinimized, messages, unreadCount, orderId, currentUser?._id]);
 
   const appendUniqueMessage = (msg: any) => {
     if (!msg) return;
@@ -715,7 +760,8 @@ export default function ChatWindow({ orderId, currentUser, title, initialMessage
                         isSequence={isSequence}
                         isLastInSequence={isLastInSequence}
                         isMaximized={isMaximized}
-                        isOnline={!isMe && isPartnerOnline} // Truyền trạng thái online xuống tin nhắn
+                        isOnline={isPartnerOnline}
+                        partner={partner}
                         searchTerm={searchTerm} // Truyền từ khóa xuống để highlight
                         onReact={(emoji) => handleReact(msg._id, emoji)}
                         onReply={() => setReplyingTo(msg)}
