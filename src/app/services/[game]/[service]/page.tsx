@@ -35,6 +35,7 @@ import {
   Crown,
   Check,
   Search,
+  Shuffle,
   X,
   ArrowRightLeft,
   ChevronRight,
@@ -728,9 +729,30 @@ function ServiceBookingContent() {
   useEffect(() => {
     fetch(`/api/boosters?game=${encodeURIComponent(game.id.toUpperCase())}&service=${encodeURIComponent(serviceSlug)}`)
       .then((res) => res.json())
-      .then((data) => setBoosterList(data.boosters || []))
+      .then((data) => {
+        const list = data.boosters || [];
+        setBoosterList(list);
+
+        // Nếu khách hàng vào trang tự nhiên (không chỉ định qua query URL)
+        // và đang ở chế độ Ghép Nhanh Tự Động, tự động random chọn 1 booster phù hợp
+        if (!cleanBoosterUsername && list.length > 0) {
+          const randomIndex = Math.floor(Math.random() * list.length);
+          const picked = list[randomIndex];
+          setAssignedBooster({
+            user: picked,
+            boosterData: picked.boosterProfile || picked.booster_info || picked,
+          });
+          setIsManualSelectBooster(false);
+
+          const boosterCoupon = picked.boosterProfile?.service_settings?.coupon || picked.service_settings?.coupon;
+          if (boosterCoupon?.isActive && boosterCoupon?.code) {
+            setAppliedCoupon(boosterCoupon);
+            setCouponCode(boosterCoupon.code);
+          }
+        }
+      })
       .catch(() => {});
-  }, [game.id, serviceSlug]);
+  }, [game.id, serviceSlug, cleanBoosterUsername]);
 
   // Nếu có query booster, fetch thông tin booster đó
   useEffect(() => {
@@ -763,6 +785,41 @@ function ServiceBookingContent() {
       return name.includes(q) || username.includes(q);
     });
   }, [boosterList, boosterSearchTerm]);
+
+  // Đổi ngẫu nhiên booster khác trong chế độ Ghép Nhanh Tự Động
+  const handleRandomRerollBooster = () => {
+    if (boosterList.length === 0) {
+      toast.info('Hiện chưa có tuyển thủ nào sẵn sàng cho dịch vụ này.');
+      return;
+    }
+    if (boosterList.length === 1) {
+      toast.info('Hiện tại chỉ có 1 tuyển thủ sẵn sàng cho dịch vụ này.');
+      return;
+    }
+
+    const currentId = assignedBooster?.user?._id || assignedBooster?._id;
+    const others = boosterList.filter((b) => b._id !== currentId);
+    const pool = others.length > 0 ? others : boosterList;
+    const randomIndex = Math.floor(Math.random() * pool.length);
+    const picked = pool[randomIndex];
+
+    setAssignedBooster({
+      user: picked,
+      boosterData: picked.boosterProfile || picked.booster_info || picked,
+    });
+    setIsManualSelectBooster(false);
+
+    const bCoupon = picked.boosterProfile?.service_settings?.coupon || picked.service_settings?.coupon;
+    if (bCoupon?.isActive && bCoupon?.code) {
+      setAppliedCoupon(bCoupon);
+      setCouponCode(bCoupon.code);
+      toast.success(`Đã tự động ghép: @${picked.username} (Áp dụng mã giảm ${bCoupon.discountPercent}%)`);
+    } else {
+      setAppliedCoupon(null);
+      setCouponCode('');
+      toast.success(`Đã tự động ghép: @${picked.username}!`);
+    }
+  };
 
   // Xử lý chọn Booster từ Modal
   const handleSelectBooster = (booster: any) => {
@@ -844,17 +901,17 @@ function ServiceBookingContent() {
 
   // Tỷ lệ cọc giữ chỗ: Ưu tiên tỷ lệ booster cấu hình riêng cho gói này, nếu không thì lấy mặc định theo dịch vụ
   const effectiveDepositPercent = useMemo(() => {
-    if (isManualSelectBooster && typeof matchingBoosterService?.depositPercent === 'number' && matchingBoosterService.depositPercent > 0) {
+    if (assignedBooster && typeof matchingBoosterService?.depositPercent === 'number' && matchingBoosterService.depositPercent > 0) {
       return Number(matchingBoosterService.depositPercent);
     }
     return serviceDef.depositPercent || (isPointBoost ? 30 : 100);
-  }, [isManualSelectBooster, matchingBoosterService?.depositPercent, serviceDef.depositPercent, isPointBoost]);
+  }, [assignedBooster, matchingBoosterService?.depositPercent, serviceDef.depositPercent, isPointBoost]);
 
   // Tính toán bảng giá (Hỗ trợ Cày Điểm RR/LP, Chuỗi Thăng Hạng và Cày Bậc Rank)
   const calculation = useMemo(() => {
     if (isPromotion) {
       const basePromoPrice =
-        (isManualSelectBooster && assignedBooster?.stepOverrides?.[selectedPromo.id]) ??
+        assignedBooster?.stepOverrides?.[selectedPromo.id] ??
         matchingBoosterService?.stepOverrides?.[selectedPromo.id] ??
         selectedPromo.defaultPrice;
 
@@ -913,10 +970,10 @@ function ServiceBookingContent() {
       rankSteps: activeRankSteps,
       lpGainMultiplier: lpMultiplier,
       addons,
-      boosterPriceMultiplier: isManualSelectBooster && assignedBooster ? boosterMultiplier : 1.0,
+      boosterPriceMultiplier: assignedBooster ? boosterMultiplier : 1.0,
       depositPercent: effectiveDepositPercent,
-      stepOverrides: isManualSelectBooster && assignedBooster ? boosterStepOverrides : undefined,
-      addonsConfig: isManualSelectBooster && assignedBooster ? boosterAddonsConfig : undefined,
+      stepOverrides: assignedBooster ? boosterStepOverrides : undefined,
+      addonsConfig: assignedBooster ? boosterAddonsConfig : undefined,
     });
   }, [
     isPointBoost,
@@ -1197,6 +1254,7 @@ function ServiceBookingContent() {
         game: game.id.toUpperCase(),
         serviceType: serviceSlug.toUpperCase().replace(/-/g, '_'),
         boosterId: assignedBooster?.user?._id || null,
+        is_auto_matched: !isManualSelectBooster && Boolean(assignedBooster),
         pricing: {
           original_price: calculation.totalPrice,
           listed_price: calculation.totalPrice,
@@ -1365,9 +1423,14 @@ function ServiceBookingContent() {
                     Chọn ghép nhanh tự động hoặc chỉ định tuyển thủ bạn tin tưởng
                   </p>
                 </div>
-                {isManualSelectBooster && assignedBooster && (
-                  <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400">
-                    Đang chỉ định
+                {assignedBooster && (
+                  <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full flex items-center gap-1 ${
+                    isManualSelectBooster
+                      ? 'bg-purple-500/10 border border-purple-500/20 text-purple-400'
+                      : 'bg-blue-500/10 border border-blue-500/20 text-blue-400'
+                  }`}>
+                    {isManualSelectBooster ? <Crown size={12} /> : <Zap size={12} />}
+                    <span>{isManualSelectBooster ? 'Đang chỉ định' : 'Ghép nhanh'}</span>
                   </span>
                 )}
               </div>
@@ -1378,9 +1441,26 @@ function ServiceBookingContent() {
                   type="button"
                   onClick={() => {
                     setIsManualSelectBooster(false);
-                    setAssignedBooster(null);
-                    setAppliedCoupon(null);
-                    setCouponCode('');
+                    if (boosterList.length > 0) {
+                      const currentId = assignedBooster?.user?._id || assignedBooster?._id;
+                      const others = boosterList.filter((b) => b._id !== currentId);
+                      const pool = others.length > 0 ? others : boosterList;
+                      const randomIndex = Math.floor(Math.random() * pool.length);
+                      const picked = pool[randomIndex];
+                      setAssignedBooster({
+                        user: picked,
+                        boosterData: picked.boosterProfile || picked.booster_info || picked,
+                      });
+                      const bCoupon = picked.boosterProfile?.service_settings?.coupon || picked.service_settings?.coupon;
+                      if (bCoupon?.isActive && bCoupon?.code) {
+                        setAppliedCoupon(bCoupon);
+                        setCouponCode(bCoupon.code);
+                      } else {
+                        setAppliedCoupon(null);
+                        setCouponCode('');
+                      }
+                      toast.info(`Hệ thống ghép tự động tuyển thủ: @${picked.username}`);
+                    }
                   }}
                   className={`p-3.5 rounded-2xl border text-left transition-all relative ${
                     !isManualSelectBooster
@@ -1398,7 +1478,7 @@ function ServiceBookingContent() {
                   </div>
                   <div className="font-bold text-white text-xs sm:text-sm">Ghép Nhanh Tự Động</div>
                   <div className="text-[11px] text-zinc-400 mt-1 leading-relaxed">
-                    Hệ thống tự ghép Tuyển thủ Thách Đấu có winrate cao nhất đang online &lt; 3 phút.
+                    Hệ thống tự động ghép ngẫu nhiên tuyển thủ đủ điều kiện với mức giá minh bạch.
                   </div>
                 </button>
 
@@ -1406,15 +1486,13 @@ function ServiceBookingContent() {
                   type="button"
                   onClick={() => {
                     setIsManualSelectBooster(true);
-                    if (!assignedBooster) {
-                      setIsBoosterModalOpen(true);
-                      if (boosterList.length > 0) {
-                        const first = boosterList[0];
-                        setAssignedBooster({
-                          user: first,
-                          boosterData: first.boosterProfile || first.booster_info || first,
-                        });
-                      }
+                    setIsBoosterModalOpen(true);
+                    if (!assignedBooster && boosterList.length > 0) {
+                      const first = boosterList[0];
+                      setAssignedBooster({
+                        user: first,
+                        boosterData: first.boosterProfile || first.booster_info || first,
+                      });
                     }
                   }}
                   className={`p-3.5 rounded-2xl border text-left transition-all relative ${
@@ -1438,9 +1516,13 @@ function ServiceBookingContent() {
                 </button>
               </div>
 
-              {/* Card Tuyển Thủ Đang Chọn */}
-              {isManualSelectBooster && (
-                <div className="p-3.5 sm:p-4 rounded-2xl bg-zinc-950 border border-zinc-800 space-y-3 animate-in fade-in duration-200">
+              {/* Card Tuyển Thủ Đang Chọn / Được Ghép */}
+              {assignedBooster ? (
+                <div className={`p-3.5 sm:p-4 rounded-2xl border space-y-3 animate-in fade-in duration-200 ${
+                  isManualSelectBooster
+                    ? 'bg-purple-950/20 border-purple-500/40 shadow-[0_0_15px_rgba(168,85,247,0.1)]'
+                    : 'bg-blue-950/20 border-blue-500/40 shadow-[0_0_15px_rgba(59,130,246,0.1)]'
+                }`}>
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     {(() => {
                       const avatarUrl =
@@ -1481,7 +1563,11 @@ function ServiceBookingContent() {
 
                       return (
                         <div className="flex items-center gap-3">
-                          <div className="w-12 h-12 rounded-2xl overflow-hidden bg-gradient-to-br from-purple-500/20 to-blue-500/20 border border-purple-500/30 flex items-center justify-center text-white font-bold text-base shadow-inner shrink-0">
+                          <div className={`w-12 h-12 rounded-2xl overflow-hidden border flex items-center justify-center text-white font-bold text-base shadow-inner shrink-0 ${
+                            isManualSelectBooster
+                              ? 'bg-gradient-to-br from-purple-500/20 to-blue-500/20 border-purple-500/40'
+                              : 'bg-gradient-to-br from-blue-500/20 to-cyan-500/20 border-blue-500/40'
+                          }`}>
                             {avatarUrl ? (
                               <img
                                 src={avatarUrl}
@@ -1530,30 +1616,63 @@ function ServiceBookingContent() {
                       );
                     })()}
 
-                    <Link
-                      href={`/b/${assignedBooster?.user?.username || ''}`}
-                      target="_blank"
-                      className="text-xs text-blue-400 hover:text-blue-300 font-semibold inline-flex items-center gap-1 self-start sm:self-auto"
-                    >
-                      <span>Xem hồ sơ</span>
-                      <ArrowRight size={12} />
-                    </Link>
+                    <div className="flex items-center gap-2 self-start sm:self-auto">
+                      {isManualSelectBooster ? (
+                        <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-purple-500/15 border border-purple-500/30 text-purple-400 flex items-center gap-1">
+                          <Crown size={12} />
+                          Chỉ định
+                        </span>
+                      ) : (
+                        <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-blue-500/15 border border-blue-500/30 text-blue-400 flex items-center gap-1">
+                          <Zap size={12} />
+                          Ghép tự động
+                        </span>
+                      )}
+                      <Link
+                        href={`/b/${assignedBooster?.user?.username || ''}`}
+                        target="_blank"
+                        className="text-xs text-blue-400 hover:text-blue-300 font-semibold inline-flex items-center gap-1"
+                      >
+                        <span>Hồ sơ</span>
+                        <ArrowRight size={12} />
+                      </Link>
+                    </div>
                   </div>
 
-                  {/* Nút Mở Modal Đổi Tuyển Thủ */}
+                  {/* Nút Đổi Tuyển Thủ */}
                   <div className="pt-2.5 border-t border-zinc-900 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                     <span className="text-[11px] text-zinc-400">
-                      Muốn tuyển thủ khác cày đơn này?
+                      {isManualSelectBooster
+                        ? 'Tuyển thủ theo yêu cầu của bạn'
+                        : 'Hệ thống đã tự động ghép tuyển thủ phù hợp nhất'}
                     </span>
-                    <button
-                      type="button"
-                      onClick={() => setIsBoosterModalOpen(true)}
-                      className="px-3 py-1.5 rounded-xl bg-purple-500/15 hover:bg-purple-500/25 text-purple-300 border border-purple-500/30 text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-sm active:scale-95 self-start sm:self-auto"
-                    >
-                      <Search size={13} />
-                      <span>Đổi sang tuyển thủ khác</span>
-                    </button>
+                    {isManualSelectBooster ? (
+                      <button
+                        type="button"
+                        onClick={() => setIsBoosterModalOpen(true)}
+                        className="px-3 py-1.5 rounded-xl bg-purple-500/15 hover:bg-purple-500/25 text-purple-300 border border-purple-500/30 text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-sm active:scale-95 self-start sm:self-auto"
+                      >
+                        <Search size={13} />
+                        <span>Đổi sang tuyển thủ khác</span>
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={handleRandomRerollBooster}
+                        className="px-3 py-1.5 rounded-xl bg-blue-500/15 hover:bg-blue-500/25 text-blue-300 border border-blue-500/30 text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-sm active:scale-95 self-start sm:self-auto"
+                      >
+                        <Shuffle size={13} />
+                        <span>Ghép tuyển thủ khác (ngẫu nhiên)</span>
+                      </button>
+                    )}
                   </div>
+                </div>
+              ) : (
+                <div className="p-3.5 sm:p-4 rounded-2xl bg-zinc-950/60 border border-zinc-800 flex items-center gap-3 text-xs text-zinc-400">
+                  <Users size={18} className="text-zinc-500 shrink-0" />
+                  <span>
+                    Chưa có tuyển thủ online cho dịch vụ này. Hệ thống sẽ áp dụng bảng giá tiêu chuẩn của sàn và đưa đơn lên bảng tin tuyển dụng.
+                  </span>
                 </div>
               )}
             </div>
@@ -1887,7 +2006,7 @@ function ServiceBookingContent() {
                         </div>
                         <div className="text-xl font-black font-mono text-cyan-400">
                           {(
-                            (isManualSelectBooster && assignedBooster?.stepOverrides?.[selectedPromo.id]) ??
+                            (assignedBooster?.stepOverrides?.[selectedPromo.id]) ??
                             matchingBoosterService?.stepOverrides?.[selectedPromo.id] ??
                             selectedPromo.defaultPrice
                           ).toLocaleString('vi-VN')}{' '}

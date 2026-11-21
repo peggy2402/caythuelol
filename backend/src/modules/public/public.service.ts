@@ -54,6 +54,18 @@ export class PublicService {
       'CLOUDINARY_API_SECRET',
       'SMTP_PASS',
       'MAIL_PASS',
+      'SEPAY_API_KEY',
+      'SEPAY_API_SECRET',
+      'NEXT_PUBLIC_SITE_URL',
+      'JWT_SECRET',
+      'MONGODB_URI',
+      'MONGODB_URI_PROD',
+      'CLOUDINARY_API_KEY',
+      'CLOUDINARY_CLOUD_NAME',
+      'SMTP_USER',
+      'SMTP_PASS',
+      'MAIL_USER',
+      'MAIL_PASS',
     ]);
 
     const isSensitive = (key: string) => {
