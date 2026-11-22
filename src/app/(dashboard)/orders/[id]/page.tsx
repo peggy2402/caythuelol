@@ -1630,20 +1630,32 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                                                                 ? (['MASTER', 'GRANDMASTER', 'CHALLENGER', 'RADIANT'].includes(liveLeagueInfo.tier?.toUpperCase()) 
                                                                     ? liveLeagueInfo.tier 
                                                                     : `${liveLeagueInfo.tier} ${liveLeagueInfo.rank || ''}`.trim()) 
-                                                                : (order.details?.current_rank || 'Khởi điểm')
+                                                                : (order.details?.current_rank || order.details?.segment_label || (order.details?.is_point_boost ? 'Cao Thủ' : 'Khởi điểm'))
                                                         )}
                                                     </span>
-                                                    {order.details?.desired_rank && (
+                                                    {(order.details?.desired_rank || order.details?.is_point_boost) && (
                                                         <>
                                                             <span className="text-blue-400 font-bold text-lg">&rarr;</span>
                                                             <span className="text-xl sm:text-2xl font-black text-cyan-300">
-                                                                {formatRankDisplayVi(order.details.desired_rank)}
+                                                                {order.details?.desired_rank 
+                                                                    ? formatRankDisplayVi(order.details.desired_rank) 
+                                                                    : `${order.details?.segment_label || 'Cao Thủ'} (${order.details?.desired_points ?? order.details?.target_points ?? 0} ${order.details?.unit || 'LP'})`
+                                                                }
                                                             </span>
                                                         </>
                                                     )}
                                                 </div>
                                                 <div className="text-xs text-blue-400 font-bold mt-1">
-                                                    {liveLeagueInfo ? `${liveLeagueInfo.leaguePoints ?? 0} LP` : (order.details?.current_lp !== undefined && order.details?.current_lp !== null) ? `${order.details.current_lp} LP` : order.details?.steps_count ? `${order.details.steps_count} Bậc Rank` : ''}
+                                                    {liveLeagueInfo 
+                                                        ? `${liveLeagueInfo.leaguePoints ?? 0} LP` 
+                                                        : order.details?.is_point_boost
+                                                            ? `${order.details?.current_points ?? 0} / ${order.details?.desired_points ?? order.details?.target_points ?? 0} ${order.details?.unit || 'LP'} (+${order.details?.gained_points ?? 0} ${order.details?.unit || 'LP'})`
+                                                            : (order.details?.current_lp !== undefined && order.details?.current_lp !== null) 
+                                                                ? `${order.details.current_lp} LP` 
+                                                                : order.details?.steps_count 
+                                                                    ? `${order.details.steps_count} Bậc Rank` 
+                                                                    : ''
+                                                    }
                                                 </div>
                                             </div>
 
@@ -2000,19 +2012,37 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                             <div>
                                 <h3 className="text-sm font-bold text-zinc-400 uppercase mb-3 flex items-center gap-2"><Trophy className="w-4 h-4" /> Dịch vụ</h3>
                                 <div className="bg-zinc-950 p-4 rounded-xl border border-zinc-800 space-y-3 text-sm">
-                                    <div className="flex justify-between">
+                                    <div className="flex justify-between items-center">
                                         <span className="text-zinc-500">Loại dịch vụ:</span>
-                                        <span className="text-white font-medium">{order.serviceType.replace('_', ' ')}</span>
+                                        <span className="text-white font-bold">
+                                            {(() => {
+                                                if (order.details?.is_point_boost) return 'Cày Điểm LP Cao Thủ / Thách Đấu';
+                                                if (order.serviceType === 'NET_WINS') return 'Cày Trận Thắng (Net Wins)';
+                                                if (order.serviceType === 'RANK_BOOST') return 'Cày Cấp Bậc Rank';
+                                                if (order.serviceType === 'PLACEMENTS') return 'Cày Trận Phân Hạng';
+                                                return order.serviceType.replace(/_/g, ' ');
+                                            })()}
+                                        </span>
                                     </div>
-                                    <div className="flex justify-between">
+                                    <div className="flex justify-between items-center">
                                         <span className="text-zinc-500">Mục tiêu:</span>
                                         <span className="text-blue-400 font-bold text-right">
                                             {(() => {
                                                 if (order.serviceType === 'NET_WINS') {
-                                                    const rankLabel = formatRankDisplayVi(order.details.current_rank || order.details.rank);
-                                                    return order.details.calc_mode === 'BY_GAMES' 
-                                                        ? `+${order.details.num_games} Trận thắng (${rankLabel})`
-                                                        : `${order.details.start_lp ?? order.details.current_lp} LP ➜ ${order.details.target_lp} LP (${rankLabel})`;
+                                                    const isPointBoost = Boolean(order.details?.is_point_boost || order.details?.calc_mode === 'BY_LP' || order.details?.segment);
+                                                    const unit = order.details?.unit || 'LP';
+                                                    const segmentLabel = order.details?.segment_label || (order.details?.segment ? formatRankDisplayVi(order.details.segment) : null);
+                                                    const rankLabel = segmentLabel || formatRankDisplayVi(order.details?.current_rank || order.details?.rank) || 'Khởi điểm';
+
+                                                    if (isPointBoost) {
+                                                        const start = order.details?.start_lp ?? order.details?.current_points ?? order.details?.current_lp ?? 0;
+                                                        const target = order.details?.target_lp ?? order.details?.desired_points ?? order.details?.target_points ?? (start + (order.details?.gained_points || 0));
+                                                        return `${start} ${unit} ➜ ${target} ${unit} (${rankLabel})`;
+                                                    }
+
+                                                    return order.details?.calc_mode === 'BY_GAMES' || order.details?.num_games 
+                                                        ? `+${order.details?.num_games || 0} Trận thắng (${rankLabel})`
+                                                        : `${order.details?.start_lp ?? order.details?.current_lp ?? 0} LP ➜ ${order.details?.target_lp ?? 0} LP (${rankLabel})`;
                                                 }
                                                 if (order.serviceType === 'PLACEMENTS') {
                                                     return `${order.details.num_games} Trận (Rank cũ: ${formatRankDisplayVi(order.details.prev_rank)})`;
@@ -2051,14 +2081,14 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                                                     </div>
                                                 )}
 
-                                                {/* 2. Vị trí (Roles Block) */}
-                                                {rolesOption && (
+                                                {/* 2. Vị trí (Roles Block - chỉ hiển thị nếu có mảng roles cụ thể, nếu chỉ là boolean true thì đã có badge phía trên) */}
+                                                {rolesOption && Array.isArray(rolesOption[1]) && rolesOption[1].length > 0 && (
                                                     <div className="bg-zinc-900/50 rounded-lg p-3 border border-zinc-800/50">
                                                         <span className="text-zinc-400 text-xs block mb-2 flex items-center gap-1.5 font-medium">
                                                             <Crosshair size={12} className="text-blue-400" /> Tùy chọn vị trí / đường:
                                                         </span>
                                                         <div className="flex flex-wrap gap-2">
-                                                            {(Array.isArray(rolesOption[1]) ? rolesOption[1] : [rolesOption[1]]).map((role: any) => (
+                                                            {rolesOption[1].map((role: any) => (
                                                                 <span key={String(role)} className="text-xs font-bold px-2.5 py-1 bg-blue-500/10 border border-blue-500/20 rounded-md text-blue-300">
                                                                     {String(role)}
                                                                 </span>

@@ -382,7 +382,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 font-sans selection:bg-blue-500/30">
-      {/* Mobile Sidebar Overlay (có đủ fade-in & hậu animation fade-out) */}
+      {/* Mobile & Tablet Sidebar Overlay (có đủ fade-in & hậu animation fade-out) */}
       <AnimatePresence>
         {isSidebarOpen && (
           <motion.div
@@ -391,18 +391,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.24, ease: 'easeOut' }}
-            className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm md:hidden"
+            className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm lg:hidden"
             onClick={() => setIsSidebarOpen(false)}
           />
         )}
       </AnimatePresence>
 
       {/* Desktop Sidebar */}
-      <Sidebar className="hidden md:flex" />
+      <Sidebar className="hidden lg:flex" />
 
-      {/* Mobile Sidebar (slide-in & hậu animation slide-out mượt) */}
+      {/* Mobile & Tablet Sidebar (slide-in & hậu animation slide-out mượt) */}
       <Sidebar 
-        className={`md:hidden transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] will-change-transform ${
+        className={`lg:hidden transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] will-change-transform ${
           isSidebarOpen ? 'translate-x-0 pointer-events-auto shadow-2xl' : '-translate-x-full pointer-events-none'
         }`} 
         onLinkClick={() => setIsSidebarOpen(false)} 
@@ -410,20 +410,20 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       />
 
       {/* Main Content */}
-      <div className="flex min-h-screen flex-col md:pl-64">
+      <div className="flex min-h-screen flex-col lg:pl-64">
         {/* Topbar */}
-        <header className="sticky top-0 z-30 flex h-20 items-center justify-between border-b border-white/5 bg-zinc-950/80 px-6 backdrop-blur-md">
+        <header className="sticky top-0 z-30 flex h-20 items-center justify-between border-b border-white/5 bg-zinc-950/80 px-4 sm:px-6 backdrop-blur-md">
           <button
             type="button"
             onClick={() => setIsSidebarOpen(true)}
             aria-label="Mở menu điều hướng"
             aria-expanded={isSidebarOpen}
-            className="rounded-lg p-2 text-zinc-400 hover:bg-white/5 hover:text-white md:hidden transition-colors cursor-pointer"
+            className="rounded-lg p-2 text-zinc-400 hover:bg-white/5 hover:text-white lg:hidden transition-colors cursor-pointer"
           >
             <Menu className="h-6 w-6" />
           </button>
 
-          <div className="hidden md:block">
+          <div className="hidden lg:block">
             <h2 className="text-sm font-medium text-zinc-400">
               Dashboard &gt; <span className="text-white">{activeNavItem?.label || t('dashboard')}</span>
             </h2>
@@ -637,13 +637,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 p-4 sm:p-6 md:p-8 pb-24 md:pb-8 bg-zinc-950">
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 pb-24 lg:pb-8 bg-zinc-950">
           {children}
         </main>
       </div>
 
-      {/* Mobile Bottom Navigation Bar */}
-      <nav className="fixed bottom-0 left-0 right-0 z-40 bg-zinc-950/95 backdrop-blur-xl border-t border-white/10 px-3 py-2 flex items-center justify-around md:hidden shadow-[0_-10px_30px_rgba(0,0,0,0.8)]">
+      {/* Mobile & Tablet Bottom Navigation Bar */}
+      <nav className="fixed bottom-0 left-0 right-0 z-40 bg-zinc-950/95 backdrop-blur-xl border-t border-white/10 px-3 py-2 flex items-center justify-around lg:hidden shadow-[0_-10px_30px_rgba(0,0,0,0.8)]">
         {user?.role === 'BOOSTER' ? (
           <>
             <Link

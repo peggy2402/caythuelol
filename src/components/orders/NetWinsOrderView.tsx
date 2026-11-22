@@ -14,8 +14,20 @@ interface NetWinsOrderViewProps {
 }
 
 export default function NetWinsOrderView({ order, isBooster, isCustomer, onPayRemaining, onRefund }: NetWinsOrderViewProps) {
-  const { details, pricing, match_history } = order;
-  const { calc_mode, start_lp, target_lp, num_games, unit_price_per_lp, modifier_pct } = details;
+  const { details = {}, pricing = {}, match_history = [] } = order || {};
+  
+  // Xác định rõ cày điểm (Point Boost) hay cày số trận thắng (Net Wins Games)
+  const isPointBoost = Boolean(details?.is_point_boost || details?.calc_mode === 'BY_LP' || details?.segment);
+  const calcMode = isPointBoost ? 'BY_LP' : (details?.calc_mode || 'BY_GAMES');
+  const unit = details?.unit || 'LP';
+
+  const start_lp = parseInt(details?.start_lp ?? details?.current_points ?? 0);
+  const target_lp = parseInt(details?.target_lp ?? details?.desired_points ?? details?.target_points ?? (start_lp + (details?.gained_points || 0)));
+  const current_lp = parseInt(details?.current_lp ?? details?.current_points ?? start_lp);
+  const gained_target = parseInt(details?.gained_points ?? Math.max(1, target_lp - start_lp));
+  const num_games = parseInt(details?.num_games ?? (isPointBoost ? gained_target : 1));
+  const unit_price_per_lp = parseFloat(details?.unit_price_per_lp ?? details?.rate ?? 0);
+  const modifier_pct = parseFloat(details?.modifier_pct ?? 0);
   
   // State để lưu thông tin Booster đầy đủ (bao gồm config)
   const [boosterData, setBoosterData] = useState<any>(order.boosterId);
@@ -44,28 +56,27 @@ export default function NetWinsOrderView({ order, isBooster, isCustomer, onPayRe
     let actualBasePrice = 0;
     let progressText = '';
     let progressPercent = 0;
-    const start = parseInt(start_lp || '0');
-    const current = parseInt(details.current_lp || start_lp || '0');
-    const target = parseInt(target_lp || '0');
-    const targetDiff = Math.max(1, target - start);
+    const start = start_lp;
+    const current = current_lp;
+    const target = target_lp;
+    const targetDiff = Math.max(1, gained_target || (target - start));
 
     // --- PRE-CALC: ORIGINAL BASE PRICE (GIÁ GỐC ĐƠN HÀNG) ---
     // Dùng để tham chiếu tính phí sàn và giá mỗi trận (cho BY_GAMES)
     const originalBase = pricing.base_price || (
-        calc_mode === 'BY_LP' 
-            ? Math.max(0, (parseInt(target_lp)||0) - (parseInt(start_lp)||0)) * (unit_price_per_lp||0)
-            : (num_games||0) * (unit_price_per_lp||0) * (details.lp_gain || 20)
+        calcMode === 'BY_LP' 
+            ? targetDiff * (unit_price_per_lp || 0)
+            : (num_games || 0) * (unit_price_per_lp || 0) * (details?.lp_gain || 20)
     );
 
     // --- BƯỚC 1: TÍNH GIÁ GỐC THỰC TẾ (actualBasePrice) ---
-    if (calc_mode === 'BY_LP') {
+    if (calcMode === 'BY_LP') {
         // Ưu tiên tính theo match_history nếu có, nếu không thì fallback về current_lp
         const totalLpChange = match_history?.reduce((sum: number, m: any) => sum + (m.lp_change || 0), 0);
-        const gained = typeof totalLpChange === 'number' ? totalLpChange : Math.max(0, current - start);
+        const gained = typeof totalLpChange === 'number' && match_history.length > 0 ? totalLpChange : Math.max(0, current - start);
 
         actualBasePrice = gained * (unit_price_per_lp || 0);
-        console.log("actualBasePrice: " + actualBasePrice);
-        progressText = `${gained} / ${targetDiff} LP`;
+        progressText = `${gained} / ${targetDiff} ${unit}`;
         progressPercent = Math.min(100, Math.round((gained / targetDiff) * 100));
     } else { // BY_GAMES
         const wins = match_history?.filter((m: any) => m.result === 'WIN').length || 0;
@@ -79,8 +90,9 @@ export default function NetWinsOrderView({ order, isBooster, isCustomer, onPayRe
         // Giá thực tế = Tổng LP thực * Giá mỗi LP
         actualBasePrice = Math.max(0, totalLpGained) * (unit_price_per_lp || 0);
 
-        progressText = `${netWins}/${num_games} Trận (Net) [${totalLpGained > 0 ? '+' : ''}${totalLpGained} LP]`;
-        progressPercent = Math.min(100, Math.round((Math.max(0, netWins) / num_games) * 100));
+        const safeGames = Math.max(1, num_games || 1);
+        progressText = `${netWins}/${num_games || 0} Trận (Net) [${totalLpGained > 0 ? '+' : ''}${totalLpGained} LP]`;
+        progressPercent = Math.min(100, Math.round((Math.max(0, netWins) / safeGames) * 100));
     }
 
     // --- BƯỚC 2: TÍNH TOÁN LẠI TOÀN BỘ GIÁ TRỊ DỰA TRÊN GIÁ GỐC THỰC TẾ (A) ---
@@ -148,7 +160,7 @@ export default function NetWinsOrderView({ order, isBooster, isCustomer, onPayRe
         status: remaining > 0 ? 'OWE' : remaining < 0 ? 'REFUND' : 'SETTLED',
         isLowEarnings: boosterReceive <= 0 // Cảnh báo nếu thu nhập <= 0
     };
-  }, [details, pricing, match_history, calc_mode, order.options, boosterData]);
+  }, [details, pricing, match_history, calcMode, order.options, boosterData]);
 
   const handlePayRemaining = () => {
       if (onPayRemaining) {
@@ -186,7 +198,7 @@ export default function NetWinsOrderView({ order, isBooster, isCustomer, onPayRe
             
             <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-2 relative z-10">
                 <TrendingUp className="w-5 h-5 text-blue-500" /> 
-                Tiến độ cày {calc_mode === 'BY_LP' ? 'Điểm (LP)' : 'Trận (Net Wins)'}
+                Tiến độ cày {calcMode === 'BY_LP' ? `Điểm (${unit})` : 'Trận (Net Wins)'}
             </h3>
             
             <div className="relative h-4 bg-zinc-800 rounded-full overflow-hidden mb-2">
@@ -207,7 +219,7 @@ export default function NetWinsOrderView({ order, isBooster, isCustomer, onPayRe
                 <div className="bg-zinc-950/50 p-3 rounded-xl border border-zinc-800 flex sm:block justify-between items-center sm:text-center min-w-0">
                     <div className="text-[11px] sm:text-[10px] text-zinc-500 uppercase font-bold tracking-wider truncate">Bắt đầu</div>
                     <div className="text-base sm:text-lg font-bold text-white sm:mt-1 truncate">
-                        {calc_mode === 'BY_GAMES' ? '0' : `${start_lp || 0} LP`}
+                        {calcMode === 'BY_GAMES' ? '0' : `${start_lp} ${unit}`}
                     </div>
                 </div>
                 <div className="bg-zinc-950/50 p-3 rounded-xl border border-zinc-800 flex sm:block justify-between items-center sm:text-center relative min-w-0">
@@ -215,33 +227,33 @@ export default function NetWinsOrderView({ order, isBooster, isCustomer, onPayRe
                         Hiện tại
                         {/* Indicator for LP Gain (Mobile inline) */}
                         <span className="sm:hidden bg-blue-500/20 text-blue-400 text-[10px] font-bold px-1.5 py-0.5 rounded-full border border-blue-500/30 whitespace-nowrap">
-                            {calc_mode === 'BY_GAMES' 
+                            {calcMode === 'BY_GAMES' 
                                 ? 'Net' 
                                 : (() => {
-                                    const diff = (parseInt(details.current_lp) || 0) - (parseInt(start_lp) || 0);
+                                    const diff = current_lp - start_lp;
                                     return diff > 0 ? `+${diff}` : diff;
                                 })()
                             }
                         </span>
                     </div>
                     <div className="text-base sm:text-lg font-bold text-blue-400 sm:mt-1 truncate">
-                        {calc_mode === 'BY_GAMES' ? (
+                        {calcMode === 'BY_GAMES' ? (
                             (() => {
                                 const wins = match_history?.filter((m: any) => m.result === 'WIN').length || 0;
                                 const losses = match_history?.filter((m: any) => m.result === 'LOSS').length || 0;
                                 return wins - losses;
                             })()
                         ) : (
-                            details.current_lp || 0
+                            current_lp
                         )}
-                        {calc_mode === 'BY_GAMES' ? '' : ' LP'}
+                        {calcMode === 'BY_GAMES' ? '' : ` ${unit}`}
                     </div>
                     {/* Indicator for LP Gain (Desktop absolute) */}
                     <div className="hidden sm:block absolute -top-2 -right-2 bg-blue-500/20 text-blue-400 text-[10px] font-bold px-1.5 py-0.5 rounded-full border border-blue-500/30 whitespace-nowrap">
-                        {calc_mode === 'BY_GAMES' 
+                        {calcMode === 'BY_GAMES' 
                             ? 'Net' 
                             : (() => {
-                                const diff = (parseInt(details.current_lp) || 0) - (parseInt(start_lp) || 0);
+                                const diff = current_lp - start_lp;
                                 return diff > 0 ? `+${diff}` : diff;
                             })()
                         }
@@ -250,7 +262,7 @@ export default function NetWinsOrderView({ order, isBooster, isCustomer, onPayRe
                 <div className="bg-zinc-950/50 p-3 rounded-xl border border-zinc-800 flex sm:block justify-between items-center sm:text-center min-w-0">
                     <div className="text-[11px] sm:text-[10px] text-zinc-500 uppercase font-bold tracking-wider truncate">Mục tiêu</div>
                     <div className="text-base sm:text-lg font-bold text-yellow-400 sm:mt-1 truncate">
-                        {calc_mode === 'BY_LP' ? `${target_lp} LP` : `${num_games} Trận`}
+                        {calcMode === 'BY_LP' ? `${target_lp} ${unit}` : `${num_games} Trận`}
                     </div>
                 </div>
             </div>
