@@ -341,7 +341,7 @@ export class PublicService {
     }
     apiKey = decryptSecret(apiKey);
 
-    let mockReason = 'Chưa cấu hình RIOT_API_KEY trong hệ thống (cài đặt ở trang Admin > Cấu hình hệ thống)';
+    let mockReason = 'Hệ thống đang bận. Vui lòng thử lại sau!';
 
     if (apiKey) {
       try {
@@ -408,14 +408,12 @@ export class PublicService {
       } catch (err: any) {
         const status = err.response?.status;
         console.error(`[Riot API Player Error]: HTTP ${status}`, err.response?.data || err.message);
-        if (status === 401) {
-          mockReason = 'RIOT_API_KEY không hợp lệ hoặc đã bị bấm Regenerate tạo mới trên developer.riotgames.com (HTTP 401: Unauthorized).';
-        } else if (status === 403) {
-          mockReason = 'RIOT_API_KEY đã hết hạn (Development key của Riot hết hạn sau 24h) hoặc bị từ chối truy cập (HTTP 403: Forbidden).';
+        if (status === 401 || status === 403) {
+          mockReason = 'Hệ thống đang bận. Vui lòng thử lại sau!';
         } else if (status === 404) {
           mockReason = `Không tìm thấy người chơi "${gameName}#${tagLine}" trên Riot Server ${server}.`;
         } else {
-          mockReason = `Riot API lỗi (HTTP ${status || 'Unknown'}): ${err.response?.data?.status?.message || err.message}`;
+          mockReason = 'Hệ thống đang bận. Vui lòng thử lại sau!';
         }
 
         return {
@@ -600,10 +598,8 @@ export class PublicService {
       console.error(`[Riot Match Error]: HTTP ${status}`, err.response?.data || err.message);
       if (status === 404) {
         throw new NotFoundException(`Không tìm thấy trận đấu "${formattedMatchId}" trên máy chủ Riot ${matchRegion.toUpperCase()}.`);
-      } else if (status === 401 || status === 403) {
-        throw new BadRequestException('RIOT_API_KEY không hợp lệ hoặc đã hết hạn 24h. Vui lòng cập nhật API Key mới trong Quản trị.');
       } else {
-        throw new BadRequestException(`Riot API lỗi (HTTP ${status || 'Unknown'}): ${err.response?.data?.status?.message || err.message}`);
+        throw new BadRequestException('Hệ thống đang bận. Vui lòng thử lại sau!');
       }
     }
   }

@@ -1114,11 +1114,18 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
           });
           const data = await res.json();
           if (!res.ok || data.success === false) {
-              throw new Error(data.error || data.message || data.mockReason || 'Lỗi kiểm tra thông tin người chơi');
+              let errMsg = data.error || data.message || data.mockReason || 'Lỗi kiểm tra thông tin người chơi';
+              if (errMsg.includes('RIOT_API_KEY') || errMsg.includes('developer.riotgames.com') || errMsg.includes('401') || errMsg.includes('403') || errMsg.includes('Unauthorized')) {
+                  errMsg = 'Hệ thống đang bận. Vui lòng thử lại sau!';
+              }
+              throw new Error(errMsg);
           }
 
           if (data.isMock) {
-              toast.warning(`Chế độ giả lập (Mock): ${data.mockReason || 'Chưa kết nối API thật'}`);
+              const mockMsg = (data.mockReason?.includes('RIOT_API_KEY') || data.mockReason?.includes('developer.riotgames.com'))
+                  ? 'Hệ thống đang bận. Vui lòng thử lại sau!'
+                  : (data.mockReason || 'Chưa kết nối API thật');
+              toast.warning(`Chế độ giả lập (Mock): ${mockMsg}`);
           }
 
           // Lọc nghiêm ngặt: Chỉ lấy đúng rank khớp với chế độ của đơn hàng mà khách hàng đã chọn
@@ -1200,7 +1207,13 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
           });
           const data = await res.json();
           
-          if (!res.ok) throw new Error(data.error || data.message || 'Lỗi lấy thông tin trận đấu');
+          if (!res.ok) {
+              let errMsg = data.error || data.message || 'Lỗi lấy thông tin trận đấu';
+              if (errMsg.includes('RIOT_API_KEY') || errMsg.includes('developer.riotgames.com') || errMsg.includes('401') || errMsg.includes('403') || errMsg.includes('Unauthorized')) {
+                  errMsg = 'Hệ thống đang bận. Vui lòng thử lại sau!';
+              }
+              throw new Error(errMsg);
+          }
 
           // VALIDATE QUEUE MODE: Kiểm tra khớp chế độ Đơn / Đôi hoặc Linh Hoạt
           const rawQueue = String(order?.details?.queueType || order?.details?.queue_type || order?.serviceType || '').toUpperCase();
