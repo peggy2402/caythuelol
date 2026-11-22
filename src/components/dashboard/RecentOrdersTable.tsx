@@ -3,13 +3,14 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Gamepad2, ArrowUpRight, ArrowRight, ChevronRight } from 'lucide-react';
-import { getOrderStatusInfo } from '@/lib/orderStatus';
+import { getOrderStatusInfo, formatServiceNameVi } from '@/lib/orderStatus';
 
 export interface Order {
   _id: string;
   orderCode?: string;
   serviceType: string;
   status: string;
+  details?: any;
   pricing: {
     total_amount: number;
     deposit_amount?: number;
@@ -17,6 +18,7 @@ export interface Order {
   snapshot?: {
     gameCode?: string;
     serviceSlug?: string;
+    serviceName?: string;
     initialState?: {
       rankId?: string;
       rankLabel?: string;
@@ -114,7 +116,9 @@ export default function RecentOrdersTable({ orders }: RecentOrdersTableProps) {
 
                     <div className="flex items-center justify-between text-xs">
                       <span className="text-zinc-500">Dịch vụ</span>
-                      <span className="font-semibold text-zinc-200">{order.serviceType}</span>
+                      <span className="font-semibold text-zinc-200">
+                        {order.snapshot?.serviceName || formatServiceNameVi(order.serviceType, order.details)}
+                      </span>
                     </div>
 
                     <div className="flex items-center justify-between text-xs">
@@ -140,7 +144,7 @@ export default function RecentOrdersTable({ orders }: RecentOrdersTableProps) {
                   <tr>
                     <th className="px-6 py-4 font-bold">Mã Đơn</th>
                     <th className="px-6 py-4 font-bold">Dịch Vụ Cày</th>
-                    <th className="px-6 py-4 font-bold">Trạng Thái Escrow</th>
+                    <th className="px-6 py-4 font-bold">Trạng Thái Ký Quỹ</th>
                     <th className="px-6 py-4 font-bold">Tổng Chi Phí</th>
                     <th className="px-6 py-4 font-bold">Ngày Khởi Tạo</th>
                     <th className="px-6 py-4 text-right"><span className="sr-only">Thao tác</span></th>
@@ -164,7 +168,9 @@ export default function RecentOrdersTable({ orders }: RecentOrdersTableProps) {
                           #{order.orderCode || order._id.slice(-6).toUpperCase()}
                         </td>
                         <td className="px-6 py-4">
-                          <div className="font-bold text-zinc-200">{order.serviceType}</div>
+                          <div className="font-bold text-zinc-200">
+                            {order.snapshot?.serviceName || formatServiceNameVi(order.serviceType, order.details)}
+                          </div>
                           {order.snapshot?.initialState?.rankLabel && order.snapshot?.targetState?.rankLabel && (
                             <div className="text-[11px] text-zinc-500">
                               {order.snapshot.initialState.rankLabel} → {order.snapshot.targetState.rankLabel}

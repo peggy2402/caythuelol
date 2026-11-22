@@ -26,6 +26,7 @@ import {
   ArrowRight,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { formatServiceNameVi } from '@/lib/orderStatus';
 
 const QUICK_REACTIONS = ['👍', '❤️', '😂', '😮', '😢'];
 
@@ -243,7 +244,7 @@ export default function MessageItem({
             <div className="flex justify-between gap-2">
               <span className="text-zinc-500">Dịch vụ:</span>
               <span className="text-zinc-200 font-medium truncate max-w-[150px]">
-                {meta.serviceType}
+                {formatServiceNameVi(meta.serviceType)}
               </span>
             </div>
             <div className="flex justify-between gap-2">

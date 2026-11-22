@@ -110,21 +110,24 @@ export function getOrderStatusInfo(status?: string, hasBooster?: boolean): Order
  * Format tên dịch vụ cày thuê sang tiếng Việt chuẩn và thân thiện,
  * tránh hiển thị raw enum như RANK_BOOST, NET_WINS gây khó hiểu.
  */
-export function formatServiceNameVi(serviceType?: string): string {
+export function formatServiceNameVi(serviceType?: string, details?: any): string {
+  if (details?.is_point_boost || details?.calc_mode === 'BY_LP' || details?.segment) {
+    return 'Cày Điểm LP Cao Thủ / Thách Đấu';
+  }
   if (!serviceType) return 'Dịch vụ Cày Thuê';
   const clean = serviceType.toUpperCase().replace(/[-\s]/g, '_');
   const map: Record<string, string> = {
-    RANK_BOOST: 'Cày Rank / Elo',
+    RANK_BOOST: 'Cày Cấp Bậc Rank',
     NET_WINS: 'Cày Trận Thắng (Net Wins)',
     PROMOTION: 'Chuỗi Thăng Hạng',
     PLACEMENTS: 'Đấu Phân Hạng Đầu Mùa',
     CHAMPION_RANK: 'Cày Rank Theo Tướng',
     MASTERY: 'Thông Thạo Tướng',
     CHAMPION_MASTERY: 'Thông Thạo Tướng',
-    POINT_BOOST: 'Cày Điểm / Nâng Điểm',
+    POINT_BOOST: 'Cày Điểm LP Cao Thủ / Thách Đấu',
     COACHING: 'Huấn Luyện Coaching 1-1',
     LEVELING: 'Cày Cấp Độ (Level)',
-    ONBET: 'Cày Theo Sự Kiện',
+    ONBET: 'Cày Kèo Thắng Thua (Onbet)',
   };
   return map[clean] || serviceType.replace(/_/g, ' ');
 }

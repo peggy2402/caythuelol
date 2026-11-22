@@ -12,6 +12,7 @@ import {
 import { GAMES_CATALOG, GameDefinition } from '@/lib/games';
 import { getBoosterOrderValue } from '@/lib/orderPricing';
 import { formatRankDisplayVi } from '@/lib/riotRanks';
+import { formatServiceNameVi } from '@/lib/orderStatus';
 
 // Helper lấy metadata tựa game
 function getGameMeta(gameCode?: string) {
@@ -32,25 +33,8 @@ function getGameMeta(gameCode?: string) {
 }
 
 // Helper format tên dịch vụ thân thiện
-function formatServiceName(serviceType?: string) {
-  if (!serviceType) return 'Dịch vụ Cày Thuê';
-  const slug = serviceType.toLowerCase().replace(/_/g, '-');
-  switch (slug) {
-    case 'rank-boost':
-      return 'Cày Rank / Elo';
-    case 'net-wins':
-      return 'Cày Rank Cao Cấp';
-    case 'placements':
-      return 'Phân Hạng Đầu Mùa';
-    case 'champion-mastery':
-      return 'Thông Thạo Tướng';
-    case 'leveling':
-      return 'Cày Cấp Độ';
-    case 'coaching':
-      return 'Huấn Luyện Coaching 1-1';
-    default:
-      return serviceType.replace(/_/g, ' ');
-  }
+function formatServiceName(serviceType?: string, details?: any) {
+  return formatServiceNameVi(serviceType, details);
 }
 
 // Helper status tiếng Việt và style
@@ -227,7 +211,7 @@ export default function OrdersPage() {
           {filteredOrders.map((order) => {
             const gameCode = order.snapshot?.gameCode || order.details?.game || 'LOL';
             const gameMeta = getGameMeta(gameCode);
-            const serviceName = formatServiceName(order.serviceType || order.snapshot?.serviceSlug);
+            const serviceName = order.snapshot?.serviceName || formatServiceName(order.serviceType || order.snapshot?.serviceSlug, order.details);
             const statusBadge = getStatusBadge(order.status, !!order.boosterId);
             const StatusIcon = statusBadge.icon;
             const orderIdentifier = order.orderCode || order._id;
