@@ -116,6 +116,27 @@ export default function WalletPage() {
       .catch(() => setWithdrawFee(5000));
   }, []);
 
+  // Lắng nghe phím ESC để đóng popup
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (isDepositModalOpen) {
+          setIsDepositModalOpen(false);
+          setPendingTx(null);
+          setDepositAmount('');
+          setIsWaitingForPayment(false);
+          setIsSuccess(false);
+          setIsFailed(false);
+        }
+        if (isWithdrawModalOpen) {
+          setIsWithdrawModalOpen(false);
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isDepositModalOpen, isWithdrawModalOpen]);
+
   useEffect(() => {
     fetchWalletData(1, limit);
     // Lấy thông tin user để tạo nội dung chuyển khoản
@@ -610,10 +631,25 @@ export default function WalletPage() {
 
       {/* Deposit Modal */}
       {isDepositModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-md shadow-2xl animate-in zoom-in-95 duration-200 overflow-hidden">
-            <div className="p-4 border-b border-zinc-800 flex justify-between items-center bg-zinc-950">
-              <h3 className="text-lg font-bold text-white flex items-center gap-2">
+        <div 
+          onClick={() => {
+            setIsDepositModalOpen(false);
+            setPendingTx(null);
+            setDepositAmount('');
+            setIsWaitingForPayment(false);
+            setIsSuccess(false);
+            setIsFailed(false);
+          }}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-3 sm:p-4 animate-in fade-in duration-200"
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            className={`bg-zinc-900 border border-zinc-800 rounded-2xl w-full shadow-2xl animate-in zoom-in-95 duration-200 overflow-hidden max-h-[92vh] flex flex-col transition-all ${
+              pendingTx ? 'sm:max-w-2xl' : 'max-w-md'
+            }`}
+          >
+            <div className="p-4 border-b border-zinc-800 flex justify-between items-center bg-zinc-950 shrink-0">
+              <h3 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
                 <CreditCard className="w-5 h-5 text-red-500" />
                 {t('deposit')}
               </h3>
@@ -626,63 +662,63 @@ export default function WalletPage() {
                   setIsSuccess(false);
                   setIsFailed(false);
                 }}
-                className="text-zinc-400 hover:text-white transition-colors"
+                className="text-zinc-400 hover:text-white transition-colors p-1"
+                title="Đóng (ESC)"
               >
-                <XCircle className="w-6 h-6" />
+                <XCircle className="w-5 h-5 sm:w-6 sm:h-6" />
               </button>
             </div>
 
-            <div className="p-6">
+            <div className="p-4 sm:p-5 overflow-y-auto">
               {isSuccess ? (
                 // Màn hình THÀNH CÔNG
-                <div className="flex flex-col items-center justify-center py-8 space-y-4 animate-in zoom-in duration-300">
-                  <div className="w-20 h-20 bg-green-500/20 rounded-full flex items-center justify-center mb-2">
-                    <CheckCircle2 className="w-12 h-12 text-green-500" />
+                <div className="flex flex-col items-center justify-center py-6 space-y-4 animate-in zoom-in duration-300">
+                  <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mb-1">
+                    <CheckCircle2 className="w-10 h-10 text-green-500" />
                   </div>
-                  <h3 className="text-2xl font-bold text-white text-center">Nạp tiền thành công!</h3>
-                  <p className="text-zinc-400 text-center">Số dư của bạn đã được cập nhật.</p>
-                  <div className="text-3xl font-bold text-green-500 mt-2">
+                  <h3 className="text-xl sm:text-2xl font-bold text-white text-center">Nạp tiền thành công!</h3>
+                  <p className="text-zinc-400 text-center text-sm">Số dư của bạn đã được cập nhật.</p>
+                  <div className="text-2xl sm:text-3xl font-bold text-green-500 mt-1">
                     +{formatCurrency(pendingTx?.info.amount || 0)}
                   </div>
                 </div>
               ) : isFailed ? (
                 // Màn hình THẤT BẠI / TỪ CHỐI
-                <div className="flex flex-col items-center justify-center py-8 space-y-4 animate-in zoom-in duration-300">
-                  <div className="w-20 h-20 bg-red-500/20 rounded-full flex items-center justify-center mb-2">
-                    <AlertCircle className="w-12 h-12 text-red-500" />
+                <div className="flex flex-col items-center justify-center py-6 space-y-4 animate-in zoom-in duration-300">
+                  <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mb-1">
+                    <AlertCircle className="w-10 h-10 text-red-500" />
                   </div>
-                  <h3 className="text-2xl font-bold text-white text-center">Giao dịch thất bại</h3>
-                  <p className="text-zinc-400 text-center px-4">{failReason || 'Giao dịch đã bị từ chối.'}</p>
+                  <h3 className="text-xl sm:text-2xl font-bold text-white text-center">Giao dịch thất bại</h3>
+                  <p className="text-zinc-400 text-center px-4 text-sm">{failReason || 'Giao dịch đã bị từ chối.'}</p>
                   
                   <button 
                     onClick={() => {
                       setIsFailed(false);
                       setIsWaitingForPayment(false);
-                      // Giữ lại form để khách nhập lại hoặc thử lại
                     }}
-                    className="mt-4 bg-zinc-800 hover:bg-zinc-700 text-white px-6 py-2 rounded-lg font-medium transition-colors"
+                    className="mt-3 bg-zinc-800 hover:bg-zinc-700 text-white px-5 py-2 rounded-lg font-medium transition-colors text-sm"
                   >
                     Thử lại
                   </button>
                 </div>
               ) : isWaitingForPayment ? (
                 // Màn hình CHỜ XỬ LÝ (Sau khi bấm Đã chuyển khoản)
-                <div className="flex flex-col items-center justify-center py-8 space-y-6 animate-in fade-in duration-300">
+                <div className="flex flex-col items-center justify-center py-8 space-y-5 animate-in fade-in duration-300">
                   <div className="relative">
-                    <div className="w-20 h-20 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin"></div>
+                    <div className="w-16 h-16 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin"></div>
                     <div className="absolute inset-0 flex items-center justify-center">
-                      <ShieldCheck className="w-8 h-8 text-blue-500" />
+                      <ShieldCheck className="w-7 h-7 text-blue-500" />
                     </div>
                   </div>
-                  <div className="text-center space-y-2">
-                    <h3 className="text-xl font-bold text-white">Đang kiểm tra giao dịch...</h3>
-                    <p className="text-sm text-zinc-400 max-w-[250px] mx-auto">
+                  <div className="text-center space-y-1.5">
+                    <h3 className="text-lg sm:text-xl font-bold text-white">Đang kiểm tra giao dịch...</h3>
+                    <p className="text-xs sm:text-sm text-zinc-400 max-w-[260px] mx-auto">
                       Hệ thống đang xác nhận khoản tiền của bạn. Vui lòng không tắt trình duyệt.
                     </p>
                   </div>
                 </div>
               ) : !pendingTx ? (
-                <form onSubmit={handleShowQR} className="space-y-5">
+                <form onSubmit={handleShowQR} className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-zinc-400 mb-2">
                       {t('enterAmount')}
@@ -707,88 +743,131 @@ export default function WalletPage() {
                   
                   <button
                     type="submit"
-                    className="w-full bg-white text-black hover:bg-zinc-200 font-bold py-3.5 rounded-xl transition-colors flex justify-center items-center gap-2 shadow-lg shadow-white/10"
+                    className="w-full bg-white text-black hover:bg-zinc-200 font-bold py-3 rounded-xl transition-colors flex justify-center items-center gap-2 shadow-lg shadow-white/10 text-sm"
                   >
                     {t('confirmDeposit')} <ArrowUpRight className="w-4 h-4" />
                   </button>
                 </form>
               ) : (
-                <div className="space-y-5 animate-fade-in">
-                  <div className="bg-white p-4 rounded-xl flex justify-center shadow-inner">
-                    <img
-                      src={pendingTx.qrUrl}
-                      alt="VietQR"
-                      className="w-full max-w-[220px] object-contain"
-                      onError={(e) => {
-                        const target = e.currentTarget;
-                        if (!target.dataset.fallback) {
-                          target.dataset.fallback = 'true';
-                          target.src = `https://img.vietqr.io/image/${encodeURIComponent(pendingTx.info.bankId)}-${encodeURIComponent(pendingTx.info.accountNo)}-compact2.png?amount=${pendingTx.info.amount}&addInfo=${encodeURIComponent(pendingTx.info.content)}`;
-                        }
-                      }}
-                    />
+                /* GIAO DIỆN CHUYỂN KHOẢN QR COMPACT 2 CỘT */
+                <div className="grid grid-cols-1 sm:grid-cols-12 gap-4 sm:gap-5 items-center animate-fade-in">
+                  {/* Cột trái: QR Code */}
+                  <div className="sm:col-span-5 flex flex-col items-center justify-center p-3 sm:p-4 bg-zinc-950/60 rounded-xl border border-zinc-800/80">
+                    <div className="bg-white p-2.5 rounded-xl flex justify-center shadow-md w-full max-w-[170px] aspect-square items-center">
+                      <img
+                        src={pendingTx.qrUrl}
+                        alt="VietQR"
+                        className="w-full h-full object-contain"
+                        onError={(e) => {
+                          const target = e.currentTarget;
+                          if (!target.dataset.fallback) {
+                            target.dataset.fallback = 'true';
+                            target.src = `https://img.vietqr.io/image/${encodeURIComponent(pendingTx.info.bankId)}-${encodeURIComponent(pendingTx.info.accountNo)}-compact2.png?amount=${pendingTx.info.amount}&addInfo=${encodeURIComponent(pendingTx.info.content)}`;
+                          }
+                        }}
+                      />
+                    </div>
+                    <div className="mt-2.5 text-center">
+                      <div className="text-xs font-semibold text-zinc-300">Quét mã VietQR</div>
+                      <div className="text-[11px] text-zinc-500 mt-0.5">Tự động điền đúng STK & số tiền</div>
+                    </div>
                   </div>
                   
-                  <div className="space-y-3 text-sm">
-                    <div className="flex justify-between items-center p-3 bg-zinc-950 rounded-lg border border-zinc-800">
-                      <span className="text-zinc-400">Ngân hàng</span>
-                      <span className="font-bold text-white">{(pendingTx.info as any).bankName || pendingTx.info.bankId}</span>
-                    </div>
-                    {pendingTx.info.accountName && (
-                      <div className="flex justify-between items-center p-3 bg-zinc-950 rounded-lg border border-zinc-800">
-                        <span className="text-zinc-400">Chủ tài khoản</span>
-                        <span className="font-bold text-white uppercase">{pendingTx.info.accountName}</span>
+                  {/* Cột phải: Thông tin chuyển khoản chi tiết */}
+                  <div className="sm:col-span-7 space-y-2">
+                    {/* Ngân hàng & Chủ tài khoản */}
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <div className="p-2 bg-zinc-950 rounded-lg border border-zinc-800/80">
+                        <span className="text-zinc-500 block text-[10px] uppercase font-bold">Ngân hàng</span>
+                        <span className="font-bold text-white truncate block mt-0.5">
+                          {(pendingTx.info as any).bankName || pendingTx.info.bankId}
+                        </span>
                       </div>
-                    )}
-                    <div className="flex justify-between items-center p-3 bg-zinc-950 rounded-lg border border-zinc-800">
-                      <span className="text-zinc-400">Số tài khoản</span>
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-white">{pendingTx.info.accountNo}</span>
-                        <Copy onClick={() => copyToClipboard(pendingTx.info.accountNo)} className="w-4 h-4 text-zinc-500 cursor-pointer hover:text-white" />
+                      <div className="p-2 bg-zinc-950 rounded-lg border border-zinc-800/80">
+                        <span className="text-zinc-500 block text-[10px] uppercase font-bold">Chủ tài khoản</span>
+                        <span className="font-bold text-white uppercase truncate block mt-0.5">
+                          {pendingTx.info.accountName || 'LeoRank'}
+                        </span>
                       </div>
                     </div>
-                    <div className="flex justify-between items-center p-3 bg-blue-900/20 rounded-lg border border-blue-500/30">
-                      <span className="text-blue-200 font-medium">Nội dung CK</span>
+
+                    {/* Số tài khoản */}
+                    <div className="flex justify-between items-center px-3 py-2 bg-zinc-950 rounded-lg border border-zinc-800/80 text-xs">
+                      <span className="text-zinc-400 font-medium">Số tài khoản</span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-mono font-bold text-sm text-white">{pendingTx.info.accountNo}</span>
+                        <button
+                          type="button"
+                          onClick={() => copyToClipboard(pendingTx.info.accountNo)}
+                          className="p-1 hover:bg-zinc-800 rounded transition-colors text-zinc-400 hover:text-white"
+                          title="Sao chép STK"
+                        >
+                          <Copy className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Nội dung CK (Highlight) */}
+                    <div className="flex justify-between items-center px-3 py-2 bg-blue-950/40 rounded-lg border border-blue-500/40 text-xs">
+                      <div>
+                        <span className="text-blue-300 font-semibold block text-[11px]">Nội dung CK</span>
+                        <span className="text-[10px] text-blue-400/80 font-normal">Bắt buộc chính xác</span>
+                      </div>
                       <div className="flex items-center gap-2">
-                        <span className="font-mono font-bold text-lg text-blue-400 tracking-wide select-all">
+                        <span className="font-mono font-black text-base text-blue-400 tracking-wider select-all">
                           {pendingTx.info.content}
                         </span>
-                        <Copy onClick={() => copyToClipboard(pendingTx.info.content)} className="w-5 h-5 text-blue-500 cursor-pointer hover:text-white" />
+                        <button
+                          type="button"
+                          onClick={() => copyToClipboard(pendingTx.info.content)}
+                          className="p-1.5 bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 rounded-md transition-colors"
+                          title="Sao chép nội dung CK"
+                        >
+                          <Copy className="w-3.5 h-3.5" />
+                        </button>
                       </div>
                     </div>
-                    <div className="flex justify-between items-center p-3 bg-zinc-950 rounded-lg border border-zinc-800">
-                      <span className="text-zinc-400">Số tiền</span>
-                      <span className="font-bold text-green-500 text-lg">{formatCurrency(pendingTx.info.amount)}</span>
-                    </div>
-                  </div>
-                  
-                  <p className="text-xs text-red-400 text-center italic bg-red-500/10 p-2 rounded-lg border border-red-500/20">
-                    *Lưu ý: Nhập chính xác nội dung chuyển khoản để được cộng tiền tự động.
-                  </p>
 
-                  <div className="flex gap-3 pt-2">
-                    <button 
-                      onClick={() => setPendingTx(null)}
-                      className="flex-1 bg-zinc-800 hover:bg-zinc-700 text-white py-3 rounded-xl font-medium transition-colors"
-                    >
-                      Quay lại
-                    </button>
-                    <button 
-                      onClick={handleConfirmTransfer}
-                      disabled={isDepositing}
-                      className="flex-1 bg-blue-600 hover:bg-blue-500 text-white py-3 rounded-xl font-bold transition-colors shadow-lg shadow-blue-600/20"
-                    >
-                      {isDepositing ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : 'Đã chuyển khoản'}
-                    </button>
-                  </div>
-                  
-                  <div className="text-center">
-                    <button 
-                      onClick={() => fetchWalletData(currentPage, limit)}
-                      className="text-xs text-zinc-500 hover:text-white flex items-center justify-center gap-1 mx-auto transition-colors"
-                    >
-                      <RefreshCw className="w-3 h-3" /> Đã chuyển nhưng chưa thấy tiền?
-                    </button>
+                    {/* Số tiền */}
+                    <div className="flex justify-between items-center px-3 py-2 bg-zinc-950 rounded-lg border border-zinc-800/80 text-xs">
+                      <span className="text-zinc-400 font-medium">Số tiền</span>
+                      <span className="font-mono font-black text-base text-emerald-400">
+                        {formatCurrency(pendingTx.info.amount)}
+                      </span>
+                    </div>
+                    
+                    <p className="text-[11px] text-amber-400/90 text-center italic bg-amber-500/10 px-2 py-1.5 rounded-lg border border-amber-500/20 leading-tight">
+                      * Nhập chính xác <b>Nội dung CK</b> để hệ thống cộng tiền tự động.
+                    </p>
+
+                    {/* Action buttons */}
+                    <div className="flex gap-2 pt-1">
+                      <button 
+                        type="button"
+                        onClick={() => setPendingTx(null)}
+                        className="px-3.5 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white rounded-xl text-xs font-semibold transition-colors"
+                      >
+                        Quay lại
+                      </button>
+                      <button 
+                        type="button"
+                        onClick={handleConfirmTransfer}
+                        disabled={isDepositing}
+                        className="flex-1 bg-blue-600 hover:bg-blue-500 text-white py-2.5 rounded-xl text-xs font-bold transition-all shadow-lg shadow-blue-600/20 flex items-center justify-center gap-1.5 disabled:opacity-50"
+                      >
+                        {isDepositing ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Đã chuyển khoản'}
+                      </button>
+                    </div>
+                    
+                    <div className="text-center pt-0.5">
+                      <button 
+                        type="button"
+                        onClick={() => fetchWalletData(currentPage, limit)}
+                        className="text-[11px] text-zinc-500 hover:text-zinc-300 inline-flex items-center gap-1 transition-colors"
+                      >
+                        <RefreshCw className="w-3 h-3" /> Đã chuyển nhưng chưa thấy tiền?
+                      </button>
+                    </div>
                   </div>
                 </div>
               )}
@@ -799,14 +878,24 @@ export default function WalletPage() {
 
       {/* Withdraw Modal */}
       {isWithdrawModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-md shadow-2xl animate-in zoom-in-95 duration-200">
-            <div className="p-4 border-b border-zinc-800 flex justify-between items-center bg-transparent">
+        <div 
+          onClick={() => setIsWithdrawModalOpen(false)}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200"
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            className="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-md shadow-2xl animate-in zoom-in-95 duration-200 overflow-hidden"
+          >
+            <div className="p-4 border-b border-zinc-800 flex justify-between items-center bg-zinc-950">
               <h3 className="text-lg font-bold text-white flex items-center gap-2">
                 <ArrowDownLeft className="w-5 h-5 text-blue-500" />
                 {t('withdraw')}
               </h3>
-              <button onClick={() => setIsWithdrawModalOpen(false)} className="text-zinc-400 hover:text-white">
+              <button 
+                onClick={() => setIsWithdrawModalOpen(false)} 
+                className="text-zinc-400 hover:text-white p-1"
+                title="Đóng (ESC)"
+              >
                 <XCircle className="w-6 h-6" />
               </button>
             </div>
