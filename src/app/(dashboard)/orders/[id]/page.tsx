@@ -30,7 +30,7 @@ import { GAMES_CATALOG, GameDefinition } from '@/lib/games';
 import ServerSelectModal from '@/components/ServerSelectModal';
 import ServerFlag from '@/components/ServerFlag';
 import { getServerByCode } from '@/lib/servers';
-import { getBoosterOrderValue } from '@/lib/orderPricing';
+import { getBoosterOrderValue, getBoosterDepositValue } from '@/lib/orderPricing';
 import { getOrderStatusInfo, formatServiceNameVi } from '@/lib/orderStatus';
 import { formatRankDisplayVi, LOL_QUEUE_NAMES, getLolQueueName } from '@/lib/riotRanks';
 import {
@@ -2171,7 +2171,7 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                             <div>
                                 <h3 className="text-sm font-bold text-zinc-400 uppercase mb-3 flex items-center gap-2"><DollarSign className="w-4 h-4" /> Thanh toán</h3>
                                 <div className="bg-zinc-950 p-4 rounded-xl border border-zinc-800 space-y-3 text-sm">
-                                    {isBooster && (order.pricing?.funding_source === 'PLATFORM' || (order.pricing?.platform_subsidy && order.pricing.platform_subsidy > 0)) && (
+                                    {Boolean(isBooster && (order.pricing?.funding_source === 'PLATFORM' || (order.pricing?.platform_subsidy && Number(order.pricing.platform_subsidy) > 0))) && (
                                         <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-xs space-y-1 mb-2">
                                             <div className="flex items-center gap-1.5 text-emerald-400 font-bold">
                                                 <CheckCircle2 size={14} className="shrink-0" />
@@ -2183,7 +2183,7 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                                         </div>
                                     )}
 
-                                    {isBooster && (order.pricing?.listed_price || order.pricing?.original_price) && (order.pricing?.discount_amount && order.pricing.discount_amount > 0) && (
+                                    {Boolean(isBooster && (order.pricing?.listed_price || order.pricing?.original_price) && order.pricing?.discount_amount && Number(order.pricing.discount_amount) > 0) && (
                                         <>
                                             <div className="flex justify-between text-xs text-zinc-400">
                                                 <span>Giá niêm yết dịch vụ:</span>
@@ -2216,7 +2216,12 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                                                     ? `Đã cọc (${Math.round((order.pricing.deposit_amount / order.pricing.total_amount) * 100)}%):` 
                                                     : 'Đã cọc:'}
                                             </span>
-                                            <span className="text-yellow-400 font-bold">{order.pricing.deposit_amount.toLocaleString()} đ</span>
+                                            <span className="text-yellow-400 font-bold">
+                                                {(isBooster
+                                                    ? getBoosterDepositValue(order.pricing)
+                                                    : order.pricing.deposit_amount
+                                                ).toLocaleString()} đ
+                                            </span>
                                         </div>
                                     ) : (
                                         <div className="flex justify-between">

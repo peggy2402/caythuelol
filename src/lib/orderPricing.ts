@@ -80,3 +80,17 @@ export function getBoosterEarnings(pricing?: any): number {
   // Booster nhận trọn vẹn 100% giá trị dịch vụ đơn hàng (không trừ 15%)
   return getBoosterOrderValue(pricing);
 }
+
+/**
+ * Tính số tiền cọc thực tế thuộc về phần dịch vụ của Booster.
+ * Loại trừ phần cọc phí sàn thuộc về Admin để phía Booster hiển thị chính xác.
+ */
+export function getBoosterDepositValue(pricing?: any): number {
+  if (!pricing) return 0;
+  const total = Number(pricing.total_amount || 0);
+  const deposit = Number(pricing.deposit_amount || 0);
+  if (total <= 0 || deposit <= 0) return 0;
+  if (deposit >= total) return getBoosterOrderValue(pricing);
+  const ratio = deposit / total;
+  return Math.round(getBoosterOrderValue(pricing) * ratio);
+}

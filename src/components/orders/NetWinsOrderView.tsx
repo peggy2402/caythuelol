@@ -61,17 +61,31 @@ export default function NetWinsOrderView({ order, isBooster, isCustomer, onPayRe
     const target = target_lp;
     const targetDiff = Math.max(1, gained_target || (target - start));
 
-    // --- PRE-CALC: ORIGINAL BASE PRICE (GIÁ GỐC ĐƠN HÀNG) ---
-    // Dùng để tham chiếu tính phí sàn và giá mỗi trận (cho BY_GAMES)
-    const originalBase = pricing.base_price || (
+    // 1. GIÁ DỊCH VỤ GỐC (Dành cho Booster: không bao gồm phí sàn của Admin)
+    const originalBoosterBase = Number(pricing.base_price ?? pricing.original_price ?? 0) || (
         calcMode === 'BY_LP' 
             ? targetDiff * (unit_price_per_lp || 0)
             : (num_games || 0) * (unit_price_per_lp || 0) * (details?.lp_gain || 20)
     );
 
-    // --- BƯỚC 1: TÍNH GIÁ GỐC THỰC TẾ (actualBasePrice) ---
+    // 2. TỔNG GIÁ ĐƠN GỐC (Dành cho Customer: gồm cả phí dịch vụ sàn của Admin)
+    const originalCustomerTotal = Number(pricing.total_amount ?? pricing.final_price ?? originalBoosterBase);
+
+    // 3. TỶ LỆ PHÍ SÀN (Platform Fee Rate - Khoản phí thuộc về Admin)
+    const platformFeeAmount = Number(pricing.service_fee ?? pricing.platform_fee ?? 0);
+    let feeRate = 0;
+    if (typeof pricing.platform_fee_percent === 'number' && pricing.platform_fee_percent > 0) {
+        feeRate = pricing.platform_fee_percent / 100;
+    } else if (originalBoosterBase > 0 && platformFeeAmount > 0) {
+        feeRate = platformFeeAmount / originalBoosterBase;
+    } else if (originalCustomerTotal > originalBoosterBase && originalBoosterBase > 0) {
+        feeRate = (originalCustomerTotal - originalBoosterBase) / originalBoosterBase;
+    } else {
+        feeRate = 0.02; // Mặc định 2% phí sàn
+    }
+
+    // 4. TÍNH GIÁ GỐC THỰC TẾ (actualBasePrice) THEO TIẾN ĐỘ THỰC TẾ
     if (calcMode === 'BY_LP') {
-        // Ưu tiên tính theo match_history nếu có, nếu không thì fallback về current_lp
         const totalLpChange = match_history?.reduce((sum: number, m: any) => sum + (m.lp_change || 0), 0);
         const gained = typeof totalLpChange === 'number' && match_history.length > 0 ? totalLpChange : Math.max(0, current - start);
 
@@ -82,39 +96,26 @@ export default function NetWinsOrderView({ order, isBooster, isCustomer, onPayRe
         const wins = match_history?.filter((m: any) => m.result === 'WIN').length || 0;
         const losses = match_history?.filter((m: any) => m.result === 'LOSS').length || 0;
         const netWins = wins - losses;
-
-        // --- FIX LOGIC: TÍNH TIỀN DỰA TRÊN TỔNG LP THỰC TẾ (KHÔNG DÙNG ESTIMATE 20LP) ---
-        // Cộng dồn toàn bộ LP thay đổi (Dương/Âm) từ lịch sử đấu
         const totalLpGained = match_history?.reduce((sum: number, m: any) => sum + (parseInt(m.lp_change) || 0), 0) || 0;
         
-        // Giá thực tế = Tổng LP thực * Giá mỗi LP
         actualBasePrice = Math.max(0, totalLpGained) * (unit_price_per_lp || 0);
-
         const safeGames = Math.max(1, num_games || 1);
         progressText = `${netWins}/${num_games || 0} Trận (Net) [${totalLpGained > 0 ? '+' : ''}${totalLpGained} LP]`;
         progressPercent = Math.min(100, Math.round((Math.max(0, netWins) / safeGames) * 100));
     }
 
-    // --- BƯỚC 2: TÍNH TOÁN LẠI TOÀN BỘ GIÁ TRỊ DỰA TRÊN GIÁ GỐC THỰC TẾ (A) ---
-
-    // 1. Elo Fee (Nếu có modifier thì tính vào A luôn hoặc tách ra tùy logic, ở đây coi như một phần của giá cày)
+    // 5. Elo Fee & Options Fee
     const eloFeeValue = actualBasePrice * ((modifier_pct || 0) / 100);
-
-    // 2. Options Fee
     let actualOptionsFee = 0;
     const originalOptions = order.options || {};
     
-    // --- ROBUST CONFIG RETRIEVAL ---
-    // Tìm cấu hình options trong cả booster_info (cũ) và games (mới)
     let boosterOptionsConfig = boosterData?.booster_info?.service_settings?.options;
     if (!boosterOptionsConfig && boosterData?.games) {
         const lolGame = boosterData.games.find((g: any) => g.gameCode === 'LOL');
         boosterOptionsConfig = lolGame?.metadata?.options || {};
     }
     boosterOptionsConfig = boosterOptionsConfig || {};
-    // -------------------------------
 
-    // Phí theo %
     if (originalOptions.express && boosterOptionsConfig.express > 0) {
         actualOptionsFee += actualBasePrice * (boosterOptionsConfig.express / 100);
     }
@@ -127,50 +128,70 @@ export default function NetWinsOrderView({ order, isBooster, isCustomer, onPayRe
     if (Array.isArray(originalOptions.schedule) && originalOptions.schedule.length > 0 && boosterOptionsConfig.schedule && boosterOptionsConfig.scheduleFee > 0) {
         actualOptionsFee += actualBasePrice * (boosterOptionsConfig.scheduleFee / 100);
     }
-    
-    // Phí cố định
     if (originalOptions.streaming && boosterOptionsConfig.streaming > 0) {
         actualOptionsFee += boosterOptionsConfig.streaming;
     }
 
-    // 3. Platform Fee
-    // Tính % phí sàn (Nếu originalBase = 0 thì fee% = 0 để tránh NaN)
-    const platformFeePercent = (originalBase > 0) ? (pricing.platform_fee / originalBase) : 0;
-    const actualPlatformFee = (actualBasePrice + eloFeeValue) * platformFeePercent;
+    // 6. TỔNG THU NHẬP THỰC TẾ CỦA BOOSTER (Không tính phí sàn của Admin)
+    const boosterActualTotal = Math.round(actualBasePrice + eloFeeValue + actualOptionsFee);
 
-    // 4. Actual Total (D = A + EloFee + C + B)
-    const actualTotal = Math.round(actualBasePrice + eloFeeValue + actualOptionsFee + actualPlatformFee);
-    // Fallback cho đơn hàng cũ: Nếu chưa có tính năng cọc, khách đã trả 100% total_amount
-    const paidDeposit = pricing.deposit_amount || pricing.total_amount || 0;
-    const remaining = Math.round(actualTotal - paidDeposit);
-    const boosterReceive = Math.round(actualBasePrice + eloFeeValue + actualOptionsFee); // Thu nhập thực của Booster (Trước khi trừ tạm ứng)
+    // 7. PHÍ SÀN ADMIN THỰC TẾ
+    const actualAdminFee = Math.round(boosterActualTotal * feeRate);
+
+    // 8. TỔNG GIÁ TRỊ THỰC TẾ CỦA CUSTOMER (Gồm cả phí sàn Admin)
+    const customerActualTotal = Math.round(boosterActualTotal + actualAdminFee);
+
+    // 9. TIỀN CỌC ĐÃ THANH TOÁN (Paid Deposit)
+    const customerPaidDeposit = Number(pricing.deposit_amount || pricing.total_amount || 0);
+    const depositPercent = pricing.deposit_amount && pricing.total_amount 
+        ? Math.round((pricing.deposit_amount / pricing.total_amount) * 100) 
+        : 100;
+    const depositRatio = depositPercent / 100;
+
+    // Tiền cọc tương ứng phần thu nhập của Booster (không bao gồm cọc phí Admin)
+    const boosterPaidDeposit = Math.round(originalBoosterBase * depositRatio);
+
+    // 10. SỐ TIỀN CÒN LẠI (Remaining Settlement)
+    // - Khách cần bù thêm (hoặc được hoàn lại):
+    const customerRemaining = customerActualTotal - customerPaidDeposit;
+
+    // - Booster sẽ nhận thêm về ví (hoặc hoàn trả tạm ứng):
+    const boosterRemaining = boosterActualTotal - boosterPaidDeposit;
+
+    // Trạng thái quyết toán: OWE (Cần trả thêm) | REFUND (Hoàn tiền) | SETTLED (Đủ)
+    const status = customerRemaining > 0 ? 'OWE' : customerRemaining < 0 ? 'REFUND' : 'SETTLED';
 
     return {
+        originalBoosterBase,
+        originalCustomerTotal,
         actualBasePrice,
         eloFeeValue,
         actualOptionsFee,
-        actualPlatformFee,
-        actualTotal,
-        boosterReceive,
-        paidDeposit,
-        depositPercent: pricing.deposit_amount ? Math.round((pricing.deposit_amount / pricing.total_amount) * 100) : 100,
-        remaining,
+        actualAdminFee,
+        feeRate,
+        boosterActualTotal,
+        customerActualTotal,
+        boosterPaidDeposit,
+        customerPaidDeposit,
+        depositPercent,
+        customerRemaining,
+        boosterRemaining,
         progressText,
         progressPercent,
-        status: remaining > 0 ? 'OWE' : remaining < 0 ? 'REFUND' : 'SETTLED',
-        isLowEarnings: boosterReceive <= 0 // Cảnh báo nếu thu nhập <= 0
+        status,
+        isLowEarnings: boosterActualTotal <= 0,
     };
   }, [details, pricing, match_history, calcMode, order.options, boosterData]);
 
   const handlePayRemaining = () => {
       if (onPayRemaining) {
-          onPayRemaining(settlement.remaining);
+          onPayRemaining(settlement.customerRemaining);
       }
   };
 
   const handleRefund = () => {
       if (onRefund) {
-          onRefund(Math.abs(settlement.remaining));
+          onRefund(Math.abs(settlement.customerRemaining));
       }
   };
 
@@ -226,15 +247,19 @@ export default function NetWinsOrderView({ order, isBooster, isCustomer, onPayRe
                     <div className="text-[11px] sm:text-[10px] text-zinc-500 uppercase font-bold tracking-wider truncate flex items-center gap-2">
                         Hiện tại
                         {/* Indicator for LP Gain (Mobile inline) */}
-                        <span className="sm:hidden bg-blue-500/20 text-blue-400 text-[10px] font-bold px-1.5 py-0.5 rounded-full border border-blue-500/30 whitespace-nowrap">
-                            {calcMode === 'BY_GAMES' 
-                                ? 'Net' 
-                                : (() => {
-                                    const diff = current_lp - start_lp;
-                                    return diff > 0 ? `+${diff}` : diff;
-                                })()
-                            }
-                        </span>
+                        {(() => {
+                            const diff = current_lp - start_lp;
+                            if (diff === 0) return null;
+                            return (
+                                <span className={`sm:hidden text-[10px] font-bold px-1.5 py-0.5 rounded-full border whitespace-nowrap ${
+                                    diff > 0 
+                                        ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' 
+                                        : 'bg-rose-500/20 text-rose-400 border-rose-500/30'
+                                }`}>
+                                    {calcMode === 'BY_GAMES' ? 'Net' : `${diff > 0 ? '+' : ''}${diff}`}
+                                </span>
+                            );
+                        })()}
                     </div>
                     <div className="text-base sm:text-lg font-bold text-blue-400 sm:mt-1 truncate">
                         {calcMode === 'BY_GAMES' ? (
@@ -249,15 +274,19 @@ export default function NetWinsOrderView({ order, isBooster, isCustomer, onPayRe
                         {calcMode === 'BY_GAMES' ? '' : ` ${unit}`}
                     </div>
                     {/* Indicator for LP Gain (Desktop absolute) */}
-                    <div className="hidden sm:block absolute -top-2 -right-2 bg-blue-500/20 text-blue-400 text-[10px] font-bold px-1.5 py-0.5 rounded-full border border-blue-500/30 whitespace-nowrap">
-                        {calcMode === 'BY_GAMES' 
-                            ? 'Net' 
-                            : (() => {
-                                const diff = current_lp - start_lp;
-                                return diff > 0 ? `+${diff}` : diff;
-                            })()
-                        }
-                    </div>
+                    {(() => {
+                        const diff = current_lp - start_lp;
+                        if (diff === 0) return null;
+                        return (
+                            <div className={`hidden sm:block absolute -top-2 -right-2 text-[10px] font-bold px-2 py-0.5 rounded-full border whitespace-nowrap shadow-sm ${
+                                diff > 0 
+                                    ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' 
+                                    : 'bg-rose-500/20 text-rose-400 border-rose-500/30'
+                            }`}>
+                                {calcMode === 'BY_GAMES' ? 'Net' : `${diff > 0 ? '+' : ''}${diff} ${unit}`}
+                            </div>
+                        );
+                    })()}
                 </div>
                 <div className="bg-zinc-950/50 p-3 rounded-xl border border-zinc-800 flex sm:block justify-between items-center sm:text-center min-w-0">
                     <div className="text-[11px] sm:text-[10px] text-zinc-500 uppercase font-bold tracking-wider truncate">Mục tiêu</div>
@@ -291,133 +320,171 @@ export default function NetWinsOrderView({ order, isBooster, isCustomer, onPayRe
             </h3>
             
             <div className="space-y-3 text-sm relative z-10">
+                {/* 1. Giá trị đơn gốc (Dự kiến) */}
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-1 sm:gap-0 p-3 bg-zinc-950/50 rounded-xl border border-zinc-800">
-                    <span className="text-zinc-400">Giá trị đơn gốc (Dự kiến):</span>
-                    <span className="text-zinc-500 line-through decoration-zinc-600">{pricing.total_amount.toLocaleString()} đ</span>
+                    <span className="text-zinc-400">
+                        {isBooster ? 'Doanh thu đơn gốc (Dự kiến):' : 'Giá trị đơn gốc (Dự kiến):'}
+                    </span>
+                    <span className="text-zinc-500 line-through decoration-zinc-600 font-mono">
+                        {(isBooster ? settlement.originalBoosterBase : settlement.originalCustomerTotal).toLocaleString()} đ
+                    </span>
                 </div>
 
+                {/* 2. Giá trị thực tế (Hiện tại) */}
                 {hasMatches ? (
                     <div className="flex flex-col justify-between items-center p-3 bg-blue-900/10 rounded-xl border border-blue-500/20">
-                        <span className="text-blue-200 font-medium">Giá trị thực tế (Hiện tại):</span>
+                        <span className="text-blue-200 font-medium">
+                            {isBooster ? 'Thu nhập thực tế (Hiện tại):' : 'Giá trị thực tế (Hiện tại):'}
+                        </span>
                         <div className="text-right group relative cursor-help">
-                            <span className="text-blue-400 font-bold text-lg">{settlement.actualTotal.toLocaleString()} đ</span>
+                            <span className="text-blue-400 font-bold text-lg font-mono">
+                                {(isBooster ? settlement.boosterActualTotal : settlement.customerActualTotal).toLocaleString()} đ
+                            </span>
                             {/* Tooltip Breakdown */}
-                            <div className="absolute bottom-full right-0 mb-2 w-64 p-3 bg-zinc-800 border border-zinc-700 rounded-xl shadow-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 text-xs text-zinc-300 space-y-1">
-                                <div className="font-bold text-white border-b border-zinc-700 pb-1 mb-1">Chi tiết tính toán:</div>
-                                <div className="flex justify-between"><span>Giá cày (A):</span> <span>{settlement.actualBasePrice.toLocaleString('vi-VN')} đ</span></div>
+                            <div className="absolute bottom-full right-0 mb-2 w-72 p-3 bg-zinc-800 border border-zinc-700 rounded-xl shadow-xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 text-xs text-zinc-300 space-y-1">
+                                <div className="font-bold text-white border-b border-zinc-700 pb-1 mb-1">Chi tiết tính toán thực tế:</div>
+                                <div className="flex justify-between">
+                                    <span>Giá cày (A):</span> 
+                                    <span className="font-mono">{settlement.actualBasePrice.toLocaleString('vi-VN')} đ</span>
+                                </div>
                                 {settlement.eloFeeValue !== 0 && (
                                     <div className="flex justify-between">
                                         <span>Hệ số Elo:</span> 
-                                        <span className={settlement.eloFeeValue > 0 ? 'text-red-400' : 'text-green-400'}>{settlement.eloFeeValue > 0 ? '+' : ''}{settlement.eloFeeValue.toLocaleString('vi-VN')} đ</span>
+                                        <span className={`font-mono ${settlement.eloFeeValue > 0 ? 'text-red-400' : 'text-green-400'}`}>
+                                            {settlement.eloFeeValue > 0 ? '+' : ''}{settlement.eloFeeValue.toLocaleString('vi-VN')} đ
+                                        </span>
                                     </div>
                                 )}
                                 {settlement.actualOptionsFee > 0 && (
                                     <div className="flex justify-between text-yellow-400">
-                                        <span>Options (C):</span> 
-                                        <span>+{settlement.actualOptionsFee.toLocaleString('vi-VN')} đ</span>
+                                        <span>Tùy chọn thêm (Options):</span> 
+                                        <span className="font-mono">+{settlement.actualOptionsFee.toLocaleString('vi-VN')} đ</span>
                                     </div>
                                 )}
-                                <div className="flex justify-between text-zinc-500"><span>Phí sàn (B):</span> <span>+{settlement.actualPlatformFee.toLocaleString('vi-VN')} đ</span></div>
-                                <div className="border-t border-zinc-700 pt-1 mt-1 font-bold text-right text-blue-400">= {settlement.actualTotal.toLocaleString('vi-VN')} đ</div>
+                                {isCustomer && (
+                                    <div className="flex justify-between text-zinc-400">
+                                        <span>Phí dịch vụ sàn (Admin):</span> 
+                                        <span className="font-mono">+{settlement.actualAdminFee.toLocaleString('vi-VN')} đ</span>
+                                    </div>
+                                )}
+                                <div className="border-t border-zinc-700 pt-1 mt-1 font-bold text-right text-blue-400 font-mono">
+                                    = {(isBooster ? settlement.boosterActualTotal : settlement.customerActualTotal).toLocaleString('vi-VN')} đ
+                                </div>
                             </div>
                         </div>
                     </div>
                 ) : (
                     <div className="flex justify-between items-center p-3 bg-zinc-950/30 rounded-xl border border-zinc-800 border-dashed">
-                        <span className="text-zinc-500">Giá trị thực tế:</span>
+                        <span className="text-zinc-500">{isBooster ? 'Thu nhập thực tế:' : 'Giá trị thực tế:'}</span>
                         <span className="text-zinc-500 italic">Đang chờ cập nhật trận đấu...</span>
                     </div>
                 )}
 
-                {/* Hiển thị Thực nhận dành riêng cho Booster */}
-                {isBooster && hasMatches && (
-                    <div className="flex flex-col justify-between items-center p-3 bg-emerald-900/10 rounded-xl border border-emerald-500/20">
-                        <span className="text-emerald-200 font-medium">Số tiền về ví:</span>
-                        <span className="text-emerald-400 font-bold text-lg">{settlement.boosterReceive.toLocaleString()} đ</span>
-                    </div>
-                )}
-
-                {/* Cảnh báo thu nhập thấp cho Booster */}
+                {/* 3. Cảnh báo thu nhập thấp cho Booster */}
                 {isBooster && hasMatches && settlement.isLowEarnings && (
                     <div className="flex gap-3 p-3 bg-orange-900/20 rounded-xl border border-orange-500/50">
                         <AlertTriangle className="w-5 h-5 text-orange-500 shrink-0" />
                         <div className="text-sm">
                             <span className="text-orange-200 font-bold block mb-1">Cảnh báo thu nhập thấp!</span>
                             <span className="text-orange-300/80">
-                                Do số trận thua (Loss) quá nhiều, thu nhập thực tế của bạn đang ở mức thấp hoặc âm ({settlement.boosterReceive.toLocaleString()} đ).
+                                Do số trận thua (Loss) quá nhiều, thu nhập thực tế của bạn đang ở mức thấp ({settlement.boosterActualTotal.toLocaleString()} đ).
                             </span>
                         </div>
                     </div>
                 )}
 
+                {/* 4. Đã thanh toán trước / Đã nhận cọc tạm ứng */}
                 <div className="flex flex-col justify-between items-center p-3 bg-zinc-950/50 rounded-xl border border-zinc-800">
-                    <span className="text-zinc-400">Đã thanh toán trước ({settlement.depositPercent}%):</span>
-                    <span className="text-yellow-500 font-bold">- {settlement.paidDeposit.toLocaleString()} đ</span>
+                    <span className="text-zinc-400">
+                        {isBooster
+                            ? `Đã nhận cọc tạm ứng (${settlement.depositPercent}%):`
+                            : `Đã thanh toán trước (${settlement.depositPercent}%):`}
+                    </span>
+                    <span className="text-yellow-500 font-bold font-mono">
+                        - {(isBooster ? settlement.boosterPaidDeposit : settlement.customerPaidDeposit).toLocaleString()} đ
+                    </span>
                 </div>
 
                 <div className="border-t border-zinc-800 my-2"></div>
 
+                {/* 5. Kết quả quyết toán: CẦN TRẢ THÊM (OWE) */}
                 {hasMatches && settlement.status === 'OWE' && (
-                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 p-3 sm:p-4 bg-red-900/10 rounded-xl border border-red-500/30 animate-pulse">
-                        <div className="flex items-center gap-2 min-w-0">
-                            <AlertCircle className="w-5 h-5 text-red-500 shrink-0" />
-                            <span className="text-red-200 font-bold text-sm sm:text-base truncate">
-                                {isCustomer ? 'Cần trả thêm:' : 'Khách trả thêm:'}
-                            </span>
+                    <div className="p-3.5 sm:p-4 bg-red-900/10 rounded-xl border border-red-500/30 space-y-2.5">
+                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                            <div className="flex items-center gap-2 min-w-0">
+                                <AlertCircle className="w-5 h-5 text-red-500 shrink-0" />
+                                <span className="text-red-200 font-bold text-sm sm:text-base truncate">
+                                    {isCustomer 
+                                        ? 'Cần thanh toán thêm:' 
+                                        : (isBooster ? 'Số tiền về ví còn lại:' : 'Khách trả thêm:')}
+                                </span>
+                            </div>
+                            
+                            {isCustomer ? (
+                                <button 
+                                    onClick={handlePayRemaining}
+                                    className="w-full sm:w-auto py-2.5 px-4 bg-red-600 hover:bg-red-500 text-white font-bold rounded-lg flex items-center justify-center gap-2 transition-all shadow-lg shadow-red-900/20 active:scale-[0.98] cursor-pointer"
+                                    title="Thanh toán ngay"
+                                >
+                                    <Wallet className="w-4 h-4 shrink-0" />
+                                    <span>Thanh toán {settlement.customerRemaining.toLocaleString()} đ</span>
+                                </button>
+                            ) : (
+                                <span className={`font-black text-lg sm:text-xl whitespace-nowrap font-mono ${isBooster ? 'text-emerald-400' : 'text-red-400'}`}>
+                                    {isBooster ? `+${settlement.boosterRemaining.toLocaleString()}` : `${settlement.customerRemaining.toLocaleString()}`} đ
+                                </span>
+                            )}
                         </div>
-                        
-                        {isCustomer ? (
-                            <button 
-                                onClick={handlePayRemaining}
-                                className="w-full sm:w-auto py-2.5 px-4 bg-red-600 hover:bg-red-500 text-white font-bold rounded-lg flex items-center justify-center gap-2 transition-all shadow-lg shadow-red-900/20 active:scale-[0.98]"
-                                title="Thanh toán ngay"
-                            >
-                                <Wallet className="w-4 h-4 shrink-0" />
-                                <span>Thanh toán {settlement.remaining.toLocaleString()} đ</span>
-                            </button>
-                        ) : (
-                            <span className="text-red-400 font-black text-lg sm:text-xl whitespace-nowrap w-full sm:w-auto text-left sm:text-right">
-                                {settlement.remaining.toLocaleString()} đ
-                            </span>
+
+                        {/* Ghi chú minh bạch cho Booster */}
+                        {isBooster && (
+                            <div className="pt-2 border-t border-red-500/20 text-[11px] text-zinc-400 flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                                <span>Khách thanh toán thêm: <b className="text-white font-mono">{settlement.customerRemaining.toLocaleString()} đ</b></span>
+                                <span>Phí sàn Admin: <b className="text-amber-400 font-mono">+{settlement.actualAdminFee.toLocaleString()} đ</b></span>
+                            </div>
                         )}
                     </div>
                 )}
 
+                {/* 6. Kết quả quyết toán: HOÀN LẠI (REFUND) */}
                 {hasMatches && settlement.status === 'REFUND' && (
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 p-3 sm:p-4 bg-green-900/10 rounded-xl border border-green-500/30">
                         <div className="flex items-center gap-2 min-w-0">
                             <CheckCircle2 className="w-5 h-5 text-green-500 shrink-0" />
                             <span className="text-green-200 font-bold text-sm sm:text-base truncate">
                                 {isCustomer 
-                                    ? 'Hoàn lại:' 
-                                    : (isBooster ? 'Cần hoàn lại:' : 'Hoàn lại khách:')}
+                                    ? 'Được hoàn lại:' 
+                                    : (isBooster ? 'Cần hoàn lại khách:' : 'Hoàn lại khách:')}
                             </span>
                         </div>
                         
                         {isBooster ? (
                             <button 
                                 onClick={handleRefund}
-                                className="w-full sm:w-auto py-2.5 px-4 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-lg flex items-center justify-center gap-2 transition-all shadow-lg shadow-emerald-900/20 active:scale-[0.98]"
+                                className="w-full sm:w-auto py-2.5 px-4 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-lg flex items-center justify-center gap-2 transition-all shadow-lg shadow-emerald-900/20 active:scale-[0.98] cursor-pointer"
                                 title="Xác nhận hoàn tiền"
                             >
                                 <RefreshCcw className="w-4 h-4 shrink-0" />
-                                <span>Xác nhận hoàn {Math.abs(settlement.remaining).toLocaleString()} đ</span>
+                                <span>Xác nhận hoàn {Math.abs(settlement.customerRemaining).toLocaleString()} đ</span>
                             </button>
                         ) : (
-                            <span className="text-green-400 font-black text-lg sm:text-xl whitespace-nowrap w-full sm:w-auto text-left sm:text-right">
-                                {Math.abs(settlement.remaining).toLocaleString()} đ
+                            <span className="text-green-400 font-black text-lg sm:text-xl whitespace-nowrap font-mono">
+                                {Math.abs(settlement.customerRemaining).toLocaleString()} đ
                             </span>
                         )}
                     </div>
                 )}
 
+                {/* 7. Kết quả quyết toán: ĐÃ ĐỦ (SETTLED) */}
                 {hasMatches && settlement.status === 'SETTLED' && (
                     <div className="flex justify-between items-center p-4 bg-zinc-800 rounded-xl border border-zinc-700">
                         <div className="flex items-center gap-2">
-                            <CheckCircle2 className="w-5 h-5 text-zinc-400" />
-                            <span className="text-zinc-300 font-bold">Đã thanh toán đủ</span>
+                            <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+                            <span className="text-zinc-200 font-bold">
+                                {isBooster ? 'Đã đủ số tiền theo hợp đồng' : 'Đã thanh toán đủ'}
+                            </span>
                         </div>
-                        <span className="text-zinc-400 font-bold">0 đ</span>
+                        <span className="text-emerald-400 font-bold font-mono">0 đ</span>
                     </div>
                 )}
 
