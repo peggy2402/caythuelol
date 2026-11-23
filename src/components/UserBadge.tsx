@@ -13,6 +13,7 @@ export interface UserBadgeProps {
   size?: number | 'xs' | 'sm' | 'md' | 'lg' | 'xl';
   className?: string;
   tooltipText?: string;
+  tooltipPosition?: 'auto' | 'top' | 'bottom';
 }
 
 export function getUserBadgeConfig(
@@ -105,9 +106,11 @@ export default function UserBadge({
   size = 'sm',
   className = '',
   tooltipText,
+  tooltipPosition = 'auto',
 }: UserBadgeProps) {
   const [showTooltip, setShowTooltip] = useState(false);
   const [placement, setPlacement] = useState<'center' | 'left' | 'right'>('center');
+  const [vPlacement, setVPlacement] = useState<'top' | 'bottom'>('top');
   const badgeRef = useRef<HTMLSpanElement>(null);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -120,12 +123,20 @@ export default function UserBadge({
       const tooltipEstimateWidth = 240; // Ước lượng độ rộng tooltip
       const halfWidth = tooltipEstimateWidth / 2;
 
+      // Xử lý vị trí ngang (tránh tràn mép trái/phải)
       if (rect.left < halfWidth) {
         setPlacement('left'); // Lệch sang phải khi nằm quá sát mép trái
       } else if (window.innerWidth - rect.right < halfWidth) {
         setPlacement('right'); // Lệch sang trái khi nằm quá sát mép phải
       } else {
         setPlacement('center');
+      }
+
+      // Xử lý vị trí dọc (tránh bị khuất khi nằm sát đỉnh màn hình/Topbar)
+      if (tooltipPosition === 'bottom' || (tooltipPosition !== 'top' && rect.top < 65)) {
+        setVPlacement('bottom');
+      } else {
+        setVPlacement('top');
       }
     }
   };
@@ -171,7 +182,9 @@ export default function UserBadge({
       {/* Floating Tooltip */}
       {showTooltip && (
         <span
-          className={`absolute bottom-full mb-2 px-2.5 py-1 rounded-lg bg-zinc-900/95 border border-white/15 text-white text-[11px] font-semibold whitespace-nowrap shadow-2xl backdrop-blur-md z-50 pointer-events-none animate-in fade-in zoom-in-95 duration-150 flex items-center gap-1.5 ${
+          className={`absolute px-2.5 py-1 rounded-lg bg-zinc-900/95 border border-white/15 text-white text-[11px] font-semibold whitespace-nowrap shadow-2xl backdrop-blur-md z-50 pointer-events-none animate-in fade-in zoom-in-95 duration-150 flex items-center gap-1.5 ${
+            vPlacement === 'bottom' ? 'top-full mt-2' : 'bottom-full mb-2'
+          } ${
             placement === 'left'
               ? 'left-0 translate-x-0'
               : placement === 'right'
@@ -182,7 +195,11 @@ export default function UserBadge({
         >
           <span>{config.tooltip}</span>
           <span
-            className={`absolute top-full border-4 border-transparent border-t-zinc-900 ${
+            className={`absolute border-4 border-transparent ${
+              vPlacement === 'bottom'
+                ? 'bottom-full border-b-zinc-900'
+                : 'top-full border-t-zinc-900'
+            } ${
               placement === 'left'
                 ? 'left-3 translate-x-0'
                 : placement === 'right'
