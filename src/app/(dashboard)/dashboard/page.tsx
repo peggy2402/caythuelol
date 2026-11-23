@@ -4,8 +4,6 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n';
-import { socket } from '@/lib/socket';
-import confetti from 'canvas-confetti';
 
 import DashboardHeader from '@/components/dashboard/DashboardHeader';
 import ActiveOrderSpotlight from '@/components/dashboard/ActiveOrderSpotlight';
@@ -13,14 +11,6 @@ import MetricsCards from '@/components/dashboard/MetricsCards';
 import QuickServicesHub from '@/components/dashboard/QuickServicesHub';
 import RecentOrdersTable, { Order } from '@/components/dashboard/RecentOrdersTable';
 import DepositModal from '@/components/dashboard/DepositModal';
-
-interface PaymentInfo {
-  bankId: string;
-  accountNo: string;
-  accountName: string;
-  content: string;
-  amount: number;
-}
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -32,11 +22,6 @@ export default function DashboardPage() {
   // --- MODAL STATES FOR VIETQR DEPOSIT ---
   const [isDepositModalOpen, setIsDepositModalOpen] = useState(false);
   const [bankConfig, setBankConfig] = useState<any>(null);
-  const [isWaitingForPayment, setIsWaitingForPayment] = useState(false);
-  const [isSuccess, setIsSuccess] = useState(false);
-  const [isFailed, setIsFailed] = useState(false);
-  const [failReason, setFailReason] = useState('');
-  const [pendingTx, setPendingTx] = useState<{ qrUrl: string; info: PaymentInfo } | null>(null);
 
   useEffect(() => {
     // Kiểm tra token và phiên đăng nhập
@@ -103,97 +88,7 @@ export default function DashboardPage() {
     fetchData();
   }, [router]);
 
-  // SOCKET.IO: Lắng nghe tiền vào tự động
-  useEffect(() => {
-    if (user && user._id && isDepositModalOpen) {
-      if (!socket.connected) {
-        socket.connect();
-      }
-      socket.emit('join_user_room', user._id);
 
-      const handleWalletUpdate = async (data: { balance: number; message: string; type?: string }) => {
-        if (data.type === 'REJECT') {
-          setIsWaitingForPayment(false);
-          setIsFailed(true);
-          setFailReason(data.message);
-          return;
-        }
-
-        setUser((prev: any) => ({ ...prev, wallet_balance: data.balance }));
-        setIsWaitingForPayment(false);
-        setIsSuccess(true);
-
-        try {
-          const audio = new Audio('/sounds/coins.mp3');
-          await audio.play();
-        } catch (e) {
-          console.error('Sound play error:', e);
-        }
-
-        const end = Date.now() + 3000;
-        (function frame() {
-          confetti({ particleCount: 5, angle: 60, spread: 55, origin: { x: 0 } });
-          confetti({ particleCount: 5, angle: 120, spread: 55, origin: { x: 1 } });
-          if (Date.now() < end) requestAnimationFrame(frame);
-        })();
-
-        setTimeout(() => {
-          setIsDepositModalOpen(false);
-          setIsSuccess(false);
-          setPendingTx(null);
-        }, 3000);
-      };
-
-      socket.on('wallet_update', handleWalletUpdate);
-      socket.on('balance_updated', handleWalletUpdate);
-
-      return () => {
-        socket.off('wallet_update', handleWalletUpdate);
-        socket.off('balance_updated', handleWalletUpdate);
-      };
-    }
-  }, [user, isDepositModalOpen]);
-
-  // Polling dự phòng kiểm tra giao dịch nạp tiền khi đang chờ
-  useEffect(() => {
-    if (!isWaitingForPayment || !user) return;
-
-    const initialBal = user.wallet_balance || 0;
-    const interval = setInterval(async () => {
-      try {
-        const res = await fetch(`/api/wallet?page=1&limit=5&t=${Date.now()}`);
-        if (!res.ok) return;
-        const data = await res.json();
-        const currentBal = data.wallet?.balance ?? data.wallet?.wallet_balance ?? 0;
-        const latestTx = data.transactions?.[0];
-
-        const isSuccessTx = latestTx?.type === 'DEPOSIT' && latestTx?.status === 'SUCCESS' && currentBal > initialBal;
-
-        if (isSuccessTx || currentBal > initialBal) {
-          setUser((prev: any) => ({ ...prev, wallet_balance: currentBal }));
-          setIsWaitingForPayment(false);
-          setIsSuccess(true);
-
-          try {
-            const audio = new Audio('/sounds/coins.mp3');
-            audio.play().catch(() => {});
-          } catch (e) {}
-
-          confetti({ particleCount: 50, spread: 60, origin: { y: 0.6 } });
-
-          setTimeout(() => {
-            setIsDepositModalOpen(false);
-            setIsSuccess(false);
-            setPendingTx(null);
-          }, 3000);
-        }
-      } catch (err) {
-        console.error('Dashboard polling deposit error:', err);
-      }
-    }, 2500);
-
-    return () => clearInterval(interval);
-  }, [isWaitingForPayment, user]);
 
   if (loading) {
     return (
@@ -281,15 +176,9 @@ export default function DashboardPage() {
         onClose={() => setIsDepositModalOpen(false)}
         user={user}
         bankConfig={bankConfig}
-        isWaitingForPayment={isWaitingForPayment}
-        setIsWaitingForPayment={setIsWaitingForPayment}
-        isSuccess={isSuccess}
-        setIsSuccess={setIsSuccess}
-        isFailed={isFailed}
-        setIsFailed={setIsFailed}
-        failReason={failReason}
-        pendingTx={pendingTx}
-        setPendingTx={setPendingTx}
+        onSuccess={(newBalance) => {
+          setUser((prev: any) => ({ ...prev, wallet_balance: newBalance }));
+        }}
       />
     </div>
   );
