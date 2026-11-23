@@ -24,8 +24,18 @@ export class WalletController {
     @ReqUser() user: any,
     @Query('page') page?: number,
     @Query('limit') limit?: number,
+    @Query('type') type?: string,
+    @Query('status') status?: string,
+    @Query('search') search?: string,
   ) {
-    return this.walletService.getWallet(user.userId, Number(page || 1), Number(limit || 10));
+    return this.walletService.getWallet(
+      user.userId,
+      Number(page || 1),
+      Number(limit || 10),
+      type,
+      status,
+      search,
+    );
   }
 
   @Post()

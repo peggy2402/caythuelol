@@ -20,12 +20,22 @@ export class WalletService {
     @InjectModel('SystemSetting') private settingModel: Model<ISystemSetting>,
   ) {}
 
-  async getWallet(userId: string, page = 1, limit = 10) {
+  async getWallet(userId: string, page = 1, limit = 10, type?: string, status?: string, search?: string) {
     const user = await this.userModel.findById(userId);
     if (!user) throw new NotFoundException('Không tìm thấy người dùng');
 
     const skip = (page - 1) * limit;
-    const filter = { userId: new Types.ObjectId(userId) };
+    const filter: any = { userId: new Types.ObjectId(userId) };
+
+    if (type && type !== 'ALL') {
+      filter.type = type;
+    }
+    if (status && status !== 'ALL') {
+      filter.status = status;
+    }
+    if (search && search.trim()) {
+      filter.description = { $regex: search.trim(), $options: 'i' };
+    }
 
     const [transactions, total, adminBankSetting] = await Promise.all([
       this.transactionModel.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),

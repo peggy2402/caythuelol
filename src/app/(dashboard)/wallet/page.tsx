@@ -6,7 +6,7 @@ import { useLanguage } from '@/lib/i18n';
 import { toast } from 'sonner';
 import { socket } from '@/lib/socket';
 import confetti from 'canvas-confetti';
-import { Wallet, ArrowUpRight, ArrowDownLeft, History, CreditCard, Loader2, QrCode, Copy, Check, X, RefreshCw, XCircle, CheckCircle2, ShieldCheck, AlertCircle, ChevronLeft, ChevronRight, Clock, Lock } from 'lucide-react';
+import { Wallet, ArrowUpRight, ArrowDownLeft, History, CreditCard, Loader2, QrCode, Copy, Check, X, RefreshCw, XCircle, CheckCircle2, ShieldCheck, AlertCircle, ChevronLeft, ChevronRight, Clock, Lock, Search, Filter } from 'lucide-react';
 
 interface Transaction {
   _id: string;
@@ -59,16 +59,34 @@ export default function WalletPage() {
   // State cho QR Code
   const [pendingTx, setPendingTx] = useState<{ qrUrl: string, info: PaymentInfo } | null>(null);
 
-  // Pagination
+  // Pagination & Filtering
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
   const [limit, setLimit] = useState(10); // Mặc định 10 dòng
+  const [filterType, setFilterType] = useState('ALL');
+  const [filterStatus, setFilterStatus] = useState('ALL');
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Fetch data
-  const fetchWalletData = async (page = 1, currentLimit = limit) => {
+  const fetchWalletData = async (
+    page = currentPage,
+    currentLimit = limit,
+    type = filterType,
+    status = filterStatus,
+    search = searchQuery
+  ) => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/wallet?page=${page}&limit=${currentLimit}`);
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: currentLimit.toString(),
+      });
+      if (type && type !== 'ALL') params.set('type', type);
+      if (status && status !== 'ALL') params.set('status', status);
+      if (search && search.trim()) params.set('search', search.trim());
+
+      const res = await fetch(`/api/wallet?${params.toString()}`);
       const data = await res.json();
       if (res.ok) {
         setBalance(data.balance);
@@ -77,18 +95,16 @@ export default function WalletPage() {
         setPendingBalance(data.pending_balance || 0);
         
         // --- LOGIC LỌC TRÙNG LẶP ---
-        // Nếu có đơn SUCCESS (do Webhook tạo) và đơn PENDING (do Khách tạo) cùng số tiền trong thời gian ngắn -> Ẩn đơn PENDING
-        const rawTx = data.transactions;
+        const rawTx = data.transactions || [];
         const successDeposits = rawTx.filter((t: any) => t.type === 'DEPOSIT' && t.status === 'SUCCESS');
 
         const cleanedTransactions = rawTx.filter((t: any) => {
           if (t.type === 'DEPOSIT' && t.status === 'PENDING') {
-            // Kiểm tra xem có đơn thành công nào trùng khớp trong vòng 1 giờ không
             const isDuplicate = successDeposits.some((st: any) => 
               st.amount === t.amount && 
               Math.abs(new Date(st.createdAt).getTime() - new Date(t.createdAt).getTime()) < 60 * 60 * 1000
             );
-            return !isDuplicate; // Nếu trùng (isDuplicate = true) thì lọc bỏ (return false)
+            return !isDuplicate;
           }
           return true;
         });
@@ -97,8 +113,9 @@ export default function WalletPage() {
         setBankConfig(data.bankInfo);
         setUserBankInfo(data.userBankInfo);
         if (data.pagination) {
-          setTotalPages(data.pagination.totalPages);
-          setCurrentPage(data.pagination.page);
+          setTotalPages(data.pagination.totalPages || 1);
+          setCurrentPage(data.pagination.page || 1);
+          setTotalCount(data.pagination.total || cleanedTransactions.length);
         }
       }
     } catch (error) {
@@ -324,8 +341,36 @@ export default function WalletPage() {
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
   };
 
+  const handleResumeDeposit = (tx: Transaction) => {
+    if (!bankConfig || !currentUser) {
+      toast.error('Đang tải thông tin ngân hàng, vui lòng thử lại');
+      return;
+    }
+    const bankId = bankConfig.bankId || bankConfig.bankName || 'MB';
+    const bankName = bankConfig.bankName || bankConfig.bankId || 'MB Bank';
+    const accountNo = bankConfig.accountNo || bankConfig.accountNumber || '';
+    const accountName = bankConfig.accountName || bankConfig.accountHolder || '';
+    const transferContent = `ZT${currentUser.username.toUpperCase().replace(/\s/g, '')}`;
+    const amount = Math.abs(tx.amount);
+    const qrUrl = `https://qr.sepay.vn/img?acc=${encodeURIComponent(accountNo)}&bank=${encodeURIComponent(bankId)}&amount=${amount}&des=${encodeURIComponent(transferContent)}`;
+
+    setPendingTx({
+      qrUrl,
+      info: {
+        bankId,
+        bankName,
+        accountNo,
+        accountName,
+        content: transferContent,
+        amount,
+      },
+    });
+    setIsWaitingForPayment(false);
+    setIsDepositModalOpen(true);
+  };
+
   const handleCancelTransaction = async (transactionId: string) => {
-    if(!confirm('Bạn muốn hủy yêu cầu nạp tiền này?')) return;
+    if (!confirm('Bạn muốn hủy yêu cầu nạp tiền này?')) return;
     
     try {
       const res = await fetch('/api/wallet/cancel', {
@@ -333,14 +378,105 @@ export default function WalletPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ transactionId }),
       });
-      if(res.ok) {
+      const data = await res.json();
+      if (res.ok) {
         toast.success('Đã hủy yêu cầu nạp tiền');
-        fetchWalletData(currentPage);
+        fetchWalletData(currentPage, limit, filterType, filterStatus, searchQuery);
       } else {
-        toast.error('Không thể hủy giao dịch này');
+        toast.error(data.message || 'Không thể hủy giao dịch này');
       }
     } catch(e) {
       toast.error('Lỗi kết nối');
+    }
+  };
+
+  const getTransactionTypeMeta = (type: string, description?: string) => {
+    switch (type) {
+      case 'DEPOSIT':
+        return {
+          label: 'Nạp tiền',
+          color: 'text-emerald-400',
+          bg: 'bg-emerald-500/10 border-emerald-500/20',
+          icon: ArrowDownLeft,
+        };
+      case 'WITHDRAWAL':
+        return {
+          label: 'Rút tiền',
+          color: 'text-amber-400',
+          bg: 'bg-amber-500/10 border-amber-500/20',
+          icon: ArrowUpRight,
+        };
+      case 'PAYMENT_RELEASE':
+        return {
+          label: 'Tiền công cày thuê',
+          color: 'text-blue-400',
+          bg: 'bg-blue-500/10 border-blue-500/20',
+          icon: Wallet,
+        };
+      case 'PAYMENT_HOLD':
+        return {
+          label: 'Tạm giữ cọc đơn',
+          color: 'text-purple-400',
+          bg: 'bg-purple-500/10 border-purple-500/20',
+          icon: Lock,
+        };
+      case 'REFUND':
+        return {
+          label: 'Hoàn tiền',
+          color: 'text-cyan-400',
+          bg: 'bg-cyan-500/10 border-cyan-500/20',
+          icon: RefreshCw,
+        };
+      case 'DISPUTE_PENALTY':
+        return {
+          label: 'Truy thu khiếu nại',
+          color: 'text-rose-400',
+          bg: 'bg-rose-500/10 border-rose-500/20',
+          icon: AlertCircle,
+        };
+      default:
+        return {
+          label: type || 'Giao dịch',
+          color: 'text-zinc-400',
+          bg: 'bg-zinc-800 border-zinc-700',
+          icon: History,
+        };
+    }
+  };
+
+  const getTransactionStatusMeta = (status: string, type?: string) => {
+    const s = (status || '').toUpperCase();
+    switch (s) {
+      case 'PENDING':
+        return {
+          label: type === 'DEPOSIT' ? 'Chờ thanh toán' : 'Chờ xử lý',
+          style: 'bg-amber-500/10 text-amber-400 border border-amber-500/30',
+          dotColor: 'bg-amber-400 animate-pulse',
+        };
+      case 'SUCCESS':
+        return {
+          label: 'Thành công',
+          style: 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20',
+          dotColor: 'bg-emerald-400',
+        };
+      case 'FAILED':
+        return {
+          label: 'Thất bại',
+          style: 'bg-rose-500/10 text-rose-400 border border-rose-500/20',
+          dotColor: 'bg-rose-400',
+        };
+      case 'CANCELLED':
+        return {
+          label: 'Đã hủy',
+          style: 'bg-zinc-800 text-zinc-400 border border-zinc-700',
+          dotColor: 'bg-zinc-500',
+        };
+      default:
+        return {
+          label: status,
+          style: 'bg-zinc-800 text-zinc-400 border border-zinc-700',
+          dotColor: 'bg-zinc-500',
+        };
     }
   };
 
@@ -455,177 +591,281 @@ export default function WalletPage() {
 
       </div>
 
-      {/* Transaction History */}
-      <div className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden">
-        <div className="p-6 border-b border-zinc-800">
-          <h3 className="text-lg font-bold text-white flex items-center gap-2">
-            <History className="w-5 h-5 text-zinc-400" />
-            {t('transactionHistory')}
-          </h3>
-        </div>
-        
-        <div className={`transition-opacity duration-200 ${loading ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
-          {/* Desktop View: Table */}
-          <div className="hidden md:block overflow-x-auto">
-            <table className="w-full text-left text-sm">
-            <thead className="bg-zinc-950 text-zinc-400 uppercase text-xs">
-              <tr>
-                <th className="px-6 py-4 font-medium">{t('date')}</th>
-                <th className="px-6 py-4 font-medium">{t('description')}</th>
-                <th className="px-6 py-4 font-medium">{t('amount')}</th>
-                <th className="px-6 py-4 font-medium">{t('status')}</th>
-                <th className="px-6 py-4 font-medium text-right">Thao tác</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-zinc-800">
-              {loading && transactions.length === 0 ? (
-                 // Skeleton Loading khi chưa có dữ liệu lần đầu
-                 [...Array(5)].map((_, i) => (
-                    <tr key={i} className="animate-pulse"><td colSpan={5} className="px-6 py-4"><div className="h-4 bg-zinc-800 rounded w-full"></div></td></tr>
-                 ))
-              ) : transactions.length > 0 ? (
-                transactions.map((tx) => (
-                  <tr key={tx._id} className="hover:bg-zinc-800/50 transition-colors group">
-                    <td className="px-6 py-4 text-zinc-400">
-                      {new Date(tx.createdAt).toLocaleDateString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
-                    </td>
-                    <td className="px-6 py-4 text-white font-medium">
-                      {/* Ưu tiên hiển thị description từ metadata, nếu không có thì lấy description gốc hoặc type */}
-                      {tx.metadata?.description || tx.description || tx.type}
-                      {tx.type === 'WITHDRAWAL' && (
-                        <div className="text-xs text-zinc-500 mt-1">
-                          Thực nhận: <span className="text-zinc-300">{formatCurrency(Math.abs(tx.amount) - (tx.metadata?.fee || 0))}</span> • Phí: <span className="text-zinc-300">{formatCurrency(tx.metadata?.fee || 0)}</span>
-                        </div>
-                      )}
-                    </td>
-                    
-                    {/* LOGIC HIỂN THỊ SỐ TIỀN & MÀU SẮC CHUẨN XÁC */}
-                    <td className="px-6 py-4">
-                      <span className={`font-bold font-mono ${tx.amount > 0 ? 'text-green-500' : 'text-red-500'}`}>
-                        {tx.amount > 0 ? '+' : ''}{formatCurrency(tx.amount)}
-                      </span>
-                    </td>
+      {/* Transaction History (Card List Feed) */}
+      <div className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden shadow-xl">
+        {/* Header & Filter Controls */}
+        <div className="p-4 sm:p-6 border-b border-zinc-800 space-y-4 bg-zinc-950/40">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <h3 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
+              <History className="w-5 h-5 text-blue-400" />
+              {t('transactionHistory')}
+              <span className="text-xs px-2.5 py-0.5 rounded-full bg-zinc-800 text-zinc-400 font-normal">
+                {totalCount} giao dịch
+              </span>
+            </h3>
 
-                    <td className="px-6 py-4">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        tx.status === 'SUCCESS' ? 'bg-green-500/10 text-green-500' :
-                        tx.status === 'PENDING' ? 'bg-yellow-500/10 text-yellow-500' :
-                        'bg-red-500/10 text-red-500'
-                      }`}>
-                        {tx.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      {/* Tạm ẩn nút Hủy đơn theo yêu cầu */}
-                      {/* {tx.status === 'PENDING' && tx.type === 'DEPOSIT' && (
-                        <button onClick={() => handleCancelTransaction(tx._id)} className="text-xs text-red-400 hover:text-red-300 hover:underline font-medium">
-                          Hủy đơn
-                        </button>
-                      )} */}
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={5} className="px-6 py-8 text-center text-zinc-500">
-                    {t('noTransfer')}
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+            {/* Search Input */}
+            <div className="relative w-full sm:w-64">
+              <Search className="w-4 h-4 text-zinc-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  fetchWalletData(1, limit, filterType, filterStatus, e.target.value);
+                }}
+                placeholder="Tìm nội dung, mã đơn..."
+                className="w-full bg-zinc-950 border border-zinc-800 rounded-xl pl-9 pr-3 py-1.5 text-xs text-white focus:outline-none focus:border-zinc-700 placeholder:text-zinc-600 transition-colors"
+              />
+            </div>
           </div>
 
-          {/* Mobile View: Card List */}
-          <div className="md:hidden">
-            {loading && transactions.length === 0 ? (
-               // Skeleton Loading Mobile
-               [...Array(5)].map((_, i) => (
-                  <div key={i} className="p-4 border-b border-zinc-800 animate-pulse">
-                    <div className="h-4 bg-zinc-800 rounded w-3/4 mb-2"></div>
-                    <div className="flex justify-between">
-                      <div className="h-3 bg-zinc-800 rounded w-1/3"></div>
-                      <div className="h-3 bg-zinc-800 rounded w-1/4"></div>
-                    </div>
-                  </div>
-               ))
-            ) : transactions.length > 0 ? (
-              transactions.map((tx) => (
-                <div key={tx._id} className="p-4 border-b border-zinc-800 last:border-0 hover:bg-zinc-800/50 transition-colors">
-                  <div className="flex justify-between items-start gap-3">
-                    <div className="flex-1">
-                      <div className="text-sm font-bold text-white mb-1 break-words">
-                          {tx.metadata?.description || tx.description || tx.type}
-                      </div>
-                      <div className="text-xs text-zinc-500 mb-1">
-                        {new Date(tx.createdAt).toLocaleDateString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
-                      </div>
-                      {tx.type === 'WITHDRAWAL' && (
-                        <div className="text-[10px] text-zinc-400 bg-zinc-950 border border-zinc-800 rounded px-2 py-1 inline-block">
-                          Thực nhận: <span className="text-zinc-200 font-medium">{formatCurrency(Math.abs(tx.amount) - (tx.metadata?.fee || 0))}</span>
-                        </div>
-                      )}
-                    </div>
-                    <div className="text-right shrink-0">
-                      <div className={`text-sm font-bold mb-1 font-mono ${tx.amount > 0 ? 'text-green-500' : 'text-red-500'}`}>
-                        {tx.amount > 0 ? '+' : ''}{formatCurrency(tx.amount)}
-                      </div>
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium ${
-                        tx.status === 'SUCCESS' ? 'bg-green-500/10 text-green-500' :
-                        tx.status === 'PENDING' ? 'bg-yellow-500/10 text-yellow-500' :
-                        'bg-red-500/10 text-red-500'
-                      }`}>
-                        {tx.status}
-                      </span>
-                    </div>
+          {/* Filter Pills */}
+          <div className="flex flex-wrap items-center justify-between gap-2.5 pt-1">
+            {/* Filter by Type */}
+            <div className="flex flex-wrap items-center gap-1.5">
+              {[
+                { key: 'ALL', label: 'Tất cả' },
+                { key: 'DEPOSIT', label: 'Nạp tiền' },
+                { key: 'WITHDRAWAL', label: 'Rút tiền' },
+                { key: 'PAYMENT_RELEASE', label: 'Tiền công' },
+                { key: 'PAYMENT_HOLD', label: 'Cọc đơn' },
+                { key: 'REFUND', label: 'Hoàn tiền' },
+              ].map((tab) => (
+                <button
+                  key={tab.key}
+                  type="button"
+                  onClick={() => {
+                    setFilterType(tab.key);
+                    fetchWalletData(1, limit, tab.key, filterStatus, searchQuery);
+                  }}
+                  className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-all cursor-pointer ${
+                    filterType === tab.key
+                      ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20'
+                      : 'bg-zinc-950/70 text-zinc-400 hover:text-white hover:bg-zinc-800 border border-zinc-800/80'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Filter by Status */}
+            <div className="flex items-center gap-1.5 text-xs">
+              <select
+                value={filterStatus}
+                onChange={(e) => {
+                  setFilterStatus(e.target.value);
+                  fetchWalletData(1, limit, filterType, e.target.value, searchQuery);
+                }}
+                className="bg-zinc-950 border border-zinc-800 rounded-lg px-2.5 py-1.5 text-zinc-300 text-xs focus:outline-none focus:border-zinc-700"
+              >
+                <option value="ALL">Tất cả trạng thái</option>
+                <option value="PENDING">Chờ thanh toán / Chờ xử lý</option>
+                <option value="SUCCESS">Thành công</option>
+                <option value="FAILED">Thất bại</option>
+                <option value="CANCELLED">Đã hủy</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        {/* Card List Feed */}
+        <div className="p-3 sm:p-5 space-y-2.5">
+          {loading && transactions.length === 0 ? (
+            // Skeleton loader
+            [...Array(4)].map((_, i) => (
+              <div key={i} className="p-4 bg-zinc-950/40 border border-zinc-800/60 rounded-xl animate-pulse flex items-center justify-between">
+                <div className="flex items-center gap-3 w-2/3">
+                  <div className="w-10 h-10 bg-zinc-800 rounded-xl shrink-0"></div>
+                  <div className="space-y-2 w-full">
+                    <div className="h-4 bg-zinc-800 rounded w-1/2"></div>
+                    <div className="h-3 bg-zinc-800 rounded w-1/3"></div>
                   </div>
                 </div>
-              ))
-            ) : (
-              <div className="p-8 text-center text-zinc-500 text-sm">{t('noTransfer')}</div>
-            )}
-          </div>
+                <div className="h-4 bg-zinc-800 rounded w-20"></div>
+              </div>
+            ))
+          ) : transactions.length > 0 ? (
+            transactions.map((tx) => {
+              const typeMeta = getTransactionTypeMeta(tx.type, tx.description);
+              const statusMeta = getTransactionStatusMeta(tx.status, tx.type);
+              const isPendingDeposit = tx.status === 'PENDING' && tx.type === 'DEPOSIT';
+              const Icon = typeMeta.icon;
+
+              return (
+                <div
+                  key={tx._id}
+                  onClick={() => {
+                    if (isPendingDeposit) handleResumeDeposit(tx);
+                  }}
+                  className={`group relative p-3.5 sm:p-4 rounded-xl border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
+                    isPendingDeposit
+                      ? 'bg-amber-500/[0.03] hover:bg-amber-500/[0.07] border-amber-500/30 cursor-pointer shadow-sm hover:shadow-amber-500/10'
+                      : 'bg-zinc-950/50 hover:bg-zinc-950/90 border-zinc-800/80 hover:border-zinc-700'
+                  }`}
+                >
+                  {/* Left: Icon + Description + Metadata */}
+                  <div className="flex items-start sm:items-center gap-3 min-w-0 flex-1">
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border ${typeMeta.bg}`}>
+                      <Icon className={`w-5 h-5 ${typeMeta.color}`} />
+                    </div>
+
+                    <div className="min-w-0 flex-1 space-y-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-sm font-bold text-white truncate group-hover:text-blue-300 transition-colors">
+                          {tx.metadata?.description || tx.description || tx.type}
+                        </span>
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full border ${typeMeta.bg} ${typeMeta.color} font-medium shrink-0`}>
+                          {typeMeta.label}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-3 text-xs text-zinc-500 flex-wrap">
+                        <span className="flex items-center gap-1 font-mono">
+                          <Clock className="w-3.5 h-3.5 text-zinc-600" />
+                          {new Date(tx.createdAt).toLocaleDateString('vi-VN', {
+                            day: '2-digit',
+                            month: '2-digit',
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}
+                        </span>
+
+                        {tx.type === 'WITHDRAWAL' && (
+                          <span className="text-zinc-400 text-[11px] bg-zinc-900 px-2 py-0.5 rounded border border-zinc-800">
+                            Thực nhận: <b className="text-white">{formatCurrency(Math.abs(tx.amount) - (tx.metadata?.fee || 0))}</b>
+                            {tx.metadata?.fee ? ` (Phí: ${formatCurrency(tx.metadata.fee)})` : ''}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Right: Amount + Status Badge + Actions */}
+                  <div className="flex items-center justify-between sm:justify-end gap-3 pt-2 sm:pt-0 border-t sm:border-t-0 border-zinc-800/60 shrink-0">
+                    <div className="text-left sm:text-right space-y-1">
+                      <div className={`text-base font-black font-mono tracking-tight ${tx.amount > 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                        {tx.amount > 0 ? '+' : ''}{formatCurrency(tx.amount)}
+                      </div>
+
+                      <div className="flex items-center sm:justify-end gap-1.5">
+                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold ${statusMeta.style}`}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${statusMeta.dotColor}`}></span>
+                          {statusMeta.label}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Action Buttons for Pending Deposit */}
+                    {isPendingDeposit && (
+                      <div className="flex items-center gap-1.5 pl-2" onClick={(e) => e.stopPropagation()}>
+                        <button
+                          type="button"
+                          onClick={() => handleResumeDeposit(tx)}
+                          className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-lg transition-all shadow-md shadow-blue-600/20 flex items-center gap-1 cursor-pointer"
+                          title="Tiếp tục thanh toán"
+                        >
+                          <CreditCard className="w-3.5 h-3.5" />
+                          <span>Thanh toán</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleCancelTransaction(tx._id)}
+                          className="p-1.5 hover:bg-rose-500/10 text-zinc-500 hover:text-rose-400 rounded-lg transition-colors border border-transparent hover:border-rose-500/20 cursor-pointer"
+                          title="Hủy yêu cầu nạp này"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })
+          ) : (
+            <div className="py-12 text-center text-zinc-500 space-y-2">
+              <History className="w-10 h-10 mx-auto text-zinc-600 stroke-1" />
+              <div className="text-sm font-medium">{t('noTransfer')}</div>
+              <p className="text-xs text-zinc-600">Thử thay đổi bộ lọc hoặc tìm kiếm để xem các giao dịch khác.</p>
+            </div>
+          )}
         </div>
 
         {/* Pagination Controls */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 border-t border-zinc-800 bg-zinc-900/50">
-          <div className="flex items-center gap-2 text-sm text-zinc-400">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 border-t border-zinc-800 bg-zinc-950/60 text-xs text-zinc-400">
+          <div className="flex items-center gap-2">
             <span>Hiển thị</span>
-            <select 
-              value={limit} 
+            <select
+              value={limit}
               onChange={(e) => {
                 const newLimit = Number(e.target.value);
                 setLimit(newLimit);
-                fetchWalletData(1, newLimit); // Reset về trang 1 khi đổi limit
+                fetchWalletData(1, newLimit, filterType, filterStatus, searchQuery);
               }}
-              className="bg-zinc-950 border border-zinc-800 rounded-lg px-2 py-1 focus:outline-none focus:border-zinc-700"
+              className="bg-zinc-900 border border-zinc-800 rounded-lg px-2.5 py-1 text-white focus:outline-none focus:border-zinc-700"
             >
-              {[5, 10, 20, 30, 50, 100].map(n => <option key={n} value={n}>{n}</option>)}
+              {[10, 20, 30, 50].map((n) => (
+                <option key={n} value={n}>
+                  {n}
+                </option>
+              ))}
             </select>
-            <span>dòng / trang</span>
+            <span>giao dịch / trang</span>
           </div>
 
-          {totalPages > 1 && (
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => fetchWalletData(currentPage - 1)}
-              disabled={currentPage === 1}
-              className="p-2 rounded-lg hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              <ChevronLeft className="w-5 h-5 text-zinc-400" />
-            </button>
-            <span className="text-sm text-zinc-400">
-              Trang <span className="text-white font-medium">{currentPage}</span> / {totalPages}
+          <div className="flex items-center gap-3">
+            <span>
+              Trang <b className="text-white">{currentPage}</b> / {totalPages || 1}
             </span>
-            <button
-              onClick={() => fetchWalletData(currentPage + 1)}
-              disabled={currentPage === totalPages}
-              className="p-2 rounded-lg hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              <ChevronRight className="w-5 h-5 text-zinc-400" />
-            </button>
+
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => fetchWalletData(currentPage - 1, limit, filterType, filterStatus, searchQuery)}
+                disabled={currentPage <= 1 || loading}
+                className="p-1.5 rounded-lg bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors text-zinc-300"
+                title="Trang trước"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+
+              {/* Numbered Page Buttons */}
+              {Array.from({ length: totalPages || 1 }, (_, i) => i + 1)
+                .filter((p) => Math.abs(p - currentPage) <= 2 || p === 1 || p === totalPages)
+                .map((pageNum, idx, arr) => {
+                  const showEllipsisBefore = idx > 0 && pageNum - arr[idx - 1] > 1;
+                  return (
+                    <span key={pageNum} className="flex items-center">
+                      {showEllipsisBefore && <span className="px-1 text-zinc-600">...</span>}
+                      <button
+                        type="button"
+                        onClick={() => fetchWalletData(pageNum, limit, filterType, filterStatus, searchQuery)}
+                        disabled={loading}
+                        className={`min-w-[28px] h-7 px-2 rounded-lg font-mono font-semibold transition-colors ${
+                          currentPage === pageNum
+                            ? 'bg-blue-600 text-white shadow-sm shadow-blue-600/30'
+                            : 'bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white border border-zinc-800'
+                        }`}
+                      >
+                        {pageNum}
+                      </button>
+                    </span>
+                  );
+                })}
+
+              <button
+                type="button"
+                onClick={() => fetchWalletData(currentPage + 1, limit, filterType, filterStatus, searchQuery)}
+                disabled={currentPage >= totalPages || loading}
+                className="p-1.5 rounded-lg bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors text-zinc-300"
+                title="Trang sau"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
           </div>
-          )}
         </div>
       </div>
 
@@ -703,7 +943,7 @@ export default function WalletPage() {
                 </div>
               ) : isWaitingForPayment ? (
                 // Màn hình CHỜ XỬ LÝ (Sau khi bấm Đã chuyển khoản)
-                <div className="flex flex-col items-center justify-center py-8 space-y-5 animate-in fade-in duration-300">
+                <div className="flex flex-col items-center justify-center py-6 sm:py-8 space-y-4 animate-in fade-in duration-300">
                   <div className="relative">
                     <div className="w-16 h-16 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin"></div>
                     <div className="absolute inset-0 flex items-center justify-center">
@@ -712,10 +952,35 @@ export default function WalletPage() {
                   </div>
                   <div className="text-center space-y-1.5">
                     <h3 className="text-lg sm:text-xl font-bold text-white">Đang kiểm tra giao dịch...</h3>
-                    <p className="text-xs sm:text-sm text-zinc-400 max-w-[260px] mx-auto">
-                      Hệ thống đang xác nhận khoản tiền của bạn. Vui lòng không tắt trình duyệt.
+                    <p className="text-xs sm:text-sm text-zinc-400 max-w-[280px] mx-auto">
+                      Hệ thống tự động cộng tiền khi nhận được biến động từ ngân hàng (thường mất 10 - 30 giây).
                     </p>
                   </div>
+
+                  <div className="flex gap-2.5 pt-2 w-full max-w-[300px]">
+                    <button
+                      type="button"
+                      onClick={() => setIsWaitingForPayment(false)}
+                      className="flex-1 px-3 py-2.5 bg-blue-600/10 hover:bg-blue-600/20 text-blue-400 border border-blue-500/30 text-xs font-semibold rounded-xl transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                    >
+                      <QrCode className="w-3.5 h-3.5" /> Xem lại mã QR
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsDepositModalOpen(false);
+                        setIsWaitingForPayment(false);
+                        setPendingTx(null);
+                        fetchWalletData(1, limit);
+                      }}
+                      className="px-4 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs font-semibold rounded-xl transition-colors cursor-pointer"
+                    >
+                      Đóng
+                    </button>
+                  </div>
+                  <p className="text-[11px] text-zinc-500 text-center max-w-[300px] leading-relaxed">
+                    💡 Nếu bạn chưa chuyển khoản, bạn có thể quay lại xem QR hoặc đóng cửa sổ này và bấm <b>"Thanh toán"</b> trong Lịch sử giao dịch bên dưới.
+                  </p>
                 </div>
               ) : !pendingTx ? (
                 <form onSubmit={handleShowQR} className="space-y-4">
