@@ -35,10 +35,20 @@ export class WebhooksService {
   ) {}
 
   async handleSepayWebhook(authHeader: string | undefined, data: SePayWebhookData) {
-    const sepayKey = process.env.SEPAY_API_KEY;
-    if (sepayKey && authHeader !== `Apikey ${sepayKey}`) {
-      this.logger.error('🔴 [SePay Webhook] Unauthorized');
-      throw new UnauthorizedException('Unauthorized SePay API Key');
+    const sepayKey = process.env.SEPAY_API_KEY?.trim();
+    if (sepayKey) {
+      const cleanAuth = authHeader?.trim() || '';
+      const isValidAuth =
+        cleanAuth === `Apikey ${sepayKey}` ||
+        cleanAuth.toLowerCase() === `apikey ${sepayKey.toLowerCase()}` ||
+        cleanAuth === `Bearer ${sepayKey}` ||
+        cleanAuth === sepayKey ||
+        cleanAuth.includes(sepayKey);
+
+      if (!isValidAuth) {
+        this.logger.error(`🔴 [SePay Webhook] Unauthorized. Received header: "${authHeader}"`);
+        throw new UnauthorizedException('Unauthorized SePay API Key');
+      }
     }
 
     if (data.transferType !== 'in') {
@@ -129,7 +139,16 @@ export class WebhooksService {
         const u = tx.userId as any;
         if (u && u.username) {
           const uClean = u.username.toUpperCase().replace(/[^A-Z0-9]/g, '');
-          if (uClean && (normalizedContent.includes(`ZT${uClean}`) || normalizedContent.includes(`LR${uClean}`))) {
+          const isDirectMatch =
+            uClean &&
+            (normalizedContent.includes(`ZT${uClean}`) || normalizedContent.includes(`LR${uClean}`));
+          // Trường hợp nội dung chuyển khoản bị app ngân hàng cắt ngắn do quá dài
+          const isTruncatedMatch =
+            cleanUsername &&
+            cleanUsername.length >= 6 &&
+            (uClean.startsWith(cleanUsername) || cleanUsername.startsWith(uClean));
+
+          if (isDirectMatch || isTruncatedMatch) {
             user = u;
             break;
           }
