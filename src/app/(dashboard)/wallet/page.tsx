@@ -294,14 +294,14 @@ export default function WalletPage() {
 
     setIsDepositing(true);
     try {
-      const res = await fetch('/api/wallet', {
+      const res = await fetch('/api/wallet/confirm', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ amount: pendingTx.info.amount }),
       });
       const data = await res.json();
 
-      if (!res.ok) throw new Error(data.error);
+      if (!res.ok) throw new Error(data.message || data.error || 'Lỗi tạo giao dịch nạp tiền');
 
       // KHÔNG ĐÓNG MODAL -> Chuyển sang trạng thái chờ
       setIsWaitingForPayment(true);

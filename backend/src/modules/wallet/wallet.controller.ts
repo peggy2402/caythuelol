@@ -28,10 +28,16 @@ export class WalletController {
     return this.walletService.getWallet(user.userId, Number(page || 1), Number(limit || 10));
   }
 
+  @Post()
+  @ApiOperation({ summary: 'Create pending deposit transaction' })
+  async deposit(@ReqUser() user: any, @Body('amount') amount: number) {
+    return this.walletService.confirmDeposit(user.userId, Number(amount || 0));
+  }
+
   @Post('confirm')
   @ApiOperation({ summary: 'Create pending deposit transaction' })
   async confirmDeposit(@ReqUser() user: any, @Body('amount') amount: number) {
-    return this.walletService.confirmDeposit(user.userId, amount);
+    return this.walletService.confirmDeposit(user.userId, Number(amount || 0));
   }
 
   @Post('cancel')
