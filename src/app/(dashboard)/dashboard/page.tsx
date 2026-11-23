@@ -145,12 +145,55 @@ export default function DashboardPage() {
       };
 
       socket.on('wallet_update', handleWalletUpdate);
+      socket.on('balance_updated', handleWalletUpdate);
 
       return () => {
         socket.off('wallet_update', handleWalletUpdate);
+        socket.off('balance_updated', handleWalletUpdate);
       };
     }
   }, [user, isDepositModalOpen]);
+
+  // Polling dự phòng kiểm tra giao dịch nạp tiền khi đang chờ
+  useEffect(() => {
+    if (!isWaitingForPayment || !user) return;
+
+    const initialBal = user.wallet_balance || 0;
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/wallet?page=1&limit=5&t=${Date.now()}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        const currentBal = data.wallet?.balance ?? data.wallet?.wallet_balance ?? 0;
+        const latestTx = data.transactions?.[0];
+
+        const isSuccessTx = latestTx?.type === 'DEPOSIT' && latestTx?.status === 'SUCCESS' && currentBal > initialBal;
+
+        if (isSuccessTx || currentBal > initialBal) {
+          setUser((prev: any) => ({ ...prev, wallet_balance: currentBal }));
+          setIsWaitingForPayment(false);
+          setIsSuccess(true);
+
+          try {
+            const audio = new Audio('/sounds/coins.mp3');
+            audio.play().catch(() => {});
+          } catch (e) {}
+
+          confetti({ particleCount: 50, spread: 60, origin: { y: 0.6 } });
+
+          setTimeout(() => {
+            setIsDepositModalOpen(false);
+            setIsSuccess(false);
+            setPendingTx(null);
+          }, 3000);
+        }
+      } catch (err) {
+        console.error('Dashboard polling deposit error:', err);
+      }
+    }, 2500);
+
+    return () => clearInterval(interval);
+  }, [isWaitingForPayment, user]);
 
   if (loading) {
     return (
