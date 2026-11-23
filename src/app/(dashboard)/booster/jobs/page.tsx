@@ -24,23 +24,10 @@ import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 import { getGameById } from '@/lib/games';
 import { formatRankDisplayVi } from '@/lib/riotRanks';
+import { formatServiceNameVi } from '@/lib/orderStatus';
 
-const formatServiceTypeVi = (serviceType?: string): string => {
-  if (!serviceType) return 'Cày Thuê';
-  const upper = serviceType.toUpperCase().replace(/-/g, '_');
-  const map: Record<string, string> = {
-    RANK_BOOST: 'Cày Cấp Bậc (Cày Rank)',
-    PROMOTION: 'Chuỗi Thăng Hạng',
-    NET_WINS: 'Cày Số Trận Thắng',
-    PLACEMENTS: 'Đấu Phân Hạng',
-    CHAMPION_RANK: 'Cày Rank Theo Tướng',
-    MASTERY: 'Cày Điểm Thông Thạo',
-    POINT_BOOST: 'Cày Điểm / Nâng Điểm',
-    COACHING: 'Huấn Luyện (Coaching)',
-    ONBET: 'Cày Theo Sự Kiện',
-    LEVELING: 'Cày Cấp Độ (Level)',
-  };
-  return map[upper] || upper.replace(/_/g, ' ');
+const formatServiceTypeVi = (serviceType?: string, details?: any): string => {
+  return formatServiceNameVi(serviceType, details);
 };
 import {
   Dialog,
@@ -257,18 +244,50 @@ export default function JobMarketPage() {
     }
     
     if (serviceType === 'NET_WINS') {
+        const isPointBoost = Boolean(details?.is_point_boost || details?.calc_mode === 'BY_LP' || details?.segment);
+        if (isPointBoost) {
+            const unit = details?.unit || 'LP';
+            const start = details?.start_lp ?? details?.current_points ?? details?.current_lp ?? 0;
+            const target = details?.target_lp ?? details?.desired_points ?? details?.target_points ?? (start + (details?.gained_points || 0));
+            const segmentLabel = details?.segment_label || (details?.segment ? formatRankDisplayVi(details.segment) : null);
+            const rawRank = segmentLabel || details?.current_rank || 'Cao Thủ';
+            const cleanRank = formatRankDisplayVi(rawRank.replace(/\(\s*\d+\s*(LP|Sao)\s*\)/gi, '').trim());
+
+            return (
+                <div className="flex items-center justify-between p-3 bg-black/20 rounded-lg border border-white/5">
+                    <span className="text-zinc-400 text-xs font-medium">Mục tiêu</span>
+                    <div className="text-right">
+                        <div className="font-bold text-white text-sm flex items-center justify-end gap-1.5 flex-wrap">
+                            <span>{start} {unit}</span>
+                            <ArrowRight className="w-3.5 h-3.5 text-cyan-400" />
+                            <span className="text-cyan-300 font-bold">{target} {unit}</span>
+                            <span className="text-zinc-400 font-normal text-xs">({cleanRank})</span>
+                        </div>
+                        <div className="text-xs text-emerald-400 font-semibold mt-0.5">
+                            (+{Math.max(0, target - start)} {unit} cần cày)
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        let currentRankClean = (details?.current_rank || details?.rank || 'Khởi điểm');
+        currentRankClean = currentRankClean.replace(/\(\s*\d+\s*(LP|Sao)\s*\)/gi, '').trim();
+        const rankDisplay = formatRankDisplayVi(currentRankClean);
+        const hasLp = details?.current_lp !== undefined && details?.current_lp !== '';
+
         return (
             <div className="flex items-center justify-between p-3 bg-black/20 rounded-lg border border-white/5">
-                <span className="text-zinc-400 text-xs">Mục tiêu</span>
+                <span className="text-zinc-400 text-xs font-medium">Mục tiêu</span>
                 <div className="text-right">
                     <div className="font-bold text-white text-sm">
-                        {formatRankDisplayVi(details?.current_rank || details?.rank)}
-                        {(details?.current_lp !== undefined && details?.current_lp !== '') && (
+                        {rankDisplay}
+                        {hasLp && (
                             <span className="text-zinc-400 font-normal ml-1">({details.current_lp} LP)</span>
                         )}
                     </div>
-                    <div className="text-xs text-blue-400 font-bold">
-                        {details?.calc_mode === 'BY_GAMES' ? `+${details?.num_games} Trận thắng` : `Lên ${details?.target_lp} LP`}
+                    <div className="text-xs text-blue-400 font-bold mt-0.5">
+                        {details?.calc_mode === 'BY_GAMES' || details?.num_games ? `+${details?.num_games || 0} Trận thắng` : `Lên ${details?.target_lp} LP`}
                     </div>
                 </div>
             </div>
@@ -407,7 +426,7 @@ export default function JobMarketPage() {
         </div>
 
         <span className="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-cyan-500/10 text-cyan-300 border border-cyan-500/25 shrink-0 shadow-sm">
-          {formatServiceTypeVi(job.serviceType)}
+          {formatServiceTypeVi(job.serviceType, job.details)}
         </span>
       </div>
 
@@ -589,7 +608,7 @@ export default function JobMarketPage() {
               <div className="flex items-center justify-between text-zinc-300">
                 <span className="text-zinc-500">Dịch vụ:</span>
                 <span className="font-semibold text-cyan-300">
-                  {rejectModal.job.snapshot?.gameCode || 'Game'} • {formatServiceTypeVi(rejectModal.job.serviceType)}
+                  {rejectModal.job.snapshot?.gameCode || 'Game'} • {formatServiceTypeVi(rejectModal.job.serviceType, rejectModal.job.details)}
                 </span>
               </div>
               <div className="flex items-center justify-between text-zinc-300">
@@ -689,16 +708,20 @@ export default function JobMarketPage() {
               <div className="flex items-center justify-between text-zinc-300">
                 <span className="text-zinc-500">Dịch vụ:</span>
                 <span className="font-semibold text-cyan-300">
-                  {acceptModal.job.snapshot?.gameCode || 'Game'} • {formatServiceTypeVi(acceptModal.job.serviceType)}
+                  {acceptModal.job.snapshot?.gameCode || 'Game'} • {formatServiceTypeVi(acceptModal.job.serviceType, acceptModal.job.details)}
                 </span>
               </div>
-              {acceptModal.job.details && (acceptModal.job.details.current_rank || acceptModal.job.details.promo_from) && (
+              {acceptModal.job.details && (acceptModal.job.details.current_rank || acceptModal.job.details.promo_from || acceptModal.job.details.is_point_boost) && (
                 <div className="flex items-center justify-between text-zinc-300">
                   <span className="text-zinc-500">Lộ trình:</span>
                   <span className="font-medium text-zinc-200">
-                    {acceptModal.job.details.promo_from
-                      ? `${acceptModal.job.details.promo_from} ➔ ${acceptModal.job.details.promo_to}`
-                      : `${formatRankDisplayVi(acceptModal.job.details.current_rank)} ➔ ${formatRankDisplayVi(acceptModal.job.details.desired_rank)}`}
+                    {acceptModal.job.details.is_point_boost ? (
+                      `${acceptModal.job.details.start_lp ?? acceptModal.job.details.current_points ?? 0} ${acceptModal.job.details.unit || 'LP'} ➔ ${acceptModal.job.details.target_lp ?? acceptModal.job.details.desired_points ?? 100} ${acceptModal.job.details.unit || 'LP'}`
+                    ) : acceptModal.job.details.promo_from ? (
+                      `${acceptModal.job.details.promo_from} ➔ ${acceptModal.job.details.promo_to}`
+                    ) : (
+                      `${formatRankDisplayVi(acceptModal.job.details.current_rank)} ➔ ${formatRankDisplayVi(acceptModal.job.details.desired_rank)}`
+                    )}
                   </span>
                 </div>
               )}

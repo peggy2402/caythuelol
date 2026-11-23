@@ -232,7 +232,7 @@ export default function BoosterOrdersPage() {
                   </div>
                   <div className="min-w-0">
                     <h3 className="font-bold text-white text-base md:text-lg group-hover:text-blue-400 transition-colors truncate">
-                      {formatServiceNameVi(order.serviceType || order.service_type)}
+                      {formatServiceNameVi(order.serviceType || order.service_type, order.details)}
                       <span className="ml-2 md:ml-3 text-[10px] md:text-xs font-normal text-zinc-500 font-mono">#{order.orderCode || order._id.slice(-6).toUpperCase()}</span>
                     </h3>
                     <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs md:text-sm text-zinc-400 mt-1">
@@ -241,7 +241,19 @@ export default function BoosterOrdersPage() {
                       </span>
                       <span className="hidden xs:inline w-1 h-1 rounded-full bg-zinc-700 self-center"></span>
                       <span className="flex items-center gap-1 truncate max-w-full">
-                        {order.details?.current_rank ? formatRankDisplayVi(order.details.current_rank) : order.details?.current_level} <span className="text-zinc-600">&rarr;</span> {order.details?.desired_rank ? formatRankDisplayVi(order.details.desired_rank) : order.details?.desired_level}
+                        {order.details?.is_point_boost ? (
+                          <span>
+                            {order.details.start_lp ?? order.details.current_points ?? 0} {order.details.unit || 'LP'} <span className="text-zinc-600">&rarr;</span> {order.details.target_lp ?? order.details.desired_points ?? 100} {order.details.unit || 'LP'}
+                          </span>
+                        ) : order.details?.current_rank ? (
+                          <>
+                            {formatRankDisplayVi(order.details.current_rank)} <span className="text-zinc-600">&rarr;</span> {formatRankDisplayVi(order.details.desired_rank)}
+                          </>
+                        ) : (
+                          <>
+                            {order.details?.current_level} <span className="text-zinc-600">&rarr;</span> {order.details?.desired_level}
+                          </>
+                        )}
                       </span>
                       <span className="hidden sm:inline w-1 h-1 rounded-full bg-zinc-700 self-center"></span>
                       <span className="text-[10px] md:text-xs opacity-70">{new Date(order.createdAt || order.created_at).toLocaleDateString('vi-VN')}</span>

@@ -27,13 +27,21 @@ export const formatRankDisplayVi = (rankStr?: string): string => {
   // Xóa số La Mã I ở các bậc Cao Thủ, Đại Cao Thủ, Thách Đấu, Radiant
   str = str.replace(/^(MASTER|GRANDMASTER|CHALLENGER|RADIANT|Cao Thủ|Đại Cao Thủ|Thách Đấu|Thần Thoại)\s+I$/i, '$1');
 
+  // Chuẩn hóa và chuyển đổi các thuật ngữ tiếng Anh sang tiếng Việt, xử lý trường hợp cặp song ngữ
   for (const [en, vi] of Object.entries(TIER_VI_MAP)) {
-    const reg = new RegExp(`\\b${en}\\b`, 'i');
-    if (reg.test(str)) {
-      str = str.replace(reg, vi);
-      break;
+    const pairRegex = new RegExp(`${vi}\\s*\\(${en}\\)|${en}\\s*\\(${vi}\\)`, 'gi');
+    if (pairRegex.test(str)) {
+      str = str.replace(pairRegex, vi);
+    } else {
+      const reg = new RegExp(`\\b${en}\\b`, 'i');
+      if (reg.test(str)) {
+        str = str.replace(reg, vi);
+      }
     }
   }
+
+  // Dọn dẹp hoàn toàn hiện tượng lặp lại như "Cao Thủ (Cao Thủ)" -> "Cao Thủ"
+  str = str.replace(/(Cao Thủ|Đại Cao Thủ|Thách Đấu|Kim Cương|Bạch Kim|Lục Bảo|Vàng|Bạc|Đồng|Sắt|Thần Thoại|Bất Tử|Tinh Anh)\s*\(\1\)/gi, '$1');
 
   return str;
 };

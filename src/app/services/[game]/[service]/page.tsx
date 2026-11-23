@@ -1311,7 +1311,7 @@ function ServiceBookingContent() {
               calc_mode: 'BY_LP',
               segment: selectedPointSegment,
               segment_label: selectedPointTierObj.label,
-              current_rank: `${selectedPointTierObj.label} (${currentPoints} ${pointUnit})`,
+              current_rank: selectedPointTierObj.label,
               desired_rank: `${selectedPointTierObj.label} (${desiredPoints} ${pointUnit})`,
               start_lp: currentPoints,
               target_lp: desiredPoints,
