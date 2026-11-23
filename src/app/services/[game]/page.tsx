@@ -33,7 +33,7 @@ import {
   type LucideIcon,
   AlertCircle,
 } from 'lucide-react';
-import { getGameById, GAMES_CATALOG, getServiceMeta } from '@/lib/games';
+import { getGameById, GAMES_CATALOG, getServiceMeta, STANDARD_SERVICE_TEMPLATES } from '@/lib/games';
 
 const ICON_MAP: Record<string, LucideIcon> = {
   Trophy,
@@ -239,10 +239,30 @@ function GameServicesContent() {
     fetchBoosters();
   }, [game.id]);
 
-  // 3. Gom nhóm dịch vụ theo serviceType dựa trên dữ liệu thật từ DB (Chuẩn hóa hiển thị theo bản vẽ của User)
+  // 3. Gom nhóm dịch vụ theo serviceType dựa trên dữ liệu thật từ DB (Chuẩn hóa hiển thị dạng chung cho Customer)
   const groupedServices = useMemo(() => {
     const map = new Map<string, GroupedService>();
     const normGame = game.id.toUpperCase();
+
+    // Khởi tạo các gói dịch vụ chuẩn của hệ thống/sàn cho tựa game này
+    const standardTemplates =
+      STANDARD_SERVICE_TEMPLATES[normGame] ||
+      STANDARD_SERVICE_TEMPLATES['UNIVERSAL'] ||
+      STANDARD_SERVICE_TEMPLATES['LOL'] ||
+      [];
+
+    for (const t of standardTemplates) {
+      map.set(t.slug, {
+        serviceType: t.slug,
+        name: t.name,
+        desc: t.desc,
+        pricingType: t.pricingType,
+        depositPercent: t.depositPercent,
+        iconName: t.iconName,
+        boosters: [],
+        count: 0,
+      });
+    }
 
     for (const s of services) {
       if (s.isActive === false) continue;
@@ -271,18 +291,29 @@ function GameServicesContent() {
       }
 
       const sType = s.serviceType || s.slug || 'custom';
+      const meta = getServiceMeta(game.id, sType);
+
       if (!map.has(sType)) {
-        const meta = getServiceMeta(game.id, sType);
         map.set(sType, {
           serviceType: sType,
-          name: s.name || meta?.name || 'Dịch vụ cày thuê',
-          desc: s.desc || meta?.desc || 'Dịch vụ leo rank và cày thuê chuyên nghiệp.',
-          pricingType: s.pricingType || meta?.pricingType || 'FIXED',
-          depositPercent: s.depositPercent ?? meta?.depositPercent ?? 100,
+          name: meta?.name || s.name || 'Dịch vụ cày thuê',
+          desc: meta?.desc || s.desc || 'Dịch vụ leo rank và cày thuê chuyên nghiệp.',
+          pricingType: meta?.pricingType || s.pricingType || 'FIXED',
+          depositPercent: meta?.depositPercent ?? s.depositPercent ?? 100,
           iconName: meta?.iconName || 'Trophy',
           boosters: [],
           count: 0,
         });
+      } else {
+        // Luôn bảo toàn Tên và Mô tả chuẩn của hệ thống cho Customer, không bị ghi đè bởi tên riêng của Booster
+        const group = map.get(sType)!;
+        if (meta) {
+          group.name = meta.name;
+          group.desc = meta.desc;
+          group.iconName = meta.iconName;
+          group.pricingType = meta.pricingType;
+          group.depositPercent = meta.depositPercent;
+        }
       }
 
       const group = map.get(sType)!;
@@ -308,7 +339,7 @@ function GameServicesContent() {
     });
   }, [services, game.id, searchTerm]);
 
-  // Helper: Lấy danh sách dịch vụ đang HOẠT ĐỘNG (Active) của Booster cho tựa game này
+  // Helper: Lấy danh sách dịch vụ đang HOẠT ĐỘNG (Active) của Booster cho tựa game này (Hiển thị tên chuẩn hệ thống)
   const getBoosterActiveServices = (b: BoosterItem) => {
     const normGame = game.id.toUpperCase();
 
@@ -345,18 +376,19 @@ function GameServicesContent() {
         return matchGame && s.isActive !== false;
       });
 
-      // Nếu booster có customServices: CHỈ TRẢ VỀ CÁC DỊCH VỤ ACTIVE CỦA HỌ
-      // (Nếu booster tắt hết dịch vụ thì activeForGame rỗng -> trả về rỗng, TUYỆT ĐỐI KHÔNG FALLBACK TẤT CẢ GÓI SÀN)
-      return activeForGame.map((s) => ({
-        slug: s.serviceType || s.slug || 'rank-boost',
-        name: s.name,
-        desc: s.desc || 'Dịch vụ được cung cấp bởi tuyển thủ.',
-        pricingType: s.pricingType,
-        depositPercent: s.depositPercent ?? 100,
-        price: s.price,
-        unitName: s.unitName,
-        iconName: getServiceMeta(normGame, s.serviceType || s.slug || '')?.iconName || 'Trophy',
-      }));
+      return activeForGame.map((s) => {
+        const meta = getServiceMeta(normGame, s.serviceType || s.slug || '');
+        return {
+          slug: s.serviceType || s.slug || 'rank-boost',
+          name: meta?.name || s.name || 'Dịch vụ cày thuê',
+          desc: meta?.desc || s.desc || 'Dịch vụ được cung cấp bởi tuyển thủ.',
+          pricingType: meta?.pricingType || s.pricingType,
+          depositPercent: s.depositPercent ?? meta?.depositPercent ?? 100,
+          price: s.price,
+          unitName: s.unitName,
+          iconName: meta?.iconName || 'Trophy',
+        };
+      });
     }
 
     // 2. Tìm trong danh sách marketplace services đã fetch từ backend cho game này
@@ -370,20 +402,21 @@ function GameServicesContent() {
     });
 
     if (marketplaceActive.length > 0) {
-      return marketplaceActive.map((s) => ({
-        slug: s.serviceType || s.slug || 'rank-boost',
-        name: s.name,
-        desc: s.desc || 'Dịch vụ được cung cấp bởi tuyển thủ.',
-        pricingType: s.pricingType,
-        depositPercent: s.depositPercent ?? 100,
-        price: s.price,
-        unitName: s.unitName,
-        iconName: getServiceMeta(normGame, s.serviceType || s.slug || '')?.iconName || 'Trophy',
-      }));
+      return marketplaceActive.map((s) => {
+        const meta = getServiceMeta(normGame, s.serviceType || s.slug || '');
+        return {
+          slug: s.serviceType || s.slug || 'rank-boost',
+          name: meta?.name || s.name || 'Dịch vụ cày thuê',
+          desc: meta?.desc || s.desc || 'Dịch vụ được cung cấp bởi tuyển thủ.',
+          pricingType: meta?.pricingType || s.pricingType,
+          depositPercent: s.depositPercent ?? meta?.depositPercent ?? 100,
+          price: s.price,
+          unitName: s.unitName,
+          iconName: meta?.iconName || 'Trophy',
+        };
+      });
     }
 
-    // TUYỆT ĐỐI KHÔNG DÙNG MOCKDATA / FALLBACK TẤT CẢ DỊCH VỤ SÀN!
-    // Nếu booster không có dịch vụ nào trong DB cho game này -> trả về mảng rỗng []
     return [];
   };
 
