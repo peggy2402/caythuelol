@@ -227,5 +227,6 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   broadcastBalanceUpdate(userId: string, balance: number, message: string) {
     this.server.to(`user_${userId}`).emit('balance_updated', { balance, message });
+    this.server.to(`user_${userId}`).emit('wallet_update', { balance, message });
   }
 }

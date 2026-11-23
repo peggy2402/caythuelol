@@ -248,12 +248,67 @@ export default function WalletPage() {
       };
 
       socket.on('wallet_update', handleWalletUpdate);
+      socket.on('balance_updated', handleWalletUpdate);
 
       return () => {
         socket.off('wallet_update', handleWalletUpdate);
+        socket.off('balance_updated', handleWalletUpdate);
       };
     }
   }, [currentUser, isDepositModalOpen]); // Thêm dependency để socket closure cập nhật state mới nhất
+
+  // Cơ chế Polling tự động kiểm tra giao dịch nạp tiền khi đang hiển thị popup chờ (Backup cho Socket)
+  useEffect(() => {
+    if (!isWaitingForPayment) return;
+
+    const initialBal = balance;
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/wallet?page=1&limit=5&t=${Date.now()}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        const currentBal = data.wallet?.balance ?? data.wallet?.wallet_balance ?? 0;
+        const latestTx = data.transactions?.[0];
+
+        // Nếu số dư đã tăng lên hoặc có giao dịch nạp tiền PENDING đã chuyển sang SUCCESS
+        const isTxSuccess = pendingTx?.info?.transactionId
+          ? latestTx?._id === pendingTx.info.transactionId && latestTx?.status === 'SUCCESS'
+          : latestTx?.type === 'DEPOSIT' && latestTx?.status === 'SUCCESS' && currentBal > initialBal;
+
+        if (isTxSuccess || currentBal > initialBal) {
+          setBalance(currentBal);
+          setIsWaitingForPayment(false);
+          setIsSuccess(true);
+
+          try {
+            const audio = new Audio('/sounds/coins.mp3');
+            audio.volume = 1.0;
+            audio.play().catch(() => {});
+          } catch (e) {}
+
+          try {
+            confetti({
+              particleCount: 50,
+              spread: 60,
+              origin: { y: 0.6 }
+            });
+          } catch (e) {}
+
+          setTimeout(async () => {
+            setIsDepositModalOpen(false);
+            setIsSuccess(false);
+            setPendingTx(null);
+            setDepositAmount('');
+            await fetchWalletData(1);
+          }, 3000);
+        }
+      } catch (err) {
+        console.error('Polling deposit check error:', err);
+      }
+    }, 2500);
+
+    return () => clearInterval(interval);
+  }, [isWaitingForPayment, balance, pendingTx]);
 
   // Bước 1: Hiển thị QR Code (Chưa tạo giao dịch DB)
   const handleShowQR = (e: React.FormEvent) => {

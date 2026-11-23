@@ -1,6 +1,7 @@
 import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
+import { ChatGateway } from '../chat/chat.gateway';
 
 import { IUser } from '../../database/schemas/User';
 import {
@@ -30,6 +31,7 @@ export class WebhooksService {
   constructor(
     @InjectModel('User') private userModel: Model<IUser>,
     @InjectModel('Transaction') private transactionModel: Model<ITransaction>,
+    private readonly chatGateway: ChatGateway,
   ) {}
 
   async handleSepayWebhook(authHeader: string | undefined, data: SePayWebhookData) {
@@ -198,6 +200,17 @@ export class WebhooksService {
     }
 
     this.logger.log(`✅ [SePay Webhook] Credited ${data.transferAmount} to ${user.username}`);
+
+    try {
+      this.chatGateway.broadcastBalanceUpdate(
+        user._id.toString(),
+        updatedUser.wallet_balance,
+        `Nạp thành công ${data.transferAmount.toLocaleString('vi-VN')} đ`,
+      );
+    } catch (socketErr: any) {
+      this.logger.warn(`Failed to broadcast socket update: ${socketErr.message}`);
+    }
+
     return {
       success: true,
       message: 'Transaction processed successfully',
