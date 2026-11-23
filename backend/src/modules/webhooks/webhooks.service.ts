@@ -68,10 +68,12 @@ export class WebhooksService {
       txCode = undefined;
     }
 
+    // 1. Thử tìm chính xác theo username
     let user = await this.userModel.findOne({
       username: new RegExp(`^${username}$`, 'i'),
     });
 
+    // 2. Nếu không ra và có số ở đuôi do ngân hàng ghép mã giao dịch
     if (!user && /\d+$/.test(username)) {
       const usernameNoDigits = username.replace(/\d+$/, '');
       user = await this.userModel.findOne({
@@ -79,6 +81,37 @@ export class WebhooksService {
       });
     }
 
+    // 3. Xử lý trường hợp app ngân hàng strip ký tự đặc biệt (ví dụ: booster_chovy -> BOOSTERCHOVY)
+    // hoặc người dùng gõ có/không có dấu gạch dưới, gạch ngang, chấm
+    const cleanUsername = username.replace(/[^a-zA-Z0-9]/g, '');
+    if (!user && cleanUsername && cleanUsername.length >= 2) {
+      // Tạo regex linh hoạt cho phép các ký tự [_\-\.\s]* xuất hiện tùy ý giữa các chữ cái
+      // Ví dụ: BOOSTERCHOVY -> ^B[_\-\.\s]*O[_\-\.\s]*O...$ sẽ khớp với booster_chovy trong DB
+      const flexiblePattern = cleanUsername
+        .split('')
+        .map((c) => c.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+        .join('[_\\-\\.\\s]*');
+
+      user = await this.userModel.findOne({
+        username: new RegExp(`^${flexiblePattern}$`, 'i'),
+      });
+
+      // Nếu username bị ngân hàng đính kèm thêm số ở cuối
+      if (!user && /\d+$/.test(cleanUsername)) {
+        const cleanNoDigits = cleanUsername.replace(/\d+$/, '');
+        if (cleanNoDigits.length >= 3) {
+          const flexPatternNoDigits = cleanNoDigits
+            .split('')
+            .map((c) => c.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+            .join('[_\\-\\.\\s]*');
+          user = await this.userModel.findOne({
+            username: new RegExp(`^${flexPatternNoDigits}$`, 'i'),
+          });
+        }
+      }
+    }
+
+    // 4. Fallback tìm user qua pending deposit transactions của đúng số tiền đó
     if (!user) {
       const potentialTxs = await this.transactionModel
         .find({
@@ -88,14 +121,30 @@ export class WebhooksService {
         })
         .populate('userId');
 
+      const normalizedContent = content.toUpperCase().replace(/[^A-Z0-9]/g, '');
+
       for (const tx of potentialTxs) {
         const u = tx.userId as any;
         if (u && u.username) {
-          const dbClean = u.username.toUpperCase().replace(/\s/g, '');
-          if (content.toUpperCase().includes(`ZT${dbClean}`)) {
+          const uClean = u.username.toUpperCase().replace(/[^A-Z0-9]/g, '');
+          if (uClean && normalizedContent.includes(`ZT${uClean}`)) {
             user = u;
             break;
           }
+        }
+      }
+    }
+
+    // 5. Fallback cuối: quét nhanh các user active nếu SePay gửi trước hoặc không có pending tx
+    if (!user) {
+      const normalizedContent = content.toUpperCase().replace(/[^A-Z0-9]/g, '');
+      const candidates = await this.userModel.find({}, 'username _id wallet_balance').lean();
+      for (const c of candidates) {
+        if (!c.username) continue;
+        const cClean = c.username.toUpperCase().replace(/[^A-Z0-9]/g, '');
+        if (cClean && cClean.length >= 3 && normalizedContent.includes(`ZT${cClean}`)) {
+          user = c as any;
+          break;
         }
       }
     }

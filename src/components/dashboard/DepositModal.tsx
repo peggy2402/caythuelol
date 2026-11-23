@@ -91,7 +91,8 @@ export default function DepositModal({
       return;
     }
 
-    const transferContent = `ZT${user.username.toUpperCase().replace(/\s/g, '')}`;
+    const cleanUsername = user.username.toUpperCase().replace(/[^A-Z0-9]/g, '');
+    const transferContent = `ZT${cleanUsername}`;
     const qrUrl = `https://qr.sepay.vn/img?acc=${encodeURIComponent(accountNo)}&bank=${encodeURIComponent(bankId)}&amount=${amount}&des=${encodeURIComponent(transferContent)}`;
     setPendingTx({
       qrUrl,

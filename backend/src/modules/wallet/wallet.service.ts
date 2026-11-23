@@ -122,12 +122,14 @@ export class WalletService {
       amount,
     }).sort({ createdAt: -1 });
 
+    const cleanUser = user.username.toUpperCase().replace(/[^A-Z0-9]/g, '');
+
     if (existingPending) {
       return {
         success: true,
         transaction: existingPending,
         isExisting: true,
-        transferContent: `ZT ${user.username} ${existingPending._id.toString().slice(-6).toUpperCase()}`,
+        transferContent: `ZT${cleanUser}`,
       };
     }
 
@@ -146,7 +148,7 @@ export class WalletService {
     return {
       success: true,
       transaction,
-      transferContent: `ZT ${user.username} ${transaction._id.toString().slice(-6).toUpperCase()}`,
+      transferContent: `ZT${cleanUser}`,
     };
   }
 

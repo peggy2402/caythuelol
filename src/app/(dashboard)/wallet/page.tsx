@@ -286,8 +286,10 @@ export default function WalletPage() {
       return;
     }
 
-    // Tạo nội dung chuyển khoản: ZT<USERNAME> (Viết liền, không dấu cách để khớp SePay)
-    const transferContent = `ZT${currentUser.username.toUpperCase().replace(/\s/g, '')}`;
+    // Chuẩn hóa nội dung chuyển khoản chỉ gồm chữ cái và số [A-Z0-9]
+    // Tránh việc app ngân hàng (MBBank, Vietcombank...) tự động xóa bỏ dấu gạch dưới "_" gây lệch mã
+    const cleanUsername = currentUser.username.toUpperCase().replace(/[^A-Z0-9]/g, '');
+    const transferContent = `ZT${cleanUsername}`;
     
     // Tạo link SePay QR Client-side
     // Format: https://qr.sepay.vn/img?acc=SO_TAI_KHOAN&bank=NGAN_HANG&amount=SO_TIEN&des=NOI_DUNG
@@ -362,7 +364,8 @@ export default function WalletPage() {
     const bankName = bankConfig.bankName || bankConfig.bankId || 'MB Bank';
     const accountNo = bankConfig.accountNo || bankConfig.accountNumber || '';
     const accountName = bankConfig.accountName || bankConfig.accountHolder || '';
-    const transferContent = `ZT${currentUser.username.toUpperCase().replace(/\s/g, '')}`;
+    const cleanUsername = currentUser.username.toUpperCase().replace(/[^A-Z0-9]/g, '');
+    const transferContent = `ZT${cleanUsername}`;
     const amount = Math.abs(tx.amount);
     const qrUrl = `https://qr.sepay.vn/img?acc=${encodeURIComponent(accountNo)}&bank=${encodeURIComponent(bankId)}&amount=${amount}&des=${encodeURIComponent(transferContent)}`;
 
