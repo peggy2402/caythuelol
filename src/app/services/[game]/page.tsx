@@ -7,6 +7,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import Navbar from '@/components/Navbar';
 import BackButton from '@/components/BackButton';
+import UserBadge from '@/components/UserBadge';
 import {
   Trophy,
   Target,
@@ -20,7 +21,6 @@ import {
   Crosshair,
   Shield,
   Star,
-  CheckCircle2,
   Filter,
   Search,
   ArrowRight,
@@ -90,6 +90,7 @@ interface MarketplaceService {
 interface BoosterItem {
   _id: string;
   username: string;
+  role?: string;
   avatar?: string;
   displayName?: string;
   rating: number;
@@ -707,7 +708,7 @@ function GameServicesContent() {
                               <h3 className="font-extrabold text-white text-base truncate group-hover:text-blue-400 transition-colors">
                                 {booster.displayName || booster.username}
                               </h3>
-                              <CheckCircle2 className="w-4 h-4 text-blue-400 shrink-0" />
+                              <UserBadge role={booster.role || 'BOOSTER'} size="sm" />
                             </div>
 
                             <div className="flex items-center gap-2 text-xs">
@@ -812,7 +813,7 @@ function GameServicesContent() {
                       <h3 className="font-extrabold text-white text-lg truncate">
                         {selectedBoosterForHire.displayName || selectedBoosterForHire.username}
                       </h3>
-                      <CheckCircle2 className="w-4 h-4 text-blue-400 shrink-0" />
+                      <UserBadge role={selectedBoosterForHire.role || 'BOOSTER'} size="sm" />
                     </div>
                     <p className="text-xs text-zinc-400">
                       Chọn dịch vụ <span className="text-blue-400 font-semibold">{game.name}</span> bạn muốn tuyển thủ này thực hiện:
