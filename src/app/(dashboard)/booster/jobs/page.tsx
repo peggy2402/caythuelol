@@ -405,10 +405,10 @@ export default function JobMarketPage() {
     const gameName = gameMeta?.name || gameCode;
 
     return (
-    <div className={`group border rounded-xl p-5 transition-all hover:shadow-lg flex flex-col ${type === 'DIRECT' ? 'bg-blue-900/10 border-blue-500/30 hover:border-blue-500/50' : 'bg-zinc-900 border-zinc-800 hover:border-zinc-700'}`}>
+    <div className={`group border rounded-2xl p-4 sm:p-5 transition-all hover:shadow-lg flex flex-col overflow-hidden relative ${type === 'DIRECT' ? 'bg-blue-900/10 border-blue-500/35 hover:border-blue-500/60 shadow-[0_0_20px_rgba(59,130,246,0.06)]' : 'bg-zinc-900 border-zinc-800 hover:border-zinc-700'}`}>
       {/* Game Identification Bar */}
       <div className="flex items-center justify-between gap-2 pb-3 mb-3 border-b border-white/5">
-        <div className="flex items-center gap-2.5 shrink-0">
+        <div className="flex items-center gap-2.5 min-w-0 flex-1">
           {gameImg ? (
             <img
               src={gameImg}
@@ -420,10 +420,10 @@ export default function JobMarketPage() {
               {gameMeta?.shortName || gameCode}
             </div>
           )}
-          <div className="shrink-0">
-            <div className="text-xs sm:text-sm font-bold text-white whitespace-nowrap">{gameName}</div>
+          <div className="min-w-0 flex-1">
+            <div className="text-xs sm:text-sm font-bold text-white truncate">{gameName}</div>
             {job.details?.server && (
-              <div className="text-[10px] text-zinc-400">Server: {job.details.server}</div>
+              <div className="text-[10px] text-zinc-400 truncate">Server: {job.details.server}</div>
             )}
           </div>
         </div>
@@ -435,18 +435,18 @@ export default function JobMarketPage() {
 
       {/* Header */}
       <div className="flex justify-between items-start mb-4">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-zinc-800 overflow-hidden flex items-center justify-center border border-zinc-700">
+        <div className="flex items-center gap-3 min-w-0 flex-1">
+          <div className="w-10 h-10 rounded-full bg-zinc-800 overflow-hidden flex items-center justify-center border border-zinc-700 shrink-0">
             {job.customerId?.profile?.avatar ? (
               <img src={job.customerId.profile.avatar} alt="Avatar" className="w-full h-full object-cover" />
             ) : (
               <User className="w-5 h-5 text-zinc-500" />
             )}
           </div>
-          <div>
-            <div className="font-bold text-white text-sm">{job.customerId?.username || 'Khách hàng'}</div>
-            <div className="text-xs text-zinc-500 flex items-center gap-1.5">
-              <Clock className="w-3 h-3" /> {new Date(job.createdAt).toLocaleDateString('vi-VN')}
+          <div className="min-w-0 flex-1">
+            <div className="font-bold text-white text-sm truncate">{job.customerId?.username || 'Khách hàng'}</div>
+            <div className="text-xs text-zinc-500 flex items-center gap-1.5 flex-wrap">
+              <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {new Date(job.createdAt).toLocaleDateString('vi-VN')}</span>
               {job.orderCode && (
                 <span className="text-[10px] font-mono text-zinc-400">#{job.orderCode}</span>
               )}
@@ -456,33 +456,33 @@ export default function JobMarketPage() {
       </div>
 
       {/* Details */}
-      <div className="flex-1 space-y-3 mb-6">
+      <div className="flex-1 space-y-3 mb-5">
         {renderJobInfo(job)}
         {type === 'DIRECT' && (
-            <div className="flex items-center gap-2 text-xs text-yellow-500 bg-yellow-500/10 p-2 rounded border border-yellow-500/20">
-                <AlertCircle className="w-3 h-3" />
-                Khách hàng chỉ định riêng cho bạn
+            <div className="flex items-center gap-2 text-xs text-yellow-500 bg-yellow-500/10 p-2 rounded-xl border border-yellow-500/20">
+                <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                <span className="truncate">Khách hàng chỉ định riêng cho bạn</span>
             </div>
         )}
       </div>
 
       {/* Footer */}
-      <div className="pt-4 border-t border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 mt-auto">
-        <div className="flex items-center justify-between sm:flex-col sm:items-start gap-0.5">
-          <span className="text-xs text-zinc-400 font-medium whitespace-nowrap">Thu nhập nhận được</span>
-          <span className="text-base sm:text-lg font-bold text-emerald-400 font-mono whitespace-nowrap">
+      <div className="pt-3.5 border-t border-white/5 flex flex-col gap-3 mt-auto">
+        <div className="flex items-baseline justify-between gap-2">
+          <span className="text-xs text-zinc-400 font-medium">Thu nhập nhận được</span>
+          <span className="text-base sm:text-lg font-black text-emerald-400 font-mono tracking-tight">
             {new Intl.NumberFormat('vi-VN').format(getBoosterOrderValue(job.pricing))} đ
           </span>
         </div>
         
-        <div className="flex items-center gap-2 w-full sm:w-auto">
+        <div className="w-full">
             {type === 'DIRECT' ? (
-                <>
+                <div className="grid grid-cols-2 gap-2 w-full">
                     <button 
                         type="button"
                         onClick={() => handleRespond(job, 'reject')}
                         disabled={!!processingId}
-                        className="flex-1 sm:flex-none h-10 px-3.5 bg-red-500/10 hover:bg-red-500/20 active:bg-red-500/30 border border-red-500/25 text-red-400 hover:text-red-300 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-1.5 disabled:opacity-50 active:scale-95 whitespace-nowrap"
+                        className="h-10 px-3 bg-red-500/10 hover:bg-red-500/20 active:bg-red-500/30 border border-red-500/25 text-red-400 hover:text-red-300 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-1.5 disabled:opacity-50 active:scale-95 cursor-pointer whitespace-nowrap"
                         title="Từ chối đơn chỉ định này"
                     >
                         <X className="w-4 h-4 shrink-0" />
@@ -492,18 +492,18 @@ export default function JobMarketPage() {
                         type="button"
                         onClick={() => handleRespond(job, 'approve')}
                         disabled={!!processingId}
-                        className="flex-1 sm:flex-none h-10 px-4 sm:px-5 bg-gradient-to-r from-blue-600 via-blue-500 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 active:from-blue-700 active:to-cyan-600 text-white rounded-xl text-xs sm:text-sm font-bold transition-all duration-200 shadow-md shadow-blue-500/25 hover:shadow-cyan-500/30 flex items-center justify-center gap-1.5 whitespace-nowrap disabled:opacity-50 active:scale-95"
+                        className="h-10 px-3 bg-gradient-to-r from-blue-600 via-blue-500 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 active:from-blue-700 active:to-cyan-600 text-white rounded-xl text-xs sm:text-sm font-bold transition-all duration-200 shadow-md shadow-blue-500/25 hover:shadow-cyan-500/30 flex items-center justify-center gap-1.5 disabled:opacity-50 active:scale-95 cursor-pointer whitespace-nowrap"
                     >
                         {processingId === job._id ? <Loader2 className="w-4 h-4 animate-spin shrink-0" /> : <CheckCircle2 className="w-4 h-4 shrink-0" />}
                         <span>Nhận đơn</span>
                     </button>
-                </>
+                </div>
             ) : (
                 <button 
                     type="button"
                     onClick={() => handleClaim(job)}
                     disabled={!!processingId}
-                    className="w-full sm:w-auto h-10 px-4 sm:px-5 bg-gradient-to-r from-blue-600 via-blue-500 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 active:from-blue-700 active:to-cyan-600 text-white rounded-xl text-xs sm:text-sm font-bold transition-all duration-200 shadow-md shadow-blue-500/25 hover:shadow-cyan-500/30 flex items-center justify-center gap-2 whitespace-nowrap disabled:opacity-50 active:scale-95 shrink-0"
+                    className="w-full h-10 px-4 bg-gradient-to-r from-blue-600 via-blue-500 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 active:from-blue-700 active:to-cyan-600 text-white rounded-xl text-xs sm:text-sm font-bold transition-all duration-200 shadow-md shadow-blue-500/25 hover:shadow-cyan-500/30 flex items-center justify-center gap-2 whitespace-nowrap disabled:opacity-50 active:scale-95 cursor-pointer"
                 >
                     {processingId === job._id ? <Loader2 className="w-4 h-4 animate-spin shrink-0" /> : <Briefcase className="w-4 h-4 shrink-0" />}
                     <span>Nhận việc</span>
