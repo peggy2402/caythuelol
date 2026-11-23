@@ -114,6 +114,23 @@ export class WalletService {
     const user = await this.userModel.findById(userId);
     if (!user) throw new NotFoundException('Không tìm thấy người dùng');
 
+    // Kiểm tra xem đã có giao dịch nạp PENDING nào cùng số tiền chưa để tái sử dụng, tránh spam bản ghi trùng lặp
+    const existingPending = await this.transactionModel.findOne({
+      userId: user._id,
+      type: TransactionType.DEPOSIT,
+      status: TransactionStatus.PENDING,
+      amount,
+    }).sort({ createdAt: -1 });
+
+    if (existingPending) {
+      return {
+        success: true,
+        transaction: existingPending,
+        isExisting: true,
+        transferContent: `ZT ${user.username} ${existingPending._id.toString().slice(-6).toUpperCase()}`,
+      };
+    }
+
     const transaction = new this.transactionModel({
       userId: user._id,
       type: TransactionType.DEPOSIT,

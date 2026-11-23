@@ -23,6 +23,7 @@ interface Transaction {
 }
 
 interface PaymentInfo {
+  transactionId?: string;
   bankId: string;
   bankName?: string;
   accountNo: string;
@@ -305,9 +306,16 @@ export default function WalletPage() {
     });
   };
 
-  // Bước 2: Xác nhận đã chuyển khoản -> Mới tạo giao dịch PENDING vào DB
+  // Bước 2: Xác nhận đã chuyển khoản -> Mới tạo giao dịch PENDING vào DB (hoặc tái sử dụng nếu đã có)
   const handleConfirmTransfer = async () => {
     if (!pendingTx) return;
+
+    // Nếu đơn này đã có transactionId (ví dụ mở từ lịch sử để thanh toán tiếp hoặc đã bấm trước đó),
+    // KHÔNG tạo thêm bản ghi mới nữa để tránh spam trùng lặp!
+    if (pendingTx.info.transactionId) {
+      setIsWaitingForPayment(true);
+      return;
+    }
 
     setIsDepositing(true);
     try {
@@ -320,11 +328,15 @@ export default function WalletPage() {
 
       if (!res.ok) throw new Error(data.message || data.error || 'Lỗi tạo giao dịch nạp tiền');
 
-      // KHÔNG ĐÓNG MODAL -> Chuyển sang trạng thái chờ
-      setIsWaitingForPayment(true);
-      
-      // Có thể fetch lại data để background list hiện PENDING (tùy chọn)
+      // Ghi nhận transactionId để không tạo lại lần sau
+      if (data.transaction?._id) {
+        setPendingTx((prev) => prev ? {
+          ...prev,
+          info: { ...prev.info, transactionId: data.transaction._id }
+        } : null);
+      }
 
+      setIsWaitingForPayment(true);
     } catch (error: any) {
       toast.error(error.message || t('serverError'));
     } finally {
@@ -357,6 +369,7 @@ export default function WalletPage() {
     setPendingTx({
       qrUrl,
       info: {
+        transactionId: tx._id, // Ghi nhận ID giao dịch đang chờ để không tạo trùng bản ghi!
         bankId,
         bankName,
         accountNo,
