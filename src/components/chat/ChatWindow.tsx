@@ -59,6 +59,9 @@ export default function ChatWindow({ orderId, currentUser, title, initialMessage
     stateRef.current = { isOpen, isMinimized };
   }, [isOpen, isMinimized]);
 
+  // Ref chống trùng lặp tin nhắn và sự kiện socket bắn nhiều lần
+  const processedMessageIdsRef = useRef<Set<string>>(new Set());
+
   // Xử lý sự kiện cuộn để hiện nút "Về dưới cùng"
   const handleScroll = () => {
     if (!scrollViewportRef.current) return;
@@ -177,14 +180,24 @@ export default function ChatWindow({ orderId, currentUser, title, initialMessage
     socket.on('connect', onConnect);
 
     const handleNewMessage = (msg: any) => {
-        // FIX: Chống trùng lặp tin nhắn (do Optimistic UI hoặc mạng lag)
+        if (!msg?._id) return;
+
+        // FIX: Chống trùng lặp tin nhắn & chống sự kiện socket bắn 2 lần
+        if (processedMessageIdsRef.current.has(msg._id)) {
+            return;
+        }
+        processedMessageIdsRef.current.add(msg._id);
+
         setMessages(prev => {
             if (prev.some(m => m._id === msg._id)) return prev;
             return [...prev, msg];
         });
         
         // Phát âm thanh nếu tin nhắn đến từ người khác (bất kể đang mở hay đóng chat)
-        const isMe = msg.sender_id?._id === currentUser?._id || msg.sender_id === currentUser?._id;
+        const senderIdStr = (msg.sender_id?._id || msg.sender_id)?.toString();
+        const currentUserIdStr = (currentUser?._id || currentUser?.id)?.toString();
+        const isMe = Boolean(senderIdStr && currentUserIdStr && senderIdStr === currentUserIdStr);
+
         if (!isMe) {
             try {
                 new Audio('/sounds/message.mp3').play().catch(() => {});
@@ -301,17 +314,22 @@ export default function ChatWindow({ orderId, currentUser, title, initialMessage
             if (data.capabilities) {
               setCapabilities(data.capabilities);
             }
+            if (Array.isArray(data.messages)) {
+              data.messages.forEach((m: any) => {
+                if (m?._id) processedMessageIdsRef.current.add(m._id);
+              });
+            }
             // Cập nhật toàn bộ để đảm bảo đồng bộ (xử lý cả case xóa tin nhắn, react...)
-            setMessages(prev => {
-                // FIX: Tính toán số lượng tin nhắn chưa đọc dựa trên readBy
-                // Nếu đang đóng/minimized -> Cộng dồn tin mới
-                // Nếu mới load lần đầu -> Đếm tổng tin chưa đọc
-                if (prev.length === 0) {
-                    const unread = data.messages.filter((m: any) => (m.sender_id?._id || m.sender_id) !== currentUser?._id && (!m.readBy || !m.readBy.includes(currentUser?._id))).length;
+            setMessages(() => {
+                const myId = (currentUser?._id || currentUser?.id)?.toString();
+                if (!stateRef.current.isOpen || stateRef.current.isMinimized) {
+                    const unread = (data.messages || []).filter((m: any) => {
+                        const sId = (m.sender_id?._id || m.sender_id)?.toString();
+                        return sId !== myId && (!m.readBy || !m.readBy.some((id: any) => (id?._id || id)?.toString() === myId));
+                    }).length;
                     setUnreadCount(unread);
-                } else if (data.messages.length > prev.length && (!stateRef.current.isOpen || stateRef.current.isMinimized)) {
-                     // Chỉ tăng khi có tin mới VÀ đang đóng
-                     setUnreadCount(count => count + (data.messages.length - prev.length));
+                } else {
+                    setUnreadCount(0);
                 }
                 return data.messages;
             });
@@ -384,6 +402,9 @@ export default function ChatWindow({ orderId, currentUser, title, initialMessage
       });
       const data = await res.json().catch(() => ({}));
       if (res.ok && data.message) {
+        if (data.message._id) {
+          processedMessageIdsRef.current.add(data.message._id);
+        }
         appendUniqueMessage(data.message);
         setReplyingTo(null); // Clear reply after send
         playMessageSound();

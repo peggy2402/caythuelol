@@ -186,36 +186,43 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     return Boolean(sockets && sockets.size > 0);
   }
 
-  broadcastMessageToOrder(orderId: string, message: any) {
-    this.server.to(`order_${orderId}`).emit('new_message', message);
+  private formatOrderRooms(orderId: string | string[]): string | string[] {
+    if (Array.isArray(orderId)) {
+      return orderId.map((id) => `order_${id}`);
+    }
+    return `order_${orderId}`;
+  }
+
+  broadcastMessageToOrder(orderId: string | string[], message: any) {
+    this.server.to(this.formatOrderRooms(orderId)).emit('new_message', message);
   }
 
   broadcastMessageDeleted(
-    orderId: string,
+    orderId: string | string[],
     payload: { messageId: string; orderId: string },
   ) {
-    this.server.to(`order_${orderId}`).emit('message_deleted', payload);
+    this.server.to(this.formatOrderRooms(orderId)).emit('message_deleted', payload);
   }
 
   broadcastMessageReacted(
-    orderId: string,
+    orderId: string | string[],
     payload: { messageId: string; reactions: any[] },
   ) {
-    this.server.to(`order_${orderId}`).emit('message_reacted', payload);
+    this.server.to(this.formatOrderRooms(orderId)).emit('message_reacted', payload);
   }
 
   broadcastMessageRead(
-    orderId: string,
+    orderId: string | string[],
     payload: { orderId: string; userId: string },
   ) {
-    this.server.to(`order_${orderId}`).emit('message_read', payload);
+    this.server.to(this.formatOrderRooms(orderId)).emit('message_read', payload);
   }
 
   broadcastMessageDelivered(
-    orderId: string,
+    orderId: string | string[],
     payload: { orderId: string; userId: string },
   ) {
-    this.server.to(`order_${orderId}`).emit('message_delivered', payload);
+    this.server.to(this.formatOrderRooms(orderId)).emit('message_delivered', payload);
   }
 
   broadcastBalanceUpdate(userId: string, balance: number, message: string) {

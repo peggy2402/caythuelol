@@ -24,8 +24,8 @@ export const getTierVi = (tier: string): string => {
 export const formatRankDisplayVi = (rankStr?: string): string => {
   if (!rankStr) return 'Khởi điểm';
   let str = rankStr.trim();
-  // Xóa số La Mã I ở các bậc Cao Thủ, Đại Cao Thủ, Thách Đấu, Radiant
-  str = str.replace(/^(MASTER|GRANDMASTER|CHALLENGER|RADIANT|Cao Thủ|Đại Cao Thủ|Thách Đấu|Thần Thoại)\s+I$/i, '$1');
+  // Xóa số La Mã I ở các bậc đơn nhánh: Cao Thủ, Đại Cao Thủ, Thách Đấu, Radiant
+  str = str.replace(/\b(MASTER|GRANDMASTER|CHALLENGER|RADIANT|Cao Thủ|Đại Cao Thủ|Thách Đấu|Thần Thoại)\s+I\b/gi, '$1');
 
   // Chuẩn hóa và chuyển đổi các thuật ngữ tiếng Anh sang tiếng Việt, xử lý trường hợp cặp song ngữ
   for (const [en, vi] of Object.entries(TIER_VI_MAP)) {

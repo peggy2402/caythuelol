@@ -216,24 +216,21 @@ export class ChatService {
   ) {
     const orderIdStr = order._id.toString();
     const orderCode = order.orderCode;
-
-    const emit = (roomKey: string) => {
-      if (event === 'message') {
-        this.chatGateway.broadcastMessageToOrder(roomKey, payload);
-      } else if (event === 'deleted') {
-        this.chatGateway.broadcastMessageDeleted(roomKey, payload);
-      } else if (event === 'reacted') {
-        this.chatGateway.broadcastMessageReacted(roomKey, payload);
-      } else if (event === 'read') {
-        this.chatGateway.broadcastMessageRead(roomKey, payload);
-      } else if (event === 'delivered') {
-        this.chatGateway.broadcastMessageDelivered(roomKey, payload);
-      }
-    };
-
-    emit(orderIdStr);
+    const roomKeys: string[] = [orderIdStr];
     if (orderCode && orderCode !== orderIdStr) {
-      emit(orderCode);
+      roomKeys.push(orderCode);
+    }
+
+    if (event === 'message') {
+      this.chatGateway.broadcastMessageToOrder(roomKeys, payload);
+    } else if (event === 'deleted') {
+      this.chatGateway.broadcastMessageDeleted(roomKeys, payload);
+    } else if (event === 'reacted') {
+      this.chatGateway.broadcastMessageReacted(roomKeys, payload);
+    } else if (event === 'read') {
+      this.chatGateway.broadcastMessageRead(roomKeys, payload);
+    } else if (event === 'delivered') {
+      this.chatGateway.broadcastMessageDelivered(roomKeys, payload);
     }
   }
 

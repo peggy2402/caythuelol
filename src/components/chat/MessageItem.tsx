@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { formatServiceNameVi } from '@/lib/orderStatus';
+import { formatRankDisplayVi } from '@/lib/riotRanks';
 
 const QUICK_REACTIONS = ['👍', '❤️', '😂', '😮', '😢'];
 
@@ -250,7 +251,7 @@ export default function MessageItem({
             <div className="flex justify-between gap-2">
               <span className="text-zinc-500">Mục tiêu:</span>
               <span className="text-cyan-300 font-semibold text-right">
-                {meta.currentRank} → {meta.desiredRank}
+                {formatRankDisplayVi(meta.currentRank)} → {formatRankDisplayVi(meta.desiredRank)}
               </span>
             </div>
             <div className="flex justify-between gap-2">
@@ -346,12 +347,18 @@ export default function MessageItem({
             <div className="flex justify-between gap-2">
               <span className="text-zinc-500">Hiện tại:</span>
               <span className="text-white font-semibold">
-                {meta.currentRank} ({meta.currentLp ?? 0} LP)
+                {(() => {
+                  const formatted = formatRankDisplayVi(meta.currentRank);
+                  if (/\d+\s*LP/i.test(formatted)) return formatted;
+                  return meta.currentLp !== undefined && meta.currentLp !== null
+                    ? `${formatted} (${meta.currentLp} LP)`
+                    : formatted;
+                })()}
               </span>
             </div>
             <div className="flex justify-between gap-2">
               <span className="text-zinc-500">Mục tiêu:</span>
-              <span className="text-cyan-300 font-semibold">{meta.desiredRank}</span>
+              <span className="text-cyan-300 font-semibold">{formatRankDisplayVi(meta.desiredRank)}</span>
             </div>
             <div className="flex justify-between gap-2">
               <span className="text-zinc-500">Thành tích:</span>

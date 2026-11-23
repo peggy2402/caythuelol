@@ -302,9 +302,6 @@ export default function ChatInput({
       }
       const { url } = await res.json();
       await onSend(url, 'IMAGE');
-      try {
-        new Audio('/sounds/message.mp3').play().catch(() => {});
-      } catch (e) {}
       toast.success('Đã gửi ảnh thành công!', { id: uploadToast });
     } catch (err: any) {
       toast.error(err?.message || 'Lỗi tải ảnh', { id: uploadToast });
