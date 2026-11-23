@@ -32,6 +32,7 @@ import {
   Gamepad2,
   Sparkles,
   AlertCircle,
+  AlertTriangle,
   Crown,
   Check,
   Search,
@@ -642,7 +643,7 @@ function ServiceBookingContent() {
   const [currentRankId, setCurrentRankId] = useState<string>(isValorant ? 'GOLD_1' : 'GOLD_4');
   const [desiredRankId, setDesiredRankId] = useState<string>(isValorant ? 'GOLD_2' : 'GOLD_3');
   const [lpGain, setLpGain] = useState<string>('25_PLUS');
-  const [queueType, setQueueType] = useState<string>('SOLO_DUO');
+  const [queueType, setQueueType] = useState<string>(searchParams.get('queueType') || 'SOLO_DUO');
   const [server, setServer] = useState<string>('VN');
 
   // Point Boost States (Cày Điểm RR / LP / Sao)
@@ -660,7 +661,7 @@ function ServiceBookingContent() {
   const isRiotGame = ['lol', 'valorant', 'tft'].includes((game.id || '').toLowerCase());
 
   // Tra cứu / Kiểm tra thông tin tài khoản Riot (Rank & LP)
-  const [accountCheckInput, setAccountCheckInput] = useState('');
+  const [accountCheckInput, setAccountCheckInput] = useState(searchParams.get('ingame') || '');
   const [isCheckingAccount, setIsCheckingAccount] = useState(false);
   const [accountCheckError, setAccountCheckError] = useState('');
   const [checkedAccount, setCheckedAccount] = useState<{
@@ -675,6 +676,7 @@ function ServiceBookingContent() {
     losses: number;
     queueName: string;
     isMock?: boolean;
+    allLeagues?: any[];
   } | null>(null);
 
   const [selectedPromoId, setSelectedPromoId] = useState<string>('promo_platinum_1');
@@ -1217,6 +1219,114 @@ function ServiceBookingContent() {
     setIsRankModalOpen(false);
   };
 
+  // Áp dụng thông tin rank/điểm của tài khoản vào form booking theo đúng dịch vụ
+  const applyAccountRankToService = (
+    accountInfo: {
+      tier: string;
+      tierVi: string;
+      rank: string;
+      lp: number;
+      cleanRankDisplay: string;
+      fullName: string;
+      queueName: string;
+    },
+    isSilent = false
+  ) => {
+    const { tier: rawTier, tierVi, rank: rawRank, lp: rawLp, cleanRankDisplay, fullName, queueName } = accountInfo;
+
+    // 1. DỊCH VỤ RANK BOOST: Áp dụng cho Rank <= Cao Thủ
+    if (isRankBoost) {
+      const isAboveMaster = ['GRANDMASTER', 'CHALLENGER'].includes(rawTier);
+      if (isAboveMaster) {
+        const errMsg = 'Vui lòng nhập ingame có mức Rank Cao Thủ trở xuống';
+        setAccountCheckError(`${errMsg} (Tài khoản hiện đang là ${tierVi} ở chế độ ${queueName})`);
+        if (!isSilent) toast.error(errMsg);
+        return;
+      }
+
+      setAccountCheckError('');
+      // Rank <= Cao Thủ: Tự động cập nhật Bậc Rank hiện tại
+      const romanToNum: Record<string, string> = {
+        I: '1',
+        II: '2',
+        III: '3',
+        IV: '4',
+        '1': '1',
+        '2': '2',
+        '3': '3',
+        '4': '4',
+      };
+
+      let stepId = '';
+      if (rawTier === 'MASTER') {
+        stepId = 'MASTER';
+      } else if (rawTier !== 'UNRANKED') {
+        const divNumber = romanToNum[rawRank] || '4';
+        stepId = `${rawTier}_${divNumber}`;
+      }
+
+      const foundStep = activeRankSteps.find((s) => s.id === stepId);
+      if (foundStep) {
+        setCurrentRankId(foundStep.id);
+        const curIdx = activeRankSteps.findIndex((s) => s.id === foundStep.id);
+        const desIdx = activeRankSteps.findIndex((s) => s.id === desiredRankId);
+        if (desIdx <= curIdx) {
+          const nextIdx = Math.min(curIdx + 1, activeRankSteps.length - 1);
+          setDesiredRankId(activeRankSteps[nextIdx].id);
+        }
+      }
+
+      if (!isSilent) {
+        toast.success(`Đã nhận diện hàng chờ ${queueName}: ${fullName} (${cleanRankDisplay} - ${rawLp} LP)!`);
+      }
+    }
+
+    // 2. DỊCH VỤ CÀY ĐIỂM LP (NET WINS): Phân khúc Cao Thủ, Đại Cao Thủ, Thách Đấu
+    if (isPointBoost || serviceSlug === 'net-wins') {
+      const isLolGame = (game.id || '').toLowerCase() === 'lol';
+
+      if (isLolGame) {
+        const isApex = ['MASTER', 'GRANDMASTER', 'CHALLENGER'].includes(rawTier);
+        if (isApex) {
+          setAccountCheckError('');
+          setCurrentPoints(rawLp);
+          if (desiredPoints <= rawLp) {
+            setDesiredPoints(rawLp + 100);
+          }
+
+          if (rawTier === 'MASTER') {
+            setSelectedPointSegment('master');
+          } else if (rawTier === 'GRANDMASTER') {
+            setSelectedPointSegment('grandmaster');
+          } else if (rawTier === 'CHALLENGER') {
+            setSelectedPointSegment('challenger');
+          }
+
+          if (!isSilent) {
+            toast.success(`Đã nhận diện hàng chờ ${queueName}: ${fullName} (${cleanRankDisplay} - ${rawLp} LP)!`);
+          }
+        } else {
+          // Rank < Cao Thủ (Ví dụ Kim Cương I) ở LMHT
+          setSelectedPointSegment('master');
+          setCurrentPoints(0);
+          setDesiredPoints(100);
+          setAccountCheckError(
+            `Tài khoản ở chế độ ${queueName} hiện là ${cleanRankDisplay} (${rawLp} LP). Dịch vụ Cày Điểm LP chỉ áp dụng cho bậc Cao Thủ trở lên. Vui lòng chuyển sang gói Cày Cấp Bậc Rank hoặc chọn chế độ khác!`
+          );
+        }
+      } else {
+        setAccountCheckError('');
+        setCurrentPoints(rawLp);
+        if (desiredPoints <= rawLp) {
+          setDesiredPoints(rawLp + 100);
+        }
+        if (!isSilent) {
+          toast.success(`Đã nhận diện tài khoản: ${fullName} (${cleanRankDisplay}). Đã cập nhật Điểm hiện tại!`);
+        }
+      }
+    }
+  };
+
   // Tra cứu & Kiểm tra Rank & Điểm LP từ Riot Games API (Hỗ trợ gọi tự động hoặc nút bấm)
   const handleCheckAccountRank = async (targetOrEvent?: string | React.FormEvent, isSilent = false) => {
     if (targetOrEvent && typeof targetOrEvent !== 'string' && 'preventDefault' in targetOrEvent) {
@@ -1277,7 +1387,7 @@ function ServiceBookingContent() {
 
       const matchedLeague =
         Array.isArray(data.leagues)
-          ? data.leagues.find((l: any) => l.queueType === targetQueue) || data.leagues[0]
+          ? data.leagues.find((l: any) => l.queueType === targetQueue) || null
           : null;
 
       const rawTier = (matchedLeague?.tier || 'UNRANKED').toUpperCase();
@@ -1289,73 +1399,7 @@ function ServiceBookingContent() {
       const isApex = ['MASTER', 'GRANDMASTER', 'CHALLENGER', 'RADIANT'].includes(rawTier);
       const cleanRankDisplay = isApex ? tierVi : `${tierVi}${rawRank ? ' ' + rawRank : ''}`;
       const fullName = data.gameName ? `${data.gameName}#${data.tagLine}` : nameToCheck;
-
-      // 1. DỊCH VỤ RANK BOOST: Nếu mức rank > Cao Thủ (Master) -> Validate & Báo lỗi
-      if (isRankBoost) {
-        const isAboveMaster = ['GRANDMASTER', 'CHALLENGER'].includes(rawTier);
-        if (isAboveMaster) {
-          const errMsg = 'Vui lòng nhập ingame có mức Rank Cao Thủ trở xuống';
-          setAccountCheckError(`${errMsg} (Tài khoản hiện đang là ${tierVi})`);
-          setCheckedAccount(null);
-          toast.error(errMsg);
-          return;
-        }
-
-        // Rank <= Cao Thủ: Tự động cập nhật Bậc Rank hiện tại
-        const romanToNum: Record<string, string> = {
-          I: '1',
-          II: '2',
-          III: '3',
-          IV: '4',
-          '1': '1',
-          '2': '2',
-          '3': '3',
-          '4': '4',
-        };
-
-        let stepId = '';
-        if (rawTier === 'MASTER') {
-          stepId = 'MASTER';
-        } else if (rawTier !== 'UNRANKED') {
-          const divNumber = romanToNum[rawRank] || '4';
-          stepId = `${rawTier}_${divNumber}`;
-        }
-
-        const foundStep = activeRankSteps.find((s) => s.id === stepId);
-        if (foundStep) {
-          setCurrentRankId(foundStep.id);
-          const curIdx = activeRankSteps.findIndex((s) => s.id === foundStep.id);
-          const desIdx = activeRankSteps.findIndex((s) => s.id === desiredRankId);
-          if (desIdx <= curIdx) {
-            const nextIdx = Math.min(curIdx + 1, activeRankSteps.length - 1);
-            setDesiredRankId(activeRankSteps[nextIdx].id);
-          }
-        }
-
-        toast.success(
-          `Đã xác thực tài khoản: ${fullName} (${cleanRankDisplay} - ${rawLp} LP)!`
-        );
-      }
-
-      // 2. DỊCH VỤ NET WINS / CÀY ĐIỂM (isPointBoost): Tự động điền điểm hiện tại & chọn phân khúc
-      if (isPointBoost || serviceSlug === 'net-wins') {
-        setCurrentPoints(rawLp);
-        if (desiredPoints <= rawLp) {
-          setDesiredPoints(rawLp + 100);
-        }
-
-        if (rawTier === 'MASTER') {
-          setSelectedPointSegment('master');
-        } else if (rawTier === 'GRANDMASTER') {
-          setSelectedPointSegment('grandmaster');
-        } else if (rawTier === 'CHALLENGER') {
-          setSelectedPointSegment('challenger');
-        }
-
-        toast.success(
-          `Đã xác thực tài khoản: ${fullName} (${cleanRankDisplay} - ${rawLp} LP). Đã tự động điền vào Điểm hiện tại!`
-        );
-      }
+      const currentQueueTitle = queueType === 'FLEX' ? 'Linh Hoạt' : 'Đơn / Đôi';
 
       // Lưu thông tin tài khoản Riot đã xác thực
       setCheckedAccount({
@@ -1368,9 +1412,24 @@ function ServiceBookingContent() {
         lp: rawLp,
         wins,
         losses,
-        queueName: queueType === 'FLEX' ? 'Linh Hoạt' : 'Đơn / Đôi',
+        queueName: currentQueueTitle,
         isMock: data.isMock,
+        allLeagues: data.leagues || [],
       });
+
+      // Áp dụng rank/điểm vào dịch vụ
+      applyAccountRankToService(
+        {
+          tier: rawTier,
+          tierVi,
+          rank: isApex ? '' : rawRank,
+          lp: rawLp,
+          cleanRankDisplay,
+          fullName,
+          queueName: currentQueueTitle,
+        },
+        isSilent
+      );
     } catch (err: any) {
       const msg = err.message || 'Lỗi khi kiểm tra thông tin tài khoản';
       setAccountCheckError(msg);
@@ -1380,6 +1439,61 @@ function ServiceBookingContent() {
       setIsCheckingAccount(false);
     }
   };
+
+  // Tự động chuyển đổi và nhận diện lại Rank khi người dùng đổi hàng chờ (Đơn/Đôi <-> Linh Hoạt)
+  useEffect(() => {
+    if (!isRiotGame || !checkedAccount) return;
+
+    const targetQueue = isValorant
+      ? 'COMPETITIVE'
+      : queueType === 'FLEX'
+      ? 'RANKED_FLEX_SR'
+      : 'RANKED_SOLO_5x5';
+
+    const currentQueueTitle = queueType === 'FLEX' ? 'Linh Hoạt' : 'Đơn / Đôi';
+
+    if (Array.isArray(checkedAccount.allLeagues) && checkedAccount.allLeagues.length > 0) {
+      const matchedLeague = checkedAccount.allLeagues.find((l: any) => l.queueType === targetQueue) || null;
+      const rawTier = (matchedLeague?.tier || 'UNRANKED').toUpperCase();
+      const rawRank = (matchedLeague?.rank || '').toUpperCase();
+      const rawLp = Number(matchedLeague?.leaguePoints ?? 0);
+      const wins = Number(matchedLeague?.wins ?? 0);
+      const losses = Number(matchedLeague?.losses ?? 0);
+      const tierVi = formatRankDisplayVi(rawTier);
+      const isApex = ['MASTER', 'GRANDMASTER', 'CHALLENGER', 'RADIANT'].includes(rawTier);
+      const cleanRankDisplay = isApex ? tierVi : `${tierVi}${rawRank ? ' ' + rawRank : ''}`;
+
+      setCheckedAccount((prev) =>
+        prev
+          ? {
+              ...prev,
+              tier: rawTier,
+              tierVi,
+              rank: isApex ? '' : rawRank,
+              lp: rawLp,
+              wins,
+              losses,
+              queueName: currentQueueTitle,
+            }
+          : null
+      );
+
+      applyAccountRankToService(
+        {
+          tier: rawTier,
+          tierVi,
+          rank: isApex ? '' : rawRank,
+          lp: rawLp,
+          cleanRankDisplay,
+          fullName: checkedAccount.riotId,
+          queueName: currentQueueTitle,
+        },
+        true
+      );
+    } else if (accountCheckInput.trim()) {
+      handleCheckAccountRank(accountCheckInput.trim(), true);
+    }
+  }, [queueType]);
 
   // Tự động kiểm tra thông tin tài khoản Riot khi người dùng gõ (Debounce 600ms) - Tiện lợi tối đa
   useEffect(() => {
@@ -1397,8 +1511,13 @@ function ServiceBookingContent() {
       return;
     }
 
-    // Nếu đã xác thực đúng Riot ID này thì không check lại
-    if (checkedAccount && checkedAccount.riotId.toLowerCase() === trimmed.toLowerCase()) {
+    const currentQueueTitle = queueType === 'FLEX' ? 'Linh Hoạt' : 'Đơn / Đôi';
+    // Nếu đã xác thực đúng Riot ID này và cùng hàng chờ thì không check lại
+    if (
+      checkedAccount &&
+      checkedAccount.riotId.toLowerCase() === trimmed.toLowerCase() &&
+      checkedAccount.queueName === currentQueueTitle
+    ) {
       return;
     }
 
@@ -1407,7 +1526,7 @@ function ServiceBookingContent() {
     }, 600);
 
     return () => clearTimeout(timer);
-  }, [accountCheckInput, server, queueType, isRiotGame, isRankBoost, isPointBoost, serviceSlug]);
+  }, [accountCheckInput, server, isRiotGame, isRankBoost, isPointBoost, serviceSlug]);
 
   // Xử lý áp dụng mã giảm giá
   const handleApplyCoupon = async () => {
@@ -1503,6 +1622,28 @@ function ServiceBookingContent() {
           checkEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
         return;
+      }
+
+      // Chặn đặt đơn Cày Điểm LP nếu tài khoản trong LMHT chưa đạt bậc Cao Thủ
+      if (isPointBoost && (game.id || '').toLowerCase() === 'lol') {
+        if (!['MASTER', 'GRANDMASTER', 'CHALLENGER'].includes(checkedAccount.tier)) {
+          toast.error(
+            `Tài khoản ở chế độ ${checkedAccount.queueName} hiện là ${checkedAccount.tierVi} ${checkedAccount.rank}. Dịch vụ Cày Điểm LP chỉ áp dụng cho bậc Cao Thủ trở lên. Vui lòng chuyển sang gói Cày Cấp Bậc Rank!`
+          );
+          const checkEl = document.getElementById('riot-account-check-box');
+          if (checkEl) checkEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          return;
+        }
+      }
+
+      // Chặn đặt đơn Cày Rank nếu tài khoản > Cao Thủ
+      if (isRankBoost && (game.id || '').toLowerCase() === 'lol') {
+        if (['GRANDMASTER', 'CHALLENGER'].includes(checkedAccount.tier)) {
+          toast.error('Vui lòng chọn tài khoản có mức rank Cao Thủ trở xuống để cày rank!');
+          const checkEl = document.getElementById('riot-account-check-box');
+          if (checkEl) checkEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          return;
+        }
       }
     }
 
@@ -2057,8 +2198,8 @@ function ServiceBookingContent() {
                     </button>
                   </form>
 
-                  {/* Thông báo lỗi validation nếu có */}
-                  {accountCheckError && (
+                  {/* Thông báo lỗi validation nếu không có checkedAccount */}
+                  {accountCheckError && !checkedAccount && (
                     <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-center gap-2.5 animate-in fade-in duration-200">
                       <AlertCircle size={16} className="text-rose-400 shrink-0" />
                       <span className="font-semibold">{accountCheckError}</span>
@@ -2066,55 +2207,164 @@ function ServiceBookingContent() {
                   )}
 
                   {/* Card hiển thị kết quả kiểm tra thành công */}
-                  {checkedAccount && !accountCheckError && (
-                    <div className="p-3.5 sm:p-4 rounded-xl bg-zinc-900/90 border border-emerald-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 animate-in fade-in zoom-in-95 duration-200">
-                      <div className="flex items-center gap-3.5">
-                        <div className="w-12 h-12 rounded-xl bg-black/60 border border-white/10 flex items-center justify-center p-1 relative shadow-inner shrink-0">
-                          <img
-                            src={getRankImage(game.id, { tier: checkedAccount.tier, division: checkedAccount.rank })}
-                            alt={checkedAccount.tierVi}
-                            className="w-10 h-10 object-contain drop-shadow"
-                          />
+                  {checkedAccount && (
+                    <div className="space-y-3 animate-in fade-in zoom-in-95 duration-200">
+                      <div className="p-3.5 sm:p-4 rounded-xl bg-zinc-900/90 border border-emerald-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3.5">
+                        <div className="flex items-center gap-3.5">
+                          <div className="w-12 h-12 rounded-xl bg-black/60 border border-white/10 flex items-center justify-center p-1 relative shadow-inner shrink-0">
+                            <img
+                              src={getRankImage(game.id, { tier: checkedAccount.tier, division: checkedAccount.rank })}
+                              alt={checkedAccount.tierVi}
+                              className="w-10 h-10 object-contain drop-shadow"
+                            />
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="text-sm font-black text-white">{checkedAccount.riotId}</span>
+                              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-zinc-800 text-zinc-300 border border-zinc-700">
+                                {server || 'VN'}
+                              </span>
+                              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-500/15 text-blue-400 border border-blue-500/30">
+                                {checkedAccount.queueName}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2 mt-1 text-xs text-zinc-400 flex-wrap">
+                              <span className="font-bold text-amber-400">
+                                {['MASTER', 'GRANDMASTER', 'CHALLENGER', 'RADIANT'].includes(checkedAccount.tier)
+                                  ? checkedAccount.tierVi
+                                  : `${checkedAccount.tierVi}${checkedAccount.rank ? ' ' + checkedAccount.rank : ''}`}
+                              </span>
+                              <span>•</span>
+                              <span className="font-mono text-cyan-400 font-bold">{checkedAccount.lp} LP</span>
+                              {checkedAccount.wins + checkedAccount.losses > 0 && (
+                                <>
+                                  <span>•</span>
+                                  <span className="text-zinc-400">
+                                    {checkedAccount.wins}W / {checkedAccount.losses}L (
+                                    {Math.round((checkedAccount.wins / (checkedAccount.wins + checkedAccount.losses)) * 100)}%)
+                                  </span>
+                                </>
+                              )}
+                            </div>
+                          </div>
                         </div>
-                        <div>
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="text-sm font-black text-white">{checkedAccount.riotId}</span>
-                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-zinc-800 text-zinc-300 border border-zinc-700">
-                              {server || 'VN'}
-                            </span>
-                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-500/15 text-blue-400 border border-blue-500/30">
-                              {checkedAccount.queueName}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-2 mt-1 text-xs text-zinc-400 flex-wrap">
-                            <span className="font-bold text-amber-400">
-                              {['MASTER', 'GRANDMASTER', 'CHALLENGER', 'RADIANT'].includes(checkedAccount.tier)
-                                ? checkedAccount.tierVi
-                                : `${checkedAccount.tierVi}${checkedAccount.rank ? ' ' + checkedAccount.rank : ''}`}
-                            </span>
-                            <span>•</span>
-                            <span className="font-mono text-cyan-400 font-bold">{checkedAccount.lp} LP</span>
-                            {checkedAccount.wins + checkedAccount.losses > 0 && (
-                              <>
-                                <span>•</span>
-                                <span className="text-zinc-400">
-                                  {checkedAccount.wins}W / {checkedAccount.losses}L (
-                                  {Math.round((checkedAccount.wins / (checkedAccount.wins + checkedAccount.losses)) * 100)}%)
-                                </span>
-                              </>
-                            )}
-                          </div>
+
+                        <div className="flex items-center justify-between sm:justify-end gap-3 pt-2 sm:pt-0 border-t sm:border-t-0 border-zinc-800/80">
+                          {(() => {
+                            const isLol = (game.id || '').toLowerCase() === 'lol';
+                            const isPointEligible = !isLol || ['MASTER', 'GRANDMASTER', 'CHALLENGER'].includes(checkedAccount.tier);
+                            const isRankEligible = !isLol || !['GRANDMASTER', 'CHALLENGER'].includes(checkedAccount.tier);
+
+                            if (isPointBoost ? isPointEligible : isRankEligible) {
+                              return (
+                                <div className="text-[11px] text-emerald-400 font-medium flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/25 shadow-sm">
+                                  <CheckCircle2 size={14} className="shrink-0" />
+                                  <span>
+                                    {isPointBoost ? 'Đã tự động điền Điểm hiện tại' : 'Đã tự động chọn Rank hiện tại'}
+                                  </span>
+                                </div>
+                              );
+                            }
+
+                            return (
+                              <div className="text-[11px] text-amber-400 font-bold flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/15 border border-amber-500/30 shadow-sm">
+                                <AlertTriangle size={14} className="shrink-0" />
+                                <span>{isPointBoost ? 'Chưa đủ điều kiện Cày Điểm LP' : 'Vượt quá mức Rank tối đa'}</span>
+                              </div>
+                            );
+                          })()}
                         </div>
                       </div>
 
-                      <div className="flex items-center justify-between sm:justify-end gap-3 pt-2 sm:pt-0 border-t sm:border-t-0 border-zinc-800/80">
-                        <div className="text-[11px] text-emerald-400 font-medium flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/25 shadow-sm">
-                          <CheckCircle2 size={14} className="shrink-0" />
-                          <span>
-                            {isPointBoost ? 'Đã tự động điền Điểm hiện tại' : 'Đã tự động chọn Rank hiện tại'}
-                          </span>
+                      {/* BANNER ĐIỀU HƯỚNG UX 1: Khách chọn Cày Điểm LP nhưng Rank ở chế độ này < Cao Thủ (Ví dụ Kim Cương I) */}
+                      {isPointBoost && (game.id || '').toLowerCase() === 'lol' && !['MASTER', 'GRANDMASTER', 'CHALLENGER'].includes(checkedAccount.tier) && (
+                        <div className="p-4 rounded-2xl bg-gradient-to-r from-amber-950/40 via-amber-900/20 to-zinc-950 border border-amber-500/40 text-amber-200 text-xs space-y-3">
+                          <div className="flex items-start gap-2.5">
+                            <AlertTriangle size={18} className="text-amber-400 shrink-0 mt-0.5" />
+                            <div className="space-y-1">
+                              <div className="font-bold text-amber-300 text-sm">
+                                Tài khoản ở chế độ {checkedAccount.queueName} hiện là {checkedAccount.tierVi} {checkedAccount.rank} ({checkedAccount.lp} LP)
+                              </div>
+                              <p className="text-zinc-300 text-[11px] leading-relaxed">
+                                Gói dịch vụ <strong className="text-white">Cày Điểm LP (Net Wins)</strong> trong LMHT chỉ áp dụng cho bậc <strong className="text-amber-400">Cao Thủ (Master) trở lên</strong> vì điểm LP tích lũy vô hạn. 
+                                Nếu bạn muốn cày từ <strong className="text-white">{checkedAccount.tierVi} {checkedAccount.rank}</strong> lên Cao Thủ, vui lòng chuyển sang gói <strong className="text-cyan-400">Cày Cấp Bậc Rank</strong>!
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-amber-500/20">
+                            <Link
+                              href={`/services/lol/rank-boost?queueType=${queueType}&ingame=${encodeURIComponent(checkedAccount.riotId)}`}
+                              className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-zinc-950 font-black text-xs inline-flex items-center gap-1.5 shadow-md active:scale-95 transition-all"
+                            >
+                              <Zap size={14} />
+                              <span>Chuyển sang gói Cày Cấp Bậc Rank</span>
+                              <ArrowRight size={13} />
+                            </Link>
+
+                            {/* Nếu hàng chờ còn lại có Rank Cao Thủ trở lên, gợi ý nút đổi ngay */}
+                            {checkedAccount.allLeagues?.some(
+                              (l: any) =>
+                                ['MASTER', 'GRANDMASTER', 'CHALLENGER'].includes((l.tier || '').toUpperCase()) &&
+                                l.queueType !== (queueType === 'FLEX' ? 'RANKED_FLEX_SR' : 'RANKED_SOLO_5x5')
+                            ) && (
+                              <button
+                                type="button"
+                                onClick={() => setQueueType(queueType === 'FLEX' ? 'SOLO_DUO' : 'FLEX')}
+                                className="px-3.5 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white font-bold text-xs inline-flex items-center gap-1.5 border border-white/10 active:scale-95 transition-all"
+                              >
+                                <Swords size={13} className="text-cyan-400" />
+                                <span>Chuyển sang {queueType === 'FLEX' ? 'Đơn / Đôi' : 'Linh Hoạt'} (Có bậc Cao Thủ+)</span>
+                              </button>
+                            )}
+                          </div>
                         </div>
-                      </div>
+                      )}
+
+                      {/* BANNER ĐIỀU HƯỚNG UX 2: Khách chọn Cày Cấp Bậc Rank nhưng Rank ở chế độ này > Cao Thủ (Đại Cao Thủ / Thách Đấu) */}
+                      {isRankBoost && (game.id || '').toLowerCase() === 'lol' && ['GRANDMASTER', 'CHALLENGER'].includes(checkedAccount.tier) && (
+                        <div className="p-4 rounded-2xl bg-gradient-to-r from-blue-950/40 via-cyan-900/20 to-zinc-950 border border-cyan-500/40 text-cyan-200 text-xs space-y-3">
+                          <div className="flex items-start gap-2.5">
+                            <AlertCircle size={18} className="text-cyan-400 shrink-0 mt-0.5" />
+                            <div className="space-y-1">
+                              <div className="font-bold text-cyan-300 text-sm">
+                                Tài khoản ở chế độ {checkedAccount.queueName} hiện là {checkedAccount.tierVi} ({checkedAccount.lp} LP)
+                              </div>
+                              <p className="text-zinc-300 text-[11px] leading-relaxed">
+                                Gói <strong className="text-white">Cày Cấp Bậc Rank</strong> chỉ áp dụng từ bậc <strong className="text-cyan-400">Cao Thủ trở xuống</strong>. 
+                                Tài khoản của bạn đã đạt <strong className="text-amber-400">{checkedAccount.tierVi}</strong>, vui lòng chuyển sang gói <strong className="text-cyan-400">Cày Điểm LP (Net Wins)</strong> để cày thêm điểm!
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-cyan-500/20">
+                            <Link
+                              href={`/services/lol/net-wins?queueType=${queueType}&ingame=${encodeURIComponent(checkedAccount.riotId)}`}
+                              className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-400 hover:to-blue-400 text-zinc-950 font-black text-xs inline-flex items-center gap-1.5 shadow-md active:scale-95 transition-all"
+                            >
+                              <Zap size={14} />
+                              <span>Chuyển sang gói Cày Điểm LP</span>
+                              <ArrowRight size={13} />
+                            </Link>
+
+                            {/* Nếu hàng chờ còn lại có Rank <= Cao Thủ (như Flex Kim Cương I), gợi ý nút đổi */}
+                            {checkedAccount.allLeagues?.some(
+                              (l: any) =>
+                                !['GRANDMASTER', 'CHALLENGER'].includes((l.tier || '').toUpperCase()) &&
+                                l.queueType !== (queueType === 'FLEX' ? 'RANKED_FLEX_SR' : 'RANKED_SOLO_5x5')
+                            ) && (
+                              <button
+                                type="button"
+                                onClick={() => setQueueType(queueType === 'FLEX' ? 'SOLO_DUO' : 'FLEX')}
+                                className="px-3.5 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white font-bold text-xs inline-flex items-center gap-1.5 border border-white/10 active:scale-95 transition-all"
+                              >
+                                <Swords size={13} className="text-cyan-400" />
+                                <span>Chuyển sang {queueType === 'FLEX' ? 'Đơn / Đôi' : 'Linh Hoạt'} (&le; Cao Thủ)</span>
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -2215,17 +2465,10 @@ function ServiceBookingContent() {
                       {/* 1. Điểm Hiện Tại */}
                       <div className="p-3.5 sm:p-4 rounded-xl bg-zinc-900/90 border border-zinc-800/90 hover:border-zinc-700/80 transition-all space-y-2.5">
                         <div className="flex items-center justify-between">
-                          <label className="text-[11px] font-bold uppercase tracking-wider text-zinc-400 flex items-center gap-1.5">
-                            <span>{isAov ? 'Số Sao Hiện Tại' : 'Điểm Hiện Tại'}</span>
-                            {isRiotGame && (
-                              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
-                                {checkedAccount ? 'Khóa theo Riot' : 'Cần kiểm tra *'}
-                              </span>
-                            )}
+                          <label className="text-[11px] font-bold uppercase tracking-wider text-zinc-400">
+                            {isAov ? 'Số Sao Hiện Tại' : 'Điểm Hiện Tại'}
                           </label>
-                          <span className="text-[10px] text-zinc-500 font-mono">
-                            {isRiotGame ? (checkedAccount ? '✓ Đã đồng bộ Riot' : 'Chưa xác thực') : 'Bắt đầu từ'}
-                          </span>
+                          <span className="text-[10px] text-zinc-500 font-mono">Bắt đầu từ</span>
                         </div>
                         <div className="flex items-center gap-2">
                           <button
