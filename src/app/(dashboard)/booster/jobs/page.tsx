@@ -27,6 +27,9 @@ import { formatRankDisplayVi } from '@/lib/riotRanks';
 import { formatServiceNameVi } from '@/lib/orderStatus';
 
 const formatServiceTypeVi = (serviceType?: string, details?: any): string => {
+  if (details?.is_point_boost || details?.calc_mode === 'BY_LP' || details?.segment) {
+    return 'Cày Điểm LP';
+  }
   return formatServiceNameVi(serviceType, details);
 };
 import {
@@ -405,7 +408,7 @@ export default function JobMarketPage() {
     <div className={`group border rounded-xl p-5 transition-all hover:shadow-lg flex flex-col ${type === 'DIRECT' ? 'bg-blue-900/10 border-blue-500/30 hover:border-blue-500/50' : 'bg-zinc-900 border-zinc-800 hover:border-zinc-700'}`}>
       {/* Game Identification Bar */}
       <div className="flex items-center justify-between gap-2 pb-3 mb-3 border-b border-white/5">
-        <div className="flex items-center gap-2.5 min-w-0">
+        <div className="flex items-center gap-2.5 shrink-0">
           {gameImg ? (
             <img
               src={gameImg}
@@ -417,15 +420,15 @@ export default function JobMarketPage() {
               {gameMeta?.shortName || gameCode}
             </div>
           )}
-          <div className="min-w-0">
-            <div className="text-xs font-bold text-white truncate">{gameName}</div>
+          <div className="shrink-0">
+            <div className="text-xs sm:text-sm font-bold text-white whitespace-nowrap">{gameName}</div>
             {job.details?.server && (
               <div className="text-[10px] text-zinc-400">Server: {job.details.server}</div>
             )}
           </div>
         </div>
 
-        <span className="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-cyan-500/10 text-cyan-300 border border-cyan-500/25 shrink-0 shadow-sm">
+        <span className="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-cyan-500/10 text-cyan-300 border border-cyan-500/25 shrink-0 shadow-sm whitespace-nowrap">
           {formatServiceTypeVi(job.serviceType, job.details)}
         </span>
       </div>
