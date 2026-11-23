@@ -1242,6 +1242,17 @@ function ServiceBookingContent() {
       return;
     }
 
+    if (isPointBoost) {
+      if (currentPoints < 0 || desiredPoints < 0) {
+        toast.error('Điểm hiện tại và điểm mong muốn không được nhỏ hơn 0');
+        return;
+      }
+      if (currentPoints >= desiredPoints) {
+        toast.error('Điểm mong muốn phải lớn hơn điểm hiện tại (Điểm hiện tại không được lớn hơn điểm mong muốn)');
+        return;
+      }
+    }
+
     if (!ingameAccount.trim() || !ingamePassword.trim()) {
       toast.error('Vui lòng điền đầy đủ tài khoản và mật khẩu in-game');
       return;
@@ -1809,9 +1820,13 @@ function ServiceBookingContent() {
                                   return;
                                 }
                                 const val = parseInt(clean, 10);
-                                setCurrentPoints(isNaN(val) ? 0 : Math.min(1000, Math.max(0, val)));
+                                setCurrentPoints(isNaN(val) ? 0 : Math.max(0, val));
                               }}
-                              className="w-full h-9 sm:h-10 bg-zinc-950 border border-zinc-700/80 rounded-xl pl-3 pr-10 text-center text-base sm:text-lg font-black font-mono text-white outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none transition-all"
+                              className={`w-full h-9 sm:h-10 bg-zinc-950 border rounded-xl pl-3 pr-10 text-center text-base sm:text-lg font-black font-mono text-white outline-none focus:ring-2 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none transition-all ${
+                                currentPoints > desiredPoints
+                                  ? 'border-rose-500 focus:border-rose-500 focus:ring-rose-500/20'
+                                  : 'border-zinc-700/80 focus:border-cyan-500 focus:ring-cyan-500/20'
+                              }`}
                             />
                             <span className="text-xs text-zinc-500 font-bold font-mono absolute right-3 pointer-events-none select-none uppercase">
                               {pointUnit}
@@ -1819,7 +1834,7 @@ function ServiceBookingContent() {
                           </div>
                           <button
                             type="button"
-                            onClick={() => setCurrentPoints((p) => Math.min(1000, p + (isAov ? 5 : 10)))}
+                            onClick={() => setCurrentPoints((p) => Math.max(0, p + (isAov ? 5 : 10)))}
                             className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-zinc-800/90 hover:bg-zinc-700 active:scale-95 text-zinc-200 hover:text-white font-bold text-base flex items-center justify-center shrink-0 border border-white/5 transition-all select-none cursor-pointer"
                           >
                             +
@@ -1857,9 +1872,13 @@ function ServiceBookingContent() {
                                   return;
                                 }
                                 const val = parseInt(clean, 10);
-                                setDesiredPoints(isNaN(val) ? 0 : Math.min(1000, Math.max(0, val)));
+                                setDesiredPoints(isNaN(val) ? 0 : Math.max(0, val));
                               }}
-                              className="w-full h-9 sm:h-10 bg-zinc-950 border border-zinc-700/80 rounded-xl pl-3 pr-10 text-center text-base sm:text-lg font-black font-mono text-emerald-400 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none transition-all"
+                              className={`w-full h-9 sm:h-10 bg-zinc-950 border rounded-xl pl-3 pr-10 text-center text-base sm:text-lg font-black font-mono text-emerald-400 outline-none focus:ring-2 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none transition-all ${
+                                desiredPoints < currentPoints
+                                  ? 'border-rose-500 focus:border-rose-500 focus:ring-rose-500/20'
+                                  : 'border-zinc-700/80 focus:border-emerald-500 focus:ring-emerald-500/20'
+                              }`}
                             />
                             <span className="text-xs text-zinc-500 font-bold font-mono absolute right-3 pointer-events-none select-none uppercase">
                               {pointUnit}
@@ -1867,7 +1886,7 @@ function ServiceBookingContent() {
                           </div>
                           <button
                             type="button"
-                            onClick={() => setDesiredPoints((p) => Math.min(1000, p + (isAov ? 5 : 10)))}
+                            onClick={() => setDesiredPoints((p) => Math.max(0, p + (isAov ? 5 : 10)))}
                             className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-zinc-800/90 hover:bg-zinc-700 active:scale-95 text-zinc-200 hover:text-white font-bold text-base flex items-center justify-center shrink-0 border border-white/5 transition-all select-none cursor-pointer"
                           >
                             +
@@ -1876,14 +1895,14 @@ function ServiceBookingContent() {
                       </div>
                     </div>
 
-                    {/* Cảnh báo nếu điểm mong muốn <= điểm hiện tại */}
+                    {/* Cảnh báo validate: Không được < 0, và Điểm Mong Muốn phải lớn hơn Điểm Hiện Tại */}
                     {desiredPoints <= currentPoints && (
-                      <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs flex items-center gap-2">
-                        <span className="font-bold">⚠️ Lưu ý:</span>
+                      <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-center gap-2">
+                        <AlertCircle size={15} className="text-rose-400 shrink-0" />
                         <span>
-                          {isAov
-                            ? 'Số sao mong muốn phải lớn hơn số sao hiện tại để tuyển thủ có thể thực hiện.'
-                            : 'Điểm mong muốn phải lớn hơn điểm hiện tại để tuyển thủ có thể thực hiện.'}
+                          {desiredPoints < currentPoints
+                            ? `${isAov ? 'Số sao mong muốn' : 'Điểm mong muốn'} không được nhỏ hơn ${isAov ? 'số sao hiện tại' : 'điểm hiện tại'} (${isAov ? 'Số sao hiện tại' : 'Điểm hiện tại'} không được lớn hơn ${isAov ? 'số sao mong muốn' : 'điểm mong muốn'}).`
+                            : `${isAov ? 'Số sao mong muốn' : 'Điểm mong muốn'} phải lớn hơn ${isAov ? 'số sao hiện tại' : 'điểm hiện tại'} ít nhất 1 ${pointUnit}.`}
                         </span>
                       </div>
                     )}
@@ -2798,7 +2817,7 @@ function ServiceBookingContent() {
               {/* Nút Đặt đơn (Desktop - Trên Mobile & Tablet dùng thanh Sticky Footer ở đáy để tránh lặp nút) */}
               <button
                 type="button"
-                disabled={isSubmitting || calculation.totalPrice <= 0}
+                disabled={isSubmitting || calculation.totalPrice <= 0 || (isPointBoost && (currentPoints >= desiredPoints || currentPoints < 0 || desiredPoints < 0))}
                 onClick={handlePlaceOrder}
                 className="hidden xl:flex w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-extrabold text-sm shadow-xl shadow-blue-600/30 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 items-center justify-center gap-2"
               >
@@ -2838,7 +2857,7 @@ function ServiceBookingContent() {
 
             <button
               type="button"
-              disabled={isSubmitting || calculation.totalPrice <= 0}
+              disabled={isSubmitting || calculation.totalPrice <= 0 || (isPointBoost && (currentPoints >= desiredPoints || currentPoints < 0 || desiredPoints < 0))}
               onClick={handlePlaceOrder}
               className="py-2.5 px-4 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-xs shadow-lg shadow-blue-600/30 active:scale-95 disabled:opacity-50 flex items-center gap-1.5 shrink-0"
             >
