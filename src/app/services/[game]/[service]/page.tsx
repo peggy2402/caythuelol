@@ -1118,6 +1118,15 @@ function ServiceBookingContent() {
 
   // Xử lý mở Modal chọn Rank
   const handleOpenRankModal = (target: 'CURRENT' | 'DESIRED') => {
+    if (target === 'CURRENT' && isRiotGame && (isRankBoost || serviceSlug === 'rank-boost')) {
+      if (!checkedAccount) {
+        toast.info('Vui lòng nhập và kiểm tra thông tin tài khoản Riot ở ô bắt buộc trên để nhận diện Rank hiện tại!');
+        const el = document.getElementById('riot-account-check-box');
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return;
+      }
+    }
+
     setRankModalTarget(target);
     if (target === 'CURRENT') {
       // Nếu rank hiện tại >= rank mong muốn, tự động đưa temp về bậc thấp hơn rank mong muốn 1 nấc
@@ -1415,6 +1424,18 @@ function ServiceBookingContent() {
       toast.error('Vui lòng đăng nhập để tiến hành đặt dịch vụ');
       router.push('/login?redirect=' + encodeURIComponent(window.location.pathname + window.location.search));
       return;
+    }
+
+    // BẮT BUỘC: Kiểm tra & xác thực thông tin tài khoản Riot trước khi đặt hàng
+    if (isRiotGame && (isRankBoost || isPointBoost || serviceSlug === 'net-wins')) {
+      if (!checkedAccount) {
+        toast.error('Vui lòng kiểm tra và xác thực thông tin tài khoản Riot (Ingame # Tagline) trước khi đặt hàng!');
+        const checkEl = document.getElementById('riot-account-check-box');
+        if (checkEl) {
+          checkEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+        return;
+      }
     }
 
     if (calculation.totalPrice <= 0) {
@@ -1880,7 +1901,7 @@ function ServiceBookingContent() {
             <div className="bg-zinc-900/60 border border-white/10 rounded-3xl p-6 sm:p-7 shadow-xl backdrop-blur-md space-y-6">
               {/* KHỐI KIỂM TRA THÔNG TIN TÀI KHOẢN (RIOT GAMES: LOL / VALORANT / TFT CHO RANK BOOST & NET WINS) */}
               {isRiotGame && (isRankBoost || isPointBoost || serviceSlug === 'net-wins') && (
-                <div className="p-4 sm:p-5 rounded-2xl bg-zinc-950/80 border border-blue-500/30 shadow-[0_0_25px_rgba(59,130,246,0.08)] space-y-4 relative overflow-hidden backdrop-blur-sm">
+                <div id="riot-account-check-box" className="p-4 sm:p-5 rounded-2xl bg-zinc-950/80 border border-blue-500/30 shadow-[0_0_25px_rgba(59,130,246,0.08)] space-y-4 relative overflow-hidden backdrop-blur-sm">
                   <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-blue-500/60 to-transparent pointer-events-none" />
 
                   {/* Header */}
@@ -1890,18 +1911,28 @@ function ServiceBookingContent() {
                         <ShieldCheck size={18} />
                       </div>
                       <div>
-                        <span className="text-xs sm:text-sm font-extrabold text-white flex items-center gap-2">
-                          Kiểm Tra Thông Tin Tài Khoản Riot
-                        </span>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="text-xs sm:text-sm font-extrabold text-white">
+                            Kiểm Tra Thông Tin Tài Khoản Riot
+                          </span>
+                          <span className="text-red-500 font-black text-sm">*</span>
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-red-500/15 text-red-400 border border-red-500/30">
+                            Bắt buộc
+                          </span>
+                        </div>
                         <p className="text-[11px] text-zinc-400 mt-0.5">
-                          Nhập Ingame # Tagline để tự động nhận diện bậc Rank & Điểm LP chính xác từ Riot Games
+                          Nhập Ingame # Tagline để tự động nhận diện bậc Rank & Điểm LP chính xác từ Riot Games (Bắt buộc để tránh nhập sai)
                         </p>
                       </div>
                     </div>
 
-                    {checkedAccount && (
+                    {checkedAccount ? (
                       <span className="px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 text-[10px] font-bold flex items-center gap-1 shrink-0 self-start sm:self-auto">
                         <CheckCircle2 size={12} /> Đã đồng bộ thông tin
+                      </span>
+                    ) : (
+                      <span className="px-2.5 py-1 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/30 text-[10px] font-bold flex items-center gap-1 shrink-0 self-start sm:self-auto">
+                        <AlertCircle size={12} /> Chưa xác thực
                       </span>
                     )}
                   </div>
@@ -2108,16 +2139,34 @@ function ServiceBookingContent() {
                       {/* 1. Điểm Hiện Tại */}
                       <div className="p-3.5 sm:p-4 rounded-xl bg-zinc-900/90 border border-zinc-800/90 hover:border-zinc-700/80 transition-all space-y-2.5">
                         <div className="flex items-center justify-between">
-                          <label className="text-[11px] font-bold uppercase tracking-wider text-zinc-400">
-                            {isAov ? 'Số Sao Hiện Tại' : 'Điểm Hiện Tại'}
+                          <label className="text-[11px] font-bold uppercase tracking-wider text-zinc-400 flex items-center gap-1.5">
+                            <span>{isAov ? 'Số Sao Hiện Tại' : 'Điểm Hiện Tại'}</span>
+                            {isRiotGame && (
+                              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
+                                {checkedAccount ? 'Khóa theo Riot' : 'Cần kiểm tra *'}
+                              </span>
+                            )}
                           </label>
-                          <span className="text-[10px] text-zinc-500 font-mono">Bắt đầu từ</span>
+                          <span className="text-[10px] text-zinc-500 font-mono">
+                            {isRiotGame ? (checkedAccount ? '✓ Đã đồng bộ Riot' : 'Chưa xác thực') : 'Bắt đầu từ'}
+                          </span>
                         </div>
                         <div className="flex items-center gap-2">
                           <button
                             type="button"
-                            onClick={() => setCurrentPoints((p) => Math.max(0, p - (isAov ? 5 : 10)))}
-                            className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-zinc-800/90 hover:bg-zinc-700 active:scale-95 text-zinc-200 hover:text-white font-bold text-base flex items-center justify-center shrink-0 border border-white/5 transition-all select-none cursor-pointer"
+                            disabled={Boolean(isRiotGame && checkedAccount)}
+                            onClick={() => {
+                              if (isRiotGame && !checkedAccount) {
+                                toast.info('Vui lòng kiểm tra thông tin tài khoản Riot ở ô bắt buộc trên để nhận diện Điểm LP chính xác!');
+                                const el = document.getElementById('riot-account-check-box');
+                                if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                return;
+                              }
+                              setCurrentPoints((p) => Math.max(0, p - (isAov ? 5 : 10)));
+                            }}
+                            className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-zinc-800/90 hover:bg-zinc-700 active:scale-95 text-zinc-200 hover:text-white font-bold text-base flex items-center justify-center shrink-0 border border-white/5 transition-all select-none ${
+                              isRiotGame && checkedAccount ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'
+                            }`}
                           >
                             -
                           </button>
@@ -2126,9 +2175,18 @@ function ServiceBookingContent() {
                               type="text"
                               inputMode="numeric"
                               pattern="[0-9]*"
+                              readOnly={Boolean(isRiotGame && checkedAccount)}
                               value={currentPoints === 0 ? '' : currentPoints}
                               placeholder="0"
+                              onClick={() => {
+                                if (isRiotGame && !checkedAccount) {
+                                  toast.info('Vui lòng kiểm tra thông tin tài khoản Riot ở ô bắt buộc trên để nhận diện Điểm LP chính xác!');
+                                  const el = document.getElementById('riot-account-check-box');
+                                  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                }
+                              }}
                               onChange={(e) => {
+                                if (isRiotGame && checkedAccount) return;
                                 const clean = e.target.value.replace(/\D/g, '').replace(/^0+/, '');
                                 if (!clean) {
                                   setCurrentPoints(0);
@@ -2138,7 +2196,9 @@ function ServiceBookingContent() {
                                 setCurrentPoints(isNaN(val) ? 0 : Math.max(0, val));
                               }}
                               className={`w-full h-9 sm:h-10 bg-zinc-950 border rounded-xl pl-3 pr-10 text-center text-base sm:text-lg font-black font-mono text-white outline-none focus:ring-2 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none transition-all ${
-                                currentPoints > desiredPoints
+                                isRiotGame && checkedAccount
+                                  ? 'border-cyan-500/40 bg-zinc-900/60 cursor-not-allowed text-cyan-300'
+                                  : currentPoints > desiredPoints
                                   ? 'border-rose-500 focus:border-rose-500 focus:ring-rose-500/20'
                                   : 'border-zinc-700/80 focus:border-cyan-500 focus:ring-cyan-500/20'
                               }`}
@@ -2149,8 +2209,19 @@ function ServiceBookingContent() {
                           </div>
                           <button
                             type="button"
-                            onClick={() => setCurrentPoints((p) => Math.max(0, p + (isAov ? 5 : 10)))}
-                            className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-zinc-800/90 hover:bg-zinc-700 active:scale-95 text-zinc-200 hover:text-white font-bold text-base flex items-center justify-center shrink-0 border border-white/5 transition-all select-none cursor-pointer"
+                            disabled={Boolean(isRiotGame && checkedAccount)}
+                            onClick={() => {
+                              if (isRiotGame && !checkedAccount) {
+                                toast.info('Vui lòng kiểm tra thông tin tài khoản Riot ở ô bắt buộc trên để nhận diện Điểm LP chính xác!');
+                                const el = document.getElementById('riot-account-check-box');
+                                if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                return;
+                              }
+                              setCurrentPoints((p) => Math.max(0, p + (isAov ? 5 : 10)));
+                            }}
+                            className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-zinc-800/90 hover:bg-zinc-700 active:scale-95 text-zinc-200 hover:text-white font-bold text-base flex items-center justify-center shrink-0 border border-white/5 transition-all select-none ${
+                              isRiotGame && checkedAccount ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'
+                            }`}
                           >
                             +
                           </button>
@@ -2393,8 +2464,14 @@ function ServiceBookingContent() {
                           <span>Rank Hiện Tại</span>
                           <span className="text-red-500">*</span>
                         </span>
-                        <span className="text-[10px] font-semibold text-blue-400 group-hover:underline">
-                          Thay đổi
+                        <span className={`text-[10px] font-bold ${
+                          isRiotGame && checkedAccount
+                            ? 'text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded'
+                            : isRiotGame
+                            ? 'text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded group-hover:underline'
+                            : 'text-blue-400 group-hover:underline'
+                        }`}>
+                          {isRiotGame && checkedAccount ? '✓ Đã đồng bộ Riot' : isRiotGame ? 'Cần kiểm tra Riot *' : 'Thay đổi'}
                         </span>
                       </div>
 
@@ -3140,7 +3217,11 @@ function ServiceBookingContent() {
                   <Loader2 className="w-5 h-5 animate-spin" />
                 ) : (
                   <>
-                    <span>Đặt Cày Ngay</span>
+                    <span>
+                      {isRiotGame && (isRankBoost || isPointBoost || serviceSlug === 'net-wins') && !checkedAccount
+                        ? 'Cần Kiểm Tra Riot *'
+                        : 'Đặt Cày Ngay'}
+                    </span>
                     <ArrowRight size={16} />
                   </>
                 )}
@@ -3180,7 +3261,11 @@ function ServiceBookingContent() {
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
                 <>
-                  <span>Đặt Cày Ngay</span>
+                  <span>
+                    {isRiotGame && (isRankBoost || isPointBoost || serviceSlug === 'net-wins') && !checkedAccount
+                      ? 'Cần Kiểm Tra Riot *'
+                      : 'Đặt Cày Ngay'}
+                  </span>
                   <ArrowRight size={14} />
                 </>
               )}
