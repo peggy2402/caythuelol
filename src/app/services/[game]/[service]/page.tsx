@@ -1357,8 +1357,7 @@ function ServiceBookingContent() {
         );
       }
 
-      // Đồng bộ vào thông tin tài khoản cần cày
-      setIngameAccount(fullName);
+      // Lưu thông tin tài khoản Riot đã xác thực
       setCheckedAccount({
         gameName: data.gameName || fullName,
         tagLine: data.tagLine || '',
@@ -1598,6 +1597,7 @@ function ServiceBookingContent() {
               queue_type: queueType,
               server,
               addons,
+              ingame_name: checkedAccount?.riotId || null,
             }
           : {
               current_rank: currentRankObj?.label,
@@ -1606,6 +1606,7 @@ function ServiceBookingContent() {
               queue_type: queueType,
               server,
               addons,
+              ingame_name: checkedAccount?.riotId || null,
               steps_count: calculation.stepsCount,
             },
         account_credentials: {
