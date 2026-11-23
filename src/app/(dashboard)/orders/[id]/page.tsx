@@ -31,7 +31,7 @@ import ServerSelectModal from '@/components/ServerSelectModal';
 import ServerFlag from '@/components/ServerFlag';
 import { getServerByCode } from '@/lib/servers';
 import { getBoosterOrderValue } from '@/lib/orderPricing';
-import { getOrderStatusInfo } from '@/lib/orderStatus';
+import { getOrderStatusInfo, formatServiceNameVi } from '@/lib/orderStatus';
 import { formatRankDisplayVi, LOL_QUEUE_NAMES, getLolQueueName } from '@/lib/riotRanks';
 import {
   Dialog,
@@ -61,25 +61,8 @@ function getGameMeta(gameCode?: string) {
 }
 
 // Helper format tên dịch vụ thân thiện
-function formatServiceName(serviceType?: string) {
-  if (!serviceType) return 'Dịch vụ Cày Thuê';
-  const slug = serviceType.toLowerCase().replace(/_/g, '-');
-  switch (slug) {
-    case 'rank-boost':
-      return 'Cày Rank / Elo';
-    case 'net-wins':
-      return 'Cày Rank Cao Cấp';
-    case 'placements':
-      return 'Phân Hạng Đầu Mùa';
-    case 'champion-mastery':
-      return 'Thông Thạo Tướng';
-    case 'leveling':
-      return 'Cày Cấp Độ';
-    case 'coaching':
-      return 'Huấn Luyện Coaching 1-1';
-    default:
-      return serviceType.replace(/_/g, ' ');
-  }
+function formatServiceName(serviceType?: string, details?: any) {
+  return formatServiceNameVi(serviceType, details);
 }
 
 // Helper làm gọn thông tin chi tiết trận đấu (loại bỏ challenges hàng trăm KB của Riot để tránh lỗi 413 Payload Too Large)
@@ -1433,7 +1416,7 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                 {(() => {
                     const gameCode = order.snapshot?.gameCode || order.details?.game || 'LOL';
                     const gameMeta = getGameMeta(gameCode);
-                    const serviceName = formatServiceName(order.serviceType || order.snapshot?.serviceSlug);
+                    const serviceName = formatServiceName(order.serviceType || order.snapshot?.serviceSlug, order.details);
 
                     return (
                         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 relative z-10">
@@ -1544,8 +1527,8 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                             <Play className="w-4 h-4" /> Bắt đầu cày
                         </button>
                     )}
-                    {isBooster && order.status === 'IN_PROGRESS' && order.serviceType !== 'NET_WINS' && (
-                        <button onClick={() => handleUpdateStatus('COMPLETED')} className="w-full py-3 bg-green-600 hover:bg-green-500 text-white font-bold rounded-xl flex items-center justify-center gap-2 transition-colors">
+                    {isBooster && order.status === 'IN_PROGRESS' && (
+                        <button onClick={() => handleUpdateStatus('COMPLETED')} className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl flex items-center justify-center gap-2 transition-colors shadow-lg shadow-emerald-600/20">
                             <CheckSquare className="w-4 h-4" /> Báo cáo hoàn thành
                         </button>
                     )}
