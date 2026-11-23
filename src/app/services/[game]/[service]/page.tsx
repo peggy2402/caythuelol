@@ -1217,12 +1217,14 @@ function ServiceBookingContent() {
     setIsRankModalOpen(false);
   };
 
-  // Tra cứu & Kiểm tra Rank & Điểm LP từ Riot Games API
-  const handleCheckAccountRank = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    const nameToCheck = accountCheckInput.trim();
+  // Tra cứu & Kiểm tra Rank & Điểm LP từ Riot Games API (Hỗ trợ gọi tự động hoặc nút bấm)
+  const handleCheckAccountRank = async (targetOrEvent?: string | React.FormEvent, isSilent = false) => {
+    if (targetOrEvent && typeof targetOrEvent !== 'string' && 'preventDefault' in targetOrEvent) {
+      targetOrEvent.preventDefault();
+    }
+    const nameToCheck = (typeof targetOrEvent === 'string' ? targetOrEvent : accountCheckInput).trim();
     if (!nameToCheck) {
-      toast.error('Vui lòng nhập tên in-game và tagline (Ví dụ: Mary Tái Lâm #2003)');
+      if (!isSilent) toast.error('Vui lòng nhập tên in-game và tagline (Ví dụ: Mary Tái Lâm #2003)');
       return;
     }
 
@@ -1260,11 +1262,12 @@ function ServiceBookingContent() {
           errMsg = 'Hệ thống đang bận. Vui lòng thử lại sau!';
         }
         setAccountCheckError(errMsg);
-        toast.error(errMsg);
+        setCheckedAccount(null);
+        if (!isSilent) toast.error(errMsg);
         return;
       }
 
-      if (data.isMock) {
+      if (data.isMock && !isSilent) {
         const mockMsg =
           data.mockReason?.includes('RIOT_API_KEY') || data.mockReason?.includes('developer.riotgames.com')
             ? 'Hệ thống đang bận. Vui lòng thử lại sau!'
@@ -1283,6 +1286,8 @@ function ServiceBookingContent() {
       const wins = Number(matchedLeague?.wins ?? 0);
       const losses = Number(matchedLeague?.losses ?? 0);
       const tierVi = formatRankDisplayVi(rawTier);
+      const isApex = ['MASTER', 'GRANDMASTER', 'CHALLENGER', 'RADIANT'].includes(rawTier);
+      const cleanRankDisplay = isApex ? tierVi : `${tierVi}${rawRank ? ' ' + rawRank : ''}`;
       const fullName = data.gameName ? `${data.gameName}#${data.tagLine}` : nameToCheck;
 
       // 1. DỊCH VỤ RANK BOOST: Nếu mức rank > Cao Thủ (Master) -> Validate & Báo lỗi
@@ -1291,6 +1296,7 @@ function ServiceBookingContent() {
         if (isAboveMaster) {
           const errMsg = 'Vui lòng nhập ingame có mức Rank Cao Thủ trở xuống';
           setAccountCheckError(`${errMsg} (Tài khoản hiện đang là ${tierVi})`);
+          setCheckedAccount(null);
           toast.error(errMsg);
           return;
         }
@@ -1327,7 +1333,7 @@ function ServiceBookingContent() {
         }
 
         toast.success(
-          `Đã xác thực tài khoản: ${fullName} (${tierVi} ${rawRank} - ${rawLp} LP). Đã tự động cập nhật Rank hiện tại!`
+          `Đã xác thực tài khoản: ${fullName} (${cleanRankDisplay} - ${rawLp} LP)!`
         );
       }
 
@@ -1347,7 +1353,7 @@ function ServiceBookingContent() {
         }
 
         toast.success(
-          `Đã xác thực tài khoản: ${fullName} (${tierVi} - ${rawLp} LP). Đã tự động điền vào Điểm hiện tại!`
+          `Đã xác thực tài khoản: ${fullName} (${cleanRankDisplay} - ${rawLp} LP). Đã tự động điền vào Điểm hiện tại!`
         );
       }
 
@@ -1359,7 +1365,7 @@ function ServiceBookingContent() {
         riotId: fullName,
         tier: rawTier,
         tierVi,
-        rank: rawRank,
+        rank: isApex ? '' : rawRank,
         lp: rawLp,
         wins,
         losses,
@@ -1369,11 +1375,40 @@ function ServiceBookingContent() {
     } catch (err: any) {
       const msg = err.message || 'Lỗi khi kiểm tra thông tin tài khoản';
       setAccountCheckError(msg);
-      toast.error(msg);
+      setCheckedAccount(null);
+      if (!isSilent) toast.error(msg);
     } finally {
       setIsCheckingAccount(false);
     }
   };
+
+  // Tự động kiểm tra thông tin tài khoản Riot khi người dùng gõ (Debounce 600ms) - Tiện lợi tối đa
+  useEffect(() => {
+    if (!isRiotGame || !(isRankBoost || isPointBoost || serviceSlug === 'net-wins')) return;
+
+    const trimmed = accountCheckInput.trim();
+    // Điều kiện auto-check: có dấu # và có cả tên lẫn tag
+    if (!trimmed.includes('#')) {
+      if (checkedAccount) setCheckedAccount(null);
+      return;
+    }
+
+    const parts = trimmed.split('#');
+    if (!parts[0]?.trim() || !parts[1]?.trim()) {
+      return;
+    }
+
+    // Nếu đã xác thực đúng Riot ID này thì không check lại
+    if (checkedAccount && checkedAccount.riotId.toLowerCase() === trimmed.toLowerCase()) {
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      handleCheckAccountRank(trimmed, true);
+    }, 600);
+
+    return () => clearTimeout(timer);
+  }, [accountCheckInput, server, queueType, isRiotGame, isRankBoost, isPointBoost, serviceSlug]);
 
   // Xử lý áp dụng mã giảm giá
   const handleApplyCoupon = async () => {
@@ -1971,8 +2006,8 @@ function ServiceBookingContent() {
                     )}
                   </div>
 
-                  {/* Input & Button Tra cứu */}
-                  <form onSubmit={handleCheckAccountRank} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
+                  {/* Input & Button Tra cứu (Tự động nhận diện khi gõ) */}
+                  <form onSubmit={(e) => handleCheckAccountRank(e, false)} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
                     <div className="relative flex-1">
                       <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-500 pointer-events-none">
                         <Search size={16} />
@@ -1984,14 +2019,28 @@ function ServiceBookingContent() {
                           setAccountCheckInput(e.target.value);
                           if (accountCheckError) setAccountCheckError('');
                         }}
-                        placeholder="Ví dụ: Mary Tái Lâm #2003"
-                        className="w-full h-11 bg-zinc-900/90 border border-zinc-800 rounded-xl pl-10 pr-4 text-xs sm:text-sm text-white placeholder-zinc-500 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/30 transition-all font-medium"
+                        placeholder="Nhập Ingame # Tagline (Ví dụ: Mary Tái Lâm #2003)"
+                        className="w-full h-11 bg-zinc-900/90 border border-zinc-800 rounded-xl pl-10 pr-28 text-xs sm:text-sm text-white placeholder-zinc-500 outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/30 transition-all font-medium"
                       />
+                      {/* Trạng thái Inline bên trong ô nhập */}
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5 pointer-events-none select-none">
+                        {isCheckingAccount ? (
+                          <div className="flex items-center gap-1 text-cyan-400 text-xs font-semibold animate-pulse">
+                            <Loader2 size={14} className="animate-spin shrink-0" />
+                            <span className="hidden sm:inline text-[11px]">Đang tìm...</span>
+                          </div>
+                        ) : checkedAccount && accountCheckInput.trim().toLowerCase() === checkedAccount.riotId.toLowerCase() ? (
+                          <div className="flex items-center gap-1 text-emerald-400 text-xs font-semibold">
+                            <CheckCircle2 size={15} className="shrink-0" />
+                            <span className="hidden sm:inline text-[11px]">Hợp lệ</span>
+                          </div>
+                        ) : null}
+                      </div>
                     </div>
                     <button
                       type="submit"
                       disabled={isCheckingAccount || !accountCheckInput.trim()}
-                      className="h-11 px-5 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white font-bold text-xs shadow-lg shadow-blue-500/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-all active:scale-95 cursor-pointer shrink-0"
+                      className="h-11 px-5 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white font-bold text-xs shadow-lg shadow-blue-500/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer shrink-0"
                     >
                       {isCheckingAccount ? (
                         <>
@@ -2038,7 +2087,9 @@ function ServiceBookingContent() {
                           </div>
                           <div className="flex items-center gap-2 mt-1 text-xs text-zinc-400 flex-wrap">
                             <span className="font-bold text-amber-400">
-                              {checkedAccount.tierVi} {checkedAccount.rank || ''}
+                              {['MASTER', 'GRANDMASTER', 'CHALLENGER', 'RADIANT'].includes(checkedAccount.tier)
+                                ? checkedAccount.tierVi
+                                : `${checkedAccount.tierVi}${checkedAccount.rank ? ' ' + checkedAccount.rank : ''}`}
                             </span>
                             <span>•</span>
                             <span className="font-mono text-cyan-400 font-bold">{checkedAccount.lp} LP</span>
@@ -2056,22 +2107,12 @@ function ServiceBookingContent() {
                       </div>
 
                       <div className="flex items-center justify-between sm:justify-end gap-3 pt-2 sm:pt-0 border-t sm:border-t-0 border-zinc-800/80">
-                        <div className="text-[11px] text-emerald-400 font-medium flex items-center gap-1.5">
+                        <div className="text-[11px] text-emerald-400 font-medium flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/25 shadow-sm">
                           <CheckCircle2 size={14} className="shrink-0" />
                           <span>
                             {isPointBoost ? 'Đã tự động điền Điểm hiện tại' : 'Đã tự động chọn Rank hiện tại'}
                           </span>
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setCheckedAccount(null);
-                            setAccountCheckInput('');
-                          }}
-                          className="text-[11px] text-zinc-400 hover:text-white underline cursor-pointer ml-1"
-                        >
-                          Đổi ingame
-                        </button>
                       </div>
                     </div>
                   )}
