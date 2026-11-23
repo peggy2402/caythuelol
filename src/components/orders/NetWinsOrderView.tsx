@@ -159,7 +159,14 @@ export default function NetWinsOrderView({ order, isBooster, isCustomer, onPayRe
     const boosterRemaining = boosterActualTotal - boosterPaidDeposit;
 
     // Trạng thái quyết toán: OWE (Cần trả thêm) | REFUND (Hoàn tiền) | SETTLED (Đủ)
-    const status = customerRemaining > 0 ? 'OWE' : customerRemaining < 0 ? 'REFUND' : 'SETTLED';
+    const isAlreadySettled = Boolean(order.payment?.final_paid || order.pricing?.settlement_status === 'SETTLED');
+    const status = isAlreadySettled
+        ? 'SETTLED'
+        : customerRemaining > 0 
+            ? 'OWE' 
+            : customerRemaining < 0 
+                ? 'REFUND' 
+                : 'SETTLED';
 
     return {
         originalBoosterBase,
@@ -181,7 +188,9 @@ export default function NetWinsOrderView({ order, isBooster, isCustomer, onPayRe
         status,
         isLowEarnings: boosterActualTotal <= 0,
     };
-  }, [details, pricing, match_history, calcMode, order.options, boosterData]);
+  }, [details, pricing, match_history, calcMode, order.options, order.payment, boosterData]);
+
+  const isCompleted = order.status === 'COMPLETED';
 
   const handlePayRemaining = () => {
       if (onPayRemaining) {
@@ -314,10 +323,18 @@ export default function NetWinsOrderView({ order, isBooster, isCustomer, onPayRe
         <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 relative overflow-hidden">
              <div className="absolute top-0 left-0 w-32 h-32 bg-green-500/5 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2 pointer-events-none"></div>
 
-            <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2 relative z-10">
-                <DollarSign className="w-5 h-5 text-green-500" /> 
-                Tạm tính quyết toán
-            </h3>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4 relative z-10">
+                <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                    <DollarSign className="w-5 h-5 text-green-500" /> 
+                    {isCompleted ? 'Quyết toán đơn hàng' : 'Tạm tính quyết toán'}
+                </h3>
+                {!isCompleted && (
+                    <span className="text-xs px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 font-medium inline-flex items-center gap-1.5 w-fit">
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
+                        Đang cày • Tạm tính theo tiến độ
+                    </span>
+                )}
+            </div>
             
             <div className="space-y-3 text-sm relative z-10">
                 {/* 1. Giá trị đơn gốc (Dự kiến) */}
@@ -415,26 +432,65 @@ export default function NetWinsOrderView({ order, isBooster, isCustomer, onPayRe
                                 <AlertCircle className="w-5 h-5 text-red-500 shrink-0" />
                                 <span className="text-red-200 font-bold text-sm sm:text-base truncate">
                                     {isCustomer 
-                                        ? 'Cần thanh toán thêm:' 
-                                        : (isBooster ? 'Số tiền về ví còn lại:' : 'Khách trả thêm:')}
+                                        ? (isCompleted ? 'Cần thanh toán thêm:' : 'Dự kiến cần thanh toán thêm:') 
+                                        : (isBooster 
+                                            ? (isCompleted ? 'Số tiền về ví còn lại:' : 'Dự kiến thu nhập còn lại:') 
+                                            : 'Khách cần thanh toán thêm:')}
                                 </span>
                             </div>
                             
                             {isCustomer ? (
-                                <button 
-                                    onClick={handlePayRemaining}
-                                    className="w-full sm:w-auto py-2.5 px-4 bg-red-600 hover:bg-red-500 text-white font-bold rounded-lg flex items-center justify-center gap-2 transition-all shadow-lg shadow-red-900/20 active:scale-[0.98] cursor-pointer"
-                                    title="Thanh toán ngay"
-                                >
-                                    <Wallet className="w-4 h-4 shrink-0" />
-                                    <span>Thanh toán {settlement.customerRemaining.toLocaleString()} đ</span>
-                                </button>
+                                isCompleted ? (
+                                    <button 
+                                        onClick={handlePayRemaining}
+                                        className="w-full sm:w-auto py-2.5 px-4 bg-red-600 hover:bg-red-500 text-white font-bold rounded-lg flex items-center justify-center gap-2 transition-all shadow-lg shadow-red-900/20 active:scale-[0.98] cursor-pointer"
+                                        title="Thanh toán ngay"
+                                    >
+                                        <Wallet className="w-4 h-4 shrink-0" />
+                                        <span>Thanh toán {settlement.customerRemaining.toLocaleString()} đ</span>
+                                    </button>
+                                ) : (
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-red-400 font-black text-lg sm:text-xl whitespace-nowrap font-mono">
+                                            {settlement.customerRemaining.toLocaleString()} đ
+                                        </span>
+                                        <span className="text-[11px] px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20 font-medium whitespace-nowrap">
+                                            Chờ chốt đơn
+                                        </span>
+                                    </div>
+                                )
                             ) : (
-                                <span className={`font-black text-lg sm:text-xl whitespace-nowrap font-mono ${isBooster ? 'text-emerald-400' : 'text-red-400'}`}>
-                                    {isBooster ? `+${settlement.boosterRemaining.toLocaleString()}` : `${settlement.customerRemaining.toLocaleString()}`} đ
-                                </span>
+                                <div className="flex items-center gap-2">
+                                    <span className={`font-black text-lg sm:text-xl whitespace-nowrap font-mono ${isBooster ? 'text-emerald-400' : 'text-red-400'}`}>
+                                        {isBooster ? `+${settlement.boosterRemaining.toLocaleString()}` : `${settlement.customerRemaining.toLocaleString()}`} đ
+                                    </span>
+                                    {!isCompleted && (
+                                        <span className="text-[11px] px-2 py-0.5 rounded bg-zinc-800 text-zinc-400 border border-zinc-700 font-medium whitespace-nowrap">
+                                            Tạm tính
+                                        </span>
+                                    )}
+                                </div>
                             )}
                         </div>
+
+                        {/* Hướng dẫn thanh toán cho khách hàng */}
+                        {isCustomer && !isCompleted && (
+                            <div className="pt-2 border-t border-red-500/20 text-xs text-zinc-400 flex items-start gap-1.5">
+                                <Info className="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5" />
+                                <span>
+                                    Khoản thanh toán thêm sẽ được mở sau khi Tuyển thủ cày xong và bấm <b>"Báo cáo hoàn thành"</b>.
+                                </span>
+                            </div>
+                        )}
+
+                        {isCustomer && isCompleted && (
+                            <div className="pt-2 border-t border-red-500/20 text-xs text-amber-300 flex items-start gap-1.5">
+                                <AlertCircle className="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5" />
+                                <span>
+                                    Tuyển thủ đã báo cáo hoàn thành đơn hàng. Vui lòng thanh toán số tiền còn lại để hoàn tất nghiệm thu.
+                                </span>
+                            </div>
+                        )}
 
                         {/* Ghi chú minh bạch cho Booster */}
                         {isBooster && (
@@ -448,29 +504,60 @@ export default function NetWinsOrderView({ order, isBooster, isCustomer, onPayRe
 
                 {/* 6. Kết quả quyết toán: HOÀN LẠI (REFUND) */}
                 {hasMatches && settlement.status === 'REFUND' && (
-                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 p-3 sm:p-4 bg-green-900/10 rounded-xl border border-green-500/30">
-                        <div className="flex items-center gap-2 min-w-0">
-                            <CheckCircle2 className="w-5 h-5 text-green-500 shrink-0" />
-                            <span className="text-green-200 font-bold text-sm sm:text-base truncate">
-                                {isCustomer 
-                                    ? 'Được hoàn lại:' 
-                                    : (isBooster ? 'Cần hoàn lại khách:' : 'Hoàn lại khách:')}
-                            </span>
+                    <div className="p-3.5 sm:p-4 bg-green-900/10 rounded-xl border border-green-500/30 space-y-2">
+                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                            <div className="flex items-center gap-2 min-w-0">
+                                <CheckCircle2 className="w-5 h-5 text-green-500 shrink-0" />
+                                <span className="text-green-200 font-bold text-sm sm:text-base truncate">
+                                    {isCustomer 
+                                        ? (isCompleted ? 'Được hoàn lại về ví:' : 'Dự kiến được hoàn lại:') 
+                                        : (isBooster 
+                                            ? (isCompleted ? 'Cần hoàn lại khách:' : 'Dự kiến hoàn khách nếu dừng cày:') 
+                                            : 'Hoàn lại khách:')}
+                                </span>
+                            </div>
+                            
+                            {isBooster ? (
+                                isCompleted ? (
+                                    <button 
+                                        onClick={handleRefund}
+                                        className="w-full sm:w-auto py-2.5 px-4 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-lg flex items-center justify-center gap-2 transition-all shadow-lg shadow-emerald-900/20 active:scale-[0.98] cursor-pointer"
+                                        title="Xác nhận hoàn tiền"
+                                    >
+                                        <RefreshCcw className="w-4 h-4 shrink-0" />
+                                        <span>Xác nhận hoàn {Math.abs(settlement.customerRemaining).toLocaleString()} đ</span>
+                                    </button>
+                                ) : (
+                                    <div className="flex items-center gap-2">
+                                        <span className="text-green-400 font-black text-lg sm:text-xl whitespace-nowrap font-mono">
+                                            {Math.abs(settlement.customerRemaining).toLocaleString()} đ
+                                        </span>
+                                        <span className="text-[11px] px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-medium whitespace-nowrap">
+                                            Tạm tính
+                                        </span>
+                                    </div>
+                                )
+                            ) : (
+                                <div className="flex items-center gap-2">
+                                    <span className="text-green-400 font-black text-lg sm:text-xl whitespace-nowrap font-mono">
+                                        {Math.abs(settlement.customerRemaining).toLocaleString()} đ
+                                    </span>
+                                    {!isCompleted && (
+                                        <span className="text-[11px] px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-medium whitespace-nowrap">
+                                            Tạm tính
+                                        </span>
+                                    )}
+                                </div>
+                            )}
                         </div>
-                        
-                        {isBooster ? (
-                            <button 
-                                onClick={handleRefund}
-                                className="w-full sm:w-auto py-2.5 px-4 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-lg flex items-center justify-center gap-2 transition-all shadow-lg shadow-emerald-900/20 active:scale-[0.98] cursor-pointer"
-                                title="Xác nhận hoàn tiền"
-                            >
-                                <RefreshCcw className="w-4 h-4 shrink-0" />
-                                <span>Xác nhận hoàn {Math.abs(settlement.customerRemaining).toLocaleString()} đ</span>
-                            </button>
-                        ) : (
-                            <span className="text-green-400 font-black text-lg sm:text-xl whitespace-nowrap font-mono">
-                                {Math.abs(settlement.customerRemaining).toLocaleString()} đ
-                            </span>
+
+                        {!isCompleted && (
+                            <div className="pt-2 border-t border-green-500/20 text-xs text-zinc-400 flex items-start gap-1.5">
+                                <Info className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
+                                <span>
+                                    Tiền cọc thừa sẽ được hệ thống tự động hoàn lại vào ví của bạn khi đơn hàng kết thúc.
+                                </span>
+                            </div>
                         )}
                     </div>
                 )}
@@ -497,8 +584,10 @@ export default function NetWinsOrderView({ order, isBooster, isCustomer, onPayRe
 
             <div className="mt-4 flex gap-2 items-start p-3 bg-zinc-950/30 rounded-lg border border-zinc-800/50">
                 <Info className="w-4 h-4 text-zinc-500 shrink-0 mt-0.5" />
-                <p className="text-xs text-zinc-500 italic">
-                    Số tiền quyết toán cuối cùng sẽ được chốt khi Booster bấm "Báo cáo hoàn thành". Hệ thống sẽ tự động tính toán dựa trên số liệu thực tế.
+                <p className="text-xs text-zinc-400 leading-relaxed">
+                    {isCompleted 
+                        ? 'Đơn hàng đã hoàn thành. Khoản quyết toán được tính toán chính xác dựa trên dữ liệu thực tế từ Riot Games.'
+                        : 'Số tiền quyết toán cuối cùng sẽ được chốt khi Booster bấm "Báo cáo hoàn thành". Trong quá trình cày, điểm số có thể thay đổi nên hệ thống chỉ hiển thị tạm tính.'}
                 </p>
             </div>
         </div>

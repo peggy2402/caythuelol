@@ -1176,6 +1176,30 @@ export class OrdersService {
       throw new ForbiddenException('Bạn không có quyền quyết toán đơn hàng này');
     }
 
+    const amount = Number(body?.amount || 0);
+    if (isCustomer && !isAdmin && amount > 0) {
+      const customer = await this.userModel.findById(userId);
+      if (!customer) throw new NotFoundException('Không tìm thấy tài khoản khách hàng');
+      if (Number(customer.wallet_balance || 0) < amount) {
+        throw new BadRequestException('Số dư ví của bạn không đủ để thanh toán phần quyết toán còn lại. Vui lòng nạp thêm tiền!');
+      }
+      customer.wallet_balance -= amount;
+      await customer.save();
+
+      await this.transactionModel.create({
+        userId: customer._id,
+        orderId: order._id,
+        type: TransactionType.PAYMENT_HOLD,
+        amount: -amount,
+        balanceAfter: customer.wallet_balance,
+        status: TransactionStatus.SUCCESS,
+        description: `Thanh toán quyết toán đơn hàng #${order.orderCode || order._id.toString().slice(-6)}`,
+      });
+
+      if (!order.pricing) order.pricing = {} as any;
+      order.pricing.deposit_amount = (Number(order.pricing.deposit_amount) || 0) + amount;
+    }
+
     order.pricing.settlement_status = SettlementStatus.SETTLED;
     order.payment.final_paid = true;
     order.status = OrderStatus.COMPLETED;
