@@ -44,6 +44,7 @@ import {
   Layers,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { formatRankDisplayVi } from '@/lib/riotRanks';
 import { getGameById, GAMES_CATALOG, getServiceMeta, LOL_PROMOTION_SERIES, PromotionTierItem } from '@/lib/games';
 import {
   LOL_RANK_STEPS,
@@ -655,6 +656,27 @@ function ServiceBookingContent() {
 
   // States cho Chuỗi Thăng Hạng (Promotion Series)
   const isPromotion = serviceSlug === 'promotion';
+  const isRankBoost = serviceSlug === 'rank-boost' || (!isPointBoost && !isPromotion);
+  const isRiotGame = ['lol', 'valorant', 'tft'].includes((game.id || '').toLowerCase());
+
+  // Tra cứu / Kiểm tra thông tin tài khoản Riot (Rank & LP)
+  const [accountCheckInput, setAccountCheckInput] = useState('');
+  const [isCheckingAccount, setIsCheckingAccount] = useState(false);
+  const [accountCheckError, setAccountCheckError] = useState('');
+  const [checkedAccount, setCheckedAccount] = useState<{
+    gameName: string;
+    tagLine: string;
+    riotId: string;
+    tier: string;
+    tierVi: string;
+    rank: string;
+    lp: number;
+    wins: number;
+    losses: number;
+    queueName: string;
+    isMock?: boolean;
+  } | null>(null);
+
   const [selectedPromoId, setSelectedPromoId] = useState<string>('promo_platinum_1');
   const selectedPromo = useMemo(() => {
     return LOL_PROMOTION_SERIES.find((p) => p.id === selectedPromoId) || LOL_PROMOTION_SERIES[4];
@@ -1150,6 +1172,164 @@ function ServiceBookingContent() {
     }
 
     setIsRankModalOpen(false);
+  };
+
+  // Tra cứu & Kiểm tra Rank & Điểm LP từ Riot Games API
+  const handleCheckAccountRank = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const nameToCheck = accountCheckInput.trim();
+    if (!nameToCheck) {
+      toast.error('Vui lòng nhập tên in-game và tagline (Ví dụ: Mary Tái Lâm #2003)');
+      return;
+    }
+
+    setIsCheckingAccount(true);
+    setAccountCheckError('');
+
+    const targetQueue = isValorant
+      ? 'COMPETITIVE'
+      : queueType === 'FLEX'
+      ? 'RANKED_FLEX_SR'
+      : 'RANKED_SOLO_5x5';
+
+    try {
+      const res = await fetch('/api/games/player', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          game: (game.id || 'LOL').toUpperCase(),
+          server: server || 'VN',
+          name: nameToCheck,
+          queueType: queueType || 'SOLO_DUO',
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || data.success === false) {
+        let errMsg = data.error || data.message || data.mockReason || 'Lỗi kiểm tra thông tin người chơi';
+        if (
+          errMsg.includes('RIOT_API_KEY') ||
+          errMsg.includes('developer.riotgames.com') ||
+          errMsg.includes('401') ||
+          errMsg.includes('403') ||
+          errMsg.includes('Unauthorized')
+        ) {
+          errMsg = 'Hệ thống đang bận. Vui lòng thử lại sau!';
+        }
+        setAccountCheckError(errMsg);
+        toast.error(errMsg);
+        return;
+      }
+
+      if (data.isMock) {
+        const mockMsg =
+          data.mockReason?.includes('RIOT_API_KEY') || data.mockReason?.includes('developer.riotgames.com')
+            ? 'Hệ thống đang bận. Vui lòng thử lại sau!'
+            : data.mockReason || 'Dữ liệu thử nghiệm';
+        toast.warning(`Chế độ giả lập (Mock): ${mockMsg}`);
+      }
+
+      const matchedLeague =
+        Array.isArray(data.leagues)
+          ? data.leagues.find((l: any) => l.queueType === targetQueue) || data.leagues[0]
+          : null;
+
+      const rawTier = (matchedLeague?.tier || 'UNRANKED').toUpperCase();
+      const rawRank = (matchedLeague?.rank || '').toUpperCase();
+      const rawLp = Number(matchedLeague?.leaguePoints ?? 0);
+      const wins = Number(matchedLeague?.wins ?? 0);
+      const losses = Number(matchedLeague?.losses ?? 0);
+      const tierVi = formatRankDisplayVi(rawTier);
+      const fullName = data.gameName ? `${data.gameName}#${data.tagLine}` : nameToCheck;
+
+      // 1. DỊCH VỤ RANK BOOST: Nếu mức rank > Cao Thủ (Master) -> Validate & Báo lỗi
+      if (isRankBoost) {
+        const isAboveMaster = ['GRANDMASTER', 'CHALLENGER'].includes(rawTier);
+        if (isAboveMaster) {
+          const errMsg = 'Vui lòng nhập ingame có mức Rank Cao Thủ trở xuống';
+          setAccountCheckError(`${errMsg} (Tài khoản hiện đang là ${tierVi})`);
+          toast.error(errMsg);
+          return;
+        }
+
+        // Rank <= Cao Thủ: Tự động cập nhật Bậc Rank hiện tại
+        const romanToNum: Record<string, string> = {
+          I: '1',
+          II: '2',
+          III: '3',
+          IV: '4',
+          '1': '1',
+          '2': '2',
+          '3': '3',
+          '4': '4',
+        };
+
+        let stepId = '';
+        if (rawTier === 'MASTER') {
+          stepId = 'MASTER';
+        } else if (rawTier !== 'UNRANKED') {
+          const divNumber = romanToNum[rawRank] || '4';
+          stepId = `${rawTier}_${divNumber}`;
+        }
+
+        const foundStep = activeRankSteps.find((s) => s.id === stepId);
+        if (foundStep) {
+          setCurrentRankId(foundStep.id);
+          const curIdx = activeRankSteps.findIndex((s) => s.id === foundStep.id);
+          const desIdx = activeRankSteps.findIndex((s) => s.id === desiredRankId);
+          if (desIdx <= curIdx) {
+            const nextIdx = Math.min(curIdx + 1, activeRankSteps.length - 1);
+            setDesiredRankId(activeRankSteps[nextIdx].id);
+          }
+        }
+
+        toast.success(
+          `Đã xác thực tài khoản: ${fullName} (${tierVi} ${rawRank} - ${rawLp} LP). Đã tự động cập nhật Rank hiện tại!`
+        );
+      }
+
+      // 2. DỊCH VỤ NET WINS / CÀY ĐIỂM (isPointBoost): Tự động điền điểm hiện tại & chọn phân khúc
+      if (isPointBoost || serviceSlug === 'net-wins') {
+        setCurrentPoints(rawLp);
+        if (desiredPoints <= rawLp) {
+          setDesiredPoints(rawLp + 100);
+        }
+
+        if (rawTier === 'MASTER') {
+          setSelectedPointSegment('master');
+        } else if (rawTier === 'GRANDMASTER') {
+          setSelectedPointSegment('grandmaster');
+        } else if (rawTier === 'CHALLENGER') {
+          setSelectedPointSegment('challenger');
+        }
+
+        toast.success(
+          `Đã xác thực tài khoản: ${fullName} (${tierVi} - ${rawLp} LP). Đã tự động điền vào Điểm hiện tại!`
+        );
+      }
+
+      // Đồng bộ vào thông tin tài khoản cần cày
+      setIngameAccount(fullName);
+      setCheckedAccount({
+        gameName: data.gameName || fullName,
+        tagLine: data.tagLine || '',
+        riotId: fullName,
+        tier: rawTier,
+        tierVi,
+        rank: rawRank,
+        lp: rawLp,
+        wins,
+        losses,
+        queueName: queueType === 'FLEX' ? 'Linh Hoạt' : 'Đơn / Đôi',
+        isMock: data.isMock,
+      });
+    } catch (err: any) {
+      const msg = err.message || 'Lỗi khi kiểm tra thông tin tài khoản';
+      setAccountCheckError(msg);
+      toast.error(msg);
+    } finally {
+      setIsCheckingAccount(false);
+    }
   };
 
   // Xử lý áp dụng mã giảm giá
@@ -1698,6 +1878,141 @@ function ServiceBookingContent() {
 
             {/* 2. KHỐI THIẾT KẾ MỚI: VISUAL RANK SELECTOR / POINT BOOSTER SELECTOR */}
             <div className="bg-zinc-900/60 border border-white/10 rounded-3xl p-6 sm:p-7 shadow-xl backdrop-blur-md space-y-6">
+              {/* KHỐI KIỂM TRA THÔNG TIN TÀI KHOẢN (RIOT GAMES: LOL / VALORANT / TFT CHO RANK BOOST & NET WINS) */}
+              {isRiotGame && (isRankBoost || isPointBoost || serviceSlug === 'net-wins') && (
+                <div className="p-4 sm:p-5 rounded-2xl bg-zinc-950/80 border border-blue-500/30 shadow-[0_0_25px_rgba(59,130,246,0.08)] space-y-4 relative overflow-hidden backdrop-blur-sm">
+                  <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-blue-500/60 to-transparent pointer-events-none" />
+
+                  {/* Header */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-xl bg-blue-500/10 border border-blue-500/30 flex items-center justify-center text-blue-400 shrink-0 shadow-inner">
+                        <ShieldCheck size={18} />
+                      </div>
+                      <div>
+                        <span className="text-xs sm:text-sm font-extrabold text-white flex items-center gap-2">
+                          Kiểm Tra Thông Tin Tài Khoản Riot
+                        </span>
+                        <p className="text-[11px] text-zinc-400 mt-0.5">
+                          Nhập Ingame # Tagline để tự động nhận diện bậc Rank & Điểm LP chính xác từ Riot Games
+                        </p>
+                      </div>
+                    </div>
+
+                    {checkedAccount && (
+                      <span className="px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 text-[10px] font-bold flex items-center gap-1 shrink-0 self-start sm:self-auto">
+                        <CheckCircle2 size={12} /> Đã đồng bộ thông tin
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Input & Button Tra cứu */}
+                  <form onSubmit={handleCheckAccountRank} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
+                    <div className="relative flex-1">
+                      <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-500 pointer-events-none">
+                        <Search size={16} />
+                      </div>
+                      <input
+                        type="text"
+                        value={accountCheckInput}
+                        onChange={(e) => {
+                          setAccountCheckInput(e.target.value);
+                          if (accountCheckError) setAccountCheckError('');
+                        }}
+                        placeholder="Ví dụ: Mary Tái Lâm #2003"
+                        className="w-full h-11 bg-zinc-900/90 border border-zinc-800 rounded-xl pl-10 pr-4 text-xs sm:text-sm text-white placeholder-zinc-500 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/30 transition-all font-medium"
+                      />
+                    </div>
+                    <button
+                      type="submit"
+                      disabled={isCheckingAccount || !accountCheckInput.trim()}
+                      className="h-11 px-5 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white font-bold text-xs shadow-lg shadow-blue-500/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-all active:scale-95 cursor-pointer shrink-0"
+                    >
+                      {isCheckingAccount ? (
+                        <>
+                          <Loader2 size={15} className="animate-spin" />
+                          <span>Đang kiểm tra...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Search size={15} />
+                          <span>Kiểm tra</span>
+                        </>
+                      )}
+                    </button>
+                  </form>
+
+                  {/* Thông báo lỗi validation nếu có */}
+                  {accountCheckError && (
+                    <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-center gap-2.5 animate-in fade-in duration-200">
+                      <AlertCircle size={16} className="text-rose-400 shrink-0" />
+                      <span className="font-semibold">{accountCheckError}</span>
+                    </div>
+                  )}
+
+                  {/* Card hiển thị kết quả kiểm tra thành công */}
+                  {checkedAccount && !accountCheckError && (
+                    <div className="p-3.5 sm:p-4 rounded-xl bg-zinc-900/90 border border-emerald-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 animate-in fade-in zoom-in-95 duration-200">
+                      <div className="flex items-center gap-3.5">
+                        <div className="w-12 h-12 rounded-xl bg-black/60 border border-white/10 flex items-center justify-center p-1 relative shadow-inner shrink-0">
+                          <img
+                            src={getRankImage(game.id, { tier: checkedAccount.tier, division: checkedAccount.rank })}
+                            alt={checkedAccount.tierVi}
+                            className="w-10 h-10 object-contain drop-shadow"
+                          />
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-sm font-black text-white">{checkedAccount.riotId}</span>
+                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-zinc-800 text-zinc-300 border border-zinc-700">
+                              {server || 'VN'}
+                            </span>
+                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-500/15 text-blue-400 border border-blue-500/30">
+                              {checkedAccount.queueName}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2 mt-1 text-xs text-zinc-400 flex-wrap">
+                            <span className="font-bold text-amber-400">
+                              {checkedAccount.tierVi} {checkedAccount.rank || ''}
+                            </span>
+                            <span>•</span>
+                            <span className="font-mono text-cyan-400 font-bold">{checkedAccount.lp} LP</span>
+                            {checkedAccount.wins + checkedAccount.losses > 0 && (
+                              <>
+                                <span>•</span>
+                                <span className="text-zinc-400">
+                                  {checkedAccount.wins}W / {checkedAccount.losses}L (
+                                  {Math.round((checkedAccount.wins / (checkedAccount.wins + checkedAccount.losses)) * 100)}%)
+                                </span>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between sm:justify-end gap-3 pt-2 sm:pt-0 border-t sm:border-t-0 border-zinc-800/80">
+                        <div className="text-[11px] text-emerald-400 font-medium flex items-center gap-1.5">
+                          <CheckCircle2 size={14} className="shrink-0" />
+                          <span>
+                            {isPointBoost ? 'Đã tự động điền Điểm hiện tại' : 'Đã tự động chọn Rank hiện tại'}
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCheckedAccount(null);
+                            setAccountCheckInput('');
+                          }}
+                          className="text-[11px] text-zinc-400 hover:text-white underline cursor-pointer ml-1"
+                        >
+                          Đổi ingame
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* TRƯỜNG HỢP 1: CÀY ĐIỂM (LP HOẶC RR THEO TỪNG PHÂN KHÚC HOẶC SAO CHO AOV) */}
               {isPointBoost ? (
                 <div className="space-y-5">
