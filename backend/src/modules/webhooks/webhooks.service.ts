@@ -53,7 +53,7 @@ export class WebhooksService {
     }
 
     const content = data.content || data.transferContent || '';
-    const regex = /ZT\s*([a-zA-Z0-9_\-\.]+)(?:\s+([a-zA-Z0-9]+))?/i;
+    const regex = /(?:ZT|LR)\s*([a-zA-Z0-9_\-\.]+)(?:\s+([a-zA-Z0-9]+))?/i;
     const match = content.match(regex);
 
     if (!match) {
@@ -127,7 +127,7 @@ export class WebhooksService {
         const u = tx.userId as any;
         if (u && u.username) {
           const uClean = u.username.toUpperCase().replace(/[^A-Z0-9]/g, '');
-          if (uClean && normalizedContent.includes(`ZT${uClean}`)) {
+          if (uClean && (normalizedContent.includes(`ZT${uClean}`) || normalizedContent.includes(`LR${uClean}`))) {
             user = u;
             break;
           }
@@ -142,7 +142,7 @@ export class WebhooksService {
       for (const c of candidates) {
         if (!c.username) continue;
         const cClean = c.username.toUpperCase().replace(/[^A-Z0-9]/g, '');
-        if (cClean && cClean.length >= 3 && normalizedContent.includes(`ZT${cClean}`)) {
+        if (cClean && cClean.length >= 3 && (normalizedContent.includes(`ZT${cClean}`) || normalizedContent.includes(`LR${cClean}`))) {
           user = c as any;
           break;
         }
