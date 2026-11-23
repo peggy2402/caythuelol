@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 
 interface PaymentInfo {
   bankId: string;
+  bankName?: string;
   accountNo: string;
   accountName: string;
   content: string;
@@ -67,9 +68,31 @@ export default function DepositModal({
       toast.error('Đang tải thông tin ngân hàng...');
       return;
     }
+
+    const bankId = bankConfig.bankId || bankConfig.bankName || 'MB';
+    const bankName = bankConfig.bankName || bankConfig.bankId || 'MB Bank';
+    const accountNo = bankConfig.accountNo || bankConfig.accountNumber || '';
+    const accountName = bankConfig.accountName || bankConfig.accountHolder || '';
+
+    if (!accountNo) {
+      toast.error('Hệ thống chưa cấu hình Số tài khoản nhận tiền. Vui lòng liên hệ Admin!');
+      return;
+    }
+
     const transferContent = `ZT${user.username.toUpperCase().replace(/\s/g, '')}`;
-    const qrUrl = `https://qr.sepay.vn/img?acc=${encodeURIComponent(bankConfig.accountNo)}&bank=${encodeURIComponent(bankConfig.bankId)}&amount=${amount}&des=${encodeURIComponent(transferContent)}`;
-    setPendingTx({ qrUrl, info: { ...bankConfig, content: transferContent, amount } });
+    const qrUrl = `https://qr.sepay.vn/img?acc=${encodeURIComponent(accountNo)}&bank=${encodeURIComponent(bankId)}&amount=${amount}&des=${encodeURIComponent(transferContent)}`;
+    setPendingTx({
+      qrUrl,
+      info: {
+        ...bankConfig,
+        bankId,
+        bankName,
+        accountNo,
+        accountName,
+        content: transferContent,
+        amount,
+      },
+    });
   };
 
   const handleConfirmTransfer = async () => {
@@ -201,13 +224,30 @@ export default function DepositModal({
           ) : (
             <div className="space-y-4 animate-fade-in">
               <div className="bg-white p-3 rounded-2xl flex justify-center shadow-inner">
-                <img src={pendingTx.qrUrl} alt="VietQR" className="w-full max-w-[200px] object-contain" />
+                <img
+                  src={pendingTx.qrUrl}
+                  alt="VietQR"
+                  className="w-full max-w-[200px] object-contain"
+                  onError={(e) => {
+                    const target = e.currentTarget;
+                    if (!target.dataset.fallback) {
+                      target.dataset.fallback = 'true';
+                      target.src = `https://img.vietqr.io/image/${encodeURIComponent(pendingTx.info.bankId)}-${encodeURIComponent(pendingTx.info.accountNo)}-compact2.png?amount=${pendingTx.info.amount}&addInfo=${encodeURIComponent(pendingTx.info.content)}`;
+                    }
+                  }}
+                />
               </div>
               <div className="space-y-2.5 text-xs">
                 <div className="flex justify-between items-center p-3 bg-zinc-950 rounded-xl border border-zinc-800">
                   <span className="text-zinc-500">Ngân hàng</span>
-                  <span className="font-bold text-white">MB Bank</span>
+                  <span className="font-bold text-white">{(pendingTx.info as any).bankName || pendingTx.info.bankId}</span>
                 </div>
+                {pendingTx.info.accountName && (
+                  <div className="flex justify-between items-center p-3 bg-zinc-950 rounded-xl border border-zinc-800">
+                    <span className="text-zinc-500">Chủ tài khoản</span>
+                    <span className="font-bold text-white uppercase">{pendingTx.info.accountName}</span>
+                  </div>
+                )}
                 <div className="flex justify-between items-center p-3 bg-zinc-950 rounded-xl border border-zinc-800">
                   <span className="text-zinc-500">Số tài khoản</span>
                   <div className="flex items-center gap-2">

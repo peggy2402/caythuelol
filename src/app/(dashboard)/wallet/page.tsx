@@ -24,6 +24,7 @@ interface Transaction {
 
 interface PaymentInfo {
   bankId: string;
+  bankName?: string;
   accountNo: string;
   accountName: string;
   content: string;
@@ -236,19 +237,30 @@ export default function WalletPage() {
       return;
     }
 
+    const bankId = bankConfig.bankId || bankConfig.bankName || 'MB';
+    const bankName = bankConfig.bankName || bankConfig.bankId || 'MB Bank';
+    const accountNo = bankConfig.accountNo || bankConfig.accountNumber || '';
+    const accountName = bankConfig.accountName || bankConfig.accountHolder || '';
+
+    if (!accountNo) {
+      toast.error('Hệ thống chưa cấu hình Số tài khoản nhận tiền. Vui lòng liên hệ Admin!');
+      return;
+    }
+
     // Tạo nội dung chuyển khoản: ZT<USERNAME> (Viết liền, không dấu cách để khớp SePay)
     const transferContent = `ZT${currentUser.username.toUpperCase().replace(/\s/g, '')}`;
     
     // Tạo link SePay QR Client-side
     // Format: https://qr.sepay.vn/img?acc=SO_TAI_KHOAN&bank=NGAN_HANG&amount=SO_TIEN&des=NOI_DUNG
-    const qrUrl = `https://qr.sepay.vn/img?acc=${encodeURIComponent(bankConfig.accountNo)}&bank=${encodeURIComponent(bankConfig.bankId)}&amount=${amount}&des=${encodeURIComponent(transferContent)}`;
+    const qrUrl = `https://qr.sepay.vn/img?acc=${encodeURIComponent(accountNo)}&bank=${encodeURIComponent(bankId)}&amount=${amount}&des=${encodeURIComponent(transferContent)}`;
 
     setPendingTx({
       qrUrl,
       info: {
-        bankId: bankConfig.bankId,
-        accountNo: bankConfig.accountNo,
-        accountName: bankConfig.accountName,
+        bankId,
+        bankName,
+        accountNo,
+        accountName,
         content: transferContent,
         amount: amount
       }
@@ -703,14 +715,31 @@ export default function WalletPage() {
               ) : (
                 <div className="space-y-5 animate-fade-in">
                   <div className="bg-white p-4 rounded-xl flex justify-center shadow-inner">
-                    <img src={pendingTx.qrUrl} alt="VietQR" className="w-full max-w-[220px] object-contain" />
+                    <img
+                      src={pendingTx.qrUrl}
+                      alt="VietQR"
+                      className="w-full max-w-[220px] object-contain"
+                      onError={(e) => {
+                        const target = e.currentTarget;
+                        if (!target.dataset.fallback) {
+                          target.dataset.fallback = 'true';
+                          target.src = `https://img.vietqr.io/image/${encodeURIComponent(pendingTx.info.bankId)}-${encodeURIComponent(pendingTx.info.accountNo)}-compact2.png?amount=${pendingTx.info.amount}&addInfo=${encodeURIComponent(pendingTx.info.content)}`;
+                        }
+                      }}
+                    />
                   </div>
                   
                   <div className="space-y-3 text-sm">
                     <div className="flex justify-between items-center p-3 bg-zinc-950 rounded-lg border border-zinc-800">
                       <span className="text-zinc-400">Ngân hàng</span>
-                      <span className="font-bold text-white">MB Bank</span>
+                      <span className="font-bold text-white">{(pendingTx.info as any).bankName || pendingTx.info.bankId}</span>
                     </div>
+                    {pendingTx.info.accountName && (
+                      <div className="flex justify-between items-center p-3 bg-zinc-950 rounded-lg border border-zinc-800">
+                        <span className="text-zinc-400">Chủ tài khoản</span>
+                        <span className="font-bold text-white uppercase">{pendingTx.info.accountName}</span>
+                      </div>
+                    )}
                     <div className="flex justify-between items-center p-3 bg-zinc-950 rounded-lg border border-zinc-800">
                       <span className="text-zinc-400">Số tài khoản</span>
                       <div className="flex items-center gap-2">

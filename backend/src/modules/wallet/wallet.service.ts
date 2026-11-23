@@ -33,13 +33,25 @@ export class WalletService {
       this.settingModel.findOne({ key: 'ADMIN_BANK_INFO' }).lean(),
     ]);
 
+    const rawBank = adminBankSetting?.value || null;
+    const normalizedBankInfo = rawBank
+      ? {
+          bankId: rawBank.bankId || rawBank.bankName || 'MB',
+          bankName: rawBank.bankName || rawBank.bankId || 'MB Bank',
+          accountNo: rawBank.accountNo || rawBank.accountNumber || '',
+          accountNumber: rawBank.accountNumber || rawBank.accountNo || '',
+          accountName: rawBank.accountName || rawBank.accountHolder || '',
+          accountHolder: rawBank.accountHolder || rawBank.accountName || '',
+        }
+      : null;
+
     return {
       success: true,
       balance: user.wallet_balance || 0,
       availableBalance: Math.max(0, user.wallet_balance || 0),
       pendingBalance: user.pending_balance || 0,
       userBankInfo: user.profile?.bank_info || null,
-      bankInfo: adminBankSetting?.value || null,
+      bankInfo: normalizedBankInfo,
       transactions,
       pagination: {
         page,

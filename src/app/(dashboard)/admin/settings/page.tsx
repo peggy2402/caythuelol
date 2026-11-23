@@ -39,7 +39,14 @@ export default function AdminSettingsPage() {
   // State cho Riot API Key
   const [riotApiKey, setRiotApiKey] = useState('');
   // State cho tài khoản ngân hàng Admin
-  const [adminBankInfo, setAdminBankInfo] = useState({ bankName: '', accountNumber: '', accountHolder: '' });
+  const [adminBankInfo, setAdminBankInfo] = useState<{
+    bankName: string;
+    bankId?: string;
+    accountNumber: string;
+    accountNo?: string;
+    accountHolder: string;
+    accountName?: string;
+  }>({ bankName: '', accountNumber: '', accountHolder: '' });
   // State danh sách ngân hàng
   const [banks, setBanks] = useState<Bank[]>([]);
   // State cho dropdown tìm kiếm ngân hàng
@@ -102,7 +109,15 @@ export default function AdminSettingsPage() {
 
           const abi = data.find((s: SystemSetting) => s.key === 'ADMIN_BANK_INFO');
           if (abi) {
-            setAdminBankInfo(abi.value || { bankName: '', accountNumber: '', accountHolder: '' });
+            const raw = abi.value || {};
+            setAdminBankInfo({
+              bankName: raw.bankName || raw.bankId || '',
+              bankId: raw.bankId || raw.bankName || '',
+              accountNumber: raw.accountNumber || raw.accountNo || '',
+              accountNo: raw.accountNo || raw.accountNumber || '',
+              accountHolder: raw.accountHolder || raw.accountName || '',
+              accountName: raw.accountName || raw.accountHolder || '',
+            });
           }
 
           const brc = data.find((s: SystemSetting) => s.key === 'booster_registration_config');
@@ -148,7 +163,18 @@ export default function AdminSettingsPage() {
         saveSetting('WITHDRAWAL_LOCK_HOURS', withdrawalLockHours, 'Thời gian (giờ) tạm giữ tiền sau khi hoàn thành đơn'),
         saveSetting('maintenance_mode', maintenanceMode, 'Chế độ bảo trì hệ thống'),
         saveSetting('banner_config', bannerConfig, 'Cấu hình Banner trang chủ'),
-        saveSetting('ADMIN_BANK_INFO', adminBankInfo, 'Tài khoản ngân hàng của Admin'),
+        saveSetting(
+          'ADMIN_BANK_INFO',
+          {
+            bankName: adminBankInfo.bankName,
+            bankId: adminBankInfo.bankId || adminBankInfo.bankName,
+            accountNumber: adminBankInfo.accountNumber,
+            accountNo: adminBankInfo.accountNumber,
+            accountHolder: adminBankInfo.accountHolder,
+            accountName: adminBankInfo.accountHolder,
+          },
+          'Tài khoản ngân hàng của Admin'
+        ),
         saveSetting('booster_registration_config', boosterRegConfig, 'Cấu hình đăng ký Booster (Cọc/Free)'),
         saveSetting('HANDOVER_TIMEOUT_MINUTES', handoverTimeoutMinutes, 'Thời gian (phút) chờ Booster chỉ định nhận đơn trước khi tự động chuyển giao về Sàn công khai'),
         fetch('/api/admin/settings/riot', {
@@ -419,7 +445,11 @@ export default function AdminSettingsPage() {
                           <button
                             key={bank.id}
                             onClick={() => {
-                              setAdminBankInfo({...adminBankInfo, bankName: bank.shortName});
+                              setAdminBankInfo({
+                                ...adminBankInfo,
+                                bankName: bank.shortName,
+                                bankId: bank.bin || bank.shortName,
+                              });
                               setOpenBankDropdown(false);
                               setBankSearchTerm('');
                             }}
