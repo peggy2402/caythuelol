@@ -4,6 +4,58 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Gamepad2, ArrowUpRight, ArrowRight, ChevronRight } from 'lucide-react';
 import { getOrderStatusInfo, formatServiceNameVi } from '@/lib/orderStatus';
+import { GAMES_CATALOG, GameDefinition } from '@/lib/games';
+import { formatRankDisplayVi } from '@/lib/riotRanks';
+
+function getGameMeta(gameCode?: string) {
+  const code = (gameCode || 'LOL').toUpperCase();
+  const game = GAMES_CATALOG.find((g: GameDefinition) => g.id.toUpperCase() === code);
+  if (game) {
+    return {
+      name: game.name,
+      shortName: game.shortName,
+      accentColor: game.accentColor || '#06b6d4',
+    };
+  }
+  return {
+    name: code,
+    shortName: code,
+    accentColor: '#3b82f6',
+  };
+}
+
+function resolveServiceName(order: Order): string {
+  const rawCandidate = order.snapshot?.serviceName || order.serviceType || order.snapshot?.serviceSlug;
+  const isRawEnum = /^(NET_WINS|RANK_BOOST|PLACEMENT|PLACEMENTS|PROMOTION|CHAMPION_RANK|MASTERY|CHAMPION_MASTERY|POINT_BOOST|COACHING|LEVELING|ONBET)$/i.test(
+    (rawCandidate || '').trim()
+  );
+
+  if (order.snapshot?.serviceName && !isRawEnum) {
+    return order.snapshot.serviceName;
+  }
+  return formatServiceNameVi(rawCandidate, order.details);
+}
+
+function resolveOrderObjective(order: Order): string | null {
+  const current = order.snapshot?.initialState?.rankLabel || order.details?.current_rank;
+  const desired = order.snapshot?.targetState?.rankLabel || order.details?.desired_rank;
+
+  if (current && desired) {
+    const formattedCurrent = formatRankDisplayVi(current);
+    const formattedDesired = formatRankDisplayVi(desired);
+    return `${formattedCurrent} → ${formattedDesired}`;
+  }
+  if (order.details?.net_wins) {
+    return `Mục tiêu: +${order.details.net_wins} trận thắng ròng`;
+  }
+  if (order.details?.placement_matches) {
+    return `Mục tiêu: ${order.details.placement_matches} trận phân hạng`;
+  }
+  if (desired) {
+    return `Mục tiêu: ${formatRankDisplayVi(desired)}`;
+  }
+  return null;
+}
 
 export interface Order {
   _id: string;
@@ -116,9 +168,36 @@ export default function RecentOrdersTable({ orders }: RecentOrdersTableProps) {
 
                     <div className="flex items-center justify-between text-xs">
                       <span className="text-zinc-500">Dịch vụ</span>
-                      <span className="font-semibold text-zinc-200">
-                        {order.snapshot?.serviceName || formatServiceNameVi(order.serviceType, order.details)}
-                      </span>
+                      {(() => {
+                        const gameCode = order.snapshot?.gameCode || order.details?.game || 'LOL';
+                        const gameMeta = getGameMeta(gameCode);
+                        const serviceName = resolveServiceName(order);
+                        const objective = resolveOrderObjective(order);
+                        return (
+                          <div className="text-right">
+                            <div className="flex items-center justify-end gap-1.5">
+                              <span
+                                className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider border shadow-sm"
+                                style={{
+                                  backgroundColor: `${gameMeta.accentColor}15`,
+                                  color: gameMeta.accentColor,
+                                  borderColor: `${gameMeta.accentColor}40`,
+                                }}
+                              >
+                                {gameMeta.shortName}
+                              </span>
+                              <span className="font-semibold text-zinc-200">
+                                {serviceName}
+                              </span>
+                            </div>
+                            {objective && (
+                              <div className="text-[11px] text-cyan-400 font-medium mt-0.5">
+                                {objective}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </div>
 
                     <div className="flex items-center justify-between text-xs">
@@ -144,7 +223,7 @@ export default function RecentOrdersTable({ orders }: RecentOrdersTableProps) {
                   <tr>
                     <th className="px-6 py-4 font-bold">Mã Đơn</th>
                     <th className="px-6 py-4 font-bold">Dịch Vụ Cày</th>
-                    <th className="px-6 py-4 font-bold">Trạng Thái Ký Quỹ</th>
+                    <th className="px-6 py-4 font-bold">Trạng Thái Đơn Hàng</th>
                     <th className="px-6 py-4 font-bold">Tổng Chi Phí</th>
                     <th className="px-6 py-4 font-bold">Ngày Khởi Tạo</th>
                     <th className="px-6 py-4 text-right"><span className="sr-only">Thao tác</span></th>
@@ -168,14 +247,36 @@ export default function RecentOrdersTable({ orders }: RecentOrdersTableProps) {
                           #{order.orderCode || order._id.slice(-6).toUpperCase()}
                         </td>
                         <td className="px-6 py-4">
-                          <div className="font-bold text-zinc-200">
-                            {order.snapshot?.serviceName || formatServiceNameVi(order.serviceType, order.details)}
-                          </div>
-                          {order.snapshot?.initialState?.rankLabel && order.snapshot?.targetState?.rankLabel && (
-                            <div className="text-[11px] text-zinc-500">
-                              {order.snapshot.initialState.rankLabel} → {order.snapshot.targetState.rankLabel}
-                            </div>
-                          )}
+                          {(() => {
+                            const gameCode = order.snapshot?.gameCode || order.details?.game || 'LOL';
+                            const gameMeta = getGameMeta(gameCode);
+                            const serviceName = resolveServiceName(order);
+                            const objective = resolveOrderObjective(order);
+                            return (
+                              <div>
+                                <div className="flex items-center gap-2 mb-1">
+                                  <span
+                                    className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border shadow-sm"
+                                    style={{
+                                      backgroundColor: `${gameMeta.accentColor}15`,
+                                      color: gameMeta.accentColor,
+                                      borderColor: `${gameMeta.accentColor}40`,
+                                    }}
+                                  >
+                                    {gameMeta.shortName}
+                                  </span>
+                                  <span className="font-bold text-zinc-100 text-xs sm:text-sm">
+                                    {serviceName}
+                                  </span>
+                                </div>
+                                {objective && (
+                                  <div className="text-[11px] text-cyan-400 font-medium pl-0.5">
+                                    {objective}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })()}
                         </td>
                         <td className="px-6 py-4">
                           <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-bold border ${s.bg}`}>
