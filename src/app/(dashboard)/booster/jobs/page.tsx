@@ -611,7 +611,7 @@ export default function JobMarketPage() {
               <div className="flex items-center justify-between text-zinc-300">
                 <span className="text-zinc-500">Dịch vụ:</span>
                 <span className="font-semibold text-cyan-300">
-                  {rejectModal.job.snapshot?.gameCode || 'Game'} • {formatServiceTypeVi(rejectModal.job.serviceType, rejectModal.job.details)}
+                  {getGameById(rejectModal.job.snapshot?.gameCode || rejectModal.job.details?.game || 'LOL')?.name || 'League of Legends'} • {formatServiceTypeVi(rejectModal.job.serviceType, rejectModal.job.details)}
                 </span>
               </div>
               <div className="flex items-center justify-between text-zinc-300">
@@ -711,7 +711,7 @@ export default function JobMarketPage() {
               <div className="flex items-center justify-between text-zinc-300">
                 <span className="text-zinc-500">Dịch vụ:</span>
                 <span className="font-semibold text-cyan-300">
-                  {acceptModal.job.snapshot?.gameCode || 'Game'} • {formatServiceTypeVi(acceptModal.job.serviceType, acceptModal.job.details)}
+                  {getGameById(acceptModal.job.snapshot?.gameCode || acceptModal.job.details?.game || 'LOL')?.name || 'League of Legends'} • {formatServiceTypeVi(acceptModal.job.serviceType, acceptModal.job.details)}
                 </span>
               </div>
               {acceptModal.job.details && (acceptModal.job.details.current_rank || acceptModal.job.details.promo_from || acceptModal.job.details.is_point_boost) && (

@@ -2726,8 +2726,8 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
               </div>
               <div className="flex items-center justify-between text-zinc-300">
                 <span className="text-zinc-500">Dịch vụ:</span>
-                <span className="font-semibold text-blue-300">
-                  {order.snapshot?.gameCode || 'Game'} • {order.serviceType}
+                <span className="font-semibold text-blue-300 text-right">
+                  {getGameMeta(order.snapshot?.gameCode || order.details?.game || 'LOL').name} • {formatServiceName(order.serviceType || order.snapshot?.serviceSlug, order.details)}
                 </span>
               </div>
               <div className="flex items-center justify-between text-zinc-300">
