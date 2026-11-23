@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { CreditCard, XCircle, CheckCircle2, AlertCircle, ShieldCheck, Copy, ArrowRight, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -46,6 +46,18 @@ export default function DepositModal({
 }: DepositModalProps) {
   const [depositAmount, setDepositAmount] = useState('');
   const [isDepositing, setIsDepositing] = useState(false);
+
+  // Đóng modal bằng phím ESC trên PC
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        handleCloseModal();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -123,8 +135,20 @@ export default function DepositModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-200">
-      <div className="bg-zinc-900 border border-zinc-800 rounded-3xl w-full max-w-md shadow-2xl animate-in zoom-in-95 duration-200 overflow-hidden">
+    <div
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) handleCloseModal();
+      }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) handleCloseModal();
+      }}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-200 overflow-y-auto cursor-pointer"
+    >
+      <div
+        onMouseDown={(e) => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
+        className="bg-zinc-900 border border-zinc-800 rounded-3xl w-full max-w-md shadow-2xl animate-in zoom-in-95 duration-200 overflow-hidden cursor-default"
+      >
         <div className="p-5 border-b border-zinc-800 flex justify-between items-center bg-zinc-950">
           <h3 className="text-base font-bold text-white flex items-center gap-2">
             <CreditCard className="w-5 h-5 text-cyan-400" />

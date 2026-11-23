@@ -170,6 +170,24 @@ function GameServicesContent() {
   // Modal Thuê Tuyển Thủ: State tuyển thủ đang được chọn để mở danh sách dịch vụ
   const [selectedBoosterForHire, setSelectedBoosterForHire] = useState<BoosterItem | null>(null);
 
+  // Lắng nghe phím ESC & Khóa cuộn trang khi mở Modal chọn dịch vụ tuyển thủ
+  useEffect(() => {
+    if (!selectedBoosterForHire) return;
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setSelectedBoosterForHire(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [selectedBoosterForHire]);
+
   // 1. Fetch Services cho Game từ backend API thực tế
   useEffect(() => {
     const fetchServices = async () => {
@@ -760,8 +778,20 @@ function GameServicesContent() {
 
         {/* Modal Chọn Dịch Vụ Tuyển Thủ Cung Cấp */}
         {selectedBoosterForHire && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
-            <div className="relative w-full max-w-2xl bg-[#0f0f12] border border-white/10 rounded-3xl p-6 sm:p-7 shadow-2xl flex flex-col max-h-[90vh]">
+          <div
+            onMouseDown={(e) => {
+              if (e.target === e.currentTarget) setSelectedBoosterForHire(null);
+            }}
+            onClick={(e) => {
+              if (e.target === e.currentTarget) setSelectedBoosterForHire(null);
+            }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200 overflow-y-auto cursor-pointer"
+          >
+            <div
+              onMouseDown={(e) => e.stopPropagation()}
+              onClick={(e) => e.stopPropagation()}
+              className="relative w-full max-w-2xl bg-[#0f0f12] border border-white/10 rounded-3xl p-6 sm:p-7 shadow-2xl flex flex-col max-h-[90vh] cursor-default"
+            >
               {/* Header */}
               <div className="flex items-start justify-between gap-4 pb-4 border-b border-white/10">
                 <div className="flex items-center gap-3 min-w-0">

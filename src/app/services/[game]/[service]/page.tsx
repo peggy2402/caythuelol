@@ -735,6 +735,40 @@ function ServiceBookingContent() {
     };
   };
 
+  // Lắng nghe phím ESC & Khóa cuộn trang khi mở bất kỳ Modal nào trên PC
+  useEffect(() => {
+    const isAnyModalOpen = isRankModalOpen || isServerModalOpen || isAccountTypeModalOpen || isBoosterModalOpen;
+    if (!isAnyModalOpen) return;
+
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (isBoosterModalOpen) {
+          setIsBoosterModalOpen(false);
+          setBoosterSearchTerm('');
+        }
+        if (isRankModalOpen) {
+          setIsRankModalOpen(false);
+        }
+        if (isServerModalOpen) {
+          setIsServerModalOpen(false);
+          setServerSearchTerm('');
+        }
+        if (isAccountTypeModalOpen) {
+          setIsAccountTypeModalOpen(false);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isRankModalOpen, isServerModalOpen, isAccountTypeModalOpen, isBoosterModalOpen]);
+
   // Fetch phí sàn từ cấu hình hệ thống
   useEffect(() => {
     fetch('/api/settings/platform-fee')
@@ -3284,8 +3318,13 @@ function ServiceBookingContent() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.2, ease: 'easeOut' }}
-              className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4"
-              onClick={() => setIsRankModalOpen(false)}
+              className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto cursor-pointer"
+              onMouseDown={(e) => {
+                if (e.target === e.currentTarget) setIsRankModalOpen(false);
+              }}
+              onClick={(e) => {
+                if (e.target === e.currentTarget) setIsRankModalOpen(false);
+              }}
             >
               <motion.div
                 key="rank-modal-panel"
@@ -3293,7 +3332,8 @@ function ServiceBookingContent() {
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 12, scale: 0.96 }}
                 transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-                className="bg-[#0e1017] border border-white/10 rounded-3xl p-5 sm:p-6 max-w-xl w-full shadow-2xl space-y-4 relative max-h-[92vh] flex flex-col will-change-transform"
+                className="bg-[#0e1017] border border-white/10 rounded-3xl p-5 sm:p-6 max-w-xl w-full shadow-2xl space-y-4 relative max-h-[92vh] flex flex-col will-change-transform cursor-default"
+                onMouseDown={(e) => e.stopPropagation()}
                 onClick={(e) => e.stopPropagation()}
               >
               {/* Header Modal */}
@@ -3566,10 +3606,18 @@ function ServiceBookingContent() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.2, ease: 'easeOut' }}
-              className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4"
-              onClick={() => {
-                setIsServerModalOpen(false);
-                setServerSearchTerm('');
+              className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto cursor-pointer"
+              onMouseDown={(e) => {
+                if (e.target === e.currentTarget) {
+                  setIsServerModalOpen(false);
+                  setServerSearchTerm('');
+                }
+              }}
+              onClick={(e) => {
+                if (e.target === e.currentTarget) {
+                  setIsServerModalOpen(false);
+                  setServerSearchTerm('');
+                }
               }}
             >
               <motion.div
@@ -3578,7 +3626,8 @@ function ServiceBookingContent() {
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 12, scale: 0.96 }}
                 transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-                className="bg-[#0e1017] border border-white/10 rounded-3xl p-5 sm:p-6 max-w-xl w-full shadow-2xl space-y-4 relative max-h-[90vh] flex flex-col will-change-transform"
+                className="bg-[#0e1017] border border-white/10 rounded-3xl p-5 sm:p-6 max-w-xl w-full shadow-2xl space-y-4 relative max-h-[90vh] flex flex-col will-change-transform cursor-default"
+                onMouseDown={(e) => e.stopPropagation()}
                 onClick={(e) => e.stopPropagation()}
               >
               {/* Header */}
@@ -3721,8 +3770,13 @@ function ServiceBookingContent() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.2, ease: 'easeOut' }}
-              className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4"
-              onClick={() => setIsAccountTypeModalOpen(false)}
+              className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto cursor-pointer"
+              onMouseDown={(e) => {
+                if (e.target === e.currentTarget) setIsAccountTypeModalOpen(false);
+              }}
+              onClick={(e) => {
+                if (e.target === e.currentTarget) setIsAccountTypeModalOpen(false);
+              }}
             >
               <motion.div
                 key="account-type-modal-panel"
@@ -3730,7 +3784,8 @@ function ServiceBookingContent() {
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 12, scale: 0.96 }}
                 transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-                className="bg-[#0e1017] border border-white/10 rounded-3xl p-5 sm:p-6 max-w-lg w-full shadow-2xl space-y-4 relative max-h-[90vh] flex flex-col will-change-transform"
+                className="bg-[#0e1017] border border-white/10 rounded-3xl p-5 sm:p-6 max-w-lg w-full shadow-2xl space-y-4 relative max-h-[90vh] flex flex-col will-change-transform cursor-default"
+                onMouseDown={(e) => e.stopPropagation()}
                 onClick={(e) => e.stopPropagation()}
               >
               {/* Header */}
@@ -3834,10 +3889,18 @@ function ServiceBookingContent() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.2, ease: 'easeOut' }}
-              className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4"
-              onClick={() => {
-                setIsBoosterModalOpen(false);
-                setBoosterSearchTerm('');
+              className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto cursor-pointer"
+              onMouseDown={(e) => {
+                if (e.target === e.currentTarget) {
+                  setIsBoosterModalOpen(false);
+                  setBoosterSearchTerm('');
+                }
+              }}
+              onClick={(e) => {
+                if (e.target === e.currentTarget) {
+                  setIsBoosterModalOpen(false);
+                  setBoosterSearchTerm('');
+                }
               }}
             >
               <motion.div
@@ -3846,7 +3909,8 @@ function ServiceBookingContent() {
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 12, scale: 0.96 }}
                 transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-                className="bg-[#0e1017] border border-white/10 rounded-3xl p-5 sm:p-6 max-w-lg w-full shadow-2xl space-y-4 relative max-h-[90vh] flex flex-col will-change-transform"
+                className="bg-[#0e1017] border border-white/10 rounded-3xl p-5 sm:p-6 max-w-lg w-full shadow-2xl space-y-4 relative max-h-[90vh] flex flex-col will-change-transform cursor-default"
+                onMouseDown={(e) => e.stopPropagation()}
                 onClick={(e) => e.stopPropagation()}
               >
               {/* Modal Header */}
