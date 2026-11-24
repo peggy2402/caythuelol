@@ -4399,7 +4399,7 @@ function ServiceBookingContent() {
                   </div>
 
                   {/* Region Filter Chips */}
-                  <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none shrink-0">
+                  <div className="flex flex-wrap items-center gap-1.5 shrink-0">
                     {serverRegions.map((reg) => (
                       <button
                         key={reg}

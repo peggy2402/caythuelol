@@ -160,7 +160,7 @@ export default function BoosterRankShowcase({
             <span>Chọn tựa game để xem chi tiết rank:</span>
             <span className="text-zinc-500">{gamesList.length} game đã xác thực</span>
           </div>
-          <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
+          <div className="flex flex-wrap gap-2">
             {gamesList.map((g) => {
               const code = g.gameCode.toUpperCase();
               const isSelected = activeCode.toUpperCase() === code;

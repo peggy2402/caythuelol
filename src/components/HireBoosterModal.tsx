@@ -235,7 +235,7 @@ export default function HireBoosterModal({
             exit={{ opacity: 0, y: 20, scale: 0.97 }}
             transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
             onClick={(e) => e.stopPropagation()}
-            className="relative w-full max-w-3xl bg-[#0B0F1A] border-t sm:border border-white/[0.09] rounded-t-3xl sm:rounded-2xl shadow-[0_24px_80px_rgba(0,0,0,0.75)] flex flex-col max-h-[92dvh] sm:max-h-[86vh] overflow-hidden will-change-transform"
+            className="relative w-full max-w-4xl bg-[#0B0F1A] border-t sm:border border-white/[0.09] rounded-t-3xl sm:rounded-2xl shadow-[0_24px_80px_rgba(0,0,0,0.75)] flex flex-col max-h-[92dvh] sm:max-h-[88vh] overflow-hidden will-change-transform"
           >
         {/* Subtle top accent line */}
         <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-blue-500/60 to-transparent pointer-events-none" />
@@ -317,7 +317,7 @@ export default function HireBoosterModal({
               )}
             </div>
 
-            <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
+            <div className="flex flex-wrap items-center gap-2 max-h-40 overflow-y-auto custom-dark-scrollbar p-1 -m-1">
               {availableGames.map((game) => {
                 const isSelected = game.id === currentGame?.id;
                 const svcCount = (customServices || []).filter(
@@ -332,10 +332,10 @@ export default function HireBoosterModal({
                     key={game.id}
                     type="button"
                     onClick={() => setSelectedGameId(game.id)}
-                    className={`group/game flex items-center gap-2.5 pl-2 pr-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all duration-150 border cursor-pointer shrink-0 ${
+                    className={`group/game flex items-center gap-2 pl-2 pr-2.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all duration-150 border cursor-pointer ${
                       isSelected
-                        ? 'bg-blue-600/20 text-white border-blue-500/60 shadow-[0_0_20px_rgba(37,99,235,0.18)]'
-                        : 'bg-white/[0.03] text-zinc-400 border-white/[0.07] hover:text-zinc-200 hover:bg-white/[0.06] hover:border-white/[0.14]'
+                        ? 'bg-blue-600/20 text-white border-blue-500/70 shadow-[0_0_16px_rgba(37,99,235,0.22)] ring-1 ring-blue-500/30'
+                        : 'bg-white/[0.03] text-zinc-400 border-white/[0.08] hover:text-zinc-100 hover:bg-white/[0.07] hover:border-white/[0.16]'
                     }`}
                   >
                     <div className="relative w-6 h-6 rounded-lg overflow-hidden bg-zinc-800 ring-1 ring-white/15 shrink-0">
@@ -368,7 +368,7 @@ export default function HireBoosterModal({
                         isSelected
                           ? 'bg-blue-500 text-white'
                           : svcCount > 0
-                          ? 'bg-white/[0.07] text-zinc-300'
+                          ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/25'
                           : 'bg-white/[0.04] text-zinc-500'
                       }`}
                     >

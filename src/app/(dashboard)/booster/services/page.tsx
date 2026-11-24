@@ -1139,8 +1139,8 @@ export default function BoosterServicesStudio() {
                     </div>
                 </div>
 
-                {/* Quick Chips Bar: Vẫn giữ thanh phím tắt chuyển nhanh có thể click trực tiếp */}
-                <div className="p-1.5 bg-zinc-950/80 border border-zinc-800 rounded-2xl flex items-center gap-2 overflow-x-auto no-scrollbar scroll-smooth">
+                {/* Quick Chips Bar: Tự động xuống dòng gọn gàng để không bị cắt mất tựa game */}
+                <div className="p-2.5 bg-zinc-950/80 border border-zinc-800 rounded-2xl flex flex-wrap items-center gap-2">
                   {selectedGames.map((gCode) => {
                     const gObj = GAMES_CATALOG.find((g) => g.id.toUpperCase() === gCode);
                     const isActive = activeGameCode === gCode;

@@ -171,7 +171,7 @@ export default function OrdersPage() {
 
       {/* Filter Tabs */}
       {orders.length > 0 && (
-        <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
+        <div className="flex flex-wrap items-center gap-2">
           {filterOptions.map(option => (
             <button
               key={option.id}
