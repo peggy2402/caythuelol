@@ -33,6 +33,8 @@ import { RankingModule } from './modules/ranking/ranking.module';
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({
         uri: configService.get<string>('MONGODB_URI'),
+        family: 4,
+        serverSelectionTimeoutMS: 10000,
       }),
       inject: [ConfigService],
     }),

@@ -1,9 +1,21 @@
+import * as dns from 'dns';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe, Logger } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import * as cookieParser from 'cookie-parser';
 import { json, urlencoded } from 'express';
+
+// Khắc phục lỗi querySrv ECONNREFUSED của Node.js (c-ares) trên Windows/ISP khi phân giải mongodb+srv://
+if (process.env.MONGODB_DNS_SERVERS || process.env.NODE_ENV !== 'production') {
+  const dnsServers = (process.env.MONGODB_DNS_SERVERS || '8.8.8.8,1.1.1.1')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+  if (dnsServers.length > 0) {
+    dns.setServers(dnsServers);
+  }
+}
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
