@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Image from 'next/image';
 import { Trophy, Shield, Sparkles, Flame, Award, Zap } from 'lucide-react';
 import { GAMES_CATALOG } from '@/lib/games';
+import { getAovRankImageByInput } from '@/lib/aov';
 
 interface BoosterGameItem {
   gameCode: string;
@@ -41,17 +42,11 @@ function getGameRankIcon(gameCode: string, rankName: string, isHighest: boolean 
   }
 
   // 2. LIÊN QUÂN (AOV) - Trỏ đúng tên file tồn tại trong public/images/aov/
-  if (g === 'AOV' || g === 'LIENQUAN') {
-    if (r.includes('thách đấu') || r.includes('challenger') || r.includes('conqueror') || r.includes('chiến tướng')) return '/images/aov/Conqueror.png';
-    if (r.includes('đại cao thủ') || r.includes('grandmaster')) return '/images/aov/Grandmaster_I.png';
-    if (r.includes('cao thủ') || r.includes('master')) return '/images/aov/Master.png';
-    if (r.includes('tinh anh') || r.includes('veteran') || r.includes('commander')) return '/images/aov/Veteran.png';
-    if (r.includes('kim cương') || r.includes('diamond')) return '/images/aov/Diamond.png';
-    if (r.includes('bạch kim') || r.includes('platinum') || r.includes('platium')) return '/images/aov/Platium.png';
-    if (r.includes('vàng') || r.includes('gold')) return '/images/aov/Gold.png';
-    if (r.includes('bạc') || r.includes('silver')) return '/images/aov/Silver.png';
-    if (r.includes('đồng') || r.includes('bronze')) return '/images/aov/Bronze.png';
-    return isHighest ? '/images/aov/Conqueror.png' : '/images/aov/Master.png';
+  if (g === 'AOV' || g === 'LIENQUAN' || g === 'LQM' || g === 'ARENA_OF_VALOR') {
+    if (r) {
+      return getAovRankImageByInput(rankName);
+    }
+    return isHighest ? '/images/aov/Legend.png' : '/images/aov/Master.png';
   }
 
   // 3. LMHT / LOL (Mặc định)

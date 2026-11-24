@@ -15,11 +15,18 @@ interface NetWinsOrderViewProps {
 
 export default function NetWinsOrderView({ order, isBooster, isCustomer, onPayRemaining, onRefund }: NetWinsOrderViewProps) {
   const { details = {}, pricing = {}, match_history = [] } = order || {};
+  const gameCode = (order?.game || order?.gameCode || details?.game || order?.snapshot?.gameCode || 'LOL').toUpperCase();
+  const isAov = ['AOV', 'LIENQUAN', 'LQM', 'ARENA_OF_VALOR'].includes(gameCode);
   
-  // Xác định rõ cày điểm (Point Boost) hay cày số trận thắng (Net Wins Games)
-  const isPointBoost = Boolean(details?.is_point_boost || details?.calc_mode === 'BY_LP' || details?.segment);
+  // Xác định rõ cày điểm / sao (Point Boost) hay cày số trận thắng (Net Wins Games)
+  const isPointBoost = Boolean(
+    details?.is_point_boost ||
+    details?.calc_mode === 'BY_LP' ||
+    details?.calc_mode === 'BY_STAR' ||
+    details?.segment
+  );
   const calcMode = isPointBoost ? 'BY_LP' : (details?.calc_mode || 'BY_GAMES');
-  const unit = details?.unit || 'LP';
+  const unit = details?.unit || (isAov ? 'Sao' : 'LP');
 
   const start_lp = parseInt(details?.start_lp ?? details?.current_points ?? 0);
   const target_lp = parseInt(details?.target_lp ?? details?.desired_points ?? details?.target_points ?? (start_lp + (details?.gained_points || 0)));
@@ -100,7 +107,7 @@ export default function NetWinsOrderView({ order, isBooster, isCustomer, onPayRe
         
         actualBasePrice = Math.max(0, totalLpGained) * (unit_price_per_lp || 0);
         const safeGames = Math.max(1, num_games || 1);
-        progressText = `${netWins}/${num_games || 0} Trận (Net) [${totalLpGained > 0 ? '+' : ''}${totalLpGained} LP]`;
+        progressText = `${netWins}/${num_games || 0} Trận (Net) [${totalLpGained > 0 ? '+' : ''}${totalLpGained} ${unit}]`;
         progressPercent = Math.min(100, Math.round((Math.max(0, netWins) / safeGames) * 100));
     }
 
@@ -111,8 +118,10 @@ export default function NetWinsOrderView({ order, isBooster, isCustomer, onPayRe
     
     let boosterOptionsConfig = boosterData?.booster_info?.service_settings?.options;
     if (!boosterOptionsConfig && boosterData?.games) {
-        const lolGame = boosterData.games.find((g: any) => g.gameCode === 'LOL');
-        boosterOptionsConfig = lolGame?.metadata?.options || {};
+        const matchedGame =
+          boosterData.games.find((g: any) => (g.gameCode || '').toUpperCase() === gameCode) ||
+          boosterData.games.find((g: any) => g.gameCode === 'LOL');
+        boosterOptionsConfig = matchedGame?.metadata?.options || {};
     }
     boosterOptionsConfig = boosterOptionsConfig || {};
 
@@ -228,7 +237,7 @@ export default function NetWinsOrderView({ order, isBooster, isCustomer, onPayRe
             
             <h3 className="text-lg font-bold text-white mb-6 flex items-center gap-2 relative z-10">
                 <TrendingUp className="w-5 h-5 text-blue-500" /> 
-                Tiến độ cày {calcMode === 'BY_LP' ? `Điểm (${unit})` : 'Trận (Net Wins)'}
+                Tiến độ cày {calcMode === 'BY_LP' ? (isAov ? `Số Sao (Liên Quân)` : `Điểm (${unit})`) : 'Trận (Net Wins)'}
             </h3>
             
             <div className="relative h-4 bg-zinc-800 rounded-full overflow-hidden mb-2">
@@ -304,14 +313,43 @@ export default function NetWinsOrderView({ order, isBooster, isCustomer, onPayRe
                     </div>
                 </div>
             </div>
+
+            {/* Chi tiết lũy tiến theo mốc sao Liên Quân nếu có */}
+            {isAov && Array.isArray(details?.star_breakdown) && details.star_breakdown.length > 0 && (
+                <div className="mt-4 p-3.5 rounded-xl bg-zinc-950/60 border border-amber-500/20 space-y-2">
+                    <div className="text-[11px] font-bold text-amber-400 uppercase tracking-wider">
+                        Chi tiết đơn giá theo mốc Sao Liên Quân
+                    </div>
+                    <div className="space-y-1.5">
+                        {details.star_breakdown.map((seg: any, idx: number) => (
+                            <div key={seg.tierId || idx} className="flex items-center justify-between text-xs gap-2">
+                                <div className="flex items-center gap-2 min-w-0">
+                                    {seg.image && (
+                                        <img src={seg.image} alt={seg.label} className="w-5 h-5 object-contain shrink-0" />
+                                    )}
+                                    <span className="text-zinc-300 truncate">
+                                        {seg.label}
+                                        {typeof seg.fromStar === 'number' && typeof seg.toStar === 'number'
+                                            ? ` (${seg.fromStar}★ → ${seg.toStar}★)`
+                                            : ''}
+                                    </span>
+                                </div>
+                                <span className="font-mono text-cyan-400 font-bold whitespace-nowrap">
+                                    {seg.stars} sao × {Number(seg.ratePerStar || 0).toLocaleString('vi-VN')}đ = {Number(seg.subtotal || 0).toLocaleString('vi-VN')}đ
+                                </span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
             
             {/* Sparkline Chart */}
             {hasMatches && lpTrendData.length > 1 && (
                 <div className="mt-6 pt-4 border-t border-zinc-800">
                     <div className="flex justify-between items-center mb-2">
-                        <span className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Biểu đồ tích lũy LP</span>
+                        <span className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Biểu đồ tích lũy {unit}</span>
                         <span className={`text-xs font-bold ${lpTrendData[lpTrendData.length - 1] >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                            {lpTrendData[lpTrendData.length - 1] > 0 ? '+' : ''}{lpTrendData[lpTrendData.length - 1]} LP
+                            {lpTrendData[lpTrendData.length - 1] > 0 ? '+' : ''}{lpTrendData[lpTrendData.length - 1]} {unit}
                         </span>
                     </div>
                     <SparklineChart data={lpTrendData} color={lpTrendData[lpTrendData.length - 1] >= 0 ? '#4ade80' : '#f87171'} height={50} />
@@ -586,7 +624,9 @@ export default function NetWinsOrderView({ order, isBooster, isCustomer, onPayRe
                 <Info className="w-4 h-4 text-zinc-500 shrink-0 mt-0.5" />
                 <p className="text-xs text-zinc-400 leading-relaxed">
                     {isCompleted 
-                        ? 'Đơn hàng đã hoàn thành. Khoản quyết toán được tính toán chính xác dựa trên dữ liệu thực tế từ Riot Games.'
+                        ? (isAov
+                            ? 'Đơn hàng đã hoàn thành. Khoản quyết toán được tính toán chính xác dựa trên số Sao Liên Quân thực tế đã hoàn tất.'
+                            : 'Đơn hàng đã hoàn thành. Khoản quyết toán được tính toán chính xác dựa trên dữ liệu thực tế từ Riot Games.')
                         : 'Số tiền quyết toán cuối cùng sẽ được chốt khi Booster bấm "Báo cáo hoàn thành". Trong quá trình cày, điểm số có thể thay đổi nên hệ thống chỉ hiển thị tạm tính.'}
                 </p>
             </div>

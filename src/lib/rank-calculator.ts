@@ -1,4 +1,9 @@
 // src/lib/rank-calculator.ts
+import {
+  AOV_RANK_LADDER,
+  AOV_STAR_TIERS,
+  getAovRankImageByInput,
+} from './aov';
 
 export interface RankDivision {
   id: string; // VD: 'IRON_4', 'GOLD_2', 'MASTER'
@@ -102,59 +107,26 @@ export const VALORANT_RANK_STEPS: RankDivision[] = [
   { id: 'RADIANT', tier: 'RADIANT', label: 'Radiant', stepPrice: 0 },
 ];
 
-// 29 mốc rank chuẩn Liên Quân Mobile (AOV) từ Đồng IV đến Cao Thủ
-export const AOV_RANK_STEPS: RankDivision[] = [
-  // ĐỒNG (BRONZE)
-  { id: 'BRONZE_4', tier: 'BRONZE', division: 'IV', label: 'Đồng IV', stepPrice: 20000 },
-  { id: 'BRONZE_3', tier: 'BRONZE', division: 'III', label: 'Đồng III', stepPrice: 20000 },
-  { id: 'BRONZE_2', tier: 'BRONZE', division: 'II', label: 'Đồng II', stepPrice: 20000 },
-  { id: 'BRONZE_1', tier: 'BRONZE', division: 'I', label: 'Đồng I', stepPrice: 25000 },
-
-  // BẠC (SILVER)
-  { id: 'SILVER_4', tier: 'SILVER', division: 'IV', label: 'Bạc IV', stepPrice: 25000 },
-  { id: 'SILVER_3', tier: 'SILVER', division: 'III', label: 'Bạc III', stepPrice: 25000 },
-  { id: 'SILVER_2', tier: 'SILVER', division: 'II', label: 'Bạc II', stepPrice: 25000 },
-  { id: 'SILVER_1', tier: 'SILVER', division: 'I', label: 'Bạc I', stepPrice: 30000 },
-
-  // VÀNG (GOLD)
-  { id: 'GOLD_4', tier: 'GOLD', division: 'IV', label: 'Vàng IV', stepPrice: 30000 },
-  { id: 'GOLD_3', tier: 'GOLD', division: 'III', label: 'Vàng III', stepPrice: 30000 },
-  { id: 'GOLD_2', tier: 'GOLD', division: 'II', label: 'Vàng II', stepPrice: 35000 },
-  { id: 'GOLD_1', tier: 'GOLD', division: 'I', label: 'Vàng I', stepPrice: 40000 },
-
-  // BẠCH KIM (PLATINUM)
-  { id: 'PLATINUM_5', tier: 'PLATINUM', division: 'V', label: 'Bạch Kim V', stepPrice: 45000 },
-  { id: 'PLATINUM_4', tier: 'PLATINUM', division: 'IV', label: 'Bạch Kim IV', stepPrice: 45000 },
-  { id: 'PLATINUM_3', tier: 'PLATINUM', division: 'III', label: 'Bạch Kim III', stepPrice: 50000 },
-  { id: 'PLATINUM_2', tier: 'PLATINUM', division: 'II', label: 'Bạch Kim II', stepPrice: 50000 },
-  { id: 'PLATINUM_1', tier: 'PLATINUM', division: 'I', label: 'Bạch Kim I', stepPrice: 55000 },
-
-  // KIM CƯƠNG (DIAMOND)
-  { id: 'DIAMOND_5', tier: 'DIAMOND', division: 'V', label: 'Kim Cương V', stepPrice: 60000 },
-  { id: 'DIAMOND_4', tier: 'DIAMOND', division: 'IV', label: 'Kim Cương IV', stepPrice: 65000 },
-  { id: 'DIAMOND_3', tier: 'DIAMOND', division: 'III', label: 'Kim Cương III', stepPrice: 70000 },
-  { id: 'DIAMOND_2', tier: 'DIAMOND', division: 'II', label: 'Kim Cương II', stepPrice: 75000 },
-  { id: 'DIAMOND_1', tier: 'DIAMOND', division: 'I', label: 'Kim Cương I', stepPrice: 85000 },
-
-  // TINH ANH (VETERAN)
-  { id: 'VETERAN_5', tier: 'VETERAN', division: 'V', label: 'Tinh Anh V', stepPrice: 95000 },
-  { id: 'VETERAN_4', tier: 'VETERAN', division: 'IV', label: 'Tinh Anh IV', stepPrice: 105000 },
-  { id: 'VETERAN_3', tier: 'VETERAN', division: 'III', label: 'Tinh Anh III', stepPrice: 115000 },
-  { id: 'VETERAN_2', tier: 'VETERAN', division: 'II', label: 'Tinh Anh II', stepPrice: 130000 },
-  { id: 'VETERAN_1', tier: 'VETERAN', division: 'I', label: 'Tinh Anh I', stepPrice: 150000 },
-
-  // CAO THỦ (MASTER - Đỉnh cao mốc cày rank bậc của Liên Quân)
-  { id: 'MASTER', tier: 'MASTER', label: 'Cao Thủ', stepPrice: 0 },
-];
+// 29 mốc rank chuẩn Liên Quân Mobile (AOV) từ Đồng III đến Huyền Thoại (100★)
+// Đồng->Bạc: 25k | Bạc->Vàng: 45k | Vàng->Bạch Kim: 55k | Bạch Kim->Kim Cương: 65k | Kim Cương->Tinh Anh: 95k | Tinh Anh->Cao Thủ: 160k
+// Từ Cao Thủ trở lên: Booster tùy chỉnh cấu hình
+export const AOV_RANK_STEPS: RankDivision[] = AOV_RANK_LADDER.map((step) => ({
+  id: step.id,
+  tier: step.tier,
+  division: step.division,
+  label: step.label,
+  stepPrice: step.stepPrice,
+}));
 
 export interface PointBoostTierSegment {
   id: string;
   label: string;
   shortLabel: string;
   defaultPrice: number;
-  unit: string; // 'RR' | 'LP'
+  unit: string; // 'RR' | 'LP' | 'Sao'
   desc: string;
   badgeColor: string;
+  image?: string;
 }
 
 export const VALORANT_POINT_TIERS: PointBoostTierSegment[] = [
@@ -226,53 +198,16 @@ export const LOL_POINT_TIERS: PointBoostTierSegment[] = [
   },
 ];
 
-export const AOV_POINT_TIERS: PointBoostTierSegment[] = [
-  {
-    id: 'master_stars',
-    label: 'Cao Thủ (0 → 19 Sao)',
-    shortLabel: 'Cao Thủ (0 - 19★)',
-    defaultPrice: 8000,
-    unit: 'Sao',
-    desc: 'Cày số sao khởi điểm bậc Cao Thủ',
-    badgeColor: 'text-amber-400 bg-amber-500/10 border-amber-500/30',
-  },
-  {
-    id: 'gm_iv_ii',
-    label: 'Đại Cao Thủ IV - II (20 → 39 Sao)',
-    shortLabel: 'Đại Cao Thủ (20 - 39★)',
-    defaultPrice: 12000,
-    unit: 'Sao',
-    desc: 'Phân khúc Đại Cao Thủ IV, III, II',
-    badgeColor: 'text-red-400 bg-red-500/10 border-red-500/30',
-  },
-  {
-    id: 'gm_i',
-    label: 'Đại Cao Thủ I (40 → 49 Sao)',
-    shortLabel: 'Đại Cao Thủ I (40 - 49★)',
-    defaultPrice: 15000,
-    unit: 'Sao',
-    desc: 'Phân khúc Đại Cao Thủ I bứt phá',
-    badgeColor: 'text-rose-400 bg-rose-500/10 border-rose-500/30',
-  },
-  {
-    id: 'conqueror_stars',
-    label: 'Chiến Tướng (50 → 99 Sao)',
-    shortLabel: 'Chiến Tướng (50 - 99★)',
-    defaultPrice: 22000,
-    unit: 'Sao',
-    desc: 'Chinh phục Chiến Tướng danh giá',
-    badgeColor: 'text-purple-400 bg-purple-500/10 border-purple-500/30',
-  },
-  {
-    id: 'legend_stars',
-    label: 'Huyền Thoại (100+ Sao - Top 50 Server)',
-    shortLabel: 'Huyền Thoại (100+★)',
-    defaultPrice: 35000,
-    unit: 'Sao',
-    desc: 'Đỉnh cao xếp hạng Top Server Liên Quân',
-    badgeColor: 'text-cyan-400 bg-cyan-500/10 border-cyan-500/30',
-  },
-];
+export const AOV_POINT_TIERS: PointBoostTierSegment[] = AOV_STAR_TIERS.map((tier) => ({
+  id: tier.id,
+  label: tier.label,
+  shortLabel: tier.shortLabel,
+  defaultPrice: tier.defaultPrice,
+  unit: tier.unit,
+  desc: tier.desc,
+  badgeColor: tier.badgeColor,
+  image: tier.image,
+}));
 
 export function getPointBoostTiers(gameCode: string): PointBoostTierSegment[] {
   const code = (gameCode || 'LOL').toUpperCase();
@@ -296,20 +231,7 @@ export function getRankImage(gameCode: string, step: RankDivision | any): string
     return `/images/valorant/${capTier}_${step.division || '1'}_Rank.png`;
   }
   if (code === 'AOV' || code === 'LIENQUAN' || code === 'ARENA_OF_VALOR') {
-    const t = (step.tier || step.id || '').toUpperCase();
-    if (t.includes('BRONZE')) return '/images/aov/Bronze.png';
-    if (t.includes('SILVER')) return '/images/aov/Silver.png';
-    if (t.includes('GOLD')) return '/images/aov/Gold.png';
-    if (t.includes('PLATINUM') || t.includes('PLATIUM')) return '/images/aov/Platium.png';
-    if (t.includes('DIAMOND')) return '/images/aov/Diamond.png';
-    if (t.includes('VETERAN')) return '/images/aov/Veteran.png';
-    if (t === 'GM_I' || t === 'GRANDMASTER_I') return '/images/aov/Grandmaster_I.png';
-    if (t === 'GM_II' || t === 'GRANDMASTER_II') return '/images/aov/Grandmaster_II.png';
-    if (t === 'GM_III' || t === 'GRANDMASTER_III') return '/images/aov/Grandmaster_III.png';
-    if (t.includes('GM') || t.includes('GRANDMASTER')) return '/images/aov/Grandmaster_IV.png';
-    if (t.includes('CONQUEROR') || t.includes('CHIENTUONG')) return '/images/aov/Conqueror.png';
-    if (t.includes('LEGEND') || t.includes('HUYENTHOAI')) return '/images/aov/Legend.png';
-    return '/images/aov/Master.png';
+    return getAovRankImageByInput(step);
   }
   const tierLower = (step.tier || '').toLowerCase();
   return `/images/ranks/${tierLower || 'master'}.png`;

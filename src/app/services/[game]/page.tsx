@@ -268,7 +268,10 @@ function GameServicesContent() {
       if (s.isActive === false) continue;
 
       const sGame = (s.gameCode || 'LOL').toUpperCase();
-      const matchGame = sGame === normGame || (normGame === 'LOL' && sGame === 'LMHT');
+      const matchGame =
+        sGame === normGame ||
+        (normGame === 'LOL' && sGame === 'LMHT') ||
+        (normGame === 'AOV' && ['LIENQUAN', 'LQM', 'ARENA_OF_VALOR'].includes(sGame));
       if (!matchGame) continue;
 
       // Kiểm tra booster của dịch vụ có chọn nhận cày tựa game này không
@@ -372,7 +375,10 @@ function GameServicesContent() {
     if (Array.isArray(customInBooster)) {
       const activeForGame = customInBooster.filter((s) => {
         const sGame = (s.gameCode || 'LOL').toUpperCase();
-        const matchGame = sGame === normGame || (normGame === 'LOL' && sGame === 'LMHT');
+        const matchGame =
+          sGame === normGame ||
+          (normGame === 'LOL' && sGame === 'LMHT') ||
+          (normGame === 'AOV' && ['LIENQUAN', 'LQM', 'ARENA_OF_VALOR'].includes(sGame));
         return matchGame && s.isActive !== false;
       });
 
@@ -397,7 +403,10 @@ function GameServicesContent() {
         s.booster?._id === b._id ||
         (s.booster?.username && s.booster.username.toLowerCase() === b.username.toLowerCase());
       const sGame = (s.gameCode || 'LOL').toUpperCase();
-      const matchGame = sGame === normGame || (normGame === 'LOL' && sGame === 'LMHT');
+      const matchGame =
+        sGame === normGame ||
+        (normGame === 'LOL' && sGame === 'LMHT') ||
+        (normGame === 'AOV' && ['LIENQUAN', 'LQM', 'ARENA_OF_VALOR'].includes(sGame));
       return matchBooster && matchGame && s.isActive !== false;
     });
 

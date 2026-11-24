@@ -8,6 +8,7 @@ import { IBoosterProfile } from '../../database/schemas/BoosterProfile';
 import { IBoosterApplication } from '../../database/schemas/BoosterApplication';
 import { IOrder, OrderStatus } from '../../database/schemas/Order';
 import { ITransaction, TransactionType, TransactionStatus } from '../../database/schemas/Transaction';
+import { DEFAULT_AOV_STAR_RATES } from '../../common/aov.config';
 
 export const DEFAULT_SERVICE_SETTINGS = {
   enabledServices: ['RANK_BOOST', 'PROMOTION', 'NET_WINS', 'LEVELING', 'PLACEMENTS', 'MASTERY', 'COACHING'],
@@ -70,7 +71,16 @@ export class BoostersService {
   ) { }
 
   getAvailableServiceTypes(gameCode?: string) {
-    const code = (gameCode || 'LOL').toUpperCase();
+    const rawCode = (gameCode || 'LOL').toUpperCase().trim();
+    const code = ['AOV', 'LIENQUAN', 'LQM', 'ARENA_OF_VALOR'].includes(rawCode)
+      ? 'AOV'
+      : ['VAL', 'VALORANT'].includes(rawCode)
+        ? 'VALORANT'
+        : ['LMHT', 'LOL'].includes(rawCode)
+          ? 'LOL'
+          : ['DTCL', 'TFT'].includes(rawCode)
+            ? 'TFT'
+            : rawCode;
     const map: Record<string, any[]> = {
       LOL: [
         {
@@ -370,6 +380,49 @@ export class BoostersService {
           desc: 'Hướng dẫn định vị trí, phối hợp combo chiêu cuối và aim.',
           pricingType: 'PER_UNIT',
           defaultPrice: 120000,
+          unitName: 'Giờ học',
+          allowDeposit: true,
+          depositPercent: 50,
+        },
+      ],
+      AOV: [
+        {
+          serviceType: 'rank-boost',
+          name: 'Cày Rank Liên Quân (Theo Bậc)',
+          desc: 'Leo rank từ Đồng đến Cao Thủ (25k–160k/bậc) & tùy chỉnh từ Cao Thủ lên Đại Cao Thủ, Chiến Tướng, Huyền Thoại.',
+          pricingType: 'TIER_MATRIX',
+          defaultPrice: 0,
+          allowDeposit: false,
+          depositPercent: 100,
+          requiresRankSteps: true,
+        },
+        {
+          serviceType: 'net-wins',
+          name: 'Cày Theo Số Sao (Đồng ➔ Chiến Tướng 99★+)',
+          desc: 'Tính tiền theo từng Sao (5k–30k+/sao) từ Đồng–Kim Cương, Tinh Anh, Cao Thủ, Đại Cao Thủ đến Chiến Tướng.',
+          pricingType: 'TIER_PER_POINT',
+          defaultPrice: 5000,
+          unitName: 'Sao',
+          allowDeposit: true,
+          depositPercent: 40,
+          tierRates: { ...DEFAULT_AOV_STAR_RATES },
+        },
+        {
+          serviceType: 'matches',
+          name: 'Cày Theo Số Trận Liên Quân',
+          desc: 'Cày số lượng trận đấu xếp hạng / đấu thường theo yêu cầu với tỷ lệ thắng vượt trội.',
+          pricingType: 'PER_UNIT',
+          defaultPrice: 15000,
+          unitName: 'Trận',
+          allowDeposit: false,
+          depositPercent: 100,
+        },
+        {
+          serviceType: 'coaching',
+          name: 'Huấn Luyện Coaching 1-1 Liên Quân',
+          desc: 'Dạy kèm kỹ năng macro, di chuyển, chọn tướng & chiến thuật leo rank cùng tuyển thủ Chiến Tướng / Thách Đấu.',
+          pricingType: 'PER_UNIT',
+          defaultPrice: 100000,
           unitName: 'Giờ học',
           allowDeposit: true,
           depositPercent: 50,
@@ -1016,8 +1069,8 @@ export class BoostersService {
 
     const selectedGames: string[] = Array.isArray(serviceSettings?.selectedGames)
       ? serviceSettings.selectedGames.map((g: any) =>
-          normalizeGameCode(typeof g === 'string' ? g : g.gameCode),
-        )
+        normalizeGameCode(typeof g === 'string' ? g : g.gameCode),
+      )
       : [];
 
     const customServices: any[] = Array.isArray(serviceSettings?.customServices)

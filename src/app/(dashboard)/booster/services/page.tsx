@@ -52,6 +52,13 @@ import {
   getPointBoostTiers,
   PointBoostTierSegment,
 } from '@/lib/rank-calculator';
+import {
+  AOV_TIER_PACKAGES,
+  DEFAULT_AOV_STAR_RATES,
+  distributeAovTierPackageToSteps,
+  getAovTierPackageCurrentTotal,
+  resolveAovStarRate,
+} from '@/lib/aov';
 
 const ICON_MAP: Record<string, LucideIcon> = {
   Swords,
@@ -430,6 +437,9 @@ export default function BoosterServicesStudio() {
       iconName: 'Trophy',
     };
 
+    const isVal = code === 'VALORANT';
+    const isAov = code === 'AOV' || code === 'LIENQUAN';
+
     setFormData((prev) => ({
       ...prev,
       gameCode: code,
@@ -439,10 +449,72 @@ export default function BoosterServicesStudio() {
       desc: firstTpl.desc,
       pricingType: firstTpl.pricingType || 'TIER_MATRIX',
       price: firstTpl.defaultPrice || 0,
-      unitName: firstTpl.unitName || (code === 'VALORANT' ? 'Điểm RR' : 'Điểm LP'),
+      unitName: firstTpl.unitName || (isVal ? 'Điểm RR' : isAov ? 'Sao' : 'Điểm LP'),
       depositPercent: firstTpl.depositPercent ?? (firstTpl.serviceType === 'net-wins' ? 40 : 100),
       stepOverrides: {},
+      tierRates: isVal
+        ? { immortal1_2: 5000, immortal2_3: 7000, immortal3_radiant: 10000, radiant_top100: 20000 }
+        : isAov
+          ? { ...DEFAULT_AOV_STAR_RATES }
+          : { master: 1000, grandmaster: 1500, challenger: 2000 },
     }));
+  };
+
+  // Khởi tạo nhanh bộ 2 dịch vụ chuẩn Liên Quân (Cày theo Bậc Rank + Cày theo Số Sao)
+  const handleInitDefaultAovServices = async () => {
+    const now = Date.now();
+    const existingAov = customServices.filter((s) => {
+      const g = (s.gameCode || '').toUpperCase();
+      return g === 'AOV' || g === 'LIENQUAN';
+    });
+    const hasRankBoost = existingAov.some((s) => s.serviceType === 'rank-boost');
+    const hasStarBoost = existingAov.some((s) => s.serviceType === 'net-wins');
+
+    const toAdd: CustomService[] = [];
+    if (!hasRankBoost) {
+      toAdd.push({
+        id: `srv_aov_rank-boost_${now}`,
+        gameCode: 'AOV',
+        serviceType: 'rank-boost',
+        slug: 'rank-boost',
+        name: 'Cày Rank Liên Quân (Theo Bậc)',
+        desc: 'Leo rank từ Đồng đến Cao Thủ (25k–160k/bậc) & tùy chỉnh từ Cao Thủ lên Đại Cao Thủ, Chiến Tướng, Huyền Thoại.',
+        pricingType: 'TIER_MATRIX',
+        price: 0,
+        unitName: 'Bậc',
+        depositPercent: 100,
+        stepOverrides: {},
+        isActive: true,
+      });
+    }
+    if (!hasStarBoost) {
+      toAdd.push({
+        id: `srv_aov_net-wins_${now + 1}`,
+        gameCode: 'AOV',
+        serviceType: 'net-wins',
+        slug: 'net-wins',
+        name: 'Cày Theo Số Sao (Đồng ➔ Chiến Tướng 99★+)',
+        desc: 'Tính tiền theo từng Sao (5k–30k+/sao) từ Đồng–Kim Cương, Tinh Anh, Cao Thủ, Đại Cao Thủ đến Chiến Tướng.',
+        pricingType: 'TIER_PER_POINT',
+        price: 5000,
+        unitName: 'Sao',
+        depositPercent: 40,
+        tierRates: { ...DEFAULT_AOV_STAR_RATES },
+        isActive: true,
+      });
+    }
+
+    if (toAdd.length === 0) {
+      toast.info('Bạn đã có đủ dịch vụ Cày Rank & Cày Sao Liên Quân.');
+      return;
+    }
+
+    const updated = [...customServices, ...toAdd];
+    setCustomServices(updated);
+    await syncAllServices(updated, addonsConfig, coupon, stepOverrides, selectedGames, {
+      showToast: true,
+      successMessage: 'Đã khởi tạo bộ dịch vụ Liên Quân mặc định (Theo Bậc & Theo Sao)!',
+    });
   };
 
   // Mở modal Thêm Dịch Vụ Mới
@@ -468,8 +540,8 @@ export default function BoosterServicesStudio() {
     const initialTierRates: TierRates = isVal
       ? { immortal1_2: 5000, immortal2_3: 7000, immortal3_radiant: 10000, radiant_top100: 20000 }
       : isAov
-      ? { master_stars: 8000, gm_iv_ii: 12000, gm_i: 15000, conqueror_stars: 22000, legend_stars: 35000 }
-      : { master: 1000, grandmaster: 1500, challenger: 2000 };
+        ? { ...DEFAULT_AOV_STAR_RATES }
+        : { master: 1000, grandmaster: 1500, challenger: 2000 };
 
     setFormData({
       id: `srv_${activeGameCode.toLowerCase()}_${firstTpl.serviceType || 'rank-boost'}_${Date.now()}`,
@@ -503,16 +575,30 @@ export default function BoosterServicesStudio() {
     let cleanName = svc.name;
     if (isVal && (cleanName.includes('Cao Thủ') || cleanName.includes('LP') || cleanName.toLowerCase() === 'cày điểm ...' || cleanName === 'Cày Điểm')) {
       cleanName = 'Cày Điểm RR (Immortal / Radiant)';
-    } else if (isAov && (svc.serviceType === 'net-wins' || cleanName.includes('Trận Thắng') || cleanName.includes('LP') || cleanName.includes('RR'))) {
-      cleanName = 'Cày Rank Cao Cấp';
+    } else if (isAov && (svc.serviceType === 'net-wins' && (cleanName.includes('Trận Thắng') || cleanName.includes('LP') || cleanName.includes('RR') || cleanName === 'Cày Rank Cao Cấp'))) {
+      cleanName = 'Cày Theo Số Sao (Đồng ➔ Chiến Tướng 99★+)';
     }
     let cleanDesc = svc.desc || '';
     if (isVal && (cleanDesc.includes('Cao Thủ') || cleanDesc.includes('LP') || cleanDesc.includes('Đại Cao Thủ'))) {
       cleanDesc = 'Cày điểm xếp hạng Rank Rating (RR) bậc Immortal và Radiant theo điểm số.';
     } else if (isAov && (cleanDesc.includes('MMR') || cleanDesc.includes('LP') || cleanDesc.includes('RR'))) {
-      cleanDesc = 'Cày số sao xếp hạng từ Cao Thủ, Đại Cao Thủ, Chiến Tướng đến Huyền Thoại.';
+      cleanDesc = 'Tính tiền theo từng Sao (5k–30k+/sao) từ Đồng–Kim Cương, Tinh Anh, Cao Thủ, Đại Cao Thủ đến Chiến Tướng.';
     }
-    const cleanUnit = isVal ? 'Điểm RR' : isAov ? 'Sao' : (svc.unitName || 'Điểm LP');
+    const cleanUnit = isVal ? 'Điểm RR' : isAov ? (svc.serviceType === 'net-wins' ? 'Sao' : (svc.unitName || 'Sao')) : (svc.unitName || 'Điểm LP');
+
+    // Chuẩn hóa tierRates cũ cho AOV nếu có
+    let normalizedTierRates = svc.tierRates;
+    if (isAov && svc.serviceType === 'net-wins') {
+      normalizedTierRates = {
+        bronze_diamond: resolveAovStarRate('bronze_diamond', svc.tierRates),
+        diamond_veteran: resolveAovStarRate('diamond_veteran', svc.tierRates),
+        veteran_master: resolveAovStarRate('veteran_master', svc.tierRates),
+        master_0_19: resolveAovStarRate('master_0_19', svc.tierRates),
+        gm_20_49: resolveAovStarRate('gm_20_49', svc.tierRates),
+        conqueror_50_99: resolveAovStarRate('conqueror_50_99', svc.tierRates),
+        legend_100_plus: resolveAovStarRate('legend_100_plus', svc.tierRates),
+      };
+    }
 
     setFormData({
       ...svc,
@@ -520,6 +606,7 @@ export default function BoosterServicesStudio() {
       name: cleanName,
       desc: cleanDesc,
       unitName: cleanUnit,
+      tierRates: normalizedTierRates,
     });
     setIsModalOpen(true);
   };
@@ -565,11 +652,7 @@ export default function BoosterServicesStudio() {
           immortal3_radiant: 10000,
           radiant_top100: 20000,
         } : isAov ? {
-          master_stars: 8000,
-          gm_iv_ii: 12000,
-          gm_i: 15000,
-          conqueror_stars: 22000,
-          legend_stars: 35000,
+          ...DEFAULT_AOV_STAR_RATES,
         } : {
           master: 1000,
           grandmaster: 1500,
@@ -821,19 +904,17 @@ export default function BoosterServicesStudio() {
                   <div
                     key={game.id}
                     onClick={() => handleToggleGame(game.id)}
-                    className={`p-2.5 sm:p-3.5 rounded-2xl border cursor-pointer transition-all duration-200 flex items-center justify-between ${
-                      isSelected
+                    className={`p-2.5 sm:p-3.5 rounded-2xl border cursor-pointer transition-all duration-200 flex items-center justify-between ${isSelected
                         ? 'bg-cyan-500/10 border-cyan-500/50 text-white shadow-[0_0_15px_rgba(6,182,212,0.12)]'
                         : 'bg-zinc-950/60 border-zinc-800 text-zinc-400 hover:border-zinc-700 hover:text-white'
-                    }`}
+                      }`}
                   >
                     <div className="flex items-center gap-2 min-w-0">
                       <div
-                        className={`p-1.5 sm:p-2 rounded-xl border shrink-0 ${
-                          isSelected
+                        className={`p-1.5 sm:p-2 rounded-xl border shrink-0 ${isSelected
                             ? 'bg-cyan-500/20 border-cyan-500/40 text-cyan-400'
                             : 'bg-zinc-800 border-zinc-700 text-zinc-400'
-                        }`}
+                          }`}
                       >
                         <GameIcon size={14} />
                       </div>
@@ -844,9 +925,8 @@ export default function BoosterServicesStudio() {
                     </div>
 
                     <div
-                      className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center shrink-0 ml-1.5 ${
-                        isSelected ? 'bg-cyan-500 border-cyan-400 text-black' : 'border-zinc-700 bg-zinc-900'
-                      }`}
+                      className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center shrink-0 ml-1.5 ${isSelected ? 'bg-cyan-500 border-cyan-400 text-black' : 'border-zinc-700 bg-zinc-900'
+                        }`}
                     >
                       {isSelected && <CheckCircle2 size={11} className="stroke-[3]" />}
                     </div>
@@ -918,11 +998,10 @@ export default function BoosterServicesStudio() {
                 <button
                   type="button"
                   onClick={() => setIsGameSelectorOpen(!isGameSelectorOpen)}
-                  className={`w-full sm:w-auto flex items-center justify-between sm:justify-start gap-2.5 px-4 py-2.5 rounded-xl border text-xs font-bold transition-all shadow-md active:scale-95 cursor-pointer ${
-                    isGameSelectorOpen
+                  className={`w-full sm:w-auto flex items-center justify-between sm:justify-start gap-2.5 px-4 py-2.5 rounded-xl border text-xs font-bold transition-all shadow-md active:scale-95 cursor-pointer ${isGameSelectorOpen
                       ? 'bg-cyan-500/10 border-cyan-400 text-cyan-300 ring-2 ring-cyan-500/20'
                       : 'bg-zinc-900 hover:bg-zinc-800 border-cyan-500/40 hover:border-cyan-400 text-white'
-                  }`}
+                    }`}
                 >
                   <div className="flex items-center gap-2">
                     <span className="text-cyan-400 font-black">Chọn tựa game:</span>
@@ -935,9 +1014,8 @@ export default function BoosterServicesStudio() {
                   </span>
                   <ChevronDown
                     size={15}
-                    className={`text-zinc-400 transition-transform duration-200 ${
-                      isGameSelectorOpen ? 'rotate-180 text-cyan-400' : ''
-                    }`}
+                    className={`text-zinc-400 transition-transform duration-200 ${isGameSelectorOpen ? 'rotate-180 text-cyan-400' : ''
+                      }`}
                   />
                 </button>
 
@@ -1012,19 +1090,17 @@ export default function BoosterServicesStudio() {
                                   setIsGameSelectorOpen(false);
                                   setGameSearchQuery('');
                                 }}
-                                className={`w-full flex items-center justify-between p-2.5 rounded-xl text-left transition-all cursor-pointer ${
-                                  isCurrentActive
+                                className={`w-full flex items-center justify-between p-2.5 rounded-xl text-left transition-all cursor-pointer ${isCurrentActive
                                     ? 'bg-cyan-500/15 border border-cyan-500/40 text-cyan-300 font-extrabold shadow-sm'
                                     : 'hover:bg-zinc-900/90 border border-transparent text-zinc-300 hover:text-white'
-                                }`}
+                                  }`}
                               >
                                 <div className="flex items-center gap-2.5 min-w-0">
                                   <div
-                                    className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
-                                      isCurrentActive
+                                    className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${isCurrentActive
                                         ? 'bg-cyan-500 text-black font-black text-xs'
                                         : 'bg-zinc-800 text-zinc-400'
-                                    }`}
+                                      }`}
                                   >
                                     <Gamepad2 size={15} />
                                   </div>
@@ -1040,11 +1116,10 @@ export default function BoosterServicesStudio() {
 
                                 <div className="flex items-center gap-2 shrink-0 ml-2">
                                   <span
-                                    className={`text-[10px] px-2 py-0.5 rounded-full font-mono ${
-                                      serviceCount > 0
+                                    className={`text-[10px] px-2 py-0.5 rounded-full font-mono ${serviceCount > 0
                                         ? 'bg-cyan-500/20 text-cyan-300 font-bold border border-cyan-500/30'
                                         : 'bg-zinc-800 text-zinc-500'
-                                    }`}
+                                      }`}
                                   >
                                     {serviceCount} dịch vụ
                                   </span>
@@ -1076,21 +1151,19 @@ export default function BoosterServicesStudio() {
                     key={gCode}
                     type="button"
                     onClick={() => setActiveGameCode(gCode)}
-                    className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer shrink-0 ${
-                      isActive
+                    className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer shrink-0 ${isActive
                         ? 'bg-cyan-500 text-black shadow-lg shadow-cyan-500/25 ring-1 ring-cyan-300'
                         : 'bg-zinc-900/80 hover:bg-zinc-800 text-zinc-300 hover:text-white border border-zinc-800/80 hover:border-zinc-700'
-                    }`}
+                      }`}
                   >
                     <span>{gObj?.shortName || gCode}</span>
                     <span
-                      className={`text-[10px] px-1.5 py-0.5 rounded-full font-mono ${
-                        isActive
+                      className={`text-[10px] px-1.5 py-0.5 rounded-full font-mono ${isActive
                           ? 'bg-black/20 text-black font-black'
                           : serviceCount > 0
-                          ? 'bg-cyan-500/15 text-cyan-400 font-bold border border-cyan-500/30'
-                          : 'bg-zinc-800 text-zinc-500'
-                      }`}
+                            ? 'bg-cyan-500/15 text-cyan-400 font-bold border border-cyan-500/30'
+                            : 'bg-zinc-800 text-zinc-500'
+                        }`}
                     >
                       {serviceCount}
                     </span>
@@ -1115,14 +1188,26 @@ export default function BoosterServicesStudio() {
                 Bạn chưa cấu hình gói dịch vụ nào cho tựa game này. Bấm nút bên dưới để chọn loại dịch vụ và cấu hình giá chi tiết!
               </p>
             </div>
-            <button
-              type="button"
-              onClick={handleOpenAddModal}
-              className="mt-2 flex items-center gap-2 px-5 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-black font-extrabold text-xs shadow-lg shadow-cyan-500/20 transition-all active:scale-95"
-            >
-              <Plus size={16} />
-              <span>+ Thêm Dịch Vụ Mới Ngay</span>
-            </button>
+            <div className="mt-2 flex flex-wrap items-center justify-center gap-2.5">
+              {(activeGameCode.toUpperCase() === 'AOV' || activeGameCode.toUpperCase() === 'LIENQUAN') && (
+                <button
+                  type="button"
+                  onClick={handleInitDefaultAovServices}
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-extrabold text-xs shadow-lg shadow-amber-500/20 transition-all active:scale-95 cursor-pointer"
+                >
+                  <Sparkles size={15} />
+                  <span>Khởi tạo bảng giá Liên Quân mặc định (Theo Bậc & Theo Sao)</span>
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={handleOpenAddModal}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-black font-extrabold text-xs shadow-lg shadow-cyan-500/20 transition-all active:scale-95 cursor-pointer"
+              >
+                <Plus size={16} />
+                <span>+ Thêm Dịch Vụ Mới Ngay</span>
+              </button>
+            </div>
           </div>
         ) : (
           /* NẾU CÓ DỊCH VỤ: HIỂN THỊ LƯỚI CARD DỊCH VỤ */
@@ -1140,8 +1225,8 @@ export default function BoosterServicesStudio() {
               let displayName = svc.name;
               if (isVal && (displayName.includes('Cao Thủ') || displayName.includes('Thách Đấu') || displayName.includes('LP') || displayName === 'Cày Điểm ...' || displayName === 'Cày Điểm')) {
                 displayName = 'Cày Điểm RR (Immortal / Radiant)';
-              } else if (isAov && (svc.serviceType === 'net-wins' || displayName.includes('Trận Thắng') || displayName.includes('LP') || displayName.includes('RR'))) {
-                displayName = 'Cày Rank Cao Cấp';
+              } else if (isAov && svc.serviceType === 'net-wins' && (displayName.includes('Trận Thắng') || displayName.includes('LP') || displayName.includes('RR') || displayName === 'Cày Rank Cao Cấp')) {
+                displayName = 'Cày Theo Số Sao (Đồng ➔ Chiến Tướng)';
               }
 
               // Đơn vị điểm (RR đối với Valorant, Sao đối với Liên Quân, LP đối với LOL)
@@ -1149,27 +1234,26 @@ export default function BoosterServicesStudio() {
               const badgeText = isRankBoost
                 ? 'Bậc Rank'
                 : isPointBoost
-                ? `Theo ${pointUnit}`
-                : isPerUnit
-                ? `Theo ${svc.unitName || 'Đơn vị'}`
-                : 'Trọn Gói';
+                  ? `Theo ${pointUnit}`
+                  : isPerUnit
+                    ? `Theo ${svc.unitName || 'Đơn vị'}`
+                    : 'Trọn Gói';
 
               // Mô tả hiển thị phù hợp game
               let displayDesc = svc.desc || 'Dịch vụ do bạn tự cấu hình.';
               if (isVal && (displayDesc.includes('Cao Thủ') || displayDesc.includes('LP') || displayDesc.includes('Đại Cao Thủ'))) {
                 displayDesc = 'Cày điểm xếp hạng Rank Rating (RR) bậc Immortal và Radiant theo điểm số.';
               } else if (isAov && (isPointBoost || displayDesc.includes('MMR') || displayDesc.includes('LP') || displayDesc.includes('RR'))) {
-                displayDesc = 'Cày số sao xếp hạng từ Cao Thủ, Đại Cao Thủ, Chiến Tướng đến Huyền Thoại.';
+                displayDesc = 'Tính tiền theo từng Sao (5k–30k+/sao) từ Đồng–Kim Cương, Tinh Anh, Cao Thủ, Đại Cao Thủ đến Chiến Tướng.';
               }
 
               return (
                 <div
                   key={svc.id}
-                  className={`p-4 sm:p-5 rounded-2xl border transition-all duration-300 flex flex-col justify-between ${
-                    isEnabled
+                  className={`p-4 sm:p-5 rounded-2xl border transition-all duration-300 flex flex-col justify-between ${isEnabled
                       ? 'bg-zinc-950/80 border-zinc-700/80 shadow-md'
                       : 'bg-zinc-950/40 border-zinc-850 opacity-60'
-                  }`}
+                    }`}
                 >
                   <div>
                     {/* Header: Title + Badges + Edit/Trash/Switch */}
@@ -1177,15 +1261,14 @@ export default function BoosterServicesStudio() {
                       <div className="flex items-center gap-2 min-w-0 pr-2">
                         <span className="font-extrabold text-white text-sm" title={displayName}>{displayName}</span>
                         <span
-                          className={`text-[10px] font-bold px-2 py-0.5 rounded-md border shrink-0 ${
-                            isRankBoost
+                          className={`text-[10px] font-bold px-2 py-0.5 rounded-md border shrink-0 ${isRankBoost
                               ? 'bg-blue-500/10 border-blue-500/30 text-blue-400'
                               : isPointBoost
-                              ? 'bg-amber-500/10 border-amber-500/30 text-amber-400'
-                              : isPerUnit
-                              ? 'bg-purple-500/10 border-purple-500/30 text-purple-400'
-                              : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
-                          }`}
+                                ? 'bg-amber-500/10 border-amber-500/30 text-amber-400'
+                                : isPerUnit
+                                  ? 'bg-purple-500/10 border-purple-500/30 text-purple-400'
+                                  : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
+                            }`}
                         >
                           {badgeText}
                         </span>
@@ -1215,14 +1298,12 @@ export default function BoosterServicesStudio() {
                           role="switch"
                           aria-checked={isEnabled}
                           onClick={() => handleToggleService(svc.id)}
-                          className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out ${
-                            isEnabled ? 'bg-cyan-500 shadow-[0_0_12px_rgba(6,182,212,0.4)]' : 'bg-zinc-800'
-                          }`}
+                          className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out ${isEnabled ? 'bg-cyan-500 shadow-[0_0_12px_rgba(6,182,212,0.4)]' : 'bg-zinc-800'
+                            }`}
                         >
                           <span
-                            className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
-                              isEnabled ? 'translate-x-5' : 'translate-x-0'
-                            }`}
+                            className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${isEnabled ? 'translate-x-5' : 'translate-x-0'
+                              }`}
                           />
                         </button>
                       </div>
@@ -1257,18 +1338,29 @@ export default function BoosterServicesStudio() {
                       </div>
                     )}
 
-                    {/* TRƯỜNG HỢP 2: CÀY ĐIỂM (LP HOẶC RR THEO TỪNG PHÂN KHÚC) */}
+                    {/* TRƯỜNG HỢP 2: CÀY ĐIỂM (LP HOẶC RR HOẶC SAO LIÊN QUÂN THEO TỪNG PHÂN KHÚC) */}
                     {isPointBoost && (() => {
                       const pointTiers = getPointBoostTiers(svc.gameCode);
                       return (
                         <div className="space-y-2">
                           <div className="p-2.5 rounded-xl bg-zinc-900 border border-zinc-800 space-y-1.5 text-xs">
                             {pointTiers.map((tier) => {
-                              const rate = svc.tierRates?.[tier.id] ?? tier.defaultPrice;
+                              const rate = isAov
+                                ? resolveAovStarRate(tier.id, svc.tierRates)
+                                : (svc.tierRates?.[tier.id] ?? tier.defaultPrice);
                               return (
-                                <div key={tier.id} className="flex justify-between items-center">
-                                  <span className="text-zinc-400 font-medium">{tier.label}:</span>
-                                  <span className="text-amber-400 font-mono font-bold">
+                                <div key={tier.id} className="flex justify-between items-center gap-2">
+                                  <span className="text-zinc-300 font-medium flex items-center gap-1.5 min-w-0 truncate">
+                                    {tier.image && (
+                                      <img
+                                        src={tier.image}
+                                        alt={tier.shortLabel}
+                                        className="w-4 h-4 object-contain shrink-0"
+                                      />
+                                    )}
+                                    <span className="truncate">{tier.shortLabel || tier.label}:</span>
+                                  </span>
+                                  <span className="text-amber-400 font-mono font-bold shrink-0">
                                     {rate.toLocaleString('vi-VN')} đ / {tier.unit}
                                   </span>
                                 </div>
@@ -1385,14 +1477,12 @@ export default function BoosterServicesStudio() {
                     setAddonsConfig(updated);
                     syncAllServices(customServices, updated);
                   }}
-                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ${
-                    addonsConfig.specificRole.enabled ? 'bg-cyan-500 shadow-[0_0_12px_rgba(6,182,212,0.4)]' : 'bg-zinc-800'
-                  }`}
+                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ${addonsConfig.specificRole.enabled ? 'bg-cyan-500 shadow-[0_0_12px_rgba(6,182,212,0.4)]' : 'bg-zinc-800'
+                    }`}
                 >
                   <span
-                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow transition duration-200 ${
-                      addonsConfig.specificRole.enabled ? 'translate-x-5' : 'translate-x-0'
-                    }`}
+                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow transition duration-200 ${addonsConfig.specificRole.enabled ? 'translate-x-5' : 'translate-x-0'
+                      }`}
                   />
                 </button>
               </div>
@@ -1447,14 +1537,12 @@ export default function BoosterServicesStudio() {
                     setAddonsConfig(updated);
                     syncAllServices(customServices, updated);
                   }}
-                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ${
-                    addonsConfig.schedule.enabled ? 'bg-cyan-500 shadow-[0_0_12px_rgba(6,182,212,0.4)]' : 'bg-zinc-800'
-                  }`}
+                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ${addonsConfig.schedule.enabled ? 'bg-cyan-500 shadow-[0_0_12px_rgba(6,182,212,0.4)]' : 'bg-zinc-800'
+                    }`}
                 >
                   <span
-                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow transition duration-200 ${
-                      addonsConfig.schedule.enabled ? 'translate-x-5' : 'translate-x-0'
-                    }`}
+                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow transition duration-200 ${addonsConfig.schedule.enabled ? 'translate-x-5' : 'translate-x-0'
+                      }`}
                   />
                 </button>
               </div>
@@ -1509,14 +1597,12 @@ export default function BoosterServicesStudio() {
                     setAddonsConfig(updated);
                     syncAllServices(customServices, updated);
                   }}
-                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ${
-                    addonsConfig.specificChamps.enabled ? 'bg-cyan-500 shadow-[0_0_12px_rgba(6,182,212,0.4)]' : 'bg-zinc-800'
-                  }`}
+                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ${addonsConfig.specificChamps.enabled ? 'bg-cyan-500 shadow-[0_0_12px_rgba(6,182,212,0.4)]' : 'bg-zinc-800'
+                    }`}
                 >
                   <span
-                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow transition duration-200 ${
-                      addonsConfig.specificChamps.enabled ? 'translate-x-5' : 'translate-x-0'
-                    }`}
+                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow transition duration-200 ${addonsConfig.specificChamps.enabled ? 'translate-x-5' : 'translate-x-0'
+                      }`}
                   />
                 </button>
               </div>
@@ -1571,14 +1657,12 @@ export default function BoosterServicesStudio() {
                     setAddonsConfig(updated);
                     syncAllServices(customServices, updated);
                   }}
-                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ${
-                    addonsConfig.livestream.enabled ? 'bg-cyan-500 shadow-[0_0_12px_rgba(6,182,212,0.4)]' : 'bg-zinc-800'
-                  }`}
+                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ${addonsConfig.livestream.enabled ? 'bg-cyan-500 shadow-[0_0_12px_rgba(6,182,212,0.4)]' : 'bg-zinc-800'
+                    }`}
                 >
                   <span
-                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow transition duration-200 ${
-                      addonsConfig.livestream.enabled ? 'translate-x-5' : 'translate-x-0'
-                    }`}
+                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow transition duration-200 ${addonsConfig.livestream.enabled ? 'translate-x-5' : 'translate-x-0'
+                      }`}
                   />
                 </button>
               </div>
@@ -1635,14 +1719,12 @@ export default function BoosterServicesStudio() {
                     setAddonsConfig(updated);
                     syncAllServices(customServices, updated);
                   }}
-                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ${
-                    addonsConfig.flash.enabled ? 'bg-cyan-500 shadow-[0_0_12px_rgba(6,182,212,0.4)]' : 'bg-zinc-800'
-                  }`}
+                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ${addonsConfig.flash.enabled ? 'bg-cyan-500 shadow-[0_0_12px_rgba(6,182,212,0.4)]' : 'bg-zinc-800'
+                    }`}
                 >
                   <span
-                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow transition duration-200 ${
-                      addonsConfig.flash.enabled ? 'translate-x-5' : 'translate-x-0'
-                    }`}
+                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow transition duration-200 ${addonsConfig.flash.enabled ? 'translate-x-5' : 'translate-x-0'
+                      }`}
                   />
                 </button>
               </div>
@@ -1697,14 +1779,12 @@ export default function BoosterServicesStudio() {
                     setAddonsConfig(updated);
                     syncAllServices(customServices, updated);
                   }}
-                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ${
-                    addonsConfig.duo.enabled ? 'bg-cyan-500 shadow-[0_0_12px_rgba(6,182,212,0.4)]' : 'bg-zinc-800'
-                  }`}
+                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ${addonsConfig.duo.enabled ? 'bg-cyan-500 shadow-[0_0_12px_rgba(6,182,212,0.4)]' : 'bg-zinc-800'
+                    }`}
                 >
                   <span
-                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow transition duration-200 ${
-                      addonsConfig.duo.enabled ? 'translate-x-5' : 'translate-x-0'
-                    }`}
+                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow transition duration-200 ${addonsConfig.duo.enabled ? 'translate-x-5' : 'translate-x-0'
+                      }`}
                   />
                 </button>
               </div>
@@ -1763,14 +1843,12 @@ export default function BoosterServicesStudio() {
               setCoupon(updated);
               syncAllServices(customServices, addonsConfig, updated);
             }}
-            className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ${
-              coupon.isActive ? 'bg-cyan-500 shadow-[0_0_12px_rgba(6,182,212,0.4)]' : 'bg-zinc-800'
-            }`}
+            className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ${coupon.isActive ? 'bg-cyan-500 shadow-[0_0_12px_rgba(6,182,212,0.4)]' : 'bg-zinc-800'
+              }`}
           >
             <span
-              className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow transition duration-200 ${
-                coupon.isActive ? 'translate-x-5' : 'translate-x-0'
-              }`}
+              className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow transition duration-200 ${coupon.isActive ? 'translate-x-5' : 'translate-x-0'
+                }`}
             />
           </button>
         </div>
@@ -1871,7 +1949,96 @@ export default function BoosterServicesStudio() {
                 </button>
               </div>
 
-              <div className="p-5 overflow-y-auto space-y-3 flex-1">
+              <div className="p-5 overflow-y-auto space-y-4 flex-1">
+                {/* CẤU HÌNH NHANH THEO BẬC LỚN CHO LIÊN QUÂN (AOV) */}
+                {(modalGameCode === 'AOV' || modalGameCode === 'LIENQUAN') && (() => {
+                  const activeOverrides = activeRankEditingServiceId
+                    ? (customServices.find((s) => s.id === activeRankEditingServiceId)?.stepOverrides || {})
+                    : stepOverrides;
+
+                  const applyTierPackageChange = (pkg: typeof AOV_TIER_PACKAGES[number], val: number) => {
+                    if (activeRankEditingServiceId) {
+                      const updated = customServices.map((s) => {
+                        if (s.id === activeRankEditingServiceId) {
+                          return {
+                            ...s,
+                            stepOverrides: distributeAovTierPackageToSteps(pkg, val, s.stepOverrides || {}),
+                          };
+                        }
+                        return s;
+                      });
+                      setCustomServices(updated);
+                    } else {
+                      setStepOverrides((prev) => distributeAovTierPackageToSteps(pkg, val, prev));
+                    }
+                  };
+
+                  return (
+                    <div className="p-4 rounded-2xl bg-amber-950/15 border border-amber-500/30 space-y-3">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                        <div>
+                          <div className="text-xs font-extrabold text-amber-300 uppercase tracking-wider flex items-center gap-1.5">
+                            <Sparkles size={14} />
+                            <span>Cấu hình nhanh trọn từng bậc Liên Quân (Đồng → Cao Thủ &amp; Cao Thủ trở lên)</span>
+                          </div>
+                          <p className="text-[11px] text-zinc-400 mt-0.5">
+                            Nhập giá trọn bậc — hệ thống tự chia đều cho từng đoàn bên dưới. Từ Cao Thủ trở lên bạn tự do tùy chỉnh.
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+                        {AOV_TIER_PACKAGES.map((pkg) => {
+                          const currentTotal = getAovTierPackageCurrentTotal(pkg, activeOverrides);
+                          const hasCustom = pkg.stepIds.some((id) => typeof activeOverrides[id] === 'number' && activeOverrides[id] > 0);
+                          return (
+                            <div
+                              key={pkg.id}
+                              className={`p-3 rounded-xl border flex items-center justify-between gap-2.5 ${pkg.isHighRank
+                                  ? 'bg-purple-950/20 border-purple-500/30'
+                                  : 'bg-zinc-950/90 border-zinc-800'
+                                }`}
+                            >
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-1.5 text-xs font-bold text-white">
+                                  <img src={pkg.fromImage} alt={pkg.fromTier} className="w-5 h-5 object-contain shrink-0" />
+                                  <span className="truncate">{pkg.label}</span>
+                                  <img src={pkg.toImage} alt={pkg.toTier} className="w-5 h-5 object-contain shrink-0" />
+                                </div>
+                                <div className="text-[10px] text-zinc-500 truncate mt-0.5">
+                                  {pkg.desc}
+                                </div>
+                              </div>
+                              <div className="relative w-28 shrink-0">
+                                <input
+                                  type="text"
+                                  inputMode="numeric"
+                                  pattern="[0-9]*"
+                                  placeholder={pkg.defaultTotalPrice.toLocaleString('vi-VN')}
+                                  value={hasCustom ? currentTotal : ''}
+                                  onChange={(e) => {
+                                    const clean = e.target.value.replace(/\D/g, '').replace(/^0+/, '');
+                                    const val = clean ? parseInt(clean, 10) : 0;
+                                    applyTierPackageChange(pkg, val);
+                                  }}
+                                  className="w-full bg-zinc-900 border border-zinc-700 rounded-lg pr-5 pl-2 py-1.5 text-xs text-amber-300 font-mono font-bold text-right outline-none focus:border-amber-400"
+                                />
+                                <span className="text-[10px] text-zinc-500 absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none">
+                                  đ
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                <div className="text-[11px] font-bold uppercase tracking-wider text-zinc-400 pt-1">
+                  Tinh chỉnh chi tiết từng nấc bậc ({currentRankSteps.length - 1} bước nhảy):
+                </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
                   {currentRankSteps.slice(0, -1).map((step, idx) => {
                     const nextStep = currentRankSteps[idx + 1];
@@ -2044,11 +2211,10 @@ export default function BoosterServicesStudio() {
                     className="w-full bg-zinc-950 border border-cyan-500/40 rounded-xl px-3.5 py-2.5 text-white font-bold outline-none focus:border-cyan-400 shadow-inner"
                   >
                     <optgroup
-                      label={`Danh mục dịch vụ chuẩn (${
-                        GAMES_CATALOG.find(
-                          (g) => g.id.toUpperCase() === (formData.gameCode || activeGameCode).toUpperCase()
-                        )?.shortName || (formData.gameCode || activeGameCode)
-                      })`}
+                      label={`Danh mục dịch vụ chuẩn (${GAMES_CATALOG.find(
+                        (g) => g.id.toUpperCase() === (formData.gameCode || activeGameCode).toUpperCase()
+                      )?.shortName || (formData.gameCode || activeGameCode)
+                        })`}
                     >
                       {availableServiceTypes.map((tpl) => (
                         <option key={tpl.serviceType || tpl.slug} value={tpl.serviceType || tpl.slug}>
@@ -2119,6 +2285,7 @@ export default function BoosterServicesStudio() {
                 {/* TRƯỜNG HỢP 1: CÀY RANK / ELO SIÊU TỐC (THEO NẤC RANK CỦA TỰA GAME) */}
                 {formData.serviceType === 'rank-boost' && (() => {
                   const modalGameCode = (formData.gameCode || activeGameCode || 'LOL').toUpperCase();
+                  const isAovModal = modalGameCode === 'AOV' || modalGameCode === 'LIENQUAN';
                   const currentRankSteps = getRankSteps(modalGameCode);
 
                   return (
@@ -2127,6 +2294,55 @@ export default function BoosterServicesStudio() {
                         <span>Thanh toán đơn hàng:</span>
                         <span className="text-emerald-400 font-bold">Trọn gói 100% Escrow (Không cọc)</span>
                       </div>
+
+                      {isAovModal && (
+                        <div className="p-3 rounded-xl bg-amber-950/15 border border-amber-500/30 space-y-2">
+                          <div className="text-[11px] font-bold text-amber-300 uppercase">
+                            Cấu hình nhanh theo Bậc lớn (Đồng → Cao Thủ &amp; Cao Thủ trở lên)
+                          </div>
+                          <div className="max-h-44 overflow-y-auto space-y-1.5 pr-1">
+                            {AOV_TIER_PACKAGES.map((pkg) => {
+                              const currentTotal = getAovTierPackageCurrentTotal(pkg, formData.stepOverrides);
+                              const hasCustom = pkg.stepIds.some(
+                                (id) => typeof formData.stepOverrides?.[id] === 'number' && (formData.stepOverrides?.[id] ?? 0) > 0
+                              );
+                              return (
+                                <div
+                                  key={pkg.id}
+                                  className="flex items-center justify-between gap-2 text-xs py-1 border-b border-zinc-900 last:border-none"
+                                >
+                                  <div className="flex items-center gap-1.5 text-zinc-200 font-medium min-w-0 truncate">
+                                    <img src={pkg.fromImage} alt={pkg.fromTier} className="w-4 h-4 object-contain shrink-0" />
+                                    <span className="truncate">{pkg.label}</span>
+                                    <img src={pkg.toImage} alt={pkg.toTier} className="w-4 h-4 object-contain shrink-0" />
+                                  </div>
+                                  <div className="relative w-28 shrink-0">
+                                    <input
+                                      type="text"
+                                      inputMode="numeric"
+                                      pattern="[0-9]*"
+                                      placeholder={pkg.defaultTotalPrice.toLocaleString('vi-VN')}
+                                      value={hasCustom ? currentTotal : ''}
+                                      onChange={(e) => {
+                                        const clean = e.target.value.replace(/\D/g, '').replace(/^0+/, '');
+                                        const val = clean ? parseInt(clean, 10) : 0;
+                                        setFormData((prev) => ({
+                                          ...prev,
+                                          stepOverrides: distributeAovTierPackageToSteps(pkg, val, prev.stepOverrides || {}),
+                                        }));
+                                      }}
+                                      className="w-full bg-zinc-900 border border-zinc-700 rounded-lg pr-5 pl-2 py-1 text-xs text-amber-300 font-mono font-bold text-right outline-none focus:border-amber-400"
+                                    />
+                                    <span className="text-[10px] text-zinc-500 absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none">
+                                      đ
+                                    </span>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
 
                       <div>
                         <div className="flex items-center justify-between mb-2">
@@ -2212,16 +2428,26 @@ export default function BoosterServicesStudio() {
                           </span>
                         </div>
 
-                        <div className="space-y-2.5">
+                        <div className="space-y-2.5 max-h-64 overflow-y-auto pr-1">
                           {pointTiers.map((tier) => {
-                            const currentVal = formData.tierRates?.[tier.id] ?? tier.defaultPrice;
+                            const currentVal = isAov
+                              ? (formData.tierRates?.[tier.id] ?? resolveAovStarRate(tier.id, formData.tierRates))
+                              : (formData.tierRates?.[tier.id] ?? tier.defaultPrice);
                             return (
-                              <div key={tier.id} className="flex items-center justify-between p-3 rounded-xl bg-zinc-950 border border-zinc-800">
-                                <div className="flex items-center gap-2">
-                                  <Crown size={15} className="text-amber-400 shrink-0" />
-                                  <div>
-                                    <span className="font-bold text-white text-xs block">{tier.label}</span>
-                                    <span className="text-[10px] text-zinc-500">{tier.desc}</span>
+                              <div key={tier.id} className="flex items-center justify-between p-3 rounded-xl bg-zinc-950 border border-zinc-800 gap-2">
+                                <div className="flex items-center gap-2.5 min-w-0">
+                                  {tier.image ? (
+                                    <img
+                                      src={tier.image}
+                                      alt={tier.label}
+                                      className="w-7 h-7 object-contain shrink-0 drop-shadow"
+                                    />
+                                  ) : (
+                                    <Crown size={15} className="text-amber-400 shrink-0" />
+                                  )}
+                                  <div className="min-w-0">
+                                    <span className="font-bold text-white text-xs block truncate">{tier.label}</span>
+                                    <span className="text-[10px] text-zinc-500 block truncate">{tier.desc}</span>
                                   </div>
                                 </div>
                                 <div className="flex items-center gap-1.5 shrink-0">
@@ -2230,7 +2456,7 @@ export default function BoosterServicesStudio() {
                                     inputMode="numeric"
                                     pattern="[0-9]*"
                                     value={currentVal === 0 ? '' : currentVal}
-                                    placeholder="0"
+                                    placeholder={tier.defaultPrice.toLocaleString('vi-VN')}
                                     onChange={(e) => {
                                       const clean = e.target.value.replace(/\D/g, '').replace(/^0+/, '');
                                       const parsed = clean ? parseInt(clean, 10) : 0;
@@ -2705,33 +2931,30 @@ export default function BoosterServicesStudio() {
                         <button
                           type="button"
                           onClick={() => setFormData({ ...formData, pricingType: 'PER_UNIT', unitName: 'Trận' })}
-                          className={`p-2.5 rounded-xl border text-center transition-all ${
-                            formData.pricingType === 'PER_UNIT' && formData.unitName === 'Trận'
+                          className={`p-2.5 rounded-xl border text-center transition-all ${formData.pricingType === 'PER_UNIT' && formData.unitName === 'Trận'
                               ? 'bg-blue-600 text-white border-blue-400 font-bold shadow-md'
                               : 'bg-zinc-950 border-zinc-800 text-zinc-400 hover:text-white'
-                          }`}
+                            }`}
                         >
                           Theo Số Trận
                         </button>
                         <button
                           type="button"
                           onClick={() => setFormData({ ...formData, pricingType: 'PER_UNIT', unitName: 'Giờ' })}
-                          className={`p-2.5 rounded-xl border text-center transition-all ${
-                            formData.pricingType === 'PER_UNIT' && formData.unitName !== 'Trận'
+                          className={`p-2.5 rounded-xl border text-center transition-all ${formData.pricingType === 'PER_UNIT' && formData.unitName !== 'Trận'
                               ? 'bg-blue-600 text-white border-blue-400 font-bold shadow-md'
                               : 'bg-zinc-950 border-zinc-800 text-zinc-400 hover:text-white'
-                          }`}
+                            }`}
                         >
                           Theo Thời Gian
                         </button>
                         <button
                           type="button"
                           onClick={() => setFormData({ ...formData, pricingType: 'FIXED', unitName: 'Gói' })}
-                          className={`p-2.5 rounded-xl border text-center transition-all ${
-                            formData.pricingType === 'FIXED'
+                          className={`p-2.5 rounded-xl border text-center transition-all ${formData.pricingType === 'FIXED'
                               ? 'bg-blue-600 text-white border-blue-400 font-bold shadow-md'
                               : 'bg-zinc-950 border-zinc-800 text-zinc-400 hover:text-white'
-                          }`}
+                            }`}
                         >
                           Trọn Gói Cố Định
                         </button>

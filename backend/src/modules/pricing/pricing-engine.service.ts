@@ -1,6 +1,14 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { PricingModel, AddonPricingType, CalculationBase } from '../../database/schemas/GameServiceTemplate';
 import { IOrderSnapshot, SettlementStatus } from '../../database/schemas/Order';
+import {
+  AOV_RANK_IMAGES,
+  AOV_RANK_LADDER,
+  AOV_STAR_TIERS,
+  AOV_TIER_PACKAGES,
+  DEFAULT_AOV_STAR_RATES,
+  calculateAovStarPricing,
+} from '../../common/aov.config';
 
 export interface QuoteRequest {
   pricingModel: PricingModel | string;
@@ -326,6 +334,91 @@ export class PricingEngineService {
       refundAmount,
       settlementStatus,
       explanation,
+    };
+  }
+
+  /**
+   * Trả cấu hình mặc định chuẩn của module Liên Quân Mobile (AOV):
+   * - Bảng bậc rank (Đồng -> Cao Thủ & mốc Cao Thủ trở lên cho Booster tùy chỉnh)
+   * - Các gói trọn bậc (Đồng-Bạc 25k, Bạc-Vàng 45k, Vàng-Bạch Kim 55k, Bạch Kim-Kim Cương 65k, Kim Cương-Tinh Anh 95k, Tinh Anh-Cao Thủ 160k)
+   * - Các mốc giá theo Sao (Đồng-KC 5k/sao -> Chiến Tướng 50-99* 30k/sao -> 100*+)
+   */
+  getAovDefaults() {
+    return {
+      rankImages: AOV_RANK_IMAGES,
+      rankLadder: AOV_RANK_LADDER,
+      tierPackages: AOV_TIER_PACKAGES,
+      starTiers: AOV_STAR_TIERS,
+      defaultStarRates: DEFAULT_AOV_STAR_RATES,
+    };
+  }
+
+  /**
+   * Báo giá chuyên biệt cho Liên Quân Mobile (AOV) theo 2 chế độ:
+   * - mode = 'RANK': tính theo bậc Rank (có hỗ trợ stepOverrides & tierPrices của Booster)
+   * - mode = 'STAR': tính theo số Sao (hỗ trợ cả bậc thấp lẫn tự động lũy tiến Cao Thủ 0* -> 100*+)
+   */
+  calculateAovQuote(input: {
+    mode: 'RANK' | 'STAR';
+    currentRankId?: string;
+    desiredRankId?: string;
+    stepOverrides?: Record<string, number>;
+    tierPrices?: Record<string, number>;
+    multiplier?: number;
+    segmentId?: string;
+    currentStars?: number;
+    desiredStars?: number;
+    tierRates?: Record<string, number>;
+    selectedAddons?: QuoteRequest['selectedAddons'];
+    depositPercent?: number;
+  }) {
+    if (input.mode === 'STAR') {
+      const starCalc = calculateAovStarPricing(
+        input.segmentId || 'bronze_diamond',
+        input.currentStars ?? 0,
+        input.desiredStars ?? 0,
+        input.tierRates,
+      );
+
+      if (starCalc.totalStars <= 0) {
+        throw new BadRequestException('Số sao mong muốn phải lớn hơn số sao hiện tại');
+      }
+
+      const quote = this.calculateQuote({
+        pricingModel: PricingModel.PACKAGE_BASED,
+        initialState: { lp: input.currentStars ?? 0 },
+        targetState: { lp: input.desiredStars ?? 0 },
+        packagePrice: starCalc.basePrice,
+        selectedAddons: input.selectedAddons || [],
+        depositPercent: input.depositPercent ?? 40,
+      });
+
+      return {
+        ...quote,
+        mode: 'STAR',
+        totalStars: starCalc.totalStars,
+        effectiveUnitPrice: starCalc.effectiveUnitPrice,
+        isProgressive: starCalc.isProgressive,
+        starBreakdown: starCalc.breakdown,
+      };
+    }
+
+    const quote = this.calculateQuote({
+      pricingModel: PricingModel.FIXED_TRANSITION,
+      initialState: { rankId: input.currentRankId },
+      targetState: { rankId: input.desiredRankId },
+      ladderSteps: AOV_RANK_LADDER,
+      stepOverrides: input.stepOverrides || {},
+      tierPrices: input.tierPrices || {},
+      multiplier: input.multiplier || 1.0,
+      lpGainMultiplier: 1.0,
+      selectedAddons: input.selectedAddons || [],
+      depositPercent: input.depositPercent ?? 100,
+    });
+
+    return {
+      ...quote,
+      mode: 'RANK',
     };
   }
 }

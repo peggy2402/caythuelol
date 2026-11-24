@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Star, Heart, Loader2, ShieldCheck, Trophy, ArrowRight, Gamepad2 } from 'lucide-react';
 import UserBadge from '@/components/UserBadge';
+import { getAovRankImageByInput } from '@/lib/aov';
 
 interface BoosterCardProps {
   booster: any;
@@ -147,8 +148,19 @@ export default function BoosterCard({ booster, isBookmarked, onToggleBookmark }:
   const completedOrders = booster.completedOrders || booster.booster_info?.completed_orders || 0;
   
   // Game & Rank thật
+  const primaryGameCode = (booster.games?.[0]?.gameCode || booster.games?.[0]?.game || '').toUpperCase();
   const userRank = booster.games?.[0]?.ranks?.[0] || booster.booster_info?.currentRank || '';
   const cleanRankKey = resolveRankImageKey(userRank);
+  const isPrimaryAov =
+    ['AOV', 'LIENQUAN', 'LQM', 'ARENA_OF_VALOR'].includes(primaryGameCode) ||
+    /tinh anh|veteran|chiến tướng|conqueror|huyền thoại|chiến thần/i.test(userRank);
+  const userRankImgSrc = userRank
+    ? isPrimaryAov
+      ? getAovRankImageByInput(userRank)
+      : cleanRankKey
+      ? `/images/ranks/${cleanRankKey}.png`
+      : null
+    : null;
   
   // Chuẩn hóa danh sách game nhận cày thực tế (chỉ game đang BẬT dịch vụ, tối đa 3 badge + badge 3+)
   const normalizedGames = getBoosterActiveGames(booster);
@@ -258,9 +270,9 @@ export default function BoosterCard({ booster, isBookmarked, onToggleBookmark }:
         <div className="flex flex-wrap justify-center items-center gap-1.5 my-2 min-h-[28px]">
           {userRank && (
             <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-[11px] font-bold text-blue-300">
-              {cleanRankKey && (
+              {userRankImgSrc && (
                 <img 
-                  src={`/images/ranks/${cleanRankKey}.png`} 
+                  src={userRankImgSrc} 
                   alt={userRank} 
                   className="w-3.5 h-3.5 object-contain" 
                   onError={(e) => {

@@ -59,6 +59,15 @@ import {
   getPointBoostTiers,
   PointBoostTierSegment,
 } from '@/lib/rank-calculator';
+import {
+  AOV_RANK_IMAGES,
+  AOV_STAR_TIERS,
+  AOV_TIER_PACKAGES,
+  calculateAovStarBoost,
+  getAovHighRankByStars,
+  getAovTierPackageCurrentTotal,
+  resolveAovStarRate,
+} from '@/lib/aov';
 
 // 1. Danh sách 16 Máy chủ chuẩn
 interface LolServer {
@@ -120,6 +129,26 @@ const ACCOUNT_TYPES = [
     id: 'PlayStation',
     name: 'PlayStation',
     desc: 'Tài khoản liên kết PlayStation Network (PSN)',
+  },
+];
+
+// 2b. Danh sách Loại Tài Khoản Liên Quân Mobile (Garena VN)
+const AOV_ACCOUNT_TYPES = [
+  {
+    id: 'Garena',
+    name: 'Garena',
+    desc: 'Tài khoản Garena chính thức Liên Quân Mobile VN',
+    badge: 'Khuyên dùng',
+  },
+  {
+    id: 'Facebook',
+    name: 'Facebook',
+    desc: 'Đăng nhập liên kết tài khoản Facebook',
+  },
+  {
+    id: 'Apple',
+    name: 'Apple',
+    desc: 'Đăng nhập thông qua Apple ID / iCloud (iOS)',
   },
 ];
 
@@ -404,7 +433,7 @@ const TIER_CONFIG: Record<
   },
 };
 
-// 5. Cấu hình Tier Ranks Liên Quân Mobile (Đồng IV đến Cao Thủ)
+// 5. Cấu hình Tier Ranks Liên Quân Mobile (Đồng III đến Huyền Thoại 100★)
 const AOV_TIER_CONFIG: Record<
   string,
   {
@@ -420,7 +449,7 @@ const AOV_TIER_CONFIG: Record<
 > = {
   BRONZE: {
     name: 'Đồng',
-    image: '/images/aov/Bronze.png',
+    image: AOV_RANK_IMAGES.BRONZE,
     textColor: 'text-amber-500',
     borderColor: 'border-amber-900/40',
     activeBorder: 'border-amber-600 ring-2 ring-amber-600/40',
@@ -430,7 +459,7 @@ const AOV_TIER_CONFIG: Record<
   },
   SILVER: {
     name: 'Bạc',
-    image: '/images/aov/Silver.png',
+    image: AOV_RANK_IMAGES.SILVER,
     textColor: 'text-slate-300',
     borderColor: 'border-slate-800',
     activeBorder: 'border-slate-400 ring-2 ring-slate-400/40',
@@ -440,7 +469,7 @@ const AOV_TIER_CONFIG: Record<
   },
   GOLD: {
     name: 'Vàng',
-    image: '/images/aov/Gold.png',
+    image: AOV_RANK_IMAGES.GOLD,
     textColor: 'text-yellow-400',
     borderColor: 'border-yellow-900/40',
     activeBorder: 'border-yellow-500 ring-2 ring-yellow-500/40',
@@ -450,7 +479,7 @@ const AOV_TIER_CONFIG: Record<
   },
   PLATINUM: {
     name: 'Bạch Kim',
-    image: '/images/aov/Platium.png',
+    image: AOV_RANK_IMAGES.PLATINUM,
     textColor: 'text-cyan-300',
     borderColor: 'border-cyan-900/40',
     activeBorder: 'border-cyan-400 ring-2 ring-cyan-400/40',
@@ -460,7 +489,7 @@ const AOV_TIER_CONFIG: Record<
   },
   DIAMOND: {
     name: 'Kim Cương',
-    image: '/images/aov/Diamond.png',
+    image: AOV_RANK_IMAGES.DIAMOND,
     textColor: 'text-blue-400',
     borderColor: 'border-blue-900/40',
     activeBorder: 'border-blue-500 ring-2 ring-blue-500/40',
@@ -470,7 +499,7 @@ const AOV_TIER_CONFIG: Record<
   },
   VETERAN: {
     name: 'Tinh Anh',
-    image: '/images/aov/Veteran.png',
+    image: AOV_RANK_IMAGES.VETERAN,
     textColor: 'text-purple-300',
     borderColor: 'border-purple-900/40',
     activeBorder: 'border-purple-400 ring-2 ring-purple-400/40',
@@ -480,15 +509,47 @@ const AOV_TIER_CONFIG: Record<
   },
   MASTER: {
     name: 'Cao Thủ',
-    image: '/images/aov/Master.png',
-    textColor: 'text-rose-400',
-    borderColor: 'border-rose-900/40',
-    activeBorder: 'border-rose-500 ring-2 ring-rose-500/40',
-    bgGradient: 'from-rose-950/30 to-zinc-950/90',
-    glowClass: 'shadow-[0_0_25px_rgba(244,63,94,0.25)]',
-    badgeBg: 'bg-rose-500/10 text-rose-400 border-rose-500/30',
+    image: AOV_RANK_IMAGES.MASTER,
+    textColor: 'text-amber-400',
+    borderColor: 'border-amber-900/40',
+    activeBorder: 'border-amber-500 ring-2 ring-amber-500/40',
+    bgGradient: 'from-amber-950/30 to-zinc-950/90',
+    glowClass: 'shadow-[0_0_25px_rgba(245,158,11,0.25)]',
+    badgeBg: 'bg-amber-500/10 text-amber-400 border-amber-500/30',
+  },
+  GRANDMASTER: {
+    name: 'Đại Cao Thủ',
+    image: AOV_RANK_IMAGES.GRANDMASTER_I,
+    textColor: 'text-sky-400',
+    borderColor: 'border-sky-900/40',
+    activeBorder: 'border-sky-400 ring-2 ring-sky-400/40',
+    bgGradient: 'from-sky-950/30 to-zinc-950/90',
+    glowClass: 'shadow-[0_0_25px_rgba(56,189,248,0.25)]',
+    badgeBg: 'bg-sky-500/10 text-sky-400 border-sky-500/30',
+  },
+  CONQUEROR: {
+    name: 'Chiến Tướng',
+    image: AOV_RANK_IMAGES.CONQUEROR,
+    textColor: 'text-fuchsia-400',
+    borderColor: 'border-fuchsia-900/40',
+    activeBorder: 'border-fuchsia-500 ring-2 ring-fuchsia-500/40',
+    bgGradient: 'from-fuchsia-950/30 to-zinc-950/90',
+    glowClass: 'shadow-[0_0_25px_rgba(217,70,239,0.25)]',
+    badgeBg: 'bg-fuchsia-500/10 text-fuchsia-400 border-fuchsia-500/30',
+  },
+  LEGEND: {
+    name: 'Huyền Thoại',
+    image: AOV_RANK_IMAGES.LEGEND,
+    textColor: 'text-yellow-300',
+    borderColor: 'border-yellow-700/40',
+    activeBorder: 'border-yellow-400 ring-2 ring-yellow-400/40',
+    bgGradient: 'from-yellow-950/40 to-zinc-950/90',
+    glowClass: 'shadow-[0_0_25px_rgba(250,204,21,0.28)]',
+    badgeBg: 'bg-yellow-500/15 text-yellow-300 border-yellow-400/40',
   },
 };
+
+const AOV_SINGLE_STEP_TIERS = ['MASTER', 'GRANDMASTER', 'CONQUEROR', 'LEGEND'];
 
 const DIVISIONS = ['IV', 'III', 'II', 'I'];
 
@@ -521,12 +582,24 @@ const NUM_TO_DIVISION: Record<string, string> = {
 
 const VALORANT_DIVISIONS = ['1', '2', '3'];
 
-// Helper: Lấy chuẩn ID trong RANK_STEPS (VD: 'IRON_1', 'MASTER', 'RADIANT')
+// Helper: Lấy chuẩn ID trong RANK_STEPS (VD: 'IRON_1', 'MASTER', 'GRANDMASTER', 'RADIANT')
 const getRankStepId = (gameCode: string, tier: string, div?: string): string => {
-  const isVal = (gameCode || '').toUpperCase() === 'VALORANT';
+  const upperGame = (gameCode || '').toUpperCase();
+  const isVal = upperGame === 'VALORANT';
   if (isVal) {
     if (tier === 'RADIANT') return 'RADIANT';
     return `${tier}_${div || '1'}`;
+  }
+  const isAovGame = ['AOV', 'LIENQUAN', 'LQM', 'ARENA_OF_VALOR'].includes(upperGame);
+  if (isAovGame) {
+    if (AOV_SINGLE_STEP_TIERS.includes(tier)) return tier;
+    const fallbackDiv = ['BRONZE', 'SILVER'].includes(tier)
+      ? '3'
+      : tier === 'GOLD'
+      ? '4'
+      : '5';
+    const num = DIVISION_TO_NUM[div || fallbackDiv] || div || fallbackDiv;
+    return `${tier}_${num}`;
   }
   if (tier === 'MASTER') return 'MASTER';
   const num = DIVISION_TO_NUM[div || '4'] || div || '4';
@@ -535,14 +608,21 @@ const getRankStepId = (gameCode: string, tier: string, div?: string): string => 
 
 // Helper: Lấy danh sách Divisions hợp lệ cho từng Tier của từng game
 const getDivisionsForTier = (gameCode: string, tier: string): string[] => {
-  const isVal = (gameCode || '').toUpperCase() === 'VALORANT';
+  const upperGame = (gameCode || '').toUpperCase();
+  const isVal = upperGame === 'VALORANT';
   if (isVal) {
     if (tier === 'RADIANT') return [];
     return VALORANT_DIVISIONS;
   }
-  const isAovGame = (gameCode || '').toUpperCase() === 'AOV' || (gameCode || '').toUpperCase() === 'LIENQUAN';
+  const isAovGame = ['AOV', 'LIENQUAN', 'LQM', 'ARENA_OF_VALOR'].includes(upperGame);
   if (isAovGame) {
-    if (tier === 'MASTER') return [];
+    if (AOV_SINGLE_STEP_TIERS.includes(tier)) return [];
+    if (['BRONZE', 'SILVER'].includes(tier)) {
+      return ['III', 'II', 'I'];
+    }
+    if (tier === 'GOLD') {
+      return ['IV', 'III', 'II', 'I'];
+    }
     if (['PLATINUM', 'DIAMOND', 'VETERAN'].includes(tier)) {
       return ['V', 'IV', 'III', 'II', 'I'];
     }
@@ -562,6 +642,16 @@ const findRankStepIndex = (gameCode: string, tier: string, div?: string): number
 // Component hiển thị Logo các nhà cung cấp tài khoản
 function ProviderLogo({ provider, className = 'w-5 h-5' }: { provider: string; className?: string }) {
   switch (provider) {
+    case 'Garena':
+      return (
+        <svg className={className} viewBox="0 0 24 24" fill="none">
+          <rect width="24" height="24" rx="6" fill="#DC2626" />
+          <path
+            d="M15.8 9.2A4.8 4.8 0 1 0 16.5 14H12.5V11.8H19V13.1C18.7 16.5 15.8 19 12.1 19A7 7 0 1 1 17.3 7.3L15.8 9.2Z"
+            fill="#FFFFFF"
+          />
+        </svg>
+      );
     case 'Riot':
       return (
         <svg className={className} viewBox="0 0 24 24" fill="#EF4444">
@@ -632,16 +722,31 @@ function ServiceBookingContent() {
     };
 
   const isValorant = (game.id || '').toUpperCase() === 'VALORANT';
-  const isAov = (game.id || '').toUpperCase() === 'AOV' || (game.id || '').toUpperCase() === 'LIENQUAN';
-  const isPointBoost = serviceSlug === 'net-wins' || serviceDef.pricingType === 'PER_UNIT';
+  const isAov = ['AOV', 'LIENQUAN', 'LQM', 'ARENA_OF_VALOR'].includes((game.id || '').toUpperCase());
+  const isBasePointBoost = serviceSlug === 'net-wins' || serviceDef.pricingType === 'PER_UNIT';
+  const isAovDualMode = isAov && (serviceSlug === 'rank-boost' || serviceSlug === 'net-wins');
+  const [aovCalcMode, setAovCalcMode] = useState<'RANK' | 'STAR'>(
+    isBasePointBoost || searchParams.get('mode') === 'star' ? 'STAR' : 'RANK'
+  );
+  const isPointBoost = isAovDualMode ? aovCalcMode === 'STAR' : isBasePointBoost;
+  const activeServiceSlug = isAovDualMode
+    ? aovCalcMode === 'STAR'
+      ? 'net-wins'
+      : 'rank-boost'
+    : serviceSlug;
   const activeRankSteps = isValorant ? VALORANT_RANK_STEPS : isAov ? AOV_RANK_STEPS : LOL_RANK_STEPS;
   const activeTierConfig = isValorant ? VALORANT_TIER_CONFIG : isAov ? AOV_TIER_CONFIG : TIER_CONFIG;
   const activeDivisions = isValorant ? VALORANT_DIVISIONS : DIVISIONS;
   const activeGainOptions = isValorant ? RR_GAIN_OPTIONS : LP_GAIN_OPTIONS;
+  const activeAccountTypes = isAov ? AOV_ACCOUNT_TYPES : ACCOUNT_TYPES;
 
   // 1. States cho Cày Rank (Rank Calculator)
-  const [currentRankId, setCurrentRankId] = useState<string>(isValorant ? 'GOLD_1' : 'GOLD_4');
-  const [desiredRankId, setDesiredRankId] = useState<string>(isValorant ? 'GOLD_2' : 'GOLD_3');
+  const [currentRankId, setCurrentRankId] = useState<string>(
+    isValorant ? 'GOLD_1' : isAov ? 'DIAMOND_5' : 'GOLD_4'
+  );
+  const [desiredRankId, setDesiredRankId] = useState<string>(
+    isValorant ? 'GOLD_2' : isAov ? 'VETERAN_5' : 'GOLD_3'
+  );
   const [lpGain, setLpGain] = useState<string>('25_PLUS');
   const [queueType, setQueueType] = useState<string>(searchParams.get('queueType') || 'SOLO_DUO');
   const [server, setServer] = useState<string>('VN');
@@ -649,15 +754,15 @@ function ServiceBookingContent() {
   // Point Boost States (Cày Điểm RR / LP / Sao)
   const pointTiers = useMemo(() => getPointBoostTiers(game.id), [game.id]);
   const [selectedPointSegment, setSelectedPointSegment] = useState<string>(
-    isValorant ? 'immortal1_2' : isAov ? 'master_stars' : 'master'
+    isValorant ? 'immortal1_2' : isAov ? 'bronze_diamond' : 'master'
   );
-  const [currentPoints, setCurrentPoints] = useState<number>(isValorant ? 40 : isAov ? 0 : 0);
+  const [currentPoints, setCurrentPoints] = useState<number>(isValorant ? 40 : 0);
   const [desiredPoints, setDesiredPoints] = useState<number>(isValorant ? 80 : isAov ? 10 : 100);
   const gainedPoints = useMemo(() => Math.max(0, desiredPoints - currentPoints), [desiredPoints, currentPoints]);
 
   // States cho Chuỗi Thăng Hạng (Promotion Series)
   const isPromotion = serviceSlug === 'promotion';
-  const isRankBoost = serviceSlug === 'rank-boost' || (!isPointBoost && !isPromotion);
+  const isRankBoost = !isPointBoost && !isPromotion;
   const isRiotGame = ['lol', 'valorant', 'tft'].includes((game.id || '').toLowerCase());
 
   // Tra cứu / Kiểm tra thông tin tài khoản Riot (Rank & LP)
@@ -687,8 +792,8 @@ function ServiceBookingContent() {
   // Modals States
   const [isRankModalOpen, setIsRankModalOpen] = useState(false);
   const [rankModalTarget, setRankModalTarget] = useState<'CURRENT' | 'DESIRED'>('CURRENT');
-  const [tempTier, setTempTier] = useState<string>('GOLD');
-  const [tempDivision, setTempDivision] = useState<string>(isValorant ? '1' : 'IV');
+  const [tempTier, setTempTier] = useState<string>(isAov ? 'DIAMOND' : 'GOLD');
+  const [tempDivision, setTempDivision] = useState<string>(isValorant ? '1' : isAov ? 'V' : 'IV');
 
   const [isServerModalOpen, setIsServerModalOpen] = useState(false);
   const [serverSearchTerm, setServerSearchTerm] = useState('');
@@ -708,7 +813,7 @@ function ServiceBookingContent() {
   });
 
   // 3. States cho Thông tin tài khoản cần cày
-  const [accountType, setAccountType] = useState<string>('Riot');
+  const [accountType, setAccountType] = useState<string>(isAov ? 'Garena' : 'Riot');
   const [ingameAccount, setIngameAccount] = useState('');
   const [ingamePassword, setIngamePassword] = useState('');
   const [orderNote, setOrderNote] = useState('');
@@ -785,7 +890,7 @@ function ServiceBookingContent() {
 
   // Fetch danh sách booster của game để khách chọn nếu muốn (lọc theo service)
   useEffect(() => {
-    fetch(`/api/boosters?game=${encodeURIComponent(game.id.toUpperCase())}&service=${encodeURIComponent(serviceSlug)}`)
+    fetch(`/api/boosters?game=${encodeURIComponent(game.id.toUpperCase())}&service=${encodeURIComponent(activeServiceSlug)}`)
       .then((res) => res.json())
       .then((data) => {
         const list = data.boosters || [];
@@ -793,7 +898,7 @@ function ServiceBookingContent() {
 
         // Nếu khách hàng vào trang tự nhiên (không chỉ định qua query URL)
         // và đang ở chế độ Ghép Nhanh Tự Động, tự động random chọn 1 booster phù hợp
-        if (!cleanBoosterUsername && list.length > 0) {
+        if (!cleanBoosterUsername && !isManualSelectBooster && list.length > 0) {
           const randomIndex = Math.floor(Math.random() * list.length);
           const picked = list[randomIndex];
           setAssignedBooster({
@@ -810,7 +915,7 @@ function ServiceBookingContent() {
         }
       })
       .catch(() => {});
-  }, [game.id, serviceSlug, cleanBoosterUsername]);
+  }, [game.id, activeServiceSlug, cleanBoosterUsername]);
 
   // Nếu có query booster, fetch thông tin booster đó
   useEffect(() => {
@@ -900,17 +1005,39 @@ function ServiceBookingContent() {
     setBoosterSearchTerm('');
   };
 
-  // Hệ số Gain cấu hình chuẩn xác theo yêu cầu người dùng
+  // Hệ số Gain cấu hình chuẩn xác theo yêu cầu người dùng (Liên Quân tính theo bậc/sao, không dùng LP Gain)
   const lpMultiplier = useMemo(() => {
+    if (isAov) return 1.0;
     const opt = activeGainOptions.find((o) => o.id === lpGain);
     return opt ? opt.multiplier : 1.0;
-  }, [activeGainOptions, lpGain]);
+  }, [isAov, activeGainOptions, lpGain]);
 
   // Point Boost Calculation Helpers
   const pointUnit = isValorant ? 'RR' : isAov ? 'Sao' : 'LP';
   const selectedPointTierObj = useMemo(() => {
     return pointTiers.find((t) => t.id === selectedPointSegment) || pointTiers[0];
   }, [pointTiers, selectedPointSegment]);
+
+  // Helper chọn phân khúc sao/điểm (tự động set mốc sao hợp lý cho phân khúc Cao Thủ+ Liên Quân)
+  const handleSelectPointSegment = (tier: PointBoostTierSegment) => {
+    setSelectedPointSegment(tier.id);
+    if (!isAov) return;
+    const aovTier = AOV_STAR_TIERS.find((t) => t.id === tier.id);
+    if (!aovTier) return;
+    if (aovTier.isHighEloRange) {
+      const minS = aovTier.minStar ?? 0;
+      const maxS = aovTier.maxStar ?? Number.POSITIVE_INFINITY;
+      if (currentPoints < minS || currentPoints >= maxS) {
+        setCurrentPoints(minS);
+        setDesiredPoints(minS + 10);
+      } else if (desiredPoints <= currentPoints) {
+        setDesiredPoints(currentPoints + 10);
+      }
+    } else if (currentPoints >= 20 || desiredPoints <= currentPoints) {
+      setCurrentPoints(0);
+      setDesiredPoints(10);
+    }
+  };
 
   // Cấu hình dịch vụ riêng của Booster nếu khách đã chỉ định
   const boosterSettings =
@@ -919,35 +1046,116 @@ function ServiceBookingContent() {
     assignedBooster?.boosterData?.service_settings ||
     assignedBooster?.boosterData?.booster_info?.service_settings;
 
-  const matchingBoosterService = useMemo(() => {
+  const isSameGameCode = (code?: string) => {
+    const c = (code || '').toUpperCase();
+    const g = (game.id || '').toUpperCase();
+    if (c === g) return true;
+    if (g === 'LOL' && (c === 'LMHT' || c === 'LEAGUE')) return true;
+    if (g === 'AOV' && ['LIENQUAN', 'LQM', 'ARENA_OF_VALOR'].includes(c)) return true;
+    if (g === 'TFT' && c === 'DTCL') return true;
+    return false;
+  };
+
+  const matchingBoosterRankService = useMemo(() => {
     if (!assignedBooster) return null;
     const customList = boosterSettings?.customServices || [];
-    return customList.find(
-      (s: any) =>
-        (s.gameCode || '').toUpperCase() === game.id.toUpperCase() &&
-        (s.serviceType === 'net-wins' || s.slug === 'net-wins' || s.serviceType === serviceSlug)
+    return (
+      customList.find(
+        (s: any) =>
+          isSameGameCode(s.gameCode) &&
+          (s.serviceType === 'rank-boost' || s.slug === 'rank-boost')
+      ) || null
     );
-  }, [assignedBooster, boosterSettings, game.id, serviceSlug]);
+  }, [assignedBooster, boosterSettings, game.id]);
+
+  const matchingBoosterStarService = useMemo(() => {
+    if (!assignedBooster) return null;
+    const customList = boosterSettings?.customServices || [];
+    return (
+      customList.find(
+        (s: any) =>
+          isSameGameCode(s.gameCode) &&
+          (s.serviceType === 'net-wins' || s.slug === 'net-wins')
+      ) || null
+    );
+  }, [assignedBooster, boosterSettings, game.id]);
+
+  const matchingBoosterService = useMemo(() => {
+    if (!assignedBooster) return null;
+    if (isPointBoost) return matchingBoosterStarService;
+    if (activeServiceSlug === 'rank-boost') return matchingBoosterRankService;
+    const customList = boosterSettings?.customServices || [];
+    return (
+      customList.find(
+        (s: any) =>
+          isSameGameCode(s.gameCode) &&
+          (s.serviceType === activeServiceSlug || s.slug === activeServiceSlug)
+      ) || null
+    );
+  }, [
+    assignedBooster,
+    boosterSettings,
+    game.id,
+    activeServiceSlug,
+    isPointBoost,
+    matchingBoosterRankService,
+    matchingBoosterStarService,
+  ]);
+
+  // Tính toán cày theo Sao Liên Quân (hỗ trợ lũy tiến Cao Thủ -> Đại Cao Thủ -> Chiến Tướng -> Huyền Thoại)
+  const aovStarCalc = useMemo(() => {
+    if (!isAov) return null;
+    return calculateAovStarBoost({
+      selectedSegmentId: selectedPointSegment,
+      currentStars: currentPoints,
+      desiredStars: desiredPoints,
+      boosterTierRates: matchingBoosterStarService?.tierRates,
+    });
+  }, [isAov, selectedPointSegment, currentPoints, desiredPoints, matchingBoosterStarService]);
+
+  const isSelectedAovHighStar = useMemo(() => {
+    if (!isAov) return false;
+    return Boolean(AOV_STAR_TIERS.find((t) => t.id === selectedPointSegment)?.isHighEloRange);
+  }, [isAov, selectedPointSegment]);
 
   const segmentRate = useMemo(() => {
+    if (isAov) {
+      return resolveAovStarRate(selectedPointSegment, matchingBoosterStarService?.tierRates);
+    }
     if (matchingBoosterService?.tierRates?.[selectedPointSegment]) {
       return Number(matchingBoosterService.tierRates[selectedPointSegment]);
     }
     if (matchingBoosterService?.price && matchingBoosterService.price > 0) {
       return Number(matchingBoosterService.price);
     }
-    return selectedPointTierObj?.defaultPrice || (isValorant ? 5000 : isAov ? 15000 : 1000);
-  }, [matchingBoosterService, selectedPointSegment, selectedPointTierObj, isValorant, isAov]);
+    return selectedPointTierObj?.defaultPrice || (isValorant ? 5000 : 1000);
+  }, [isAov, matchingBoosterStarService, matchingBoosterService, selectedPointSegment, selectedPointTierObj, isValorant]);
 
   const boosterStandardConfig = boosterSettings?.standardConfig;
   const boosterMultiplier = boosterStandardConfig?.rankPriceMultiplier || 1.0;
+  const effectiveRankMultiplier = isAov
+    ? Number(matchingBoosterRankService?.multiplier || 1.0)
+    : assignedBooster
+    ? boosterMultiplier
+    : 1.0;
   const boosterAddonsConfig =
     assignedBooster?.addonsConfig ||
     boosterSettings?.addonsConfig ||
     boosterStandardConfig?.addonsConfig;
-  const boosterStepOverrides =
-    boosterSettings?.stepOverrides ||
-    boosterStandardConfig?.stepOverrides;
+
+  // Ưu tiên stepOverrides gắn riêng với dịch vụ của game đó (tránh ghi đè chéo bảng giá LOL sang AOV/Valorant)
+  const boosterStepOverrides = useMemo(() => {
+    const serviceOverrides = matchingBoosterRankService?.stepOverrides;
+    if (isAov || isValorant) {
+      return serviceOverrides && Object.keys(serviceOverrides).length > 0 ? serviceOverrides : undefined;
+    }
+    const globalOverrides =
+      boosterSettings?.stepOverrides || boosterStandardConfig?.stepOverrides;
+    if (serviceOverrides && Object.keys(serviceOverrides).length > 0) {
+      return { ...(globalOverrides || {}), ...serviceOverrides };
+    }
+    return globalOverrides;
+  }, [isAov, isValorant, matchingBoosterRankService, boosterSettings, boosterStandardConfig]);
 
   // Cấu hình chi tiết từng addon (Ưu tiên cấu hình thực tế từ Booster)
   const scheduleCfg = boosterAddonsConfig?.schedule || { enabled: true, percent: 20 };
@@ -962,10 +1170,13 @@ function ServiceBookingContent() {
     if (assignedBooster && typeof matchingBoosterService?.depositPercent === 'number' && matchingBoosterService.depositPercent > 0) {
       return Number(matchingBoosterService.depositPercent);
     }
+    if (isAovDualMode) {
+      return isPointBoost ? 30 : 100;
+    }
     return serviceDef.depositPercent || (isPointBoost ? 30 : 100);
-  }, [assignedBooster, matchingBoosterService?.depositPercent, serviceDef.depositPercent, isPointBoost]);
+  }, [assignedBooster, matchingBoosterService?.depositPercent, serviceDef.depositPercent, isPointBoost, isAovDualMode]);
 
-  // Tính toán bảng giá (Hỗ trợ Cày Điểm RR/LP, Chuỗi Thăng Hạng và Cày Bậc Rank)
+  // Tính toán bảng giá (Hỗ trợ Cày Điểm RR/LP/Sao, Chuỗi Thăng Hạng và Cày Bậc Rank)
   const calculation = useMemo(() => {
     if (isPromotion) {
       const basePromoPrice =
@@ -997,7 +1208,10 @@ function ServiceBookingContent() {
     }
 
     if (isPointBoost) {
-      const rawPointPrice = Math.round(gainedPoints * segmentRate * lpMultiplier);
+      const rawPointPrice =
+        isAov && aovStarCalc
+          ? aovStarCalc.basePrice
+          : Math.round(gainedPoints * segmentRate * lpMultiplier);
       let addonPercentage = 0;
       let addonFlatFee = 0;
       if (addons.duo && duoCfg.enabled) addonPercentage += (duoCfg.percent ?? 50) / 100;
@@ -1028,13 +1242,15 @@ function ServiceBookingContent() {
       rankSteps: activeRankSteps,
       lpGainMultiplier: lpMultiplier,
       addons,
-      boosterPriceMultiplier: assignedBooster ? boosterMultiplier : 1.0,
+      boosterPriceMultiplier: effectiveRankMultiplier,
       depositPercent: effectiveDepositPercent,
       stepOverrides: assignedBooster ? boosterStepOverrides : undefined,
       addonsConfig: assignedBooster ? boosterAddonsConfig : undefined,
     });
   }, [
     isPointBoost,
+    isAov,
+    aovStarCalc,
     gainedPoints,
     segmentRate,
     currentRankId,
@@ -1051,7 +1267,7 @@ function ServiceBookingContent() {
     effectiveDepositPercent,
     isManualSelectBooster,
     assignedBooster,
-    boosterMultiplier,
+    effectiveRankMultiplier,
     boosterStepOverrides,
     boosterAddonsConfig,
     isPromotion,
@@ -1149,8 +1365,8 @@ function ServiceBookingContent() {
 
   // Account Type Object
   const currentAccountTypeObj = useMemo(() => {
-    return ACCOUNT_TYPES.find((a) => a.id === accountType) || ACCOUNT_TYPES[0];
-  }, [accountType]);
+    return activeAccountTypes.find((a) => a.id === accountType) || activeAccountTypes[0];
+  }, [activeAccountTypes, accountType]);
 
   // Xử lý mở Modal chọn Rank
   const handleOpenRankModal = (target: 'CURRENT' | 'DESIRED') => {
@@ -1671,9 +1887,17 @@ function ServiceBookingContent() {
     try {
       setIsSubmitting(true);
 
+      const aovStartRankInfo = isAov && isPointBoost && isSelectedAovHighStar ? getAovHighRankByStars(currentPoints) : null;
+      const aovTargetRankInfo = isAov && isPointBoost && isSelectedAovHighStar ? getAovHighRankByStars(desiredPoints) : null;
+      const resolvedOrderServiceType = isAovDualMode
+        ? isPointBoost
+          ? 'NET_WINS'
+          : 'RANK_BOOST'
+        : serviceSlug.toUpperCase().replace(/-/g, '_');
+
       const orderPayload = {
         game: game.id.toUpperCase(),
-        serviceType: serviceSlug.toUpperCase().replace(/-/g, '_'),
+        serviceType: resolvedOrderServiceType,
         boosterId: assignedBooster?.user?._id || null,
         is_auto_matched: !isManualSelectBooster && Boolean(assignedBooster),
         pricing: {
@@ -1718,11 +1942,14 @@ function ServiceBookingContent() {
           : isPointBoost
           ? {
               is_point_boost: true,
-              calc_mode: 'BY_LP',
+              calc_mode: isAov ? 'BY_STAR' : 'BY_LP',
+              game: game.id.toUpperCase(),
               segment: selectedPointSegment,
               segment_label: selectedPointTierObj.label,
-              current_rank: selectedPointTierObj.label,
-              desired_rank: `${selectedPointTierObj.label} (${desiredPoints} ${pointUnit})`,
+              current_rank: aovStartRankInfo ? aovStartRankInfo.label : selectedPointTierObj.label,
+              desired_rank: aovTargetRankInfo
+                ? aovTargetRankInfo.label
+                : `${selectedPointTierObj.label} (${desiredPoints} ${pointUnit})`,
               start_lp: currentPoints,
               target_lp: desiredPoints,
               current_lp: currentPoints,
@@ -1731,19 +1958,24 @@ function ServiceBookingContent() {
               gained_points: gainedPoints,
               target_points: gainedPoints,
               num_games: gainedPoints,
-              unit_price_per_lp: segmentRate,
+              unit_price_per_lp: isAov && aovStarCalc ? aovStarCalc.effectiveUnitPrice : segmentRate,
               unit: pointUnit,
-              rate: segmentRate,
-              lp_gain: lpGain,
+              rate: isAov && aovStarCalc ? aovStarCalc.effectiveUnitPrice : segmentRate,
+              star_breakdown: isAov && aovStarCalc ? aovStarCalc.breakdown : undefined,
+              is_progressive_star: isAov && aovStarCalc ? aovStarCalc.isProgressive : false,
+              lp_gain: isAov ? null : lpGain,
               queue_type: queueType,
               server,
               addons,
               ingame_name: checkedAccount?.riotId || null,
             }
           : {
+              game: game.id.toUpperCase(),
               current_rank: currentRankObj?.label,
               desired_rank: desiredRankObj?.label,
-              lp_gain: lpGain,
+              current_rank_id: currentRankId,
+              desired_rank_id: desiredRankId,
+              lp_gain: isAov ? null : lpGain,
               queue_type: queueType,
               server,
               addons,
@@ -2370,6 +2602,69 @@ function ServiceBookingContent() {
                 </div>
               )}
 
+              {/* CHUYỂN ĐỔI HÌNH THỨC TÍNH GIÁ LIÊN QUÂN MOBILE (THEO BẬC RANK / THEO SỐ SAO) */}
+              {isAovDualMode && (
+                <div className="p-2 rounded-2xl bg-zinc-950/90 border border-amber-500/25 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setAovCalcMode('RANK')}
+                    className={`p-3 rounded-xl border text-left transition-all flex items-center gap-3 cursor-pointer ${
+                      aovCalcMode === 'RANK'
+                        ? 'bg-gradient-to-r from-amber-600/20 to-orange-600/15 border-amber-500/70 shadow-[0_0_20px_rgba(245,158,11,0.15)]'
+                        : 'bg-zinc-900/50 border-zinc-800 hover:border-zinc-700'
+                    }`}
+                  >
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border ${
+                      aovCalcMode === 'RANK'
+                        ? 'bg-amber-500/20 border-amber-500/40 text-amber-400'
+                        : 'bg-zinc-800/80 border-zinc-700 text-zinc-400'
+                    }`}>
+                      <Trophy size={18} />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="text-xs sm:text-sm font-extrabold text-white flex items-center gap-1.5">
+                        <span>Cày theo Bậc Rank</span>
+                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-300 border border-amber-500/30">
+                          Trọn bậc
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-zinc-400 truncate mt-0.5">
+                        Đồng → Cao Thủ · Từ Cao Thủ+ tùy chỉnh
+                      </p>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setAovCalcMode('STAR')}
+                    className={`p-3 rounded-xl border text-left transition-all flex items-center gap-3 cursor-pointer ${
+                      aovCalcMode === 'STAR'
+                        ? 'bg-gradient-to-r from-cyan-600/20 to-blue-600/15 border-cyan-500/70 shadow-[0_0_20px_rgba(6,182,212,0.15)]'
+                        : 'bg-zinc-900/50 border-zinc-800 hover:border-zinc-700'
+                    }`}
+                  >
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border ${
+                      aovCalcMode === 'STAR'
+                        ? 'bg-cyan-500/20 border-cyan-500/40 text-cyan-400'
+                        : 'bg-zinc-800/80 border-zinc-700 text-zinc-400'
+                    }`}>
+                      <Star size={18} />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="text-xs sm:text-sm font-extrabold text-white flex items-center gap-1.5">
+                        <span>Tính tiền theo Số Sao</span>
+                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">
+                          5k – 30k+/sao
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-zinc-400 truncate mt-0.5">
+                        Cày lẻ từng sao · Tự động tính lũy tiến 0★–100★+
+                      </p>
+                    </div>
+                  </button>
+                </div>
+              )}
+
               {/* TRƯỜNG HỢP 1: CÀY ĐIỂM (LP HOẶC RR THEO TỪNG PHÂN KHÚC HOẶC SAO CHO AOV) */}
               {isPointBoost ? (
                 <div className="space-y-5">
@@ -2378,45 +2673,58 @@ function ServiceBookingContent() {
                       <TrendingUp size={15} className="text-cyan-400" />
                       <span>
                         {isAov
-                          ? 'Chọn Phân Khúc & Mức Giá Cày Rank Cao Cấp (Theo Sao)'
+                          ? 'Chọn Phân Khúc & Đơn Giá Cày Theo Sao Liên Quân'
                           : `Chọn Phân Khúc & Mức Giá Theo Điểm ${pointUnit}`}
                       </span>
                       <span className="text-red-500">*</span>
                     </label>
                     <span className="text-[11px] text-cyan-400 font-semibold">
-                      {isAov ? 'Đơn vị tính: Sao' : `Đơn vị tính: Điểm ${pointUnit}`}
+                      {isAov ? 'Đơn vị tính: Sao (★)' : `Đơn vị tính: Điểm ${pointUnit}`}
                     </span>
                   </div>
 
                   {/* Grid các Phân Khúc Rank */}
-                  <div className={`grid grid-cols-1 ${pointTiers.length === 4 ? 'sm:grid-cols-2' : pointTiers.length >= 5 ? 'sm:grid-cols-3' : 'sm:grid-cols-3'} gap-3 items-stretch`}>
+                  <div className={`grid grid-cols-1 ${pointTiers.length === 4 ? 'sm:grid-cols-2' : pointTiers.length >= 5 ? 'sm:grid-cols-2 lg:grid-cols-3' : 'sm:grid-cols-3'} gap-3 items-stretch`}>
                     {pointTiers.map((tier) => {
                       const isSelected = selectedPointSegment === tier.id;
-                      const customPrice = matchingBoosterService?.tierRates?.[tier.id] ?? tier.defaultPrice;
+                      const customPrice = isAov
+                        ? resolveAovStarRate(tier.id, matchingBoosterStarService?.tierRates)
+                        : matchingBoosterService?.tierRates?.[tier.id] ?? tier.defaultPrice;
                       return (
                         <div
                           key={tier.id}
-                          onClick={() => setSelectedPointSegment(tier.id)}
-                          className={`p-4 rounded-2xl border transition-all cursor-pointer relative overflow-hidden group select-none flex flex-col justify-between h-full ${
+                          onClick={() => handleSelectPointSegment(tier)}
+                          className={`p-3.5 sm:p-4 rounded-2xl border transition-all cursor-pointer relative overflow-hidden group select-none flex flex-col justify-between h-full ${
                             isSelected
                               ? 'bg-gradient-to-br from-cyan-950/40 via-zinc-900 to-zinc-950 border-cyan-500 shadow-[0_0_20px_rgba(6,182,212,0.15)] ring-1 ring-cyan-500/60'
                               : 'bg-zinc-950/70 border-zinc-800/80 hover:border-zinc-700 hover:bg-zinc-900/60'
                           }`}
                         >
                           <div className="flex-1">
-                            <div className="flex items-center justify-between mb-2">
-                              <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-md border ${tier.badgeColor}`}>
-                                {tier.shortLabel}
-                              </span>
+                            <div className="flex items-center justify-between gap-2 mb-2">
+                              <div className="flex items-center gap-2 min-w-0">
+                                {tier.image && (
+                                  <div className="w-8 h-8 rounded-lg bg-black/50 border border-white/10 p-1 flex items-center justify-center shrink-0">
+                                    <img
+                                      src={tier.image}
+                                      alt={tier.label}
+                                      className="w-full h-full object-contain drop-shadow"
+                                    />
+                                  </div>
+                                )}
+                                <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-md border truncate ${tier.badgeColor}`}>
+                                  {tier.shortLabel}
+                                </span>
+                              </div>
                               {isSelected && (
                                 <CheckCircle2 size={16} className="text-cyan-400 shrink-0" />
                               )}
                             </div>
 
-                            <div className="text-sm font-bold text-white mb-1">
+                            <div className="text-xs sm:text-sm font-bold text-white mb-1 leading-snug">
                               {tier.label}
                             </div>
-                            <div className="text-[11px] text-zinc-400 mb-3 line-clamp-1">
+                            <div className="text-[11px] text-zinc-400 mb-3 line-clamp-2">
                               {tier.desc}
                             </div>
                           </div>
@@ -2440,14 +2748,18 @@ function ServiceBookingContent() {
                           <Target size={16} className="text-amber-400 shrink-0" />
                           <span>
                             {isAov
-                              ? 'Thiết Lập Số Sao (Hiện Tại → Mong Muốn)'
+                              ? isSelectedAovHighStar
+                                ? 'Thiết Lập Mốc Sao Cao Thủ+ (Tự Động Tính Lũy Tiến)'
+                                : 'Thiết Lập Số Sao Cần Cày (Hiện Tại → Mong Muốn)'
                               : `Thiết Lập Điểm ${pointUnit} (Hiện Tại → Mong Muốn)`}
                           </span>
                           <span className="text-red-500">*</span>
                         </span>
                         <p className="text-[11px] sm:text-xs text-zinc-400 mt-0.5">
                           {isAov
-                            ? 'Nhập số sao hiện tại và số sao bạn mong muốn đạt. Hệ thống sẽ tính số sao chênh lệch cần cày.'
+                            ? isSelectedAovHighStar
+                              ? 'Nhập số sao hiện tại và mục tiêu (0★ → 100★+). Nếu vượt ngưỡng Đại Cao Thủ (20★) hoặc Chiến Tướng (50★), hệ thống tự tính đúng đơn giá từng mốc.'
+                              : 'Nhập số sao hiện tại và số sao bạn muốn đạt. Hệ thống sẽ tính chính xác số sao chênh lệch cần cày.'
                             : 'Nhập số điểm thực tế hiện tại và mốc điểm bạn muốn đạt. Hệ thống sẽ tính số điểm chênh lệch cần cày.'}
                         </p>
                       </div>
@@ -2459,6 +2771,35 @@ function ServiceBookingContent() {
                         </span>
                       </div>
                     </div>
+
+                    {/* Preview Huy hiệu Rank Cao Thủ -> Chiến Tướng -> Huyền Thoại theo số sao */}
+                    {isAov && isSelectedAovHighStar && (() => {
+                      const startInfo = getAovHighRankByStars(currentPoints);
+                      const targetInfo = getAovHighRankByStars(desiredPoints);
+                      return (
+                        <div className="p-3 rounded-xl bg-zinc-900/80 border border-amber-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-10 h-10 rounded-xl bg-black/50 border border-white/10 p-1 flex items-center justify-center shrink-0">
+                              <img src={startInfo.image} alt={startInfo.label} className="w-full h-full object-contain" />
+                            </div>
+                            <div>
+                              <span className="text-[10px] uppercase font-bold text-zinc-500 block">Xuất phát</span>
+                              <span className="text-xs sm:text-sm font-extrabold text-white">{startInfo.label}</span>
+                            </div>
+                          </div>
+                          <ArrowRight size={16} className="text-amber-400 hidden sm:block shrink-0" />
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-10 h-10 rounded-xl bg-black/50 border border-emerald-500/30 p-1 flex items-center justify-center shrink-0">
+                              <img src={targetInfo.image} alt={targetInfo.label} className="w-full h-full object-contain" />
+                            </div>
+                            <div>
+                              <span className="text-[10px] uppercase font-bold text-emerald-400 block">Mục tiêu đạt được</span>
+                              <span className="text-xs sm:text-sm font-extrabold text-emerald-300">{targetInfo.label}</span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })()}
 
                     {/* Dual Inputs Grid */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -2481,7 +2822,7 @@ function ServiceBookingContent() {
                                 if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
                                 return;
                               }
-                              setCurrentPoints((p) => Math.max(0, p - (isAov ? 5 : 10)));
+                              setCurrentPoints((p) => Math.max(0, p - (isAov ? 1 : 10)));
                             }}
                             className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-zinc-800/90 hover:bg-zinc-700 active:scale-95 text-zinc-200 hover:text-white font-bold text-base flex items-center justify-center shrink-0 border border-white/5 transition-all select-none ${
                               isRiotGame && checkedAccount ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'
@@ -2536,7 +2877,7 @@ function ServiceBookingContent() {
                                 if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
                                 return;
                               }
-                              setCurrentPoints((p) => Math.max(0, p + (isAov ? 5 : 10)));
+                              setCurrentPoints((p) => Math.max(0, p + (isAov ? 1 : 10)));
                             }}
                             className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-zinc-800/90 hover:bg-zinc-700 active:scale-95 text-zinc-200 hover:text-white font-bold text-base flex items-center justify-center shrink-0 border border-white/5 transition-all select-none ${
                               isRiotGame && checkedAccount ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'
@@ -2558,7 +2899,7 @@ function ServiceBookingContent() {
                         <div className="flex items-center gap-2">
                           <button
                             type="button"
-                            onClick={() => setDesiredPoints((p) => Math.max(0, p - (isAov ? 5 : 10)))}
+                            onClick={() => setDesiredPoints((p) => Math.max(0, p - (isAov ? 1 : 10)))}
                             className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-zinc-800/90 hover:bg-zinc-700 active:scale-95 text-zinc-200 hover:text-white font-bold text-base flex items-center justify-center shrink-0 border border-white/5 transition-all select-none cursor-pointer"
                           >
                             -
@@ -2591,7 +2932,7 @@ function ServiceBookingContent() {
                           </div>
                           <button
                             type="button"
-                            onClick={() => setDesiredPoints((p) => Math.max(0, p + (isAov ? 5 : 10)))}
+                            onClick={() => setDesiredPoints((p) => Math.max(0, p + (isAov ? 1 : 10)))}
                             className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-zinc-800/90 hover:bg-zinc-700 active:scale-95 text-zinc-200 hover:text-white font-bold text-base flex items-center justify-center shrink-0 border border-white/5 transition-all select-none cursor-pointer"
                           >
                             +
@@ -2612,11 +2953,53 @@ function ServiceBookingContent() {
                       </div>
                     )}
 
+                    {/* Bảng phân tích lũy tiến theo mốc sao Liên Quân */}
+                    {isAov && aovStarCalc && aovStarCalc.breakdown.length > 0 && (
+                      <div className="p-3.5 rounded-xl bg-zinc-900/80 border border-cyan-500/20 space-y-2">
+                        <div className="flex items-center justify-between text-[11px] font-bold">
+                          <span className="text-cyan-400 uppercase tracking-wider">
+                            {aovStarCalc.isProgressive
+                              ? 'Chi tiết tính lũy tiến theo từng mốc sao'
+                              : 'Chi tiết tạm tính theo sao'}
+                          </span>
+                          <span className="text-zinc-400 font-mono">
+                            TB {aovStarCalc.effectiveUnitPrice.toLocaleString('vi-VN')} đ/sao
+                          </span>
+                        </div>
+                        <div className="space-y-1.5">
+                          {aovStarCalc.breakdown.map((seg) => (
+                            <div
+                              key={seg.tierId}
+                              className="flex items-center justify-between gap-2 text-xs py-1 border-b border-zinc-800/70 last:border-0"
+                            >
+                              <div className="flex items-center gap-2 min-w-0">
+                                <img
+                                  src={seg.image}
+                                  alt={seg.label}
+                                  className="w-5 h-5 object-contain shrink-0"
+                                />
+                                <span className="text-zinc-300 truncate">
+                                  {seg.label}
+                                  {typeof seg.fromStar === 'number' && typeof seg.toStar === 'number'
+                                    ? ` (${seg.fromStar}★ → ${seg.toStar}★)`
+                                    : ''}
+                                </span>
+                              </div>
+                              <span className="font-mono text-white font-bold whitespace-nowrap">
+                                {seg.stars}★ × {seg.ratePerStar.toLocaleString('vi-VN')}đ ={' '}
+                                <span className="text-cyan-400">{seg.subtotal.toLocaleString('vi-VN')}đ</span>
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
                     {/* Quick presets */}
                     <div className="flex flex-col sm:flex-row sm:items-center gap-2 pt-1">
                       <span className="text-[11px] text-zinc-500 shrink-0 font-medium">Cộng thêm nhanh:</span>
                       <div className="flex items-center gap-1.5 flex-wrap">
-                        {(isAov ? [5, 10, 20, 30, 50] : [20, 40, 60, 80, 100]).map((pts) => (
+                        {(isAov ? [1, 5, 10, 20, 30, 50] : [20, 40, 60, 80, 100]).map((pts) => (
                           <button
                             key={pts}
                             type="button"
@@ -2762,7 +3145,7 @@ function ServiceBookingContent() {
                         {isValorant
                           ? 'Lộ trình Cày Rank Valorant (Iron 1 → Radiant)'
                           : isAov
-                          ? 'Lộ trình Cày Rank Liên Quân (Đồng IV → Cao Thủ)'
+                          ? 'Lộ trình Cày Rank Liên Quân (Đồng III → Huyền Thoại 100★)'
                           : 'Lộ trình Cày Rank (Sắt IV → Cao Thủ)'}
                       </span>
                       <span className="text-red-500">*</span>
@@ -2810,6 +3193,8 @@ function ServiceBookingContent() {
                             <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${currentTierMeta.badgeBg}`}>
                               {isValorant
                                 ? (currentRankObj.tier === 'RADIANT' ? 'Radiant' : `Bậc ${currentRankObj.division}`)
+                                : isAov && AOV_SINGLE_STEP_TIERS.includes(currentRankObj.tier)
+                                ? currentTierMeta.name
                                 : (currentRankObj.tier === 'MASTER' ? 'Cao Thủ' : `Bậc ${currentRankObj.division}`)}
                             </span>
                             <span className="text-[11px] text-zinc-400 font-mono">
@@ -2858,6 +3243,8 @@ function ServiceBookingContent() {
                             <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${desiredTierMeta.badgeBg}`}>
                               {isValorant
                                 ? (desiredRankObj.tier === 'RADIANT' ? 'Radiant' : `Bậc ${desiredRankObj.division}`)
+                                : isAov && AOV_SINGLE_STEP_TIERS.includes(desiredRankObj.tier)
+                                ? desiredTierMeta.name
                                 : (desiredRankObj.tier === 'MASTER' ? 'Cao Thủ' : `Bậc ${desiredRankObj.division}`)}
                             </span>
                             <span className="text-[11px] text-emerald-400 font-bold">
@@ -2868,6 +3255,76 @@ function ServiceBookingContent() {
                       </div>
                     </div>
                   </div>
+
+                  {/* Bảng giá trọn bậc Liên Quân (Chọn nhanh 1 chạm + hiển thị giá Booster đang áp dụng) */}
+                  {isAov && (
+                    <div className="mt-4 p-4 rounded-2xl bg-zinc-950/80 border border-amber-500/20 space-y-3">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <span className="text-xs font-extrabold text-amber-300 flex items-center gap-1.5">
+                          <Sparkles size={14} className="text-amber-400" />
+                          <span>Chọn Nhanh Theo Bậc Lớn Liên Quân</span>
+                        </span>
+                        <span className="text-[11px] text-zinc-400">
+                          Nhấn vào gói để chọn lộ trình ngay
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                        {AOV_TIER_PACKAGES.map((pkg) => {
+                          const fromStepId = pkg.stepIds[0];
+                          const lastStepIdx = activeRankSteps.findIndex(
+                            (s) => s.id === pkg.stepIds[pkg.stepIds.length - 1]
+                          );
+                          const toStep = activeRankSteps[lastStepIdx + 1];
+                          const pkgTotal = Math.round(
+                            getAovTierPackageCurrentTotal(pkg, assignedBooster ? boosterStepOverrides : undefined) *
+                              effectiveRankMultiplier
+                          );
+                          const isCurrentPkg =
+                            currentRankId === fromStepId && toStep && desiredRankId === toStep.id;
+
+                          return (
+                            <button
+                              key={pkg.id}
+                              type="button"
+                              onClick={() => {
+                                if (!toStep) return;
+                                setCurrentRankId(fromStepId);
+                                setDesiredRankId(toStep.id);
+                                toast.success(`Đã chọn lộ trình ${pkg.shortLabel}`);
+                              }}
+                              className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-1.5 ${
+                                isCurrentPkg
+                                  ? 'bg-amber-500/15 border-amber-400 ring-1 ring-amber-400/50'
+                                  : pkg.isHighRank
+                                  ? 'bg-zinc-900/70 border-purple-500/25 hover:border-purple-400/60'
+                                  : 'bg-zinc-900/70 border-zinc-800 hover:border-amber-500/40'
+                              }`}
+                            >
+                              <div className="flex items-center justify-between gap-1">
+                                <div className="flex items-center gap-1">
+                                  <img src={pkg.fromImage} alt="" className="w-5 h-5 object-contain" />
+                                  <ArrowRight size={10} className="text-zinc-500" />
+                                  <img src={pkg.toImage} alt="" className="w-5 h-5 object-contain" />
+                                </div>
+                                {pkg.isHighRank && (
+                                  <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-purple-500/15 text-purple-300 border border-purple-500/30">
+                                    Cao Thủ+
+                                  </span>
+                                )}
+                              </div>
+                              <div className="text-[11px] font-bold text-white leading-tight truncate">
+                                {pkg.shortLabel}
+                              </div>
+                              <div className="text-xs font-black font-mono text-amber-400">
+                                {pkgTotal.toLocaleString('vi-VN')} đ
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
 
                   {/* Cảnh báo nếu rank không hợp lệ */}
                   {currentRankIndex >= desiredRankIndex && (
@@ -2881,8 +3338,8 @@ function ServiceBookingContent() {
                 </div>
               )}
 
-              {/* ĐIỂM CỘNG MỖI VÁN (LP/RR GAIN) - CẤU HÌNH HỆ SỐ TRỰC QUAN & TOOLTIP GIẢI THÍCH */}
-              {!isPromotion && (
+              {/* ĐIỂM CỘNG MỖI VÁN (LP/RR GAIN) - KHÔNG HIỂN THỊ CHO LIÊN QUÂN MOBILE */}
+              {!isPromotion && !isAov && (
                 <div className="relative">
                 <div className="flex items-center justify-between mb-2.5">
                   <div className="relative inline-flex items-center gap-1.5">
@@ -3243,7 +3700,7 @@ function ServiceBookingContent() {
                     </label>
                     <input
                       type="text"
-                      placeholder="Tên đăng nhập / Riot ID"
+                      placeholder={isAov ? 'Tài khoản Garena / Facebook / Email' : 'Tên đăng nhập / Riot ID'}
                       value={ingameAccount}
                       onChange={(e) => setIngameAccount(e.target.value)}
                       className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-white placeholder-zinc-500 outline-none focus:border-blue-500 transition-colors"
@@ -3327,8 +3784,10 @@ function ServiceBookingContent() {
                   <>
                     <div className="flex justify-between text-zinc-300">
                       <span>Phân khúc:</span>
-                      <span className="font-bold text-cyan-400">
-                        {selectedPointTierObj.label}
+                      <span className="font-bold text-cyan-400 text-right">
+                        {isAov && isSelectedAovHighStar
+                          ? `${getAovHighRankByStars(currentPoints).label} → ${getAovHighRankByStars(desiredPoints).label}`
+                          : selectedPointTierObj.label}
                       </span>
                     </div>
                     <div className="flex justify-between text-zinc-400">
@@ -3349,12 +3808,27 @@ function ServiceBookingContent() {
                         {gainedPoints} {pointUnit}
                       </span>
                     </div>
-                    <div className="flex justify-between text-zinc-400">
-                      <span>Đơn giá / {pointUnit}:</span>
-                      <span className="font-mono text-cyan-400 font-bold">
-                        {segmentRate.toLocaleString('vi-VN')} đ / {pointUnit}
-                      </span>
-                    </div>
+                    {isAov && aovStarCalc && aovStarCalc.isProgressive ? (
+                      <div className="pt-1.5 mt-1 border-t border-zinc-800/80 space-y-1">
+                        {aovStarCalc.breakdown.map((seg) => (
+                          <div key={seg.tierId} className="flex justify-between text-[11px] text-zinc-400 gap-2">
+                            <span className="truncate">
+                              {seg.fromStar}★→{seg.toStar}★ ({seg.stars}★ × {seg.ratePerStar.toLocaleString('vi-VN')}đ)
+                            </span>
+                            <span className="font-mono text-cyan-400 font-bold shrink-0">
+                              {seg.subtotal.toLocaleString('vi-VN')}đ
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="flex justify-between text-zinc-400">
+                        <span>Đơn giá / {pointUnit}:</span>
+                        <span className="font-mono text-cyan-400 font-bold">
+                          {(isAov && aovStarCalc ? aovStarCalc.effectiveUnitPrice : segmentRate).toLocaleString('vi-VN')} đ / {pointUnit}
+                        </span>
+                      </div>
+                    )}
                   </>
                 ) : (
                   <div className="flex justify-between text-zinc-300">
@@ -3384,7 +3858,7 @@ function ServiceBookingContent() {
                     </div>
                   </>
                 )}
-                {!isPromotion && (
+                {!isPromotion && !isAov && (
                   <div className="flex justify-between text-zinc-400">
                     <span>Điểm cộng / ván:</span>
                     <span className="text-zinc-200 flex items-center gap-1">
@@ -3679,14 +4153,14 @@ function ServiceBookingContent() {
                   <span className="text-xs font-bold text-zinc-300 block mb-2">
                     1. Chọn Hạng (Tier):
                   </span>
-                  <div className={`grid ${isValorant ? 'grid-cols-3 sm:grid-cols-5' : isAov ? 'grid-cols-3 sm:grid-cols-4' : 'grid-cols-4'} gap-2 sm:gap-2.5`}>
+                  <div className={`grid ${isValorant || isAov ? 'grid-cols-3 sm:grid-cols-5' : 'grid-cols-4'} gap-2 sm:gap-2.5`}>
                     {Object.entries(activeTierConfig).map(([tierKey, meta]) => {
                       // Validate Tier:
                       const tierSteps = activeRankSteps.filter((r) => r.tier === tierKey);
                       const lowestInTierIdx = tierSteps.length > 0 ? activeRankSteps.findIndex((r) => r.id === tierSteps[0].id) : -1;
                       const highestInTierIdx = tierSteps.length > 0 ? activeRankSteps.findIndex((r) => r.id === tierSteps[tierSteps.length - 1].id) : -1;
 
-                      const isMaxTierKey = isValorant ? 'RADIANT' : 'MASTER';
+                      const isMaxTierKey = isValorant ? 'RADIANT' : isAov ? 'LEGEND' : 'MASTER';
                       const isTierDisabled = rankModalTarget === 'CURRENT'
                         ? (tierKey === isMaxTierKey || lowestInTierIdx >= desiredRankIndex)
                         : (highestInTierIdx <= currentRankIndex);
@@ -3701,11 +4175,11 @@ function ServiceBookingContent() {
                           onClick={() => {
                             if (isTierDisabled) return;
                             setTempTier(tierKey);
-                            if (tierKey === isMaxTierKey) {
+                            const tierDivs = getDivisionsForTier(game.id, tierKey);
+                            if (tierDivs.length === 0) {
                               setTempDivision('');
                             } else {
                               // Tự động tìm division hợp lệ nhất trong tier này
-                              const tierDivs = getDivisionsForTier(game.id, tierKey);
                               if (rankModalTarget === 'CURRENT') {
                                 const validDivs = tierDivs.filter((d) => {
                                   const idx = findRankStepIndex(game.id, tierKey, d);
@@ -3761,21 +4235,18 @@ function ServiceBookingContent() {
                 </div>
 
                 {/* 2. Chọn Bậc (Division) */}
-                {tempTier !== (isValorant ? 'RADIANT' : 'MASTER') ? (
-                  <div>
-                    <span className="text-xs font-bold text-zinc-300 block mb-2">
-                      2. Chọn Phân Bậc (Division):
-                    </span>
-                    {(() => {
-                      const tierDivisions = getDivisionsForTier(game.id, tempTier);
-                      return (
-                        <div className={`grid ${isValorant ? 'grid-cols-3' : tierDivisions.length === 5 ? 'grid-cols-5' : 'grid-cols-4'} gap-2`}>
+                {(() => {
+                  const tierDivisions = getDivisionsForTier(game.id, tempTier);
+                  if (tierDivisions.length > 0) {
+                    return (
+                      <div>
+                        <span className="text-xs font-bold text-zinc-300 block mb-2">
+                          2. Chọn Phân Bậc (Division):
+                        </span>
+                        <div className={`grid ${tierDivisions.length === 3 ? 'grid-cols-3' : tierDivisions.length === 5 ? 'grid-cols-5' : 'grid-cols-4'} gap-2`}>
                           {tierDivisions.map((div) => {
                             const stepIdx = findRankStepIndex(game.id, tempTier, div);
-                            
-                            // Validate:
-                            // - Rank hiện tại: Phải < desiredRankIndex
-                            // - Rank mong muốn: Phải > currentRankIndex
+
                             const isDivisionDisabled = rankModalTarget === 'CURRENT'
                               ? stepIdx >= desiredRankIndex
                               : stepIdx <= currentRankIndex;
@@ -3810,32 +4281,37 @@ function ServiceBookingContent() {
                             );
                           })}
                         </div>
-                      );
-                    })()}
-                  </div>
-                ) : (
-                  <div className="p-3.5 rounded-2xl bg-amber-950/20 border border-amber-500/30 text-amber-300 text-xs flex items-center gap-2.5">
-                    <Crown size={18} className="shrink-0 text-amber-400" />
-                    <span>
-                      <strong>{isValorant ? 'Radiant' : 'Cao Thủ'}:</strong> Mốc rank đích cao nhất trong bảng giá leo rank theo bậc.
-                    </span>
-                  </div>
-                )}
+                      </div>
+                    );
+                  }
+
+                  const highStep = activeRankSteps.find((s) => s.tier === tempTier);
+                  return (
+                    <div className="p-3.5 rounded-2xl bg-amber-950/20 border border-amber-500/30 text-amber-300 text-xs flex items-center gap-2.5">
+                      <Crown size={18} className="shrink-0 text-amber-400" />
+                      <span>
+                        <strong>{highStep?.label || activeTierConfig[tempTier]?.name || tempTier}:</strong>{' '}
+                        {isAov
+                          ? 'Mốc bậc cao (tính theo sao chuẩn — Booster có thể tùy chỉnh giá). Nếu muốn cày số sao lẻ bất kỳ, hãy chọn tab "Tính tiền theo Số Sao".'
+                          : 'Mốc rank đích cao nhất trong bảng giá leo rank theo bậc.'}
+                      </span>
+                    </div>
+                  );
+                })()}
               </div>
 
               {/* Footer Preview & Confirm */}
               {(() => {
-                const isMaxTierKey = isValorant ? 'RADIANT' : 'MASTER';
-                const tempSelectedRankId = getRankStepId(game.id, tempTier, tempDivision);
                 const tempRankIdx = findRankStepIndex(game.id, tempTier, tempDivision);
                 const isSelectionValid = tempRankIdx !== -1 && (
                   rankModalTarget === 'CURRENT'
                     ? tempRankIdx < desiredRankIndex
                     : tempRankIdx > currentRankIndex
                 );
-                const selectedLabel = tempTier === isMaxTierKey
-                  ? (isValorant ? 'Radiant' : 'Cao Thủ')
-                  : `${activeTierConfig[tempTier]?.name || tempTier} ${tempDivision}`;
+                const selectedLabel =
+                  tempRankIdx !== -1
+                    ? activeRankSteps[tempRankIdx].label
+                    : `${activeTierConfig[tempTier]?.name || tempTier}${tempDivision ? ` ${tempDivision}` : ''}`;
 
                 return (
                   <div className="pt-3 border-t border-zinc-800/80 flex items-center justify-between shrink-0">
@@ -4097,7 +4573,7 @@ function ServiceBookingContent() {
 
               {/* Provider Grid */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 overflow-y-auto py-1">
-                {ACCOUNT_TYPES.map((acc) => {
+                {activeAccountTypes.map((acc) => {
                   const isSelected = accountType === acc.id;
                   return (
                     <div
