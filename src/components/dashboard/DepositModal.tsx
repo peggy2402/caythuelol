@@ -142,32 +142,63 @@ export default function DepositModal({
     };
   }, [isOpen, user?._id]);
 
-  // Polling dự phòng khi đang ở màn hình chờ giao dịch (isWaitingForPayment = true)
+  // Polling tự động kiểm tra giao dịch nạp tiền ngay khi mã QR xuất hiện hoặc khi đang chờ
   useEffect(() => {
-    if (!isWaitingForPayment || !isOpen) return;
+    if (!isOpen || (!pendingTx && !isWaitingForPayment) || isSuccess) return;
 
-    const interval = setInterval(async () => {
+    let isMounted = true;
+
+    const checkDepositStatus = async () => {
       try {
-        const res = await fetch(`/api/wallet?page=1&limit=5&t=${Date.now()}`);
-        if (!res.ok) return;
+        const res = await fetch(`/api/wallet?page=1&limit=5&_t=${Date.now()}_${Math.random()}`, {
+          cache: 'no-store',
+          headers: {
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            Pragma: 'no-cache',
+          },
+        });
+        if (!res.ok || !isMounted) return;
         const data = await res.json();
         const currentBal = data.wallet?.balance ?? data.wallet?.wallet_balance ?? 0;
         const latestTx = data.transactions?.[0];
 
-        const isTxSuccess = pendingTx?.info?.transactionId
-          ? latestTx?._id === pendingTx.info.transactionId && latestTx?.status === 'SUCCESS'
-          : latestTx?.type === 'DEPOSIT' && latestTx?.status === 'SUCCESS' && currentBal > initialBalanceRef.current;
+        // 1. Kiểm tra theo Transaction ID nếu có
+        const isMatchedId =
+          pendingTx?.info?.transactionId &&
+          latestTx?._id === pendingTx.info.transactionId &&
+          latestTx?.status === 'SUCCESS';
 
-        if (isTxSuccess || currentBal > initialBalanceRef.current) {
+        // 2. Kiểm tra nếu số dư tăng lên
+        const isBalanceIncreased =
+          initialBalanceRef.current > 0 && currentBal > initialBalanceRef.current;
+
+        // 3. Kiểm tra giao dịch nạp tiền thành công gần nhất khớp số tiền
+        const isMatchedRecentTx =
+          latestTx?.type === 'DEPOSIT' &&
+          latestTx?.status === 'SUCCESS' &&
+          pendingTx?.info?.amount &&
+          latestTx?.amount === pendingTx.info.amount &&
+          Date.now() - new Date(latestTx.createdAt).getTime() < 3 * 60 * 1000;
+
+        if (isMatchedId || isBalanceIncreased || isMatchedRecentTx) {
           triggerSuccess(currentBal);
         }
       } catch (err) {
-        console.error('Polling deposit check error:', err);
+        console.error('Fast polling deposit check error:', err);
       }
-    }, 2500);
+    };
 
-    return () => clearInterval(interval);
-  }, [isWaitingForPayment, isOpen, pendingTx]);
+    // Kiểm tra ngay lập tức 1 lần không chờ delay
+    checkDepositStatus();
+
+    // Lặp lại mỗi 1.5 giây để nhận biến động thần tốc
+    const interval = setInterval(checkDepositStatus, 1500);
+
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, [isOpen, pendingTx, isWaitingForPayment, isSuccess]);
 
   if (!isOpen) return null;
 

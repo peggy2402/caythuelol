@@ -2265,7 +2265,7 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                                                                      tx.type === 'REFUND' ? 'Hoàn tiền vào ví' :
                                                                      tx.type === 'TIP_SENT' ? 'Gửi tiền Tip cho Booster' :
                                                                      tx.type === 'TIP_RECEIVED' ? 'Nhận tiền Tip từ khách hàng' :
-                                                                     tx.metadata?.description || tx.description || tx.type}
+                                                                     (tx.description && !tx.description.startsWith('BankAPINotify') ? tx.description : (tx.type === 'DEPOSIT' ? 'Nạp tiền vào tài khoản' : tx.type))}
                                                                 </div>
                                                                 <div className="text-xs text-zinc-500">{new Date(tx.createdAt).toLocaleString('vi-VN')}</div>
                                                             </div>

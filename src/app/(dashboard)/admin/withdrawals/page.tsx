@@ -431,7 +431,7 @@ export default function AdminWithdrawalsPage() {
                           <tr key={tx._id}>
                             <td className="px-4 py-3 text-zinc-400">{new Date(tx.createdAt).toLocaleString('vi-VN')}</td>
                             <td className="px-4 py-3">
-                                <div className="text-white font-medium text-xs">{tx.metadata?.description || tx.description || tx.type}</div>
+                                <div className="text-white font-medium text-xs">{tx.description && !tx.description.startsWith('BankAPINotify') ? tx.description : (tx.type === 'DEPOSIT' ? 'Nạp tiền vào tài khoản' : tx.type)}</div>
                                 <div className="text-[10px] text-zinc-500 font-mono">{tx.type}</div>
                             </td>
                             {/* SỬA LỖI HIỂN THỊ +- : Dùng logic check amount > 0 */}
