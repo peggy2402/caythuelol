@@ -254,10 +254,10 @@ export default function AdminGamesManagementPage() {
     const updated = games.map((g) =>
       g.id === gameId
         ? {
-            ...g,
-            badge: newBadge ? newBadge : undefined,
-            badgeMode: 'MANUAL' as const,
-          }
+          ...g,
+          badge: newBadge ? newBadge : undefined,
+          badgeMode: 'MANUAL' as const,
+        }
         : g
     );
     setGames(updated);
@@ -354,12 +354,12 @@ export default function AdminGamesManagementPage() {
       const updated = games.map((g) =>
         g.id === editingGame.id
           ? ({
-              ...g,
-              ...formData,
-              id: cleanId,
-              shortName: formData.shortName?.trim() || formData.name?.trim().slice(0, 6) || '',
-              banner: formData.banner?.trim() || `/images/games/${cleanId}-card.jpg`,
-            } as GameDefinition)
+            ...g,
+            ...formData,
+            id: cleanId,
+            shortName: formData.shortName?.trim() || formData.name?.trim().slice(0, 6) || '',
+            banner: formData.banner?.trim() || `/images/games/${cleanId}-card.jpg`,
+          } as GameDefinition)
           : g
       );
       setGames(updated);
@@ -589,11 +589,10 @@ export default function AdminGamesManagementPage() {
           <div className="flex items-center p-1 rounded-xl bg-zinc-900 border border-zinc-800">
             <button
               onClick={() => setViewMode('CARD')}
-              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold transition ${
-                viewMode === 'CARD'
+              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold transition ${viewMode === 'CARD'
                   ? 'bg-cyan-500 text-black shadow-sm'
                   : 'text-zinc-400 hover:text-white'
-              }`}
+                }`}
               title="Dạng Card List Cao Cấp"
             >
               <LayoutGrid size={14} />
@@ -601,11 +600,10 @@ export default function AdminGamesManagementPage() {
             </button>
             <button
               onClick={() => setViewMode('TABLE')}
-              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold transition ${
-                viewMode === 'TABLE'
+              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold transition ${viewMode === 'TABLE'
                   ? 'bg-cyan-500 text-black shadow-sm'
                   : 'text-zinc-400 hover:text-white'
-              }`}
+                }`}
               title="Dạng Bảng Truyền Thống"
             >
               <List size={14} />
@@ -714,17 +712,16 @@ export default function AdminGamesManagementPage() {
                         {resolved.badge ? (
                           <span
                             title={resolved.reason}
-                            className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wider border shadow-md ${
-                              resolved.badge === 'HOT'
+                            className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wider border shadow-md ${resolved.badge === 'HOT'
                                 ? 'bg-rose-500/20 text-rose-300 border-rose-500/40 shadow-rose-500/20'
                                 : resolved.badge === 'Đề xuất'
-                                ? 'bg-purple-500/20 text-purple-300 border-purple-500/40 shadow-purple-500/20'
-                                : resolved.badge === 'Xu hướng'
-                                ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 shadow-amber-500/20'
-                                : resolved.badge === 'Phổ Biến'
-                                ? 'bg-sky-500/20 text-sky-300 border-sky-500/40 shadow-sky-500/20'
-                                : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 shadow-emerald-500/20'
-                            }`}
+                                  ? 'bg-purple-500/20 text-purple-300 border-purple-500/40 shadow-purple-500/20'
+                                  : resolved.badge === 'Xu hướng'
+                                    ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 shadow-amber-500/20'
+                                    : resolved.badge === 'Phổ Biến'
+                                      ? 'bg-sky-500/20 text-sky-300 border-sky-500/40 shadow-sky-500/20'
+                                      : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 shadow-emerald-500/20'
+                              }`}
                           >
                             {resolved.badge}
                           </span>
@@ -734,11 +731,10 @@ export default function AdminGamesManagementPage() {
 
                         <button
                           onClick={() => handleToggleBadgeMode(game.id)}
-                          className={`text-[10px] font-bold px-2 py-0.5 rounded-full border transition ${
-                            isAuto
+                          className={`text-[10px] font-bold px-2 py-0.5 rounded-full border transition ${isAuto
                               ? 'bg-cyan-500/10 text-cyan-300 border-cyan-500/30'
                               : 'bg-zinc-800 text-zinc-400 border-zinc-700'
-                          }`}
+                            }`}
                           title={
                             isAuto
                               ? 'Đang tính toán tự động theo số liệu. Bấm để chuyển sang gán thủ công.'
@@ -798,11 +794,10 @@ export default function AdminGamesManagementPage() {
                     {/* Nút Trạng thái Active */}
                     <button
                       onClick={() => handleToggleActive(game.id)}
-                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border transition shadow-sm ${
-                        game.active !== false
+                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border transition shadow-sm ${game.active !== false
                           ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/40 hover:bg-emerald-500/25'
                           : 'bg-zinc-800 text-zinc-400 border-zinc-700 hover:bg-zinc-700'
-                      }`}
+                        }`}
                     >
                       {game.active !== false ? (
                         <>
@@ -895,11 +890,10 @@ export default function AdminGamesManagementPage() {
                       </td>
                       <td className="py-3 px-4 text-center">
                         <span
-                          className={`text-xs px-2.5 py-1 rounded-full font-bold ${
-                            game.active !== false
+                          className={`text-xs px-2.5 py-1 rounded-full font-bold ${game.active !== false
                               ? 'bg-emerald-500/10 text-emerald-400'
                               : 'bg-zinc-800 text-zinc-400'
-                          }`}
+                            }`}
                         >
                           {game.active !== false ? 'Hoạt động' : 'Tạm ẩn'}
                         </span>
@@ -924,344 +918,345 @@ export default function AdminGamesManagementPage() {
       {/* 6. Modal Thêm / Chỉnh Sửa Game & Số Liệu Tính Badge */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="relative w-full max-w-2xl rounded-2xl bg-[#0c0e14] border border-zinc-800 shadow-2xl overflow-hidden max-h-[92vh] flex flex-col">
-            {/* Modal Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-800 bg-zinc-950/60">
-              <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                <Gamepad2 className="w-5 h-5 text-cyan-400" />
-                {editingGame ? `Chỉnh Sửa: ${editingGame.name}` : 'Thêm Tựa Game Mới'}
-              </h2>
-              <button
-                onClick={() => setIsModalOpen(false)}
-                className="p-1 text-zinc-400 hover:text-white transition"
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            {/* Modal Body */}
-            <form onSubmit={handleModalSubmit} className="p-6 overflow-y-auto space-y-5">
-              {/* Thông tin cơ bản */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-zinc-300 mb-1">
-                    Tên Game <span className="text-rose-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={formData.name || ''}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    placeholder="e.g. League of Legends"
-                    className="w-full px-3.5 py-2.5 bg-zinc-900 border border-zinc-800 rounded-xl text-sm text-white focus:outline-none focus:border-cyan-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-zinc-300 mb-1">
-                    Mã Định Danh (Slug) <span className="text-rose-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={formData.id || ''}
-                    onChange={(e) => setFormData({ ...formData, id: e.target.value })}
-                    placeholder="e.g. lol, cs2, valorant"
-                    className="w-full px-3.5 py-2.5 bg-zinc-900 border border-zinc-800 rounded-xl text-sm text-white focus:outline-none focus:border-cyan-500 font-mono"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-zinc-300 mb-1">
-                    Tên Viết Tắt (ShortName / Tag)
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.shortName || ''}
-                    onChange={(e) => setFormData({ ...formData, shortName: e.target.value })}
-                    placeholder="e.g. LMHT, CS2, VAL"
-                    className="w-full px-3.5 py-2.5 bg-zinc-900 border border-zinc-800 rounded-xl text-sm text-white focus:outline-none focus:border-cyan-500 font-mono"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-zinc-300 mb-1">
-                    Chế Độ Gắn Nhãn (Badge Mode)
-                  </label>
-                  <select
-                    value={formData.badgeMode || 'AUTO'}
-                    onChange={(e: any) => setFormData({ ...formData, badgeMode: e.target.value })}
-                    className="w-full px-3.5 py-2.5 bg-zinc-900 border border-zinc-800 rounded-xl text-sm text-white focus:outline-none focus:border-cyan-500 font-medium"
-                  >
-                    <option value="AUTO">⚡ Tự động tính theo Số Liệu Vận Hành</option>
-                    <option value="MANUAL">⚙️ Gán thủ công (Chỉ định cứng)</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* Phần số liệu thống kê để tính nhãn tự động */}
-              <div className="p-4 rounded-xl bg-zinc-950/70 border border-cyan-500/20 space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-cyan-300 uppercase tracking-wide flex items-center gap-1.5">
-                    <BarChart3 size={14} className="text-cyan-400" />
-                    Số Liệu Vận Hành Nền Tảng (Dùng để tính Badge)
-                  </span>
-                  <span className="text-[10px] text-zinc-500 font-mono">Đơn vị: thời gian thực</span>
-                </div>
-
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  <div>
-                    <label className="block text-[11px] font-medium text-zinc-400 mb-1">
-                      Tổng số đơn cày:
-                    </label>
-                    <input
-                      type="number"
-                      min={0}
-                      value={formData.metrics?.totalOrders ?? 0}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          metrics: {
-                            ...formData.metrics!,
-                            totalOrders: parseInt(e.target.value) || 0,
-                          },
-                        })
-                      }
-                      className="w-full px-3 py-1.5 bg-zinc-900 border border-zinc-800 rounded-lg text-xs text-white font-mono"
-                    />
+            <div className="relative w-full max-w-3xl rounded-3xl bg-[#0e1017] border border-white/10 shadow-[0_25px_80px_rgba(0,0,0,0.85)] overflow-hidden max-h-[92vh] flex flex-col">
+              {/* Modal Header */}
+                  <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-800 bg-zinc-950/90 shrink-0">
+                    <h2 className="text-lg font-extrabold text-white flex items-center gap-2.5">
+                      <Gamepad2 className="w-5 h-5 text-cyan-400" />
+                      {editingGame ? `Chỉnh Sửa: ${editingGame.name}` : 'Thêm Tựa Game Mới'}
+                    </h2>
+                    <button
+                      type="button"
+                      onClick={() => setIsModalOpen(false)}
+                      className="w-9 h-9 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-400 hover:text-white flex items-center justify-center transition-colors cursor-pointer"
+                    >
+                      <X size={18} />
+                    </button>
                   </div>
 
-                  <div>
-                    <label className="block text-[11px] font-medium text-zinc-400 mb-1">
-                      Đơn mới gần đây (7-30 ngày):
-                    </label>
-                    <input
-                      type="number"
-                      min={0}
-                      value={formData.metrics?.recentOrders ?? 0}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          metrics: {
-                            ...formData.metrics!,
-                            recentOrders: parseInt(e.target.value) || 0,
-                          },
-                        })
-                      }
-                      className="w-full px-3 py-1.5 bg-zinc-900 border border-zinc-800 rounded-lg text-xs text-white font-mono"
-                    />
-                  </div>
+                  {/* Modal Body */}
+                    <form onSubmit={handleModalSubmit} className="p-6 overflow-y-auto custom-dark-scrollbar space-y-5 flex-1">
+                      {/* Thông tin cơ bản */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-xs font-semibold text-zinc-300 mb-1">
+                            Tên Game <span className="text-rose-500">*</span>
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            value={formData.name || ''}
+                            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                            placeholder="e.g. League of Legends"
+                            className="w-full px-3.5 py-2.5 bg-zinc-900 border border-zinc-800 rounded-xl text-sm text-white focus:outline-none focus:border-cyan-500"
+                          />
+                        </div>
 
-                  <div>
-                    <label className="block text-[11px] font-medium text-zinc-400 mb-1">
-                      Boosters hoạt động:
-                    </label>
-                    <input
-                      type="number"
-                      min={0}
-                      value={formData.metrics?.activeBoosters ?? 0}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          metrics: {
-                            ...formData.metrics!,
-                            activeBoosters: parseInt(e.target.value) || 0,
-                          },
-                        })
-                      }
-                      className="w-full px-3 py-1.5 bg-zinc-900 border border-zinc-800 rounded-lg text-xs text-white font-mono"
-                    />
-                  </div>
+                        <div>
+                          <label className="block text-xs font-semibold text-zinc-300 mb-1">
+                            Mã Định Danh (Slug) <span className="text-rose-500">*</span>
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            value={formData.id || ''}
+                            onChange={(e) => setFormData({ ...formData, id: e.target.value })}
+                            placeholder="e.g. lol, cs2, valorant"
+                            className="w-full px-3.5 py-2.5 bg-zinc-900 border border-zinc-800 rounded-xl text-sm text-white focus:outline-none focus:border-cyan-500 font-mono"
+                          />
+                        </div>
+                      </div>
 
-                  <div>
-                    <label className="block text-[11px] font-medium text-zinc-400 mb-1">
-                      Điểm vote trung bình (0-5★):
-                    </label>
-                    <input
-                      type="number"
-                      step="0.1"
-                      min={0}
-                      max={5}
-                      value={formData.metrics?.averageRating ?? 0}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          metrics: {
-                            ...formData.metrics!,
-                            averageRating: parseFloat(e.target.value) || 0,
-                          },
-                        })
-                      }
-                      className="w-full px-3 py-1.5 bg-zinc-900 border border-zinc-800 rounded-lg text-xs text-white font-mono text-amber-400 font-bold"
-                    />
-                  </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-xs font-semibold text-zinc-300 mb-1">
+                            Tên Viết Tắt (ShortName / Tag)
+                          </label>
+                          <input
+                            type="text"
+                            value={formData.shortName || ''}
+                            onChange={(e) => setFormData({ ...formData, shortName: e.target.value })}
+                            placeholder="e.g. LMHT, CS2, VAL"
+                            className="w-full px-3.5 py-2.5 bg-zinc-900 border border-zinc-800 rounded-xl text-sm text-white focus:outline-none focus:border-cyan-500 font-mono"
+                          />
+                        </div>
 
-                  <div>
-                    <label className="block text-[11px] font-medium text-zinc-400 mb-1">
-                      Tổng lượt đánh giá:
-                    </label>
-                    <input
-                      type="number"
-                      min={0}
-                      value={formData.metrics?.totalReviews ?? 0}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          metrics: {
-                            ...formData.metrics!,
-                            totalReviews: parseInt(e.target.value) || 0,
-                          },
-                        })
-                      }
-                      className="w-full px-3 py-1.5 bg-zinc-900 border border-zinc-800 rounded-lg text-xs text-white font-mono"
-                    />
-                  </div>
+                        <div>
+                          <label className="block text-xs font-semibold text-zinc-300 mb-1">
+                            Chế Độ Gắn Nhãn (Badge Mode)
+                          </label>
+                          <select
+                            value={formData.badgeMode || 'AUTO'}
+                            onChange={(e: any) => setFormData({ ...formData, badgeMode: e.target.value })}
+                            className="w-full px-3.5 py-2.5 bg-zinc-900 border border-zinc-800 rounded-xl text-sm text-white focus:outline-none focus:border-cyan-500 font-medium"
+                          >
+                            <option value="AUTO">⚡ Tự động tính theo Số Liệu Vận Hành</option>
+                            <option value="MANUAL">⚙️ Gán thủ công (Chỉ định cứng)</option>
+                          </select>
+                        </div>
+                      </div>
 
-                  <div className="flex items-center pt-5">
-                    <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-zinc-300">
-                      <input
-                        type="checkbox"
-                        checked={formData.metrics?.isNew ?? false}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            metrics: {
-                              ...formData.metrics!,
-                              isNew: e.target.checked,
-                            },
-                          })
-                        }
-                        className="w-4 h-4 rounded text-cyan-500 bg-zinc-900 border-zinc-700"
-                      />
-                      <span>Đánh dấu Game Mới</span>
-                    </label>
-                  </div>
-                </div>
+                      {/* Phần số liệu thống kê để tính nhãn tự động */}
+                      <div className="p-4 rounded-xl bg-zinc-950/70 border border-cyan-500/20 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold text-cyan-300 uppercase tracking-wide flex items-center gap-1.5">
+                            <BarChart3 size={14} className="text-cyan-400" />
+                            Số Liệu Vận Hành Nền Tảng (Dùng để tính Badge)
+                          </span>
+                          <span className="text-[10px] text-zinc-500 font-mono">Đơn vị: thời gian thực</span>
+                        </div>
 
-                {/* Kết quả tính thử badge ngay trong modal */}
-                <div className="mt-2 pt-2 border-t border-zinc-800/80 flex items-center justify-between text-xs">
-                  <span className="text-zinc-400">Kết quả xếp nhãn dự kiến:</span>
-                  <div className="font-bold text-cyan-300">
-                    {(() => {
-                      const mockGame = { ...formData, active: true } as GameDefinition;
-                      const res = resolveGameBadge(mockGame);
-                      return res.badge ? (
-                        <span className="px-2.5 py-0.5 rounded-full bg-cyan-500/20 border border-cyan-500/40 text-cyan-300 text-[11px]">
-                          {res.badge} ({res.reason})
-                        </span>
-                      ) : (
-                        <span className="text-zinc-500">Chưa đạt ngưỡng nhãn</span>
-                      );
-                    })()}
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                          <div>
+                            <label className="block text-[11px] font-medium text-zinc-400 mb-1">
+                              Tổng số đơn cày:
+                            </label>
+                            <input
+                              type="number"
+                              min={0}
+                              value={formData.metrics?.totalOrders ?? 0}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  metrics: {
+                                    ...formData.metrics!,
+                                    totalOrders: parseInt(e.target.value) || 0,
+                                  },
+                                })
+                              }
+                              className="w-full px-3 py-1.5 bg-zinc-900 border border-zinc-800 rounded-lg text-xs text-white font-mono"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-[11px] font-medium text-zinc-400 mb-1">
+                              Đơn mới gần đây (7-30 ngày):
+                            </label>
+                            <input
+                              type="number"
+                              min={0}
+                              value={formData.metrics?.recentOrders ?? 0}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  metrics: {
+                                    ...formData.metrics!,
+                                    recentOrders: parseInt(e.target.value) || 0,
+                                  },
+                                })
+                              }
+                              className="w-full px-3 py-1.5 bg-zinc-900 border border-zinc-800 rounded-lg text-xs text-white font-mono"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-[11px] font-medium text-zinc-400 mb-1">
+                              Boosters hoạt động:
+                            </label>
+                            <input
+                              type="number"
+                              min={0}
+                              value={formData.metrics?.activeBoosters ?? 0}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  metrics: {
+                                    ...formData.metrics!,
+                                    activeBoosters: parseInt(e.target.value) || 0,
+                                  },
+                                })
+                              }
+                              className="w-full px-3 py-1.5 bg-zinc-900 border border-zinc-800 rounded-lg text-xs text-white font-mono"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-[11px] font-medium text-zinc-400 mb-1">
+                              Điểm vote trung bình (0-5★):
+                            </label>
+                            <input
+                              type="number"
+                              step="0.1"
+                              min={0}
+                              max={5}
+                              value={formData.metrics?.averageRating ?? 0}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  metrics: {
+                                    ...formData.metrics!,
+                                    averageRating: parseFloat(e.target.value) || 0,
+                                  },
+                                })
+                              }
+                              className="w-full px-3 py-1.5 bg-zinc-900 border border-zinc-800 rounded-lg text-xs text-white font-mono text-amber-400 font-bold"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-[11px] font-medium text-zinc-400 mb-1">
+                              Tổng lượt đánh giá:
+                            </label>
+                            <input
+                              type="number"
+                              min={0}
+                              value={formData.metrics?.totalReviews ?? 0}
+                              onChange={(e) =>
+                                setFormData({
+                                  ...formData,
+                                  metrics: {
+                                    ...formData.metrics!,
+                                    totalReviews: parseInt(e.target.value) || 0,
+                                  },
+                                })
+                              }
+                              className="w-full px-3 py-1.5 bg-zinc-900 border border-zinc-800 rounded-lg text-xs text-white font-mono"
+                            />
+                          </div>
+
+                          <div className="flex items-center pt-5">
+                            <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-zinc-300">
+                              <input
+                                type="checkbox"
+                                checked={formData.metrics?.isNew ?? false}
+                                onChange={(e) =>
+                                  setFormData({
+                                    ...formData,
+                                    metrics: {
+                                      ...formData.metrics!,
+                                      isNew: e.target.checked,
+                                    },
+                                  })
+                                }
+                                className="w-4 h-4 rounded text-cyan-500 bg-zinc-900 border-zinc-700"
+                              />
+                              <span>Đánh dấu Game Mới</span>
+                            </label>
+                          </div>
+                        </div>
+
+                        {/* Kết quả tính thử badge ngay trong modal */}
+                        <div className="mt-2 pt-2 border-t border-zinc-800/80 flex items-center justify-between text-xs">
+                          <span className="text-zinc-400">Kết quả xếp nhãn dự kiến:</span>
+                          <div className="font-bold text-cyan-300">
+                            {(() => {
+                              const mockGame = { ...formData, active: true } as GameDefinition;
+                              const res = resolveGameBadge(mockGame);
+                              return res.badge ? (
+                                <span className="px-2.5 py-0.5 rounded-full bg-cyan-500/20 border border-cyan-500/40 text-cyan-300 text-[11px]">
+                                  {res.badge} ({res.reason})
+                                </span>
+                              ) : (
+                                <span className="text-zinc-500">Chưa đạt ngưỡng nhãn</span>
+                              );
+                            })()}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* URL Banner Online */}
+                      <div>
+                        <label className="block text-xs font-semibold text-cyan-300 mb-1 flex items-center justify-between">
+                          <span>URL Ảnh Banner Trực Tuyến (Online CDN / Imgur / Cloudinary...)</span>
+                          <span className="text-[11px] text-zinc-500 font-normal">Ưu tiên tải trước</span>
+                        </label>
+                        <input
+                          type="url"
+                          value={formData.bannerUrl || ''}
+                          onChange={(e) => setFormData({ ...formData, bannerUrl: e.target.value })}
+                          placeholder="https://images.unsplash.com/... hoặc link ảnh cdn"
+                          className="w-full px-3.5 py-2.5 bg-zinc-900 border border-cyan-500/40 rounded-xl text-sm text-white focus:outline-none focus:border-cyan-400 font-mono"
+                        />
+                      </div>
+
+                      {/* Đường dẫn fallback local */}
+                      <div>
+                        <label className="block text-xs font-semibold text-zinc-300 mb-1 flex items-center justify-between">
+                          <span>Đường Dẫn Fallback Local (Trong public/images/games/...)</span>
+                          <span className="text-[11px] text-zinc-500 font-normal">Dùng khi mất mạng / link hỏng</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={formData.banner || ''}
+                          onChange={(e) => setFormData({ ...formData, banner: e.target.value })}
+                          placeholder="/images/games/lol-card.jpg"
+                          className="w-full px-3.5 py-2.5 bg-zinc-900 border border-zinc-800 rounded-xl text-sm text-white focus:outline-none focus:border-cyan-500 font-mono"
+                        />
+                      </div>
+
+                      {/* Live Preview Banner */}
+                      {(formData.bannerUrl || formData.banner) && (
+                        <div className="p-3 rounded-xl bg-zinc-950 border border-zinc-800 space-y-2">
+                          <p className="text-xs font-semibold text-zinc-400 flex items-center gap-1.5">
+                            <ImageIcon size={14} className="text-cyan-400" />
+                            Xem trước Ảnh Banner:
+                          </p>
+                          <div className="relative w-full h-28 rounded-lg overflow-hidden bg-zinc-900">
+                            <Image
+                              src={formData.bannerUrl || formData.banner || ''}
+                              alt="Preview"
+                              fill
+                              unoptimized
+                              className="object-cover"
+                              onError={(e) => {
+                                (e.target as any).style.display = 'none';
+                              }}
+                            />
+                            <div className="absolute top-2 left-2 px-2 py-0.5 rounded bg-black/70 backdrop-blur-md text-[10px] font-mono text-cyan-300 border border-cyan-500/30">
+                              {formData.shortName || formData.name || 'Preview'}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Mô tả */}
+                      <div>
+                        <label className="block text-xs font-semibold text-zinc-300 mb-1">
+                          Mô Tả Ngắn Dịch Vụ
+                        </label>
+                        <textarea
+                          rows={2}
+                          value={formData.desc || ''}
+                          onChange={(e) => setFormData({ ...formData, desc: e.target.value })}
+                          placeholder="Dịch vụ leo rank, cày chuỗi thắng..."
+                          className="w-full px-3.5 py-2 bg-zinc-900 border border-zinc-800 rounded-xl text-sm text-white focus:outline-none focus:border-cyan-500"
+                        />
+                      </div>
+
+                      {/* Checkbox Active */}
+                      <div className="flex items-center gap-2 pt-2">
+                        <input
+                          type="checkbox"
+                          id="activeGameCheck"
+                          checked={formData.active !== false}
+                          onChange={(e) => setFormData({ ...formData, active: e.target.checked })}
+                          className="w-4 h-4 rounded text-cyan-500 focus:ring-0 bg-zinc-900 border-zinc-700"
+                        />
+                        <label htmlFor="activeGameCheck" className="text-sm font-semibold text-zinc-200">
+                          Kích hoạt hiển thị trên Sàn Dịch Vụ ngay bây giờ
+                        </label>
+                      </div>
+
+                      {/* Modal Footer Actions */}
+                      <div className="flex items-center justify-end gap-3 pt-4 border-t border-zinc-800">
+                        <button
+                          type="button"
+                          onClick={() => setIsModalOpen(false)}
+                          className="px-4 py-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white transition text-sm font-semibold"
+                        >
+                          Hủy Bỏ
+                        </button>
+                        <button
+                          type="submit"
+                          className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold text-sm shadow-md hover:opacity-90 transition"
+                        >
+                          {editingGame ? 'Cập Nhật Thay Đổi' : 'Thêm Tựa Game'}
+                        </button>
+                      </div>
+                    </form>
                   </div>
-                </div>
               </div>
-
-              {/* URL Banner Online */}
-              <div>
-                <label className="block text-xs font-semibold text-cyan-300 mb-1 flex items-center justify-between">
-                  <span>URL Ảnh Banner Trực Tuyến (Online CDN / Imgur / Cloudinary...)</span>
-                  <span className="text-[11px] text-zinc-500 font-normal">Ưu tiên tải trước</span>
-                </label>
-                <input
-                  type="url"
-                  value={formData.bannerUrl || ''}
-                  onChange={(e) => setFormData({ ...formData, bannerUrl: e.target.value })}
-                  placeholder="https://images.unsplash.com/... hoặc link ảnh cdn"
-                  className="w-full px-3.5 py-2.5 bg-zinc-900 border border-cyan-500/40 rounded-xl text-sm text-white focus:outline-none focus:border-cyan-400 font-mono"
-                />
-              </div>
-
-              {/* Đường dẫn fallback local */}
-              <div>
-                <label className="block text-xs font-semibold text-zinc-300 mb-1 flex items-center justify-between">
-                  <span>Đường Dẫn Fallback Local (Trong public/images/games/...)</span>
-                  <span className="text-[11px] text-zinc-500 font-normal">Dùng khi mất mạng / link hỏng</span>
-                </label>
-                <input
-                  type="text"
-                  value={formData.banner || ''}
-                  onChange={(e) => setFormData({ ...formData, banner: e.target.value })}
-                  placeholder="/images/games/lol-card.jpg"
-                  className="w-full px-3.5 py-2.5 bg-zinc-900 border border-zinc-800 rounded-xl text-sm text-white focus:outline-none focus:border-cyan-500 font-mono"
-                />
-              </div>
-
-              {/* Live Preview Banner */}
-              {(formData.bannerUrl || formData.banner) && (
-                <div className="p-3 rounded-xl bg-zinc-950 border border-zinc-800 space-y-2">
-                  <p className="text-xs font-semibold text-zinc-400 flex items-center gap-1.5">
-                    <ImageIcon size={14} className="text-cyan-400" />
-                    Xem trước Ảnh Banner:
-                  </p>
-                  <div className="relative w-full h-28 rounded-lg overflow-hidden bg-zinc-900">
-                    <Image
-                      src={formData.bannerUrl || formData.banner || ''}
-                      alt="Preview"
-                      fill
-                      unoptimized
-                      className="object-cover"
-                      onError={(e) => {
-                        (e.target as any).style.display = 'none';
-                      }}
-                    />
-                    <div className="absolute top-2 left-2 px-2 py-0.5 rounded bg-black/70 backdrop-blur-md text-[10px] font-mono text-cyan-300 border border-cyan-500/30">
-                      {formData.shortName || formData.name || 'Preview'}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Mô tả */}
-              <div>
-                <label className="block text-xs font-semibold text-zinc-300 mb-1">
-                  Mô Tả Ngắn Dịch Vụ
-                </label>
-                <textarea
-                  rows={2}
-                  value={formData.desc || ''}
-                  onChange={(e) => setFormData({ ...formData, desc: e.target.value })}
-                  placeholder="Dịch vụ leo rank, cày chuỗi thắng..."
-                  className="w-full px-3.5 py-2 bg-zinc-900 border border-zinc-800 rounded-xl text-sm text-white focus:outline-none focus:border-cyan-500"
-                />
-              </div>
-
-              {/* Checkbox Active */}
-              <div className="flex items-center gap-2 pt-2">
-                <input
-                  type="checkbox"
-                  id="activeGameCheck"
-                  checked={formData.active !== false}
-                  onChange={(e) => setFormData({ ...formData, active: e.target.checked })}
-                  className="w-4 h-4 rounded text-cyan-500 focus:ring-0 bg-zinc-900 border-zinc-700"
-                />
-                <label htmlFor="activeGameCheck" className="text-sm font-semibold text-zinc-200">
-                  Kích hoạt hiển thị trên Sàn Dịch Vụ ngay bây giờ
-                </label>
-              </div>
-
-              {/* Modal Footer Actions */}
-              <div className="flex items-center justify-end gap-3 pt-4 border-t border-zinc-800">
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white transition text-sm font-semibold"
-                >
-                  Hủy Bỏ
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold text-sm shadow-md hover:opacity-90 transition"
-                >
-                  {editingGame ? 'Cập Nhật Thay Đổi' : 'Thêm Tựa Game'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
       )}
-    </div>
-  );
+            </div>
+            );
 }

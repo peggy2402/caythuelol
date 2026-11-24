@@ -596,8 +596,8 @@ const getRankStepId = (gameCode: string, tier: string, div?: string): string => 
     const fallbackDiv = ['BRONZE', 'SILVER'].includes(tier)
       ? '3'
       : tier === 'GOLD'
-      ? '4'
-      : '5';
+        ? '4'
+        : '5';
     const num = DIVISION_TO_NUM[div || fallbackDiv] || div || fallbackDiv;
     return `${tier}_${num}`;
   }
@@ -667,28 +667,28 @@ function ProviderLogo({ provider, className = 'w-5 h-5' }: { provider: string; c
     case 'Google':
       return (
         <svg className={className} viewBox="0 0 24 24">
-          <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z"/>
-          <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.27v3.15C3.25 21.36 7.31 24 12 24z"/>
-          <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.27C.46 8.2 0 10.04 0 12s.46 3.8 1.27 5.42l4.01-3.15z"/>
-          <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.31 0 3.25 2.64 1.27 6.58l4.01 3.15c.95-2.83 3.6-4.98 6.72-4.98z"/>
+          <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z" />
+          <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.27v3.15C3.25 21.36 7.31 24 12 24z" />
+          <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.27C.46 8.2 0 10.04 0 12s.46 3.8 1.27 5.42l4.01-3.15z" />
+          <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.31 0 3.25 2.64 1.27 6.58l4.01 3.15c.95-2.83 3.6-4.98 6.72-4.98z" />
         </svg>
       );
     case 'Apple':
       return (
         <svg className={className} viewBox="0 0 170 170" fill="currentColor">
-          <path d="M150.37 130.25c-2.45 5.66-5.35 10.87-8.71 15.66-4.58 6.53-8.33 11.05-11.22 13.56-4.48 4.12-9.28 6.23-14.42 6.35-3.69 0-8.14-1.05-13.32-3.18-5.19-2.12-9.97-3.17-14.34-3.17-4.58 0-9.49 1.05-14.75 3.17-5.26 2.13-9.5 3.24-12.74 3.35-4.35.13-9.16-1.9-14.42-6.08-3.7-3.04-7.58-7.7-11.64-13.98-6.19-9.56-11.02-20.91-14.48-34.05-3.47-13.14-5.2-25.17-5.2-36.1 0-13.59 3.39-25.04 10.18-34.36 6.78-9.31 15.35-14.07 25.7-14.28 4.7 0 9.87 1.25 15.52 3.75 5.65 2.5 9.4 3.8 11.25 3.92 1.48-.12 5.56-1.5 12.24-4.14 6.68-2.63 12.08-3.83 16.2-3.6 12.08.74 21.57 5.17 28.48 13.3-10.74 6.53-16.01 15.44-15.82 26.74.19 8.92 3.52 16.48 10 22.68 6.47 6.2 14.16 9.68 23.07 10.45-2.12 6.54-4.87 13.14-8.24 19.8zM119.22 31.84c0-7.39 2.65-14.44 7.95-21.14 5.3-6.7 11.85-10.7 19.64-12-0.21 2.22-.21 3.92-.21 5.08 0 7.39-2.76 14.54-8.27 21.46-5.51 6.91-12.19 10.7-20.04 11.36-.11-1.48-.17-3.08-.17-4.76z"/>
+          <path d="M150.37 130.25c-2.45 5.66-5.35 10.87-8.71 15.66-4.58 6.53-8.33 11.05-11.22 13.56-4.48 4.12-9.28 6.23-14.42 6.35-3.69 0-8.14-1.05-13.32-3.18-5.19-2.12-9.97-3.17-14.34-3.17-4.58 0-9.49 1.05-14.75 3.17-5.26 2.13-9.5 3.24-12.74 3.35-4.35.13-9.16-1.9-14.42-6.08-3.7-3.04-7.58-7.7-11.64-13.98-6.19-9.56-11.02-20.91-14.48-34.05-3.47-13.14-5.2-25.17-5.2-36.1 0-13.59 3.39-25.04 10.18-34.36 6.78-9.31 15.35-14.07 25.7-14.28 4.7 0 9.87 1.25 15.52 3.75 5.65 2.5 9.4 3.8 11.25 3.92 1.48-.12 5.56-1.5 12.24-4.14 6.68-2.63 12.08-3.83 16.2-3.6 12.08.74 21.57 5.17 28.48 13.3-10.74 6.53-16.01 15.44-15.82 26.74.19 8.92 3.52 16.48 10 22.68 6.47 6.2 14.16 9.68 23.07 10.45-2.12 6.54-4.87 13.14-8.24 19.8zM119.22 31.84c0-7.39 2.65-14.44 7.95-21.14 5.3-6.7 11.85-10.7 19.64-12-0.21 2.22-.21 3.92-.21 5.08 0 7.39-2.76 14.54-8.27 21.46-5.51 6.91-12.19 10.7-20.04 11.36-.11-1.48-.17-3.08-.17-4.76z" />
         </svg>
       );
     case 'Xbox':
       return (
         <svg className={className} viewBox="0 0 24 24" fill="#107C10">
-          <path d="M4.64 3.58C6.67 1.84 9.22.8 12 .8c2.78 0 5.33 1.04 7.36 2.78-1.53 1.57-3.8 3.8-5.32 5.37-.36.38-.72.76-1.07 1.14-.38-.41-.75-.8-1.12-1.2-1.53-1.63-3.69-3.79-5.21-5.31zm-2.8 3.65C.66 9.17 0 11.49 0 14c0 3.89 1.63 7.38 4.22 9.87C3.2 21.2 2.3 17.5 2.8 14c.3-2.1.8-4.5 1.9-6.6l-2.86-.17zm20.32 0l-2.86.17c1.1 2.1 1.6 4.5 1.9 6.6.5 3.5-.4 7.2-1.42 9.87 2.59-2.49 4.22-5.98 4.22-9.87 0-2.51-.66-4.83-1.84-6.77zM12 12.3c.6 0 1.2.3 1.5.8 1.4 2.1 3.5 5.5 4.6 8.8C16.3 23.2 14.2 24 12 24s-4.3-.8-6.1-2.1c1.1-3.3 3.2-6.7 4.6-8.8.3-.5.9-.8 1.5-.8z"/>
+          <path d="M4.64 3.58C6.67 1.84 9.22.8 12 .8c2.78 0 5.33 1.04 7.36 2.78-1.53 1.57-3.8 3.8-5.32 5.37-.36.38-.72.76-1.07 1.14-.38-.41-.75-.8-1.12-1.2-1.53-1.63-3.69-3.79-5.21-5.31zm-2.8 3.65C.66 9.17 0 11.49 0 14c0 3.89 1.63 7.38 4.22 9.87C3.2 21.2 2.3 17.5 2.8 14c.3-2.1.8-4.5 1.9-6.6l-2.86-.17zm20.32 0l-2.86.17c1.1 2.1 1.6 4.5 1.9 6.6.5 3.5-.4 7.2-1.42 9.87 2.59-2.49 4.22-5.98 4.22-9.87 0-2.51-.66-4.83-1.84-6.77zM12 12.3c.6 0 1.2.3 1.5.8 1.4 2.1 3.5 5.5 4.6 8.8C16.3 23.2 14.2 24 12 24s-4.3-.8-6.1-2.1c1.1-3.3 3.2-6.7 4.6-8.8.3-.5.9-.8 1.5-.8z" />
         </svg>
       );
     case 'PlayStation':
       return (
         <svg className={className} viewBox="0 0 24 24" fill="#003791">
-          <path d="M8.07 4.62c0-.55.45-1 .99-1h3.76c2.72 0 4.93 2.21 4.93 4.93 0 2.22-1.47 4.1-3.5 4.72v-2.09c1-.48 1.69-1.49 1.69-2.67 0-1.62-1.32-2.94-2.94-2.94H10.9v10.5h-2.83V4.62zm-6.2 12.51c-.69-.47-1.1-1.25-1.1-2.08 0-1.21.87-2.22 2.05-2.43 1.83-.33 5.48-.96 5.48-.96l-1.07 1.88-3.48.58c-.51.08-.88.52-.88 1.04 0 .39.21.75.55.94l6.09 3.52-2.61.94-5.03-3.43zm11.97.94l6.09-3.52c.34-.19.55-.55.55-.94 0-.52-.37-.96-.88-1.04l-3.48-.58-1.07-1.88s3.65.63 5.48.96c1.18.21 2.05 1.22 2.05 2.43 0 .83-.41 1.61-1.1 2.08l-5.03 3.43-2.61-.94z"/>
+          <path d="M8.07 4.62c0-.55.45-1 .99-1h3.76c2.72 0 4.93 2.21 4.93 4.93 0 2.22-1.47 4.1-3.5 4.72v-2.09c1-.48 1.69-1.49 1.69-2.67 0-1.62-1.32-2.94-2.94-2.94H10.9v10.5h-2.83V4.62zm-6.2 12.51c-.69-.47-1.1-1.25-1.1-2.08 0-1.21.87-2.22 2.05-2.43 1.83-.33 5.48-.96 5.48-.96l-1.07 1.88-3.48.58c-.51.08-.88.52-.88 1.04 0 .39.21.75.55.94l6.09 3.52-2.61.94-5.03-3.43zm11.97.94l6.09-3.52c.34-.19.55-.55.55-.94 0-.52-.37-.96-.88-1.04l-3.48-.58-1.07-1.88s3.65.63 5.48.96c1.18.21 2.05 1.22 2.05 2.43 0 .83-.41 1.61-1.1 2.08l-5.03 3.43-2.61-.94z" />
         </svg>
       );
     default:
@@ -885,7 +885,7 @@ function ServiceBookingContent() {
           setPlatformFeePercent(data.fee);
         }
       })
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
   // Fetch danh sách booster của game để khách chọn nếu muốn (lọc theo service)
@@ -914,7 +914,7 @@ function ServiceBookingContent() {
           }
         }
       })
-      .catch(() => {});
+      .catch(() => { });
   }, [game.id, activeServiceSlug, cleanBoosterUsername]);
 
   // Nếu có query booster, fetch thông tin booster đó
@@ -934,7 +934,7 @@ function ServiceBookingContent() {
           }
         }
       })
-      .catch(() => {})
+      .catch(() => { })
       .finally(() => setLoadingBooster(false));
   }, [cleanBoosterUsername]);
 
@@ -1136,8 +1136,8 @@ function ServiceBookingContent() {
   const effectiveRankMultiplier = isAov
     ? Number(matchingBoosterRankService?.multiplier || 1.0)
     : assignedBooster
-    ? boosterMultiplier
-    : 1.0;
+      ? boosterMultiplier
+      : 1.0;
   const boosterAddonsConfig =
     assignedBooster?.addonsConfig ||
     boosterSettings?.addonsConfig ||
@@ -1560,8 +1560,8 @@ function ServiceBookingContent() {
     const targetQueue = isValorant
       ? 'COMPETITIVE'
       : queueType === 'FLEX'
-      ? 'RANKED_FLEX_SR'
-      : 'RANKED_SOLO_5x5';
+        ? 'RANKED_FLEX_SR'
+        : 'RANKED_SOLO_5x5';
 
     try {
       const res = await fetch('/api/games/player', {
@@ -1663,8 +1663,8 @@ function ServiceBookingContent() {
     const targetQueue = isValorant
       ? 'COMPETITIVE'
       : queueType === 'FLEX'
-      ? 'RANKED_FLEX_SR'
-      : 'RANKED_SOLO_5x5';
+        ? 'RANKED_FLEX_SR'
+        : 'RANKED_SOLO_5x5';
 
     const currentQueueTitle = queueType === 'FLEX' ? 'Linh Hoạt' : 'Đơn / Đôi';
 
@@ -1682,15 +1682,15 @@ function ServiceBookingContent() {
       setCheckedAccount((prev) =>
         prev
           ? {
-              ...prev,
-              tier: rawTier,
-              tierVi,
-              rank: isApex ? '' : rawRank,
-              lp: rawLp,
-              wins,
-              losses,
-              queueName: currentQueueTitle,
-            }
+            ...prev,
+            tier: rawTier,
+            tierVi,
+            rank: isApex ? '' : rawRank,
+            lp: rawLp,
+            wins,
+            losses,
+            queueName: currentQueueTitle,
+          }
           : null
       );
 
@@ -1911,10 +1911,10 @@ function ServiceBookingContent() {
           funding_source: appliedCoupon?.code?.toUpperCase().startsWith('LRV-')
             ? 'PLATFORM'
             : appliedCoupon?.isBooster
-            ? 'BOOSTER'
-            : appliedCoupon
-            ? 'PLATFORM'
-            : null,
+              ? 'BOOSTER'
+              : appliedCoupon
+                ? 'PLATFORM'
+                : null,
           platform_subsidy: appliedCoupon?.code?.toUpperCase().startsWith('LRV-') ? discountAmount : 0,
           booster_discount: !appliedCoupon?.code?.toUpperCase().startsWith('LRV-') && appliedCoupon?.isBooster ? discountAmount : 0,
           final_price: finalPrice,
@@ -1925,22 +1925,22 @@ function ServiceBookingContent() {
         },
         service_data: isPromotion
           ? {
-              is_promotion: true,
-              promo_from: selectedPromo.fromLabel,
-              promo_to: selectedPromo.toLabel,
-              current_rank: selectedPromo.fromLabel,
-              desired_rank: selectedPromo.toLabel,
-              tier: selectedPromo.fromTier,
-              target_tier: selectedPromo.toTier,
-              division: selectedPromo.fromDivision,
-              target_division: selectedPromo.toDivision,
-              queue_type: queueType,
-              server,
-              addons,
-              steps_count: 1,
-            }
+            is_promotion: true,
+            promo_from: selectedPromo.fromLabel,
+            promo_to: selectedPromo.toLabel,
+            current_rank: selectedPromo.fromLabel,
+            desired_rank: selectedPromo.toLabel,
+            tier: selectedPromo.fromTier,
+            target_tier: selectedPromo.toTier,
+            division: selectedPromo.fromDivision,
+            target_division: selectedPromo.toDivision,
+            queue_type: queueType,
+            server,
+            addons,
+            steps_count: 1,
+          }
           : isPointBoost
-          ? {
+            ? {
               is_point_boost: true,
               calc_mode: isAov ? 'BY_STAR' : 'BY_LP',
               game: game.id.toUpperCase(),
@@ -1969,7 +1969,7 @@ function ServiceBookingContent() {
               addons,
               ingame_name: checkedAccount?.riotId || null,
             }
-          : {
+            : {
               game: game.id.toUpperCase(),
               current_rank: currentRankObj?.label,
               desired_rank: desiredRankObj?.label,
@@ -2087,11 +2087,10 @@ function ServiceBookingContent() {
                   </p>
                 </div>
                 {assignedBooster && (
-                  <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full flex items-center gap-1 ${
-                    isManualSelectBooster
+                  <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full flex items-center gap-1 ${isManualSelectBooster
                       ? 'bg-purple-500/10 border border-purple-500/20 text-purple-400'
                       : 'bg-blue-500/10 border border-blue-500/20 text-blue-400'
-                  }`}>
+                    }`}>
                     {isManualSelectBooster ? <Crown size={12} /> : <Zap size={12} />}
                     <span>{isManualSelectBooster ? 'Đang chỉ định' : 'Ghép nhanh'}</span>
                   </span>
@@ -2125,11 +2124,10 @@ function ServiceBookingContent() {
                       toast.info(`Hệ thống ghép tự động tuyển thủ: @${picked.username}`);
                     }
                   }}
-                  className={`p-3.5 rounded-2xl border text-left transition-all relative ${
-                    !isManualSelectBooster
+                  className={`p-3.5 rounded-2xl border text-left transition-all relative ${!isManualSelectBooster
                       ? 'bg-blue-600/10 border-blue-500/80 shadow-[0_0_20px_rgba(59,130,246,0.15)] ring-1 ring-blue-500/50'
                       : 'bg-zinc-950/60 border-zinc-800 hover:border-zinc-700'
-                  }`}
+                    }`}
                 >
                   <div className="flex items-center justify-between mb-2">
                     <div className="w-8 h-8 rounded-xl bg-blue-500/20 text-blue-400 border border-blue-500/30 flex items-center justify-center">
@@ -2158,11 +2156,10 @@ function ServiceBookingContent() {
                       });
                     }
                   }}
-                  className={`p-3.5 rounded-2xl border text-left transition-all relative ${
-                    isManualSelectBooster
+                  className={`p-3.5 rounded-2xl border text-left transition-all relative ${isManualSelectBooster
                       ? 'bg-purple-600/10 border-purple-500/80 shadow-[0_0_20px_rgba(168,85,247,0.15)] ring-1 ring-purple-500/50'
                       : 'bg-zinc-950/60 border-zinc-800 hover:border-zinc-700'
-                  }`}
+                    }`}
                 >
                   <div className="flex items-center justify-between mb-2">
                     <div className="w-8 h-8 rounded-xl bg-purple-500/20 text-purple-400 border border-purple-500/30 flex items-center justify-center">
@@ -2181,11 +2178,10 @@ function ServiceBookingContent() {
 
               {/* Card Tuyển Thủ Đang Chọn / Được Ghép */}
               {assignedBooster ? (
-                <div className={`p-3.5 sm:p-4 rounded-2xl border space-y-3 animate-in fade-in duration-200 ${
-                  isManualSelectBooster
+                <div className={`p-3.5 sm:p-4 rounded-2xl border space-y-3 animate-in fade-in duration-200 ${isManualSelectBooster
                     ? 'bg-purple-950/20 border-purple-500/40 shadow-[0_0_15px_rgba(168,85,247,0.1)]'
                     : 'bg-blue-950/20 border-blue-500/40 shadow-[0_0_15px_rgba(59,130,246,0.1)]'
-                }`}>
+                  }`}>
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     {(() => {
                       const avatarUrl =
@@ -2226,11 +2222,10 @@ function ServiceBookingContent() {
 
                       return (
                         <div className="flex items-center gap-3">
-                          <div className={`w-12 h-12 rounded-2xl overflow-hidden border flex items-center justify-center text-white font-bold text-base shadow-inner shrink-0 ${
-                            isManualSelectBooster
+                          <div className={`w-12 h-12 rounded-2xl overflow-hidden border flex items-center justify-center text-white font-bold text-base shadow-inner shrink-0 ${isManualSelectBooster
                               ? 'bg-gradient-to-br from-purple-500/20 to-blue-500/20 border-purple-500/40'
                               : 'bg-gradient-to-br from-blue-500/20 to-cyan-500/20 border-blue-500/40'
-                          }`}>
+                            }`}>
                             {avatarUrl ? (
                               <img
                                 src={avatarUrl}
@@ -2518,7 +2513,7 @@ function ServiceBookingContent() {
                                 Tài khoản ở chế độ {checkedAccount.queueName} hiện là {checkedAccount.tierVi} {checkedAccount.rank} ({checkedAccount.lp} LP)
                               </div>
                               <p className="text-zinc-300 text-[11px] leading-relaxed">
-                                Gói dịch vụ <strong className="text-white">Cày Điểm LP (Net Wins)</strong> trong LMHT chỉ áp dụng cho bậc <strong className="text-amber-400">Cao Thủ (Master) trở lên</strong> vì điểm LP tích lũy vô hạn. 
+                                Gói dịch vụ <strong className="text-white">Cày Điểm LP (Net Wins)</strong> trong LMHT chỉ áp dụng cho bậc <strong className="text-amber-400">Cao Thủ (Master) trở lên</strong> vì điểm LP tích lũy vô hạn.
                                 Nếu bạn muốn cày từ <strong className="text-white">{checkedAccount.tierVi} {checkedAccount.rank}</strong> lên Cao Thủ, vui lòng chuyển sang gói <strong className="text-cyan-400">Cày Cấp Bậc Rank</strong>!
                               </p>
                             </div>
@@ -2540,15 +2535,15 @@ function ServiceBookingContent() {
                                 ['MASTER', 'GRANDMASTER', 'CHALLENGER'].includes((l.tier || '').toUpperCase()) &&
                                 l.queueType !== (queueType === 'FLEX' ? 'RANKED_FLEX_SR' : 'RANKED_SOLO_5x5')
                             ) && (
-                              <button
-                                type="button"
-                                onClick={() => setQueueType(queueType === 'FLEX' ? 'SOLO_DUO' : 'FLEX')}
-                                className="px-3.5 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white font-bold text-xs inline-flex items-center gap-1.5 border border-white/10 active:scale-95 transition-all"
-                              >
-                                <Swords size={13} className="text-cyan-400" />
-                                <span>Chuyển sang {queueType === 'FLEX' ? 'Đơn / Đôi' : 'Linh Hoạt'} (Có bậc Cao Thủ+)</span>
-                              </button>
-                            )}
+                                <button
+                                  type="button"
+                                  onClick={() => setQueueType(queueType === 'FLEX' ? 'SOLO_DUO' : 'FLEX')}
+                                  className="px-3.5 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white font-bold text-xs inline-flex items-center gap-1.5 border border-white/10 active:scale-95 transition-all"
+                                >
+                                  <Swords size={13} className="text-cyan-400" />
+                                  <span>Chuyển sang {queueType === 'FLEX' ? 'Đơn / Đôi' : 'Linh Hoạt'} (Có bậc Cao Thủ+)</span>
+                                </button>
+                              )}
                           </div>
                         </div>
                       )}
@@ -2563,7 +2558,7 @@ function ServiceBookingContent() {
                                 Tài khoản ở chế độ {checkedAccount.queueName} hiện là {checkedAccount.tierVi} ({checkedAccount.lp} LP)
                               </div>
                               <p className="text-zinc-300 text-[11px] leading-relaxed">
-                                Gói <strong className="text-white">Cày Cấp Bậc Rank</strong> chỉ áp dụng từ bậc <strong className="text-cyan-400">Cao Thủ trở xuống</strong>. 
+                                Gói <strong className="text-white">Cày Cấp Bậc Rank</strong> chỉ áp dụng từ bậc <strong className="text-cyan-400">Cao Thủ trở xuống</strong>.
                                 Tài khoản của bạn đã đạt <strong className="text-amber-400">{checkedAccount.tierVi}</strong>, vui lòng chuyển sang gói <strong className="text-cyan-400">Cày Điểm LP (Net Wins)</strong> để cày thêm điểm!
                               </p>
                             </div>
@@ -2585,15 +2580,15 @@ function ServiceBookingContent() {
                                 !['GRANDMASTER', 'CHALLENGER'].includes((l.tier || '').toUpperCase()) &&
                                 l.queueType !== (queueType === 'FLEX' ? 'RANKED_FLEX_SR' : 'RANKED_SOLO_5x5')
                             ) && (
-                              <button
-                                type="button"
-                                onClick={() => setQueueType(queueType === 'FLEX' ? 'SOLO_DUO' : 'FLEX')}
-                                className="px-3.5 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white font-bold text-xs inline-flex items-center gap-1.5 border border-white/10 active:scale-95 transition-all"
-                              >
-                                <Swords size={13} className="text-cyan-400" />
-                                <span>Chuyển sang {queueType === 'FLEX' ? 'Đơn / Đôi' : 'Linh Hoạt'} (&le; Cao Thủ)</span>
-                              </button>
-                            )}
+                                <button
+                                  type="button"
+                                  onClick={() => setQueueType(queueType === 'FLEX' ? 'SOLO_DUO' : 'FLEX')}
+                                  className="px-3.5 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white font-bold text-xs inline-flex items-center gap-1.5 border border-white/10 active:scale-95 transition-all"
+                                >
+                                  <Swords size={13} className="text-cyan-400" />
+                                  <span>Chuyển sang {queueType === 'FLEX' ? 'Đơn / Đôi' : 'Linh Hoạt'} (&le; Cao Thủ)</span>
+                                </button>
+                              )}
                           </div>
                         </div>
                       )}
@@ -2608,17 +2603,15 @@ function ServiceBookingContent() {
                   <button
                     type="button"
                     onClick={() => setAovCalcMode('RANK')}
-                    className={`p-3 rounded-xl border text-left transition-all flex items-center gap-3 cursor-pointer ${
-                      aovCalcMode === 'RANK'
+                    className={`p-3 rounded-xl border text-left transition-all flex items-center gap-3 cursor-pointer ${aovCalcMode === 'RANK'
                         ? 'bg-gradient-to-r from-amber-600/20 to-orange-600/15 border-amber-500/70 shadow-[0_0_20px_rgba(245,158,11,0.15)]'
                         : 'bg-zinc-900/50 border-zinc-800 hover:border-zinc-700'
-                    }`}
+                      }`}
                   >
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border ${
-                      aovCalcMode === 'RANK'
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border ${aovCalcMode === 'RANK'
                         ? 'bg-amber-500/20 border-amber-500/40 text-amber-400'
                         : 'bg-zinc-800/80 border-zinc-700 text-zinc-400'
-                    }`}>
+                      }`}>
                       <Trophy size={18} />
                     </div>
                     <div className="min-w-0">
@@ -2637,17 +2630,15 @@ function ServiceBookingContent() {
                   <button
                     type="button"
                     onClick={() => setAovCalcMode('STAR')}
-                    className={`p-3 rounded-xl border text-left transition-all flex items-center gap-3 cursor-pointer ${
-                      aovCalcMode === 'STAR'
+                    className={`p-3 rounded-xl border text-left transition-all flex items-center gap-3 cursor-pointer ${aovCalcMode === 'STAR'
                         ? 'bg-gradient-to-r from-cyan-600/20 to-blue-600/15 border-cyan-500/70 shadow-[0_0_20px_rgba(6,182,212,0.15)]'
                         : 'bg-zinc-900/50 border-zinc-800 hover:border-zinc-700'
-                    }`}
+                      }`}
                   >
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border ${
-                      aovCalcMode === 'STAR'
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border ${aovCalcMode === 'STAR'
                         ? 'bg-cyan-500/20 border-cyan-500/40 text-cyan-400'
                         : 'bg-zinc-800/80 border-zinc-700 text-zinc-400'
-                    }`}>
+                      }`}>
                       <Star size={18} />
                     </div>
                     <div className="min-w-0">
@@ -2694,11 +2685,10 @@ function ServiceBookingContent() {
                         <div
                           key={tier.id}
                           onClick={() => handleSelectPointSegment(tier)}
-                          className={`p-3.5 sm:p-4 rounded-2xl border transition-all cursor-pointer relative overflow-hidden group select-none flex flex-col justify-between h-full ${
-                            isSelected
+                          className={`p-3.5 sm:p-4 rounded-2xl border transition-all cursor-pointer relative overflow-hidden group select-none flex flex-col justify-between h-full ${isSelected
                               ? 'bg-gradient-to-br from-cyan-950/40 via-zinc-900 to-zinc-950 border-cyan-500 shadow-[0_0_20px_rgba(6,182,212,0.15)] ring-1 ring-cyan-500/60'
                               : 'bg-zinc-950/70 border-zinc-800/80 hover:border-zinc-700 hover:bg-zinc-900/60'
-                          }`}
+                            }`}
                         >
                           <div className="flex-1">
                             <div className="flex items-center justify-between gap-2 mb-2">
@@ -2824,9 +2814,8 @@ function ServiceBookingContent() {
                               }
                               setCurrentPoints((p) => Math.max(0, p - (isAov ? 1 : 10)));
                             }}
-                            className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-zinc-800/90 hover:bg-zinc-700 active:scale-95 text-zinc-200 hover:text-white font-bold text-base flex items-center justify-center shrink-0 border border-white/5 transition-all select-none ${
-                              isRiotGame && checkedAccount ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'
-                            }`}
+                            className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-zinc-800/90 hover:bg-zinc-700 active:scale-95 text-zinc-200 hover:text-white font-bold text-base flex items-center justify-center shrink-0 border border-white/5 transition-all select-none ${isRiotGame && checkedAccount ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'
+                              }`}
                           >
                             -
                           </button>
@@ -2855,13 +2844,12 @@ function ServiceBookingContent() {
                                 const val = parseInt(clean, 10);
                                 setCurrentPoints(isNaN(val) ? 0 : Math.max(0, val));
                               }}
-                              className={`w-full h-9 sm:h-10 bg-zinc-950 border rounded-xl pl-3 pr-10 text-center text-base sm:text-lg font-black font-mono text-white outline-none focus:ring-2 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none transition-all ${
-                                isRiotGame && checkedAccount
+                              className={`w-full h-9 sm:h-10 bg-zinc-950 border rounded-xl pl-3 pr-10 text-center text-base sm:text-lg font-black font-mono text-white outline-none focus:ring-2 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none transition-all ${isRiotGame && checkedAccount
                                   ? 'border-cyan-500/40 bg-zinc-900/60 cursor-not-allowed text-cyan-300'
                                   : currentPoints > desiredPoints
-                                  ? 'border-rose-500 focus:border-rose-500 focus:ring-rose-500/20'
-                                  : 'border-zinc-700/80 focus:border-cyan-500 focus:ring-cyan-500/20'
-                              }`}
+                                    ? 'border-rose-500 focus:border-rose-500 focus:ring-rose-500/20'
+                                    : 'border-zinc-700/80 focus:border-cyan-500 focus:ring-cyan-500/20'
+                                }`}
                             />
                             <span className="text-xs text-zinc-500 font-bold font-mono absolute right-3 pointer-events-none select-none uppercase">
                               {pointUnit}
@@ -2879,9 +2867,8 @@ function ServiceBookingContent() {
                               }
                               setCurrentPoints((p) => Math.max(0, p + (isAov ? 1 : 10)));
                             }}
-                            className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-zinc-800/90 hover:bg-zinc-700 active:scale-95 text-zinc-200 hover:text-white font-bold text-base flex items-center justify-center shrink-0 border border-white/5 transition-all select-none ${
-                              isRiotGame && checkedAccount ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'
-                            }`}
+                            className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-zinc-800/90 hover:bg-zinc-700 active:scale-95 text-zinc-200 hover:text-white font-bold text-base flex items-center justify-center shrink-0 border border-white/5 transition-all select-none ${isRiotGame && checkedAccount ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'
+                              }`}
                           >
                             +
                           </button>
@@ -2920,11 +2907,10 @@ function ServiceBookingContent() {
                                 const val = parseInt(clean, 10);
                                 setDesiredPoints(isNaN(val) ? 0 : Math.max(0, val));
                               }}
-                              className={`w-full h-9 sm:h-10 bg-zinc-950 border rounded-xl pl-3 pr-10 text-center text-base sm:text-lg font-black font-mono text-emerald-400 outline-none focus:ring-2 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none transition-all ${
-                                desiredPoints < currentPoints
+                              className={`w-full h-9 sm:h-10 bg-zinc-950 border rounded-xl pl-3 pr-10 text-center text-base sm:text-lg font-black font-mono text-emerald-400 outline-none focus:ring-2 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none transition-all ${desiredPoints < currentPoints
                                   ? 'border-rose-500 focus:border-rose-500 focus:ring-rose-500/20'
                                   : 'border-zinc-700/80 focus:border-emerald-500 focus:ring-emerald-500/20'
-                              }`}
+                                }`}
                             />
                             <span className="text-xs text-zinc-500 font-bold font-mono absolute right-3 pointer-events-none select-none uppercase">
                               {pointUnit}
@@ -3048,11 +3034,10 @@ function ServiceBookingContent() {
                               <button
                                 type="button"
                                 onClick={() => setSelectedPromoId(promo.id)}
-                                className={`relative w-12 h-14 sm:w-16 sm:h-18 flex items-center justify-center rounded-xl transition-all duration-200 cursor-pointer ${
-                                  isSelected
+                                className={`relative w-12 h-14 sm:w-16 sm:h-18 flex items-center justify-center rounded-xl transition-all duration-200 cursor-pointer ${isSelected
                                     ? 'border-2 border-red-500 bg-red-500/10 shadow-[0_0_18px_rgba(239,68,68,0.35)] scale-110 z-10'
                                     : 'border border-transparent hover:border-zinc-700 bg-transparent hover:bg-zinc-800/40 opacity-70 hover:opacity-100 hover:scale-105'
-                                }`}
+                                  }`}
                                 title={promo.fromLabel}
                               >
                                 <img
@@ -3145,8 +3130,8 @@ function ServiceBookingContent() {
                         {isValorant
                           ? 'Lộ trình Cày Rank Valorant (Iron 1 → Radiant)'
                           : isAov
-                          ? 'Lộ trình Cày Rank Liên Quân (Đồng III → Huyền Thoại 100★)'
-                          : 'Lộ trình Cày Rank (Sắt IV → Cao Thủ)'}
+                            ? 'Lộ trình Cày Rank Liên Quân (Đồng III → Huyền Thoại 100★)'
+                            : 'Lộ trình Cày Rank (Sắt IV → Cao Thủ)'}
                       </span>
                       <span className="text-red-500">*</span>
                     </label>
@@ -3166,13 +3151,12 @@ function ServiceBookingContent() {
                           <span>Rank Hiện Tại</span>
                           <span className="text-red-500">*</span>
                         </span>
-                        <span className={`text-[10px] font-bold ${
-                          isRiotGame && checkedAccount
+                        <span className={`text-[10px] font-bold ${isRiotGame && checkedAccount
                             ? 'text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded'
                             : isRiotGame
-                            ? 'text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded group-hover:underline'
-                            : 'text-blue-400 group-hover:underline'
-                        }`}>
+                              ? 'text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded group-hover:underline'
+                              : 'text-blue-400 group-hover:underline'
+                          }`}>
                           {isRiotGame && checkedAccount ? '✓ Đã đồng bộ Riot' : isRiotGame ? 'Cần kiểm tra Riot *' : 'Thay đổi'}
                         </span>
                       </div>
@@ -3194,8 +3178,8 @@ function ServiceBookingContent() {
                               {isValorant
                                 ? (currentRankObj.tier === 'RADIANT' ? 'Radiant' : `Bậc ${currentRankObj.division}`)
                                 : isAov && AOV_SINGLE_STEP_TIERS.includes(currentRankObj.tier)
-                                ? currentTierMeta.name
-                                : (currentRankObj.tier === 'MASTER' ? 'Cao Thủ' : `Bậc ${currentRankObj.division}`)}
+                                  ? currentTierMeta.name
+                                  : (currentRankObj.tier === 'MASTER' ? 'Cao Thủ' : `Bậc ${currentRankObj.division}`)}
                             </span>
                             <span className="text-[11px] text-zinc-400 font-mono">
                               Mốc #{currentRankIndex + 1}
@@ -3244,8 +3228,8 @@ function ServiceBookingContent() {
                               {isValorant
                                 ? (desiredRankObj.tier === 'RADIANT' ? 'Radiant' : `Bậc ${desiredRankObj.division}`)
                                 : isAov && AOV_SINGLE_STEP_TIERS.includes(desiredRankObj.tier)
-                                ? desiredTierMeta.name
-                                : (desiredRankObj.tier === 'MASTER' ? 'Cao Thủ' : `Bậc ${desiredRankObj.division}`)}
+                                  ? desiredTierMeta.name
+                                  : (desiredRankObj.tier === 'MASTER' ? 'Cao Thủ' : `Bậc ${desiredRankObj.division}`)}
                             </span>
                             <span className="text-[11px] text-emerald-400 font-bold">
                               +{calculation.stepsCount} bậc nhảy
@@ -3278,7 +3262,7 @@ function ServiceBookingContent() {
                           const toStep = activeRankSteps[lastStepIdx + 1];
                           const pkgTotal = Math.round(
                             getAovTierPackageCurrentTotal(pkg, assignedBooster ? boosterStepOverrides : undefined) *
-                              effectiveRankMultiplier
+                            effectiveRankMultiplier
                           );
                           const isCurrentPkg =
                             currentRankId === fromStepId && toStep && desiredRankId === toStep.id;
@@ -3293,13 +3277,12 @@ function ServiceBookingContent() {
                                 setDesiredRankId(toStep.id);
                                 toast.success(`Đã chọn lộ trình ${pkg.shortLabel}`);
                               }}
-                              className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-1.5 ${
-                                isCurrentPkg
+                              className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-1.5 ${isCurrentPkg
                                   ? 'bg-amber-500/15 border-amber-400 ring-1 ring-amber-400/50'
                                   : pkg.isHighRank
-                                  ? 'bg-zinc-900/70 border-purple-500/25 hover:border-purple-400/60'
-                                  : 'bg-zinc-900/70 border-zinc-800 hover:border-amber-500/40'
-                              }`}
+                                    ? 'bg-zinc-900/70 border-purple-500/25 hover:border-purple-400/60'
+                                    : 'bg-zinc-900/70 border-zinc-800 hover:border-amber-500/40'
+                                }`}
                             >
                               <div className="flex items-center justify-between gap-1">
                                 <div className="flex items-center gap-1">
@@ -3341,111 +3324,110 @@ function ServiceBookingContent() {
               {/* ĐIỂM CỘNG MỖI VÁN (LP/RR GAIN) - KHÔNG HIỂN THỊ CHO LIÊN QUÂN MOBILE */}
               {!isPromotion && !isAov && (
                 <div className="relative">
-                <div className="flex items-center justify-between mb-2.5">
-                  <div className="relative inline-flex items-center gap-1.5">
-                    <label className="text-xs font-bold text-zinc-300 flex items-center gap-1.5">
-                      <span>Điểm cộng mỗi ván ({isValorant ? 'RR Gain' : 'LP Gain'})</span>
-                      <span className="text-red-500">*</span>
-                    </label>
+                  <div className="flex items-center justify-between mb-2.5">
+                    <div className="relative inline-flex items-center gap-1.5">
+                      <label className="text-xs font-bold text-zinc-300 flex items-center gap-1.5">
+                        <span>Điểm cộng mỗi ván ({isValorant ? 'RR Gain' : 'LP Gain'})</span>
+                        <span className="text-red-500">*</span>
+                      </label>
 
-                    {/* Nút bật/tắt Tooltip giải thích trên cả Desktop & Mobile */}
-                    <button
-                      type="button"
-                      onClick={() => setShowGainTooltip((prev) => !prev)}
-                      onMouseEnter={() => setShowGainTooltip(true)}
-                      className="p-1 rounded-full text-cyan-400 hover:text-cyan-300 hover:bg-cyan-500/10 transition-colors cursor-pointer"
-                      title="Bấm để xem giải thích chi tiết"
-                      aria-label="Xem giải thích điểm cộng mỗi ván"
-                    >
-                      <Info size={14} />
-                    </button>
-
-                    {/* Popover Tooltip Floating Card */}
-                    {showGainTooltip && (
-                      <div
-                        onMouseLeave={() => setShowGainTooltip(false)}
-                        className="absolute left-0 top-7 z-50 w-72 sm:w-84 p-4 rounded-2xl bg-zinc-950/95 border border-cyan-500/40 shadow-2xl backdrop-blur-xl text-xs space-y-2.5 animate-in fade-in zoom-in-95"
+                      {/* Nút bật/tắt Tooltip giải thích trên cả Desktop & Mobile */}
+                      <button
+                        type="button"
+                        onClick={() => setShowGainTooltip((prev) => !prev)}
+                        onMouseEnter={() => setShowGainTooltip(true)}
+                        className="p-1 rounded-full text-cyan-400 hover:text-cyan-300 hover:bg-cyan-500/10 transition-colors cursor-pointer"
+                        title="Bấm để xem giải thích chi tiết"
+                        aria-label="Xem giải thích điểm cộng mỗi ván"
                       >
-                        <div className="flex items-center justify-between pb-2 border-b border-zinc-800">
-                          <span className="font-extrabold text-white flex items-center gap-1.5">
-                            <Info size={14} className="text-cyan-400" />
-                            <span>Điểm cộng ({isValorant ? 'RR' : 'LP'}) là gì?</span>
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => setShowGainTooltip(false)}
-                            className="p-1 rounded-lg text-zinc-400 hover:text-white cursor-pointer"
-                          >
-                            <X size={14} />
-                          </button>
-                        </div>
+                        <Info size={14} />
+                      </button>
 
-                        <p className="text-[11px] text-zinc-300 leading-relaxed">
-                          Là số điểm <strong>{isValorant ? 'Rank Rating (RR)' : 'League Points (LP)'}</strong> mà tài khoản của bạn nhận được sau một trận thắng xếp hạng gần nhất.
-                        </p>
+                      {/* Popover Tooltip Floating Card */}
+                      {showGainTooltip && (
+                        <div
+                          onMouseLeave={() => setShowGainTooltip(false)}
+                          className="absolute left-0 top-7 z-50 w-72 sm:w-84 p-4 rounded-2xl bg-zinc-950/95 border border-cyan-500/40 shadow-2xl backdrop-blur-xl text-xs space-y-2.5 animate-in fade-in zoom-in-95"
+                        >
+                          <div className="flex items-center justify-between pb-2 border-b border-zinc-800">
+                            <span className="font-extrabold text-white flex items-center gap-1.5">
+                              <Info size={14} className="text-cyan-400" />
+                              <span>Điểm cộng ({isValorant ? 'RR' : 'LP'}) là gì?</span>
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => setShowGainTooltip(false)}
+                              className="p-1 rounded-lg text-zinc-400 hover:text-white cursor-pointer"
+                            >
+                              <X size={14} />
+                            </button>
+                          </div>
 
-                        <div className="space-y-1.5 text-[11px] pt-1 border-t border-zinc-800/80">
-                          <div className="flex items-start gap-1.5">
-                            <span className="font-bold text-emerald-400 shrink-0">≥ 25 điểm (-10%):</span>
-                            <span className="text-zinc-400">MMR ẩn rất cao, tuyển thủ leo cực nhanh nên bạn được chiết khấu giá.</span>
-                          </div>
-                          <div className="flex items-start gap-1.5">
-                            <span className="font-bold text-blue-400 shrink-0">20-24 điểm (0%):</span>
-                            <span className="text-zinc-400">Mức điểm chuẩn thông thường của hệ thống Riot Games.</span>
-                          </div>
-                          <div className="flex items-start gap-1.5">
-                            <span className="font-bold text-amber-400 shrink-0">15-19 điểm (+10%):</span>
-                            <span className="text-zinc-400">MMR trung bình, cần thêm số trận thắng để hoàn thành mốc rank.</span>
-                          </div>
-                          <div className="flex items-start gap-1.5">
-                            <span className="font-bold text-rose-400 shrink-0">&lt; 15 điểm (+15%):</span>
-                            <span className="text-zinc-400">Tài khoản bị kẹt điểm (Hell Elo), tuyển thủ phải gánh thêm nhiều trận đấu hơn.</span>
+                          <p className="text-[11px] text-zinc-300 leading-relaxed">
+                            Là số điểm <strong>{isValorant ? 'Rank Rating (RR)' : 'League Points (LP)'}</strong> mà tài khoản của bạn nhận được sau một trận thắng xếp hạng gần nhất.
+                          </p>
+
+                          <div className="space-y-1.5 text-[11px] pt-1 border-t border-zinc-800/80">
+                            <div className="flex items-start gap-1.5">
+                              <span className="font-bold text-emerald-400 shrink-0">≥ 25 điểm (-10%):</span>
+                              <span className="text-zinc-400">MMR ẩn rất cao, tuyển thủ leo cực nhanh nên bạn được chiết khấu giá.</span>
+                            </div>
+                            <div className="flex items-start gap-1.5">
+                              <span className="font-bold text-blue-400 shrink-0">20-24 điểm (0%):</span>
+                              <span className="text-zinc-400">Mức điểm chuẩn thông thường của hệ thống Riot Games.</span>
+                            </div>
+                            <div className="flex items-start gap-1.5">
+                              <span className="font-bold text-amber-400 shrink-0">15-19 điểm (+10%):</span>
+                              <span className="text-zinc-400">MMR trung bình, cần thêm số trận thắng để hoàn thành mốc rank.</span>
+                            </div>
+                            <div className="flex items-start gap-1.5">
+                              <span className="font-bold text-rose-400 shrink-0">&lt; 15 điểm (+15%):</span>
+                              <span className="text-zinc-400">Tài khoản bị kẹt điểm (Hell Elo), tuyển thủ phải gánh thêm nhiều trận đấu hơn.</span>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    )}
+                      )}
+                    </div>
+
+                    <span className="text-[11px] text-zinc-400 hidden sm:inline">
+                      Ảnh hưởng trực tiếp đến tổng giá cày
+                    </span>
                   </div>
 
-                  <span className="text-[11px] text-zinc-400 hidden sm:inline">
-                    Ảnh hưởng trực tiếp đến tổng giá cày
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3">
-                  {activeGainOptions.map((opt) => {
-                    const isSelected = lpGain === opt.id;
-                    return (
-                      <button
-                        key={opt.id}
-                        type="button"
-                        onClick={() => setLpGain(opt.id)}
-                        className={`p-3 sm:p-3.5 rounded-2xl border text-left transition-all relative flex flex-col justify-between h-full min-h-[82px] cursor-pointer group ${
-                          isSelected
-                            ? 'bg-cyan-950/20 border-cyan-500 shadow-[0_0_15px_rgba(6,182,212,0.18)] ring-1 ring-cyan-500/50'
-                            : 'bg-zinc-950/60 border-zinc-800/80 hover:border-zinc-700 hover:bg-zinc-900/40'
-                        }`}
-                      >
-                        <div className="flex items-center justify-between gap-1 w-full mb-1.5">
-                          <span className={`font-black text-sm tracking-tight ${isSelected ? 'text-cyan-300' : 'text-white'}`}>
-                            {opt.label}
-                          </span>
-                          <span className={`text-[10px] font-black px-1.5 py-0.5 rounded-md border font-mono shrink-0 ${opt.badgeClass}`}>
-                            {opt.discountLabel}
-                          </span>
-                        </div>
-                        <div className="space-y-0.5">
-                          <div className="text-[11px] text-zinc-300 font-medium leading-tight">
-                            {opt.desc}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3">
+                    {activeGainOptions.map((opt) => {
+                      const isSelected = lpGain === opt.id;
+                      return (
+                        <button
+                          key={opt.id}
+                          type="button"
+                          onClick={() => setLpGain(opt.id)}
+                          className={`p-3 sm:p-3.5 rounded-2xl border text-left transition-all relative flex flex-col justify-between h-full min-h-[82px] cursor-pointer group ${isSelected
+                              ? 'bg-cyan-950/20 border-cyan-500 shadow-[0_0_15px_rgba(6,182,212,0.18)] ring-1 ring-cyan-500/50'
+                              : 'bg-zinc-950/60 border-zinc-800/80 hover:border-zinc-700 hover:bg-zinc-900/40'
+                            }`}
+                        >
+                          <div className="flex items-center justify-between gap-1 w-full mb-1.5">
+                            <span className={`font-black text-sm tracking-tight ${isSelected ? 'text-cyan-300' : 'text-white'}`}>
+                              {opt.label}
+                            </span>
+                            <span className={`text-[10px] font-black px-1.5 py-0.5 rounded-md border font-mono shrink-0 ${opt.badgeClass}`}>
+                              {opt.discountLabel}
+                            </span>
                           </div>
-                          <div className="text-[10px] text-zinc-500 font-mono">
-                            {opt.subLabel}
+                          <div className="space-y-0.5">
+                            <div className="text-[11px] text-zinc-300 font-medium leading-tight">
+                              {opt.desc}
+                            </div>
+                            <div className="text-[10px] text-zinc-500 font-mono">
+                              {opt.subLabel}
+                            </div>
                           </div>
-                        </div>
-                      </button>
-                    );
-                  })}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
               )}
 
               {/* LOẠI HÀNG ĐỢI & CHỌN SERVER (CHỈ DÀNH CHO LMHT, VALORANT VÀ LIÊN QUÂN KHÔNG CẦN CHỌN SERVER/FLEX) */}
@@ -3460,11 +3442,10 @@ function ServiceBookingContent() {
                       <button
                         type="button"
                         onClick={() => setQueueType('SOLO_DUO')}
-                        className={`py-2.5 px-3 rounded-xl border text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
-                          queueType === 'SOLO_DUO'
+                        className={`py-2.5 px-3 rounded-xl border text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${queueType === 'SOLO_DUO'
                             ? 'bg-blue-600/20 border-blue-500 text-blue-300 ring-1 ring-blue-500/40'
                             : 'bg-zinc-950 border-zinc-800 text-zinc-400 hover:text-white'
-                        }`}
+                          }`}
                       >
                         <Swords size={13} />
                         <span>Đơn / Đôi</span>
@@ -3472,11 +3453,10 @@ function ServiceBookingContent() {
                       <button
                         type="button"
                         onClick={() => setQueueType('FLEX')}
-                        className={`py-2.5 px-3 rounded-xl border text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
-                          queueType === 'FLEX'
+                        className={`py-2.5 px-3 rounded-xl border text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${queueType === 'FLEX'
                             ? 'bg-blue-600/20 border-blue-500 text-blue-300 ring-1 ring-blue-500/40'
                             : 'bg-zinc-950 border-zinc-800 text-zinc-400 hover:text-white'
-                        }`}
+                          }`}
                       >
                         <Users size={13} />
                         <span>Linh Hoạt (Flex)</span>
@@ -3517,11 +3497,10 @@ function ServiceBookingContent() {
                 </span>
 
                 <div className="space-y-2.5">
-                  <label className={`flex items-center gap-3 p-2.5 rounded-xl border select-none transition-colors ${
-                    scheduleCfg.enabled
+                  <label className={`flex items-center gap-3 p-2.5 rounded-xl border select-none transition-colors ${scheduleCfg.enabled
                       ? 'bg-zinc-950/60 border-zinc-800/80 hover:border-zinc-700 cursor-pointer'
                       : 'bg-zinc-950/20 border-zinc-900 opacity-50 cursor-not-allowed'
-                  }`}>
+                    }`}>
                     <input
                       type="checkbox"
                       disabled={!scheduleCfg.enabled}
@@ -3542,11 +3521,10 @@ function ServiceBookingContent() {
                     </div>
                   </label>
 
-                  <label className={`flex items-center gap-3 p-2.5 rounded-xl border select-none transition-colors ${
-                    specificRoleCfg.enabled
+                  <label className={`flex items-center gap-3 p-2.5 rounded-xl border select-none transition-colors ${specificRoleCfg.enabled
                       ? 'bg-zinc-950/60 border-zinc-800/80 hover:border-zinc-700 cursor-pointer'
                       : 'bg-zinc-950/20 border-zinc-900 opacity-50 cursor-not-allowed'
-                  }`}>
+                    }`}>
                     <input
                       type="checkbox"
                       disabled={!specificRoleCfg.enabled}
@@ -3567,11 +3545,10 @@ function ServiceBookingContent() {
                     </div>
                   </label>
 
-                  <label className={`flex items-center gap-3 p-2.5 rounded-xl border select-none transition-colors ${
-                    specificChampsCfg.enabled
+                  <label className={`flex items-center gap-3 p-2.5 rounded-xl border select-none transition-colors ${specificChampsCfg.enabled
                       ? 'bg-zinc-950/60 border-zinc-800/80 hover:border-zinc-700 cursor-pointer'
                       : 'bg-zinc-950/20 border-zinc-900 opacity-50 cursor-not-allowed'
-                  }`}>
+                    }`}>
                     <input
                       type="checkbox"
                       disabled={!specificChampsCfg.enabled}
@@ -3592,11 +3569,10 @@ function ServiceBookingContent() {
                     </div>
                   </label>
 
-                  <label className={`flex items-center gap-3 p-2.5 rounded-xl border select-none transition-colors ${
-                    livestreamCfg.enabled
+                  <label className={`flex items-center gap-3 p-2.5 rounded-xl border select-none transition-colors ${livestreamCfg.enabled
                       ? 'bg-zinc-950/60 border-zinc-800/80 hover:border-zinc-700 cursor-pointer'
                       : 'bg-zinc-950/20 border-zinc-900 opacity-50 cursor-not-allowed'
-                  }`}>
+                    }`}>
                     <input
                       type="checkbox"
                       disabled={!livestreamCfg.enabled}
@@ -3617,11 +3593,10 @@ function ServiceBookingContent() {
                     </div>
                   </label>
 
-                  <label className={`flex items-center gap-3 p-2.5 rounded-xl border select-none transition-colors ${
-                    flashCfg.enabled
+                  <label className={`flex items-center gap-3 p-2.5 rounded-xl border select-none transition-colors ${flashCfg.enabled
                       ? 'bg-zinc-950/60 border-zinc-800/80 hover:border-zinc-700 cursor-pointer'
                       : 'bg-zinc-950/20 border-zinc-900 opacity-50 cursor-not-allowed'
-                  }`}>
+                    }`}>
                     <input
                       type="checkbox"
                       disabled={!flashCfg.enabled}
@@ -3642,11 +3617,10 @@ function ServiceBookingContent() {
                     </div>
                   </label>
 
-                  <label className={`flex items-center gap-3 p-2.5 rounded-xl border select-none transition-colors ${
-                    duoCfg.enabled
+                  <label className={`flex items-center gap-3 p-2.5 rounded-xl border select-none transition-colors ${duoCfg.enabled
                       ? 'bg-zinc-950/60 border-zinc-800/80 hover:border-zinc-700 cursor-pointer'
                       : 'bg-zinc-950/20 border-zinc-900 opacity-50 cursor-not-allowed'
-                  }`}>
+                    }`}>
                     <input
                       type="checkbox"
                       disabled={!duoCfg.enabled}
@@ -3745,17 +3719,17 @@ function ServiceBookingContent() {
                   {isPromotion
                     ? 'Tóm Tắt Chuỗi Thăng Hạng'
                     : isPointBoost
-                    ? isAov
-                      ? 'Tóm Tắt Đơn Cày Rank Cao Cấp'
-                      : `Tóm Tắt Đơn Cày Điểm ${pointUnit}`
-                    : 'Tóm Tắt Đơn Cày Rank'}
+                      ? isAov
+                        ? 'Tóm Tắt Đơn Cày Rank Cao Cấp'
+                        : `Tóm Tắt Đơn Cày Điểm ${pointUnit}`
+                      : 'Tóm Tắt Đơn Cày Rank'}
                 </span>
                 <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">
                   {isPromotion
                     ? 'Chuỗi Thăng Hạng'
                     : isPointBoost
-                    ? `${gainedPoints} ${pointUnit} (+${gainedPoints})`
-                    : `${calculation.stepsCount} bậc thăng hạng`}
+                      ? `${gainedPoints} ${pointUnit} (+${gainedPoints})`
+                      : `${calculation.stepsCount} bậc thăng hạng`}
                 </span>
               </h3>
 
@@ -4091,743 +4065,734 @@ function ServiceBookingContent() {
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 12, scale: 0.96 }}
                 transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-                className="bg-[#0e1017] border border-white/10 rounded-3xl p-5 sm:p-6 max-w-xl w-full shadow-2xl space-y-4 relative max-h-[92vh] flex flex-col will-change-transform cursor-default"
+                className="bg-[#0e1017] border border-white/10 rounded-3xl p-5 sm:p-7 max-w-3xl w-full shadow-[0_25px_80px_rgba(0,0,0,0.85)] space-y-5 relative max-h-[92vh] flex flex-col will-change-transform cursor-default"
                 onMouseDown={(e) => e.stopPropagation()}
                 onClick={(e) => e.stopPropagation()}
               >
-              {/* Header Modal */}
-              <div className="flex items-center justify-between pb-3 border-b border-zinc-800/80 shrink-0">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-xl bg-blue-500/20 text-blue-400 border border-blue-500/30 flex items-center justify-center">
-                    <Trophy size={18} />
+                {/* Header Modal */}
+                <div className="flex items-center justify-between pb-3 border-b border-zinc-800/80 shrink-0">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-9 h-9 rounded-xl bg-blue-500/20 text-blue-400 border border-blue-500/30 flex items-center justify-center">
+                      <Trophy size={18} />
+                    </div>
+                    <div>
+                      <h3 className="text-base font-extrabold text-white">
+                        {rankModalTarget === 'CURRENT' ? 'Chọn Rank Hiện Tại' : 'Chọn Rank Mong Muốn'}
+                      </h3>
+                      <p className="text-xs text-zinc-400">
+                        {rankModalTarget === 'CURRENT'
+                          ? `Rank hiện tại phải thấp hơn Rank mong muốn (${desiredRankObj.label})`
+                          : `Rank mong muốn phải cao hơn Rank hiện tại (${currentRankObj.label})`}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="text-base font-extrabold text-white">
-                      {rankModalTarget === 'CURRENT' ? 'Chọn Rank Hiện Tại' : 'Chọn Rank Mong Muốn'}
-                    </h3>
-                    <p className="text-xs text-zinc-400">
-                      {rankModalTarget === 'CURRENT'
-                        ? `Rank hiện tại phải thấp hơn Rank mong muốn (${desiredRankObj.label})`
-                        : `Rank mong muốn phải cao hơn Rank hiện tại (${currentRankObj.label})`}
-                    </p>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsRankModalOpen(false)}
+                    className="w-8 h-8 rounded-xl bg-zinc-800/80 hover:bg-zinc-700 text-zinc-400 hover:text-white flex items-center justify-center transition-colors"
+                  >
+                    <X size={16} />
+                  </button>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setIsRankModalOpen(false)}
-                  className="w-8 h-8 rounded-xl bg-zinc-800/80 hover:bg-zinc-700 text-zinc-400 hover:text-white flex items-center justify-center transition-colors"
-                >
-                  <X size={16} />
-                </button>
-              </div>
 
-              {/* Context Banner */}
-              <div className={`p-2.5 rounded-xl border flex items-center justify-between text-xs shrink-0 ${
-                rankModalTarget === 'CURRENT'
-                  ? 'bg-blue-500/10 border-blue-500/20 text-blue-300'
-                  : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300'
-              }`}>
-                <div className="flex items-center gap-2 min-w-0">
-                  <Info size={14} className="shrink-0 text-blue-400" />
-                  <span className="truncate">
-                    {rankModalTarget === 'CURRENT' ? (
-                      <>
-                        Đang chọn rank xuất phát để cày lên: <strong className="text-white">{desiredRankObj.label}</strong>
-                      </>
-                    ) : (
-                      <>
-                        Đang chọn mốc rank đích cần đạt từ: <strong className="text-white">{currentRankObj.label}</strong>
-                      </>
-                    )}
+                {/* Context Banner */}
+                <div className={`p-2.5 rounded-xl border flex items-center justify-between text-xs shrink-0 ${rankModalTarget === 'CURRENT'
+                    ? 'bg-blue-500/10 border-blue-500/20 text-blue-300'
+                    : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300'
+                  }`}>
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Info size={14} className="shrink-0 text-blue-400" />
+                    <span className="truncate">
+                      {rankModalTarget === 'CURRENT' ? (
+                        <>
+                          Đang chọn rank xuất phát để cày lên: <strong className="text-white">{desiredRankObj.label}</strong>
+                        </>
+                      ) : (
+                        <>
+                          Đang chọn mốc rank đích cần đạt từ: <strong className="text-white">{currentRankObj.label}</strong>
+                        </>
+                      )}
+                    </span>
+                  </div>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-white/10 text-white shrink-0 ml-2">
+                    {rankModalTarget === 'CURRENT' ? `Yêu cầu: < ${desiredRankObj.label}` : `Yêu cầu: > ${currentRankObj.label}`}
                   </span>
                 </div>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-white/10 text-white shrink-0 ml-2">
-                  {rankModalTarget === 'CURRENT' ? `Yêu cầu: < ${desiredRankObj.label}` : `Yêu cầu: > ${currentRankObj.label}`}
-                </span>
-              </div>
 
-              {/* Scroll Content */}
-              <div className="overflow-y-auto space-y-4 pr-1 flex-1">
-                {/* 1. Chọn Tier Lớn */}
-                <div>
-                  <span className="text-xs font-bold text-zinc-300 block mb-2">
-                    1. Chọn Hạng (Tier):
-                  </span>
-                  <div className={`grid ${isValorant || isAov ? 'grid-cols-3 sm:grid-cols-5' : 'grid-cols-4'} gap-2 sm:gap-2.5`}>
-                    {Object.entries(activeTierConfig).map(([tierKey, meta]) => {
-                      // Validate Tier:
-                      const tierSteps = activeRankSteps.filter((r) => r.tier === tierKey);
-                      const lowestInTierIdx = tierSteps.length > 0 ? activeRankSteps.findIndex((r) => r.id === tierSteps[0].id) : -1;
-                      const highestInTierIdx = tierSteps.length > 0 ? activeRankSteps.findIndex((r) => r.id === tierSteps[tierSteps.length - 1].id) : -1;
+                {/* Scroll Content */}
+                  <div className="overflow-y-auto custom-dark-scrollbar space-y-5 pr-1 flex-1">
+                    {/* 1. Chọn Tier Lớn */}
+                    <div>
+                        <span className="text-xs sm:text-sm font-bold text-zinc-200 block mb-2.5">
+                          1. Chọn Hạng (Tier):
+                        </span>
+                          <div className={`grid ${isValorant || isAov ? 'grid-cols-3 sm:grid-cols-5' : 'grid-cols-4'} gap-2.5 sm:gap-3`}>
+                            {Object.entries(activeTierConfig).map(([tierKey, meta]) => {
+                              // Validate Tier:
+                              const tierSteps = activeRankSteps.filter((r) => r.tier === tierKey);
+                              const lowestInTierIdx = tierSteps.length > 0 ? activeRankSteps.findIndex((r) => r.id === tierSteps[0].id) : -1;
+                              const highestInTierIdx = tierSteps.length > 0 ? activeRankSteps.findIndex((r) => r.id === tierSteps[tierSteps.length - 1].id) : -1;
 
-                      const isMaxTierKey = isValorant ? 'RADIANT' : isAov ? 'LEGEND' : 'MASTER';
-                      const isTierDisabled = rankModalTarget === 'CURRENT'
-                        ? (tierKey === isMaxTierKey || lowestInTierIdx >= desiredRankIndex)
-                        : (highestInTierIdx <= currentRankIndex);
+                              const isMaxTierKey = isValorant ? 'RADIANT' : isAov ? 'LEGEND' : 'MASTER';
+                              const isTierDisabled = rankModalTarget === 'CURRENT'
+                                ? (tierKey === isMaxTierKey || lowestInTierIdx >= desiredRankIndex)
+                                : (highestInTierIdx <= currentRankIndex);
 
-                      const isSelected = tempTier === tierKey;
+                              const isSelected = tempTier === tierKey;
+
+                              return (
+                                <button
+                                  key={tierKey}
+                                  type="button"
+                                  disabled={isTierDisabled}
+                                  onClick={() => {
+                                    if (isTierDisabled) return;
+                                    setTempTier(tierKey);
+                                    const tierDivs = getDivisionsForTier(game.id, tierKey);
+                                    if (tierDivs.length === 0) {
+                                      setTempDivision('');
+                                    } else {
+                                      // Tự động tìm division hợp lệ nhất trong tier này
+                                      if (rankModalTarget === 'CURRENT') {
+                                        const validDivs = tierDivs.filter((d) => {
+                                          const idx = findRankStepIndex(game.id, tierKey, d);
+                                          return idx !== -1 && idx < desiredRankIndex;
+                                        });
+                                        if (validDivs.includes(tempDivision)) {
+                                          // giữ nguyên
+                                        } else if (validDivs.length > 0) {
+                                          setTempDivision(validDivs[validDivs.length - 1]);
+                                        }
+                                      } else {
+                                        const validDivs = tierDivs.filter((d) => {
+                                          const idx = findRankStepIndex(game.id, tierKey, d);
+                                          return idx !== -1 && idx > currentRankIndex;
+                                        });
+                                        if (validDivs.includes(tempDivision)) {
+                                          // giữ nguyên
+                                        } else if (validDivs.length > 0) {
+                                          setTempDivision(validDivs[0]);
+                                        }
+                                      }
+                                    }
+                                  }}
+                                  className={`p-2.5 sm:p-3 rounded-2xl border text-center transition-all flex flex-col items-center gap-1.5 relative ${isTierDisabled
+                                      ? 'bg-zinc-950/20 border-zinc-900/60 opacity-25 cursor-not-allowed select-none'
+                                      : isSelected
+                                        ? `${meta.activeBorder} ${meta.bgGradient} ${meta.glowClass}`
+                                        : 'bg-zinc-950/60 border-zinc-800/80 hover:border-zinc-700 hover:bg-zinc-900/60'
+                                    }`}
+                                >
+                                    <div className="w-12 h-12 sm:w-14 sm:h-14 flex items-center justify-center">
+                                      <img
+                                        src={meta.image}
+                                        alt={meta.name}
+                                        className={`w-full h-full object-contain filter drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)] ${isTierDisabled ? 'grayscale' : ''
+                                          }`}
+                                      />
+                                    </div>
+                                    <span className={`text-xs font-bold truncate max-w-full ${isTierDisabled ? 'text-zinc-600' : isSelected ? meta.textColor : 'text-zinc-300'}`}>
+                                      {meta.name}
+                                    </span>
+                                    {isTierDisabled && (
+                                      <span className="text-[9px] text-zinc-600 font-medium -mt-0.5">
+                                        {rankModalTarget === 'CURRENT' ? 'Quá cao' : 'Quá thấp'}
+                                      </span>
+                                    )}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        {/* 2. Chọn Bậc (Division) */}
+                        {(() => {
+                          const tierDivisions = getDivisionsForTier(game.id, tempTier);
+                          if (tierDivisions.length > 0) {
+                            return (
+                              <div>
+                                <span className="text-xs font-bold text-zinc-300 block mb-2">
+                                  2. Chọn Phân Bậc (Division):
+                                </span>
+                                <div className={`grid ${tierDivisions.length === 3 ? 'grid-cols-3' : tierDivisions.length === 5 ? 'grid-cols-5' : 'grid-cols-4'} gap-2`}>
+                                  {tierDivisions.map((div) => {
+                                    const stepIdx = findRankStepIndex(game.id, tempTier, div);
+
+                                    const isDivisionDisabled = rankModalTarget === 'CURRENT'
+                                      ? stepIdx >= desiredRankIndex
+                                      : stepIdx <= currentRankIndex;
+
+                                    const isSelected = tempDivision === div;
+
+                                    return (
+                                      <button
+                                        key={div}
+                                        type="button"
+                                        disabled={isDivisionDisabled}
+                                        onClick={() => setTempDivision(div)}
+                                        className={`py-3 px-2 rounded-xl border text-center transition-all flex flex-col items-center justify-center gap-1 ${isDivisionDisabled
+                                            ? 'bg-zinc-950/30 border-zinc-900 opacity-25 cursor-not-allowed text-zinc-600 select-none'
+                                            : isSelected
+                                              ? 'bg-blue-600 border-blue-400 text-white shadow-lg shadow-blue-600/30 ring-1 ring-blue-300'
+                                              : 'bg-zinc-950 border-zinc-800 text-zinc-300 hover:border-zinc-700 hover:bg-zinc-900'
+                                          }`}
+                                      >
+                                        <span className="text-sm font-extrabold font-mono tracking-wider">
+                                          Bậc {div}
+                                        </span>
+                                        {isDivisionDisabled && (
+                                          <span className="text-[9px] text-zinc-500">
+                                            {rankModalTarget === 'CURRENT'
+                                              ? stepIdx === desiredRankIndex ? 'Bằng rank đích' : 'Cao hơn'
+                                              : stepIdx === currentRankIndex ? 'Bằng rank hiện tại' : 'Thấp hơn'}
+                                          </span>
+                                        )}
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            );
+                          }
+
+                          const highStep = activeRankSteps.find((s) => s.tier === tempTier);
+                          return (
+                            <div className="p-3.5 rounded-2xl bg-amber-950/20 border border-amber-500/30 text-amber-300 text-xs flex items-center gap-2.5">
+                              <Crown size={18} className="shrink-0 text-amber-400" />
+                              <span>
+                                <strong>{highStep?.label || activeTierConfig[tempTier]?.name || tempTier}:</strong>{' '}
+                                {isAov
+                                  ? 'Mốc bậc cao (tính theo sao chuẩn — Booster có thể tùy chỉnh giá). Nếu muốn cày số sao lẻ bất kỳ, hãy chọn tab "Tính tiền theo Số Sao".'
+                                  : 'Mốc rank đích cao nhất trong bảng giá leo rank theo bậc.'}
+                              </span>
+                            </div>
+                          );
+                        })()}
+                    </div>
+
+                    {/* Footer Preview & Confirm */}
+                    {(() => {
+                      const tempRankIdx = findRankStepIndex(game.id, tempTier, tempDivision);
+                      const isSelectionValid = tempRankIdx !== -1 && (
+                        rankModalTarget === 'CURRENT'
+                          ? tempRankIdx < desiredRankIndex
+                          : tempRankIdx > currentRankIndex
+                      );
+                      const selectedLabel =
+                        tempRankIdx !== -1
+                          ? activeRankSteps[tempRankIdx].label
+                          : `${activeTierConfig[tempTier]?.name || tempTier}${tempDivision ? ` ${tempDivision}` : ''}`;
 
                       return (
-                        <button
-                          key={tierKey}
-                          type="button"
-                          disabled={isTierDisabled}
-                          onClick={() => {
-                            if (isTierDisabled) return;
-                            setTempTier(tierKey);
-                            const tierDivs = getDivisionsForTier(game.id, tierKey);
-                            if (tierDivs.length === 0) {
-                              setTempDivision('');
-                            } else {
-                              // Tự động tìm division hợp lệ nhất trong tier này
-                              if (rankModalTarget === 'CURRENT') {
-                                const validDivs = tierDivs.filter((d) => {
-                                  const idx = findRankStepIndex(game.id, tierKey, d);
-                                  return idx !== -1 && idx < desiredRankIndex;
-                                });
-                                if (validDivs.includes(tempDivision)) {
-                                  // giữ nguyên
-                                } else if (validDivs.length > 0) {
-                                  setTempDivision(validDivs[validDivs.length - 1]);
-                                }
-                              } else {
-                                const validDivs = tierDivs.filter((d) => {
-                                  const idx = findRankStepIndex(game.id, tierKey, d);
-                                  return idx !== -1 && idx > currentRankIndex;
-                                });
-                                if (validDivs.includes(tempDivision)) {
-                                  // giữ nguyên
-                                } else if (validDivs.length > 0) {
-                                  setTempDivision(validDivs[0]);
-                                }
-                              }
-                            }
-                          }}
-                          className={`p-2.5 sm:p-3 rounded-2xl border text-center transition-all flex flex-col items-center gap-1.5 relative ${
-                            isTierDisabled
-                              ? 'bg-zinc-950/20 border-zinc-900/60 opacity-25 cursor-not-allowed select-none'
-                              : isSelected
-                              ? `${meta.activeBorder} ${meta.bgGradient} ${meta.glowClass}`
-                              : 'bg-zinc-950/60 border-zinc-800/80 hover:border-zinc-700 hover:bg-zinc-900/60'
-                          }`}
-                        >
-                          <div className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center">
-                            <img
-                              src={meta.image}
-                              alt={meta.name}
-                              className={`w-full h-full object-contain filter drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)] ${
-                                isTierDisabled ? 'grayscale' : ''
-                              }`}
-                            />
-                          </div>
-                          <span className={`text-xs font-bold truncate max-w-full ${isTierDisabled ? 'text-zinc-600' : isSelected ? meta.textColor : 'text-zinc-300'}`}>
-                            {meta.name}
-                          </span>
-                          {isTierDisabled && (
-                            <span className="text-[9px] text-zinc-600 font-medium -mt-0.5">
-                              {rankModalTarget === 'CURRENT' ? 'Quá cao' : 'Quá thấp'}
+                        <div className="pt-3 border-t border-zinc-800/80 flex items-center justify-between shrink-0">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-zinc-400">Đang chọn:</span>
+                            <span className={`text-sm font-black ${isSelectionValid ? 'text-white' : 'text-red-400'}`}>
+                              {selectedLabel}
                             </span>
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
+                            {!isSelectionValid && (
+                              <span className="text-[10px] font-bold text-red-400 bg-red-500/10 border border-red-500/20 px-2 py-0.5 rounded">
+                                {rankModalTarget === 'CURRENT' ? `Phải < ${desiredRankObj.label}` : `Phải > ${currentRankObj.label}`}
+                              </span>
+                            )}
+                          </div>
 
-                {/* 2. Chọn Bậc (Division) */}
-                {(() => {
-                  const tierDivisions = getDivisionsForTier(game.id, tempTier);
-                  if (tierDivisions.length > 0) {
-                    return (
-                      <div>
-                        <span className="text-xs font-bold text-zinc-300 block mb-2">
-                          2. Chọn Phân Bậc (Division):
-                        </span>
-                        <div className={`grid ${tierDivisions.length === 3 ? 'grid-cols-3' : tierDivisions.length === 5 ? 'grid-cols-5' : 'grid-cols-4'} gap-2`}>
-                          {tierDivisions.map((div) => {
-                            const stepIdx = findRankStepIndex(game.id, tempTier, div);
-
-                            const isDivisionDisabled = rankModalTarget === 'CURRENT'
-                              ? stepIdx >= desiredRankIndex
-                              : stepIdx <= currentRankIndex;
-
-                            const isSelected = tempDivision === div;
-
-                            return (
-                              <button
-                                key={div}
-                                type="button"
-                                disabled={isDivisionDisabled}
-                                onClick={() => setTempDivision(div)}
-                                className={`py-3 px-2 rounded-xl border text-center transition-all flex flex-col items-center justify-center gap-1 ${
-                                  isDivisionDisabled
-                                    ? 'bg-zinc-950/30 border-zinc-900 opacity-25 cursor-not-allowed text-zinc-600 select-none'
-                                    : isSelected
-                                    ? 'bg-blue-600 border-blue-400 text-white shadow-lg shadow-blue-600/30 ring-1 ring-blue-300'
-                                    : 'bg-zinc-950 border-zinc-800 text-zinc-300 hover:border-zinc-700 hover:bg-zinc-900'
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setIsRankModalOpen(false)}
+                              className="px-3.5 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-xs font-bold text-zinc-300 transition-colors"
+                            >
+                              Hủy
+                            </button>
+                            <button
+                              type="button"
+                              disabled={!isSelectionValid}
+                              onClick={handleConfirmRank}
+                              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${isSelectionValid
+                                  ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-md shadow-blue-600/30 active:scale-95 cursor-pointer'
+                                  : 'bg-zinc-800 text-zinc-500 opacity-40 cursor-not-allowed'
                                 }`}
+                            >
+                              Xác Nhận
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </motion.div>
+              </motion.div>
+          )}
+            </AnimatePresence>
+
+        {/* ========================================================================= */}
+          {/* MODAL 2: CHỌN MÁY CHỦ (SERVER POPUP GIỮA MÀN HÌNH)                       */}
+          {/* ========================================================================= */}
+          <AnimatePresence>
+            {isServerModalOpen && (
+              <motion.div
+                key="server-modal-backdrop"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2, ease: 'easeOut' }}
+                className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto cursor-pointer"
+                onMouseDown={(e) => {
+                  if (e.target === e.currentTarget) {
+                    setIsServerModalOpen(false);
+                    setServerSearchTerm('');
+                  }
+                }}
+                onClick={(e) => {
+                  if (e.target === e.currentTarget) {
+                    setIsServerModalOpen(false);
+                    setServerSearchTerm('');
+                  }
+                }}
+              >
+                <motion.div
+                  key="server-modal-panel"
+                  initial={{ opacity: 0, y: 16, scale: 0.96 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 12, scale: 0.96 }}
+                  transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+                  className="bg-[#0e1017] border border-white/10 rounded-3xl p-5 sm:p-7 max-w-2xl w-full shadow-[0_25px_80px_rgba(0,0,0,0.85)] space-y-4 relative max-h-[90vh] flex flex-col will-change-transform cursor-default"
+                  onMouseDown={(e) => e.stopPropagation()}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {/* Header */}
+                  <div className="flex items-center justify-between pb-3 border-b border-zinc-800/80 shrink-0">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-9 h-9 rounded-xl bg-blue-500/20 text-blue-400 border border-blue-500/30 flex items-center justify-center">
+                        <Globe size={18} />
+                      </div>
+                      <div>
+                        <h3 className="text-base font-extrabold text-white">Chọn Máy Chủ (Server)</h3>
+                        <p className="text-xs text-zinc-400">
+                          Mặc định là Vietnam (VN) · Hỗ trợ toàn bộ 16 máy chủ toàn cầu
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsServerModalOpen(false);
+                        setServerSearchTerm('');
+                      }}
+                      className="w-8 h-8 rounded-xl bg-zinc-800/80 hover:bg-zinc-700 text-zinc-400 hover:text-white flex items-center justify-center transition-colors"
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+
+                  {/* Search Box */}
+                  <div className="relative shrink-0">
+                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-500 w-4 h-4" />
+                    <input
+                      type="text"
+                      placeholder="Tìm theo tên máy chủ (Vietnam, Korea, NA...) hoặc mã VN, KR, EUW..."
+                      value={serverSearchTerm}
+                      onChange={(e) => setServerSearchTerm(e.target.value)}
+                      className="w-full bg-zinc-950 border border-zinc-800 rounded-2xl pl-10 pr-4 py-2.5 text-xs sm:text-sm text-white placeholder-zinc-500 outline-none focus:border-blue-500 transition-colors"
+                      autoFocus
+                    />
+                  </div>
+
+                  {/* Region Filter Chips */}
+                  <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none shrink-0">
+                    {serverRegions.map((reg) => (
+                      <button
+                        key={reg}
+                        type="button"
+                        onClick={() => setServerRegionFilter(reg)}
+                        className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold whitespace-nowrap transition-colors ${serverRegionFilter === reg
+                            ? 'bg-blue-600 text-white font-bold'
+                            : 'bg-zinc-950 border border-zinc-800 text-zinc-400 hover:text-white'
+                          }`}
+                      >
+                        {reg === 'ALL' ? 'Tất cả khu vực' : reg}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Server Grid Scrollable */}
+                    <div className="overflow-y-auto custom-dark-scrollbar space-y-2 pr-1 flex-1 min-h-[260px] max-h-[460px]">
+                      {filteredServers.length > 0 ? (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          {filteredServers.map((s) => {
+                            const isSelected = server === s.code;
+                            return (
+                              <div
+                                key={s.code}
+                                onClick={() => {
+                                  setServer(s.code);
+                                  setIsServerModalOpen(false);
+                                  setServerSearchTerm('');
+                                  toast.success(`Đã chọn máy chủ ${s.name} (${s.code})`);
+                                }}
+                                className={`p-3 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${isSelected
+                                    ? 'bg-blue-950/40 border-blue-500 ring-1 ring-blue-500/50 shadow-md'
+                                    : 'bg-zinc-950/60 hover:bg-zinc-900 border-zinc-800/80 hover:border-zinc-700'
+                                  }`}
                               >
-                                <span className="text-sm font-extrabold font-mono tracking-wider">
-                                  Bậc {div}
-                                </span>
-                                {isDivisionDisabled && (
-                                  <span className="text-[9px] text-zinc-500">
-                                    {rankModalTarget === 'CURRENT'
-                                      ? stepIdx === desiredRankIndex ? 'Bằng rank đích' : 'Cao hơn'
-                                      : stepIdx === currentRankIndex ? 'Bằng rank hiện tại' : 'Thấp hơn'}
+                                <div className="flex items-center gap-3 min-w-0">
+                                  <ServerFlag code={s.code} size="md" />
+                                  <div className="min-w-0">
+                                    <div className="font-extrabold text-xs sm:text-sm text-white truncate">
+                                      {s.name}
+                                    </div>
+                                    <div className="text-[11px] text-zinc-400 font-mono truncate">
+                                      {s.code} · {s.platformId} ({s.region})
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {isSelected ? (
+                                  <span className="w-6 h-6 rounded-full bg-blue-500 text-white flex items-center justify-center shrink-0">
+                                    <Check size={14} />
+                                  </span>
+                                ) : (
+                                  <span className="text-xs text-zinc-500 hover:text-blue-400 font-semibold shrink-0">
+                                    Chọn
                                   </span>
                                 )}
-                              </button>
+                              </div>
                             );
                           })}
                         </div>
-                      </div>
-                    );
-                  }
-
-                  const highStep = activeRankSteps.find((s) => s.tier === tempTier);
-                  return (
-                    <div className="p-3.5 rounded-2xl bg-amber-950/20 border border-amber-500/30 text-amber-300 text-xs flex items-center gap-2.5">
-                      <Crown size={18} className="shrink-0 text-amber-400" />
-                      <span>
-                        <strong>{highStep?.label || activeTierConfig[tempTier]?.name || tempTier}:</strong>{' '}
-                        {isAov
-                          ? 'Mốc bậc cao (tính theo sao chuẩn — Booster có thể tùy chỉnh giá). Nếu muốn cày số sao lẻ bất kỳ, hãy chọn tab "Tính tiền theo Số Sao".'
-                          : 'Mốc rank đích cao nhất trong bảng giá leo rank theo bậc.'}
-                      </span>
-                    </div>
-                  );
-                })()}
-              </div>
-
-              {/* Footer Preview & Confirm */}
-              {(() => {
-                const tempRankIdx = findRankStepIndex(game.id, tempTier, tempDivision);
-                const isSelectionValid = tempRankIdx !== -1 && (
-                  rankModalTarget === 'CURRENT'
-                    ? tempRankIdx < desiredRankIndex
-                    : tempRankIdx > currentRankIndex
-                );
-                const selectedLabel =
-                  tempRankIdx !== -1
-                    ? activeRankSteps[tempRankIdx].label
-                    : `${activeTierConfig[tempTier]?.name || tempTier}${tempDivision ? ` ${tempDivision}` : ''}`;
-
-                return (
-                  <div className="pt-3 border-t border-zinc-800/80 flex items-center justify-between shrink-0">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-zinc-400">Đang chọn:</span>
-                      <span className={`text-sm font-black ${isSelectionValid ? 'text-white' : 'text-red-400'}`}>
-                        {selectedLabel}
-                      </span>
-                      {!isSelectionValid && (
-                        <span className="text-[10px] font-bold text-red-400 bg-red-500/10 border border-red-500/20 px-2 py-0.5 rounded">
-                          {rankModalTarget === 'CURRENT' ? `Phải < ${desiredRankObj.label}` : `Phải > ${currentRankObj.label}`}
-                        </span>
+                      ) : (
+                        <div className="py-12 text-center text-zinc-500 space-y-2">
+                          <Search className="w-8 h-8 mx-auto text-zinc-600" />
+                          <p className="text-xs">Không tìm thấy máy chủ nào khớp với "{serverSearchTerm}"</p>
+                        </div>
                       )}
                     </div>
 
-                    <div className="flex items-center gap-2">
+                    {/* Footer */}
+                    <div className="pt-3 border-t border-zinc-800/80 flex items-center justify-between text-[11px] text-zinc-400 shrink-0">
+                      <span>{filteredServers.length} máy chủ sẵn sàng</span>
                       <button
                         type="button"
-                        onClick={() => setIsRankModalOpen(false)}
-                        className="px-3.5 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-xs font-bold text-zinc-300 transition-colors"
+                        onClick={() => {
+                          setIsServerModalOpen(false);
+                          setServerSearchTerm('');
+                        }}
+                        className="text-xs text-zinc-400 hover:text-white font-medium"
                       >
-                        Hủy
-                      </button>
-                      <button
-                        type="button"
-                        disabled={!isSelectionValid}
-                        onClick={handleConfirmRank}
-                        className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
-                          isSelectionValid
-                            ? 'bg-blue-600 hover:bg-blue-500 text-white shadow-md shadow-blue-600/30 active:scale-95 cursor-pointer'
-                            : 'bg-zinc-800 text-zinc-500 opacity-40 cursor-not-allowed'
-                        }`}
-                      >
-                        Xác Nhận
+                        Đóng
                       </button>
                     </div>
-                  </div>
-                );
-              })()}
+                </motion.div>
               </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+            )}
+          </AnimatePresence>
 
-        {/* ========================================================================= */}
-        {/* MODAL 2: CHỌN MÁY CHỦ (SERVER POPUP GIỮA MÀN HÌNH)                       */}
-        {/* ========================================================================= */}
-        <AnimatePresence>
-          {isServerModalOpen && (
-            <motion.div
-              key="server-modal-backdrop"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2, ease: 'easeOut' }}
-              className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto cursor-pointer"
-              onMouseDown={(e) => {
-                if (e.target === e.currentTarget) {
-                  setIsServerModalOpen(false);
-                  setServerSearchTerm('');
-                }
-              }}
-              onClick={(e) => {
-                if (e.target === e.currentTarget) {
-                  setIsServerModalOpen(false);
-                  setServerSearchTerm('');
-                }
-              }}
-            >
+          {/* ========================================================================= */}
+          {/* MODAL 3: CHỌN LOẠI TÀI KHOẢN (RIOT, FACEBOOK, GOOGLE, APPLE, XBOX, PS)  */}
+          {/* ========================================================================= */}
+          <AnimatePresence>
+            {isAccountTypeModalOpen && (
               <motion.div
-                key="server-modal-panel"
-                initial={{ opacity: 0, y: 16, scale: 0.96 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 12, scale: 0.96 }}
-                transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-                className="bg-[#0e1017] border border-white/10 rounded-3xl p-5 sm:p-6 max-w-xl w-full shadow-2xl space-y-4 relative max-h-[90vh] flex flex-col will-change-transform cursor-default"
-                onMouseDown={(e) => e.stopPropagation()}
-                onClick={(e) => e.stopPropagation()}
+                key="account-type-modal-backdrop"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2, ease: 'easeOut' }}
+                className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto cursor-pointer"
+                onMouseDown={(e) => {
+                  if (e.target === e.currentTarget) setIsAccountTypeModalOpen(false);
+                }}
+                onClick={(e) => {
+                  if (e.target === e.currentTarget) setIsAccountTypeModalOpen(false);
+                }}
               >
-              {/* Header */}
-              <div className="flex items-center justify-between pb-3 border-b border-zinc-800/80 shrink-0">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-xl bg-blue-500/20 text-blue-400 border border-blue-500/30 flex items-center justify-center">
-                    <Globe size={18} />
-                  </div>
-                  <div>
-                    <h3 className="text-base font-extrabold text-white">Chọn Máy Chủ (Server)</h3>
-                    <p className="text-xs text-zinc-400">
-                      Mặc định là Vietnam (VN) · Hỗ trợ toàn bộ 16 máy chủ toàn cầu
-                    </p>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsServerModalOpen(false);
-                    setServerSearchTerm('');
-                  }}
-                  className="w-8 h-8 rounded-xl bg-zinc-800/80 hover:bg-zinc-700 text-zinc-400 hover:text-white flex items-center justify-center transition-colors"
+                <motion.div
+                  key="account-type-modal-panel"
+                  initial={{ opacity: 0, y: 16, scale: 0.96 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 12, scale: 0.96 }}
+                  transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+                  className="bg-[#0e1017] border border-white/10 rounded-3xl p-5 sm:p-7 max-w-2xl w-full shadow-[0_25px_80px_rgba(0,0,0,0.85)] space-y-4 relative max-h-[90vh] flex flex-col will-change-transform cursor-default"
+                  onMouseDown={(e) => e.stopPropagation()}
+                  onClick={(e) => e.stopPropagation()}
                 >
-                  <X size={16} />
-                </button>
-              </div>
-
-              {/* Search Box */}
-              <div className="relative shrink-0">
-                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-500 w-4 h-4" />
-                <input
-                  type="text"
-                  placeholder="Tìm theo tên máy chủ (Vietnam, Korea, NA...) hoặc mã VN, KR, EUW..."
-                  value={serverSearchTerm}
-                  onChange={(e) => setServerSearchTerm(e.target.value)}
-                  className="w-full bg-zinc-950 border border-zinc-800 rounded-2xl pl-10 pr-4 py-2.5 text-xs sm:text-sm text-white placeholder-zinc-500 outline-none focus:border-blue-500 transition-colors"
-                  autoFocus
-                />
-              </div>
-
-              {/* Region Filter Chips */}
-              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none shrink-0">
-                {serverRegions.map((reg) => (
-                  <button
-                    key={reg}
-                    type="button"
-                    onClick={() => setServerRegionFilter(reg)}
-                    className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold whitespace-nowrap transition-colors ${
-                      serverRegionFilter === reg
-                        ? 'bg-blue-600 text-white font-bold'
-                        : 'bg-zinc-950 border border-zinc-800 text-zinc-400 hover:text-white'
-                    }`}
-                  >
-                    {reg === 'ALL' ? 'Tất cả khu vực' : reg}
-                  </button>
-                ))}
-              </div>
-
-              {/* Server Grid Scrollable */}
-              <div className="overflow-y-auto custom-dark-scrollbar space-y-2 pr-1 flex-1 min-h-[220px] max-h-[360px]">
-                {filteredServers.length > 0 ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    {filteredServers.map((s) => {
-                      const isSelected = server === s.code;
-                      return (
-                        <div
-                          key={s.code}
-                          onClick={() => {
-                            setServer(s.code);
-                            setIsServerModalOpen(false);
-                            setServerSearchTerm('');
-                            toast.success(`Đã chọn máy chủ ${s.name} (${s.code})`);
-                          }}
-                          className={`p-3 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${
-                            isSelected
-                              ? 'bg-blue-950/40 border-blue-500 ring-1 ring-blue-500/50 shadow-md'
-                              : 'bg-zinc-950/60 hover:bg-zinc-900 border-zinc-800/80 hover:border-zinc-700'
-                          }`}
-                        >
-                          <div className="flex items-center gap-3 min-w-0">
-                            <ServerFlag code={s.code} size="md" />
-                            <div className="min-w-0">
-                              <div className="font-extrabold text-xs sm:text-sm text-white truncate">
-                                {s.name}
-                              </div>
-                              <div className="text-[11px] text-zinc-400 font-mono truncate">
-                                {s.code} · {s.platformId} ({s.region})
-                              </div>
-                            </div>
-                          </div>
-
-                          {isSelected ? (
-                            <span className="w-6 h-6 rounded-full bg-blue-500 text-white flex items-center justify-center shrink-0">
-                              <Check size={14} />
-                            </span>
-                          ) : (
-                            <span className="text-xs text-zinc-500 hover:text-blue-400 font-semibold shrink-0">
-                              Chọn
-                            </span>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <div className="py-12 text-center text-zinc-500 space-y-2">
-                    <Search className="w-8 h-8 mx-auto text-zinc-600" />
-                    <p className="text-xs">Không tìm thấy máy chủ nào khớp với "{serverSearchTerm}"</p>
-                  </div>
-                )}
-              </div>
-
-              {/* Footer */}
-              <div className="pt-3 border-t border-zinc-800/80 flex items-center justify-between text-[11px] text-zinc-400 shrink-0">
-                <span>{filteredServers.length} máy chủ sẵn sàng</span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsServerModalOpen(false);
-                    setServerSearchTerm('');
-                  }}
-                  className="text-xs text-zinc-400 hover:text-white font-medium"
-                >
-                  Đóng
-                </button>
-              </div>
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* ========================================================================= */}
-        {/* MODAL 3: CHỌN LOẠI TÀI KHOẢN (RIOT, FACEBOOK, GOOGLE, APPLE, XBOX, PS)  */}
-        {/* ========================================================================= */}
-        <AnimatePresence>
-          {isAccountTypeModalOpen && (
-            <motion.div
-              key="account-type-modal-backdrop"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2, ease: 'easeOut' }}
-              className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto cursor-pointer"
-              onMouseDown={(e) => {
-                if (e.target === e.currentTarget) setIsAccountTypeModalOpen(false);
-              }}
-              onClick={(e) => {
-                if (e.target === e.currentTarget) setIsAccountTypeModalOpen(false);
-              }}
-            >
-              <motion.div
-                key="account-type-modal-panel"
-                initial={{ opacity: 0, y: 16, scale: 0.96 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 12, scale: 0.96 }}
-                transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-                className="bg-[#0e1017] border border-white/10 rounded-3xl p-5 sm:p-6 max-w-lg w-full shadow-2xl space-y-4 relative max-h-[90vh] flex flex-col will-change-transform cursor-default"
-                onMouseDown={(e) => e.stopPropagation()}
-                onClick={(e) => e.stopPropagation()}
-              >
-              {/* Header */}
-              <div className="flex items-center justify-between pb-3 border-b border-zinc-800/80 shrink-0">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-xl bg-purple-500/20 text-purple-400 border border-purple-500/30 flex items-center justify-center">
-                    <Lock size={18} />
-                  </div>
-                  <div>
-                    <h3 className="text-base font-extrabold text-white">Chọn Loại Tài Khoản</h3>
-                    <p className="text-xs text-zinc-400">
-                      Chọn nền tảng tài khoản bạn dùng để đăng nhập vào game
-                    </p>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setIsAccountTypeModalOpen(false)}
-                  className="w-8 h-8 rounded-xl bg-zinc-800/80 hover:bg-zinc-700 text-zinc-400 hover:text-white flex items-center justify-center transition-colors"
-                >
-                  <X size={16} />
-                </button>
-              </div>
-
-              {/* Provider Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 overflow-y-auto py-1">
-                {activeAccountTypes.map((acc) => {
-                  const isSelected = accountType === acc.id;
-                  return (
-                    <div
-                      key={acc.id}
-                      onClick={() => {
-                        setAccountType(acc.id);
-                        setIsAccountTypeModalOpen(false);
-                        toast.success(`Đã chọn loại tài khoản ${acc.name}`);
-                      }}
-                      className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${
-                        isSelected
-                          ? 'bg-purple-950/30 border-purple-500 ring-1 ring-purple-500/50 shadow-md'
-                          : 'bg-zinc-950/60 hover:bg-zinc-900 border-zinc-800/80 hover:border-zinc-700'
-                      }`}
+                  {/* Header */}
+                  <div className="flex items-center justify-between pb-3 border-b border-zinc-800/80 shrink-0">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-9 h-9 rounded-xl bg-purple-500/20 text-purple-400 border border-purple-500/30 flex items-center justify-center">
+                        <Lock size={18} />
+                      </div>
+                      <div>
+                        <h3 className="text-base font-extrabold text-white">Chọn Loại Tài Khoản</h3>
+                        <p className="text-xs text-zinc-400">
+                          Chọn nền tảng tài khoản bạn dùng để đăng nhập vào game
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setIsAccountTypeModalOpen(false)}
+                      className="w-8 h-8 rounded-xl bg-zinc-800/80 hover:bg-zinc-700 text-zinc-400 hover:text-white flex items-center justify-center transition-colors"
                     >
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div className="w-10 h-10 rounded-xl bg-zinc-900 border border-zinc-800 flex items-center justify-center shrink-0">
-                          <ProviderLogo provider={acc.id} className="w-5 h-5" />
-                        </div>
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-1.5">
-                            <span className="font-extrabold text-white text-xs sm:text-sm">
-                              {acc.name}
-                            </span>
-                            {acc.badge && (
-                              <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-red-500/10 text-red-400 border border-red-500/20">
-                                {acc.badge}
+                      <X size={16} />
+                    </button>
+                  </div>
+
+                  {/* Provider Grid */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 overflow-y-auto custom-dark-scrollbar py-1 pr-1">
+                      {activeAccountTypes.map((acc) => {
+                        const isSelected = accountType === acc.id;
+                        return (
+                          <div
+                            key={acc.id}
+                            onClick={() => {
+                              setAccountType(acc.id);
+                              setIsAccountTypeModalOpen(false);
+                              toast.success(`Đã chọn loại tài khoản ${acc.name}`);
+                            }}
+                            className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${isSelected
+                                ? 'bg-purple-950/30 border-purple-500 ring-1 ring-purple-500/50 shadow-md'
+                                : 'bg-zinc-950/60 hover:bg-zinc-900 border-zinc-800/80 hover:border-zinc-700'
+                              }`}
+                          >
+                            <div className="flex items-center gap-3 min-w-0">
+                              <div className="w-10 h-10 rounded-xl bg-zinc-900 border border-zinc-800 flex items-center justify-center shrink-0">
+                                <ProviderLogo provider={acc.id} className="w-5 h-5" />
+                              </div>
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="font-extrabold text-white text-xs sm:text-sm">
+                                    {acc.name}
+                                  </span>
+                                  {acc.badge && (
+                                    <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-red-500/10 text-red-400 border border-red-500/20">
+                                      {acc.badge}
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="text-[11px] text-zinc-400 line-clamp-1 mt-0.5">
+                                  {acc.desc}
+                                </div>
+                              </div>
+                            </div>
+
+                            {isSelected && (
+                              <span className="w-6 h-6 rounded-full bg-purple-500 text-white flex items-center justify-center shrink-0">
+                                <Check size={14} />
                               </span>
                             )}
                           </div>
-                          <div className="text-[11px] text-zinc-400 line-clamp-1 mt-0.5">
-                            {acc.desc}
-                          </div>
-                        </div>
-                      </div>
+                        );
+                      })}
+                    </div>
 
-                      {isSelected && (
-                        <span className="w-6 h-6 rounded-full bg-purple-500 text-white flex items-center justify-center shrink-0">
-                          <Check size={14} />
-                        </span>
+                    {/* Footer */}
+                    <div className="pt-3 border-t border-zinc-800/80 flex items-center justify-between text-[11px] text-zinc-400 shrink-0">
+                      <span className="flex items-center gap-1.5">
+                        <Shield size={12} className="text-emerald-400" />
+                        <span>Bảo mật thông tin đăng nhập tuyệt đối</span>
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setIsAccountTypeModalOpen(false)}
+                        className="text-xs text-zinc-400 hover:text-white font-medium"
+                      >
+                        Đóng
+                      </button>
+                    </div>
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* ========================================================================= */}
+          {/* MODAL 4: CHỌN BOOSTER                                                     */}
+          {/* ========================================================================= */}
+          <AnimatePresence>
+            {isBoosterModalOpen && (
+              <motion.div
+                key="booster-modal-backdrop"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2, ease: 'easeOut' }}
+                className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto cursor-pointer"
+                onMouseDown={(e) => {
+                  if (e.target === e.currentTarget) {
+                    setIsBoosterModalOpen(false);
+                    setBoosterSearchTerm('');
+                  }
+                }}
+                onClick={(e) => {
+                  if (e.target === e.currentTarget) {
+                    setIsBoosterModalOpen(false);
+                    setBoosterSearchTerm('');
+                  }
+                }}
+              >
+                <motion.div
+                  key="booster-modal-panel"
+                  initial={{ opacity: 0, y: 16, scale: 0.96 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 12, scale: 0.96 }}
+                  transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+                  className="bg-[#0e1017] border border-white/10 rounded-3xl p-5 sm:p-7 max-w-2xl w-full shadow-[0_25px_80px_rgba(0,0,0,0.85)] space-y-4 relative max-h-[90vh] flex flex-col will-change-transform cursor-default"
+                  onMouseDown={(e) => e.stopPropagation()}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {/* Modal Header */}
+                  <div className="flex items-center justify-between pb-3 border-b border-zinc-800/80 shrink-0">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-9 h-9 rounded-xl bg-purple-500/20 text-purple-400 border border-purple-500/30 flex items-center justify-center">
+                        <Crown size={18} />
+                      </div>
+                      <div>
+                        <h3 className="text-base font-extrabold text-white">Chọn Tuyển Thủ Cày Thuê</h3>
+                        <p className="text-xs text-zinc-400">
+                          Chọn tuyển thủ uy tín để đảm bảo tiến độ và tỷ lệ thắng
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsBoosterModalOpen(false);
+                        setBoosterSearchTerm('');
+                      }}
+                      className="w-8 h-8 rounded-xl bg-zinc-800/80 hover:bg-zinc-700 text-zinc-400 hover:text-white flex items-center justify-center transition-colors"
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+
+                  {/* Input Search Box */}
+                  <div className="relative shrink-0">
+                    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-500 w-4 h-4" />
+                    <input
+                      type="text"
+                      placeholder="Tìm theo tên hiển thị hoặc username..."
+                      value={boosterSearchTerm}
+                      onChange={(e) => setBoosterSearchTerm(e.target.value)}
+                      className="w-full bg-zinc-950 border border-zinc-800 rounded-2xl pl-10 pr-4 py-2.5 text-xs sm:text-sm text-white placeholder-zinc-500 outline-none focus:border-purple-500 transition-colors"
+                      autoFocus
+                    />
+                  </div>
+
+                  {/* Booster List Scrollable */}
+                    <div className="overflow-y-auto custom-dark-scrollbar space-y-2.5 pr-1 flex-1 min-h-[260px] max-h-[480px]">
+                      {filteredBoosters.length > 0 ? (
+                        filteredBoosters.map((b) => {
+                          const isSelected = assignedBooster?.user?._id === b._id;
+                          const bProfile = b.boosterProfile || b.booster_info || b;
+                          const bCoupon = bProfile?.service_settings?.coupon;
+                          const bMultiplier = bProfile?.service_settings?.standardConfig?.rankPriceMultiplier;
+
+                          return (
+                            <div
+                              key={b._id}
+                              onClick={() => handleSelectBooster(b)}
+                              className={`p-3 sm:p-3.5 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${isSelected
+                                  ? 'bg-purple-950/30 border-purple-500/80 ring-1 ring-purple-500/50 shadow-md shadow-purple-950/50'
+                                  : 'bg-zinc-950/60 hover:bg-zinc-900 border-zinc-800/80 hover:border-zinc-700'
+                                }`}
+                            >
+                              <div className="flex items-center gap-3 min-w-0">
+                                <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-purple-500/20 to-blue-500/20 border border-purple-500/30 flex items-center justify-center text-white font-bold text-base shrink-0">
+                                  {b.avatar ? (
+                                    <Image
+                                      src={b.avatar}
+                                      alt=""
+                                      width={44}
+                                      height={44}
+                                      className="rounded-2xl object-cover"
+                                    />
+                                  ) : (
+                                    (b.displayName || b.username || 'B').slice(0, 1).toUpperCase()
+                                  )}
+                                </div>
+                                <div className="min-w-0">
+                                  <div>
+                                    <div className="flex items-center gap-1.5 min-w-0">
+                                      <span className="font-extrabold text-white text-xs sm:text-sm truncate">
+                                        {b.displayName || b.username}
+                                      </span>
+                                      <UserBadge role="BOOSTER" size="sm" />
+                                    </div>
+                                    <div className="text-[11px] text-zinc-400 font-mono truncate">
+                                      @{b.username}
+                                    </div>
+                                  </div>
+
+                                  <div className="flex flex-wrap items-center gap-2 mt-1 text-[11px] text-zinc-400">
+                                    <span className={`flex items-center gap-1 font-bold ${b.rating && b.rating > 0 ? 'text-amber-400' : 'text-zinc-500'}`}>
+                                      <Star size={11} fill="currentColor" />
+                                      {b.rating && b.rating > 0 ? b.rating.toFixed(1) : '0.0'}
+                                    </span>
+                                    <span>•</span>
+                                    <span className="text-zinc-300">
+                                      {b.completedOrders || 0} đơn thành công
+                                    </span>
+                                    {bMultiplier && bMultiplier !== 1.0 && (
+                                      <>
+                                        <span>•</span>
+                                        <span className="text-cyan-400 font-semibold">
+                                          Giá: {(bMultiplier * 100).toFixed(0)}%
+                                        </span>
+                                      </>
+                                    )}
+                                    {bCoupon?.isActive && (
+                                      <span className="px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold text-[10px]">
+                                        Voucher -{bCoupon.discountPercent}%
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div className="shrink-0">
+                                {isSelected ? (
+                                  <span className="px-2.5 py-1 rounded-xl bg-purple-500 text-white text-xs font-bold inline-flex items-center gap-1">
+                                    <Check size={13} />
+                                    <span>Đang chọn</span>
+                                  </span>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    className="px-3 py-1.5 rounded-xl bg-zinc-800 hover:bg-purple-600 text-zinc-300 hover:text-white text-xs font-semibold transition-all"
+                                  >
+                                    Chọn
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })
+                      ) : (
+                        <div className="py-12 text-center text-zinc-500 space-y-2">
+                          <Search className="w-8 h-8 mx-auto text-zinc-600" />
+                          <p className="text-xs">Không tìm thấy tuyển thủ nào khớp với "{boosterSearchTerm}"</p>
+                        </div>
                       )}
                     </div>
-                  );
-                })}
-              </div>
 
-              {/* Footer */}
-              <div className="pt-3 border-t border-zinc-800/80 flex items-center justify-between text-[11px] text-zinc-400 shrink-0">
-                <span className="flex items-center gap-1.5">
-                  <Shield size={12} className="text-emerald-400" />
-                  <span>Bảo mật thông tin đăng nhập tuyệt đối</span>
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setIsAccountTypeModalOpen(false)}
-                  className="text-xs text-zinc-400 hover:text-white font-medium"
-                >
-                  Đóng
-                </button>
-              </div>
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* ========================================================================= */}
-        {/* MODAL 4: CHỌN BOOSTER                                                     */}
-        {/* ========================================================================= */}
-        <AnimatePresence>
-          {isBoosterModalOpen && (
-            <motion.div
-              key="booster-modal-backdrop"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2, ease: 'easeOut' }}
-              className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto cursor-pointer"
-              onMouseDown={(e) => {
-                if (e.target === e.currentTarget) {
-                  setIsBoosterModalOpen(false);
-                  setBoosterSearchTerm('');
-                }
-              }}
-              onClick={(e) => {
-                if (e.target === e.currentTarget) {
-                  setIsBoosterModalOpen(false);
-                  setBoosterSearchTerm('');
-                }
-              }}
-            >
-              <motion.div
-                key="booster-modal-panel"
-                initial={{ opacity: 0, y: 16, scale: 0.96 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 12, scale: 0.96 }}
-                transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-                className="bg-[#0e1017] border border-white/10 rounded-3xl p-5 sm:p-6 max-w-lg w-full shadow-2xl space-y-4 relative max-h-[90vh] flex flex-col will-change-transform cursor-default"
-                onMouseDown={(e) => e.stopPropagation()}
-                onClick={(e) => e.stopPropagation()}
-              >
-              {/* Modal Header */}
-              <div className="flex items-center justify-between pb-3 border-b border-zinc-800/80 shrink-0">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-xl bg-purple-500/20 text-purple-400 border border-purple-500/30 flex items-center justify-center">
-                    <Crown size={18} />
-                  </div>
-                  <div>
-                    <h3 className="text-base font-extrabold text-white">Chọn Tuyển Thủ Cày Thuê</h3>
-                    <p className="text-xs text-zinc-400">
-                      Chọn tuyển thủ uy tín để đảm bảo tiến độ và tỷ lệ thắng
-                    </p>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsBoosterModalOpen(false);
-                    setBoosterSearchTerm('');
-                  }}
-                  className="w-8 h-8 rounded-xl bg-zinc-800/80 hover:bg-zinc-700 text-zinc-400 hover:text-white flex items-center justify-center transition-colors"
-                >
-                  <X size={16} />
-                </button>
-              </div>
-
-              {/* Input Search Box */}
-              <div className="relative shrink-0">
-                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-500 w-4 h-4" />
-                <input
-                  type="text"
-                  placeholder="Tìm theo tên hiển thị hoặc username..."
-                  value={boosterSearchTerm}
-                  onChange={(e) => setBoosterSearchTerm(e.target.value)}
-                  className="w-full bg-zinc-950 border border-zinc-800 rounded-2xl pl-10 pr-4 py-2.5 text-xs sm:text-sm text-white placeholder-zinc-500 outline-none focus:border-purple-500 transition-colors"
-                  autoFocus
-                />
-              </div>
-
-              {/* Booster List Scrollable */}
-              <div className="overflow-y-auto space-y-2.5 pr-1 flex-1 min-h-[240px] max-h-[380px]">
-                {filteredBoosters.length > 0 ? (
-                  filteredBoosters.map((b) => {
-                    const isSelected = assignedBooster?.user?._id === b._id;
-                    const bProfile = b.boosterProfile || b.booster_info || b;
-                    const bCoupon = bProfile?.service_settings?.coupon;
-                    const bMultiplier = bProfile?.service_settings?.standardConfig?.rankPriceMultiplier;
-
-                    return (
-                      <div
-                        key={b._id}
-                        onClick={() => handleSelectBooster(b)}
-                        className={`p-3 sm:p-3.5 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${
-                          isSelected
-                            ? 'bg-purple-950/30 border-purple-500/80 ring-1 ring-purple-500/50 shadow-md shadow-purple-950/50'
-                            : 'bg-zinc-950/60 hover:bg-zinc-900 border-zinc-800/80 hover:border-zinc-700'
-                        }`}
+                    {/* Modal Footer */}
+                    <div className="pt-3 border-t border-zinc-800/80 flex items-center justify-between text-[11px] text-zinc-400 shrink-0">
+                      <span>Có {filteredBoosters.length} tuyển thủ sẵn sàng</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsBoosterModalOpen(false);
+                          setBoosterSearchTerm('');
+                        }}
+                        className="text-xs text-zinc-400 hover:text-white font-medium"
                       >
-                        <div className="flex items-center gap-3 min-w-0">
-                          <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-purple-500/20 to-blue-500/20 border border-purple-500/30 flex items-center justify-center text-white font-bold text-base shrink-0">
-                            {b.avatar ? (
-                              <Image
-                                src={b.avatar}
-                                alt=""
-                                width={44}
-                                height={44}
-                                className="rounded-2xl object-cover"
-                              />
-                            ) : (
-                              (b.displayName || b.username || 'B').slice(0, 1).toUpperCase()
-                            )}
-                          </div>
-                          <div className="min-w-0">
-                            <div>
-                              <div className="flex items-center gap-1.5 min-w-0">
-                                <span className="font-extrabold text-white text-xs sm:text-sm truncate">
-                                  {b.displayName || b.username}
-                                </span>
-                                <UserBadge role="BOOSTER" size="sm" />
-                              </div>
-                              <div className="text-[11px] text-zinc-400 font-mono truncate">
-                                @{b.username}
-                              </div>
-                            </div>
-
-                            <div className="flex flex-wrap items-center gap-2 mt-1 text-[11px] text-zinc-400">
-                              <span className={`flex items-center gap-1 font-bold ${b.rating && b.rating > 0 ? 'text-amber-400' : 'text-zinc-500'}`}>
-                                <Star size={11} fill="currentColor" />
-                                {b.rating && b.rating > 0 ? b.rating.toFixed(1) : '0.0'}
-                              </span>
-                              <span>•</span>
-                              <span className="text-zinc-300">
-                                {b.completedOrders || 0} đơn thành công
-                              </span>
-                              {bMultiplier && bMultiplier !== 1.0 && (
-                                <>
-                                  <span>•</span>
-                                  <span className="text-cyan-400 font-semibold">
-                                    Giá: {(bMultiplier * 100).toFixed(0)}%
-                                  </span>
-                                </>
-                              )}
-                              {bCoupon?.isActive && (
-                                <span className="px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold text-[10px]">
-                                  Voucher -{bCoupon.discountPercent}%
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="shrink-0">
-                          {isSelected ? (
-                            <span className="px-2.5 py-1 rounded-xl bg-purple-500 text-white text-xs font-bold inline-flex items-center gap-1">
-                              <Check size={13} />
-                              <span>Đang chọn</span>
-                            </span>
-                          ) : (
-                            <button
-                              type="button"
-                              className="px-3 py-1.5 rounded-xl bg-zinc-800 hover:bg-purple-600 text-zinc-300 hover:text-white text-xs font-semibold transition-all"
-                            >
-                              Chọn
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })
-                ) : (
-                  <div className="py-12 text-center text-zinc-500 space-y-2">
-                    <Search className="w-8 h-8 mx-auto text-zinc-600" />
-                    <p className="text-xs">Không tìm thấy tuyển thủ nào khớp với "{boosterSearchTerm}"</p>
-                  </div>
-                )}
-              </div>
-
-              {/* Modal Footer */}
-              <div className="pt-3 border-t border-zinc-800/80 flex items-center justify-between text-[11px] text-zinc-400 shrink-0">
-                <span>Có {filteredBoosters.length} tuyển thủ sẵn sàng</span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsBoosterModalOpen(false);
-                    setBoosterSearchTerm('');
-                  }}
-                  className="text-xs text-zinc-400 hover:text-white font-medium"
-                >
-                  Đóng
-                </button>
-              </div>
+                        Đóng
+                      </button>
+                    </div>
+                </motion.div>
               </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+            )}
+          </AnimatePresence>
       </main>
     </div>
   );
