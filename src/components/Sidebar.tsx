@@ -81,7 +81,10 @@ export default function Sidebar({ className = '', onLinkClick, onClose }: Sideba
     let isMounted = true;
     const fetchJobsCount = async () => {
       try {
-        const res = await fetch('/api/boosters/market');
+        const token = localStorage.getItem('token');
+        const res = await fetch('/api/boosters/market', {
+          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+        });
         if (res.ok) {
           const data = await res.json();
           if (data.success && isMounted) {
@@ -159,7 +162,7 @@ export default function Sidebar({ className = '', onLinkClick, onClose }: Sideba
           <span className={`px-2 py-0.5 text-[11px] font-black rounded-full transition-all shrink-0 shadow-sm ${
             isActive 
               ? 'bg-white text-blue-600 shadow-white/20' 
-              : 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 group-hover:bg-cyan-500 group-hover:text-black'
+              : 'bg-red-500/20 text-red-400 border border-red-500/40 animate-pulse group-hover:bg-red-500 group-hover:text-white'
           }`}>
             {Number(badge) > 99 ? '99+' : badge}
           </span>

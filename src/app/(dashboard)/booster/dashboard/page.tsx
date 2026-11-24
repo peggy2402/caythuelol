@@ -26,6 +26,7 @@ import { toast } from 'sonner';
 import { getBoosterOrderValue } from '@/lib/orderPricing';
 import { getOrderStatusInfo, formatServiceNameVi } from '@/lib/orderStatus';
 import { apiFetch } from '@/lib/api';
+import { socket } from '@/lib/socket';
 import BoosterRecentForm from '@/components/BoosterRecentForm';
 import UserBadge from '@/components/UserBadge';
 
@@ -36,16 +37,20 @@ export default function BoosterDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
   const [isReady, setIsReady] = useState(true);
+  const [pendingJobsCount, setPendingJobsCount] = useState<number>(0);
 
   useEffect(() => {
     const userData = localStorage.getItem('user');
+    const token = localStorage.getItem('token');
     if (userData) {
       const parsed = JSON.parse(userData);
       setUser(parsed);
       setIsReady(parsed.booster_info?.isReady ?? true);
     }
 
-    fetch('/api/boosters/stats')
+    const authHeaders: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {};
+
+    fetch('/api/boosters/stats', { headers: authHeaders })
       .then(async (res) => {
         if (!res.ok) {
           const text = await res.text();
@@ -57,6 +62,43 @@ export default function BoosterDashboardPage() {
       .then((data) => setData(data))
       .catch((err) => console.error(err))
       .finally(() => setLoading(false));
+
+    let isMounted = true;
+    const fetchPendingJobs = async () => {
+      try {
+        const res = await fetch('/api/boosters/market', { headers: authHeaders });
+        if (res.ok) {
+          const marketData = await res.json();
+          if (marketData.success && isMounted) {
+            const direct = Array.isArray(marketData.directRequests) ? marketData.directRequests.length : 0;
+            const pub = Array.isArray(marketData.publicJobs) ? marketData.publicJobs.length : 0;
+            setPendingJobsCount(direct + pub);
+          }
+        }
+      } catch {}
+    };
+
+    fetchPendingJobs();
+    const handleJobsUpdated = (e: any) => {
+      if (e?.detail?.count !== undefined) {
+        setPendingJobsCount(Number(e.detail.count) || 0);
+      } else {
+        fetchPendingJobs();
+      }
+    };
+
+    window.addEventListener('booster-jobs-updated', handleJobsUpdated);
+    window.addEventListener('focus', fetchPendingJobs);
+    socket.on('booster_jobs_updated', fetchPendingJobs);
+    const interval = setInterval(fetchPendingJobs, 15000);
+
+    return () => {
+      isMounted = false;
+      window.removeEventListener('booster-jobs-updated', handleJobsUpdated);
+      window.removeEventListener('focus', fetchPendingJobs);
+      socket.off('booster_jobs_updated', fetchPendingJobs);
+      clearInterval(interval);
+    };
   }, []);
 
   const toggleAvailability = async () => {
@@ -171,6 +213,18 @@ export default function BoosterDashboardPage() {
                 <span className="text-zinc-400">
                   Đang nhận <b className="text-white font-mono">{stats.activeOrders}</b> đơn cày
                 </span>
+                {pendingJobsCount > 0 && (
+                  <>
+                    <span className="text-zinc-600 hidden sm:inline">•</span>
+                    <Link
+                      href="/booster/jobs"
+                      className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/40 text-amber-300 font-bold hover:bg-amber-500/25 transition-colors"
+                    >
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping" />
+                      <span>{pendingJobsCount} đơn đang chờ nhận</span>
+                    </Link>
+                  </>
+                )}
               </div>
             </div>
           </div>
@@ -179,10 +233,15 @@ export default function BoosterDashboardPage() {
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3 w-full lg:w-auto pt-2 sm:pt-0 border-t sm:border-t-0 border-white/5">
             <Link
               href="/booster/jobs"
-              className="flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-r from-amber-400 via-amber-500 to-yellow-500 text-black font-black text-xs sm:text-sm shadow-[0_0_25px_rgba(245,158,11,0.35)] hover:shadow-[0_0_35px_rgba(245,158,11,0.5)] transition-all hover:scale-[1.02] active:scale-[0.98]"
+              className="relative flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-r from-amber-400 via-amber-500 to-yellow-500 text-black font-black text-xs sm:text-sm shadow-[0_0_25px_rgba(245,158,11,0.35)] hover:shadow-[0_0_35px_rgba(245,158,11,0.5)] transition-all hover:scale-[1.02] active:scale-[0.98]"
             >
-              <Briefcase className="w-4 h-4" />
+              <Briefcase className="w-4 h-4 shrink-0" />
               <span>Sàn Việc Làm Đang Chờ</span>
+              {pendingJobsCount > 0 && (
+                <span className="inline-flex items-center justify-center min-w-[22px] h-[22px] px-1.5 rounded-full bg-red-600 text-white text-[11px] font-black font-mono shadow-md shadow-red-600/40 animate-pulse">
+                  {pendingJobsCount > 99 ? '99+' : pendingJobsCount}
+                </span>
+              )}
             </Link>
 
             <Link

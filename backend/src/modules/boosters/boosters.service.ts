@@ -9,6 +9,8 @@ import { IBoosterApplication } from '../../database/schemas/BoosterApplication';
 import { IOrder, OrderStatus } from '../../database/schemas/Order';
 import { ITransaction, TransactionType, TransactionStatus } from '../../database/schemas/Transaction';
 import { DEFAULT_AOV_STAR_RATES } from '../../common/aov.config';
+import { NotificationsService } from '../notifications/notifications.service';
+import { ChatGateway } from '../chat/chat.gateway';
 
 export const DEFAULT_SERVICE_SETTINGS = {
   enabledServices: ['RANK_BOOST', 'PROMOTION', 'NET_WINS', 'LEVELING', 'PLACEMENTS', 'MASTERY', 'COACHING'],
@@ -68,6 +70,8 @@ export class BoostersService {
     @InjectModel('Order') private orderModel: Model<IOrder>,
     @InjectModel('Transaction') private transactionModel: Model<ITransaction>,
     private jwtService: JwtService,
+    private notificationsService: NotificationsService,
+    private chatGateway: ChatGateway,
   ) { }
 
   getAvailableServiceTypes(gameCode?: string) {
@@ -1277,6 +1281,25 @@ export class BoostersService {
     });
 
     await order.save();
+
+    // Thông báo realtime cho Customer khi Booster đã nhận đơn từ Sàn việc làm + đồng bộ badge số đơn chờ
+    const orderCodeDisplay = order.orderCode || order._id.toString().slice(-6).toUpperCase();
+    this.userModel
+      .findById(boosterId)
+      .select('username')
+      .lean()
+      .then(async (booster) => {
+        await this.notificationsService.notifyUser({
+          userId: order.customerId,
+          title: 'Đơn hàng của bạn đã được nhận!',
+          message: `Tuyển thủ @${booster?.username || 'Booster'} đã nhận đơn hàng #${orderCodeDisplay} của bạn từ Sàn Việc Làm và sẽ sớm tiến hành cày.`,
+          type: 'ORDER_UPDATE',
+          link: `/orders/${order._id}`,
+        });
+      })
+      .catch(() => {});
+    this.chatGateway.broadcastBoosterJobsUpdated();
+
     return { success: true, message: 'Nhận đơn thành công!', order };
   }
 

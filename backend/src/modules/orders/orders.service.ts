@@ -17,6 +17,8 @@ import {
 import { MailService } from '../../common/mail.service';
 import { PricingEngineService } from '../pricing/pricing-engine.service';
 import { LoyaltyService } from '../loyalty/loyalty.service';
+import { NotificationsService } from '../notifications/notifications.service';
+import { ChatGateway } from '../chat/chat.gateway';
 import { IBoosterProfile } from '../../database/schemas/BoosterProfile';
 
 @Injectable()
@@ -30,6 +32,8 @@ export class OrdersService {
     private mailService: MailService,
     private pricingEngine: PricingEngineService,
     private loyaltyService: LoyaltyService,
+    private notificationsService: NotificationsService,
+    private chatGateway: ChatGateway,
   ) {}
 
   async checkout(userId: string, body: any) {
@@ -248,19 +252,104 @@ export class OrdersService {
 
       await session.commitTransaction();
 
-      // Notify Booster via Email if directed order
+      // Gửi thông báo In-App + Realtime cho cả Booster & Customer khi có đơn mới cần cày
+      const orderCodeDisplay = newOrder.orderCode || newOrder._id.toString().slice(-6).toUpperCase();
+      const gameCodeUpper = (orderSnapshot.gameCode || 'LOL').toUpperCase();
+      const gameNameMap: Record<string, string> = {
+        LOL: 'LMHT',
+        AOV: 'Liên Quân Mobile',
+        LIENQUAN: 'Liên Quân Mobile',
+        VALORANT: 'Valorant',
+        TFT: 'ĐTCL',
+        CS2: 'CS2',
+      };
+      const gameDisplay = gameNameMap[gameCodeUpper] || gameCodeUpper;
+      const routeText =
+        details?.current_rank && details?.desired_rank
+          ? ` (${details.current_rank} → ${details.desired_rank})`
+          : '';
+
       if (validBoosterId) {
-        this.userModel.findById(validBoosterId).then((booster) => {
-          if (booster && booster.email) {
-            this.mailService.sendNewOrderNotification(
-              booster.email,
-              booster.username,
-              newOrder._id.toString(),
-              serviceType,
-              newOrder.pricing.booster_earnings || 0,
-            );
-          }
-        });
+        this.userModel
+          .findById(validBoosterId)
+          .select('username email')
+          .lean()
+          .then(async (booster) => {
+            if (booster?.email) {
+              this.mailService.sendNewOrderNotification(
+                booster.email,
+                booster.username,
+                newOrder._id.toString(),
+                serviceType,
+                newOrder.pricing.booster_earnings || 0,
+              );
+            }
+
+            // 1. Thông báo cho Booster được chỉ định / ghép
+            await this.notificationsService.notifyUser({
+              userId: validBoosterId,
+              title: 'Bạn có đơn hàng mới cần cày!',
+              message: `Khách hàng @${user.username} vừa đặt đơn #${orderCodeDisplay} - ${gameDisplay}${routeText}. Vào Sàn Việc Làm để xác nhận nhận đơn ngay!`,
+              type: 'ORDER_UPDATE',
+              link: '/booster/jobs',
+            });
+            this.chatGateway.broadcastBoosterJobsUpdated(validBoosterId.toString());
+
+            // 2. Thông báo xác nhận cho Customer
+            await this.notificationsService.notifyUser({
+              userId: user._id,
+              title: 'Đặt đơn cày thuê thành công!',
+              message: `Đơn hàng #${orderCodeDisplay} - ${gameDisplay}${routeText} đã được gửi tới Tuyển thủ @${booster?.username || 'Booster'} và đang chờ xác nhận nhận đơn.`,
+              type: 'ORDER_UPDATE',
+              link: `/orders/${newOrder._id}`,
+            });
+          })
+          .catch(() => {});
+      } else {
+        // Đơn công khai lên Sàn việc làm: thông báo cho Customer và các Booster sẵn sàng nhận tựa game này
+        this.notificationsService
+          .notifyUser({
+            userId: user._id,
+            title: 'Đặt đơn cày thuê thành công!',
+            message: `Đơn hàng #${orderCodeDisplay} - ${gameDisplay}${routeText} đã được đưa lên Sàn Việc Làm. Hệ thống sẽ báo ngay khi có Tuyển thủ nhận đơn!`,
+            type: 'ORDER_UPDATE',
+            link: `/orders/${newOrder._id}`,
+          })
+          .catch(() => {});
+
+        this.userModel
+          .find({
+            role: UserRole.BOOSTER,
+            _id: { $ne: user._id },
+            'booster_info.isReady': { $ne: false },
+          })
+          .select('_id booster_info.service_settings.selectedGames')
+          .lean()
+          .then(async (boosters) => {
+            const normTarget = gameCodeUpper === 'LMHT' ? 'LOL' : gameCodeUpper === 'LIENQUAN' ? 'AOV' : gameCodeUpper;
+            const eligibleIds = boosters
+              .filter((b: any) => {
+                const selected: string[] = b.booster_info?.service_settings?.selectedGames || [];
+                if (!Array.isArray(selected) || selected.length === 0) return true;
+                return selected.some((g: any) => {
+                  const c = (typeof g === 'string' ? g : g?.gameCode || '').toUpperCase().trim();
+                  const nc = c === 'LMHT' ? 'LOL' : c === 'LIENQUAN' ? 'AOV' : c;
+                  return nc === normTarget;
+                });
+              })
+              .map((b: any) => b._id);
+
+            if (eligibleIds.length > 0) {
+              await this.notificationsService.notifyUsers(eligibleIds, {
+                title: 'Có đơn hàng mới đang chờ nhận!',
+                message: `Đơn #${orderCodeDisplay} - ${gameDisplay}${routeText} đang chờ trên Sàn Việc Làm. Vào nhận đơn ngay!`,
+                type: 'ORDER_UPDATE',
+                link: '/booster/jobs',
+              });
+            }
+            this.chatGateway.broadcastBoosterJobsUpdated();
+          })
+          .catch(() => {});
       }
 
       return {
@@ -482,6 +571,25 @@ export class OrdersService {
     });
 
     await order.save();
+
+    // Thông báo realtime cho Customer khi Booster đã nhận đơn + đồng bộ badge số đơn chờ
+    const orderCodeDisplay = order.orderCode || order._id.toString().slice(-6).toUpperCase();
+    this.userModel
+      .findById(boosterId)
+      .select('username')
+      .lean()
+      .then(async (booster) => {
+        await this.notificationsService.notifyUser({
+          userId: order.customerId,
+          title: 'Đơn hàng của bạn đã được nhận!',
+          message: `Tuyển thủ @${booster?.username || 'Booster'} đã xác nhận nhận đơn hàng #${orderCodeDisplay} của bạn và sẽ sớm tiến hành cày.`,
+          type: 'ORDER_UPDATE',
+          link: `/orders/${order._id}`,
+        });
+      })
+      .catch(() => {});
+    this.chatGateway.broadcastBoosterJobsUpdated();
+
     return { success: true, message: 'Nhận đơn thành công!', order };
   }
 
@@ -724,6 +832,18 @@ export class OrdersService {
       );
 
       await session.commitTransaction();
+
+      // Thông báo cho Customer khi đơn hàng hoàn thành
+      const completedCode = order.orderCode || order._id.toString().slice(-6).toUpperCase();
+      this.notificationsService
+        .notifyUser({
+          userId: order.customerId,
+          title: 'Đơn hàng của bạn đã hoàn thành!',
+          message: `Tuyển thủ đã báo cáo hoàn thành đơn hàng #${completedCode}. Vui lòng kiểm tra kết quả và đánh giá Tuyển thủ!`,
+          type: 'ORDER_UPDATE',
+          link: `/orders/${order._id}`,
+        })
+        .catch(() => {});
 
       // Đồng bộ số đơn hoàn thành cho Booster
       try {

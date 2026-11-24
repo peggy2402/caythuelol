@@ -476,39 +476,54 @@ function GameServicesContent() {
         </div>
 
         {/* Hero Header */}
-        <div
-          className={`relative rounded-3xl p-6 sm:p-8 mb-8 border border-white/10 bg-gradient-to-r ${game.gradient} overflow-hidden shadow-2xl`}
-        >
-          <div className="absolute inset-0 bg-black/50 backdrop-blur-xs" />
+        <div className="relative rounded-3xl p-5 sm:p-8 lg:p-9 mb-7 border border-white/10 bg-[#0b0f19] overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.65)]">
+          {/* Background Game Artwork + Atmospheric Gradient Scrim */}
+          {(game.bannerUrl || game.banner) && (
+            <div className="absolute inset-0 pointer-events-none select-none">
+              <Image
+                src={game.bannerUrl || game.banner}
+                alt={game.name}
+                fill
+                priority
+                className="object-cover object-center opacity-35 scale-105"
+              />
+            </div>
+          )}
+          <div className={`absolute inset-0 bg-gradient-to-r ${game.gradient} opacity-25 mix-blend-screen pointer-events-none`} />
+          <div className="absolute inset-0 bg-gradient-to-r from-[#080b12]/95 via-[#090d16]/80 to-[#080b12]/55 pointer-events-none" />
+          <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/25 to-transparent pointer-events-none" />
+
           <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-            <div className="max-w-2xl">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 border border-white/20 text-white text-xs font-bold uppercase tracking-wider mb-3">
-                <Gamepad2 size={13} />
+            <div className="max-w-2xl space-y-2.5">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/[0.08] border border-white/15 text-cyan-300 text-[11px] font-bold uppercase tracking-wider backdrop-blur-md">
+                <Gamepad2 size={13} className="text-cyan-400" />
                 <span>{game.shortName} Marketplace</span>
               </div>
-              <h1 className="text-2xl sm:text-4xl font-black text-white tracking-tight drop-shadow-md mb-2">
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white tracking-tight leading-tight drop-shadow-md">
                 Sàn Dịch Vụ {game.name}
               </h1>
-              <p className="text-zinc-300 text-xs sm:text-sm leading-relaxed max-w-xl">
+              <p className="text-zinc-300/90 text-xs sm:text-sm leading-relaxed max-w-xl">
                 Khám phá các gói dịch vụ cày thuê do tuyển thủ tự niêm yết giá hoặc lựa chọn tuyển thủ hàng đầu để thuê trực tiếp.
               </p>
             </div>
 
-            {/* Quick Stats Pill */}
-            <div className="flex items-center gap-3 shrink-0">
-              <div className="px-4 py-3 rounded-2xl bg-black/40 border border-white/10 backdrop-blur-md text-center min-w-[100px]">
-                <div className="text-xl sm:text-2xl font-black text-blue-400">
-                  {groupedServices.length}
+            {/* Quick Stats Cards (50/50 trên Mobile, gọn sang bên phải trên PC) */}
+            <div className="grid grid-cols-2 gap-3 w-full md:w-auto shrink-0">
+              <div className="px-4 sm:px-5 py-3.5 rounded-2xl bg-black/45 border border-white/10 backdrop-blur-xl flex flex-col items-center justify-center min-w-[116px] shadow-inner">
+                <div className="flex items-center gap-1.5 text-xl sm:text-2xl font-black text-blue-400 font-mono leading-none">
+                  <Swords size={16} className="text-blue-400/80 shrink-0" />
+                  <span>{groupedServices.length}</span>
                 </div>
-                <div className="text-[11px] font-semibold text-zinc-400">
+                <div className="text-[11px] font-semibold text-zinc-400 mt-1.5 whitespace-nowrap">
                   Gói Dịch Vụ
                 </div>
               </div>
-              <div className="px-4 py-3 rounded-2xl bg-black/40 border border-white/10 backdrop-blur-md text-center min-w-[100px]">
-                <div className="text-xl sm:text-2xl font-black text-emerald-400">
-                  {filteredBoosters.length}
+              <div className="px-4 sm:px-5 py-3.5 rounded-2xl bg-black/45 border border-white/10 backdrop-blur-xl flex flex-col items-center justify-center min-w-[116px] shadow-inner">
+                <div className="flex items-center gap-1.5 text-xl sm:text-2xl font-black text-emerald-400 font-mono leading-none">
+                  <Users size={16} className="text-emerald-400/80 shrink-0" />
+                  <span>{filteredBoosters.length}</span>
                 </div>
-                <div className="text-[11px] font-semibold text-zinc-400">
+                <div className="text-[11px] font-semibold text-zinc-400 mt-1.5 whitespace-nowrap">
                   Tuyển Thủ
                 </div>
               </div>
@@ -516,47 +531,57 @@ function GameServicesContent() {
           </div>
         </div>
 
-        {/* Two-Tab Switcher: Services Marketplace vs Boosters */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-          <div className="inline-flex p-1 bg-zinc-900/80 border border-white/10 rounded-2xl">
+        {/* Two-Tab Switcher & Search Box (Cân đối chiều cao h-12 trên PC & Mobile) */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3.5 mb-7">
+          <div className="grid grid-cols-2 md:inline-flex p-1.5 bg-zinc-900/90 border border-white/10 rounded-2xl backdrop-blur-md shadow-lg w-full md:w-auto">
             <button
               type="button"
               onClick={() => setActiveTab('SERVICES')}
-              className={`flex items-center gap-2 px-4 sm:px-6 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all ${activeTab === 'SERVICES'
-                  ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
+              className={`flex items-center justify-center gap-2 px-3 sm:px-5 h-9 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer whitespace-nowrap ${activeTab === 'SERVICES'
+                  ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-600/30'
                   : 'text-zinc-400 hover:text-white'
                 }`}
             >
-              <Swords size={16} />
-              <span>Gói Dịch Vụ ({groupedServices.length})</span>
+              <Swords size={15} className="shrink-0" />
+              <span className="truncate">Gói Dịch Vụ ({groupedServices.length})</span>
             </button>
             <button
               type="button"
               onClick={() => setActiveTab('BOOSTERS')}
-              className={`flex items-center gap-2 px-4 sm:px-6 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all ${activeTab === 'BOOSTERS'
-                  ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
+              className={`flex items-center justify-center gap-2 px-3 sm:px-5 h-9 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer whitespace-nowrap ${activeTab === 'BOOSTERS'
+                  ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-blue-600/30'
                   : 'text-zinc-400 hover:text-white'
                 }`}
             >
-              <Users size={16} />
-              <span>Danh Sách Tuyển Thủ ({filteredBoosters.length})</span>
+              <Users size={15} className="shrink-0" />
+              <span className="truncate">Tuyển Thủ ({filteredBoosters.length})</span>
             </button>
           </div>
 
-          {/* Search Box */}
-          <div className="relative min-w-[260px]">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+          {/* Search Box rộng rãi, không cắt chữ placeholder */}
+          <div className="relative w-full md:w-80 lg:w-96">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 pointer-events-none" />
             <input
               type="text"
               placeholder={
                 activeTab === 'SERVICES'
-                  ? 'Tìm theo tên gói hoặc tuyển thủ...'
+                  ? 'Tìm gói dịch vụ hoặc tuyển thủ...'
                   : 'Tìm tuyển thủ theo tên...'
               }
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-zinc-900 border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-xs sm:text-sm text-white placeholder-zinc-500 focus:border-blue-500 outline-none"
+              className="w-full h-12 bg-zinc-900/90 border border-white/10 rounded-2xl pl-11 pr-10 text-xs sm:text-sm text-white placeholder-zinc-500 focus:border-blue-500/70 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all shadow-lg"
             />
+            {searchTerm && (
+              <button
+                type="button"
+                onClick={() => setSearchTerm('')}
+                aria-label="Xóa tìm kiếm"
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-lg text-zinc-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+              >
+                <X size={14} />
+              </button>
+            )}
           </div>
         </div>
 
@@ -645,47 +670,56 @@ function GameServicesContent() {
                         </div>
                       </div>
 
-                      {/* PHẦN ĐÁY: CHẤM TRÒN AVATAR BOOSTER + (+N) + MŨI TÊN (Khớp 100% bản vẽ tay) */}
-                      <div className="pt-3.5 mt-3.5 border-t border-zinc-800/80 flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <div className="flex items-center -space-x-2 overflow-hidden">
-                            {displayBoosters.map((b, idx) => {
-                              const colorClass = AVATAR_BG_COLORS[idx % AVATAR_BG_COLORS.length];
-                              const initial = (b.displayName || b.username || 'B').slice(0, 1).toUpperCase();
+                      {/* PHẦN ĐÁY: CHẤM TRÒN AVATAR BOOSTER + (+N) + MŨI TÊN */}
+                      <div className="pt-3.5 mt-3.5 border-t border-zinc-800/80 flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 min-w-0">
+                          {displayBoosters.length > 0 ? (
+                            <>
+                              <div className="flex items-center -space-x-2 overflow-hidden">
+                                {displayBoosters.map((b, idx) => {
+                                  const colorClass = AVATAR_BG_COLORS[idx % AVATAR_BG_COLORS.length];
+                                  const initial = (b.displayName || b.username || 'B').slice(0, 1).toUpperCase();
 
-                              return (
-                                <div
-                                  key={b._id || idx}
-                                  title={b.displayName || b.username || `Tuyển thủ #${idx + 1}`}
-                                  className="relative inline-block w-8 h-8 rounded-full ring-2 ring-[#0c101d] overflow-hidden shrink-0 shadow-md"
-                                >
-                                  {b.avatar ? (
-                                    // eslint-disable-next-line @next/next/no-img-element
-                                    <img
-                                      src={b.avatar}
-                                      alt={b.displayName || b.username || ''}
-                                      referrerPolicy="no-referrer"
-                                      className="w-full h-full object-cover"
-                                      onError={(e) => {
-                                        e.currentTarget.onerror = null;
-                                        e.currentTarget.src = '/default-avatar.png';
-                                      }}
-                                    />
-                                  ) : (
+                                  return (
                                     <div
-                                      className={`w-full h-full flex items-center justify-center text-xs font-black ${colorClass}`}
+                                      key={b._id || idx}
+                                      title={b.displayName || b.username || `Tuyển thủ #${idx + 1}`}
+                                      className="relative inline-block w-8 h-8 rounded-full ring-2 ring-[#0c101d] overflow-hidden shrink-0 shadow-md"
                                     >
-                                      {initial}
+                                      {b.avatar ? (
+                                        // eslint-disable-next-line @next/next/no-img-element
+                                        <img
+                                          src={b.avatar}
+                                          alt={b.displayName || b.username || ''}
+                                          referrerPolicy="no-referrer"
+                                          className="w-full h-full object-cover"
+                                          onError={(e) => {
+                                            e.currentTarget.onerror = null;
+                                            e.currentTarget.src = '/default-avatar.png';
+                                          }}
+                                        />
+                                      ) : (
+                                        <div
+                                          className={`w-full h-full flex items-center justify-center text-xs font-black ${colorClass}`}
+                                        >
+                                          {initial}
+                                        </div>
+                                      )}
                                     </div>
-                                  )}
-                                </div>
-                              );
-                            })}
-                          </div>
+                                  );
+                                })}
+                              </div>
 
-                          {remainingCount > 0 && (
-                            <span className="text-xs font-black text-amber-400 pl-0.5">
-                              +{remainingCount}
+                              {remainingCount > 0 && (
+                                <span className="text-xs font-black text-amber-400 pl-0.5">
+                                  +{remainingCount}
+                                </span>
+                              )}
+                            </>
+                          ) : (
+                            <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-zinc-400">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                              <span className="truncate">Đặt ngay · Ghép tự động</span>
                             </span>
                           )}
                         </div>
