@@ -516,6 +516,23 @@ export default function WalletPage() {
     }
   };
 
+  const getTransactionTitle = (tx: Transaction) => {
+    if (tx.description && !tx.description.startsWith('BankAPINotify')) {
+      return tx.description;
+    }
+    if (tx.type === 'DEPOSIT') {
+      return `Nạp tiền vào tài khoản (${formatCurrency(Math.abs(tx.amount))})`;
+    }
+    if (tx.type === 'WITHDRAWAL') {
+      return `Yêu cầu rút tiền (${formatCurrency(Math.abs(tx.amount))})`;
+    }
+    if (tx.type === 'HOLD' || tx.type === 'PAYMENT_HOLD') return 'Tạm giữ tiền cọc đơn hàng';
+    if (tx.type === 'RELEASE' || tx.type === 'PAYMENT_RELEASE') return 'Nhận tiền công cày thuê';
+    if (tx.type === 'REFUND') return 'Hoàn tiền vào ví';
+    if (tx.type === 'DISPUTE_PENALTY') return 'Truy thu tiền khiếu nại đơn';
+    return tx.description || tx.type;
+  };
+
   const getTransactionStatusMeta = (status: string, type?: string) => {
     const s = (status || '').toUpperCase();
     switch (s) {
@@ -786,7 +803,7 @@ export default function WalletPage() {
                     <div className="min-w-0 flex-1 space-y-1">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="text-sm font-bold text-white truncate group-hover:text-blue-300 transition-colors">
-                          {tx.metadata?.description || tx.description || tx.type}
+                          {getTransactionTitle(tx)}
                         </span>
                         <span className={`text-[10px] px-2 py-0.5 rounded-full border ${typeMeta.bg} ${typeMeta.color} font-medium shrink-0`}>
                           {typeMeta.label}
