@@ -293,7 +293,7 @@ export default function CustomerLoyaltyPage() {
       </div>
 
       {/* Navigation Tabs */}
-      <div className="flex items-center gap-2 border-b border-white/10 pb-3 overflow-x-auto">
+      <div className="flex flex-wrap items-center gap-2 border-b border-white/10 pb-3">
         <button
           type="button"
           onClick={() => setActiveTab('catalog')}

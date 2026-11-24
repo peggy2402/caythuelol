@@ -163,8 +163,8 @@ export default function BoosterOrdersPage() {
       </div>
 
       {/* Filters */}
-      <div className="flex flex-col md:flex-row gap-4 justify-between">
-        <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar -mx-4 px-4 md:mx-0 md:px-0">
+      <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center">
+        <div className="flex flex-wrap items-center gap-2">
           {filterOptions.map(option => (
             <button
               key={option.id}
