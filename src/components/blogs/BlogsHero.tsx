@@ -2,14 +2,14 @@
 
 import { useRef } from 'react';
 import Link from 'next/link';
-import { Flame, Search, X, Loader2, ArrowRight } from 'lucide-react';
+import { Flame, Search, X, Loader2, ArrowRight, LayoutGrid, BookOpen, Trophy, Bell } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 
 export const BLOG_CATEGORIES = [
-  { id: 'All', label: 'Tất Cả' },
-  { id: 'Meta & Guide', label: 'Cẩm Nang Meta' },
-  { id: 'Esports', label: 'Tin Tức Esports' },
-  { id: 'System', label: 'Thông Báo Hệ Thống' }
+  { id: 'All', label: 'Tất Cả', icon: LayoutGrid },
+  { id: 'Meta & Guide', label: 'Cẩm Nang Meta', icon: BookOpen },
+  { id: 'Esports', label: 'Tin Tức Esports', icon: Trophy },
+  { id: 'System', label: 'Thông Báo Hệ Thống', icon: Bell }
 ];
 
 interface BlogsHeroProps {
@@ -80,22 +80,22 @@ export default function BlogsHero({
         </h1>
 
         <p className="text-zinc-400 text-sm sm:text-base leading-relaxed max-w-2xl mx-auto mb-8">
-          Phân tích chuyên sâu meta LMHT, Valorant, ĐTCL từ cựu tuyển thủ và chuyên viên phân tích. Hướng dẫn mẹo leo rank, lối lên đồ và thông báo cập nhật hệ thống.
+          Phân tích chuyên sâu meta LMHT, Valorant, ĐTCL, Liên Quân từ cựu tuyển thủ và chuyên viên phân tích. Hướng dẫn mẹo leo rank, lối lên đồ và thông báo cập nhật hệ thống.
         </p>
       </div>
 
       {/* 2. Search & Category Controls */}
-      <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-12" ref={searchContainerRef}>
+      <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4 mb-10" ref={searchContainerRef}>
         {/* Search Input with Live Dropdown */}
-        <div className="relative w-full md:max-w-sm">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+        <div className="relative w-full lg:max-w-sm">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 pointer-events-none" />
           <input
             type="text"
             placeholder="Tìm kiếm bài viết, giáo án meta..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             onKeyDown={handleSearchKeyDown}
-            className="w-full bg-zinc-900/90 border border-zinc-800 rounded-2xl pl-11 pr-10 py-3 text-xs sm:text-sm text-white focus:border-cyan-500 outline-none transition-colors shadow-xl backdrop-blur-md"
+            className="w-full h-12 bg-zinc-900/90 border border-white/10 rounded-2xl pl-11 pr-10 text-xs sm:text-sm text-white placeholder-zinc-500 focus:border-cyan-500/70 focus:ring-2 focus:ring-cyan-500/20 outline-none transition-all shadow-xl backdrop-blur-md"
           />
           {searchTerm && (
             <button
@@ -157,24 +157,36 @@ export default function BlogsHero({
           </AnimatePresence>
         </div>
 
-        {/* Category Filter Chips */}
-        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar w-full md:w-auto pb-2 md:pb-0">
-          {BLOG_CATEGORIES.map((category) => {
-            const isSelected = activeCategory === category.id;
-            return (
-              <button
-                key={category.id}
-                onClick={() => onCategoryChange(category.id)}
-                className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
-                  isSelected
-                    ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-[0_0_20px_rgba(6,182,212,0.35)] scale-105'
-                    : 'bg-zinc-900/80 border border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-700'
-                }`}
-              >
-                {category.label}
-              </button>
-            );
-          })}
+        {/* Category Filter Tabs (Segmented Glass Bar - Không bị cắt viền/shadow) */}
+        <div className="w-full lg:w-auto overflow-x-auto no-scrollbar">
+          <div className="inline-flex items-center gap-1.5 p-1.5 rounded-2xl bg-zinc-900/80 border border-white/10 backdrop-blur-md shadow-xl min-w-max">
+            {BLOG_CATEGORIES.map((category) => {
+              const isSelected = activeCategory === category.id;
+              const IconComp = category.icon;
+              return (
+                <button
+                  key={category.id}
+                  type="button"
+                  onClick={() => onCategoryChange(category.id)}
+                  className={`relative px-4 py-2 rounded-xl text-xs sm:text-[13px] font-bold transition-colors whitespace-nowrap flex items-center gap-2 cursor-pointer ${
+                    isSelected
+                      ? 'text-white'
+                      : 'text-zinc-400 hover:text-zinc-100 hover:bg-white/[0.04]'
+                  }`}
+                >
+                  {isSelected && (
+                    <motion.span
+                      layoutId="activeBlogCategoryPill"
+                      transition={{ type: 'spring', stiffness: 420, damping: 32 }}
+                      className="absolute inset-0 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 shadow-[0_4px_16px_rgba(6,182,212,0.35)]"
+                    />
+                  )}
+                  <IconComp size={14} className={`relative z-10 shrink-0 ${isSelected ? 'text-white' : 'text-zinc-500'}`} />
+                  <span className="relative z-10">{category.label}</span>
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
     </div>

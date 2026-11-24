@@ -1064,8 +1064,7 @@ export default function BoosterServicesStudio() {
                         )}
 
                         {/* Danh sách các tựa game dạng cuộn dọc gọn gàng */}
-                        <div className="max-h-64 overflow-y-auto space-y-1.5 pr-1 custom-scrollbar">
-                          <div className="max-h-64 overflow-y-auto space-y-1.5 pr-1 custom-dark-scrollbar">
+                        <div className="max-h-64 overflow-y-auto space-y-1.5 pr-1 custom-dark-scrollbar">
                             {selectedGames
                               .filter((gCode) => {
                                 if (!gameSearchQuery.trim()) return true;
@@ -2195,8 +2194,7 @@ export default function BoosterServicesStudio() {
           {isModalOpen && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-3 sm:p-6 animate-in fade-in duration-200">
               <div
-                className={`bg-[#0e1017] border border-white/10 rounded-3xl w-full shadow-[0_25px_80px_rgba(0,0,0,0.85)] overflow-hidden flex flex-col max-h-[92vh] transition-all duration-200 ${modalStep === 2 && (formData.serviceType === 'rank-boost' || formData.serviceType === 'net-wins')
-            className={`bg-[#0e1017] border border-white/10 rounded-3xl w-full shadow-[0_25px_80px_rgba(0,0,0,0.85)] overflow-hidden flex flex-col max-h-[92vh] transition-all duration-200 ${modalStep === 2 && ['rank-boost', 'net-wins', 'mastery', 'promotion'].includes(formData.serviceType || '')
+                className={`bg-[#0e1017] border border-white/10 rounded-3xl w-full shadow-[0_25px_80px_rgba(0,0,0,0.85)] overflow-hidden flex flex-col max-h-[92vh] transition-all duration-200 ${modalStep === 2 && ['rank-boost', 'net-wins', 'mastery', 'promotion'].includes(formData.serviceType || '')
                   ? 'max-w-5xl'
                   : 'max-w-2xl'
                   }`}
@@ -2706,76 +2704,65 @@ export default function BoosterServicesStudio() {
                           </div>
 
                           {/* Bảng giá từng mốc cấp độ thông thạo */}
-                          <div>
-                            <div className="flex items-center justify-between mb-2">
-                              <label className="text-zinc-400 font-bold uppercase block text-xs">
-                                <div className="space-y-3">
-                                  <div className="flex flex-wrap items-center justify-between gap-2">
-                                    <label className="text-zinc-200 font-extrabold uppercase block text-xs sm:text-sm">
-                                      Bảng Giá Chi Tiết Theo Nấc Thông Thạo (Cấp 1 ➔ Cấp 10+)
-                                    </label>
-                                    <button
-                                      type="button"
-                                      onClick={() => setFormData({ ...formData, stepOverrides: {} })}
-                                      className="text-[11px] text-cyan-400 hover:underline cursor-pointer"
-                                      className="text-xs font-bold text-cyan-400 hover:text-cyan-300 px-3 py-1 rounded-lg bg-cyan-500/10 border border-cyan-500/25 hover:border-cyan-400/50 transition-colors cursor-pointer"
-                                    >
-                                      Dùng giá mặc định
-                                    </button>
-                                  </div>
+                          <div className="space-y-3">
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                              <label className="text-zinc-200 font-extrabold uppercase block text-xs sm:text-sm">
+                                Bảng Giá Chi Tiết Theo Nấc Thông Thạo (Cấp 1 ➔ Cấp 10+)
+                              </label>
+                              <button
+                                type="button"
+                                onClick={() => setFormData({ ...formData, stepOverrides: {} })}
+                                className="text-xs font-bold text-cyan-400 hover:text-cyan-300 px-3 py-1 rounded-lg bg-cyan-500/10 border border-cyan-500/25 hover:border-cyan-400/50 transition-colors cursor-pointer"
+                              >
+                                Dùng giá mặc định
+                              </button>
+                            </div>
 
-                                  <div className="max-h-56 overflow-y-auto border border-zinc-800 rounded-xl p-3 bg-zinc-950 space-y-2">
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                      {LOL_MASTERY_STEPS.map((mStep) => {
-                                        const overrideVal = formData.stepOverrides?.[mStep.id] ?? mStep.defaultPrice;
-                                        return (
-                                          <div
-                                            key={mStep.id}
-                                            className="flex items-center justify-between text-xs py-2 border-b border-zinc-900 last:border-none gap-2"
-                                            className="flex items-center justify-between p-3.5 rounded-2xl bg-zinc-950/90 border border-zinc-800 hover:border-cyan-500/40 transition-colors gap-3"
-                                          >
-                                            <div className="min-w-0">
-                                              <div className="font-bold text-white text-xs">{mStep.label}</div>
-                                              <div className="text-[10px] text-zinc-500">
-                                                <div className="font-extrabold text-white text-xs sm:text-sm">{mStep.label}</div>
-                                                <div className="text-[11px] text-zinc-400 mt-0.5 truncate">
-                                                  {mStep.pointsReq} {mStep.marksReq !== 'Không có' ? `+ ${mStep.marksReq}` : ''}
-                                                </div>
-                                              </div>
-                                              <div className="flex items-center gap-1.5 shrink-0">
-                                                <div className="relative w-32 shrink-0">
-                                                  <input
-                                                    type="text"
-                                                    inputMode="numeric"
-                                                    pattern="[0-9]*"
-                                                    value={overrideVal || ''}
-                                                    placeholder="0"
-                                                    onChange={(e) => {
-                                                      const clean = e.target.value.replace(/\D/g, '').replace(/^0+/, '');
-                                                      const val = clean ? parseInt(clean, 10) : 0;
-                                                      const steps = { ...(formData.stepOverrides || {}) };
-                                                      if (val <= 0) {
-                                                        delete steps[mStep.id];
-                                                      } else {
-                                                        steps[mStep.id] = val;
-                                                      }
-                                                      setFormData({ ...formData, stepOverrides: steps });
-                                                    }}
-                                                    className="w-24 bg-zinc-900 border border-zinc-700 rounded-lg px-2 py-1 text-xs text-white font-mono font-bold text-right outline-none focus:border-cyan-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                                                    className="w-full bg-zinc-900 border border-zinc-700/90 rounded-xl pr-7 pl-3 py-2 text-xs sm:text-sm text-white font-mono font-bold text-right outline-none focus:border-cyan-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                                                  />
-                                                  <span className="text-[10px] text-zinc-500 font-bold">đ</span>
-                                                  <span className="text-xs font-bold text-zinc-500 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none">
-                                                    đ
-                                                  </span>
-                                                </div>
-                                              </div>
-                                              );
-                        })}
-                                            </div>
-                                          </div>
-                  </div>
-                )}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                              {LOL_MASTERY_STEPS.map((mStep) => {
+                                const overrideVal = formData.stepOverrides?.[mStep.id] ?? mStep.defaultPrice;
+                                return (
+                                  <div
+                                    key={mStep.id}
+                                    className="flex items-center justify-between p-3.5 rounded-2xl bg-zinc-950/90 border border-zinc-800 hover:border-cyan-500/40 transition-colors gap-3"
+                                  >
+                                    <div className="min-w-0">
+                                      <div className="font-extrabold text-white text-xs sm:text-sm">{mStep.label}</div>
+                                      <div className="text-[11px] text-zinc-400 mt-0.5 truncate">
+                                        {mStep.pointsReq} {mStep.marksReq !== 'Không có' ? `+ ${mStep.marksReq}` : ''}
+                                      </div>
+                                    </div>
+                                    <div className="relative w-32 shrink-0">
+                                      <input
+                                        type="text"
+                                        inputMode="numeric"
+                                        pattern="[0-9]*"
+                                        value={overrideVal || ''}
+                                        placeholder="0"
+                                        onChange={(e) => {
+                                          const clean = e.target.value.replace(/\D/g, '').replace(/^0+/, '');
+                                          const val = clean ? parseInt(clean, 10) : 0;
+                                          const steps = { ...(formData.stepOverrides || {}) };
+                                          if (val <= 0) {
+                                            delete steps[mStep.id];
+                                          } else {
+                                            steps[mStep.id] = val;
+                                          }
+                                          setFormData({ ...formData, stepOverrides: steps });
+                                        }}
+                                        className="w-full bg-zinc-900 border border-zinc-700/90 rounded-xl pr-7 pl-3 py-2 text-xs sm:text-sm text-white font-mono font-bold text-right outline-none focus:border-cyan-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                      />
+                                      <span className="text-xs font-bold text-zinc-500 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none">
+                                        đ
+                                      </span>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        </div>
+                      )}
 
                                     {/* TRƯỜNG HỢP 5: CÀY CẤP ĐỘ (LEVELING) */}
                                     {formData.serviceType === 'leveling' && (
@@ -2940,109 +2927,92 @@ export default function BoosterServicesStudio() {
                                           </p>
                                         </div>
 
-                                        <div className="space-y-2">
-                                          <div className="flex items-center justify-between">
-                                            <label className="text-zinc-400 font-bold uppercase block text-xs">
-                                              <div className="space-y-3">
-                                                <div className="flex flex-wrap items-center justify-between gap-2">
-                                                  <label className="text-zinc-200 font-extrabold uppercase block text-xs sm:text-sm">
-                                                    Bảng Giá Chi Tiết Theo Từng Chuỗi (7 Nấc)
-                                                  </label>
-                                                  <button
-                                                    type="button"
-                                                    onClick={() => {
-                                                      setFormData({
-                                                        ...formData,
-                                                        price: 40000,
-                                                        stepOverrides: {},
-                                                      });
-                                                    }}
-                                                    className="text-[11px] text-cyan-400 hover:underline cursor-pointer"
-                                                    className="text-xs font-bold text-cyan-400 hover:text-cyan-300 px-3 py-1 rounded-lg bg-cyan-500/10 border border-cyan-500/25 hover:border-cyan-400/50 transition-colors cursor-pointer"
-                                                  >
-                                                    Dùng giá mặc định
-                                                  </button>
-                                                </div>
+                                        <div className="space-y-3">
+                                          <div className="flex flex-wrap items-center justify-between gap-2">
+                                            <label className="text-zinc-200 font-extrabold uppercase block text-xs sm:text-sm">
+                                              Bảng Giá Chi Tiết Theo Từng Chuỗi (7 Nấc)
+                                            </label>
+                                            <button
+                                              type="button"
+                                              onClick={() => {
+                                                setFormData({
+                                                  ...formData,
+                                                  price: 40000,
+                                                  stepOverrides: {},
+                                                });
+                                              }}
+                                              className="text-xs font-bold text-cyan-400 hover:text-cyan-300 px-3 py-1 rounded-lg bg-cyan-500/10 border border-cyan-500/25 hover:border-cyan-400/50 transition-colors cursor-pointer"
+                                            >
+                                              Dùng giá mặc định
+                                            </button>
+                                          </div>
 
-                                                <div className="border border-zinc-800 rounded-xl p-3 bg-zinc-950 space-y-2 max-h-64 overflow-y-auto">
-                                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                                    {LOL_PROMOTION_SERIES.map((promoStep) => {
-                                                      const overrideVal = formData.stepOverrides?.[promoStep.id] ?? promoStep.defaultPrice;
-                                                      return (
-                                                        <div
-                                                          key={promoStep.id}
-                                                          className="flex items-center justify-between text-xs py-2 border-b border-zinc-900 last:border-none gap-2"
-                                                          className="flex items-center justify-between p-3.5 rounded-2xl bg-zinc-950/90 border border-zinc-800 hover:border-amber-500/40 transition-colors gap-3"
-                                                        >
-                                                          <div className="flex items-center gap-2.5 min-w-0">
-                                                            <div className="flex items-center gap-1.5 shrink-0">
-                                                              <div className="flex items-center gap-3 min-w-0">
-                                                                <div className="flex items-center gap-1.5 bg-black/40 border border-white/5 rounded-xl px-2 py-1.5 shrink-0">
-                                                                  <img
-                                                                    src={promoStep.icon}
-                                                                    alt={promoStep.fromLabel}
-                                                                    className="w-6 h-6 object-contain"
-                                                                    className="w-7 h-7 object-contain"
-                                                                  />
-                                                                  <span className="text-zinc-500 text-[10px]">➔</span>
-                                                                  <ArrowRight size={12} className="text-zinc-500" />
-                                                                  <img
-                                                                    src={promoStep.targetIcon}
-                                                                    alt={promoStep.toLabel}
-                                                                    className="w-6 h-6 object-contain"
-                                                                    className="w-7 h-7 object-contain"
-                                                                  />
-                                                                </div>
-                                                                <div>
-                                                                  <div className="font-bold text-white text-xs">
-                                                                    <div className="min-w-0">
-                                                                      <div className="font-extrabold text-white text-xs sm:text-sm truncate">
-                                                                        {promoStep.fromLabel} ➔ {promoStep.toLabel}
-                                                                      </div>
-                                                                      <div className="text-[10px] text-zinc-500">
-                                                                        <div className="text-[11px] text-zinc-400 truncate mt-0.5">
-                                                                          Chuỗi BO3/BO5 · Cam kết thăng hạng
-                                                                        </div>
-                                                                      </div>
-                                                                    </div>
-                                                                    <div className="flex items-center gap-1.5 shrink-0">
-                                                                      <div className="relative w-32 shrink-0">
-                                                                        <input
-                                                                          type="text"
-                                                                          inputMode="numeric"
-                                                                          pattern="[0-9]*"
-                                                                          value={overrideVal || ''}
-                                                                          placeholder="0"
-                                                                          onChange={(e) => {
-                                                                            const clean = e.target.value.replace(/\D/g, '').replace(/^0+/, '');
-                                                                            const val = clean ? parseInt(clean, 10) : 0;
-                                                                            const steps = { ...(formData.stepOverrides || {}) };
-                                                                            if (val <= 0) {
-                                                                              delete steps[promoStep.id];
-                                                                            } else {
-                                                                              steps[promoStep.id] = val;
-                                                                            }
-                                                                            setFormData({
-                                                                              ...formData,
-                                                                              price: formData.price || promoStep.defaultPrice,
-                                                                              stepOverrides: steps,
-                                                                            });
-                                                                          }}
-                                                                          className="w-24 bg-zinc-900 border border-zinc-700 rounded-lg px-2 py-1 text-xs text-white font-mono font-bold text-right outline-none focus:border-cyan-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                                                                          className="w-full bg-zinc-900 border border-zinc-700/90 rounded-xl pr-7 pl-3 py-2 text-xs sm:text-sm text-white font-mono font-bold text-right outline-none focus:border-cyan-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                                                                        />
-                                                                        <span className="text-[10px] text-zinc-500 font-bold">đ</span>
-                                                                        <span className="text-xs font-bold text-zinc-500 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none">
-                                                                          đ
-                                                                        </span>
-                                                                      </div>
-                                                                    </div>
-                                                                    );
-                        })}
-                                                                  </div>
-                                                                </div>
-                                                              </div>
-                )}
+                                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                            {LOL_PROMOTION_SERIES.map((promoStep) => {
+                                              const overrideVal = formData.stepOverrides?.[promoStep.id] ?? promoStep.defaultPrice;
+                                              return (
+                                                <div
+                                                  key={promoStep.id}
+                                                  className="flex items-center justify-between p-3.5 rounded-2xl bg-zinc-950/90 border border-zinc-800 hover:border-amber-500/40 transition-colors gap-3"
+                                                >
+                                                  <div className="flex items-center gap-3 min-w-0">
+                                                    <div className="flex items-center gap-1.5 bg-black/40 border border-white/5 rounded-xl px-2 py-1.5 shrink-0">
+                                                      <img
+                                                        src={promoStep.icon}
+                                                        alt={promoStep.fromLabel}
+                                                        className="w-7 h-7 object-contain"
+                                                      />
+                                                      <ArrowRight size={12} className="text-zinc-500" />
+                                                      <img
+                                                        src={promoStep.targetIcon}
+                                                        alt={promoStep.toLabel}
+                                                        className="w-7 h-7 object-contain"
+                                                      />
+                                                    </div>
+                                                    <div className="min-w-0">
+                                                      <div className="font-extrabold text-white text-xs sm:text-sm truncate">
+                                                        {promoStep.fromLabel} ➔ {promoStep.toLabel}
+                                                      </div>
+                                                      <div className="text-[11px] text-zinc-400 truncate mt-0.5">
+                                                        Chuỗi BO3/BO5 · Cam kết thăng hạng
+                                                      </div>
+                                                    </div>
+                                                  </div>
+                                                  <div className="relative w-32 shrink-0">
+                                                    <input
+                                                      type="text"
+                                                      inputMode="numeric"
+                                                      pattern="[0-9]*"
+                                                      value={overrideVal || ''}
+                                                      placeholder="0"
+                                                      onChange={(e) => {
+                                                        const clean = e.target.value.replace(/\D/g, '').replace(/^0+/, '');
+                                                        const val = clean ? parseInt(clean, 10) : 0;
+                                                        const steps = { ...(formData.stepOverrides || {}) };
+                                                        if (val <= 0) {
+                                                          delete steps[promoStep.id];
+                                                        } else {
+                                                          steps[promoStep.id] = val;
+                                                        }
+                                                        setFormData({
+                                                          ...formData,
+                                                          price: formData.price || promoStep.defaultPrice,
+                                                          stepOverrides: steps,
+                                                        });
+                                                      }}
+                                                      className="w-full bg-zinc-900 border border-zinc-700/90 rounded-xl pr-7 pl-3 py-2 text-xs sm:text-sm text-white font-mono font-bold text-right outline-none focus:border-cyan-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                                    />
+                                                    <span className="text-xs font-bold text-zinc-500 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none">
+                                                      đ
+                                                    </span>
+                                                  </div>
+                                                </div>
+                                              );
+                                            })}
+                                          </div>
+                                        </div>
+                                      </div>
+                                    )}
 
                                                               {/* TRƯỜNG HỢP 8: GÓI TÙY CHỈNH (CUSTOM) */}
                                                               {formData.serviceType === 'custom' && (
