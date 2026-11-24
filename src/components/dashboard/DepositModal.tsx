@@ -150,13 +150,7 @@ export default function DepositModal({
 
     const checkDepositStatus = async () => {
       try {
-        const res = await fetch(`/api/wallet?page=1&limit=5&_t=${Date.now()}_${Math.random()}`, {
-          cache: 'no-store',
-          headers: {
-            'Cache-Control': 'no-cache, no-store, must-revalidate',
-            Pragma: 'no-cache',
-          },
-        });
+        const res = await fetch(`/api/wallet?page=1&limit=5&_t=${Date.now()}_${Math.random()}`);
         if (!res.ok || !isMounted) return;
         const data = await res.json();
         const currentBal = data.wallet?.balance ?? data.wallet?.wallet_balance ?? 0;
