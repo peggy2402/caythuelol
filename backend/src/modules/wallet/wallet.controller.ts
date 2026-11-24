@@ -5,6 +5,7 @@ import {
   Body,
   Query,
   UseGuards,
+  Header,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { WalletService } from './wallet.service';
@@ -19,6 +20,9 @@ export class WalletController {
   constructor(private walletService: WalletService) {}
 
   @Get()
+  @Header('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate')
+  @Header('Pragma', 'no-cache')
+  @Header('Expires', '0')
   @ApiOperation({ summary: 'Get current wallet balance and transactions' })
   async getWallet(
     @ReqUser() user: any,

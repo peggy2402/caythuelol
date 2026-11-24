@@ -88,7 +88,14 @@ export default function WalletPage() {
       if (status && status !== 'ALL') params.set('status', status);
       if (search && search.trim()) params.set('search', search.trim());
 
-      const res = await fetch(`/api/wallet?${params.toString()}`);
+      params.set('_t', Date.now().toString());
+      const res = await fetch(`/api/wallet?${params.toString()}`, {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          Pragma: 'no-cache',
+        },
+      });
       const data = await res.json();
       if (res.ok) {
         setBalance(data.balance);
