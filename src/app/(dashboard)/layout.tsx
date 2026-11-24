@@ -221,7 +221,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         window.dispatchEvent(new CustomEvent('user-updated'));
       };
 
-      // Xử lý thông báo Realtime (Match, Message, System)
+      // Xử lý thông báo Realtime (Order, Match, Message, System)
       const handleNotification = (data: any) => {
         console.log('🔔 Notification:', data);
         // Hiển thị Toast
@@ -232,8 +232,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         setUnreadCount((prev) => prev + 1);
       };
 
+      const handleBoosterJobsSocket = () => {
+        window.dispatchEvent(new CustomEvent('booster-jobs-updated'));
+      };
+
       socket.on('wallet_update', handleWalletUpdate);
       socket.on('notification', handleNotification);
+      socket.on('booster_jobs_updated', handleBoosterJobsSocket);
 
       window.addEventListener('user-updated', updateUserData);
       window.addEventListener('wallet_update', handleCustomWalletUpdate);
@@ -250,6 +255,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         socket.off('connect', joinRoom);
         socket.off('wallet_update', handleWalletUpdate);
         socket.off('notification', handleNotification);
+        socket.off('booster_jobs_updated', handleBoosterJobsSocket);
         window.removeEventListener('user-updated', updateUserData);
         window.removeEventListener('wallet_update', handleCustomWalletUpdate);
         window.removeEventListener('focus', fetchFreshData);
@@ -266,7 +272,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       setIsUserMenuOpen(false);
     }
     if (nextOpen && unreadCount > 0) {
-      await fetch('/api/notifications', { method: 'PATCH' });
+      const token = localStorage.getItem('token');
+      await fetch('/api/notifications', {
+        method: 'PATCH',
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      });
       setUnreadCount(0);
     }
   };
@@ -299,7 +309,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     let isMounted = true;
     const fetchJobs = async () => {
       try {
-        const res = await fetch('/api/boosters/market');
+        const token = localStorage.getItem('token');
+        const res = await fetch('/api/boosters/market', {
+          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+        });
         if (res.ok) {
           const data = await res.json();
           if (data.success && isMounted) {
@@ -490,9 +503,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 aria-expanded={isNotiOpen}
                 className="relative rounded-full p-2 text-zinc-400 transition-colors hover:bg-white/5 hover:text-white cursor-pointer"
               >
-                <Bell className="h-5 w-5" />
+                <Bell className={`h-5 w-5 ${unreadCount > 0 ? 'text-white' : ''}`} />
                 {unreadCount > 0 && (
-                  <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-red-500 ring-2 ring-zinc-950 animate-pulse" />
+                  <span className="absolute -right-0.5 -top-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-[10px] font-black text-white flex items-center justify-center ring-2 ring-zinc-950 shadow-md shadow-red-500/40 animate-pulse">
+                    {unreadCount > 99 ? '99+' : unreadCount}
+                  </span>
                 )}
               </button>
 
@@ -500,23 +515,44 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 {isNotiOpen && (
                   <motion.div
                     {...DROPDOWN_MOTION}
-                    className="absolute right-0 top-full mt-2 z-50 w-80 rounded-xl border border-white/10 bg-zinc-900/95 backdrop-blur-xl shadow-2xl overflow-hidden origin-top-right"
+                    className="absolute right-0 top-full mt-2 z-50 w-80 sm:w-96 rounded-2xl border border-white/10 bg-zinc-900/95 backdrop-blur-xl shadow-2xl overflow-hidden origin-top-right"
                   >
-                    <div className="p-3 border-b border-white/5 font-bold text-white text-sm">Thông báo</div>
-                    <div className="max-h-80 overflow-y-auto custom-dark-scrollbar">
+                    <div className="px-4 py-3 border-b border-white/5 flex items-center justify-between">
+                      <span className="font-bold text-white text-sm">Thông báo</span>
+                      <span className="text-[11px] text-zinc-400">
+                        {notifications.length > 0 ? `${notifications.length} gần nhất` : 'Trống'}
+                      </span>
+                    </div>
+                    <div className="max-h-96 overflow-y-auto custom-dark-scrollbar">
                       {notifications.length === 0 ? (
-                        <div className="p-4 text-center text-zinc-500 text-xs">Không có thông báo mới</div>
+                        <div className="p-6 text-center text-zinc-500 text-xs">Không có thông báo mới</div>
                       ) : (
                         notifications.map((noti, idx) => (
                           <Link 
                             href={noti.link || '#'} 
-                            key={idx} 
+                            key={noti._id || idx} 
                             onClick={() => setIsNotiOpen(false)}
-                            className="block p-3 hover:bg-white/5 transition-colors border-b border-white/5 last:border-0"
+                            className={`block p-3.5 hover:bg-white/5 transition-colors border-b border-white/5 last:border-0 ${
+                              noti.isRead === false ? 'bg-blue-500/[0.06]' : ''
+                            }`}
                           >
-                            <div className="text-sm font-bold text-white mb-1">{noti.title}</div>
-                            <div className="text-xs text-zinc-400 line-clamp-2">{noti.message}</div>
-                            <div className="text-[10px] text-zinc-600 mt-1">{new Date(noti.createdAt).toLocaleDateString()}</div>
+                            <div className="flex items-start justify-between gap-2 mb-1">
+                              <div className="text-xs sm:text-sm font-bold text-white leading-snug">{noti.title}</div>
+                              {noti.isRead === false && (
+                                <span className="w-2 h-2 rounded-full bg-cyan-400 shrink-0 mt-1.5" />
+                              )}
+                            </div>
+                            <div className="text-xs text-zinc-400 line-clamp-2 leading-relaxed">{noti.message}</div>
+                            <div className="text-[10px] text-zinc-500 mt-1.5">
+                              {noti.createdAt
+                                ? new Date(noti.createdAt).toLocaleString('vi-VN', {
+                                    hour: '2-digit',
+                                    minute: '2-digit',
+                                    day: '2-digit',
+                                    month: '2-digit',
+                                  })
+                                : 'Vừa xong'}
+                            </div>
                           </Link>
                         ))
                       )}

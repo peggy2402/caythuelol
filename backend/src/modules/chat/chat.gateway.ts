@@ -229,4 +229,18 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.server.to(`user_${userId}`).emit('balance_updated', { balance, message });
     this.server.to(`user_${userId}`).emit('wallet_update', { balance, message });
   }
+
+  broadcastNotification(userId: string, notification: any) {
+    if (!userId || !this.server) return;
+    this.server.to(`user_${userId.toString()}`).emit('notification', notification);
+  }
+
+  broadcastBoosterJobsUpdated(userId?: string) {
+    if (!this.server) return;
+    if (userId) {
+      this.server.to(`user_${userId.toString()}`).emit('booster_jobs_updated', { timestamp: Date.now() });
+    } else {
+      this.server.emit('booster_jobs_updated', { timestamp: Date.now() });
+    }
+  }
 }
