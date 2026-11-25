@@ -294,7 +294,7 @@ export default async function ShortProfilePage({ params }: Props) {
 
   if (Array.isArray(customServicesList) && customServicesList.length > 0) {
     customServicesList.forEach((s) => {
-      if (s.isActive === false) return;
+      if (s.isActive === false || s.slug === 'duo-boost' || s.serviceType === 'duo-boost') return;
 
       // Nếu booster có danh sách tựa game nhận cày, chỉ hiển thị dịch vụ thuộc các game đó
       if (selectedGamesList.length > 0) {

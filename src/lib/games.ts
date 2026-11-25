@@ -983,15 +983,6 @@ export const STANDARD_SERVICE_TEMPLATES: Record<string, ServiceTemplate[]> = {
       iconName: 'Gamepad2',
     },
     {
-      slug: 'duo-boost',
-      name: 'Duo Cùng Tuyển Thủ',
-      desc: 'Leo rank đánh đôi cùng tuyển thủ từ Sắt IV đến Cao Thủ. Hướng dẫn trực tiếp, bảo mật danh tính.',
-      pricingType: 'TIER_MATRIX',
-      defaultPrice: 0,
-      depositPercent: 100,
-      iconName: 'Users',
-    },
-    {
       slug: 'placements',
       name: 'Phân Hạng Đầu Mùa (Tối đa 5 Trận)',
       desc: 'Đảm bảo kết quả các trận phân hạng mở màn mùa giải thuận lợi nhất (Tối đa 5 trận).',

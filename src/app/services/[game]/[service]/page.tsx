@@ -849,6 +849,13 @@ function ServiceBookingContent() {
     };
   };
 
+  // Chuyển hướng nếu khách truy cập gói cũ "duo-boost" sang "rank-boost" (đã gộp thành Add-on Duo)
+  useEffect(() => {
+    if (serviceSlug === 'duo-boost') {
+      router.replace(`/services/${gameId}/rank-boost${boosterQuery ? `?booster=${boosterQuery}` : ''}`);
+    }
+  }, [serviceSlug, gameId, boosterQuery, router]);
+
   // Lắng nghe phím ESC & Khóa cuộn trang khi mở bất kỳ Modal nào trên PC
   useEffect(() => {
     const isAnyModalOpen = isRankModalOpen || isServerModalOpen || isAccountTypeModalOpen || isBoosterModalOpen;

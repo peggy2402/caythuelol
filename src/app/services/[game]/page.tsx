@@ -252,6 +252,7 @@ function GameServicesContent() {
       [];
 
     for (const t of standardTemplates) {
+      if (t.slug === 'duo-boost' || (t as any).serviceType === 'duo-boost') continue;
       map.set(t.slug, {
         serviceType: t.slug,
         name: t.name,
@@ -266,6 +267,7 @@ function GameServicesContent() {
 
     for (const s of services) {
       if (s.isActive === false) continue;
+      if (s.slug === 'duo-boost' || s.serviceType === 'duo-boost') continue;
 
       const sGame = (s.gameCode || 'LOL').toUpperCase();
       const matchGame =
@@ -379,7 +381,7 @@ function GameServicesContent() {
           sGame === normGame ||
           (normGame === 'LOL' && sGame === 'LMHT') ||
           (normGame === 'AOV' && ['LIENQUAN', 'LQM', 'ARENA_OF_VALOR'].includes(sGame));
-        return matchGame && s.isActive !== false;
+        return matchGame && s.isActive !== false && s.serviceType !== 'duo-boost' && s.slug !== 'duo-boost';
       });
 
       return activeForGame.map((s) => {
@@ -407,7 +409,7 @@ function GameServicesContent() {
         sGame === normGame ||
         (normGame === 'LOL' && sGame === 'LMHT') ||
         (normGame === 'AOV' && ['LIENQUAN', 'LQM', 'ARENA_OF_VALOR'].includes(sGame));
-      return matchBooster && matchGame && s.isActive !== false;
+      return matchBooster && matchGame && s.isActive !== false && s.serviceType !== 'duo-boost' && s.slug !== 'duo-boost';
     });
 
     if (marketplaceActive.length > 0) {

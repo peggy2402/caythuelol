@@ -294,7 +294,9 @@ export default function BoosterServicesStudio() {
         if (res.ok) {
           const json = await res.json();
           if (Array.isArray(json.data) && json.data.length > 0) {
-            setAvailableServiceTypes(json.data);
+            setAvailableServiceTypes(
+              json.data.filter((t: any) => t.slug !== 'duo-boost' && t.serviceType !== 'duo-boost')
+            );
             return;
           }
         }
@@ -302,7 +304,9 @@ export default function BoosterServicesStudio() {
         console.error('Lỗi tải service types:', err);
       }
       // Fallback nếu API chưa trả về
-      const fallback = STANDARD_SERVICE_TEMPLATES[activeGameCode] || STANDARD_SERVICE_TEMPLATES['LOL'] || [];
+      const fallback = (
+        STANDARD_SERVICE_TEMPLATES[activeGameCode] || STANDARD_SERVICE_TEMPLATES['LOL'] || []
+      ).filter((t: any) => t.slug !== 'duo-boost' && t.serviceType !== 'duo-boost');
       setAvailableServiceTypes(fallback);
     };
 
@@ -327,7 +331,9 @@ export default function BoosterServicesStudio() {
           }
 
           if (Array.isArray(s.customServices)) {
-            setCustomServices(s.customServices);
+            setCustomServices(
+              s.customServices.filter((svc: any) => svc.serviceType !== 'duo-boost' && svc.slug !== 'duo-boost')
+            );
           }
 
           const addons = s.addonsConfig || s.standardConfig?.addonsConfig;
@@ -524,8 +530,9 @@ export default function BoosterServicesStudio() {
     setEditingServiceId(null);
     setModalStep(1);
 
-    const templates =
-      STANDARD_SERVICE_TEMPLATES[activeGameCode] || STANDARD_SERVICE_TEMPLATES['UNIVERSAL'] || [];
+    const templates = (
+      STANDARD_SERVICE_TEMPLATES[activeGameCode] || STANDARD_SERVICE_TEMPLATES['UNIVERSAL'] || []
+    ).filter((t: any) => t.slug !== 'duo-boost' && t.serviceType !== 'duo-boost');
     setAvailableServiceTypes(templates);
 
     const firstTpl = templates[0] || {
@@ -571,7 +578,9 @@ export default function BoosterServicesStudio() {
     const svcGame = (svc.gameCode || activeGameCode).toUpperCase();
     const isVal = svcGame === 'VALORANT';
     const isAov = svcGame === 'AOV' || svcGame === 'LIENQUAN';
-    const templates = STANDARD_SERVICE_TEMPLATES[svcGame] || STANDARD_SERVICE_TEMPLATES['UNIVERSAL'] || [];
+    const templates = (
+      STANDARD_SERVICE_TEMPLATES[svcGame] || STANDARD_SERVICE_TEMPLATES['UNIVERSAL'] || []
+    ).filter((t: any) => t.slug !== 'duo-boost' && t.serviceType !== 'duo-boost');
     setAvailableServiceTypes(templates);
 
     let cleanName = svc.name;
@@ -684,7 +693,6 @@ export default function BoosterServicesStudio() {
     }
     if (
       formData.serviceType !== 'rank-boost' &&
-      formData.serviceType !== 'duo-boost' &&
       formData.serviceType !== 'promotion' &&
       (!formData.price || formData.price <= 0)
     ) {
@@ -767,7 +775,7 @@ export default function BoosterServicesStudio() {
     GAMES_CATALOG.find((g) => g.id.toUpperCase() === activeGameCode) || GAMES_CATALOG[0];
 
   const currentServices = customServices.filter(
-    (s) => (s.gameCode || 'LOL').toUpperCase() === activeGameCode
+    (s) => (s.gameCode || 'LOL').toUpperCase() === activeGameCode && s.serviceType !== 'duo-boost' && s.slug !== 'duo-boost'
   );
 
   if (loading) {
@@ -1080,7 +1088,7 @@ export default function BoosterServicesStudio() {
                                 const gObj = GAMES_CATALOG.find((g) => g.id.toUpperCase() === gCode);
                                 const isCurrentActive = activeGameCode === gCode;
                                 const serviceCount = customServices.filter(
-                                  (s) => (s.gameCode || 'LOL').toUpperCase() === gCode
+                                  (s) => (s.gameCode || 'LOL').toUpperCase() === gCode && s.serviceType !== 'duo-boost' && s.slug !== 'duo-boost'
                                 ).length;
 
                                 return (
@@ -1145,7 +1153,7 @@ export default function BoosterServicesStudio() {
                     const gObj = GAMES_CATALOG.find((g) => g.id.toUpperCase() === gCode);
                     const isActive = activeGameCode === gCode;
                     const serviceCount = customServices.filter(
-                      (s) => (s.gameCode || 'LOL').toUpperCase() === gCode
+                      (s) => (s.gameCode || 'LOL').toUpperCase() === gCode && s.serviceType !== 'duo-boost' && s.slug !== 'duo-boost'
                     ).length;
 
                     return (
@@ -3092,7 +3100,6 @@ export default function BoosterServicesStudio() {
 
                                                               {/* TRƯỜNG HỢP 9: CÁC DỊCH VỤ TRỌN GÓI CỐ ĐỊNH KHÁC (BATTLE-PASS,...) */}
                                                               {formData.serviceType !== 'rank-boost' &&
-                                                                formData.serviceType !== 'duo-boost' &&
                                                                 formData.serviceType !== 'net-wins' &&
                                                                 formData.serviceType !== 'coaching' &&
                                                                 formData.serviceType !== 'mastery' &&
@@ -3129,7 +3136,6 @@ export default function BoosterServicesStudio() {
 
                                                               {/* TRƯỜNG HỢP 10: CÁC DỊCH VỤ PER_UNIT CHUNG KHÁC */}
                                                               {formData.serviceType !== 'rank-boost' &&
-                                                                formData.serviceType !== 'duo-boost' &&
                                                                 formData.serviceType !== 'net-wins' &&
                                                                 formData.serviceType !== 'coaching' &&
                                                                 formData.serviceType !== 'mastery' &&
