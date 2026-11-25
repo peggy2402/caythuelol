@@ -4,10 +4,11 @@
 import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { X, ArrowRight, AlertCircle, Trophy } from 'lucide-react';
+import { X, ArrowRight, AlertCircle, Trophy, Clock } from 'lucide-react';
 import UserBadge from '@/components/UserBadge';
 import { GameDefinition } from '@/lib/games';
 import { BoosterItem, ICON_MAP } from './types';
+import { getBoosterWorkingScheduleText } from '@/lib/booster-helpers';
 
 interface BoosterHireModalProps {
   game: GameDefinition;
@@ -60,6 +61,12 @@ export function BoosterHireModal({
                   {selectedBooster.displayName || selectedBooster.username}
                 </h3>
                 <UserBadge role={selectedBooster.role || 'BOOSTER'} size="sm" />
+              </div>
+              <div className="flex flex-wrap items-center gap-2 mt-0.5">
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-cyan-500/10 border border-cyan-500/25 text-cyan-300 text-xs font-semibold">
+                  <Clock size={11} className="text-cyan-400" />
+                  <span>{getBoosterWorkingScheduleText(selectedBooster)}</span>
+                </span>
               </div>
               <p className="text-xs text-zinc-400">
                 Chọn dịch vụ <span className="text-blue-400 font-semibold">{game.name}</span> bạn muốn tuyển thủ này thực hiện:

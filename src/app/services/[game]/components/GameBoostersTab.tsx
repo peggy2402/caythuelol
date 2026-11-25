@@ -4,10 +4,11 @@
 import React from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Users, Star, User, Loader2 } from 'lucide-react';
+import { Users, Star, User, Loader2, Clock } from 'lucide-react';
 import UserBadge from '@/components/UserBadge';
 import { GameDefinition } from '@/lib/games';
 import { BoosterItem } from './types';
+import { getBoosterWorkingScheduleText } from '@/lib/booster-helpers';
 
 interface GameBoostersTabProps {
   game: GameDefinition;
@@ -101,22 +102,30 @@ export function GameBoostersTab({
                     </div>
                   </div>
 
-                  {/* Status pill */}
-                  <div className="mb-4">
-                    <span
-                      className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold ${
-                        isReady
-                          ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                          : 'bg-zinc-800 text-zinc-400 border border-zinc-700'
-                      }`}
-                    >
+                  {/* Status pill & Working hours */}
+                  <div className="space-y-2 mb-4">
+                    <div>
                       <span
-                        className={`w-1.5 h-1.5 rounded-full ${
-                          isReady ? 'bg-emerald-400 animate-pulse' : 'bg-zinc-500'
+                        className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold ${
+                          isReady
+                            ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                            : 'bg-zinc-800 text-zinc-400 border border-zinc-700'
                         }`}
-                      />
-                      {isReady ? 'Sẵn sàng nhận đơn' : 'Đang bận'}
-                    </span>
+                      >
+                        <span
+                          className={`w-1.5 h-1.5 rounded-full ${
+                            isReady ? 'bg-emerald-400 animate-pulse' : 'bg-zinc-500'
+                          }`}
+                        />
+                        {isReady ? 'Sẵn sàng nhận đơn' : 'Đang bận'}
+                      </span>
+                    </div>
+
+                    {/* Khung giờ làm việc / Lịch cày */}
+                    <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-cyan-950/30 border border-cyan-500/20 text-cyan-300 text-xs font-semibold">
+                      <Clock size={13} className="text-cyan-400 shrink-0" />
+                      <span className="truncate">{getBoosterWorkingScheduleText(booster)}</span>
+                    </div>
                   </div>
                 </div>
 

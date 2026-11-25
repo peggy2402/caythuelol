@@ -2,9 +2,10 @@
 
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Crown, X, Search, Star, Check } from 'lucide-react';
+import { Crown, X, Search, Star, Check, Clock } from 'lucide-react';
 import Image from 'next/image';
 import UserBadge from '@/components/UserBadge';
+import { getBoosterWorkingScheduleText } from '@/lib/booster-helpers';
 
 interface BoosterSelectModalProps {
   isOpen: boolean;
@@ -176,11 +177,10 @@ export function BoosterSelectModal({
                                 Voucher -{bCoupon.discountPercent}%
                               </span>
                             )}
-                            {bSchedule?.enabled && bSchedule.shifts && bSchedule.shifts.length > 0 && (
-                              <span className="px-1.5 py-0.5 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 font-semibold text-[10px] flex items-center gap-1">
-                                ⏰ Ca: {bSchedule.shifts.map((s: string) => s === 'morning' ? 'Sáng' : s === 'afternoon' ? 'Chiều' : s === 'evening' ? 'Tối' : 'Đêm').join(', ')}
-                              </span>
-                            )}
+                            <span className="px-1.5 py-0.5 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 font-semibold text-[10px] flex items-center gap-1">
+                              <Clock size={10} />
+                              <span className="truncate max-w-[170px]">{getBoosterWorkingScheduleText(b)}</span>
+                            </span>
                           </div>
                         </div>
                       </div>

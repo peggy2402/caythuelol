@@ -36,8 +36,11 @@ import {
   Search,
   RotateCw,
   AlertTriangle,
+  Clock,
+  Calendar,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { ALL_WEEKDAYS, formatWorkingDays, BoosterWorkingSchedule } from '@/lib/booster-helpers';
 import {
   GAMES_CATALOG,
   STANDARD_SERVICE_TEMPLATES,
@@ -114,7 +117,15 @@ export interface BoosterCoupon {
 
 export interface AddonsConfig {
   specificRole: { enabled: boolean; percent: number };
-  schedule: { enabled: boolean; percent: number; shifts?: string[]; customHours?: string };
+  schedule: {
+    enabled: boolean;
+    percent: number;
+    shifts?: string[];
+    daysOfWeek?: string[];
+    fromTime?: string;
+    toTime?: string;
+    customHours?: string;
+  };
   specificChamps: { enabled: boolean; percent: number };
   livestream: { enabled: boolean; fee: number };
   flash: { enabled: boolean; percent: number };
@@ -165,6 +176,18 @@ export default function BoosterServicesStudio() {
     livestream: { enabled: true, fee: 349000 },
     flash: { enabled: true, percent: 35 },
     duo: { enabled: true, percent: 50 },
+  });
+
+  // 3b. Lịch trực & Khung giờ làm việc của Booster
+  const [workingSchedule, setWorkingSchedule] = useState<BoosterWorkingSchedule>({
+    enabled: true,
+    daysOfWeek: ['T2', 'T3', 'T4', 'T5', 'T6', 'T7'],
+    fromTime: '08:00',
+    toTime: '17:30',
+    shifts: ['morning', 'afternoon'],
+    note: 'Làm từ 8:00 -> 17:30 các ngày trong tuần trừ CN',
+    allowScheduledBoost: true,
+    scheduleSurchargePercent: 20,
   });
 
   // 4. Bảng giá rank chi tiết (toàn cục nếu cần override)
@@ -224,7 +247,10 @@ export default function BoosterServicesStudio() {
     updatedCoupon?: BoosterCoupon,
     updatedStepOverrides?: Record<string, number>,
     updatedSelectedGames?: string[],
-    options?: { showToast?: boolean; successMessage?: string }
+    updatedWorkingScheduleOrOptions?:
+      | BoosterWorkingSchedule
+      | { showToast?: boolean; successMessage?: string },
+    maybeOptions?: { showToast?: boolean; successMessage?: string }
   ) => {
     try {
       setSaving(true);
@@ -232,6 +258,17 @@ export default function BoosterServicesStudio() {
       const cpn = updatedCoupon || coupon;
       const steps = updatedStepOverrides || stepOverrides;
       const games = updatedSelectedGames || selectedGames;
+
+      let ws: BoosterWorkingSchedule = workingSchedule;
+      let options: { showToast?: boolean; successMessage?: string } | undefined = maybeOptions;
+
+      if (updatedWorkingScheduleOrOptions) {
+        if ('showToast' in updatedWorkingScheduleOrOptions || 'successMessage' in updatedWorkingScheduleOrOptions) {
+          options = updatedWorkingScheduleOrOptions as { showToast?: boolean; successMessage?: string };
+        } else {
+          ws = updatedWorkingScheduleOrOptions as BoosterWorkingSchedule;
+        }
+      }
 
       // Đảm bảo những dịch vụ thuộc tựa game không được chọn sẽ tự động chuyển sang isActive: false
       const sanitizedServices = updatedCustomServices.map((s) => {
@@ -259,9 +296,11 @@ export default function BoosterServicesStudio() {
           .filter((s) => s.isActive)
           .map((s) => s.slug || s.serviceType || s.name),
         addonsConfig: addons,
+        workingSchedule: ws,
         standardConfig: {
           addonsConfig: addons,
           stepOverrides: steps,
+          workingSchedule: ws,
         },
       };
 
@@ -288,6 +327,40 @@ export default function BoosterServicesStudio() {
     } finally {
       setSaving(false);
     }
+  };
+
+  // Cập nhật lịch làm việc của Booster
+  const handleUpdateWorkingSchedule = (partial: Partial<BoosterWorkingSchedule>) => {
+    const updatedSchedule: BoosterWorkingSchedule = {
+      ...workingSchedule,
+      ...partial,
+    };
+    setWorkingSchedule(updatedSchedule);
+
+    // Đồng bộ đồng thời sang addonsConfig.schedule
+    const updatedAddons: AddonsConfig = {
+      ...addonsConfig,
+      schedule: {
+        ...addonsConfig.schedule,
+        enabled: updatedSchedule.allowScheduledBoost ?? true,
+        percent: updatedSchedule.scheduleSurchargePercent ?? addonsConfig.schedule.percent,
+        shifts: updatedSchedule.shifts,
+        daysOfWeek: updatedSchedule.daysOfWeek,
+        fromTime: updatedSchedule.fromTime,
+        toTime: updatedSchedule.toTime,
+        customHours: updatedSchedule.note,
+      },
+    };
+    setAddonsConfig(updatedAddons);
+
+    syncAllServices(
+      customServices,
+      updatedAddons,
+      coupon,
+      stepOverrides,
+      selectedGames,
+      updatedSchedule
+    );
   };
 
   // 1. Tải danh mục Loại Hình Dịch Vụ từ API
@@ -345,6 +418,24 @@ export default function BoosterServicesStudio() {
             setAddonsConfig((prev) => ({
               ...prev,
               ...addons,
+            }));
+          }
+
+          if (s.workingSchedule) {
+            setWorkingSchedule((prev) => ({
+              ...prev,
+              ...s.workingSchedule,
+            }));
+          } else if (addons?.schedule) {
+            setWorkingSchedule((prev) => ({
+              ...prev,
+              allowScheduledBoost: addons.schedule.enabled ?? true,
+              scheduleSurchargePercent: addons.schedule.percent ?? 20,
+              shifts: addons.schedule.shifts || prev.shifts,
+              note: addons.schedule.customHours || prev.note,
+              daysOfWeek: addons.schedule.daysOfWeek || prev.daysOfWeek,
+              fromTime: addons.schedule.fromTime || prev.fromTime,
+              toTime: addons.schedule.toTime || prev.toTime,
             }));
           }
 
@@ -1571,14 +1662,252 @@ export default function BoosterServicesStudio() {
         )}
 
         {/* ========================================================================= */}
-        {/* CẤU HÌNH PHỤ PHÍ MỞ RỘNG (ADDONS) - ĐẦY ĐỦ 6 TIỆN ÍCH                      */}
+        {/* MỤC 3: LỊCH TRỰC & THỜI GIAN LÀM VIỆC (WORKING HOURS & SLA)               */}
+        {/* ========================================================================= */}
+        <div className="pt-6 border-t border-zinc-800 space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-2 border-b border-zinc-800">
+            <div>
+              <h3 className="text-sm sm:text-base font-black text-white flex items-center gap-2">
+                <Clock className="text-cyan-400 w-4 h-4" />
+                <span>3. Lịch trực & Thời gian làm việc (Working Hours)</span>
+              </h3>
+              <p className="text-xs text-zinc-400 mt-0.5">
+                Thiết lập khung giờ và các ngày trong tuần bạn sẵn sàng cày rank để hiển thị công khai cho khách hàng.
+              </p>
+            </div>
+            <span className="text-[11px] text-cyan-400 font-bold bg-cyan-500/10 px-3 py-1 rounded-full border border-cyan-500/20 w-fit">
+              Hiển thị trên Thẻ tuyển thủ & Hồ sơ
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+            {/* Cột trái: Chọn ngày & Khung giờ (8 cột) */}
+            <div className="lg:col-span-8 space-y-3.5">
+              {/* Chọn các ngày làm việc trong tuần */}
+              <div className="p-4 rounded-2xl bg-zinc-950/80 border border-zinc-800 space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <label className="text-xs font-bold text-white flex items-center gap-1.5">
+                    <Calendar size={14} className="text-cyan-400" />
+                    <span>Các ngày nhận cày trong tuần:</span>
+                  </label>
+                  {/* Phím chọn nhanh */}
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const newDays = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
+                        handleUpdateWorkingSchedule({ daysOfWeek: newDays });
+                      }}
+                      className="px-2 py-0.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-[10px] font-bold text-zinc-300 border border-zinc-700/80 cursor-pointer"
+                    >
+                      Cả tuần (T2-CN)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const newDays = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
+                        handleUpdateWorkingSchedule({ daysOfWeek: newDays });
+                      }}
+                      className="px-2 py-0.5 rounded-lg bg-cyan-950/60 hover:bg-cyan-900/60 text-[10px] font-bold text-cyan-300 border border-cyan-500/30 cursor-pointer"
+                    >
+                      T2 - T7 (Trừ CN)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const newDays = ['T7', 'CN'];
+                        handleUpdateWorkingSchedule({ daysOfWeek: newDays });
+                      }}
+                      className="px-2 py-0.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-[10px] font-bold text-zinc-300 border border-zinc-700/80 cursor-pointer"
+                    >
+                      Chỉ cuối tuần
+                    </button>
+                  </div>
+                </div>
+
+                {/* Nút bấm 7 ngày */}
+                <div className="grid grid-cols-7 gap-1.5 sm:gap-2">
+                  {ALL_WEEKDAYS.map((day) => {
+                    const isSelected = (workingSchedule.daysOfWeek || []).includes(day.id);
+                    return (
+                      <button
+                        key={day.id}
+                        type="button"
+                        onClick={() => {
+                          const currentDays = workingSchedule.daysOfWeek || [];
+                          const newDays = isSelected
+                            ? currentDays.filter((d) => d !== day.id)
+                            : [...currentDays, day.id];
+                          if (newDays.length === 0) {
+                            toast.warning('Bạn cần chọn ít nhất 1 ngày làm việc');
+                            return;
+                          }
+                          handleUpdateWorkingSchedule({ daysOfWeek: newDays });
+                        }}
+                        className={`py-2 rounded-xl text-xs font-black border transition-all cursor-pointer ${
+                          isSelected
+                            ? 'bg-cyan-500/20 border-cyan-500 text-cyan-300 shadow-[0_0_12px_rgba(6,182,212,0.25)]'
+                            : 'bg-zinc-900 border-zinc-800 text-zinc-500 hover:text-zinc-300 hover:border-zinc-700'
+                        }`}
+                      >
+                        {day.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Khung giờ hàng ngày */}
+              <div className="p-4 rounded-2xl bg-zinc-950/80 border border-zinc-800 space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <label className="text-xs font-bold text-white flex items-center gap-1.5">
+                    <Clock size={14} className="text-cyan-400" />
+                    <span>Khung giờ làm việc hàng ngày:</span>
+                  </label>
+                  <span className="text-[11px] font-mono font-bold text-cyan-400">
+                    {workingSchedule.fromTime} → {workingSchedule.toTime}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[10px] text-zinc-400 uppercase font-semibold block mb-1">
+                      Giờ bắt đầu
+                    </label>
+                    <input
+                      type="time"
+                      value={workingSchedule.fromTime || '08:00'}
+                      onChange={(e) => handleUpdateWorkingSchedule({ fromTime: e.target.value })}
+                      className="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-3 py-2 text-xs text-white font-mono font-bold outline-none focus:border-cyan-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] text-zinc-400 uppercase font-semibold block mb-1">
+                      Giờ kết thúc
+                    </label>
+                    <input
+                      type="time"
+                      value={workingSchedule.toTime || '17:30'}
+                      onChange={(e) => handleUpdateWorkingSchedule({ toTime: e.target.value })}
+                      className="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-3 py-2 text-xs text-white font-mono font-bold outline-none focus:border-cyan-500"
+                    />
+                  </div>
+                </div>
+
+                {/* Phím chọn nhanh ca */}
+                <div className="pt-2 border-t border-zinc-800/80 space-y-1.5">
+                  <span className="text-[10px] text-zinc-400 uppercase font-semibold block">
+                    Chọn nhanh khung giờ phổ biến:
+                  </span>
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {[
+                      { label: 'Hành chính (08:00 – 17:30)', from: '08:00', to: '17:30' },
+                      { label: 'Ca Sáng (08:00 – 12:00)', from: '08:00', to: '12:00' },
+                      { label: 'Ca Chiều (13:00 – 17:00)', from: '13:00', to: '17:00' },
+                      { label: 'Ca Tối (19:00 – 23:00)', from: '19:00', to: '23:00' },
+                      { label: 'Ca Đêm (23:00 – 04:00)', from: '23:00', to: '04:00' },
+                    ].map((item, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() =>
+                          handleUpdateWorkingSchedule({ fromTime: item.from, toTime: item.to })
+                        }
+                        className="px-2 py-1 rounded-lg bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 hover:border-zinc-700 text-[10px] font-semibold text-zinc-300 transition-colors cursor-pointer"
+                      >
+                        {item.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Cột phải: Ghi chú hiển thị công khai & Xem trước Huy hiệu (4 cột) */}
+            <div className="lg:col-span-4 space-y-3.5">
+              <div className="p-4 rounded-2xl bg-zinc-950/80 border border-zinc-800 space-y-3 h-full flex flex-col justify-between">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-white block">
+                      Ghi chú hiển thị công khai:
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const daysText = formatWorkingDays(workingSchedule.daysOfWeek);
+                        const autoNote = `Làm từ ${workingSchedule.fromTime} -> ${workingSchedule.toTime} (${daysText})`;
+                        handleUpdateWorkingSchedule({ note: autoNote });
+                      }}
+                      className="text-[10px] text-cyan-400 hover:underline font-semibold cursor-pointer"
+                    >
+                      Tự tạo ghi chú
+                    </button>
+                  </div>
+                  <textarea
+                    rows={3}
+                    placeholder="VD: Làm từ 8:00 -> 17:30 các ngày trong tuần trừ CN..."
+                    value={workingSchedule.note || ''}
+                    onChange={(e) => handleUpdateWorkingSchedule({ note: e.target.value })}
+                    className="w-full bg-zinc-900 border border-zinc-800 rounded-xl p-2.5 text-xs text-white placeholder-zinc-500 outline-none focus:border-cyan-500 resize-none font-medium"
+                  />
+
+                  {/* Thẻ xem trước Preview */}
+                  <div className="p-3 rounded-xl bg-zinc-900/90 border border-cyan-500/20 space-y-1.5">
+                    <span className="text-[10px] uppercase font-bold text-zinc-400 block tracking-wider">
+                      Khách hàng sẽ nhìn thấy:
+                    </span>
+                    <div className="flex items-center gap-1.5 text-xs text-cyan-300 font-bold bg-cyan-950/40 border border-cyan-500/30 px-2.5 py-1.5 rounded-lg">
+                      <Clock size={13} className="text-cyan-400 shrink-0" />
+                      <span className="truncate">
+                        {workingSchedule.note ||
+                          `${formatWorkingDays(workingSchedule.daysOfWeek)}: ${workingSchedule.fromTime} – ${workingSchedule.toTime}`}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Trạng thái Bật/Tắt nhận đơn theo lịch */}
+                <div className="pt-3 border-t border-zinc-800/80 flex items-center justify-between">
+                  <div>
+                    <span className="text-xs font-bold text-white block">Nhận đơn đặt lịch</span>
+                    <span className="text-[10px] text-zinc-400">Cho phép khách hẹn giờ</span>
+                  </div>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={workingSchedule.allowScheduledBoost}
+                    onClick={() =>
+                      handleUpdateWorkingSchedule({
+                        allowScheduledBoost: !workingSchedule.allowScheduledBoost,
+                      })
+                    }
+                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ${
+                      workingSchedule.allowScheduledBoost
+                        ? 'bg-cyan-500 shadow-[0_0_12px_rgba(6,182,212,0.4)]'
+                        : 'bg-zinc-800'
+                    }`}
+                  >
+                    <span
+                      className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow transition duration-200 ${
+                        workingSchedule.allowScheduledBoost ? 'translate-x-5' : 'translate-x-0'
+                      }`}
+                    />
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* ========================================================================= */}
+        {/* MỤC 4: CẤU HÌNH PHỤ PHÍ MỞ RỘNG (ADDONS) - ĐẦY ĐỦ 6 TIỆN ÍCH              */}
         {/* ========================================================================= */}
         <div className="pt-6 border-t border-zinc-800 space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div>
               <h3 className="text-sm sm:text-base font-black text-white flex items-center gap-2">
                 <Sparkles className="text-amber-400 w-4 h-4" />
-                <span>Cấu hình mức phụ phí mở rộng (Addons)</span>
+                <span>4. Cấu hình mức phụ phí mở rộng (Addons)</span>
               </h3>
               <p className="text-xs text-zinc-400 mt-0.5">
                 Bật / Tắt tiện ích bạn hỗ trợ và tùy chỉnh tỷ lệ % phụ phí khi khách đặt cày.
@@ -1709,70 +2038,19 @@ export default function BoosterServicesStudio() {
                 </div>
               </div>
 
-              {/* Ca làm việc sẵn sàng của Booster */}
-              {addonsConfig.schedule.enabled && (
-                <div className="pt-2 border-t border-zinc-800/80 space-y-2">
-                  <label className="text-[10px] text-zinc-400 uppercase font-semibold block">
-                    Khung giờ sẵn sàng cày (SLA Ca làm việc):
-                  </label>
-                  <div className="grid grid-cols-2 gap-1.5">
-                    {[
-                      { id: 'morning', label: 'Sáng (08:00 - 12:00)' },
-                      { id: 'afternoon', label: 'Chiều (13:00 - 17:00)' },
-                      { id: 'evening', label: 'Tối (19:00 - 23:00)' },
-                      { id: 'night', label: 'Đêm (23:00 - 04:00)' },
-                    ].map((shift) => {
-                      const currentShifts = addonsConfig.schedule.shifts || [];
-                      const isSelected = currentShifts.includes(shift.id);
-                      return (
-                        <button
-                          key={shift.id}
-                          type="button"
-                          onClick={() => {
-                            const newShifts = isSelected
-                              ? currentShifts.filter((s) => s !== shift.id)
-                              : [...currentShifts, shift.id];
-                            const updated = {
-                              ...addonsConfig,
-                              schedule: {
-                                ...addonsConfig.schedule,
-                                shifts: newShifts,
-                              },
-                            };
-                            setAddonsConfig(updated);
-                            syncAllServices(customServices, updated);
-                          }}
-                          className={`px-2 py-1.5 rounded-lg text-[10px] font-semibold border text-left transition-all ${
-                            isSelected
-                              ? 'bg-cyan-500/15 border-cyan-500/40 text-cyan-300'
-                              : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-zinc-200'
-                          }`}
-                        >
-                          {isSelected ? '✓ ' : '+ '}
-                          {shift.label}
-                        </button>
-                      );
-                    })}
-                  </div>
-                  <input
-                    type="text"
-                    placeholder="Ghi chú thêm giờ cày (VD: Rảnh cả ngày cuối tuần...)"
-                    value={addonsConfig.schedule.customHours || ''}
-                    onChange={(e) => {
-                      const updated = {
-                        ...addonsConfig,
-                        schedule: {
-                          ...addonsConfig.schedule,
-                          customHours: e.target.value,
-                        },
-                      };
-                      setAddonsConfig(updated);
-                      syncAllServices(customServices, updated);
-                    }}
-                    className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-2.5 py-1.5 text-[11px] text-zinc-200 placeholder:text-zinc-500 outline-none focus:border-cyan-500"
-                  />
+              {/* Thông tin lịch áp dụng từ Mục 3 */}
+              <div className="pt-2 border-t border-zinc-800/80 space-y-1.5">
+                <span className="text-[10px] text-zinc-400 uppercase font-semibold block">
+                  Lịch áp dụng (từ Mục 3):
+                </span>
+                <div className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-[11px] text-cyan-300 font-medium">
+                  <Clock size={12} className="text-cyan-400 shrink-0" />
+                  <span className="truncate">
+                    {workingSchedule.note ||
+                      `${formatWorkingDays(workingSchedule.daysOfWeek)}: ${workingSchedule.fromTime} – ${workingSchedule.toTime}`}
+                  </span>
                 </div>
-              )}
+              </div>
             </div>
 
             {/* 3. Tùy chọn tướng */}
@@ -2021,14 +2299,14 @@ export default function BoosterServicesStudio() {
       </div>
 
       {/* ========================================================================= */}
-      {/* SECTION 3: MÃ GIẢM GIÁ RIÊNG CỦA TUYỂN THỦ                                */}
+      {/* SECTION 5: MÃ GIẢM GIÁ RIÊNG CỦA TUYỂN THỦ                                */}
       {/* ========================================================================= */}
       <div className="bg-zinc-900/60 border border-zinc-800/80 rounded-3xl p-5 sm:p-6 shadow-xl backdrop-blur-md space-y-4 max-w-2xl">
         <div className="flex items-center justify-between pb-3 border-b border-zinc-800">
           <div>
             <h3 className="text-base sm:text-lg font-black text-white flex items-center gap-2">
               <Tag size={18} className="text-amber-400" />
-              <span>3. Mã Giảm Giá Riêng Của Bạn</span>
+              <span>5. Mã Giảm Giá Riêng Của Bạn</span>
             </h3>
             <p className="text-xs text-zinc-400 mt-0.5">
               Tạo mã ưu đãi độc quyền dành riêng cho khách hàng quen khi chỉ định bạn làm tuyển thủ cày chính.

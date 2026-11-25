@@ -2,9 +2,10 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Star, Heart, Loader2, ShieldCheck, Trophy, ArrowRight, Gamepad2 } from 'lucide-react';
+import { Star, Heart, Loader2, ShieldCheck, Trophy, ArrowRight, Gamepad2, Clock } from 'lucide-react';
 import UserBadge from '@/components/UserBadge';
 import { getAovRankImageByInput } from '@/lib/aov';
+import { getBoosterWorkingScheduleText } from '@/lib/booster-helpers';
 
 interface BoosterCardProps {
   booster: any;
@@ -315,6 +316,12 @@ export default function BoosterCard({ booster, isBookmarked, onToggleBookmark }:
               {winrate}% Winrate
             </span>
           ) : null}
+        </div>
+
+        {/* Khung giờ làm việc / Lịch cày */}
+        <div className="my-1.5 flex items-center justify-center gap-1.5 text-[11px] text-cyan-300 bg-cyan-950/30 border border-cyan-500/20 py-1 px-2.5 rounded-xl">
+          <Clock size={12} className="text-cyan-400 shrink-0" />
+          <span className="truncate">{getBoosterWorkingScheduleText(booster)}</span>
         </div>
 
         {/* CTA: Xem dịch vụ & Bảng giá của Tuyển thủ */}

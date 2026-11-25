@@ -31,6 +31,7 @@ import BoosterRankShowcase from '@/components/BoosterRankShowcase';
 import BoosterAvatar from '@/components/BoosterAvatar';
 import UserBadge from '@/components/UserBadge';
 import { API_BASE_URL } from '@/lib/api';
+import { getBoosterWorkingScheduleText } from '@/lib/booster-helpers';
 
 type Props = {
   params: Promise<{ username: string }>;
@@ -444,11 +445,10 @@ export default async function ShortProfilePage({ params }: Props) {
                     <CheckCircle2 size={12} className="text-emerald-400" />
                     Verified
                   </span>
-                  {boosterSchedule?.enabled && boosterSchedule.shifts && boosterSchedule.shifts.length > 0 && (
-                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-xs font-medium">
-                      ⏰ Giờ cày: {boosterSchedule.shifts.map((s: string) => s === 'morning' ? 'Sáng' : s === 'afternoon' ? 'Chiều' : s === 'evening' ? 'Tối' : 'Đêm').join(', ')}
-                    </span>
-                  )}
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-xs font-medium">
+                    <Clock size={12} className="text-cyan-400" />
+                    <span>{getBoosterWorkingScheduleText(boosterData || user)}</span>
+                  </span>
                 </div>
 
                 {/* Header Interactive: Metric Chips + Nút Thuê ngay + Nút Tim + Nút Share */}
