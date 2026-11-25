@@ -1530,7 +1530,6 @@ function ServiceBookingContent() {
       const data = await res.json();
 
       if (res.ok && data.success) {
-        toast.success('Đặt đơn thành công! Hệ thống đang kết nối tuyển thủ.');
         router.push(`/orders/${data.order?._id || data.orderId || ''}`);
       } else {
         toast.error(data.message || 'Số dư ví không đủ để giữ cọc hoặc lỗi hệ thống');
