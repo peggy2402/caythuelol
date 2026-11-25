@@ -1394,6 +1394,26 @@ export class BoostersService {
       ? settings.selectedGames.map((g: any) => normalizeGameCode(typeof g === 'string' ? g : g.gameCode))
       : [];
 
+    // Ngăn chặn và loại bỏ các dịch vụ trùng lặp trong cùng 1 tựa game (deduplication)
+    if (Array.isArray(settings.customServices)) {
+      const seenServiceKeys = new Set<string>();
+      const dedupedServices: any[] = [];
+      for (const s of settings.customServices) {
+        if (!s) continue;
+        const sGame = normalizeGameCode(s.gameCode);
+        const sType = (s.serviceType || s.slug || '').toLowerCase().trim();
+        const sName = (s.name || '').toLowerCase().trim();
+        const key = sType && sType !== 'custom'
+          ? `${sGame}::TYPE::${sType}`
+          : `${sGame}::NAME::${sName}`;
+        if (!seenServiceKeys.has(key)) {
+          seenServiceKeys.add(key);
+          dedupedServices.push(s);
+        }
+      }
+      settings.customServices = dedupedServices;
+    }
+
     // Tự động vô hiệu hóa (isActive = false) các dịch vụ thuộc tựa game mà booster đã bỏ chọn
     if (Array.isArray(settings.customServices) && normalizedSelectedGames.length > 0) {
       settings.customServices = settings.customServices.map((s: any) => {

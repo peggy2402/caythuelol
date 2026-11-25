@@ -35,6 +35,7 @@ import {
   Check,
   Search,
   RotateCw,
+  AlertTriangle,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -419,56 +420,106 @@ export default function BoosterServicesStudio() {
     await syncAllServices(updated);
   };
 
+  // Helper kiểm tra trùng lặp dịch vụ trong cùng một tựa game
+  const isServiceDuplicate = (
+    candidate: Partial<CustomService>,
+    serviceList: CustomService[],
+    excludeId?: string | null
+  ) => {
+    const candidateGame = (candidate.gameCode || activeGameCode || 'LOL').toUpperCase().trim();
+    const candidateType = (candidate.serviceType || candidate.slug || '').toLowerCase().trim();
+    const candidateName = (candidate.name || '').toLowerCase().trim();
+
+    return serviceList.some((s) => {
+      if (excludeId && s.id === excludeId) return false;
+      const sGame = (s.gameCode || 'LOL').toUpperCase().trim();
+      if (sGame !== candidateGame) return false;
+
+      const sType = (s.serviceType || s.slug || '').toLowerCase().trim();
+      const sName = (s.name || '').toLowerCase().trim();
+
+      // Nếu là dịch vụ chuẩn (không phải custom), kiểm tra trùng serviceType / slug
+      if (candidateType && candidateType !== 'custom' && sType && sType !== 'custom') {
+        if (candidateType === sType) return true;
+      }
+
+      // Nếu trùng tên chính xác trong cùng tựa game
+      if (candidateName && sName && candidateName === sName) {
+        return true;
+      }
+
+      return false;
+    });
+  };
+
   // Khi đổi tựa game trong Modal thêm/sửa dịch vụ
   const handleGameChangeInModal = async (newGameCode: string) => {
     const code = newGameCode.toUpperCase();
-    const fallbackTemplates =
-      STANDARD_SERVICE_TEMPLATES[code] || STANDARD_SERVICE_TEMPLATES['UNIVERSAL'] || [];
+    const fallbackTemplates = (
+      STANDARD_SERVICE_TEMPLATES[code] || STANDARD_SERVICE_TEMPLATES['UNIVERSAL'] || []
+    ).filter((t: any) => t.slug !== 'duo-boost' && t.serviceType !== 'duo-boost');
     setAvailableServiceTypes(fallbackTemplates);
 
+    let templatesToUse = fallbackTemplates;
     try {
       const res = await fetch(`/api/boosters/service-types?gameCode=${code}`);
       if (res.ok) {
         const json = await res.json();
         if (Array.isArray(json.data) && json.data.length > 0) {
-          setAvailableServiceTypes(json.data);
+          templatesToUse = json.data.filter((t: any) => t.slug !== 'duo-boost' && t.serviceType !== 'duo-boost');
+          setAvailableServiceTypes(templatesToUse);
         }
       }
     } catch (e) {
       // fallback already set
     }
 
-    const firstTpl = fallbackTemplates[0] || {
-      slug: 'rank-boost',
-      name: 'Cày Rank Xếp Hạng',
-      desc: 'Dịch vụ leo rank',
-      pricingType: 'TIER_MATRIX',
-      defaultPrice: 0,
-      depositPercent: 100,
-      iconName: 'Trophy',
-    };
+    if (!editingServiceId) {
+      // Tìm template chưa từng được cấu hình cho tựa game mới
+      const configuredTypes = new Set(
+        customServices
+          .filter((s) => (s.gameCode || 'LOL').toUpperCase().trim() === code)
+          .map((s) => (s.serviceType || s.slug || '').toLowerCase().trim())
+      );
 
-    const isVal = code === 'VALORANT';
-    const isAov = code === 'AOV' || code === 'LIENQUAN';
+      const firstAvailableTpl = templatesToUse.find(
+        (t) => !configuredTypes.has((t.serviceType || t.slug || '').toLowerCase().trim())
+      );
 
-    setFormData((prev) => ({
-      ...prev,
-      gameCode: code,
-      serviceType: firstTpl.serviceType || firstTpl.slug || 'rank-boost',
-      slug: firstTpl.slug || firstTpl.serviceType || 'rank-boost',
-      name: firstTpl.name,
-      desc: firstTpl.desc,
-      pricingType: firstTpl.pricingType || 'TIER_MATRIX',
-      price: firstTpl.defaultPrice || 0,
-      unitName: firstTpl.unitName || (isVal ? 'Điểm RR' : isAov ? 'Sao' : 'Điểm LP'),
-      depositPercent: firstTpl.depositPercent ?? (firstTpl.serviceType === 'net-wins' ? 40 : 100),
-      stepOverrides: {},
-      tierRates: isVal
-        ? { immortal1_2: 5000, immortal2_3: 7000, immortal3_radiant: 10000, radiant_top100: 20000 }
-        : isAov
-          ? { ...DEFAULT_AOV_STAR_RATES }
-          : { master: 1000, grandmaster: 1500, challenger: 2000 },
-    }));
+      const chosenTpl = firstAvailableTpl || {
+        slug: 'custom',
+        serviceType: 'custom',
+        name: 'Gói Cày Tùy Chỉnh',
+        desc: 'Gói cày thuê đặc thù theo yêu cầu khách hàng.',
+        pricingType: 'FIXED',
+        defaultPrice: 150000,
+        depositPercent: 100,
+      };
+
+      const isVal = code === 'VALORANT';
+      const isAov = code === 'AOV' || code === 'LIENQUAN';
+
+      setFormData((prev) => ({
+        ...prev,
+        gameCode: code,
+        serviceType: chosenTpl.serviceType || chosenTpl.slug || 'custom',
+        slug: chosenTpl.slug || chosenTpl.serviceType || 'custom',
+        name: chosenTpl.name,
+        desc: chosenTpl.desc || '',
+        pricingType: chosenTpl.pricingType || 'FIXED',
+        price: chosenTpl.defaultPrice || 0,
+        unitName: (chosenTpl as any).unitName || (isVal ? 'Điểm RR' : isAov ? 'Sao' : 'Điểm LP'),
+        depositPercent: chosenTpl.depositPercent ?? (chosenTpl.serviceType === 'net-wins' ? 40 : 100),
+        stepOverrides: {},
+        tierRates: isVal
+          ? { immortal1_2: 5000, immortal2_3: 7000, immortal3_radiant: 10000, radiant_top100: 20000 }
+          : isAov
+            ? { ...DEFAULT_AOV_STAR_RATES }
+            : { master: 1000, grandmaster: 1500, challenger: 2000 },
+      }));
+    } else {
+      setFormData((prev) => ({ ...prev, gameCode: code }));
+    }
   };
 
   // Khởi tạo nhanh bộ 2 dịch vụ chuẩn Liên Quân (Cày theo Bậc Rank + Cày theo Số Sao)
@@ -533,22 +584,42 @@ export default function BoosterServicesStudio() {
     setEditingServiceId(null);
     setModalStep(1);
 
+    const code = (activeGameCode || 'LOL').toUpperCase().trim();
     const templates = (
-      STANDARD_SERVICE_TEMPLATES[activeGameCode] || STANDARD_SERVICE_TEMPLATES['UNIVERSAL'] || []
+      STANDARD_SERVICE_TEMPLATES[code] || STANDARD_SERVICE_TEMPLATES['UNIVERSAL'] || []
     ).filter((t: any) => t.slug !== 'duo-boost' && t.serviceType !== 'duo-boost');
     setAvailableServiceTypes(templates);
 
-    const firstTpl = templates[0] || {
-      serviceType: 'rank-boost',
-      slug: 'rank-boost',
-      name: 'Cày Rank / Elo Siêu Tốc',
-      desc: 'Leo rank bước nhảy với tỷ lệ thắng cao và hoàn thành nhanh chóng.',
-      pricingType: 'TIER_MATRIX',
+    // Lọc các loại dịch vụ đã được thêm cho tựa game này
+    const configuredServiceTypes = new Set(
+      customServices
+        .filter((s) => (s.gameCode || 'LOL').toUpperCase().trim() === code)
+        .map((s) => (s.serviceType || s.slug || '').toLowerCase().trim())
+    );
+
+    // Tìm template đầu tiên CHƯA được cấu hình cho tựa game này
+    const firstAvailableTpl = templates.find(
+      (t) => !configuredServiceTypes.has((t.serviceType || t.slug || '').toLowerCase().trim())
+    );
+
+    if (!firstAvailableTpl) {
+      toast.info(
+        `Tựa game ${code} đã cấu hình đầy đủ các gói dịch vụ chuẩn! Bạn có thể chỉnh sửa gói hiện có hoặc tạo thêm "Gói Dịch Vụ Tùy Chỉnh Khác".`
+      );
+    }
+
+    const firstTpl = firstAvailableTpl || {
+      serviceType: 'custom',
+      slug: 'custom',
+      name: 'Gói Cày Tùy Chỉnh',
+      desc: 'Gói cày thuê đặc thù theo yêu cầu khách hàng.',
+      pricingType: 'FIXED',
+      defaultPrice: 150000,
       depositPercent: 100,
     };
 
-    const isVal = activeGameCode.toUpperCase() === 'VALORANT';
-    const isAov = activeGameCode.toUpperCase() === 'AOV' || activeGameCode.toUpperCase() === 'LIENQUAN';
+    const isVal = code === 'VALORANT';
+    const isAov = code === 'AOV' || code === 'LIENQUAN';
     const initialTierRates: TierRates = isVal
       ? { immortal1_2: 5000, immortal2_3: 7000, immortal3_radiant: 10000, radiant_top100: 20000 }
       : isAov
@@ -556,15 +627,15 @@ export default function BoosterServicesStudio() {
         : { master: 1000, grandmaster: 1500, challenger: 2000 };
 
     setFormData({
-      id: `srv_${activeGameCode.toLowerCase()}_${firstTpl.serviceType || 'rank-boost'}_${Date.now()}`,
-      gameCode: activeGameCode,
-      serviceType: firstTpl.serviceType || firstTpl.slug || 'rank-boost',
-      slug: firstTpl.slug || firstTpl.serviceType || 'rank-boost',
-      name: firstTpl.name || 'Cày Rank / Elo Siêu Tốc',
+      id: `srv_${code.toLowerCase()}_${firstTpl.serviceType || 'custom'}_${Date.now()}`,
+      gameCode: code,
+      serviceType: firstTpl.serviceType || firstTpl.slug || 'custom',
+      slug: firstTpl.slug || firstTpl.serviceType || 'custom',
+      name: firstTpl.name || 'Gói Cày Tùy Chỉnh',
       desc: firstTpl.desc || '',
-      pricingType: firstTpl.pricingType || 'TIER_MATRIX',
+      pricingType: firstTpl.pricingType || 'FIXED',
       price: firstTpl.defaultPrice || 0,
-      unitName: firstTpl.unitName || (isVal ? 'Điểm RR' : isAov ? 'Sao' : 'Điểm LP'),
+      unitName: (firstTpl as any).unitName || (isVal ? 'Điểm RR' : isAov ? 'Sao' : 'Điểm LP'),
       depositPercent: firstTpl.depositPercent ?? (firstTpl.serviceType === 'net-wins' ? 40 : 100),
       stepOverrides: {},
       tierRates: initialTierRates,
@@ -652,9 +723,23 @@ export default function BoosterServicesStudio() {
     );
 
     if (tpl) {
-      const gCode = (tpl.gameCode || formData.gameCode || activeGameCode || '').toUpperCase();
+      const gCode = (tpl.gameCode || formData.gameCode || activeGameCode || '').toUpperCase().trim();
       const isVal = gCode === 'VALORANT';
       const isAov = gCode === 'AOV' || gCode === 'LIENQUAN';
+
+      // Cảnh báo nếu chọn trúng dịch vụ đã có trong tựa game này
+      const candType = (tpl.serviceType || tpl.slug || '').toLowerCase().trim();
+      const isAlreadyConfigured = customServices.some((s) => {
+        if (editingServiceId && s.id === editingServiceId) return false;
+        const sGame = (s.gameCode || 'LOL').toUpperCase().trim();
+        if (sGame !== gCode) return false;
+        const sType = (s.serviceType || s.slug || '').toLowerCase().trim();
+        return sType === candType;
+      });
+
+      if (isAlreadyConfigured) {
+        toast.error(`Tựa game ${gCode} đã có gói "${tpl.name}". Bạn không thể thêm dịch vụ trùng lặp!`);
+      }
 
       setFormData((prev) => ({
         ...prev,
@@ -689,12 +774,34 @@ export default function BoosterServicesStudio() {
       toast.error('Vui lòng nhập tên dịch vụ');
       return;
     }
+
+    const targetGame = (formData.gameCode || activeGameCode || 'LOL').toUpperCase().trim();
+    if (isServiceDuplicate(formData, customServices, editingServiceId)) {
+      const gameMeta = GAMES_CATALOG.find((g) => g.id.toUpperCase() === targetGame);
+      const gameName = gameMeta?.name || targetGame;
+      toast.error(
+        `Tựa game ${gameName} đã có dịch vụ "${formData.name}" (${formData.serviceType || formData.slug}). Không được phép thêm lặp dịch vụ!`
+      );
+      return;
+    }
+
     setModalStep(2);
   };
 
   // Hoàn tất lưu Modal ở Bước 2
   const handleFinalSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    const targetGame = (formData.gameCode || activeGameCode || 'LOL').toUpperCase().trim();
+    if (isServiceDuplicate(formData, customServices, editingServiceId)) {
+      const gameMeta = GAMES_CATALOG.find((g) => g.id.toUpperCase() === targetGame);
+      const gameName = gameMeta?.name || targetGame;
+      toast.error(
+        `Tựa game ${gameName} đã có dịch vụ "${formData.name}" (${formData.serviceType || formData.slug}). Không được phép thêm lặp dịch vụ!`
+      );
+      return;
+    }
+
     if (formData.serviceType === 'promotion') {
       if (!formData.price || formData.price <= 0) {
         formData.price = 40000;
@@ -2272,13 +2379,22 @@ export default function BoosterServicesStudio() {
 
                 {/* 2. Chọn loại hình dịch vụ lấy từ API/chuẩn sàn theo từng game */}
                 <div>
-                  <label className="text-zinc-300 font-bold uppercase block mb-1.5">
-                    Chọn Loại Hình Dịch Vụ
+                  <label className="text-zinc-300 font-bold uppercase mb-1.5 flex items-center justify-between">
+                    <span>Chọn Loại Hình Dịch Vụ</span>
+                    {isServiceDuplicate(formData, customServices, editingServiceId) && (
+                      <span className="text-[11px] font-bold text-red-400 bg-red-500/10 border border-red-500/20 px-2 py-0.5 rounded-md">
+                        Đã tồn tại trong game này
+                      </span>
+                    )}
                   </label>
                   <select
                     value={formData.serviceType || 'rank-boost'}
                     onChange={(e) => handleSelectTemplate(e.target.value)}
-                    className="w-full bg-zinc-950 border border-cyan-500/40 rounded-xl px-4 py-3 text-sm text-white font-bold outline-none focus:border-cyan-400 shadow-inner"
+                    className={`w-full bg-zinc-950 border rounded-xl px-4 py-3 text-sm text-white font-bold outline-none shadow-inner transition-colors ${
+                      isServiceDuplicate(formData, customServices, editingServiceId)
+                        ? 'border-red-500/70 focus:border-red-500 text-red-200'
+                        : 'border-cyan-500/40 focus:border-cyan-400'
+                    }`}
                   >
                     <optgroup
                       label={`Danh mục dịch vụ chuẩn (${GAMES_CATALOG.find(
@@ -2286,14 +2402,45 @@ export default function BoosterServicesStudio() {
                       )?.shortName || (formData.gameCode || activeGameCode)
                         })`}
                     >
-                      {availableServiceTypes.map((tpl) => (
-                        <option key={tpl.serviceType || tpl.slug} value={tpl.serviceType || tpl.slug}>
-                          {tpl.name}
-                        </option>
-                      ))}
+                      {availableServiceTypes.map((tpl) => {
+                        const tplKey = (tpl.serviceType || tpl.slug || '').toLowerCase().trim();
+                        const isConfigured = customServices.some((s) => {
+                          if (editingServiceId && s.id === editingServiceId) return false;
+                          const sGame = (s.gameCode || 'LOL').toUpperCase().trim();
+                          const curGame = (formData.gameCode || activeGameCode).toUpperCase().trim();
+                          if (sGame !== curGame) return false;
+                          const sType = (s.serviceType || s.slug || '').toLowerCase().trim();
+                          return sType === tplKey;
+                        });
+
+                        return (
+                          <option
+                            key={tpl.serviceType || tpl.slug}
+                            value={tpl.serviceType || tpl.slug}
+                            disabled={isConfigured}
+                            className={isConfigured ? 'text-zinc-500 bg-zinc-900/90 font-normal italic' : 'text-white font-bold'}
+                          >
+                            {tpl.name} {isConfigured ? '✓ (Đã cấu hình)' : ''}
+                          </option>
+                        );
+                      })}
                     </optgroup>
                     <option value="custom">-- Gói Dịch Vụ Tùy Chỉnh Khác --</option>
                   </select>
+
+                  {isServiceDuplicate(formData, customServices, editingServiceId) && (
+                    <div className="mt-2.5 p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-300 text-xs flex items-start gap-2.5 animate-in fade-in duration-200">
+                      <AlertTriangle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-bold text-red-200">
+                          Dịch vụ này đã tồn tại trong tựa game {(formData.gameCode || activeGameCode).toUpperCase()}!
+                        </p>
+                        <p className="text-zinc-400 text-[11px] mt-0.5 leading-relaxed">
+                          Mỗi tựa game chỉ được cấu hình duy nhất 1 gói của từng loại dịch vụ để tránh trùng lặp. Vui lòng chọn loại dịch vụ khác hoặc quay lại chỉnh sửa gói đã có.
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Tên Dịch Vụ (*) */}
@@ -2333,7 +2480,8 @@ export default function BoosterServicesStudio() {
                   </button>
                   <button
                     type="submit"
-                    className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-black font-extrabold text-xs sm:text-sm shadow-lg shadow-cyan-500/20 transition-all active:scale-95 cursor-pointer"
+                    disabled={isServiceDuplicate(formData, customServices, editingServiceId)}
+                    className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 disabled:opacity-40 disabled:cursor-not-allowed text-black font-extrabold text-xs sm:text-sm shadow-lg shadow-cyan-500/20 transition-all active:scale-95 cursor-pointer"
                   >
                     <span>Tiếp tục: Cấu hình giá</span>
                     <ArrowRight size={15} />
