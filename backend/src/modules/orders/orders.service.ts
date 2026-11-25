@@ -931,8 +931,13 @@ export class OrdersService {
     const order = await this.orderModel.findById(orderId);
     if (!order) throw new NotFoundException('Không tìm thấy đơn hàng');
 
-    // Cơ chế 24h: Customer chỉ được khiếu nại trong vòng 24 giờ kể từ khi đơn hoàn thành
+    // Cơ chế 24h & Nghiệm thu: Customer không được khiếu nại nếu đã đánh giá nghiệm thu hoặc quá 24 giờ
     if (order.status === OrderStatus.COMPLETED && userRole !== UserRole.ADMIN && userRole !== UserRole.STAFF) {
+      if ((order as any).rating) {
+        throw new BadRequestException(
+          'Đơn hàng đã được nghiệm thu và đánh giá hoàn tất. Cổng khiếu nại đã chính thức đóng.',
+        );
+      }
       const completedEntry = Array.isArray(order.timeline)
         ? [...order.timeline].reverse().find((t: any) => t.status === OrderStatus.COMPLETED)
         : null;

@@ -617,6 +617,11 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
   };
 
   const handleDispute = async () => {
+    if (order.rating) {
+      toast.error('Đơn hàng đã được nghiệm thu và đánh giá. Cổng khiếu nại đã đóng.');
+      setIsDisputeModalOpen(false);
+      return;
+    }
     if (!disputeReason.trim()) return toast.error('Vui lòng nhập lý do');
     setIsSubmittingDispute(true);
     try {
