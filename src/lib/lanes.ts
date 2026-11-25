@@ -55,46 +55,39 @@ export const MOBA_LANES_AOV: LaneMeta[] = [
 
 export const MOBA_LANES_LOL: LaneMeta[] = [
   {
-    id: 'top',
-    name: 'Đường Trên (Top)',
-    shortName: 'Top',
-    image: '/images/lane-aov/top.png',
-    description: 'Đấu sĩ, đỡ đòn đường trên',
-  },
-  {
     id: 'jungle',
     name: 'Đi Rừng (Jungle)',
-    shortName: 'Jungle',
-    image: '/images/lane-aov/jungle.png',
+    shortName: 'Đi Rừng',
+    image: '/images/lane-lol/jungle.png',
     description: 'Kiểm soát rừng và can thiệp các đường',
+  },
+  {
+    id: 'top',
+    name: 'Đường Trên (Top)',
+    shortName: 'Đường Trên',
+    image: '/images/lane-lol/top.png',
+    description: 'Đấu sĩ, đỡ đòn đường trên',
   },
   {
     id: 'mid',
     name: 'Đường Giữa (Mid)',
-    shortName: 'Mid',
-    image: '/images/lane-aov/mid.png',
+    shortName: 'Đường Giữa',
+    image: '/images/lane-lol/mid.png',
     description: 'Pháp sư, sát thủ đường giữa',
   },
   {
     id: 'adc',
-    name: 'Xạ Thủ (Bot / ADC)',
-    shortName: 'ADC',
-    image: '/images/lane-aov/adc.png',
+    name: 'Đường Dưới (ADC)',
+    shortName: 'Đường Dưới',
+    image: '/images/lane-lol/adc.png',
     description: 'Xạ thủ đường dưới',
   },
   {
     id: 'sp',
     name: 'Hỗ Trợ (Support)',
-    shortName: 'Support',
-    image: '/images/lane-aov/sp.png',
+    shortName: 'Hỗ Trợ',
+    image: '/images/lane-lol/sp.png',
     description: 'Hỗ trợ kiểm soát tầm nhìn và giao tranh',
-  },
-  {
-    id: 'random',
-    name: 'Đường Bất Kỳ (Fill)',
-    shortName: 'Bất Kỳ',
-    image: '/images/lane-aov/random-lane.png',
-    description: 'Tuyển thủ tự chọn vị trí tối ưu theo từng trận',
   },
 ];
 
@@ -129,9 +122,12 @@ export function getLaneMeta(laneId: string, gameId?: string): LaneMeta {
   );
   if (direct) return direct;
 
-  if (key.includes('top') || key.includes('caesar') || key.includes('trên')) return lanes[0];
-  if (key.includes('jungle') || key.includes('rừng') || key.includes('jg')) return lanes[1];
-  if (key.includes('mid') || key.includes('giữa')) return lanes[2];
+  if (key.includes('jungle') || key.includes('rừng') || key.includes('jg'))
+    return lanes.find((l) => l.id === 'jungle') || lanes[0];
+  if (key.includes('top') || key.includes('caesar') || key.includes('trên'))
+    return lanes.find((l) => l.id === 'top') || lanes[0];
+  if (key.includes('mid') || key.includes('middle') || key.includes('giữa'))
+    return lanes.find((l) => l.id === 'mid') || lanes[0];
   if (
     key.includes('adc') ||
     key.includes('rồng') ||
@@ -139,21 +135,22 @@ export function getLaneMeta(laneId: string, gameId?: string): LaneMeta {
     key.includes('dưới') ||
     key.includes('xạ thủ')
   )
-    return lanes[3];
+    return lanes.find((l) => l.id === 'adc') || lanes[0];
   if (
     key.includes('sp') ||
     key.includes('trợ thủ') ||
     key.includes('hỗ trợ') ||
-    key.includes('sup')
+    key.includes('sup') ||
+    key.includes('support')
   )
-    return lanes[4];
+    return lanes.find((l) => l.id === 'sp') || lanes[0];
   if (
     key.includes('random') ||
     key.includes('bất kỳ') ||
     key.includes('fill') ||
     key.includes('any')
   )
-    return lanes[5];
+    return lanes.find((l) => l.id === 'random') || lanes[0];
 
   return {
     id: laneId,

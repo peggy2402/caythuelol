@@ -130,7 +130,7 @@ export function AddonsAndRolesSection({
                 specificRole: checked,
                 selectedRoles:
                   checked && (!addons.selectedRoles || addons.selectedRoles.length === 0)
-                    ? ['random']
+                    ? [mobaLanes[0]?.id || 'jungle']
                     : addons.selectedRoles,
               });
             }}
@@ -160,11 +160,17 @@ export function AddonsAndRolesSection({
                 </span>
               </div>
               <span className="text-[11px] text-zinc-400">
-                (Chọn tối đa 2 đường hoặc Bất kỳ)
+                (Chọn tối đa 2 vị trí ưu tiên)
               </span>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            <div
+              className={`grid gap-2 ${
+                mobaLanes.length === 5
+                  ? 'grid-cols-5'
+                  : 'grid-cols-2 sm:grid-cols-3 md:grid-cols-6'
+              }`}
+            >
               {mobaLanes.map((lane) => {
                 const isSelected = (addons.selectedRoles || []).includes(lane.id);
                 const isRandomActive = (addons.selectedRoles || []).includes('random');
@@ -182,7 +188,7 @@ export function AddonsAndRolesSection({
                     type="button"
                     disabled={isDisabled}
                     onClick={() => handleToggleLane(lane.id)}
-                    className={`flex items-center gap-2.5 p-2 sm:p-2.5 rounded-xl border text-left transition-all relative ${
+                    className={`flex flex-col items-center justify-center p-2 sm:p-2.5 rounded-xl border text-center transition-all relative ${
                       isSelected
                         ? 'bg-blue-500/20 border-blue-400 text-white shadow-md shadow-blue-500/20 ring-1 ring-blue-400'
                         : isDisabled
@@ -190,25 +196,20 @@ export function AddonsAndRolesSection({
                         : 'bg-zinc-900/80 border-zinc-800 hover:border-zinc-700 hover:bg-zinc-850 text-zinc-300 cursor-pointer active:scale-95'
                     }`}
                   >
-                    <div className="w-8 h-8 rounded-lg bg-black/50 border border-white/10 flex items-center justify-center shrink-0 p-1">
+                    <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-xl bg-black/50 border border-white/10 flex items-center justify-center shrink-0 p-1 mb-1 shadow-inner">
                       <Image
                         src={lane.image}
                         alt={lane.name}
-                        width={26}
-                        height={26}
-                        className="w-full h-full object-contain"
+                        width={36}
+                        height={36}
+                        className="w-full h-full object-contain drop-shadow"
                       />
                     </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="text-xs font-bold truncate">
-                        {lane.name}
-                      </div>
-                      <div className="text-[10px] text-zinc-400 truncate">
-                        {lane.shortName}
-                      </div>
+                    <div className="text-[11px] sm:text-xs font-bold truncate max-w-full">
+                      {lane.shortName}
                     </div>
                     {isSelected && (
-                      <div className="w-4 h-4 rounded-full bg-blue-500 flex items-center justify-center text-white shrink-0">
+                      <div className="absolute top-1 sm:top-1.5 right-1 sm:right-1.5 w-4 h-4 rounded-full bg-blue-500 flex items-center justify-center text-white shrink-0 shadow">
                         <Check size={10} strokeWidth={3} />
                       </div>
                     )}
@@ -229,11 +230,11 @@ export function AddonsAndRolesSection({
                 </span>
               ) : (addons.selectedRoles || []).length === 1 ? (
                 <span className="text-amber-400 font-medium">
-                  ⚠️ Bạn đã chọn 1 đường. Có thể chọn thêm 1 đường hoặc bấm Đường Bất Kỳ.
+                  ⚠️ Đã chọn 1 vị trí. Bạn có thể chọn thêm vị trí thứ 2 (hoặc để tuyển thủ chỉ định đường còn lại).
                 </span>
               ) : (
                 <span className="text-zinc-400">
-                  👉 Vui lòng chọn 1-2 vị trí ưu tiên hoặc chọn Đường Bất Kỳ.
+                  👉 Vui lòng chọn 1-2 vị trí ưu tiên.
                 </span>
               )}
             </div>
