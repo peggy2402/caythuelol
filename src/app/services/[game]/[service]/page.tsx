@@ -1634,10 +1634,10 @@ function ServiceBookingContent() {
               segment: selectedPointSegment,
               segment_label: selectedPointTierObj.label,
               current_rank: isAov && !isSelectedAovHighStar
-                ? `${aovOddStartStep.label} (${aovOddCurrentStarsInDiv}★)`
+                ? `${aovOddStartStep.label} (${aovOddCurrentStarsInDiv} sao)`
                 : aovStartRankInfo ? aovStartRankInfo.label : selectedPointTierObj.label,
               desired_rank: isAov && !isSelectedAovHighStar
-                ? aovOddTargetRank?.targetStepLabel || `${selectedPointTierObj.label} (+${aovOddStarsToAdd}★)`
+                ? aovOddTargetRank?.targetStepLabel || `${selectedPointTierObj.label} (+${aovOddStarsToAdd} sao)`
                 : aovTargetRankInfo
                   ? aovTargetRankInfo.label
                   : `${selectedPointTierObj.label} (${desiredPoints} ${pointUnit})`,
@@ -4522,8 +4522,11 @@ function ServiceBookingContent() {
                         </div>
                         <div className="flex justify-between text-zinc-400">
                           <span>Xuất phát:</span>
-                          <span className="font-bold text-white">
-                            {aovOddStartStep.label} ({aovOddCurrentStarsInDiv}★)
+                          <span className="font-bold text-white flex items-center gap-1">
+                            <span>{aovOddStartStep.label}</span>
+                            <span className="text-amber-300 font-mono">({aovOddCurrentStarsInDiv}</span>
+                            <StarIcon size={12} />
+                            <span className="text-amber-300 font-mono">)</span>
                           </span>
                         </div>
                         <div className="flex justify-between text-zinc-400">
