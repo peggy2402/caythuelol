@@ -632,15 +632,23 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
       const isFlexOrder = rawQueue.includes('FLEX') || rawQueue.includes('LINH');
       const isSoloDuoOrder = !isFlexOrder;
 
-      // Giới hạn số trận đấu đối với Cày Theo Số Trận hoặc Phân Hạng Đầu Mùa
+      // Giới hạn số trận đấu đối với Cày Theo Số Trận Thắng (tính theo trận Thắng) hoặc Phân Hạng Đầu Mùa (tính tổng trận)
       const isMatchesService = order?.serviceType === 'MATCHES' || order?.details?.is_matches;
       const isPlacementsService = order?.serviceType === 'PLACEMENTS' || order?.details?.is_placements;
       if (!editingMatchId && (isMatchesService || isPlacementsService)) {
         const maxAllowed = Number(order?.details?.match_count || order?.details?.placement_matches || order?.details?.matches || order?.details?.steps_count || order?.details?.num_games || (isMatchesService ? 10 : 5));
-        const currentCount = order?.match_history?.length || 0;
-        if (currentCount >= maxAllowed) {
-          toast.error(`Đơn hàng đã cập nhật đủ ${currentCount}/${maxAllowed} trận theo yêu cầu. Không thể thêm trận vượt quá giới hạn!`);
-          return;
+        if (isMatchesService) {
+          const currentWins = (order?.match_history || []).filter((m: any) => m.result === 'WIN').length;
+          if (currentWins >= maxAllowed) {
+            toast.error(`Đơn hàng đã đạt đủ ${currentWins}/${maxAllowed} trận thắng theo cam kết. Bạn có thể báo cáo hoàn thành!`);
+            return;
+          }
+        } else {
+          const currentCount = order?.match_history?.length || 0;
+          if (currentCount >= maxAllowed) {
+            toast.error(`Đơn hàng đã cập nhật đủ ${currentCount}/${maxAllowed} trận theo yêu cầu. Không thể thêm trận vượt quá giới hạn!`);
+            return;
+          }
         }
       }
 
@@ -928,22 +936,31 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
         return;
       }
 
-      // Giới hạn số trận đấu đối với Cày Theo Số Trận hoặc Phân Hạng Đầu Mùa
+      // Giới hạn số trận đấu đối với Cày Theo Số Trận Thắng (tính theo trận Thắng) hoặc Phân Hạng Đầu Mùa (tính tổng trận)
       const isMatchesBatch = order?.serviceType === 'MATCHES' || order?.details?.is_matches;
       const isPlacementsBatch = order?.serviceType === 'PLACEMENTS' || order?.details?.is_placements;
       if (isMatchesBatch || isPlacementsBatch) {
         const maxAllowed = Number(order?.details?.match_count || order?.details?.placement_matches || order?.details?.matches || order?.details?.steps_count || order?.details?.num_games || (isMatchesBatch ? 10 : 5));
-        const currentCount = order?.match_history?.length || 0;
-        const remaining = maxAllowed - currentCount;
-        if (remaining <= 0) {
-          toast.error(`Đơn hàng đã cập nhật đủ ${maxAllowed}/${maxAllowed} trận! Không thể thêm trận mới.`);
-          setIsSubmittingBatch(false);
-          return;
-        }
-        if (matchesToSave.length > remaining) {
-          toast.error(`Đơn hàng chỉ còn thiếu ${remaining} trận nữa là đủ ${maxAllowed} trận. Bạn đang chọn nhập ${matchesToSave.length} trận!`);
-          setIsSubmittingBatch(false);
-          return;
+        if (isMatchesBatch) {
+          const currentWins = (order?.match_history || []).filter((m: any) => m.result === 'WIN').length;
+          if (currentWins >= maxAllowed) {
+            toast.error(`Đơn hàng đã đạt đủ ${maxAllowed}/${maxAllowed} trận thắng! Không cần thêm trận mới.`);
+            setIsSubmittingBatch(false);
+            return;
+          }
+        } else {
+          const currentCount = order?.match_history?.length || 0;
+          const remaining = maxAllowed - currentCount;
+          if (remaining <= 0) {
+            toast.error(`Đơn hàng đã cập nhật đủ ${maxAllowed}/${maxAllowed} trận! Không thể thêm trận mới.`);
+            setIsSubmittingBatch(false);
+            return;
+          }
+          if (matchesToSave.length > remaining) {
+            toast.error(`Đơn hàng chỉ còn thiếu ${remaining} trận nữa là đủ ${maxAllowed} trận. Bạn đang chọn nhập ${matchesToSave.length} trận!`);
+            setIsSubmittingBatch(false);
+            return;
+          }
         }
       }
 
@@ -2485,15 +2502,21 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                                 const maxAllowed = (isMatchesCheck || isPlacementsCheck)
                                     ? Number(order.details?.match_count || order.details?.placement_matches || order.details?.matches || order.details?.steps_count || order.details?.num_games || (isMatchesCheck ? 10 : 5))
                                     : null;
-                                const currentCount = order.match_history?.length || 0;
-                                const isLimitReached = maxAllowed !== null && currentCount >= maxAllowed;
+                                const currentProgress = isMatchesCheck
+                                    ? (order.match_history || []).filter((m: any) => m.result === 'WIN').length
+                                    : (order.match_history?.length || 0);
+                                const isLimitReached = maxAllowed !== null && currentProgress >= maxAllowed;
 
                                 if (isLimitReached) {
                                     return (
                                         <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 flex items-center gap-3 mt-2 shadow-lg shadow-emerald-500/5">
                                             <CheckCircle2 className="w-5 h-5 shrink-0 text-emerald-400" />
                                             <div className="text-xs">
-                                                <p className="font-bold text-emerald-400 text-sm">Đã cập nhật đủ {currentCount}/{maxAllowed} trận theo yêu cầu đơn hàng!</p>
+                                                <p className="font-bold text-emerald-400 text-sm">
+                                                    {isMatchesCheck
+                                                        ? `Đã đạt đủ ${currentProgress}/${maxAllowed} trận thắng theo cam kết đơn hàng!`
+                                                        : `Đã cập nhật đủ ${currentProgress}/${maxAllowed} trận theo yêu cầu đơn hàng!`}
+                                                </p>
                                                 <p className="text-zinc-400 mt-0.5">Tiến độ trận đấu đã đủ số lượng. Bạn có thể chỉnh sửa các trận đã lưu hoặc nhấn &quot;Báo cáo hoàn thành&quot;.</p>
                                             </div>
                                         </div>

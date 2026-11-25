@@ -1033,7 +1033,7 @@ export class OrdersService {
       order.match_history = [];
     }
 
-    // Giới hạn số trận đấu đối với Cày Theo Số Trận hoặc Phân Hạng Đầu Mùa
+    // Giới hạn số trận đấu đối với Cày Theo Số Trận Thắng (tính theo trận Thắng) hoặc Phân Hạng Đầu Mùa (tính tổng trận)
     const isMatchesService = order.serviceType === 'MATCHES' || order.details?.is_matches;
     const isPlacementsService = order.serviceType === 'PLACEMENTS' || order.details?.is_placements;
     if (isMatchesService || isPlacementsService) {
@@ -1045,7 +1045,12 @@ export class OrdersService {
         order.details?.num_games ||
         (isMatchesService ? 10 : 5)
       );
-      if (order.match_history.length >= maxAllowed) {
+      if (isMatchesService) {
+        const currentWins = order.match_history.filter((m: any) => m.result === 'WIN').length;
+        if (currentWins >= maxAllowed) {
+          throw new BadRequestException(`Đơn hàng đã đạt đủ ${currentWins}/${maxAllowed} trận thắng theo cam kết. Bạn có thể báo cáo hoàn thành!`);
+        }
+      } else if (order.match_history.length >= maxAllowed) {
         throw new BadRequestException(`Đơn hàng đã cập nhật đủ ${order.match_history.length}/${maxAllowed} trận theo yêu cầu. Không thể thêm trận vượt quá số lượng!`);
       }
     }
@@ -1113,7 +1118,7 @@ export class OrdersService {
       order.match_history = [];
     }
 
-    // Giới hạn số trận đấu đối với Cày Theo Số Trận hoặc Phân Hạng Đầu Mùa
+    // Giới hạn số trận đấu đối với Cày Theo Số Trận Thắng (tính theo trận Thắng) hoặc Phân Hạng Đầu Mùa (tính tổng trận)
     const isMatchesService = order.serviceType === 'MATCHES' || order.details?.is_matches;
     const isPlacementsService = order.serviceType === 'PLACEMENTS' || order.details?.is_placements;
     if (isMatchesService || isPlacementsService) {
@@ -1125,7 +1130,12 @@ export class OrdersService {
         order.details?.num_games ||
         (isMatchesService ? 10 : 5)
       );
-      if (order.match_history.length >= maxAllowed) {
+      if (isMatchesService) {
+        const currentWins = order.match_history.filter((m: any) => m.result === 'WIN').length;
+        if (currentWins >= maxAllowed) {
+          throw new BadRequestException(`Đơn hàng đã đạt đủ ${currentWins}/${maxAllowed} trận thắng theo cam kết. Bạn có thể báo cáo hoàn thành!`);
+        }
+      } else if (order.match_history.length >= maxAllowed) {
         throw new BadRequestException(`Đơn hàng đã cập nhật đủ ${order.match_history.length}/${maxAllowed} trận theo yêu cầu. Không thể thêm trận vượt quá số lượng!`);
       }
     }

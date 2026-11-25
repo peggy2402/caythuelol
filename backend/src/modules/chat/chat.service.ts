@@ -63,13 +63,13 @@ const BOOSTER_STATUS_CATALOG: Record<
 };
 
 function formatServiceName(serviceType?: string, details?: any): string {
-  if (details?.is_matches || serviceType === 'MATCHES') return 'Cày Theo Số Trận';
+  if (details?.is_matches || serviceType === 'MATCHES') return 'Cày Theo Số Trận Thắng';
   if (details?.is_placements || serviceType === 'PLACEMENTS') return 'Phân Hạng Đầu Mùa';
   if (details?.is_point_boost || details?.calc_mode === 'BY_LP' || details?.segment) return 'Cày Điểm LP Cao Thủ / Thách Đấu';
   if (!serviceType) return 'Dịch vụ Cày Thuê';
   const clean = serviceType.toUpperCase().replace(/[-\s]/g, '_');
   const map: Record<string, string> = {
-    MATCHES: 'Cày Theo Số Trận',
+    MATCHES: 'Cày Theo Số Trận Thắng',
     RANK_BOOST: 'Cày Cấp Bậc Rank',
     NET_WINS: 'Cày Trận Thắng (Net Wins)',
     PROMOTION: 'Chuỗi Thăng Hạng',
