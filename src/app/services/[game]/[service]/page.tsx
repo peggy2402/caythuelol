@@ -761,17 +761,15 @@ function ServiceBookingContent() {
   const isMatches = serviceSlug === 'matches';
   const isPlacements = serviceSlug === 'placements';
   const isPromotion = serviceSlug === 'promotion';
-  const isBasePointBoost = !isMatches && !isPlacements && (serviceSlug === 'net-wins' || serviceDef.pricingType === 'PER_UNIT');
-  const isAovDualMode = isAov && (serviceSlug === 'rank-boost' || serviceSlug === 'net-wins');
-  const [aovCalcMode, setAovCalcMode] = useState<'RANK' | 'STAR'>(
-    isBasePointBoost || searchParams.get('mode') === 'star' ? 'STAR' : 'RANK'
-  );
-  const isPointBoost = isAovDualMode ? aovCalcMode === 'STAR' : isBasePointBoost;
-  const activeServiceSlug = isAovDualMode
-    ? aovCalcMode === 'STAR'
-      ? 'net-wins'
-      : 'rank-boost'
-    : serviceSlug;
+  const isBasePointBoost =
+    !isMatches &&
+    !isPlacements &&
+    (serviceSlug === 'net-wins' ||
+      serviceDef.pricingType === 'PER_UNIT' ||
+      (serviceDef.pricingType as string) === 'TIER_PER_POINT');
+  const isAovRankOrStar = isAov && (serviceSlug === 'rank-boost' || serviceSlug === 'net-wins');
+  const isPointBoost = isAovRankOrStar ? serviceSlug === 'net-wins' : isBasePointBoost;
+  const activeServiceSlug = serviceSlug;
   const activeRankSteps = isValorant ? VALORANT_RANK_STEPS : isAov ? AOV_RANK_STEPS : LOL_RANK_STEPS;
   const activeTierConfig = isValorant ? VALORANT_TIER_CONFIG : isAov ? AOV_TIER_CONFIG : TIER_CONFIG;
   const activeDivisions = isValorant ? VALORANT_DIVISIONS : DIVISIONS;
@@ -1275,11 +1273,8 @@ function ServiceBookingContent() {
     if (isMatches || isPlacements) {
       return serviceDef.depositPercent || 100;
     }
-    if (isAovDualMode) {
-      return isPointBoost ? 30 : 100;
-    }
     return serviceDef.depositPercent || (isPointBoost ? 30 : 100);
-  }, [assignedBooster, matchingBoosterService?.depositPercent, serviceDef.depositPercent, isMatches, isPlacements, isPointBoost, isAovDualMode]);
+  }, [assignedBooster, matchingBoosterService?.depositPercent, serviceDef.depositPercent, isMatches, isPlacements, isPointBoost]);
 
   // Tính toán bảng giá (Hỗ trợ Cày Theo Số Trận, Phân Hạng Đầu Mùa, Cày Điểm RR/LP/Sao, Chuỗi Thăng Hạng và Cày Bậc Rank)
   const calculation = useMemo(() => {
@@ -2076,11 +2071,7 @@ function ServiceBookingContent() {
 
       const aovStartRankInfo = isAov && isPointBoost && isSelectedAovHighStar ? getAovHighRankByStars(currentPoints) : null;
       const aovTargetRankInfo = isAov && isPointBoost && isSelectedAovHighStar ? getAovHighRankByStars(desiredPoints) : null;
-      const resolvedOrderServiceType = isAovDualMode
-        ? isPointBoost
-          ? 'NET_WINS'
-          : 'RANK_BOOST'
-        : serviceSlug.toUpperCase().replace(/-/g, '_');
+      const resolvedOrderServiceType = serviceSlug.toUpperCase().replace(/-/g, '_');
 
       const orderPayload = {
         game: game.id.toUpperCase(),
@@ -2812,62 +2803,44 @@ function ServiceBookingContent() {
                 </div>
               )}
 
-              {/* CHUYỂN ĐỔI HÌNH THỨC TÍNH GIÁ LIÊN QUÂN MOBILE (THEO BẬC RANK / THEO SỐ SAO) */}
-              {isAovDualMode && (
-                <div className="p-2 rounded-2xl bg-zinc-950/90 border border-amber-500/25 grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setAovCalcMode('RANK')}
-                    className={`p-3 rounded-xl border text-left transition-all flex items-center gap-3 cursor-pointer ${aovCalcMode === 'RANK'
-                        ? 'bg-gradient-to-r from-amber-600/20 to-orange-600/15 border-amber-500/70 shadow-[0_0_20px_rgba(245,158,11,0.15)]'
-                        : 'bg-zinc-900/50 border-zinc-800 hover:border-zinc-700'
-                      }`}
-                  >
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border ${aovCalcMode === 'RANK'
-                        ? 'bg-amber-500/20 border-amber-500/40 text-amber-400'
-                        : 'bg-zinc-800/80 border-zinc-700 text-zinc-400'
-                      }`}>
-                      <Trophy size={18} />
-                    </div>
-                    <div className="min-w-0">
-                      <div className="text-xs sm:text-sm font-extrabold text-white flex items-center gap-1.5">
-                        <span>Cày theo Bậc Rank</span>
-                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-300 border border-amber-500/30">
-                          Trọn bậc
-                        </span>
+              {/* HIỂN THỊ ĐÚNG HÌNH THỨC DỊCH VỤ LIÊN QUÂN MOBILE ĐÃ CHỌN (THEO BẬC RANK HOẶC THEO SỐ SAO) */}
+              {isAovRankOrStar && (
+                <div className="p-2 rounded-2xl bg-zinc-950/90 border border-white/10">
+                  {!isPointBoost ? (
+                    <div className="p-3 rounded-xl border text-left flex items-center gap-3 bg-gradient-to-r from-amber-600/20 to-orange-600/15 border-amber-500/70 shadow-[0_0_20px_rgba(245,158,11,0.15)]">
+                      <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border bg-amber-500/20 border-amber-500/40 text-amber-400">
+                        <Trophy size={18} />
                       </div>
-                      <p className="text-[11px] text-zinc-400 truncate mt-0.5">
-                        Đồng → Cao Thủ · Từ Cao Thủ+ tùy chỉnh
-                      </p>
-                    </div>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setAovCalcMode('STAR')}
-                    className={`p-3 rounded-xl border text-left transition-all flex items-center gap-3 cursor-pointer ${aovCalcMode === 'STAR'
-                        ? 'bg-gradient-to-r from-cyan-600/20 to-blue-600/15 border-cyan-500/70 shadow-[0_0_20px_rgba(6,182,212,0.15)]'
-                        : 'bg-zinc-900/50 border-zinc-800 hover:border-zinc-700'
-                      }`}
-                  >
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border ${aovCalcMode === 'STAR'
-                        ? 'bg-cyan-500/20 border-cyan-500/40 text-cyan-400'
-                        : 'bg-zinc-800/80 border-zinc-700 text-zinc-400'
-                      }`}>
-                      <Star size={18} />
-                    </div>
-                    <div className="min-w-0">
-                      <div className="text-xs sm:text-sm font-extrabold text-white flex items-center gap-1.5">
-                        <span>Tính tiền theo Số Sao</span>
-                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">
-                          5k – 30k+/sao
-                        </span>
+                      <div className="min-w-0">
+                        <div className="text-xs sm:text-sm font-extrabold text-white flex items-center gap-1.5 flex-wrap">
+                          <span>Cày theo Bậc Rank</span>
+                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-300 border border-amber-500/30">
+                            Trọn bậc
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-zinc-400 mt-0.5">
+                          Đồng → Cao Thủ · Từ Cao Thủ+ tùy chỉnh
+                        </p>
                       </div>
-                      <p className="text-[11px] text-zinc-400 truncate mt-0.5">
-                        Cày lẻ từng sao · Tự động tính lũy tiến 0★–100★+
-                      </p>
                     </div>
-                  </button>
+                  ) : (
+                    <div className="p-3 rounded-xl border text-left flex items-center gap-3 bg-gradient-to-r from-cyan-600/20 to-blue-600/15 border-cyan-500/70 shadow-[0_0_20px_rgba(6,182,212,0.15)]">
+                      <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border bg-cyan-500/20 border-cyan-500/40 text-cyan-400">
+                        <Star size={18} />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="text-xs sm:text-sm font-extrabold text-white flex items-center gap-1.5 flex-wrap">
+                          <span>Tính tiền theo Số Sao</span>
+                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">
+                            5k – 30k+/sao
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-zinc-400 mt-0.5">
+                          Cày lẻ từng sao · Tự động tính lũy tiến 0★–100★+
+                        </p>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
