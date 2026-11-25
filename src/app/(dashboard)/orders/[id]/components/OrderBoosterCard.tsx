@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import {
   Award,
@@ -10,6 +10,8 @@ import {
   Phone,
   Gamepad2,
   ChevronDown,
+  Copy,
+  Check,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getBoosterGameBadgeStyle } from './orderHelpers';
@@ -41,6 +43,16 @@ export default function OrderBoosterCard({
   toggleGameCollapse,
 }: OrderBoosterCardProps) {
   if (isBooster) return null;
+
+  const [copiedField, setCopiedField] = useState<string | null>(null);
+
+  const handleCopy = (text: string, label: string, fieldId: string) => {
+    if (!text) return;
+    navigator.clipboard?.writeText(text);
+    setCopiedField(fieldId);
+    toast.success(`Đã sao chép ${label}: ${text}`);
+    setTimeout(() => setCopiedField(null), 2000);
+  };
 
   return (
     <div>
@@ -120,81 +132,93 @@ export default function OrderBoosterCard({
           )}
 
           {/* Chi tiết liên hệ & thông tin game của Booster */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs pt-2 border-t border-zinc-800/80">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 text-xs pt-3 border-t border-zinc-800/80">
             {order.boosterId.email && (
-              <div>
-                <span className="text-zinc-500 block">Email liên hệ</span>
-                <span className="text-zinc-200 font-medium">{order.boosterId.email}</span>
+              <div className="space-y-1">
+                <span className="text-zinc-500 text-[11px] font-medium block">Email liên hệ</span>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="text-zinc-200 font-medium font-mono text-xs">{order.boosterId.email}</span>
+                  <button
+                    type="button"
+                    onClick={() => handleCopy(order.boosterId.email, 'Email', 'email')}
+                    className="p-1 rounded-md text-zinc-400 hover:text-cyan-400 hover:bg-zinc-800/80 transition-colors cursor-pointer"
+                    title="Sao chép Email"
+                  >
+                    {copiedField === 'email' ? <Check size={13} className="text-emerald-400" /> : <Copy size={13} />}
+                  </button>
+                </div>
               </div>
             )}
+
             {order.boosterId.profile?.discord_id && (
-              <div>
-                <span className="text-zinc-500 block">Discord ID</span>
-                <span className="text-zinc-200 font-mono">{order.boosterId.profile.discord_id}</span>
+              <div className="space-y-1">
+                <span className="text-zinc-500 text-[11px] font-medium block">Discord ID</span>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <span className="text-zinc-200 font-mono text-xs font-semibold">{order.boosterId.profile.discord_id}</span>
+                  <button
+                    type="button"
+                    onClick={() => handleCopy(order.boosterId.profile.discord_id, 'Discord ID', 'discord')}
+                    className="p-1 rounded-md text-zinc-400 hover:text-cyan-400 hover:bg-zinc-800/80 transition-colors cursor-pointer"
+                    title="Sao chép Discord ID"
+                  >
+                    {copiedField === 'discord' ? <Check size={13} className="text-emerald-400" /> : <Copy size={13} />}
+                  </button>
+                </div>
               </div>
             )}
+
             {order.boosterId.phoneNumber &&
               (() => {
-                const cleanPhone = String(order.boosterId.phoneNumber).replace(/[^\d+]/g, '');
-                const handleMobilePhoneClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
-                  const isInIframe = typeof window !== 'undefined' && window.self !== window.top;
-                  if (isInIframe) {
-                    e.preventDefault();
-                    navigator.clipboard?.writeText(cleanPhone).catch(() => {});
-                    toast.info(
-                      `SĐT Booster: ${order.boosterId.phoneNumber} (Đã sao chép — trên điện thoại thật sẽ tự mở app Gọi điện)`
-                    );
-                  }
-                };
+                const phone = String(order.boosterId.phoneNumber);
+                const cleanPhone = phone.replace(/[^\d+]/g, '');
                 return (
-                  <div>
-                    {isCustomer ? (
-                      <>
-                        <div className="flex md:hidden items-center gap-2.5">
-                          <span className="text-zinc-500">Số điện thoại</span>
-                          <a
-                            href={`tel:${cleanPhone}`}
-                            target="_top"
-                            onClick={handleMobilePhoneClick}
-                            aria-label="Gọi điện cho Booster"
-                            title="Gọi điện cho Booster"
-                            className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 active:scale-95 border border-emerald-500/35 text-emerald-400 transition-all shadow-sm shadow-emerald-500/10 shrink-0"
-                          >
-                            <Phone className="w-4 h-4" />
-                          </a>
-                        </div>
-                        <div className="hidden md:block">
-                          <span className="text-zinc-500 block">Số điện thoại</span>
-                          <span className="text-emerald-400 font-mono font-semibold">
-                            {order.boosterId.phoneNumber}
-                          </span>
-                        </div>
-                      </>
-                    ) : (
-                      <>
-                        <span className="text-zinc-500 block">Số điện thoại</span>
-                        <span className="text-emerald-400 font-mono font-semibold">
-                          {order.boosterId.phoneNumber}
-                        </span>
-                      </>
-                    )}
+                  <div className="space-y-1">
+                    <span className="text-zinc-500 text-[11px] font-medium block">Số điện thoại</span>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-emerald-400 font-mono font-bold text-xs">{phone}</span>
+                      <button
+                        type="button"
+                        onClick={() => handleCopy(phone, 'Số điện thoại', 'phone')}
+                        className="p-1 rounded-md text-zinc-400 hover:text-emerald-400 hover:bg-zinc-800/80 transition-colors cursor-pointer"
+                        title="Sao chép số điện thoại"
+                      >
+                        {copiedField === 'phone' ? <Check size={13} className="text-emerald-400" /> : <Copy size={13} />}
+                      </button>
+                      <a
+                        href={`tel:${cleanPhone}`}
+                        target="_top"
+                        title="Gọi điện cho Booster"
+                        className="inline-flex items-center justify-center px-2 py-0.5 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 active:scale-95 border border-emerald-500/35 text-emerald-400 text-[10px] font-bold gap-1 transition-all shadow-sm shadow-emerald-500/10 cursor-pointer"
+                      >
+                        <Phone size={11} />
+                        <span>Gọi</span>
+                      </a>
+                    </div>
                   </div>
                 );
               })()}
-            {order.boosterId.profile?.facebook_url && (
-              <div>
-                <span className="text-zinc-500 block">Facebook cá nhân</span>
-                <a
-                  href={order.boosterId.profile.facebook_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-400 hover:underline font-medium inline-flex items-center gap-1 break-all"
-                >
-                  <span>{order.boosterId.profile.facebook_url}</span>
-                  <ExternalLink className="w-3 h-3 shrink-0" />
-                </a>
-              </div>
-            )}
+
+            {order.boosterId.profile?.facebook_url &&
+              (() => {
+                const boosterName = boosterProfile?.displayName || order.boosterId.username || 'Booster';
+                return (
+                  <div className="space-y-1">
+                    <span className="text-zinc-500 text-[11px] font-medium block">Facebook cá nhân</span>
+                    <div>
+                      <a
+                        href={order.boosterId.profile.facebook_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/25 text-blue-400 hover:text-blue-300 text-xs font-semibold transition-all group/fb max-w-full cursor-pointer"
+                        title={`Mở trang Facebook của ${boosterName}`}
+                      >
+                        <span className="truncate">{boosterName} (Facebook)</span>
+                        <ExternalLink className="w-3.5 h-3.5 shrink-0 group-hover/fb:translate-x-0.5 transition-transform" />
+                      </a>
+                    </div>
+                  </div>
+                );
+              })()}
           </div>
 
           {/* 🎮 Hồ sơ Game & Dịch vụ cung cấp */}
