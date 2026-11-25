@@ -8,6 +8,7 @@ import Image from 'next/image';
 import Navbar from '@/components/Navbar';
 import BackButton from '@/components/BackButton';
 import UserBadge from '@/components/UserBadge';
+import { toast } from 'sonner';
 import {
   Trophy,
   Target,
@@ -30,6 +31,7 @@ import {
   Sparkles,
   ChevronRight,
   X,
+  Lock,
   type LucideIcon,
   AlertCircle,
 } from 'lucide-react';
@@ -329,7 +331,7 @@ function GameServicesContent() {
     }
 
     // Lọc theo search term
-    return Array.from(map.values()).filter((g) => {
+    const list = Array.from(map.values()).filter((g) => {
       const q = searchTerm.toLowerCase().trim();
       if (!q) return true;
       return (
@@ -341,6 +343,13 @@ function GameServicesContent() {
             b.displayName.toLowerCase().includes(q)
         )
       );
+    });
+
+    // Sắp xếp: Các dịch vụ có tuyển thủ lên đầu, các dịch vụ chưa có tuyển thủ xuống cuối
+    return list.sort((a, b) => {
+      const aHas = a.boosters.length > 0 ? 1 : 0;
+      const bHas = b.boosters.length > 0 ? 1 : 0;
+      return bHas - aHas;
     });
   }, [services, game.id, searchTerm]);
 
@@ -636,46 +645,79 @@ function GameServicesContent() {
                 {groupedServices.map((group) => {
                   const IconComp = ICON_MAP[group.iconName] || Trophy;
                   const isDeposit = group.depositPercent < 100;
+                  const hasBoosters = group.boosters.length > 0;
                   const displayBoosters = group.boosters.slice(0, 3);
                   const remainingCount = group.boosters.length > 3 ? group.boosters.length - 3 : 0;
 
-                  return (
-                    <Link
-                      key={group.serviceType}
-                      href={`/services/${game.id}/${group.serviceType}`}
-                      className="group bg-[#0c101d] hover:bg-[#11172a] border border-blue-500/30 hover:border-blue-500 rounded-3xl p-5 shadow-xl hover:shadow-[0_0_30px_rgba(59,130,246,0.25)] transition-all duration-300 flex flex-col justify-between"
+                  const cardContent = (
+                    <div
+                      className={`h-full rounded-3xl p-5 shadow-xl transition-all duration-300 flex flex-col justify-between ${
+                        hasBoosters
+                          ? 'bg-[#0c101d] group-hover:bg-[#11172a] border border-blue-500/30 group-hover:border-blue-500 group-hover:shadow-[0_0_30px_rgba(59,130,246,0.25)]'
+                          : 'bg-[#0a0d14]/70 border border-zinc-800/60 opacity-60 grayscale-[35%] cursor-not-allowed select-none'
+                      }`}
+                      onClick={() => {
+                        if (!hasBoosters) {
+                          toast.error(
+                            `Dịch vụ "${group.name}" hiện chưa có tuyển thủ nào niêm yết giá. Vui lòng chọn dịch vụ khác hoặc quay lại sau nhé!`
+                          );
+                        }
+                      }}
                     >
                       <div className="space-y-3">
                         {/* Top: Icon + Badge */}
                         <div className="flex items-center justify-between">
-                          <div className="w-11 h-11 rounded-2xl bg-blue-500/20 border border-blue-500/30 flex items-center justify-center text-blue-400 shadow-inner">
+                          <div
+                            className={`w-11 h-11 rounded-2xl flex items-center justify-center shadow-inner ${
+                              hasBoosters
+                                ? 'bg-blue-500/20 border border-blue-500/30 text-blue-400'
+                                : 'bg-zinc-800/50 border border-zinc-700/40 text-zinc-500'
+                            }`}
+                          >
                             <IconComp size={22} />
                           </div>
-                          <span
-                            className={`text-[11px] font-bold px-3 py-1 rounded-full border ${isDeposit
-                                ? 'bg-amber-950/40 text-amber-400 border-amber-500/30'
-                                : 'bg-emerald-950/40 text-emerald-400 border-emerald-500/30'
+                          {hasBoosters ? (
+                            <span
+                              className={`text-[11px] font-bold px-3 py-1 rounded-full border ${
+                                isDeposit
+                                  ? 'bg-amber-950/40 text-amber-400 border-amber-500/30'
+                                  : 'bg-emerald-950/40 text-emerald-400 border-emerald-500/30'
                               }`}
-                          >
-                            {isDeposit ? `Cọc ${group.depositPercent}%` : 'Trọn gói'}
-                          </span>
+                            >
+                              {isDeposit ? `Cọc ${group.depositPercent}%` : 'Trọn gói'}
+                            </span>
+                          ) : (
+                            <span className="text-[10px] sm:text-[11px] font-bold px-2.5 py-1 rounded-full border bg-zinc-800/80 text-zinc-400 border-zinc-700/60 flex items-center gap-1 shadow-inner">
+                              Chưa có tuyển thủ
+                            </span>
+                          )}
                         </div>
 
                         {/* Title & Description */}
                         <div>
-                          <h3 className="font-extrabold text-white text-base tracking-tight group-hover:text-blue-400 transition-colors mb-1.5">
+                          <h3
+                            className={`font-extrabold text-base tracking-tight mb-1.5 transition-colors ${
+                              hasBoosters
+                                ? 'text-white group-hover:text-blue-400'
+                                : 'text-zinc-400'
+                            }`}
+                          >
                             {group.name}
                           </h3>
-                          <p className="text-zinc-400 text-xs line-clamp-2 leading-relaxed min-h-[34px]">
+                          <p
+                            className={`text-xs line-clamp-2 leading-relaxed min-h-[34px] ${
+                              hasBoosters ? 'text-zinc-400' : 'text-zinc-500'
+                            }`}
+                          >
                             {group.desc}
                           </p>
                         </div>
                       </div>
 
-                      {/* PHẦN ĐÁY: CHẤM TRÒN AVATAR BOOSTER + (+N) + MŨI TÊN */}
+                      {/* PHẦN ĐÁY: CHẤM TRÒN AVATAR BOOSTER + (+N) + MŨI TÊN HOẶC KHÓA */}
                       <div className="pt-3.5 mt-3.5 border-t border-zinc-800/80 flex items-center justify-between gap-2">
                         <div className="flex items-center gap-2 min-w-0">
-                          {displayBoosters.length > 0 ? (
+                          {hasBoosters ? (
                             <>
                               <div className="flex items-center -space-x-2 overflow-hidden">
                                 {displayBoosters.map((b, idx) => {
@@ -719,18 +761,38 @@ function GameServicesContent() {
                               )}
                             </>
                           ) : (
-                            <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-zinc-400">
-                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                              <span className="truncate">Đặt ngay · Ghép tự động</span>
+                            <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-zinc-500">
+                              <span className="w-1.5 h-1.5 rounded-full bg-zinc-600" />
+                              <span className="truncate">Tạm thời chưa có tuyển thủ</span>
                             </span>
                           )}
                         </div>
 
-                        <div className="w-8 h-8 rounded-full bg-white/5 group-hover:bg-blue-600 border border-white/10 group-hover:border-blue-500 flex items-center justify-center text-white transition-all duration-200 group-hover:translate-x-1 shadow-md">
-                          <ArrowRight size={16} />
-                        </div>
+                        {hasBoosters ? (
+                          <div className="w-8 h-8 rounded-full bg-white/5 group-hover:bg-blue-600 border border-white/10 group-hover:border-blue-500 flex items-center justify-center text-white transition-all duration-200 group-hover:translate-x-1 shadow-md">
+                            <ArrowRight size={16} />
+                          </div>
+                        ) : (
+                          <div className="w-8 h-8 rounded-full bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-600 shadow-none">
+                            <Lock size={14} />
+                          </div>
+                        )}
                       </div>
+                    </div>
+                  );
+
+                  return hasBoosters ? (
+                    <Link
+                      key={group.serviceType}
+                      href={`/services/${game.id}/${group.serviceType}`}
+                      className="group block h-full"
+                    >
+                      {cardContent}
                     </Link>
+                  ) : (
+                    <div key={group.serviceType} className="block h-full">
+                      {cardContent}
+                    </div>
                   );
                 })}
               </div>
