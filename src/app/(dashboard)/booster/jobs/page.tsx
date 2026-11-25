@@ -307,15 +307,22 @@ export default function JobMarketPage() {
         const matchCount = details?.match_count || details?.matches || 1;
         const queueVi = details?.queue_type === 'FLEX' ? 'Linh Hoạt (Flex)' : 'Đơn / Đôi';
         return (
-            <div className="flex items-center justify-between p-3 bg-black/20 rounded-lg border border-white/5">
-                <span className="text-zinc-400 text-xs">Mục tiêu</span>
-                <div className="text-right">
-                    <div className="font-bold text-white text-sm">
-                        Cày <span className="text-blue-400 font-extrabold">{matchCount}</span> trận
+            <div className="p-3 bg-black/20 rounded-lg border border-white/5 space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                    <span className="text-zinc-400 text-xs">Mục tiêu</span>
+                    <div className="text-right">
+                        <div className="font-bold text-white text-sm">
+                            Cày <span className="text-blue-400 font-extrabold">{matchCount}</span> trận
+                        </div>
+                        <div className="text-xs text-zinc-400 mt-0.5">
+                            Hàng chờ: <span className="text-zinc-300 font-semibold">{queueVi}</span>
+                        </div>
                     </div>
-                    <div className="text-xs text-zinc-400 mt-0.5">
-                        Hàng chờ: <span className="text-zinc-300 font-semibold">{queueVi}</span>
-                    </div>
+                </div>
+                <div className="pt-2 border-t border-white/5 flex items-center justify-between gap-2 text-[11px]">
+                    <span className="text-amber-300/90 font-medium">
+                        • Tính đủ {matchCount} trận đã đấu (không phân biệt Thắng / Thua)
+                    </span>
                 </div>
             </div>
         );

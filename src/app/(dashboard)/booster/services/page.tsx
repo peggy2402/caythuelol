@@ -3028,17 +3028,21 @@ export default function BoosterServicesStudio() {
                                     {/* TRƯỜNG HỢP 7: CÀY THEO SỐ TRẬN (MATCHES) */}
                                     {formData.serviceType === 'matches' && (
                                       <div className="space-y-4">
-                                        <div className="p-3.5 rounded-xl bg-cyan-950/20 border border-cyan-500/20 text-xs text-zinc-300">
-                                          <div className="flex items-center gap-2 font-bold text-cyan-300 mb-1">
+                                        <div className="p-3.5 rounded-xl bg-cyan-950/25 border border-cyan-500/25 text-xs text-zinc-300 space-y-1.5">
+                                          <div className="flex items-center gap-2 font-bold text-cyan-300">
                                             <Gamepad2 size={15} />
-                                            <span>Cày Theo Số Lượng Trận Đấu</span>
+                                            <span>Cày Theo Số Lượng Trận Đấu (1 – 10 trận)</span>
                                           </div>
-                                          <p className="text-[11px] text-zinc-400 leading-relaxed">
-                                            Khách hàng nhập số lượng trận mong muốn. Tuyển thủ cam kết tỷ lệ thắng cao nhất.
+                                          <p className="text-[11px] text-zinc-300 leading-relaxed">
+                                            Khách hàng chọn số lượng trận mong muốn (1–10 trận). Tiến độ được tính theo{' '}
+                                            <strong className="text-white">đủ số trận đã thi đấu — không phân biệt Thắng / Thua</strong>.
+                                          </p>
+                                          <p className="text-[11px] text-amber-300/90 leading-relaxed">
+                                            • Tuyển thủ <strong>không phải cày bù trận thua</strong>, chỉ cần hoàn thành đủ số trận khách đặt và giữ phong độ thi đấu nghiêm túc.
                                           </p>
                                         </div>
 
-                                        <div className="grid grid-cols-2 gap-3">
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                           <div>
                                             <label className="text-zinc-400 font-bold uppercase block mb-1">Đơn Vị Tính</label>
                                             <input
@@ -3066,6 +3070,24 @@ export default function BoosterServicesStudio() {
                                             />
                                           </div>
                                         </div>
+
+                                        {Number(formData.price || 0) > 0 && (
+                                          <div className="grid grid-cols-3 gap-2 pt-1">
+                                            {[3, 5, 10].map((qty) => (
+                                              <div
+                                                key={qty}
+                                                className="p-2.5 rounded-xl bg-zinc-950/80 border border-white/5 text-center"
+                                              >
+                                                <div className="text-[10px] text-zinc-500 font-semibold uppercase">
+                                                  Gói {qty} trận
+                                                </div>
+                                                <div className="text-xs font-extrabold text-emerald-400 font-mono mt-0.5">
+                                                  {(Number(formData.price || 0) * qty).toLocaleString('vi-VN')} đ
+                                                </div>
+                                              </div>
+                                            ))}
+                                          </div>
+                                        )}
                                       </div>
                                     )}
 

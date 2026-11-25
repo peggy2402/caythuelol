@@ -3392,20 +3392,22 @@ function ServiceBookingContent() {
                   </div>
 
                   {/* Thông báo Lưu ý quan trọng cho dịch vụ Cày Theo Số Trận */}
-                  <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-200/95 space-y-2 text-xs leading-relaxed shadow-lg shadow-amber-500/5">
+                  <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-200/95 space-y-2.5 text-xs leading-relaxed shadow-lg shadow-amber-500/5">
                     <div className="flex items-center gap-2 font-bold text-amber-400 text-sm">
                       <AlertTriangle className="w-4 h-4 shrink-0 text-amber-400" />
                       <span>Lưu ý quan trọng về dịch vụ Cày Theo Số Trận</span>
                     </div>
-                    <p className="text-zinc-300">
-                      • Tuyển thủ sẽ <strong>cày đúng đủ {matchCount} trận đấu</strong> bạn yêu cầu, kết quả được tính theo số trận đã thi đấu (<strong>không phân biệt Thắng hay Thua</strong>).
+                    <p className="text-zinc-200">
+                      • Chúng tôi chỉ hoàn thành đúng đủ{' '}
+                      <strong className="text-white">{matchCount} trận đấu</strong> do bạn chọn và{' '}
+                      <strong className="text-amber-300">không phân biệt kết quả Thắng / Thua</strong>.
                     </p>
                     <p className="text-zinc-300">
-                      • Dịch vụ này <strong>không áp dụng chính sách cày bù trận thua</strong>. Mọi trận đấu tuyển thủ cày xong đều được ghi nhận vào tiến độ đơn hàng.
+                      • Dịch vụ này <strong>không áp dụng chính sách cày bù trận thua</strong> — mọi trận đấu tuyển thủ đã hoàn thành đều được ghi nhận hợp lệ vào tiến độ đơn hàng.
                     </p>
-                    <p className="text-zinc-400 text-[11px] pt-0.5">
-                      💡 <em>Nếu bạn cần cam kết số trận thắng ròng (thua 1 trận tuyển thủ phải đánh bù lại 1 trận thắng), vui lòng chọn dịch vụ <strong>Cày Trận Thắng (Net Wins)</strong>.</em>
-                    </p>
+                    <div className="pt-2 border-t border-amber-500/15 text-zinc-400 text-[11px]">
+                      💡 <em>Nếu bạn muốn cam kết số trận thắng ròng (thua 1 trận tuyển thủ phải đánh bù lại 1 trận thắng), vui lòng chọn gói <strong>Cày Trận Thắng (Net Wins)</strong>.</em>
+                    </div>
                   </div>
 
                   {/* Khối Chọn Hàng Đợi (Đơn/Đôi vs Linh Hoạt) */}

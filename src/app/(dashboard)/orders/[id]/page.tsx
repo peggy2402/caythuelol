@@ -20,6 +20,7 @@ import NetWinsOrderView from '@/components/orders/NetWinsOrderView';
 import RankBoostOrderView from '@/components/orders/RankBoostOrderView';
 import PromotionOrderView from '@/components/orders/PromotionOrderView';
 import PlacementsOrderView from '@/components/orders/PlacementsOrderView';
+import MatchesOrderView from '@/components/orders/MatchesOrderView';
 import MasteryOrderView from '@/components/orders/MasteryOrderView';
 import LevelingOrderView from '@/components/orders/LevelingOrderView';
 import OnBetOrderView from '@/components/orders/OnBetOrderView';
@@ -2203,6 +2204,11 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                             {/* PLACEMENTS SPECIAL VIEW */}
                             {order.serviceType === 'PLACEMENTS' && (
                                 <PlacementsOrderView order={order} />
+                            )}
+
+                            {/* MATCHES SPECIAL VIEW (CÀY THEO SỐ TRẬN) */}
+                            {(order.serviceType === 'MATCHES' || order.details?.is_matches) && (
+                                <MatchesOrderView order={order} isBooster={isBooster} />
                             )}
 
                             {/* MASTERY SPECIAL VIEW */}
