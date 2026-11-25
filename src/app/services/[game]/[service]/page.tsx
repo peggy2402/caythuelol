@@ -3407,6 +3407,23 @@ function ServiceBookingContent() {
                     </div>
                   </div>
 
+                  {/* Thông báo Lưu ý quan trọng cho dịch vụ Cày Theo Số Trận */}
+                  <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-200/95 space-y-2 text-xs leading-relaxed shadow-lg shadow-amber-500/5">
+                    <div className="flex items-center gap-2 font-bold text-amber-400 text-sm">
+                      <AlertTriangle className="w-4 h-4 shrink-0 text-amber-400" />
+                      <span>Lưu ý quan trọng về dịch vụ Cày Theo Số Trận</span>
+                    </div>
+                    <p className="text-zinc-300">
+                      • Tuyển thủ sẽ <strong>cày đúng đủ {matchCount} trận đấu</strong> bạn yêu cầu, kết quả được tính theo số trận đã thi đấu (<strong>không phân biệt Thắng hay Thua</strong>).
+                    </p>
+                    <p className="text-zinc-300">
+                      • Dịch vụ này <strong>không áp dụng chính sách cày bù trận thua</strong>. Mọi trận đấu tuyển thủ cày xong đều được ghi nhận vào tiến độ đơn hàng.
+                    </p>
+                    <p className="text-zinc-400 text-[11px] pt-0.5">
+                      💡 <em>Nếu bạn cần cam kết số trận thắng ròng (thua 1 trận tuyển thủ phải đánh bù lại 1 trận thắng), vui lòng chọn dịch vụ <strong>Cày Trận Thắng (Net Wins)</strong>.</em>
+                    </p>
+                  </div>
+
                   {/* Khối Chọn Hàng Đợi (Đơn/Đôi vs Linh Hoạt) */}
                   <div className="space-y-2.5">
                     <label className="text-xs font-bold text-zinc-300 flex items-center gap-2">
@@ -4416,6 +4433,12 @@ function ServiceBookingContent() {
                         </span>
                       </div>
                     )}
+                    <div className="flex justify-between text-zinc-400">
+                      <span>Quy cách cày:</span>
+                      <span className="text-amber-400 font-semibold text-xs">
+                        Đủ {matchCount} trận (Không tính thắng/thua)
+                      </span>
+                    </div>
                   </>
                 ) : isPlacements ? (
                   <>
@@ -4459,6 +4482,12 @@ function ServiceBookingContent() {
                         </span>
                       </div>
                     )}
+                    <div className="flex justify-between text-zinc-400">
+                      <span>Quy cách cày:</span>
+                      <span className="text-amber-400 font-semibold text-xs">
+                        Đủ {placementMatches} trận phân hạng
+                      </span>
+                    </div>
                   </>
                 ) : isPointBoost ? (
                   <>
