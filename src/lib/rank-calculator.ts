@@ -213,6 +213,8 @@ export const AOV_POINT_TIERS: PointBoostTierSegment[] = AOV_STAR_TIERS.map((tier
   image: tier.image,
   category: tier.category,
   isHighEloRange: tier.isHighEloRange,
+  minStar: tier.minStar,
+  maxStar: tier.maxStar,
 }));
 
 export function getPointBoostTiers(gameCode: string): PointBoostTierSegment[] {

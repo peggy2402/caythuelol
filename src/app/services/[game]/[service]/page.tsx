@@ -64,12 +64,24 @@ import {
   AOV_STAR_TIERS,
   AOV_TIER_PACKAGES,
   calculateAovStarBoost,
+  calculateAovOddStarBoost,
   calculateAovOddStarTargetRank,
   getAovHighRankByStars,
   getAovOddStarStepsForSegment,
   getAovTierPackageCurrentTotal,
   resolveAovStarRate,
 } from '@/lib/aov';
+
+function StarIcon({ size = 14, className = '' }: { size?: number; className?: string }) {
+  return (
+    <img
+      src="/images/icons/star.png"
+      alt="★"
+      style={{ width: size, height: size }}
+      className={`inline-block object-contain shrink-0 align-middle ${className}`}
+    />
+  );
+}
 import { getMobaLanes, getLaneMeta, isMobaGame, LaneMeta } from '@/lib/lanes';
 import { ProviderLogo } from './components/ProviderLogo';
 import {
@@ -484,13 +496,9 @@ function ServiceBookingContent() {
     if (!aovTier) return;
     if (aovTier.isHighEloRange) {
       const minS = aovTier.minStar ?? 0;
-      const maxS = aovTier.maxStar ?? Number.POSITIVE_INFINITY;
-      if (currentPoints < minS || currentPoints >= maxS) {
-        setCurrentPoints(minS);
-        setDesiredPoints(minS + 10);
-      } else if (desiredPoints <= currentPoints) {
-        setDesiredPoints(currentPoints + 10);
-      }
+      const maxS = aovTier.maxStar != null ? aovTier.maxStar : minS + 10;
+      setCurrentPoints(minS);
+      setDesiredPoints(maxS === minS ? minS + 10 : maxS);
     } else {
       const steps = getAovOddStarStepsForSegment(tier.id);
       if (steps.length > 0 && !steps.some((s) => s.id === aovOddStartStepId)) {
@@ -617,25 +625,12 @@ function ServiceBookingContent() {
   const aovStarCalc = useMemo(() => {
     if (!isAov) return null;
     if (!isSelectedAovHighStar) {
-      const rate = resolveAovStarRate(selectedPointSegment, matchingBoosterStarService?.tierRates);
-      const totalStars = Math.max(1, aovOddStarsToAdd);
-      const subtotal = totalStars * rate;
-      return {
-        totalStars,
-        basePrice: subtotal,
-        effectiveUnitPrice: rate,
-        isProgressive: false,
-        breakdown: [
-          {
-            tierId: selectedPointSegment,
-            label: selectedPointTierObj.label,
-            image: selectedPointTierObj.image || AOV_RANK_IMAGES.MASTER,
-            stars: totalStars,
-            ratePerStar: rate,
-            subtotal,
-          },
-        ],
-      };
+      return calculateAovOddStarBoost({
+        startStepId: aovOddStartStep.id,
+        currentStarsInDiv: aovOddCurrentStarsInDiv,
+        starsToAdd: aovOddStarsToAdd,
+        boosterTierRates: matchingBoosterStarService?.tierRates,
+      });
     }
     return calculateAovStarBoost({
       selectedSegmentId: selectedPointSegment,
@@ -647,11 +642,12 @@ function ServiceBookingContent() {
     isAov,
     isSelectedAovHighStar,
     selectedPointSegment,
+    aovOddStartStep.id,
+    aovOddCurrentStarsInDiv,
     aovOddStarsToAdd,
     currentPoints,
     desiredPoints,
     matchingBoosterStarService,
-    selectedPointTierObj,
   ]);
 
   const segmentRate = useMemo(() => {
@@ -2368,27 +2364,29 @@ function ServiceBookingContent() {
                   {(() => {
                     const renderTierCard = (tier: PointBoostTierSegment) => {
                       const isHighElo = isAov && tier.isHighEloRange;
-                      const isSelected = isAov && isSelectedAovHighStar && isHighElo
-                        ? currentPoints >= (tier.minStar ?? 0) && (tier.maxStar == null || currentPoints < tier.maxStar)
-                        : selectedPointSegment === tier.id;
+                      const breakdownItem = isAov ? aovStarCalc?.breakdown.find((b) => b.tierId === tier.id) : null;
+                      const starsInTier = breakdownItem ? breakdownItem.stars : 0;
+                      // Sáng viền khi có cày số sao thuộc phân khúc này!
+                      const isSelected = isAov ? starsInTier > 0 : selectedPointSegment === tier.id;
+
                       const customPrice = isAov
                         ? resolveAovStarRate(tier.id, matchingBoosterStarService?.tierRates)
                         : matchingBoosterService?.tierRates?.[tier.id] ?? tier.defaultPrice;
 
                       // Signature active styles per high-elo rank
                       let activeStyle = isSelected
-                        ? 'bg-gradient-to-br from-cyan-950/40 via-zinc-900 to-zinc-950 border-cyan-400 shadow-[0_0_20px_rgba(6,182,212,0.2)] ring-2 ring-cyan-400/50 scale-[1.01]'
-                        : 'bg-zinc-950/70 border-zinc-800/80 hover:border-zinc-700 hover:bg-zinc-900/60';
+                        ? 'bg-gradient-to-br from-cyan-950/40 via-zinc-900 to-zinc-950 border-cyan-400 shadow-[0_0_20px_rgba(6,182,212,0.25)] ring-2 ring-cyan-400/60 scale-[1.01]'
+                        : 'bg-zinc-950/70 border-zinc-800/80 hover:border-zinc-700 hover:bg-zinc-900/60 opacity-80 hover:opacity-100';
 
                       if (isSelected && isHighElo) {
                         if (tier.id === 'master_0_19') {
-                          activeStyle = 'bg-gradient-to-br from-amber-950/40 via-zinc-900 to-zinc-950 border-amber-400 shadow-[0_0_20px_rgba(245,158,11,0.25)] ring-2 ring-amber-400/60 scale-[1.01]';
+                          activeStyle = 'bg-gradient-to-br from-amber-950/40 via-zinc-900 to-zinc-950 border-amber-400 shadow-[0_0_20px_rgba(245,158,11,0.3)] ring-2 ring-amber-400/70 scale-[1.01]';
                         } else if (tier.id === 'gm_20_49') {
-                          activeStyle = 'bg-gradient-to-br from-sky-950/40 via-zinc-900 to-zinc-950 border-sky-400 shadow-[0_0_20px_rgba(14,165,233,0.25)] ring-2 ring-sky-400/60 scale-[1.01]';
+                          activeStyle = 'bg-gradient-to-br from-sky-950/40 via-zinc-900 to-zinc-950 border-sky-400 shadow-[0_0_20px_rgba(14,165,233,0.3)] ring-2 ring-sky-400/70 scale-[1.01]';
                         } else if (tier.id === 'conqueror_50_99') {
-                          activeStyle = 'bg-gradient-to-br from-fuchsia-950/40 via-zinc-900 to-zinc-950 border-fuchsia-400 shadow-[0_0_20px_rgba(217,70,239,0.25)] ring-2 ring-fuchsia-400/60 scale-[1.01]';
+                          activeStyle = 'bg-gradient-to-br from-fuchsia-950/40 via-zinc-900 to-zinc-950 border-fuchsia-400 shadow-[0_0_20px_rgba(217,70,239,0.3)] ring-2 ring-fuchsia-400/70 scale-[1.01]';
                         } else if (tier.id === 'legend_100_plus') {
-                          activeStyle = 'bg-gradient-to-br from-yellow-950/40 via-zinc-900 to-zinc-950 border-yellow-400 shadow-[0_0_25px_rgba(234,179,8,0.3)] ring-2 ring-yellow-400/60 scale-[1.01]';
+                          activeStyle = 'bg-gradient-to-br from-yellow-950/40 via-zinc-900 to-zinc-950 border-yellow-400 shadow-[0_0_25px_rgba(234,179,8,0.35)] ring-2 ring-yellow-400/70 scale-[1.01]';
                         }
                       }
 
@@ -2420,13 +2418,23 @@ function ServiceBookingContent() {
                                     />
                                   </div>
                                 )}
-                                <span className={`text-[10px] font-black px-2 py-0.5 rounded-lg border whitespace-nowrap font-mono tracking-tight ${tier.badgeColor}`}>
-                                  {tier.shortLabel}
+                                <span className={`text-[10px] font-black px-2 py-0.5 rounded-lg border whitespace-nowrap font-mono tracking-tight flex items-center gap-1 ${tier.badgeColor}`}>
+                                  {isHighElo && <StarIcon size={11} />}
+                                  <span>{tier.shortLabel}</span>
                                 </span>
                               </div>
                               {isSelected && (
-                                <div className="w-5 h-5 rounded-full bg-cyan-400 text-black flex items-center justify-center shadow-md shrink-0">
-                                  <Check size={12} strokeWidth={3} />
+                                <div className="flex items-center gap-1">
+                                  {isAov && starsInTier > 0 ? (
+                                    <span className="px-2 py-0.5 rounded-md bg-gradient-to-r from-cyan-400 to-emerald-400 text-black text-[10px] font-black font-mono shadow-md flex items-center gap-1">
+                                      <span>+{starsInTier}</span>
+                                      <StarIcon size={10} />
+                                    </span>
+                                  ) : (
+                                    <div className="w-5 h-5 rounded-full bg-cyan-400 text-black flex items-center justify-center shadow-md shrink-0">
+                                      <Check size={12} strokeWidth={3} />
+                                    </div>
+                                  )}
                                 </div>
                               )}
                             </div>
@@ -2540,8 +2548,9 @@ function ServiceBookingContent() {
                             </span>
                             <div className="text-sm sm:text-base font-black text-white flex items-center gap-2 flex-wrap">
                               <span>{aovOddStartStep.label}</span>
-                              <span className="text-xs font-extrabold px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/40 font-mono">
-                                {aovOddCurrentStarsInDiv} / {aovOddStartStep.starsPerDivision || 5} ★
+                              <span className="text-xs font-extrabold px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/40 font-mono flex items-center gap-1">
+                                <span>{aovOddCurrentStarsInDiv} / {aovOddStartStep.starsPerDivision || 5}</span>
+                                <StarIcon size={12} />
                               </span>
                             </div>
                           </div>
@@ -2670,8 +2679,9 @@ function ServiceBookingContent() {
                           <label className="text-xs font-bold text-zinc-300">
                             2. Số sao hiện đang có trong đoàn ({aovOddStartStep.label}):
                           </label>
-                          <span className="text-[11px] text-amber-400 font-bold font-mono">
-                            {aovOddCurrentStarsInDiv} / {aovOddStartStep.starsPerDivision || 5} ★
+                          <span className="text-[11px] text-amber-400 font-bold font-mono flex items-center gap-1">
+                            <span>{aovOddCurrentStarsInDiv} / {aovOddStartStep.starsPerDivision || 5}</span>
+                            <StarIcon size={12} />
                           </span>
                         </div>
                         <div className="flex flex-wrap gap-2">
@@ -2688,7 +2698,7 @@ function ServiceBookingContent() {
                                     : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:border-zinc-700 hover:text-white'
                                 }`}
                               >
-                                <Star size={13} className={isSelected ? 'text-amber-400 fill-amber-400' : 'text-zinc-600'} />
+                                <StarIcon size={13} className={isSelected ? 'opacity-100' : 'opacity-40 grayscale'} />
                                 <span>{starNum} sao</span>
                               </button>
                             );
@@ -2755,8 +2765,11 @@ function ServiceBookingContent() {
                             </div>
                             <div>
                               <span className="text-[10px] uppercase font-bold text-zinc-500 block">Xuất phát</span>
-                              <span className="text-xs sm:text-sm font-extrabold text-white">
-                                {aovOddStartStep.label} ({aovOddCurrentStarsInDiv}★)
+                              <span className="text-xs sm:text-sm font-extrabold text-white flex items-center gap-1">
+                                <span>{aovOddStartStep.label}</span>
+                                <span className="text-amber-300 font-mono">({aovOddCurrentStarsInDiv}</span>
+                                <StarIcon size={12} />
+                                <span className="text-amber-300 font-mono">)</span>
                               </span>
                             </div>
                           </div>
@@ -2778,6 +2791,46 @@ function ServiceBookingContent() {
                                 {aovOddTargetRank.targetStepLabel}
                               </span>
                             </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Chi tiết lũy tiến nếu cày sao lẻ vượt mốc rank (ví dụ Bạch Kim -> Kim Cương hoặc Tinh Anh -> Cao Thủ) */}
+                      {aovStarCalc && aovStarCalc.breakdown.length > 1 && (
+                        <div className="p-3.5 rounded-xl bg-zinc-900/90 border border-cyan-500/30 space-y-2">
+                          <div className="flex items-center justify-between text-[11px] font-bold">
+                            <span className="text-cyan-400 uppercase tracking-wider flex items-center gap-1.5">
+                              <Sparkles size={13} />
+                              <span>Chi tiết tính lũy tiến vượt mốc Rank</span>
+                            </span>
+                            <span className="text-zinc-400 font-mono">
+                              TB {aovStarCalc.effectiveUnitPrice.toLocaleString('vi-VN')} đ/sao
+                            </span>
+                          </div>
+                          <div className="space-y-1.5">
+                            {aovStarCalc.breakdown.map((seg) => (
+                              <div
+                                key={seg.tierId}
+                                className="flex items-center justify-between gap-2 text-xs py-1 border-b border-zinc-800/70 last:border-0"
+                              >
+                                <div className="flex items-center gap-2 min-w-0">
+                                  <img
+                                    src={seg.image}
+                                    alt={seg.label}
+                                    className="w-5 h-5 object-contain shrink-0"
+                                  />
+                                  <span className="text-zinc-300 truncate font-semibold">
+                                    {seg.label}
+                                  </span>
+                                </div>
+                                <div className="font-mono text-white font-bold whitespace-nowrap flex items-center gap-1">
+                                  <span>{seg.stars}</span>
+                                  <StarIcon size={12} />
+                                  <span>× {seg.ratePerStar.toLocaleString('vi-VN')}đ =</span>
+                                  <span className="text-cyan-400">{seg.subtotal.toLocaleString('vi-VN')}đ</span>
+                                </div>
+                              </div>
+                            ))}
                           </div>
                         </div>
                       )}
@@ -2805,8 +2858,9 @@ function ServiceBookingContent() {
 
                         <div className="flex items-center gap-2 self-start sm:self-auto px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/30">
                           <span className="text-xs text-amber-300/80 font-medium">Cần cày:</span>
-                          <span className="text-base sm:text-lg font-black font-mono text-amber-400 leading-none">
-                            {gainedPoints} {pointUnit}
+                          <span className="text-base sm:text-lg font-black font-mono text-amber-400 leading-none flex items-center gap-1">
+                            <span>+{gainedPoints}</span>
+                            {isAov ? <StarIcon size={15} /> : <span>{pointUnit}</span>}
                           </span>
                         </div>
                       </div>
@@ -3016,14 +3070,16 @@ function ServiceBookingContent() {
                                   <span className="text-zinc-300 truncate">
                                     {seg.label}
                                     {typeof seg.fromStar === 'number' && typeof seg.toStar === 'number'
-                                      ? ` (${seg.fromStar}★ → ${seg.toStar}★)`
+                                      ? ` (${seg.fromStar} → ${seg.toStar} sao)`
                                       : ''}
                                   </span>
                                 </div>
-                                <span className="font-mono text-white font-bold whitespace-nowrap">
-                                  {seg.stars}★ × {seg.ratePerStar.toLocaleString('vi-VN')}đ ={' '}
+                                <div className="font-mono text-white font-bold whitespace-nowrap flex items-center gap-1">
+                                  <span>{seg.stars}</span>
+                                  <StarIcon size={12} />
+                                  <span>× {seg.ratePerStar.toLocaleString('vi-VN')}đ =</span>
                                   <span className="text-cyan-400">{seg.subtotal.toLocaleString('vi-VN')}đ</span>
-                                </span>
+                                </div>
                               </div>
                             ))}
                           </div>

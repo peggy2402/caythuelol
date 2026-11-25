@@ -297,7 +297,7 @@ export const AOV_STAR_TIERS: AovStarTier[] = [
   {
     id: 'master_0_19',
     label: 'Cao Thủ',
-    shortLabel: '0★ – 19★',
+    shortLabel: '0 – 19',
     defaultPrice: 13000,
     unit: 'Sao',
     desc: 'Mốc 0 – 19 sao (Cao Thủ & ĐCT IV)',
@@ -305,13 +305,13 @@ export const AOV_STAR_TIERS: AovStarTier[] = [
     badgeColor: 'text-amber-400 bg-amber-500/10 border-amber-500/30',
     isHighEloRange: true,
     minStar: 0,
-    maxStar: 20,
+    maxStar: 19,
     category: 'HIGH_ELO',
   },
   {
     id: 'gm_20_49',
     label: 'Đại Cao Thủ',
-    shortLabel: '20★ – 49★',
+    shortLabel: '20 – 49',
     defaultPrice: 20000,
     unit: 'Sao',
     desc: 'Mốc 20 – 49 sao (Đoàn III – I)',
@@ -319,13 +319,13 @@ export const AOV_STAR_TIERS: AovStarTier[] = [
     badgeColor: 'text-sky-400 bg-sky-500/10 border-sky-500/30',
     isHighEloRange: true,
     minStar: 20,
-    maxStar: 50,
+    maxStar: 49,
     category: 'HIGH_ELO',
   },
   {
     id: 'conqueror_50_99',
     label: 'Chiến Tướng',
-    shortLabel: '50★ – 99★',
+    shortLabel: '50 – 99',
     defaultPrice: 30000,
     unit: 'Sao',
     desc: 'Mốc 50 – 99 sao Chiến Tướng',
@@ -333,13 +333,13 @@ export const AOV_STAR_TIERS: AovStarTier[] = [
     badgeColor: 'text-fuchsia-400 bg-fuchsia-500/10 border-fuchsia-500/30',
     isHighEloRange: true,
     minStar: 50,
-    maxStar: 100,
+    maxStar: 99,
     category: 'HIGH_ELO',
   },
   {
     id: 'legend_100_plus',
     label: 'Chiến Thần',
-    shortLabel: '100★+',
+    shortLabel: '100+',
     defaultPrice: 45000,
     unit: 'Sao',
     desc: 'Từ 100 sao trở lên (Top Server)',
@@ -448,7 +448,7 @@ export function getAovHighRankByStars(stars: number): {
   const s = Math.max(0, Math.floor(stars));
   if (s >= 100) {
     return {
-      label: `Huyền Thoại (${s}★)`,
+      label: `Chiến Thần (${s} sao)`,
       tierKey: 'LEGEND',
       image: AOV_RANK_IMAGES.LEGEND,
       tierId: 'legend_100_plus',
@@ -456,7 +456,7 @@ export function getAovHighRankByStars(stars: number): {
   }
   if (s >= 50) {
     return {
-      label: `Chiến Tướng (${s}★)`,
+      label: `Chiến Tướng (${s} sao)`,
       tierKey: 'CONQUEROR',
       image: AOV_RANK_IMAGES.CONQUEROR,
       tierId: 'conqueror_50_99',
@@ -464,7 +464,7 @@ export function getAovHighRankByStars(stars: number): {
   }
   if (s >= 40) {
     return {
-      label: `Đại Cao Thủ I (${s}★)`,
+      label: `Đại Cao Thủ I (${s} sao)`,
       tierKey: 'GRANDMASTER_I',
       image: AOV_RANK_IMAGES.GRANDMASTER_I,
       tierId: 'gm_20_49',
@@ -473,7 +473,7 @@ export function getAovHighRankByStars(stars: number): {
   if (s >= 20) {
     const roman = s >= 30 ? 'II' : 'III';
     return {
-      label: `Đại Cao Thủ ${roman} (${s}★)`,
+      label: `Đại Cao Thủ ${roman} (${s} sao)`,
       tierKey: s >= 30 ? 'GRANDMASTER_II' : 'GRANDMASTER_III',
       image: AOV_RANK_IMAGES.GRANDMASTER_IV,
       tierId: 'gm_20_49',
@@ -481,14 +481,14 @@ export function getAovHighRankByStars(stars: number): {
   }
   if (s >= 10) {
     return {
-      label: `Đại Cao Thủ IV (${s}★)`,
+      label: `Đại Cao Thủ IV (${s} sao)`,
       tierKey: 'GRANDMASTER_IV',
       image: AOV_RANK_IMAGES.GRANDMASTER_IV,
       tierId: 'master_0_19',
     };
   }
   return {
-    label: `Cao Thủ (${s}★)`,
+    label: `Cao Thủ (${s} sao)`,
     tierKey: 'MASTER',
     image: AOV_RANK_IMAGES.MASTER,
     tierId: 'master_0_19',
@@ -610,11 +610,11 @@ export function calculateAovOddStarTargetRank(
       // Đã leo lên Cao Thủ (Master) trở lên
       return {
         targetStepId: curStep.id,
-        targetStepLabel: `Cao Thủ (${remainingStars}★)`,
+        targetStepLabel: `Cao Thủ (${remainingStars} sao)`,
         targetStarsInDiv: remainingStars,
         targetImage: curStep.image,
         isPromotedToMaster: true,
-        summaryText: `Từ ${startStep.label} (${currentStarsInDiv}★) ➔ Cao Thủ (${remainingStars}★)`,
+        summaryText: `Từ ${startStep.label} (${currentStarsInDiv} sao) ➔ Cao Thủ (${remainingStars} sao)`,
       };
     }
 
@@ -622,11 +622,11 @@ export function calculateAovOddStarTargetRank(
     if (remainingStars < divCapacity) {
       return {
         targetStepId: curStep.id,
-        targetStepLabel: `${curStep.label} (${remainingStars}★)`,
+        targetStepLabel: `${curStep.label} (${remainingStars} sao)`,
         targetStarsInDiv: remainingStars,
         targetImage: curStep.image,
         isPromotedToMaster: false,
-        summaryText: `Từ ${startStep.label} (${currentStarsInDiv}★) ➔ ${curStep.label} (${remainingStars}★)`,
+        summaryText: `Từ ${startStep.label} (${currentStarsInDiv} sao) ➔ ${curStep.label} (${remainingStars} sao)`,
       };
     }
 
@@ -658,15 +658,17 @@ export interface AovStarBreakdownItem {
 }
 
 /**
- * Tính tiền cày theo số Sao Liên Quân:
- * - Nếu chọn phân khúc thấp (Đồng-Kim Cương, Kim Cương-Tinh Anh, Tinh Anh-Cao Thủ):
- *   tính thẳng gainedStars * rate của phân khúc đó.
- * - Nếu chọn phân khúc cao từ Cao Thủ trở lên (master_0_19, gm_20_49, conqueror_50_99, legend_100_plus):
- *   TỰ ĐỘNG tính lũy tiến chính xác qua từng mốc sao:
- *   + 0★ -> 20★: rate(master_0_19) (mặc định 13k/sao)
- *   + 20★ -> 50★: rate(gm_20_49) (mặc định 20k/sao)
- *   + 50★ -> 100★: rate(conqueror_50_99) (mặc định 30k/sao)
- *   + 100★+: rate(legend_100_plus) (mặc định 45k/sao)
+ * Cấu hình ngưỡng sao Cao Thủ trở lên:
+ * - Mốc 1: Cao Thủ [0 – 19] (giá master_0_19, mặc định 13k/sao)
+ * - Mốc 2: Đại Cao Thủ [20 – 49] (giá gm_20_49, mặc định 20k/sao)
+ * - Mốc 3: Chiến Tướng [50 – 99] (giá conqueror_50_99, mặc định 30k/sao)
+ * - Mốc 4: Chiến Thần [100+] (giá legend_100_plus, mặc định 45k/sao)
+ *
+ * Cách tính theo từng ngôi sao tăng (s -> s + 1):
+ * - Ngôi sao đưa acc lên mức 1..19: tính giá Cao Thủ [0 – 19] (13k)
+ * - Ngôi sao thứ 20 đưa acc chạm mốc 20: đã bước vào [20 – 49], tính giá 20k
+ * - Ngôi sao thứ 50 đưa acc chạm mốc 50: đã bước vào [50 – 99], tính giá 30k
+ * - Ngôi sao thứ 100 đưa acc chạm mốc 100+: đã bước vào [100+], tính giá 45k
  */
 export function calculateAovStarBoost({
   selectedSegmentId,
@@ -699,63 +701,206 @@ export function calculateAovStarBoost({
     };
   }
 
-  const selectedTier = AOV_STAR_TIERS.find((t) => t.id === selectedSegmentId);
+  // Đếm chính xác số sao trong từng mốc:
+  // - master_0_19: các sao đưa acc lên 1..19 (sao thứ 1 đến 19)
+  // - gm_20_49: các sao đưa acc lên 20..49 (sao thứ 20 đến 49)
+  // - conqueror_50_99: các sao đưa acc lên 50..99 (sao thứ 50 đến 99)
+  // - legend_100_plus: các sao đưa acc lên 100+ (sao thứ 100 trở lên)
+  let countMaster = 0;
+  let countGm = 0;
+  let countConqueror = 0;
+  let countLegend = 0;
 
-  // Phân khúc bậc thấp (Đồng-KC, KC-TA, TA-CT): tính đơn giá cố định theo sao
-  if (!selectedTier?.isHighEloRange) {
-    const rate = resolveAovStarRate(selectedSegmentId, boosterTierRates);
-    const subtotal = totalStars * rate;
-    return {
-      totalStars,
-      basePrice: subtotal,
-      effectiveUnitPrice: rate,
-      isProgressive: false,
-      breakdown: [
-        {
-          tierId: selectedSegmentId,
-          label: selectedTier?.label || 'Cày theo Sao',
-          image: selectedTier?.image || AOV_RANK_IMAGES.MASTER,
-          stars: totalStars,
-          ratePerStar: rate,
-          subtotal,
-        },
-      ],
-    };
+  for (let s = start; s < end; s++) {
+    const targetStar = s + 1;
+    if (targetStar <= 19) {
+      countMaster += 1;
+    } else if (targetStar <= 49) {
+      countGm += 1;
+    } else if (targetStar <= 99) {
+      countConqueror += 1;
+    } else {
+      countLegend += 1;
+    }
   }
 
-  // Phân khúc Cao Thủ 0* trở lên: tính lũy tiến tự động chính xác qua từng ngưỡng sao
-  const highRanges = AOV_STAR_TIERS.filter((t) => t.isHighEloRange);
   const breakdown: AovStarBreakdownItem[] = [];
-  let basePrice = 0;
+  let totalPrice = 0;
 
-  for (const seg of highRanges) {
-    const segStart = seg.minStar ?? 0;
-    const segEnd = seg.maxStar ?? Number.POSITIVE_INFINITY;
-    const overlapStart = Math.max(start, segStart);
-    const overlapEnd = Math.min(end, segEnd);
+  if (countMaster > 0) {
+    const rate = resolveAovStarRate('master_0_19', boosterTierRates);
+    const sub = countMaster * rate;
+    totalPrice += sub;
+    breakdown.push({
+      tierId: 'master_0_19',
+      label: 'Cao Thủ',
+      image: AOV_RANK_IMAGES.MASTER,
+      stars: countMaster,
+      ratePerStar: rate,
+      subtotal: sub,
+      fromStar: Math.max(0, start),
+      toStar: Math.min(19, end),
+    });
+  }
 
-    if (overlapEnd > overlapStart) {
-      const starsInRange = overlapEnd - overlapStart;
-      const rate = resolveAovStarRate(seg.id, boosterTierRates);
-      const subtotal = starsInRange * rate;
-      basePrice += subtotal;
+  if (countGm > 0) {
+    const rate = resolveAovStarRate('gm_20_49', boosterTierRates);
+    const sub = countGm * rate;
+    totalPrice += sub;
+    breakdown.push({
+      tierId: 'gm_20_49',
+      label: 'Đại Cao Thủ',
+      image: AOV_RANK_IMAGES.GRANDMASTER_I,
+      stars: countGm,
+      ratePerStar: rate,
+      subtotal: sub,
+      fromStar: Math.max(19, start),
+      toStar: Math.min(49, end),
+    });
+  }
+
+  if (countConqueror > 0) {
+    const rate = resolveAovStarRate('conqueror_50_99', boosterTierRates);
+    const sub = countConqueror * rate;
+    totalPrice += sub;
+    breakdown.push({
+      tierId: 'conqueror_50_99',
+      label: 'Chiến Tướng',
+      image: AOV_RANK_IMAGES.CONQUEROR,
+      stars: countConqueror,
+      ratePerStar: rate,
+      subtotal: sub,
+      fromStar: Math.max(49, start),
+      toStar: Math.min(99, end),
+    });
+  }
+
+  if (countLegend > 0) {
+    const rate = resolveAovStarRate('legend_100_plus', boosterTierRates);
+    const sub = countLegend * rate;
+    totalPrice += sub;
+    breakdown.push({
+      tierId: 'legend_100_plus',
+      label: 'Chiến Thần',
+      image: AOV_RANK_IMAGES.LEGEND,
+      stars: countLegend,
+      ratePerStar: rate,
+      subtotal: sub,
+      fromStar: Math.max(99, start),
+      toStar: end,
+    });
+  }
+
+  return {
+    totalStars,
+    basePrice: totalPrice,
+    effectiveUnitPrice: totalStars > 0 ? Math.round(totalPrice / totalStars) : 0,
+    isProgressive: breakdown.length > 1,
+    breakdown,
+  };
+}
+
+/**
+ * Tính tiền cày sao lẻ dưới Cao Thủ (Nhóm 1):
+ * - Tự động tính lũy tiến nếu số sao cày thêm vượt qua bậc/đoàn hiện tại
+ *   (ví dụ Bạch Kim -> Kim Cương, hoặc Tinh Anh -> Cao Thủ), mỗi ngôi sao được tính đúng giá theo rank tương ứng!
+ */
+export function calculateAovOddStarBoost({
+  startStepId,
+  currentStarsInDiv,
+  starsToAdd,
+  boosterTierRates,
+}: {
+  startStepId: string;
+  currentStarsInDiv: number;
+  starsToAdd: number;
+  boosterTierRates?: Record<string, number | undefined>;
+}): {
+  totalStars: number;
+  basePrice: number;
+  effectiveUnitPrice: number;
+  isProgressive: boolean;
+  breakdown: AovStarBreakdownItem[];
+} {
+  const totalStars = Math.max(1, Math.floor(starsToAdd || 1));
+  const startIdx = AOV_RANK_LADDER.findIndex((s) => s.id === startStepId);
+  let curStepIdx = startIdx >= 0 ? startIdx : 0;
+  let curStars = Math.max(0, Math.floor(currentStarsInDiv || 0));
+
+  const starCountsByTier: Record<string, number> = {};
+
+  for (let i = 0; i < totalStars; i++) {
+    curStars += 1;
+    let tierId = 'bronze_diamond';
+
+    if (curStepIdx < AOV_RANK_LADDER.length && !AOV_RANK_LADDER[curStepIdx].isHighRank) {
+      const step = AOV_RANK_LADDER[curStepIdx];
+      const capacity = step.starsPerDivision || 5;
+
+      if (['BRONZE', 'SILVER', 'GOLD', 'PLATINUM'].includes(step.tier)) {
+        tierId = 'bronze_diamond';
+      } else if (step.tier === 'DIAMOND') {
+        tierId = 'diamond_veteran';
+      } else if (step.tier === 'VETERAN') {
+        tierId = 'veteran_master';
+      }
+
+      if (curStars >= capacity) {
+        curStars = 0;
+        curStepIdx += 1;
+      }
+    } else {
+      // Đã chạm hoặc vượt Cao Thủ
+      if (curStars <= 19) {
+        tierId = 'master_0_19';
+      } else if (curStars <= 49) {
+        tierId = 'gm_20_49';
+      } else if (curStars <= 99) {
+        tierId = 'conqueror_50_99';
+      } else {
+        tierId = 'legend_100_plus';
+      }
+    }
+
+    starCountsByTier[tierId] = (starCountsByTier[tierId] || 0) + 1;
+  }
+
+  const tierMetaMap: Record<string, { label: string; image: string }> = {
+    bronze_diamond: { label: 'Đồng – Bạch Kim', image: AOV_RANK_IMAGES.PLATINUM },
+    diamond_veteran: { label: 'Kim Cương', image: AOV_RANK_IMAGES.DIAMOND },
+    veteran_master: { label: 'Tinh Anh', image: AOV_RANK_IMAGES.VETERAN },
+    master_0_19: { label: 'Cao Thủ', image: AOV_RANK_IMAGES.MASTER },
+    gm_20_49: { label: 'Đại Cao Thủ', image: AOV_RANK_IMAGES.GRANDMASTER_I },
+    conqueror_50_99: { label: 'Chiến Tướng', image: AOV_RANK_IMAGES.CONQUEROR },
+    legend_100_plus: { label: 'Chiến Thần', image: AOV_RANK_IMAGES.LEGEND },
+  };
+
+  const breakdown: AovStarBreakdownItem[] = [];
+  let totalPrice = 0;
+
+  const tierOrder = ['bronze_diamond', 'diamond_veteran', 'veteran_master', 'master_0_19', 'gm_20_49', 'conqueror_50_99', 'legend_100_plus'];
+  for (const tid of tierOrder) {
+    const count = starCountsByTier[tid];
+    if (count && count > 0) {
+      const meta = tierMetaMap[tid] || { label: tid, image: AOV_RANK_IMAGES.MASTER };
+      const rate = resolveAovStarRate(tid, boosterTierRates);
+      const subtotal = count * rate;
+      totalPrice += subtotal;
       breakdown.push({
-        tierId: seg.id,
-        label: seg.label,
-        image: seg.image,
-        stars: starsInRange,
+        tierId: tid,
+        label: meta.label,
+        image: meta.image,
+        stars: count,
         ratePerStar: rate,
         subtotal,
-        fromStar: overlapStart,
-        toStar: overlapEnd,
       });
     }
   }
 
   return {
     totalStars,
-    basePrice,
-    effectiveUnitPrice: totalStars > 0 ? Math.round(basePrice / totalStars) : 0,
+    basePrice: totalPrice,
+    effectiveUnitPrice: totalStars > 0 ? Math.round(totalPrice / totalStars) : 0,
     isProgressive: breakdown.length > 1,
     breakdown,
   };
