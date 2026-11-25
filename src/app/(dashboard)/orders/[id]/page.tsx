@@ -1,7 +1,7 @@
 // src/app/(dashboard)/orders/[id]/page.tsx
 'use client';
 
-import { useState, useEffect, use } from 'react';
+import { useState, useEffect, use, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -13,7 +13,7 @@ import {
   Shield, DollarSign, CreditCard,
   Play, CheckSquare, Lock, Flag, Swords, Trophy, Save, Crosshair, ArrowLeft, Search, RefreshCw, AlertTriangle, XCircle, Zap
 } from 'lucide-react';
-import { Pencil, Trash2, X, Plus, Eye, EyeOff, History, ArrowUpRight, ArrowDownLeft, Star, User, Award, Gamepad2, ExternalLink, ChevronsUpDown, Globe, Phone } from 'lucide-react';
+import { Pencil, Trash2, X, Plus, Eye, EyeOff, History, ArrowUpRight, ArrowDownLeft, Star, User, Award, Gamepad2, ExternalLink, ChevronsUpDown, Globe, Phone, ChevronDown, ChevronUp } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import ChatWindow from '@/components/chat/ChatWindow';
@@ -29,7 +29,7 @@ import OnBetOrderView from '@/components/orders/OnBetOrderView';
 import CoachingOrderView from '@/components/orders/CoachingOrderView';
 import SettlementModal from '@/components/orders/SettlementModal';
 import RatingModal from '@/components/orders/RatingModal';
-import { GAMES_CATALOG, GameDefinition } from '@/lib/games';
+import { GAMES_CATALOG, GameDefinition, getServiceMeta } from '@/lib/games';
 import ServerSelectModal from '@/components/ServerSelectModal';
 import ServerFlag from '@/components/ServerFlag';
 import { getServerByCode } from '@/lib/servers';
@@ -118,6 +118,76 @@ function sanitizeMatchDetailClient(detail: any) {
   }
 }
 
+// Trả về style màu sắc cho badge Game
+const getBoosterGameBadgeStyle = (gameCode: string): string => {
+  const code = (gameCode || '').toUpperCase();
+  if (code.includes('LOL') || code.includes('LMHT')) return 'bg-blue-500/15 text-blue-400 border-blue-500/30';
+  if (code.includes('AOV') || code.includes('LIENQUAN')) return 'bg-orange-500/15 text-orange-400 border-orange-500/30';
+  if (code.includes('VAL')) return 'bg-rose-500/15 text-rose-400 border-rose-500/30';
+  if (code.includes('TFT') || code.includes('DTCL')) return 'bg-amber-500/15 text-amber-400 border-amber-500/30';
+  if (code.includes('CS2') || code.includes('CS')) return 'bg-yellow-500/15 text-yellow-400 border-yellow-500/30';
+  return 'bg-cyan-500/15 text-cyan-400 border-cyan-500/30';
+};
+
+// Định dạng tên dịch vụ tiếng Việt chuẩn chỉ, gọn gàng theo từng tựa game
+const formatBoosterServiceLabel = (gameCode: string, slug: string, customName?: string): string => {
+  const normGame = (gameCode || 'LOL').toUpperCase();
+  const cleanSlug = (slug || '').toLowerCase().replace(/_/g, '-');
+
+  if (normGame === 'LOL' || normGame === 'LMHT') {
+    if (cleanSlug.includes('rank')) return 'Cày Rank / Elo';
+    if (cleanSlug.includes('net-win') || cleanSlug.includes('win') || cleanSlug.includes('lp')) return 'Cày Điểm Cao Thủ / Thách Đấu';
+    if (cleanSlug.includes('match')) return 'Cày Số Trận Thắng';
+    if (cleanSlug.includes('placement')) return 'Phân Hạng Đầu Mùa';
+    if (cleanSlug.includes('promo')) return 'Chuỗi Thăng Hạng';
+    if (cleanSlug.includes('level')) return 'Cày Cấp Độ 1-30';
+    if (cleanSlug.includes('mastery')) return 'Cày Thông Thạo Tướng';
+    if (cleanSlug.includes('coach')) return 'Huấn Luyện Coaching';
+  }
+
+  if (normGame === 'AOV' || normGame === 'LIENQUAN') {
+    if (cleanSlug.includes('rank')) return 'Cày Rank Bậc';
+    if (cleanSlug.includes('net-win') || cleanSlug.includes('win') || cleanSlug.includes('sao') || cleanSlug.includes('star')) return 'Cày Rank Theo Số Sao';
+    if (cleanSlug.includes('match')) return 'Cày Số Trận Thắng';
+    if (cleanSlug.includes('placement')) return 'Phân Hạng Đầu Mùa';
+    if (cleanSlug.includes('promo')) return 'Chuỗi Thăng Hạng';
+    if (cleanSlug.includes('coach')) return 'Huấn Luyện Coaching';
+  }
+
+  if (normGame === 'VALORANT' || normGame === 'VAL') {
+    if (cleanSlug.includes('rank')) return 'Cày Rank / Elo';
+    if (cleanSlug.includes('placement')) return 'Cày Phân Hạng';
+    if (cleanSlug.includes('net-win') || cleanSlug.includes('win') || cleanSlug.includes('rr')) return 'Cày Điểm RR';
+    if (cleanSlug.includes('match')) return 'Cày Số Trận Thắng';
+    if (cleanSlug.includes('level')) return 'Cày Cấp 20';
+    if (cleanSlug.includes('coach')) return 'Huấn Luyện Coaching';
+  }
+
+  if (normGame === 'TFT' || normGame === 'DTCL') {
+    if (cleanSlug.includes('rank')) return 'Cày Rank / Top ĐTCL';
+    if (cleanSlug.includes('net-win') || cleanSlug.includes('win') || cleanSlug.includes('lp')) return 'Cày Điểm LP ĐTCL';
+    if (cleanSlug.includes('match')) return 'Cày Số Trận ĐTCL';
+    if (cleanSlug.includes('placement')) return 'Phân Hạng ĐTCL';
+    if (cleanSlug.includes('coach')) return 'Huấn Luyện Coaching';
+  }
+
+  if (normGame === 'CS2') {
+    if (cleanSlug.includes('rank')) return 'Cày Premier / Competitive';
+    if (cleanSlug.includes('net-win') || cleanSlug.includes('win') || cleanSlug.includes('rating')) return 'Cày Điểm Rating CS2';
+    if (cleanSlug.includes('match')) return 'Cày Số Trận CS2';
+    if (cleanSlug.includes('coach')) return 'Huấn Luyện Coaching';
+  }
+
+  if (customName && customName !== slug && !customName.includes('-')) {
+    return customName;
+  }
+
+  const meta = getServiceMeta(normGame, cleanSlug);
+  if (meta?.name) return meta.name;
+
+  return cleanSlug.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+};
+
 export default function OrderDetailsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const { t } = useLanguage();
@@ -162,6 +232,153 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
 
   // UI States
   const [activeTab, setActiveTab] = useState<'INFO' | 'PROGRESS'>('INFO');
+
+  // State đóng/mở từng game trong thẻ "Hồ sơ Game & Dịch vụ cung cấp"
+  const [collapsedGames, setCollapsedGames] = useState<Record<string, boolean>>({});
+  const toggleGameCollapse = (gameCode: string) => {
+    setCollapsedGames((prev) => ({
+      ...prev,
+      [gameCode]: !prev[gameCode],
+    }));
+  };
+
+  // Tổng hợp danh sách Game và Dịch vụ cung cấp tương ứng của Tuyển thủ
+  const boosterGamesWithServices = useMemo(() => {
+    if (!order?.boosterId && !boosterProfile) return [];
+
+    const profileGames = Array.isArray(boosterProfile?.games) ? boosterProfile.games : [];
+    const selectedGames = Array.isArray(order?.boosterId?.booster_info?.service_settings?.selectedGames)
+      ? order.boosterId.booster_info.service_settings.selectedGames
+      : [];
+    const customServices = Array.isArray(order?.boosterId?.booster_info?.service_settings?.customServices)
+      ? order.boosterId.booster_info.service_settings.customServices
+      : [];
+
+    const rawFlatServices = [
+      ...(Array.isArray(boosterProfile?.services) ? boosterProfile.services : []),
+      ...(Array.isArray(order?.boosterId?.booster_info?.services) ? order.boosterId.booster_info.services : []),
+      ...(Array.isArray(order?.boosterId?.booster_info?.service_settings?.enabledServices)
+        ? order.boosterId.booster_info.service_settings.enabledServices
+        : []),
+    ];
+
+    const gameCodesMap = new Map<
+      string,
+      {
+        gameCode: string;
+        servers: string[];
+        ranks?: string[];
+        roles?: string[];
+        champions?: string[];
+        services: Array<{ slug: string; name: string }>;
+      }
+    >();
+
+    // 1. Nạp từ profileGames
+    profileGames.forEach((g: any) => {
+      const code = (g.gameCode || 'LOL').toUpperCase();
+      if (!gameCodesMap.has(code)) {
+        gameCodesMap.set(code, {
+          gameCode: code,
+          servers: Array.isArray(g.servers) && g.servers.length > 0 ? g.servers : ['VN'],
+          ranks: g.ranks,
+          roles: g.roles,
+          champions: g.champions,
+          services: [],
+        });
+      }
+    });
+
+    // 2. Nạp thêm từ selectedGames nếu chưa có
+    selectedGames.forEach((g: string) => {
+      const code = (g || '').toUpperCase();
+      if (code && !gameCodesMap.has(code)) {
+        gameCodesMap.set(code, {
+          gameCode: code,
+          servers: order?.boosterId?.booster_info?.service_settings?.servers || ['VN'],
+          services: [],
+        });
+      }
+    });
+
+    // 3. Nạp thêm từ customServices nếu chưa có
+    customServices.forEach((cs: any) => {
+      const code = (cs.gameCode || cs.game || '').toUpperCase();
+      if (code && !gameCodesMap.has(code)) {
+        gameCodesMap.set(code, {
+          gameCode: code,
+          servers: ['VN'],
+          services: [],
+        });
+      }
+    });
+
+    // 4. Nếu danh sách game trống, fallback theo game của đơn hàng hiện tại
+    if (gameCodesMap.size === 0) {
+      const defaultGame = (
+        order?.snapshot?.gameCode ||
+        order?.details?.game ||
+        order?.details?.gameCode ||
+        'LOL'
+      ).toUpperCase();
+      gameCodesMap.set(defaultGame, {
+        gameCode: defaultGame,
+        servers: ['VN'],
+        services: [],
+      });
+    }
+
+    // 5. Gắn danh sách dịch vụ chi tiết cho từng game
+    for (const [code, gameEntry] of gameCodesMap.entries()) {
+      const serviceList: Array<{ slug: string; name: string }> = [];
+      const addedLabels = new Set<string>();
+
+      // Lấy customServices thuộc game này
+      const activeCustom = customServices.filter(
+        (cs: any) => cs.isActive !== false && (cs.gameCode || cs.game || '').toUpperCase() === code
+      );
+
+      if (activeCustom.length > 0) {
+        activeCustom.forEach((cs: any) => {
+          const slug = cs.slug || cs.id;
+          const label = formatBoosterServiceLabel(code, slug, cs.name);
+          if (!addedLabels.has(label)) {
+            addedLabels.add(label);
+            serviceList.push({ slug, name: label });
+          }
+        });
+      }
+
+      // Nếu chưa có customServices riêng của game này, phân bổ từ flatServices
+      if (serviceList.length === 0 && rawFlatServices.length > 0) {
+        rawFlatServices.forEach((s: string) => {
+          const cleanSlug = s.trim().toLowerCase();
+          const label = formatBoosterServiceLabel(code, cleanSlug);
+          if (!addedLabels.has(label)) {
+            addedLabels.add(label);
+            serviceList.push({ slug: cleanSlug, name: label });
+          }
+        });
+      }
+
+      // Nếu vẫn trống, fallback các dịch vụ cơ bản của game này
+      if (serviceList.length === 0) {
+        const defaultSlugs =
+          code === 'VALORANT' ? ['rank-boost', 'placements'] : ['rank-boost', 'net-wins', 'matches'];
+        defaultSlugs.forEach((slug) => {
+          const label = formatBoosterServiceLabel(code, slug);
+          if (!addedLabels.has(label)) {
+            addedLabels.add(label);
+            serviceList.push({ slug, name: label });
+          }
+        });
+      }
+
+      gameEntry.services = serviceList;
+    }
+
+    return Array.from(gameCodesMap.values());
+  }, [order, boosterProfile]);
 
   // Lắng nghe sự kiện chuyển Tab từ Chat hoặc thẻ báo cáo tiến độ
   useEffect(() => {
@@ -2002,71 +2219,99 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                                 </a>
                               </div>
                             )}
-                            {(boosterProfile?.services?.length > 0 || order.boosterId.booster_info?.services?.length > 0) && (
-                              <div className="sm:col-span-2">
-                                <span className="text-zinc-500 block mb-1.5">Dịch vụ cung cấp</span>
-                                <div className="flex flex-wrap gap-1.5">
-                                  {Array.from(
-                                    new Set<string>(
-                                      (boosterProfile?.services || order.boosterId.booster_info?.services || []).filter(Boolean)
-                                    )
-                                  ).map((svc: string, idx: number) => (
-                                    <span
-                                      key={`${svc}-${idx}`}
-                                      className="px-2 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-zinc-300 text-[11px] font-medium"
-                                    >
-                                      {svc.replace(/_/g, ' ')}
-                                    </span>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
                           </div>
 
-                          {/* Danh sách Game & Rank sở trường */}
-                          {Array.isArray(boosterProfile?.games) && boosterProfile.games.length > 0 && (
-                            <div className="pt-3 border-t border-zinc-800/80 space-y-2.5">
-                              <div className="text-xs text-zinc-500 font-semibold flex items-center gap-1.5">
-                                <Gamepad2 className="w-3.5 h-3.5 text-blue-400" /> Hồ sơ Game & Rank sở trường
+                          {/* 🎮 Hồ sơ Game & Dịch vụ cung cấp */}
+                          {boosterGamesWithServices.length > 0 && (
+                            <div className="pt-3 border-t border-zinc-800/80 space-y-3">
+                              <div className="flex items-center justify-between">
+                                <div className="text-xs text-zinc-400 font-bold flex items-center gap-1.5 uppercase tracking-wide">
+                                  <Gamepad2 className="w-4 h-4 text-blue-400" /> Hồ sơ Game & Dịch vụ cung cấp
+                                </div>
+                                <span className="text-[11px] text-zinc-500 font-medium">
+                                  {boosterGamesWithServices.length} tựa game nhận cày
+                                </span>
                               </div>
-                              <div className="grid grid-cols-1 gap-2">
-                                {boosterProfile.games.map((g: any, idx: number) => (
-                                  <div
-                                    key={`${g.gameCode}-${idx}`}
-                                    className="p-3 rounded-lg bg-zinc-900/60 border border-white/5 text-xs space-y-1.5"
-                                  >
-                                    <div className="flex items-center justify-between gap-2 flex-wrap">
-                                      <span className="font-bold text-white">{g.gameCode}</span>
-                                      {Array.isArray(g.servers) && g.servers.length > 0 && (
-                                        <span className="text-zinc-400">
-                                          Server: <strong className="text-zinc-200">{g.servers.join(', ')}</strong>
-                                        </span>
+
+                              <div className="grid grid-cols-1 gap-2.5">
+                                {boosterGamesWithServices.map((g) => {
+                                  const isCollapsed = Boolean(collapsedGames[g.gameCode]);
+                                  return (
+                                    <div
+                                      key={g.gameCode}
+                                      className="rounded-xl bg-zinc-900/60 border border-zinc-800/80 hover:border-zinc-700/80 transition-all overflow-hidden"
+                                    >
+                                      {/* Header bar của từng tựa game (Clickable trên cả desktop & mobile để thu gọn/mở rộng) */}
+                                      <button
+                                        type="button"
+                                        onClick={() => toggleGameCollapse(g.gameCode)}
+                                        className="w-full p-3 sm:px-4 sm:py-3 flex items-center justify-between gap-3 text-left hover:bg-white/[0.02] transition-colors cursor-pointer"
+                                      >
+                                        <div className="flex items-center gap-2.5 flex-wrap min-w-0">
+                                          <span
+                                            className={`px-2.5 py-0.5 rounded-lg text-xs font-black tracking-wide border ${getBoosterGameBadgeStyle(
+                                              g.gameCode
+                                            )}`}
+                                          >
+                                            {g.gameCode}
+                                          </span>
+                                          <span className="text-xs text-zinc-400 font-mono flex items-center gap-1.5">
+                                            <span className="text-zinc-500">Server:</span>
+                                            <strong className="text-zinc-200 font-semibold bg-zinc-950 px-2 py-0.5 rounded border border-zinc-800">
+                                              {g.servers.join(', ')}
+                                            </strong>
+                                          </span>
+
+                                          {Array.isArray(g.ranks) && g.ranks.length > 0 && (
+                                            <span className="text-[11px] text-zinc-400 hidden sm:inline-flex items-center gap-1">
+                                              • Rank: <strong className="text-blue-400 font-medium">{g.ranks.join(', ')}</strong>
+                                            </span>
+                                          )}
+                                        </div>
+
+                                        <div className="flex items-center gap-2 shrink-0">
+                                          <span className="text-[11px] text-zinc-500 font-medium hidden sm:inline">
+                                            {g.services.length} dịch vụ
+                                          </span>
+                                          <ChevronDown
+                                            className={`w-4 h-4 text-zinc-400 transition-transform duration-200 ${
+                                              isCollapsed ? '-rotate-90' : 'rotate-0'
+                                            }`}
+                                          />
+                                        </div>
+                                      </button>
+
+                                      {/* Danh sách Dịch vụ cung cấp chi tiết */}
+                                      {!isCollapsed && (
+                                        <div className="px-3 pb-3 sm:px-4 sm:pb-3.5 pt-1 border-t border-white/[0.04] space-y-2.5">
+                                          <div className="flex flex-wrap gap-2">
+                                            {g.services.map((svc) => (
+                                              <span
+                                                key={svc.slug}
+                                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zinc-950/90 border border-zinc-800 text-zinc-200 hover:text-white hover:border-zinc-700 text-xs font-semibold shadow-sm transition-all"
+                                              >
+                                                <span className="w-1.5 h-1.5 rounded-full bg-blue-400 shrink-0" />
+                                                {svc.name}
+                                              </span>
+                                            ))}
+                                          </div>
+
+                                          {/* Thông tin vị trí & tướng tủ nếu có */}
+                                          {Boolean((g.roles && g.roles.length > 0) || (g.champions && g.champions.length > 0)) && (
+                                            <div className="pt-2 border-t border-white/[0.03] text-[11px] text-zinc-400 flex flex-wrap gap-x-4 gap-y-1">
+                                              {g.roles && g.roles.length > 0 && (
+                                                <span>Vị trí: <strong className="text-zinc-200">{g.roles.join(', ')}</strong></span>
+                                              )}
+                                              {g.champions && g.champions.length > 0 && (
+                                                <span>Tướng tủ: <strong className="text-zinc-200">{g.champions.slice(0, 6).join(', ')}</strong></span>
+                                              )}
+                                            </div>
+                                          )}
+                                        </div>
                                       )}
                                     </div>
-                                    {Array.isArray(g.ranks) && g.ranks.length > 0 && (
-                                      <div className="flex flex-wrap gap-1">
-                                        {g.ranks.map((r: string) => (
-                                          <span
-                                            key={r}
-                                            className="px-2 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20 text-[10px] font-bold"
-                                          >
-                                            {r}
-                                          </span>
-                                        ))}
-                                      </div>
-                                    )}
-                                    {(g.roles?.length > 0 || g.champions?.length > 0) && (
-                                      <div className="text-[11px] text-zinc-400 flex flex-wrap gap-x-4 gap-y-1">
-                                        {g.roles?.length > 0 && (
-                                          <span>Vị trí: <strong className="text-zinc-200">{g.roles.join(', ')}</strong></span>
-                                        )}
-                                        {g.champions?.length > 0 && (
-                                          <span>Tướng tủ: <strong className="text-zinc-200">{g.champions.slice(0, 6).join(', ')}</strong></span>
-                                        )}
-                                      </div>
-                                    )}
-                                  </div>
-                                ))}
+                                  );
+                                })}
                               </div>
                             </div>
                           )}
