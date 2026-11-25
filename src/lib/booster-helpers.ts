@@ -22,18 +22,18 @@ export const ALL_WEEKDAYS = [
 ];
 
 export function formatWorkingDays(days?: string[]): string {
-  if (!days || days.length === 0) return 'Hàng ngày';
-  if (days.length === 7) return 'Cả tuần (T2 - CN)';
+  if (!days || days.length === 0 || days.length === 7) return 'Hàng ngày';
 
   const normalized = days.map((d) => d.toString().toUpperCase().replace('THỨ ', 'T'));
   const hasCN = normalized.includes('CN') || normalized.includes('1') || normalized.includes('SUN');
 
-  const hasAllWeekdays = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7'].every(
+  const allWeekdays = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
+  const hasAllWeekdays = allWeekdays.every(
     (d) => normalized.includes(d) || normalized.includes(d.replace('T', ''))
   );
 
   if (hasAllWeekdays && !hasCN) {
-    return 'T2 - T7 (Trừ CN)';
+    return 'các ngày trong tuần trừ CN';
   }
 
   const isWeekendOnly =
@@ -41,14 +41,56 @@ export function formatWorkingDays(days?: string[]): string {
     hasCN &&
     normalized.length === 2;
   if (isWeekendOnly) {
-    return 'Cuối tuần (T7 - CN)';
+    return 'Thứ 7, CN';
   }
 
-  return normalized.join(', ');
+  const orderMap: Record<string, number> = {
+    T2: 2,
+    T3: 3,
+    T4: 4,
+    T5: 5,
+    T6: 6,
+    T7: 7,
+    CN: 8,
+  };
+  const sortedDays = [...normalized].sort(
+    (a, b) => (orderMap[a] || 99) - (orderMap[b] || 99)
+  );
+
+  const formattedDays = sortedDays
+    .map((d) => (d === 'CN' ? 'CN' : d.replace('T', '')))
+    .join(', ');
+
+  return `Thứ ${formattedDays}`;
+}
+
+export function generateWorkingScheduleNote(
+  fromTime: string = '08:00',
+  toTime: string = '17:30',
+  days: string[] = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7']
+): string {
+  const formatTimePart = (t: string) => {
+    return (t || '').replace(/^0(\d:)/, '$1');
+  };
+  const from = formatTimePart(fromTime || '08:00');
+  const to = formatTimePart(toTime || '17:30');
+  const daysText = formatWorkingDays(days);
+
+  if (daysText === 'Hàng ngày') {
+    return `Làm từ ${from} -> ${to} hàng ngày`;
+  }
+  if (daysText === 'các ngày trong tuần trừ CN') {
+    return `Làm từ ${from} -> ${to} các ngày trong tuần trừ CN`;
+  }
+  if (daysText === 'Thứ 7, CN') {
+    return `Làm từ ${from} -> ${to} Thứ 7, CN`;
+  }
+
+  return `Làm từ ${from} -> ${to} ${daysText}`;
 }
 
 export function getBoosterWorkingScheduleText(booster: any): string {
-  if (!booster) return '08:00 – 23:00 (Hàng ngày)';
+  if (!booster) return 'Làm từ 8:00 -> 17:30 hàng ngày';
 
   const settings =
     booster.booster_info?.service_settings ||
@@ -67,13 +109,12 @@ export function getBoosterWorkingScheduleText(booster: any): string {
   }
 
   // 2. Structured fromTime & toTime & daysOfWeek
-  const fromTime = workingSchedule?.fromTime || scheduleAddon?.fromTime;
-  const toTime = workingSchedule?.toTime || scheduleAddon?.toTime;
+  const fromTime = workingSchedule?.fromTime || scheduleAddon?.fromTime || '08:00';
+  const toTime = workingSchedule?.toTime || scheduleAddon?.toTime || '17:30';
   const days = workingSchedule?.daysOfWeek || scheduleAddon?.daysOfWeek;
 
-  if (fromTime && toTime) {
-    const daysText = formatWorkingDays(days);
-    return `${daysText}: ${fromTime} – ${toTime}`;
+  if (days && days.length > 0) {
+    return generateWorkingScheduleNote(fromTime, toTime, days);
   }
 
   // 3. Shift badges
@@ -89,5 +130,5 @@ export function getBoosterWorkingScheduleText(booster: any): string {
     return `Ca: ${shiftNames.join(', ')}`;
   }
 
-  return '08:00 – 23:00 (Linh hoạt)';
+  return 'Làm từ 8:00 -> 17:30 hàng ngày';
 }

@@ -40,7 +40,12 @@ import {
   Calendar,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { ALL_WEEKDAYS, formatWorkingDays, BoosterWorkingSchedule } from '@/lib/booster-helpers';
+import {
+  ALL_WEEKDAYS,
+  formatWorkingDays,
+  generateWorkingScheduleNote,
+  BoosterWorkingSchedule,
+} from '@/lib/booster-helpers';
 import {
   GAMES_CATALOG,
   STANDARD_SERVICE_TEMPLATES,
@@ -331,9 +336,23 @@ export default function BoosterServicesStudio() {
 
   // Cập nhật lịch làm việc của Booster
   const handleUpdateWorkingSchedule = (partial: Partial<BoosterWorkingSchedule>) => {
+    const nextDays = partial.daysOfWeek ?? workingSchedule.daysOfWeek ?? ['T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
+    const nextFrom = partial.fromTime ?? workingSchedule.fromTime ?? '08:00';
+    const nextTo = partial.toTime ?? workingSchedule.toTime ?? '17:30';
+
+    // Tự động sinh ghi chú nếu người dùng bấm chọn ngày/giờ/preset (chưa gõ đè ghi chú)
+    const nextNote =
+      partial.note !== undefined
+        ? partial.note
+        : generateWorkingScheduleNote(nextFrom, nextTo, nextDays);
+
     const updatedSchedule: BoosterWorkingSchedule = {
       ...workingSchedule,
       ...partial,
+      daysOfWeek: nextDays,
+      fromTime: nextFrom,
+      toTime: nextTo,
+      note: nextNote,
     };
     setWorkingSchedule(updatedSchedule);
 
@@ -345,10 +364,10 @@ export default function BoosterServicesStudio() {
         enabled: updatedSchedule.allowScheduledBoost ?? true,
         percent: updatedSchedule.scheduleSurchargePercent ?? addonsConfig.schedule.percent,
         shifts: updatedSchedule.shifts,
-        daysOfWeek: updatedSchedule.daysOfWeek,
-        fromTime: updatedSchedule.fromTime,
-        toTime: updatedSchedule.toTime,
-        customHours: updatedSchedule.note,
+        daysOfWeek: nextDays,
+        fromTime: nextFrom,
+        toTime: nextTo,
+        customHours: nextNote,
       },
     };
     setAddonsConfig(updatedAddons);
@@ -1685,44 +1704,69 @@ export default function BoosterServicesStudio() {
             <div className="lg:col-span-8 space-y-3.5">
               {/* Chọn các ngày làm việc trong tuần */}
               <div className="p-4 rounded-2xl bg-zinc-950/80 border border-zinc-800 space-y-3">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
                   <label className="text-xs font-bold text-white flex items-center gap-1.5">
                     <Calendar size={14} className="text-cyan-400" />
                     <span>Các ngày nhận cày trong tuần:</span>
                   </label>
                   {/* Phím chọn nhanh */}
-                  <div className="flex items-center gap-1.5">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const newDays = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
-                        handleUpdateWorkingSchedule({ daysOfWeek: newDays });
-                      }}
-                      className="px-2 py-0.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-[10px] font-bold text-zinc-300 border border-zinc-700/80 cursor-pointer"
-                    >
-                      Cả tuần (T2-CN)
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const newDays = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
-                        handleUpdateWorkingSchedule({ daysOfWeek: newDays });
-                      }}
-                      className="px-2 py-0.5 rounded-lg bg-cyan-950/60 hover:bg-cyan-900/60 text-[10px] font-bold text-cyan-300 border border-cyan-500/30 cursor-pointer"
-                    >
-                      T2 - T7 (Trừ CN)
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const newDays = ['T7', 'CN'];
-                        handleUpdateWorkingSchedule({ daysOfWeek: newDays });
-                      }}
-                      className="px-2 py-0.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-[10px] font-bold text-zinc-300 border border-zinc-700/80 cursor-pointer"
-                    >
-                      Chỉ cuối tuần
-                    </button>
-                  </div>
+                  {(() => {
+                    const cDays = workingSchedule.daysOfWeek || [];
+                    const isAllWeek = cDays.length === 7;
+                    const isWeekdaysNoSunday =
+                      cDays.length === 6 &&
+                      !cDays.includes('CN') &&
+                      ['T2', 'T3', 'T4', 'T5', 'T6', 'T7'].every((d) => cDays.includes(d));
+                    const isWeekendOnly =
+                      cDays.length === 2 && cDays.includes('T7') && cDays.includes('CN');
+
+                    return (
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const newDays = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
+                            handleUpdateWorkingSchedule({ daysOfWeek: newDays });
+                          }}
+                          className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                            isAllWeek
+                              ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500 shadow-[0_0_12px_rgba(6,182,212,0.3)]'
+                              : 'bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white border-zinc-800'
+                          }`}
+                        >
+                          Cả tuần (T2-CN)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const newDays = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
+                            handleUpdateWorkingSchedule({ daysOfWeek: newDays });
+                          }}
+                          className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                            isWeekdaysNoSunday
+                              ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500 shadow-[0_0_12px_rgba(6,182,212,0.3)]'
+                              : 'bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white border-zinc-800'
+                          }`}
+                        >
+                          T2 - T7 (Trừ CN)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const newDays = ['T7', 'CN'];
+                            handleUpdateWorkingSchedule({ daysOfWeek: newDays });
+                          }}
+                          className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                            isWeekendOnly
+                              ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500 shadow-[0_0_12px_rgba(6,182,212,0.3)]'
+                              : 'bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white border-zinc-800'
+                          }`}
+                        >
+                          Chỉ cuối tuần
+                        </button>
+                      </div>
+                    );
+                  })()}
                 </div>
 
                 {/* Nút bấm 7 ngày */}
@@ -1744,7 +1788,7 @@ export default function BoosterServicesStudio() {
                           }
                           handleUpdateWorkingSchedule({ daysOfWeek: newDays });
                         }}
-                        className={`py-2 rounded-xl text-xs font-black border transition-all cursor-pointer ${
+                        className={`py-2.5 rounded-xl text-xs font-black border transition-all cursor-pointer ${
                           isSelected
                             ? 'bg-cyan-500/20 border-cyan-500 text-cyan-300 shadow-[0_0_12px_rgba(6,182,212,0.25)]'
                             : 'bg-zinc-900 border-zinc-800 text-zinc-500 hover:text-zinc-300 hover:border-zinc-700'
@@ -1778,7 +1822,7 @@ export default function BoosterServicesStudio() {
                       type="time"
                       value={workingSchedule.fromTime || '08:00'}
                       onChange={(e) => handleUpdateWorkingSchedule({ fromTime: e.target.value })}
-                      className="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-3 py-2 text-xs text-white font-mono font-bold outline-none focus:border-cyan-500"
+                      className="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-3 py-2 text-xs text-white font-mono font-bold outline-none focus:border-cyan-500 cursor-pointer"
                     />
                   </div>
                   <div>
@@ -1789,7 +1833,7 @@ export default function BoosterServicesStudio() {
                       type="time"
                       value={workingSchedule.toTime || '17:30'}
                       onChange={(e) => handleUpdateWorkingSchedule({ toTime: e.target.value })}
-                      className="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-3 py-2 text-xs text-white font-mono font-bold outline-none focus:border-cyan-500"
+                      className="w-full bg-zinc-900 border border-zinc-700 rounded-xl px-3 py-2 text-xs text-white font-mono font-bold outline-none focus:border-cyan-500 cursor-pointer"
                     />
                   </div>
                 </div>
@@ -1806,18 +1850,27 @@ export default function BoosterServicesStudio() {
                       { label: 'Ca Chiều (13:00 – 17:00)', from: '13:00', to: '17:00' },
                       { label: 'Ca Tối (19:00 – 23:00)', from: '19:00', to: '23:00' },
                       { label: 'Ca Đêm (23:00 – 04:00)', from: '23:00', to: '04:00' },
-                    ].map((item, idx) => (
-                      <button
-                        key={idx}
-                        type="button"
-                        onClick={() =>
-                          handleUpdateWorkingSchedule({ fromTime: item.from, toTime: item.to })
-                        }
-                        className="px-2 py-1 rounded-lg bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 hover:border-zinc-700 text-[10px] font-semibold text-zinc-300 transition-colors cursor-pointer"
-                      >
-                        {item.label}
-                      </button>
-                    ))}
+                    ].map((item, idx) => {
+                      const isActive =
+                        workingSchedule.fromTime === item.from &&
+                        workingSchedule.toTime === item.to;
+                      return (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() =>
+                            handleUpdateWorkingSchedule({ fromTime: item.from, toTime: item.to })
+                          }
+                          className={`px-3 py-1.5 rounded-xl border text-xs font-semibold transition-all cursor-pointer ${
+                            isActive
+                              ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500 shadow-[0_0_10px_rgba(6,182,212,0.25)]'
+                              : 'bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white border-zinc-800'
+                          }`}
+                        >
+                          {item.label}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               </div>
@@ -1834,11 +1887,15 @@ export default function BoosterServicesStudio() {
                     <button
                       type="button"
                       onClick={() => {
-                        const daysText = formatWorkingDays(workingSchedule.daysOfWeek);
-                        const autoNote = `Làm từ ${workingSchedule.fromTime} -> ${workingSchedule.toTime} (${daysText})`;
+                        const autoNote = generateWorkingScheduleNote(
+                          workingSchedule.fromTime,
+                          workingSchedule.toTime,
+                          workingSchedule.daysOfWeek
+                        );
                         handleUpdateWorkingSchedule({ note: autoNote });
+                        toast.success('Đã cập nhật câu ghi chú theo lịch hiện tại!');
                       }}
-                      className="text-[10px] text-cyan-400 hover:underline font-semibold cursor-pointer"
+                      className="text-xs text-cyan-400 hover:underline font-bold cursor-pointer"
                     >
                       Tự tạo ghi chú
                     </button>
@@ -1860,7 +1917,11 @@ export default function BoosterServicesStudio() {
                       <Clock size={13} className="text-cyan-400 shrink-0" />
                       <span className="truncate">
                         {workingSchedule.note ||
-                          `${formatWorkingDays(workingSchedule.daysOfWeek)}: ${workingSchedule.fromTime} – ${workingSchedule.toTime}`}
+                          generateWorkingScheduleNote(
+                            workingSchedule.fromTime,
+                            workingSchedule.toTime,
+                            workingSchedule.daysOfWeek
+                          )}
                       </span>
                     </div>
                   </div>
