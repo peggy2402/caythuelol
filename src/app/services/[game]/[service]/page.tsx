@@ -2367,24 +2367,52 @@ function ServiceBookingContent() {
                   {/* Grid các Phân Khúc Rank */}
                   {(() => {
                     const renderTierCard = (tier: PointBoostTierSegment) => {
-                      const isSelected = selectedPointSegment === tier.id;
+                      const isHighElo = isAov && tier.isHighEloRange;
+                      const isSelected = isAov && isSelectedAovHighStar && isHighElo
+                        ? currentPoints >= (tier.minStar ?? 0) && (tier.maxStar == null || currentPoints < tier.maxStar)
+                        : selectedPointSegment === tier.id;
                       const customPrice = isAov
                         ? resolveAovStarRate(tier.id, matchingBoosterStarService?.tierRates)
                         : matchingBoosterService?.tierRates?.[tier.id] ?? tier.defaultPrice;
+
+                      // Signature active styles per high-elo rank
+                      let activeStyle = isSelected
+                        ? 'bg-gradient-to-br from-cyan-950/40 via-zinc-900 to-zinc-950 border-cyan-400 shadow-[0_0_20px_rgba(6,182,212,0.2)] ring-2 ring-cyan-400/50 scale-[1.01]'
+                        : 'bg-zinc-950/70 border-zinc-800/80 hover:border-zinc-700 hover:bg-zinc-900/60';
+
+                      if (isSelected && isHighElo) {
+                        if (tier.id === 'master_0_19') {
+                          activeStyle = 'bg-gradient-to-br from-amber-950/40 via-zinc-900 to-zinc-950 border-amber-400 shadow-[0_0_20px_rgba(245,158,11,0.25)] ring-2 ring-amber-400/60 scale-[1.01]';
+                        } else if (tier.id === 'gm_20_49') {
+                          activeStyle = 'bg-gradient-to-br from-sky-950/40 via-zinc-900 to-zinc-950 border-sky-400 shadow-[0_0_20px_rgba(14,165,233,0.25)] ring-2 ring-sky-400/60 scale-[1.01]';
+                        } else if (tier.id === 'conqueror_50_99') {
+                          activeStyle = 'bg-gradient-to-br from-fuchsia-950/40 via-zinc-900 to-zinc-950 border-fuchsia-400 shadow-[0_0_20px_rgba(217,70,239,0.25)] ring-2 ring-fuchsia-400/60 scale-[1.01]';
+                        } else if (tier.id === 'legend_100_plus') {
+                          activeStyle = 'bg-gradient-to-br from-yellow-950/40 via-zinc-900 to-zinc-950 border-yellow-400 shadow-[0_0_25px_rgba(234,179,8,0.3)] ring-2 ring-yellow-400/60 scale-[1.01]';
+                        }
+                      }
+
                       return (
                         <div
                           key={tier.id}
                           onClick={() => handleSelectPointSegment(tier)}
-                          className={`p-3 sm:p-3.5 rounded-2xl border transition-all cursor-pointer relative overflow-hidden group select-none flex flex-col justify-between h-full ${isSelected
-                              ? 'bg-gradient-to-br from-cyan-950/40 via-zinc-900 to-zinc-950 border-cyan-500 shadow-[0_0_20px_rgba(6,182,212,0.15)] ring-1 ring-cyan-500/60'
-                              : 'bg-zinc-950/70 border-zinc-800/80 hover:border-zinc-700 hover:bg-zinc-900/60'
-                            }`}
+                          className={`p-3 sm:p-3.5 rounded-2xl border transition-all cursor-pointer relative overflow-hidden group select-none flex flex-col justify-between h-full ${activeStyle}`}
                         >
                           <div className="flex-1">
-                            <div className="flex items-center justify-between gap-2 mb-2">
+                            <div className="flex items-center justify-between gap-2 mb-2.5">
                               <div className="flex items-center gap-2 min-w-0">
                                 {tier.image && (
-                                  <div className="w-8 h-8 rounded-lg bg-black/50 border border-white/10 p-1 flex items-center justify-center shrink-0">
+                                  <div className={`w-9 h-9 rounded-xl bg-black/60 border p-1 flex items-center justify-center shrink-0 ${
+                                    tier.id === 'master_0_19'
+                                      ? 'border-amber-500/40 shadow-[0_0_10px_rgba(245,158,11,0.2)]'
+                                      : tier.id === 'gm_20_49'
+                                      ? 'border-sky-500/40 shadow-[0_0_10px_rgba(14,165,233,0.2)]'
+                                      : tier.id === 'conqueror_50_99'
+                                      ? 'border-fuchsia-500/40 shadow-[0_0_10px_rgba(217,70,239,0.2)]'
+                                      : tier.id === 'legend_100_plus'
+                                      ? 'border-yellow-500/40 shadow-[0_0_10px_rgba(234,179,8,0.2)]'
+                                      : 'border-white/10'
+                                  }`}>
                                     <img
                                       src={tier.image}
                                       alt={tier.label}
@@ -2392,28 +2420,33 @@ function ServiceBookingContent() {
                                     />
                                   </div>
                                 )}
-                                <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-md border truncate ${tier.badgeColor}`}>
+                                <span className={`text-[10px] font-black px-2 py-0.5 rounded-lg border whitespace-nowrap font-mono tracking-tight ${tier.badgeColor}`}>
                                   {tier.shortLabel}
                                 </span>
                               </div>
                               {isSelected && (
-                                <CheckCircle2 size={16} className="text-cyan-400 shrink-0" />
+                                <div className="w-5 h-5 rounded-full bg-cyan-400 text-black flex items-center justify-center shadow-md shrink-0">
+                                  <Check size={12} strokeWidth={3} />
+                                </div>
                               )}
                             </div>
 
-                            <div className="text-xs sm:text-sm font-bold text-white mb-1 leading-snug">
+                            <div className="text-xs sm:text-sm font-black text-white mb-0.5 leading-snug">
                               {tier.label}
                             </div>
-                            <div className="text-[11px] text-zinc-400 mb-3 line-clamp-2">
+                            <div className="text-[11px] text-zinc-400 mb-2 leading-relaxed">
                               {tier.desc}
                             </div>
                           </div>
 
                           <div className="pt-2.5 border-t border-zinc-800/80 flex items-baseline justify-between mt-auto">
                             <span className="text-[11px] text-zinc-400">Đơn giá:</span>
-                            <span className="text-sm font-black font-mono text-cyan-400">
-                              {customPrice.toLocaleString('vi-VN')} <span className="text-[10px] font-sans text-zinc-500">đ/{tier.unit}</span>
-                            </span>
+                            <div className="text-right">
+                              <span className="text-sm sm:text-base font-black font-mono text-cyan-400">
+                                {customPrice.toLocaleString('vi-VN')}
+                              </span>
+                              <span className="text-[10px] font-sans text-zinc-500 ml-1">đ/{tier.unit}</span>
+                            </div>
                           </div>
                         </div>
                       );
@@ -2444,17 +2477,20 @@ function ServiceBookingContent() {
 
                           {/* NHÓM 2: CÀY SAO TÍCH LŨY (CAO THỦ TRỞ LÊN) */}
                           <div className="space-y-2 pt-1">
-                            <div className="flex items-center justify-between pb-1 border-b border-zinc-800/70">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 pb-1 border-b border-zinc-800/70">
                               <div className="flex items-center gap-2">
-                                <Crown size={14} className="text-amber-400" />
+                                <Crown size={15} className="text-amber-400 shrink-0" />
                                 <span className="text-xs font-extrabold text-amber-300 uppercase tracking-wide">
                                   2. Cày Sao Tích Lũy (Cao Thủ Trở Lên)
                                 </span>
                               </div>
-                              <span className="text-[10px] text-amber-300/80 font-bold px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20">
-                                Tích lũy 0★ ➔ 100★+
+                              <span className="text-[10px] text-amber-300/90 font-bold px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20 self-start sm:self-auto">
+                                Tích lũy 0★ ➔ 100★+ (Tự tính lũy tiến)
                               </span>
                             </div>
+                            <p className="text-[11px] text-zinc-400">
+                              Bấm vào phân khúc để chọn nhanh mốc xuất phát, hoặc nhập trực tiếp số sao hiện tại &amp; mục tiêu ở bảng bên dưới.
+                            </p>
                             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 items-stretch">
                               {highTiers.map(renderTierCard)}
                             </div>

@@ -129,6 +129,8 @@ export interface PointBoostTierSegment {
   image?: string;
   category?: 'ODD_STAR' | 'HIGH_ELO';
   isHighEloRange?: boolean;
+  minStar?: number;
+  maxStar?: number | null;
 }
 
 export const VALORANT_POINT_TIERS: PointBoostTierSegment[] = [

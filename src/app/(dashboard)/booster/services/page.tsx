@@ -1491,7 +1491,9 @@ export default function BoosterServicesStudio() {
                                         className="w-4 h-4 object-contain shrink-0"
                                       />
                                     )}
-                                    <span className="truncate">{tier.shortLabel || tier.label}:</span>
+                                    <span className="truncate">
+                                      {tier.label}{tier.shortLabel && tier.shortLabel !== tier.label ? ` (${tier.shortLabel})` : ''}:
+                                    </span>
                                   </span>
                                   <span className="text-amber-400 font-mono font-bold shrink-0">
                                     {rate.toLocaleString('vi-VN')} đ / {tier.unit}
@@ -2703,7 +2705,9 @@ export default function BoosterServicesStudio() {
                               )}
                             </div>
                             <div className="min-w-0">
-                              <span className="font-extrabold text-white text-xs sm:text-sm block truncate">{tier.label}</span>
+                              <span className="font-extrabold text-white text-xs sm:text-sm block truncate">
+                                {tier.label}{tier.shortLabel && tier.shortLabel !== tier.label ? ` (${tier.shortLabel})` : ''}
+                              </span>
                               <span className="text-[11px] text-zinc-400 block truncate mt-0.5">{tier.desc}</span>
                             </div>
                           </div>
