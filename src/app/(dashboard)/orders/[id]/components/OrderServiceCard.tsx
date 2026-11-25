@@ -148,6 +148,10 @@ export default function OrderServiceCard({
                     formatRankDisplayVi(order.details?.current_rank || order.details?.rank) ||
                     'Khởi điểm';
 
+                  if (order.details?.is_odd_star && order.details?.current_rank && order.details?.desired_rank) {
+                    return `${order.details.current_rank} ➜ ${order.details.desired_rank} (+${order.details.gained_points || 0} Sao)`;
+                  }
+
                   if (isPointBoost) {
                     const start =
                       order.details?.start_lp ??

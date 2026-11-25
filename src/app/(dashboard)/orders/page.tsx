@@ -549,6 +549,13 @@ export default function OrdersPage() {
                               </span>
                             );
                           }
+                          if (order.details?.is_odd_star && order.details?.current_rank && order.details?.desired_rank) {
+                            return (
+                              <span className="font-semibold text-cyan-300">
+                                {order.details.current_rank} &rarr; {order.details.desired_rank}
+                              </span>
+                            );
+                          }
                           if (order.details?.is_point_boost || order.details?.calc_mode === 'BY_LP' || order.details?.segment) {
                             const unit = order.details?.unit || 'LP';
                             const start = order.details?.start_lp ?? order.details?.current_points ?? 0;

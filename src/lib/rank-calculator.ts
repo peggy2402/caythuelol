@@ -127,6 +127,8 @@ export interface PointBoostTierSegment {
   desc: string;
   badgeColor: string;
   image?: string;
+  category?: 'ODD_STAR' | 'HIGH_ELO';
+  isHighEloRange?: boolean;
 }
 
 export const VALORANT_POINT_TIERS: PointBoostTierSegment[] = [
@@ -207,6 +209,8 @@ export const AOV_POINT_TIERS: PointBoostTierSegment[] = AOV_STAR_TIERS.map((tier
   desc: tier.desc,
   badgeColor: tier.badgeColor,
   image: tier.image,
+  category: tier.category,
+  isHighEloRange: tier.isHighEloRange,
 }));
 
 export function getPointBoostTiers(gameCode: string): PointBoostTierSegment[] {

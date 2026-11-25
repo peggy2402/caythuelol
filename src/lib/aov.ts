@@ -52,6 +52,8 @@ export interface AovStarTier {
   isHighEloRange?: boolean;
   minStar?: number;
   maxStar?: number | null; // null = không giới hạn (100*+)
+  /** Phân loại: ODD_STAR (Sao lẻ dưới Cao Thủ) hoặc HIGH_ELO (Sao tích lũy Cao Thủ+) */
+  category?: 'ODD_STAR' | 'HIGH_ELO';
 }
 
 export const AOV_RANK_IMAGES = {
@@ -256,48 +258,55 @@ export const AOV_TIER_PACKAGES: AovTierPackage[] = [
  * - Huyền Thoại 100*+: 45k/sao (tùy chỉnh)
  */
 export const AOV_STAR_TIERS: AovStarTier[] = [
+  // 🌟 NHÓM 1: CÀY SAO LẺ (DƯỚI CAO THỦ - ĐỒNG ĐẾN TINH ANH)
   {
     id: 'bronze_diamond',
-    label: 'Đồng – Kim Cương',
-    shortLabel: 'Đồng ➔ Kim Cương',
+    label: 'Đồng – Bạch Kim (Sao Lẻ)',
+    shortLabel: 'Đồng ➔ Bạch Kim',
     defaultPrice: 5000,
     unit: 'Sao',
-    desc: 'Bậc Đồng, Bạc, Vàng, Bạch Kim',
+    desc: 'Cày lẻ 1 – 4 sao bậc Đồng, Bạc, Vàng, Bạch Kim',
     image: AOV_RANK_IMAGES.PLATINUM,
     badgeColor: 'text-cyan-300 bg-cyan-500/10 border-cyan-500/30',
+    category: 'ODD_STAR',
   },
   {
     id: 'diamond_veteran',
-    label: 'Kim Cương – Tinh Anh',
-    shortLabel: 'Kim Cương ➔ Tinh Anh',
+    label: 'Kim Cương (Sao Lẻ)',
+    shortLabel: 'Kim Cương',
     defaultPrice: 6000,
     unit: 'Sao',
-    desc: 'Cày sao bậc Kim Cương V → I',
+    desc: 'Cày lẻ 1 – 5 sao bậc Kim Cương V → I',
     image: AOV_RANK_IMAGES.DIAMOND,
     badgeColor: 'text-blue-400 bg-blue-500/10 border-blue-500/30',
+    category: 'ODD_STAR',
   },
   {
     id: 'veteran_master',
-    label: 'Tinh Anh – Cao Thủ',
-    shortLabel: 'Tinh Anh ➔ Cao Thủ',
+    label: 'Tinh Anh (Sao Lẻ)',
+    shortLabel: 'Tinh Anh',
     defaultPrice: 10000,
     unit: 'Sao',
-    desc: 'Cày sao bậc Tinh Anh V → I',
+    desc: 'Cày lẻ 1 – 5 sao bậc Tinh Anh V → I',
     image: AOV_RANK_IMAGES.VETERAN,
     badgeColor: 'text-purple-300 bg-purple-500/10 border-purple-500/30',
+    category: 'ODD_STAR',
   },
+
+  // 👑 NHÓM 2: CÀY SAO TÍCH LŨY (TỪ CAO THỦ TRỞ LÊN: 0★ -> 100★+)
   {
     id: 'master_0_19',
     label: 'Cao Thủ 0★ – Đại Cao Thủ 19★',
     shortLabel: 'Cao Thủ (0 - 19★)',
     defaultPrice: 13000,
     unit: 'Sao',
-    desc: 'Phân khúc Cao Thủ 0★ đến 19★',
+    desc: 'Phân khúc Cao Thủ 0★ đến Đại Cao Thủ IV 19★',
     image: AOV_RANK_IMAGES.MASTER,
     badgeColor: 'text-amber-400 bg-amber-500/10 border-amber-500/30',
     isHighEloRange: true,
     minStar: 0,
     maxStar: 20,
+    category: 'HIGH_ELO',
   },
   {
     id: 'gm_20_49',
@@ -311,6 +320,7 @@ export const AOV_STAR_TIERS: AovStarTier[] = [
     isHighEloRange: true,
     minStar: 20,
     maxStar: 50,
+    category: 'HIGH_ELO',
   },
   {
     id: 'conqueror_50_99',
@@ -324,11 +334,12 @@ export const AOV_STAR_TIERS: AovStarTier[] = [
     isHighEloRange: true,
     minStar: 50,
     maxStar: 100,
+    category: 'HIGH_ELO',
   },
   {
     id: 'legend_100_plus',
-    label: 'Huyền Thoại / Thách Đấu (100★+)',
-    shortLabel: 'Huyền Thoại (100★+)',
+    label: 'Chiến Thần / Huyền Thoại (100★+)',
+    shortLabel: 'Chiến Thần (100★+)',
     defaultPrice: 45000,
     unit: 'Sao',
     desc: 'Đỉnh cao 100★+ / Top 50 Server (Booster tùy chỉnh)',
@@ -337,6 +348,7 @@ export const AOV_STAR_TIERS: AovStarTier[] = [
     isHighEloRange: true,
     minStar: 100,
     maxStar: null,
+    category: 'HIGH_ELO',
   },
 ];
 
@@ -555,6 +567,83 @@ export function getAovRankImageByInput(input: string | { tier?: string; id?: str
   }
 
   return AOV_RANK_IMAGES.MASTER;
+}
+
+/**
+ * Lấy danh sách các bậc/đoàn nhỏ thuộc một phân khúc cày sao lẻ
+ */
+export function getAovOddStarStepsForSegment(segmentId: string): AovRankStep[] {
+  if (segmentId === 'diamond_veteran') {
+    return AOV_RANK_LADDER.filter((s) => s.tier === 'DIAMOND');
+  }
+  if (segmentId === 'veteran_master') {
+    return AOV_RANK_LADDER.filter((s) => s.tier === 'VETERAN');
+  }
+  // bronze_diamond: Đồng, Bạc, Vàng, Bạch Kim
+  return AOV_RANK_LADDER.filter((s) => ['BRONZE', 'SILVER', 'GOLD', 'PLATINUM'].includes(s.tier));
+}
+
+/**
+ * Tính toán rank đích khi cày thêm số sao lẻ từ một bậc/đoàn bất kỳ
+ */
+export function calculateAovOddStarTargetRank(
+  startStepId: string,
+  currentStarsInDiv: number,
+  starsToAdd: number,
+): {
+  targetStepId: string;
+  targetStepLabel: string;
+  targetStarsInDiv: number;
+  targetImage: string;
+  isPromotedToMaster: boolean;
+  summaryText: string;
+} {
+  const startIdx = AOV_RANK_LADDER.findIndex((s) => s.id === startStepId);
+  const startStep = startIdx >= 0 ? AOV_RANK_LADDER[startIdx] : AOV_RANK_LADDER[0];
+
+  let currentIdx = startIdx >= 0 ? startIdx : 0;
+  let remainingStars = Math.max(0, Math.floor(currentStarsInDiv || 0)) + Math.max(0, Math.floor(starsToAdd || 0));
+
+  while (currentIdx < AOV_RANK_LADDER.length) {
+    const curStep = AOV_RANK_LADDER[currentIdx];
+    if (curStep.isHighRank) {
+      // Đã leo lên Cao Thủ (Master) trở lên
+      return {
+        targetStepId: curStep.id,
+        targetStepLabel: `Cao Thủ (${remainingStars}★)`,
+        targetStarsInDiv: remainingStars,
+        targetImage: curStep.image,
+        isPromotedToMaster: true,
+        summaryText: `Từ ${startStep.label} (${currentStarsInDiv}★) ➔ Cao Thủ (${remainingStars}★)`,
+      };
+    }
+
+    const divCapacity = curStep.starsPerDivision || 5;
+    if (remainingStars < divCapacity) {
+      return {
+        targetStepId: curStep.id,
+        targetStepLabel: `${curStep.label} (${remainingStars}★)`,
+        targetStarsInDiv: remainingStars,
+        targetImage: curStep.image,
+        isPromotedToMaster: false,
+        summaryText: `Từ ${startStep.label} (${currentStarsInDiv}★) ➔ ${curStep.label} (${remainingStars}★)`,
+      };
+    }
+
+    // Đạt đủ hoặc vượt sao đoàn -> Thăng đoàn tiếp theo
+    remainingStars -= divCapacity;
+    currentIdx += 1;
+  }
+
+  const lastStep = AOV_RANK_LADDER[AOV_RANK_LADDER.length - 1];
+  return {
+    targetStepId: lastStep.id,
+    targetStepLabel: lastStep.label,
+    targetStarsInDiv: remainingStars,
+    targetImage: lastStep.image,
+    isPromotedToMaster: true,
+    summaryText: `Từ ${startStep.label} ➔ ${lastStep.label}`,
+  };
 }
 
 export interface AovStarBreakdownItem {

@@ -2681,9 +2681,61 @@ export default function BoosterServicesStudio() {
                     const isVal = modalGameCode === 'VALORANT';
                     const isAov = modalGameCode === 'AOV' || modalGameCode === 'LIENQUAN';
                     const pointTiers = getPointBoostTiers(modalGameCode);
+                    const oddStarTiers = isAov ? pointTiers.filter((t) => t.category === 'ODD_STAR' || !t.isHighEloRange) : [];
+                    const highEloTiers = isAov ? pointTiers.filter((t) => t.category === 'HIGH_ELO' || t.isHighEloRange) : [];
+
+                    const renderTierItem = (tier: typeof pointTiers[number]) => {
+                      const currentVal = isAov
+                        ? (formData.tierRates?.[tier.id] ?? resolveAovStarRate(tier.id, formData.tierRates))
+                        : (formData.tierRates?.[tier.id] ?? tier.defaultPrice);
+                      return (
+                        <div key={tier.id} className="flex items-center justify-between p-4 rounded-2xl bg-zinc-950/90 border border-zinc-800 hover:border-cyan-500/40 transition-colors gap-3">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="w-11 h-11 rounded-xl bg-black/50 border border-white/10 p-1.5 flex items-center justify-center shrink-0">
+                              {tier.image ? (
+                                <img
+                                  src={tier.image}
+                                  alt={tier.label}
+                                  className="w-full h-full object-contain drop-shadow"
+                                />
+                              ) : (
+                                <Crown size={18} className="text-amber-400 shrink-0" />
+                              )}
+                            </div>
+                            <div className="min-w-0">
+                              <span className="font-extrabold text-white text-xs sm:text-sm block truncate">{tier.label}</span>
+                              <span className="text-[11px] text-zinc-400 block truncate mt-0.5">{tier.desc}</span>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <input
+                              type="text"
+                              inputMode="numeric"
+                              pattern="[0-9]*"
+                              value={currentVal === 0 ? '' : currentVal}
+                              placeholder={tier.defaultPrice.toLocaleString('vi-VN')}
+                              onChange={(e) => {
+                                const clean = e.target.value.replace(/\D/g, '').replace(/^0+/, '');
+                                const parsed = clean ? parseInt(clean, 10) : 0;
+                                setFormData((prev) => ({
+                                  ...prev,
+                                  tierRates: {
+                                    ...(prev.tierRates || {}),
+                                    [tier.id]: parsed,
+                                  },
+                                }));
+                              }}
+                              className="w-28 bg-zinc-900 border border-zinc-700 rounded-xl px-3 py-2 text-sm text-amber-300 font-mono font-extrabold text-right outline-none focus:border-cyan-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                            />
+                            <span className="text-zinc-400 text-xs font-bold whitespace-nowrap">đ/{tier.unit}</span>
+                          </div>
+                        </div>
+                      );
+                    };
+
                     return (
                       <div className="space-y-5">
-                        <div className="space-y-3">
+                        <div className="space-y-4">
                           <div className="flex flex-wrap items-center justify-between gap-2">
                             <label className="text-zinc-200 font-extrabold uppercase block text-xs sm:text-sm">
                               Đơn Giá Cày {isVal ? 'Điểm RR Valorant' : isAov ? 'Sao Liên Quân' : 'Điểm LP Liên Minh'} Từng Mức Rank
@@ -2693,56 +2745,49 @@ export default function BoosterServicesStudio() {
                             </span>
                           </div>
 
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                            {pointTiers.map((tier) => {
-                              const currentVal = isAov
-                                ? (formData.tierRates?.[tier.id] ?? resolveAovStarRate(tier.id, formData.tierRates))
-                                : (formData.tierRates?.[tier.id] ?? tier.defaultPrice);
-                              return (
-                                <div key={tier.id} className="flex items-center justify-between p-4 rounded-2xl bg-zinc-950/90 border border-zinc-800 hover:border-cyan-500/40 transition-colors gap-3">
-                                  <div className="flex items-center gap-3 min-w-0">
-                                    <div className="w-11 h-11 rounded-xl bg-black/50 border border-white/10 p-1.5 flex items-center justify-center shrink-0">
-                                      {tier.image ? (
-                                        <img
-                                          src={tier.image}
-                                          alt={tier.label}
-                                          className="w-full h-full object-contain drop-shadow"
-                                        />
-                                      ) : (
-                                        <Crown size={18} className="text-amber-400 shrink-0" />
-                                      )}
-                                    </div>
-                                    <div className="min-w-0">
-                                      <span className="font-extrabold text-white text-xs sm:text-sm block truncate">{tier.label}</span>
-                                      <span className="text-[11px] text-zinc-400 block truncate mt-0.5">{tier.desc}</span>
-                                    </div>
+                          {isAov ? (
+                            <div className="space-y-6">
+                              {/* NHÓM 1: SAO LẺ DƯỚI CAO THỦ */}
+                              <div className="space-y-2.5">
+                                <div className="flex items-center justify-between pb-1.5 border-b border-zinc-800">
+                                  <div className="flex items-center gap-2">
+                                    <Sparkles size={15} className="text-cyan-400" />
+                                    <span className="text-xs font-extrabold text-cyan-300 uppercase tracking-wide">
+                                      1. Phân Khúc Cày Sao Lẻ (Bậc Dưới Cao Thủ)
+                                    </span>
                                   </div>
-                                  <div className="flex items-center gap-2 shrink-0">
-                                    <input
-                                      type="text"
-                                      inputMode="numeric"
-                                      pattern="[0-9]*"
-                                      value={currentVal === 0 ? '' : currentVal}
-                                      placeholder={tier.defaultPrice.toLocaleString('vi-VN')}
-                                      onChange={(e) => {
-                                        const clean = e.target.value.replace(/\D/g, '').replace(/^0+/, '');
-                                        const parsed = clean ? parseInt(clean, 10) : 0;
-                                        setFormData((prev) => ({
-                                          ...prev,
-                                          tierRates: {
-                                            ...(prev.tierRates || {}),
-                                            [tier.id]: parsed,
-                                          },
-                                        }));
-                                      }}
-                                      className="w-28 bg-zinc-900 border border-zinc-700 rounded-xl px-3 py-2 text-sm text-amber-300 font-mono font-extrabold text-right outline-none focus:border-cyan-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                                    />
-                                    <span className="text-zinc-400 text-xs font-bold whitespace-nowrap">đ/{tier.unit}</span>
-                                  </div>
+                                  <span className="text-[10px] text-cyan-300 font-bold px-2 py-0.5 rounded-full bg-cyan-500/10 border border-cyan-500/20">
+                                    Áp dụng khách cày 1 – 5 sao lẻ/đoàn
+                                  </span>
                                 </div>
-                              );
-                            })}
-                          </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                  {oddStarTiers.map(renderTierItem)}
+                                </div>
+                              </div>
+
+                              {/* NHÓM 2: SAO TÍCH LŨY CAO THỦ+ */}
+                              <div className="space-y-2.5">
+                                <div className="flex items-center justify-between pb-1.5 border-b border-zinc-800">
+                                  <div className="flex items-center gap-2">
+                                    <Crown size={15} className="text-amber-400" />
+                                    <span className="text-xs font-extrabold text-amber-300 uppercase tracking-wide">
+                                      2. Phân Khúc Cày Sao Tích Lũy (Cao Thủ Trở Lên)
+                                    </span>
+                                  </div>
+                                  <span className="text-[10px] text-amber-300 font-bold px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20">
+                                    Áp dụng khách cày 0★ ➔ 100★+
+                                  </span>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                  {highEloTiers.map(renderTierItem)}
+                                </div>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                              {pointTiers.map(renderTierItem)}
+                            </div>
+                          )}
                         </div>
 
                         {/* Tỷ lệ cọc riêng cho dịch vụ cày theo điểm / sao */}

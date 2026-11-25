@@ -756,12 +756,14 @@ export default function JobMarketPage() {
                 <div className="flex items-center justify-between text-zinc-300">
                   <span className="text-zinc-500">Lộ trình:</span>
                   <span className="font-medium text-zinc-200">
-                    {acceptModal.job.details.is_point_boost ? (
+                    {acceptModal.job.details.current_rank && acceptModal.job.details.desired_rank ? (
+                      `${formatRankDisplayVi(acceptModal.job.details.current_rank)} ➔ ${formatRankDisplayVi(acceptModal.job.details.desired_rank)}`
+                    ) : acceptModal.job.details.is_point_boost ? (
                       `${acceptModal.job.details.start_lp ?? acceptModal.job.details.current_points ?? 0} ${acceptModal.job.details.unit || 'LP'} ➔ ${acceptModal.job.details.target_lp ?? acceptModal.job.details.desired_points ?? 100} ${acceptModal.job.details.unit || 'LP'}`
                     ) : acceptModal.job.details.promo_from ? (
                       `${acceptModal.job.details.promo_from} ➔ ${acceptModal.job.details.promo_to}`
                     ) : (
-                      `${formatRankDisplayVi(acceptModal.job.details.current_rank)} ➔ ${formatRankDisplayVi(acceptModal.job.details.desired_rank)}`
+                      'Theo thỏa thuận'
                     )}
                   </span>
                 </div>

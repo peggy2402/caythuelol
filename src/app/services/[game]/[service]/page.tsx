@@ -64,7 +64,9 @@ import {
   AOV_STAR_TIERS,
   AOV_TIER_PACKAGES,
   calculateAovStarBoost,
+  calculateAovOddStarTargetRank,
   getAovHighRankByStars,
+  getAovOddStarStepsForSegment,
   getAovTierPackageCurrentTotal,
   resolveAovStarRate,
 } from '@/lib/aov';
@@ -168,11 +170,35 @@ function ServiceBookingContent() {
   // Point Boost States (Cày Điểm RR / LP / Sao)
   const pointTiers = useMemo(() => getPointBoostTiers(game.id), [game.id]);
   const [selectedPointSegment, setSelectedPointSegment] = useState<string>(
-    isValorant ? 'immortal1_2' : isAov ? 'bronze_diamond' : 'master'
+    isValorant ? 'immortal1_2' : isAov ? 'diamond_veteran' : 'master'
   );
   const [currentPoints, setCurrentPoints] = useState<number>(isValorant ? 40 : 0);
   const [desiredPoints, setDesiredPoints] = useState<number>(isValorant ? 80 : isAov ? 10 : 100);
-  const gainedPoints = useMemo(() => Math.max(0, desiredPoints - currentPoints), [desiredPoints, currentPoints]);
+
+  // Trạng thái cày sao lẻ cho Liên Quân Mobile (Dưới Cao Thủ: Đồng -> Tinh Anh)
+  const [aovOddStartStepId, setAovOddStartStepId] = useState<string>('DIAMOND_2'); // Mặc định Kim Cương II
+  const [aovOddCurrentStarsInDiv, setAovOddCurrentStarsInDiv] = useState<number>(3); // Đang có 3 sao
+  const [aovOddStarsToAdd, setAovOddStarsToAdd] = useState<number>(2); // Muốn cày thêm +2 sao
+
+  const isSelectedAovHighStar = useMemo(() => {
+    if (!isAov) return false;
+    return Boolean(AOV_STAR_TIERS.find((t) => t.id === selectedPointSegment)?.isHighEloRange);
+  }, [isAov, selectedPointSegment]);
+
+  const gainedPoints = useMemo(() => {
+    if (isAov && !isSelectedAovHighStar) {
+      return Math.max(1, aovOddStarsToAdd);
+    }
+    return Math.max(0, desiredPoints - currentPoints);
+  }, [isAov, isSelectedAovHighStar, aovOddStarsToAdd, desiredPoints, currentPoints]);
+
+  const isPointInvalid = useMemo(() => {
+    if (!isPointBoost) return false;
+    if (isAov && !isSelectedAovHighStar) {
+      return aovOddStarsToAdd < 1;
+    }
+    return currentPoints >= desiredPoints || currentPoints < 0 || desiredPoints < 0;
+  }, [isPointBoost, isAov, isSelectedAovHighStar, aovOddStarsToAdd, currentPoints, desiredPoints]);
 
   // States cho Chuỗi Thăng Hạng & Cày Rank
   const isRankBoost = !isPointBoost && !isPromotion && !isMatches && !isPlacements;
@@ -450,7 +476,7 @@ function ServiceBookingContent() {
     return pointTiers.find((t) => t.id === selectedPointSegment) || pointTiers[0];
   }, [pointTiers, selectedPointSegment]);
 
-  // Helper chọn phân khúc sao/điểm (tự động set mốc sao hợp lý cho phân khúc Cao Thủ+ Liên Quân)
+  // Helper chọn phân khúc sao/điểm (tự động set mốc sao hợp lý cho phân khúc Cao Thủ+ Liên Quân hoặc chọn rank lẻ)
   const handleSelectPointSegment = (tier: PointBoostTierSegment) => {
     setSelectedPointSegment(tier.id);
     if (!isAov) return;
@@ -465,11 +491,38 @@ function ServiceBookingContent() {
       } else if (desiredPoints <= currentPoints) {
         setDesiredPoints(currentPoints + 10);
       }
-    } else if (currentPoints >= 20 || desiredPoints <= currentPoints) {
-      setCurrentPoints(0);
-      setDesiredPoints(10);
+    } else {
+      const steps = getAovOddStarStepsForSegment(tier.id);
+      if (steps.length > 0 && !steps.some((s) => s.id === aovOddStartStepId)) {
+        const defaultStep = steps[Math.floor(steps.length / 2)] || steps[0];
+        setAovOddStartStepId(defaultStep.id);
+        const maxStars = defaultStep.starsPerDivision || 5;
+        setAovOddCurrentStarsInDiv(Math.min(3, maxStars - 1));
+      }
     }
   };
+
+  const aovOddAvailableSteps = useMemo(() => {
+    if (!isAov || isSelectedAovHighStar) return [];
+    return getAovOddStarStepsForSegment(selectedPointSegment);
+  }, [isAov, isSelectedAovHighStar, selectedPointSegment]);
+
+  const aovOddStartStep = useMemo(() => {
+    return (
+      aovOddAvailableSteps.find((s) => s.id === aovOddStartStepId) ||
+      aovOddAvailableSteps[0] ||
+      activeRankSteps[0]
+    );
+  }, [aovOddAvailableSteps, aovOddStartStepId, activeRankSteps]);
+
+  const aovOddTargetRank = useMemo(() => {
+    if (!isAov || isSelectedAovHighStar || !aovOddStartStep) return null;
+    return calculateAovOddStarTargetRank(
+      aovOddStartStep.id,
+      aovOddCurrentStarsInDiv,
+      aovOddStarsToAdd
+    );
+  }, [isAov, isSelectedAovHighStar, aovOddStartStep, aovOddCurrentStarsInDiv, aovOddStarsToAdd]);
 
   // Cấu hình dịch vụ riêng của Booster nếu khách đã chỉ định
   const boosterSettings =
@@ -534,21 +587,46 @@ function ServiceBookingContent() {
     matchingBoosterStarService,
   ]);
 
-  // Tính toán cày theo Sao Liên Quân (hỗ trợ lũy tiến Cao Thủ -> Đại Cao Thủ -> Chiến Tướng -> Huyền Thoại)
+  // Tính toán cày theo Sao Liên Quân (hỗ trợ cả Sao lẻ dưới Cao Thủ và lũy tiến Cao Thủ+)
   const aovStarCalc = useMemo(() => {
     if (!isAov) return null;
+    if (!isSelectedAovHighStar) {
+      const rate = resolveAovStarRate(selectedPointSegment, matchingBoosterStarService?.tierRates);
+      const totalStars = Math.max(1, aovOddStarsToAdd);
+      const subtotal = totalStars * rate;
+      return {
+        totalStars,
+        basePrice: subtotal,
+        effectiveUnitPrice: rate,
+        isProgressive: false,
+        breakdown: [
+          {
+            tierId: selectedPointSegment,
+            label: selectedPointTierObj.label,
+            image: selectedPointTierObj.image || AOV_RANK_IMAGES.MASTER,
+            stars: totalStars,
+            ratePerStar: rate,
+            subtotal,
+          },
+        ],
+      };
+    }
     return calculateAovStarBoost({
       selectedSegmentId: selectedPointSegment,
       currentStars: currentPoints,
       desiredStars: desiredPoints,
       boosterTierRates: matchingBoosterStarService?.tierRates,
     });
-  }, [isAov, selectedPointSegment, currentPoints, desiredPoints, matchingBoosterStarService]);
-
-  const isSelectedAovHighStar = useMemo(() => {
-    if (!isAov) return false;
-    return Boolean(AOV_STAR_TIERS.find((t) => t.id === selectedPointSegment)?.isHighEloRange);
-  }, [isAov, selectedPointSegment]);
+  }, [
+    isAov,
+    isSelectedAovHighStar,
+    selectedPointSegment,
+    aovOddStarsToAdd,
+    currentPoints,
+    desiredPoints,
+    matchingBoosterStarService,
+    selectedPointTierObj,
+  ]);
 
   const segmentRate = useMemo(() => {
     if (isAov) {
@@ -1533,15 +1611,19 @@ function ServiceBookingContent() {
               game: game.id.toUpperCase(),
               segment: selectedPointSegment,
               segment_label: selectedPointTierObj.label,
-              current_rank: aovStartRankInfo ? aovStartRankInfo.label : selectedPointTierObj.label,
-              desired_rank: aovTargetRankInfo
-                ? aovTargetRankInfo.label
-                : `${selectedPointTierObj.label} (${desiredPoints} ${pointUnit})`,
-              start_lp: currentPoints,
-              target_lp: desiredPoints,
-              current_lp: currentPoints,
-              current_points: currentPoints,
-              desired_points: desiredPoints,
+              current_rank: isAov && !isSelectedAovHighStar
+                ? `${aovOddStartStep.label} (${aovOddCurrentStarsInDiv}★)`
+                : aovStartRankInfo ? aovStartRankInfo.label : selectedPointTierObj.label,
+              desired_rank: isAov && !isSelectedAovHighStar
+                ? aovOddTargetRank?.targetStepLabel || `${selectedPointTierObj.label} (+${aovOddStarsToAdd}★)`
+                : aovTargetRankInfo
+                  ? aovTargetRankInfo.label
+                  : `${selectedPointTierObj.label} (${desiredPoints} ${pointUnit})`,
+              start_lp: isAov && !isSelectedAovHighStar ? aovOddCurrentStarsInDiv : currentPoints,
+              target_lp: isAov && !isSelectedAovHighStar ? aovOddCurrentStarsInDiv + aovOddStarsToAdd : desiredPoints,
+              current_lp: isAov && !isSelectedAovHighStar ? aovOddCurrentStarsInDiv : currentPoints,
+              current_points: isAov && !isSelectedAovHighStar ? aovOddCurrentStarsInDiv : currentPoints,
+              desired_points: isAov && !isSelectedAovHighStar ? aovOddCurrentStarsInDiv + aovOddStarsToAdd : desiredPoints,
               gained_points: gainedPoints,
               target_points: gainedPoints,
               num_games: gainedPoints,
@@ -1550,6 +1632,16 @@ function ServiceBookingContent() {
               rate: isAov && aovStarCalc ? aovStarCalc.effectiveUnitPrice : segmentRate,
               star_breakdown: isAov && aovStarCalc ? aovStarCalc.breakdown : undefined,
               is_progressive_star: isAov && aovStarCalc ? aovStarCalc.isProgressive : false,
+              is_odd_star: isAov && !isSelectedAovHighStar,
+              odd_star_details: isAov && !isSelectedAovHighStar && aovOddTargetRank ? {
+                startStepId: aovOddStartStep.id,
+                startStepLabel: aovOddStartStep.label,
+                currentStarsInDiv: aovOddCurrentStarsInDiv,
+                starsToAdd: aovOddStarsToAdd,
+                targetStepId: aovOddTargetRank.targetStepId,
+                targetStepLabel: aovOddTargetRank.targetStepLabel,
+                summaryText: aovOddTargetRank.summaryText,
+              } : undefined,
               lp_gain: isAov ? null : lpGain,
               queue_type: queueType,
               server,
@@ -2247,8 +2339,8 @@ function ServiceBookingContent() {
                   </div>
 
                   {/* Grid các Phân Khúc Rank */}
-                  <div className={`grid grid-cols-1 ${pointTiers.length === 4 ? 'sm:grid-cols-2' : pointTiers.length >= 5 ? 'sm:grid-cols-2 lg:grid-cols-3' : 'sm:grid-cols-3'} gap-3 items-stretch`}>
-                    {pointTiers.map((tier) => {
+                  {(() => {
+                    const renderTierCard = (tier: PointBoostTierSegment) => {
                       const isSelected = selectedPointSegment === tier.id;
                       const customPrice = isAov
                         ? resolveAovStarRate(tier.id, matchingBoosterStarService?.tierRates)
@@ -2257,7 +2349,7 @@ function ServiceBookingContent() {
                         <div
                           key={tier.id}
                           onClick={() => handleSelectPointSegment(tier)}
-                          className={`p-3.5 sm:p-4 rounded-2xl border transition-all cursor-pointer relative overflow-hidden group select-none flex flex-col justify-between h-full ${isSelected
+                          className={`p-3 sm:p-3.5 rounded-2xl border transition-all cursor-pointer relative overflow-hidden group select-none flex flex-col justify-between h-full ${isSelected
                               ? 'bg-gradient-to-br from-cyan-950/40 via-zinc-900 to-zinc-950 border-cyan-500 shadow-[0_0_20px_rgba(6,182,212,0.15)] ring-1 ring-cyan-500/60'
                               : 'bg-zinc-950/70 border-zinc-800/80 hover:border-zinc-700 hover:bg-zinc-900/60'
                             }`}
@@ -2299,277 +2391,504 @@ function ServiceBookingContent() {
                           </div>
                         </div>
                       );
-                    })}
-                  </div>
+                    };
 
-                  {/* Nhập Điểm Hiện Tại & Điểm Mong Muốn (Dual Point Inputs) */}
-                  <div className="p-4 sm:p-5 rounded-2xl bg-zinc-950/80 border border-zinc-800/90 shadow-xl space-y-4">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-1">
-                      <div>
-                        <span className="text-xs sm:text-sm font-bold text-white flex items-center gap-2">
-                          <Target size={16} className="text-amber-400 shrink-0" />
-                          <span>
-                            {isAov
-                              ? isSelectedAovHighStar
-                                ? 'Thiết Lập Mốc Sao Cao Thủ+ (Tự Động Tính Lũy Tiến)'
-                                : 'Thiết Lập Số Sao Cần Cày (Hiện Tại → Mong Muốn)'
-                              : `Thiết Lập Điểm ${pointUnit} (Hiện Tại → Mong Muốn)`}
-                          </span>
-                          <span className="text-red-500">*</span>
-                        </span>
-                        <p className="text-[11px] sm:text-xs text-zinc-400 mt-0.5">
-                          {isAov
-                            ? isSelectedAovHighStar
-                              ? 'Nhập số sao hiện tại và mục tiêu (0★ → 100★+). Nếu vượt ngưỡng Đại Cao Thủ (20★) hoặc Chiến Tướng (50★), hệ thống tự tính đúng đơn giá từng mốc.'
-                              : 'Nhập số sao hiện tại và số sao bạn muốn đạt. Hệ thống sẽ tính chính xác số sao chênh lệch cần cày.'
-                            : 'Nhập số điểm thực tế hiện tại và mốc điểm bạn muốn đạt. Hệ thống sẽ tính số điểm chênh lệch cần cày.'}
-                        </p>
-                      </div>
-
-                      <div className="flex items-center gap-2 self-start sm:self-auto px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/30">
-                        <span className="text-xs text-amber-300/80 font-medium">Cần cày:</span>
-                        <span className="text-base sm:text-lg font-black font-mono text-amber-400 leading-none">
-                          {gainedPoints} {pointUnit}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Preview Huy hiệu Rank Cao Thủ -> Chiến Tướng -> Huyền Thoại theo số sao */}
-                    {isAov && isSelectedAovHighStar && (() => {
-                      const startInfo = getAovHighRankByStars(currentPoints);
-                      const targetInfo = getAovHighRankByStars(desiredPoints);
+                    if (isAov) {
+                      const oddTiers = pointTiers.filter((t) => t.category === 'ODD_STAR' || !t.isHighEloRange);
+                      const highTiers = pointTiers.filter((t) => t.category === 'HIGH_ELO' || t.isHighEloRange);
                       return (
-                        <div className="p-3 rounded-xl bg-zinc-900/80 border border-amber-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                          <div className="flex items-center gap-2.5">
-                            <div className="w-10 h-10 rounded-xl bg-black/50 border border-white/10 p-1 flex items-center justify-center shrink-0">
-                              <img src={startInfo.image} alt={startInfo.label} className="w-full h-full object-contain" />
+                        <div className="space-y-4">
+                          {/* NHÓM 1: CÀY SAO LẺ (DƯỚI CAO THỦ) */}
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between pb-1 border-b border-zinc-800/70">
+                              <div className="flex items-center gap-2">
+                                <Sparkles size={14} className="text-cyan-400" />
+                                <span className="text-xs font-extrabold text-cyan-300 uppercase tracking-wide">
+                                  1. Cày Sao Lẻ (Bậc Dưới Cao Thủ)
+                                </span>
+                              </div>
+                              <span className="text-[10px] text-cyan-300/80 font-bold px-2 py-0.5 rounded-full bg-cyan-500/10 border border-cyan-500/20">
+                                Mua 1 – 5 sao lẻ/đoàn
+                              </span>
                             </div>
-                            <div>
-                              <span className="text-[10px] uppercase font-bold text-zinc-500 block">Xuất phát</span>
-                              <span className="text-xs sm:text-sm font-extrabold text-white">{startInfo.label}</span>
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 items-stretch">
+                              {oddTiers.map(renderTierCard)}
                             </div>
                           </div>
-                          <ArrowRight size={16} className="text-amber-400 hidden sm:block shrink-0" />
-                          <div className="flex items-center gap-2.5">
-                            <div className="w-10 h-10 rounded-xl bg-black/50 border border-emerald-500/30 p-1 flex items-center justify-center shrink-0">
-                              <img src={targetInfo.image} alt={targetInfo.label} className="w-full h-full object-contain" />
+
+                          {/* NHÓM 2: CÀY SAO TÍCH LŨY (CAO THỦ TRỞ LÊN) */}
+                          <div className="space-y-2 pt-1">
+                            <div className="flex items-center justify-between pb-1 border-b border-zinc-800/70">
+                              <div className="flex items-center gap-2">
+                                <Crown size={14} className="text-amber-400" />
+                                <span className="text-xs font-extrabold text-amber-300 uppercase tracking-wide">
+                                  2. Cày Sao Tích Lũy (Cao Thủ Trở Lên)
+                                </span>
+                              </div>
+                              <span className="text-[10px] text-amber-300/80 font-bold px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20">
+                                Tích lũy 0★ ➔ 100★+
+                              </span>
                             </div>
-                            <div>
-                              <span className="text-[10px] uppercase font-bold text-emerald-400 block">Mục tiêu đạt được</span>
-                              <span className="text-xs sm:text-sm font-extrabold text-emerald-300">{targetInfo.label}</span>
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 items-stretch">
+                              {highTiers.map(renderTierCard)}
                             </div>
                           </div>
                         </div>
                       );
-                    })()}
+                    }
 
-                    {/* Dual Inputs Grid */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      {/* 1. Điểm Hiện Tại */}
-                      <div className="p-3.5 sm:p-4 rounded-xl bg-zinc-900/90 border border-zinc-800/90 hover:border-zinc-700/80 transition-all space-y-2.5">
-                        <div className="flex items-center justify-between">
-                          <label className="text-[11px] font-bold uppercase tracking-wider text-zinc-400">
-                            {isAov ? 'Số Sao Hiện Tại' : 'Điểm Hiện Tại'}
-                          </label>
-                          <span className="text-[10px] text-zinc-500 font-mono">Bắt đầu từ</span>
+                    return (
+                      <div className={`grid grid-cols-1 ${pointTiers.length === 4 ? 'sm:grid-cols-2' : pointTiers.length >= 5 ? 'sm:grid-cols-2 lg:grid-cols-3' : 'sm:grid-cols-3'} gap-3 items-stretch`}>
+                        {pointTiers.map(renderTierCard)}
+                      </div>
+                    );
+                  })()}
+
+                  {/* TRƯỜNG HỢP A: CÀY SAO LẺ DƯỚI CAO THỦ CHO LIÊN QUÂN MOBILE */}
+                  {isAov && !isSelectedAovHighStar ? (
+                    <div className="p-4 sm:p-5 rounded-2xl bg-zinc-950/80 border border-cyan-500/30 shadow-xl space-y-5 animate-in fade-in duration-200">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-zinc-800">
+                        <div>
+                          <span className="text-xs sm:text-sm font-bold text-white flex items-center gap-2">
+                            <Sparkles size={16} className="text-cyan-400 shrink-0" />
+                            <span>Thiết Lập Rank Hiện Tại & Số Sao Cần Cày Thêm</span>
+                            <span className="text-red-500">*</span>
+                          </span>
+                          <p className="text-[11px] sm:text-xs text-zinc-400 mt-0.5">
+                            Chọn đoàn hiện tại của bạn trong phân khúc <strong>{selectedPointTierObj.label}</strong> và số sao muốn Booster cày thêm (+1 đến +5 sao lẻ).
+                          </p>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <button
-                            type="button"
-                            disabled={Boolean(isRiotGame && checkedAccount)}
-                            onClick={() => {
-                              if (isRiotGame && !checkedAccount) {
-                                toast.info('Vui lòng kiểm tra thông tin tài khoản Riot ở ô bắt buộc trên để nhận diện Điểm LP chính xác!');
-                                const el = document.getElementById('riot-account-check-box');
-                                if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                                return;
-                              }
-                              setCurrentPoints((p) => Math.max(0, p - (isAov ? 1 : 10)));
-                            }}
-                            className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-zinc-800/90 hover:bg-zinc-700 active:scale-95 text-zinc-200 hover:text-white font-bold text-base flex items-center justify-center shrink-0 border border-white/5 transition-all select-none ${isRiotGame && checkedAccount ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'
-                              }`}
-                          >
-                            -
-                          </button>
-                          <div className="flex-1 relative flex items-center">
-                            <input
-                              type="text"
-                              inputMode="numeric"
-                              pattern="[0-9]*"
-                              readOnly={Boolean(isRiotGame && checkedAccount)}
-                              value={currentPoints === 0 ? '' : currentPoints}
-                              placeholder="0"
+                        <div className="flex items-center gap-2 self-start sm:self-auto px-3 py-1.5 rounded-xl bg-cyan-500/10 border border-cyan-500/30">
+                          <span className="text-xs text-cyan-300 font-medium">Cần cày:</span>
+                          <span className="text-base sm:text-lg font-black font-mono text-cyan-400 leading-none">
+                            +{aovOddStarsToAdd} Sao
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* 1. Chọn Bậc & Đoàn Hiện Tại */}
+                      <div className="space-y-2">
+                        <label className="text-xs font-bold text-zinc-300 flex items-center gap-1.5">
+                          <span>1. Bậc & Đoàn hiện tại của tài khoản:</span>
+                          <span className="text-red-500">*</span>
+                        </label>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
+                          {aovOddAvailableSteps.map((step) => {
+                            const isCurrentStep = aovOddStartStep.id === step.id;
+                            return (
+                              <button
+                                key={step.id}
+                                type="button"
+                                onClick={() => {
+                                  setAovOddStartStepId(step.id);
+                                  const maxS = (step.starsPerDivision || 5) - 1;
+                                  if (aovOddCurrentStarsInDiv > maxS) setAovOddCurrentStarsInDiv(maxS);
+                                }}
+                                className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer flex items-center gap-2 ${
+                                  isCurrentStep
+                                    ? 'bg-cyan-500/20 border-cyan-400 ring-1 ring-cyan-400/50 shadow-[0_0_15px_rgba(6,182,212,0.2)]'
+                                    : 'bg-zinc-900/80 border-zinc-800 hover:border-zinc-700 hover:bg-zinc-800/60'
+                                }`}
+                              >
+                                <img src={step.image} alt={step.label} className="w-6 h-6 object-contain shrink-0" />
+                                <div className="min-w-0">
+                                  <span className={`text-xs font-extrabold block truncate ${isCurrentStep ? 'text-cyan-200' : 'text-white'}`}>
+                                    {step.label}
+                                  </span>
+                                  <span className="text-[10px] text-zinc-500 block truncate">
+                                    {step.starsPerDivision || 5} sao/đoàn
+                                  </span>
+                                </div>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* 2. Số sao hiện đang có trong đoàn */}
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <label className="text-xs font-bold text-zinc-300">
+                            2. Số sao hiện đang có trong đoàn ({aovOddStartStep.label}):
+                          </label>
+                          <span className="text-[11px] text-amber-400 font-bold font-mono">
+                            {aovOddCurrentStarsInDiv} / {aovOddStartStep.starsPerDivision || 5} ★
+                          </span>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {Array.from({ length: aovOddStartStep.starsPerDivision || 5 }).map((_, starNum) => {
+                            const isSelected = aovOddCurrentStarsInDiv === starNum;
+                            return (
+                              <button
+                                key={starNum}
+                                type="button"
+                                onClick={() => setAovOddCurrentStarsInDiv(starNum)}
+                                className={`px-3 py-1.5 rounded-xl border text-xs font-extrabold transition-all cursor-pointer flex items-center gap-1.5 ${
+                                  isSelected
+                                    ? 'bg-amber-500/20 border-amber-400 text-amber-300 ring-1 ring-amber-400/40 shadow-sm'
+                                    : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:border-zinc-700 hover:text-white'
+                                }`}
+                              >
+                                <Star size={13} className={isSelected ? 'text-amber-400 fill-amber-400' : 'text-zinc-600'} />
+                                <span>{starNum} sao</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* 3. Số lượng sao muốn cày thêm */}
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <label className="text-xs font-bold text-zinc-300">
+                            3. Số lượng sao muốn cày thêm:
+                          </label>
+                          <span className="text-[11px] text-cyan-400 font-mono font-bold">
+                            Đơn giá: {segmentRate.toLocaleString('vi-VN')} đ/Sao
+                          </span>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-3">
+                          <div className="flex items-center gap-2 bg-zinc-900 border border-zinc-800 rounded-xl p-1">
+                            <button
+                              type="button"
+                              onClick={() => setAovOddStarsToAdd((s) => Math.max(1, s - 1))}
+                              className="w-8 h-8 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-white font-bold flex items-center justify-center cursor-pointer transition-colors"
+                            >
+                              -
+                            </button>
+                            <span className="px-3 text-base font-black font-mono text-cyan-400 min-w-[3rem] text-center">
+                              +{aovOddStarsToAdd}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => setAovOddStarsToAdd((s) => Math.min(10, s + 1))}
+                              className="w-8 h-8 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-white font-bold flex items-center justify-center cursor-pointer transition-colors"
+                            >
+                              +
+                            </button>
+                          </div>
+
+                          <div className="flex flex-wrap gap-1.5">
+                            {[1, 2, 3, 4, 5].map((num) => (
+                              <button
+                                key={num}
+                                type="button"
+                                onClick={() => setAovOddStarsToAdd(num)}
+                                className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
+                                  aovOddStarsToAdd === num
+                                    ? 'bg-cyan-500/25 border-cyan-400 text-cyan-300 shadow-sm'
+                                    : 'bg-zinc-900/80 border-zinc-800 text-zinc-400 hover:border-zinc-700 hover:text-white'
+                                }`}
+                              >
+                                +{num} Sao
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* 4. Live Preview Rank Đích */}
+                      {aovOddTargetRank && (
+                        <div className="p-3.5 rounded-xl bg-gradient-to-r from-zinc-900/90 via-zinc-900/70 to-zinc-900/90 border border-emerald-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                          <div className="flex items-center gap-3">
+                            <div className="w-11 h-11 rounded-xl bg-black/50 border border-white/10 p-1 flex items-center justify-center shrink-0">
+                              <img src={aovOddStartStep.image} alt="" className="w-full h-full object-contain" />
+                            </div>
+                            <div>
+                              <span className="text-[10px] uppercase font-bold text-zinc-500 block">Xuất phát</span>
+                              <span className="text-xs sm:text-sm font-extrabold text-white">
+                                {aovOddStartStep.label} ({aovOddCurrentStarsInDiv}★)
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2 self-center sm:self-auto text-emerald-400">
+                            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-xs font-black font-mono">
+                              <span>+{aovOddStarsToAdd} Sao</span>
+                              <ArrowRight size={13} />
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-3">
+                            <div className="w-11 h-11 rounded-xl bg-black/50 border border-emerald-500/40 p-1 flex items-center justify-center shrink-0 shadow-[0_0_15px_rgba(16,185,129,0.15)]">
+                              <img src={aovOddTargetRank.targetImage} alt="" className="w-full h-full object-contain" />
+                            </div>
+                            <div>
+                              <span className="text-[10px] uppercase font-bold text-emerald-400 block">Dự kiến đạt được</span>
+                              <span className="text-xs sm:text-sm font-extrabold text-emerald-300">
+                                {aovOddTargetRank.targetStepLabel}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    /* TRƯỜNG HỢP B: CAO THỦ+ LIÊN QUÂN HOẶC CÁC TỰA GAME KHÁC (DUAL INPUTS) */
+                    <div className="p-4 sm:p-5 rounded-2xl bg-zinc-950/80 border border-zinc-800/90 shadow-xl space-y-4 animate-in fade-in duration-200">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-1">
+                        <div>
+                          <span className="text-xs sm:text-sm font-bold text-white flex items-center gap-2">
+                            <Target size={16} className="text-amber-400 shrink-0" />
+                            <span>
+                              {isAov
+                                ? 'Thiết Lập Mốc Sao Cao Thủ+ (Tự Động Tính Lũy Tiến)'
+                                : `Thiết Lập Điểm ${pointUnit} (Hiện Tại → Mong Muốn)`}
+                            </span>
+                            <span className="text-red-500">*</span>
+                          </span>
+                          <p className="text-[11px] sm:text-xs text-zinc-400 mt-0.5">
+                            {isAov
+                              ? 'Nhập số sao hiện tại và mục tiêu (0★ → 100★+). Nếu vượt ngưỡng Đại Cao Thủ (20★) hoặc Chiến Tướng (50★), hệ thống tự tính đúng đơn giá từng mốc.'
+                              : 'Nhập số điểm thực tế hiện tại và mốc điểm bạn muốn đạt. Hệ thống sẽ tính số điểm chênh lệch cần cày.'}
+                          </p>
+                        </div>
+
+                        <div className="flex items-center gap-2 self-start sm:self-auto px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/30">
+                          <span className="text-xs text-amber-300/80 font-medium">Cần cày:</span>
+                          <span className="text-base sm:text-lg font-black font-mono text-amber-400 leading-none">
+                            {gainedPoints} {pointUnit}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Preview Huy hiệu Rank Cao Thủ -> Chiến Tướng -> Huyền Thoại theo số sao */}
+                      {isAov && isSelectedAovHighStar && (() => {
+                        const startInfo = getAovHighRankByStars(currentPoints);
+                        const targetInfo = getAovHighRankByStars(desiredPoints);
+                        return (
+                          <div className="p-3 rounded-xl bg-zinc-900/80 border border-amber-500/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                            <div className="flex items-center gap-2.5">
+                              <div className="w-10 h-10 rounded-xl bg-black/50 border border-white/10 p-1 flex items-center justify-center shrink-0">
+                                <img src={startInfo.image} alt={startInfo.label} className="w-full h-full object-contain" />
+                              </div>
+                              <div>
+                                <span className="text-[10px] uppercase font-bold text-zinc-500 block">Xuất phát</span>
+                                <span className="text-xs sm:text-sm font-extrabold text-white">{startInfo.label}</span>
+                              </div>
+                            </div>
+                            <ArrowRight size={16} className="text-amber-400 hidden sm:block shrink-0" />
+                            <div className="flex items-center gap-2.5">
+                              <div className="w-10 h-10 rounded-xl bg-black/50 border border-emerald-500/30 p-1 flex items-center justify-center shrink-0">
+                                <img src={targetInfo.image} alt={targetInfo.label} className="w-full h-full object-contain" />
+                              </div>
+                              <div>
+                                <span className="text-[10px] uppercase font-bold text-emerald-400 block">Mục tiêu đạt được</span>
+                                <span className="text-xs sm:text-sm font-extrabold text-emerald-300">{targetInfo.label}</span>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })()}
+
+                      {/* Dual Inputs Grid */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {/* 1. Điểm Hiện Tại */}
+                        <div className="p-3.5 sm:p-4 rounded-xl bg-zinc-900/90 border border-zinc-800/90 hover:border-zinc-700/80 transition-all space-y-2.5">
+                          <div className="flex items-center justify-between">
+                            <label className="text-[11px] font-bold uppercase tracking-wider text-zinc-400">
+                              {isAov ? 'Số Sao Hiện Tại' : 'Điểm Hiện Tại'}
+                            </label>
+                            <span className="text-[10px] text-zinc-500 font-mono">Bắt đầu từ</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              disabled={Boolean(isRiotGame && checkedAccount)}
                               onClick={() => {
                                 if (isRiotGame && !checkedAccount) {
                                   toast.info('Vui lòng kiểm tra thông tin tài khoản Riot ở ô bắt buộc trên để nhận diện Điểm LP chính xác!');
                                   const el = document.getElementById('riot-account-check-box');
                                   if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                                }
-                              }}
-                              onChange={(e) => {
-                                if (isRiotGame && checkedAccount) return;
-                                const clean = e.target.value.replace(/\D/g, '').replace(/^0+/, '');
-                                if (!clean) {
-                                  setCurrentPoints(0);
                                   return;
                                 }
-                                const val = parseInt(clean, 10);
-                                setCurrentPoints(isNaN(val) ? 0 : Math.max(0, val));
+                                setCurrentPoints((p) => Math.max(0, p - (isAov ? 1 : 10)));
                               }}
-                              className={`w-full h-9 sm:h-10 bg-zinc-950 border rounded-xl pl-3 pr-10 text-center text-base sm:text-lg font-black font-mono text-white outline-none focus:ring-2 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none transition-all ${isRiotGame && checkedAccount
-                                  ? 'border-cyan-500/40 bg-zinc-900/60 cursor-not-allowed text-cyan-300'
-                                  : currentPoints > desiredPoints
-                                    ? 'border-rose-500 focus:border-rose-500 focus:ring-rose-500/20'
-                                    : 'border-zinc-700/80 focus:border-cyan-500 focus:ring-cyan-500/20'
+                              className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-zinc-800/90 hover:bg-zinc-700 active:scale-95 text-zinc-200 hover:text-white font-bold text-base flex items-center justify-center shrink-0 border border-white/5 transition-all select-none ${isRiotGame && checkedAccount ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'
                                 }`}
-                            />
-                            <span className="text-xs text-zinc-500 font-bold font-mono absolute right-3 pointer-events-none select-none uppercase">
-                              {pointUnit}
-                            </span>
-                          </div>
-                          <button
-                            type="button"
-                            disabled={Boolean(isRiotGame && checkedAccount)}
-                            onClick={() => {
-                              if (isRiotGame && !checkedAccount) {
-                                toast.info('Vui lòng kiểm tra thông tin tài khoản Riot ở ô bắt buộc trên để nhận diện Điểm LP chính xác!');
-                                const el = document.getElementById('riot-account-check-box');
-                                if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                                return;
-                              }
-                              setCurrentPoints((p) => Math.max(0, p + (isAov ? 1 : 10)));
-                            }}
-                            className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-zinc-800/90 hover:bg-zinc-700 active:scale-95 text-zinc-200 hover:text-white font-bold text-base flex items-center justify-center shrink-0 border border-white/5 transition-all select-none ${isRiotGame && checkedAccount ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'
-                              }`}
-                          >
-                            +
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* 2. Điểm Mong Muốn */}
-                      <div className="p-3.5 sm:p-4 rounded-xl bg-zinc-900/90 border border-zinc-800/90 hover:border-zinc-700/80 transition-all space-y-2.5">
-                        <div className="flex items-center justify-between">
-                          <label className="text-[11px] font-bold uppercase tracking-wider text-emerald-400">
-                            {isAov ? 'Số Sao Mong Muốn' : 'Điểm Mong Muốn'}
-                          </label>
-                          <span className="text-[10px] text-zinc-500 font-mono">Mục tiêu</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <button
-                            type="button"
-                            onClick={() => setDesiredPoints((p) => Math.max(0, p - (isAov ? 1 : 10)))}
-                            className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-zinc-800/90 hover:bg-zinc-700 active:scale-95 text-zinc-200 hover:text-white font-bold text-base flex items-center justify-center shrink-0 border border-white/5 transition-all select-none cursor-pointer"
-                          >
-                            -
-                          </button>
-                          <div className="flex-1 relative flex items-center">
-                            <input
-                              type="text"
-                              inputMode="numeric"
-                              pattern="[0-9]*"
-                              value={desiredPoints === 0 ? '' : desiredPoints}
-                              placeholder="0"
-                              onChange={(e) => {
-                                const clean = e.target.value.replace(/\D/g, '').replace(/^0+/, '');
-                                if (!clean) {
-                                  setDesiredPoints(0);
-                                  return;
-                                }
-                                const val = parseInt(clean, 10);
-                                setDesiredPoints(isNaN(val) ? 0 : Math.max(0, val));
-                              }}
-                              className={`w-full h-9 sm:h-10 bg-zinc-950 border rounded-xl pl-3 pr-10 text-center text-base sm:text-lg font-black font-mono text-emerald-400 outline-none focus:ring-2 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none transition-all ${desiredPoints < currentPoints
-                                  ? 'border-rose-500 focus:border-rose-500 focus:ring-rose-500/20'
-                                  : 'border-zinc-700/80 focus:border-emerald-500 focus:ring-emerald-500/20'
-                                }`}
-                            />
-                            <span className="text-xs text-zinc-500 font-bold font-mono absolute right-3 pointer-events-none select-none uppercase">
-                              {pointUnit}
-                            </span>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => setDesiredPoints((p) => Math.max(0, p + (isAov ? 1 : 10)))}
-                            className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-zinc-800/90 hover:bg-zinc-700 active:scale-95 text-zinc-200 hover:text-white font-bold text-base flex items-center justify-center shrink-0 border border-white/5 transition-all select-none cursor-pointer"
-                          >
-                            +
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Cảnh báo validate: Không được < 0, và Điểm Mong Muốn phải lớn hơn Điểm Hiện Tại */}
-                    {desiredPoints <= currentPoints && (
-                      <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-center gap-2">
-                        <AlertCircle size={15} className="text-rose-400 shrink-0" />
-                        <span>
-                          {desiredPoints < currentPoints
-                            ? `${isAov ? 'Số sao mong muốn' : 'Điểm mong muốn'} không được nhỏ hơn ${isAov ? 'số sao hiện tại' : 'điểm hiện tại'} (${isAov ? 'Số sao hiện tại' : 'Điểm hiện tại'} không được lớn hơn ${isAov ? 'số sao mong muốn' : 'điểm mong muốn'}).`
-                            : `${isAov ? 'Số sao mong muốn' : 'Điểm mong muốn'} phải lớn hơn ${isAov ? 'số sao hiện tại' : 'điểm hiện tại'} ít nhất 1 ${pointUnit}.`}
-                        </span>
-                      </div>
-                    )}
-
-                    {/* Bảng phân tích lũy tiến theo mốc sao Liên Quân */}
-                    {isAov && aovStarCalc && aovStarCalc.breakdown.length > 0 && (
-                      <div className="p-3.5 rounded-xl bg-zinc-900/80 border border-cyan-500/20 space-y-2">
-                        <div className="flex items-center justify-between text-[11px] font-bold">
-                          <span className="text-cyan-400 uppercase tracking-wider">
-                            {aovStarCalc.isProgressive
-                              ? 'Chi tiết tính lũy tiến theo từng mốc sao'
-                              : 'Chi tiết tạm tính theo sao'}
-                          </span>
-                          <span className="text-zinc-400 font-mono">
-                            TB {aovStarCalc.effectiveUnitPrice.toLocaleString('vi-VN')} đ/sao
-                          </span>
-                        </div>
-                        <div className="space-y-1.5">
-                          {aovStarCalc.breakdown.map((seg) => (
-                            <div
-                              key={seg.tierId}
-                              className="flex items-center justify-between gap-2 text-xs py-1 border-b border-zinc-800/70 last:border-0"
                             >
-                              <div className="flex items-center gap-2 min-w-0">
-                                <img
-                                  src={seg.image}
-                                  alt={seg.label}
-                                  className="w-5 h-5 object-contain shrink-0"
-                                />
-                                <span className="text-zinc-300 truncate">
-                                  {seg.label}
-                                  {typeof seg.fromStar === 'number' && typeof seg.toStar === 'number'
-                                    ? ` (${seg.fromStar}★ → ${seg.toStar}★)`
-                                    : ''}
-                                </span>
-                              </div>
-                              <span className="font-mono text-white font-bold whitespace-nowrap">
-                                {seg.stars}★ × {seg.ratePerStar.toLocaleString('vi-VN')}đ ={' '}
-                                <span className="text-cyan-400">{seg.subtotal.toLocaleString('vi-VN')}đ</span>
+                              -
+                            </button>
+                            <div className="flex-1 relative flex items-center">
+                              <input
+                                type="text"
+                                inputMode="numeric"
+                                pattern="[0-9]*"
+                                readOnly={Boolean(isRiotGame && checkedAccount)}
+                                value={currentPoints === 0 ? '' : currentPoints}
+                                placeholder="0"
+                                onClick={() => {
+                                  if (isRiotGame && !checkedAccount) {
+                                    toast.info('Vui lòng kiểm tra thông tin tài khoản Riot ở ô bắt buộc trên để nhận diện Điểm LP chính xác!');
+                                    const el = document.getElementById('riot-account-check-box');
+                                    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                  }
+                                }}
+                                onChange={(e) => {
+                                  if (isRiotGame && checkedAccount) return;
+                                  const clean = e.target.value.replace(/\D/g, '').replace(/^0+/, '');
+                                  if (!clean) {
+                                    setCurrentPoints(0);
+                                    return;
+                                  }
+                                  const val = parseInt(clean, 10);
+                                  setCurrentPoints(isNaN(val) ? 0 : Math.max(0, val));
+                                }}
+                                className={`w-full h-9 sm:h-10 bg-zinc-950 border rounded-xl pl-3 pr-10 text-center text-base sm:text-lg font-black font-mono text-white outline-none focus:ring-2 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none transition-all ${isRiotGame && checkedAccount
+                                    ? 'border-cyan-500/40 bg-zinc-900/60 cursor-not-allowed text-cyan-300'
+                                    : currentPoints > desiredPoints
+                                      ? 'border-rose-500 focus:border-rose-500 focus:ring-rose-500/20'
+                                      : 'border-zinc-700/80 focus:border-cyan-500 focus:ring-cyan-500/20'
+                                  }`}
+                              />
+                              <span className="text-xs text-zinc-500 font-bold font-mono absolute right-3 pointer-events-none select-none uppercase">
+                                {pointUnit}
                               </span>
                             </div>
+                            <button
+                              type="button"
+                              disabled={Boolean(isRiotGame && checkedAccount)}
+                              onClick={() => {
+                                if (isRiotGame && !checkedAccount) {
+                                  toast.info('Vui lòng kiểm tra thông tin tài khoản Riot ở ô bắt buộc trên để nhận diện Điểm LP chính xác!');
+                                  const el = document.getElementById('riot-account-check-box');
+                                  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                  return;
+                                }
+                                setCurrentPoints((p) => Math.max(0, p + (isAov ? 1 : 10)));
+                              }}
+                              className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-zinc-800/90 hover:bg-zinc-700 active:scale-95 text-zinc-200 hover:text-white font-bold text-base flex items-center justify-center shrink-0 border border-white/5 transition-all select-none ${isRiotGame && checkedAccount ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'
+                                }`}
+                            >
+                              +
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* 2. Điểm Mong Muốn */}
+                        <div className="p-3.5 sm:p-4 rounded-xl bg-zinc-900/90 border border-zinc-800/90 hover:border-zinc-700/80 transition-all space-y-2.5">
+                          <div className="flex items-center justify-between">
+                            <label className="text-[11px] font-bold uppercase tracking-wider text-emerald-400">
+                              {isAov ? 'Số Sao Mong Muốn' : 'Điểm Mong Muốn'}
+                            </label>
+                            <span className="text-[10px] text-zinc-500 font-mono">Mục tiêu</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setDesiredPoints((p) => Math.max(0, p - (isAov ? 1 : 10)))}
+                              className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-zinc-800/90 hover:bg-zinc-700 active:scale-95 text-zinc-200 hover:text-white font-bold text-base flex items-center justify-center shrink-0 border border-white/5 transition-all select-none cursor-pointer"
+                            >
+                              -
+                            </button>
+                            <div className="flex-1 relative flex items-center">
+                              <input
+                                type="text"
+                                inputMode="numeric"
+                                pattern="[0-9]*"
+                                value={desiredPoints === 0 ? '' : desiredPoints}
+                                placeholder="0"
+                                onChange={(e) => {
+                                  const clean = e.target.value.replace(/\D/g, '').replace(/^0+/, '');
+                                  if (!clean) {
+                                    setDesiredPoints(0);
+                                    return;
+                                  }
+                                  const val = parseInt(clean, 10);
+                                  setDesiredPoints(isNaN(val) ? 0 : Math.max(0, val));
+                                }}
+                                className={`w-full h-9 sm:h-10 bg-zinc-950 border rounded-xl pl-3 pr-10 text-center text-base sm:text-lg font-black font-mono text-emerald-400 outline-none focus:ring-2 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none transition-all ${desiredPoints < currentPoints
+                                    ? 'border-rose-500 focus:border-rose-500 focus:ring-rose-500/20'
+                                    : 'border-zinc-700/80 focus:border-emerald-500 focus:ring-emerald-500/20'
+                                  }`}
+                              />
+                              <span className="text-xs text-zinc-500 font-bold font-mono absolute right-3 pointer-events-none select-none uppercase">
+                                {pointUnit}
+                              </span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => setDesiredPoints((p) => Math.max(0, p + (isAov ? 1 : 10)))}
+                              className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-zinc-800/90 hover:bg-zinc-700 active:scale-95 text-zinc-200 hover:text-white font-bold text-base flex items-center justify-center shrink-0 border border-white/5 transition-all select-none cursor-pointer"
+                            >
+                              +
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Cảnh báo validate: Không được < 0, và Điểm Mong Muốn phải lớn hơn Điểm Hiện Tại */}
+                      {desiredPoints <= currentPoints && (
+                        <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-center gap-2">
+                          <AlertCircle size={15} className="text-rose-400 shrink-0" />
+                          <span>
+                            {desiredPoints < currentPoints
+                              ? `${isAov ? 'Số sao mong muốn' : 'Điểm mong muốn'} không được nhỏ hơn ${isAov ? 'số sao hiện tại' : 'điểm hiện tại'} (${isAov ? 'Số sao hiện tại' : 'Điểm hiện tại'} không được lớn hơn ${isAov ? 'số sao mong muốn' : 'điểm mong muốn'}).`
+                              : `${isAov ? 'Số sao mong muốn' : 'Điểm mong muốn'} phải lớn hơn ${isAov ? 'số sao hiện tại' : 'điểm hiện tại'} ít nhất 1 ${pointUnit}.`}
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Bảng phân tích lũy tiến theo mốc sao Liên Quân */}
+                      {isAov && aovStarCalc && aovStarCalc.breakdown.length > 0 && (
+                        <div className="p-3.5 rounded-xl bg-zinc-900/80 border border-cyan-500/20 space-y-2">
+                          <div className="flex items-center justify-between text-[11px] font-bold">
+                            <span className="text-cyan-400 uppercase tracking-wider">
+                              {aovStarCalc.isProgressive
+                                ? 'Chi tiết tính lũy tiến theo từng mốc sao'
+                                : 'Chi tiết tạm tính theo sao'}
+                            </span>
+                            <span className="text-zinc-400 font-mono">
+                              TB {aovStarCalc.effectiveUnitPrice.toLocaleString('vi-VN')} đ/sao
+                            </span>
+                          </div>
+                          <div className="space-y-1.5">
+                            {aovStarCalc.breakdown.map((seg) => (
+                              <div
+                                key={seg.tierId}
+                                className="flex items-center justify-between gap-2 text-xs py-1 border-b border-zinc-800/70 last:border-0"
+                              >
+                                <div className="flex items-center gap-2 min-w-0">
+                                  <img
+                                    src={seg.image}
+                                    alt={seg.label}
+                                    className="w-5 h-5 object-contain shrink-0"
+                                  />
+                                  <span className="text-zinc-300 truncate">
+                                    {seg.label}
+                                    {typeof seg.fromStar === 'number' && typeof seg.toStar === 'number'
+                                      ? ` (${seg.fromStar}★ → ${seg.toStar}★)`
+                                      : ''}
+                                  </span>
+                                </div>
+                                <span className="font-mono text-white font-bold whitespace-nowrap">
+                                  {seg.stars}★ × {seg.ratePerStar.toLocaleString('vi-VN')}đ ={' '}
+                                  <span className="text-cyan-400">{seg.subtotal.toLocaleString('vi-VN')}đ</span>
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Quick presets */}
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 pt-1">
+                        <span className="text-[11px] text-zinc-500 shrink-0 font-medium">Cộng thêm nhanh:</span>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          {(isAov ? [1, 5, 10, 20, 30, 50] : [20, 40, 60, 80, 100]).map((pts) => (
+                            <button
+                              key={pts}
+                              type="button"
+                              onClick={() => setDesiredPoints(currentPoints + pts)}
+                              className="px-3 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800/90 border border-zinc-800 hover:border-cyan-500/50 text-xs font-bold font-mono text-zinc-300 hover:text-cyan-300 hover:shadow-[0_0_12px_rgba(6,182,212,0.2)] transition-all active:scale-95 cursor-pointer"
+                            >
+                              +{pts} {pointUnit}
+                            </button>
                           ))}
                         </div>
                       </div>
-                    )}
-
-                    {/* Quick presets */}
-                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 pt-1">
-                      <span className="text-[11px] text-zinc-500 shrink-0 font-medium">Cộng thêm nhanh:</span>
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        {(isAov ? [1, 5, 10, 20, 30, 50] : [20, 40, 60, 80, 100]).map((pts) => (
-                          <button
-                            key={pts}
-                            type="button"
-                            onClick={() => setDesiredPoints(currentPoints + pts)}
-                            className="px-3 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800/90 border border-zinc-800 hover:border-cyan-500/50 text-xs font-bold font-mono text-zinc-300 hover:text-cyan-300 hover:shadow-[0_0_12px_rgba(6,182,212,0.2)] transition-all active:scale-95 cursor-pointer"
-                          >
-                            +{pts} {pointUnit}
-                          </button>
-                        ))}
-                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
               ) : isPromotion ? (
                 /* TRƯỜNG HỢP: CHUỖI THĂNG HẠNG (PROMOTION SERIES) */
@@ -3980,32 +4299,61 @@ function ServiceBookingContent() {
                   </>
                 ) : isPointBoost ? (
                   <>
-                    <div className="flex justify-between text-zinc-300">
-                      <span>Phân khúc:</span>
-                      <span className="font-bold text-cyan-400 text-right">
-                        {isAov && isSelectedAovHighStar
-                          ? `${getAovHighRankByStars(currentPoints).label} → ${getAovHighRankByStars(desiredPoints).label}`
-                          : selectedPointTierObj.label}
-                      </span>
-                    </div>
-                    <div className="flex justify-between text-zinc-400">
-                      <span>{isAov ? 'Số sao hiện tại:' : 'Điểm hiện tại:'}</span>
-                      <span className="font-bold font-mono text-zinc-300">
-                        {currentPoints} {pointUnit}
-                      </span>
-                    </div>
-                    <div className="flex justify-between text-zinc-400">
-                      <span>{isAov ? 'Số sao mong muốn:' : 'Điểm mong muốn:'}</span>
-                      <span className="font-bold font-mono text-emerald-400">
-                        {desiredPoints} {pointUnit}
-                      </span>
-                    </div>
-                    <div className="flex justify-between text-zinc-400">
-                      <span>{isAov ? 'Số sao cần cày:' : 'Số điểm cần cày:'}</span>
-                      <span className="font-bold font-mono text-amber-400">
-                        {gainedPoints} {pointUnit}
-                      </span>
-                    </div>
+                    {isAov && !isSelectedAovHighStar ? (
+                      <>
+                        <div className="flex justify-between text-zinc-300">
+                          <span>Hình thức:</span>
+                          <span className="font-bold text-cyan-400">Cày Sao Lẻ ({selectedPointTierObj.label})</span>
+                        </div>
+                        <div className="flex justify-between text-zinc-400">
+                          <span>Xuất phát:</span>
+                          <span className="font-bold text-white">
+                            {aovOddStartStep.label} ({aovOddCurrentStarsInDiv}★)
+                          </span>
+                        </div>
+                        <div className="flex justify-between text-zinc-400">
+                          <span>Dự kiến đạt được:</span>
+                          <span className="font-bold text-emerald-400">
+                            {aovOddTargetRank?.targetStepLabel}
+                          </span>
+                        </div>
+                        <div className="flex justify-between text-zinc-400">
+                          <span>Số sao cần cày:</span>
+                          <span className="font-bold font-mono text-amber-400">
+                            +{aovOddStarsToAdd} Sao
+                          </span>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="flex justify-between text-zinc-300">
+                          <span>Phân khúc:</span>
+                          <span className="font-bold text-cyan-400 text-right">
+                            {isAov && isSelectedAovHighStar
+                              ? `${getAovHighRankByStars(currentPoints).label} → ${getAovHighRankByStars(desiredPoints).label}`
+                              : selectedPointTierObj.label}
+                          </span>
+                        </div>
+                        <div className="flex justify-between text-zinc-400">
+                          <span>{isAov ? 'Số sao hiện tại:' : 'Điểm hiện tại:'}</span>
+                          <span className="font-bold font-mono text-zinc-300">
+                            {currentPoints} {pointUnit}
+                          </span>
+                        </div>
+                        <div className="flex justify-between text-zinc-400">
+                          <span>{isAov ? 'Số sao mong muốn:' : 'Điểm mong muốn:'}</span>
+                          <span className="font-bold font-mono text-emerald-400">
+                            {desiredPoints} {pointUnit}
+                          </span>
+                        </div>
+                        <div className="flex justify-between text-zinc-400">
+                          <span>{isAov ? 'Số sao cần cày:' : 'Số điểm cần cày:'}</span>
+                          <span className="font-bold font-mono text-amber-400">
+                            {gainedPoints} {pointUnit}
+                          </span>
+                        </div>
+                      </>
+                    )}
                     {isAov && aovStarCalc && aovStarCalc.isProgressive ? (
                       <div className="pt-1.5 mt-1 border-t border-zinc-800/80 space-y-1">
                         {aovStarCalc.breakdown.map((seg) => (
@@ -4232,7 +4580,7 @@ function ServiceBookingContent() {
               {/* Nút Đặt đơn (Desktop - Trên Mobile & Tablet dùng thanh Sticky Footer ở đáy để tránh lặp nút) */}
               <button
                 type="button"
-                disabled={isSubmitting || calculation.totalPrice <= 0 || (isPointBoost && (currentPoints >= desiredPoints || currentPoints < 0 || desiredPoints < 0)) || (isMatches && (matchCount < 1 || matchCount > 10)) || (isPlacements && (placementMatches < 1 || placementMatches > 5))}
+                disabled={isSubmitting || calculation.totalPrice <= 0 || isPointInvalid || (isMatches && (matchCount < 1 || matchCount > 10)) || (isPlacements && (placementMatches < 1 || placementMatches > 5))}
                 onClick={handlePlaceOrder}
                 className="hidden xl:flex w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-extrabold text-sm shadow-xl shadow-blue-600/30 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 items-center justify-center gap-2"
               >
@@ -4276,7 +4624,7 @@ function ServiceBookingContent() {
 
             <button
               type="button"
-              disabled={isSubmitting || calculation.totalPrice <= 0 || (isPointBoost && (currentPoints >= desiredPoints || currentPoints < 0 || desiredPoints < 0)) || (isMatches && (matchCount < 1 || matchCount > 10)) || (isPlacements && (placementMatches < 1 || placementMatches > 5))}
+              disabled={isSubmitting || calculation.totalPrice <= 0 || isPointInvalid || (isMatches && (matchCount < 1 || matchCount > 10)) || (isPlacements && (placementMatches < 1 || placementMatches > 5))}
               onClick={handlePlaceOrder}
               className="py-2.5 px-4 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-xs shadow-lg shadow-blue-600/30 active:scale-95 disabled:opacity-50 flex items-center gap-1.5 shrink-0"
             >
