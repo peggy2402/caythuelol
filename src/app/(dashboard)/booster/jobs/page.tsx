@@ -28,7 +28,7 @@ import { formatServiceNameVi } from '@/lib/orderStatus';
 
 const formatServiceTypeVi = (serviceType?: string, details?: any): string => {
   if (details?.is_matches || serviceType === 'MATCHES') {
-    return 'Cày Theo Số Trận';
+    return 'Cày Theo Số Trận Thắng';
   }
   if (details?.is_placements || serviceType === 'PLACEMENTS') {
     return 'Phân Hạng Đầu Mùa';
@@ -312,7 +312,7 @@ export default function JobMarketPage() {
                     <span className="text-zinc-400 text-xs">Mục tiêu</span>
                     <div className="text-right">
                         <div className="font-bold text-white text-sm">
-                            Cày <span className="text-blue-400 font-extrabold">{matchCount}</span> trận
+                            Cày đủ <span className="text-emerald-400 font-extrabold">{matchCount}</span> trận thắng
                         </div>
                         <div className="text-xs text-zinc-400 mt-0.5">
                             Hàng chờ: <span className="text-zinc-300 font-semibold">{queueVi}</span>
@@ -320,8 +320,8 @@ export default function JobMarketPage() {
                     </div>
                 </div>
                 <div className="pt-2 border-t border-white/5 flex items-center justify-between gap-2 text-[11px]">
-                    <span className="text-amber-300/90 font-medium">
-                        • Tính đủ {matchCount} trận đã đấu (không phân biệt Thắng / Thua)
+                    <span className="text-emerald-300/90 font-medium">
+                        • Cam kết đủ {matchCount} trận thắng (đánh bù miễn phí nếu thua)
                     </span>
                 </div>
             </div>

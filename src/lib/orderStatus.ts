@@ -112,7 +112,7 @@ export function getOrderStatusInfo(status?: string, hasBooster?: boolean): Order
  */
 export function formatServiceNameVi(serviceType?: string, details?: any): string {
   if (details?.is_matches) {
-    return 'Cày Theo Số Trận';
+    return 'Cày Theo Số Trận Thắng';
   }
   if (details?.is_placements) {
     return 'Phân Hạng Đầu Mùa';
@@ -123,7 +123,7 @@ export function formatServiceNameVi(serviceType?: string, details?: any): string
   if (!serviceType) return 'Dịch vụ Cày Thuê';
   const clean = serviceType.toUpperCase().replace(/[-\s]/g, '_');
   const map: Record<string, string> = {
-    MATCHES: 'Cày Theo Số Trận',
+    MATCHES: 'Cày Theo Số Trận Thắng',
     RANK_BOOST: 'Cày Cấp Bậc Rank',
     NET_WINS: 'Cày Trận Thắng (Net Wins)',
     PROMOTION: 'Chuỗi Thăng Hạng',

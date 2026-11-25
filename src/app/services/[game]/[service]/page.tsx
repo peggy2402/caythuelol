@@ -2120,7 +2120,7 @@ function ServiceBookingContent() {
           : isMatches
             ? {
               is_matches: true,
-              service_name: 'Cày Theo Số Trận',
+              service_name: 'Cày Theo Số Trận Thắng',
               match_count: matchCount,
               matches: matchCount,
               queue_type: queueType,
@@ -3319,20 +3319,20 @@ function ServiceBookingContent() {
                       </div>
                       <div>
                         <h3 className="font-extrabold text-white text-base flex items-center gap-2">
-                          <span>Số Lượng Trận Đấu Cần Cày</span>
+                          <span>Số Lượng Trận Thắng Cần Cày</span>
                           <span className="text-red-500">*</span>
                         </h3>
                         <p className="text-xs text-zinc-400">
-                          Kéo thanh trượt hoặc chọn nhanh số trận bạn muốn cày (1 đến 10 trận)
+                          Kéo thanh trượt hoặc chọn nhanh số trận thắng bạn muốn cày (1 đến 10 trận thắng)
                         </p>
                       </div>
                     </div>
 
-                    {/* Badge hiển thị số trận hiện tại */}
-                    <div className="self-start sm:self-auto flex items-center gap-2 bg-gradient-to-r from-blue-600/20 to-indigo-600/20 border border-blue-500/30 px-3.5 py-1.5 rounded-2xl shadow-sm">
+                    {/* Badge hiển thị số trận thắng hiện tại */}
+                    <div className="self-start sm:self-auto flex items-center gap-2 bg-gradient-to-r from-emerald-600/20 to-blue-600/20 border border-emerald-500/30 px-3.5 py-1.5 rounded-2xl shadow-sm">
                       <span className="text-xs text-zinc-400 font-medium">Đã chọn:</span>
-                      <span className="text-sm font-black text-blue-400 font-mono">
-                        {matchCount} trận
+                      <span className="text-sm font-black text-emerald-400 font-mono">
+                        {matchCount} trận thắng
                       </span>
                     </div>
                   </div>
@@ -3340,16 +3340,16 @@ function ServiceBookingContent() {
                   {/* Khối Thanh Kéo Slider */}
                   <div className="p-5 sm:p-6 rounded-2xl bg-zinc-950/80 border border-white/5 space-y-5">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-zinc-400">1 trận (Tối thiểu)</span>
+                      <span className="text-xs font-bold text-zinc-400">1 trận thắng</span>
                       <div className="text-center">
                         <span className="text-2xl font-black text-white tracking-tight">
-                          {matchCount} <span className="text-sm font-bold text-blue-400">TRẬN</span>
+                          {matchCount} <span className="text-sm font-bold text-emerald-400">TRẬN THẮNG</span>
                         </span>
                         <div className="text-[11px] text-zinc-400 mt-0.5 font-mono">
-                          {unitPrice.toLocaleString('vi-VN')} đ / trận
+                          {unitPrice.toLocaleString('vi-VN')} đ / trận thắng
                         </div>
                       </div>
-                      <span className="text-xs font-bold text-zinc-400">10 trận (Tối đa)</span>
+                      <span className="text-xs font-bold text-zinc-400">10 trận thắng</span>
                     </div>
 
                     {/* Range Input Slider */}
@@ -3384,30 +3384,32 @@ function ServiceBookingContent() {
                             }`}
                           >
                             <span>{num}</span>
-                            <span className="text-[9px] opacity-70">trận</span>
+                            <span className="text-[9px] opacity-70">thắng</span>
                           </button>
                         );
                       })}
                     </div>
                   </div>
 
-                  {/* Thông báo Lưu ý quan trọng cho dịch vụ Cày Theo Số Trận */}
-                  <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-200/95 space-y-2.5 text-xs leading-relaxed shadow-lg shadow-amber-500/5">
-                    <div className="flex items-center gap-2 font-bold text-amber-400 text-sm">
-                      <AlertTriangle className="w-4 h-4 shrink-0 text-amber-400" />
-                      <span>Lưu ý quan trọng về dịch vụ Cày Theo Số Trận</span>
+                  {/* Cam kết chất lượng dịch vụ Cày Theo Số Trận Thắng */}
+                  <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/25 space-y-2.5 text-xs leading-relaxed shadow-lg shadow-emerald-500/5">
+                    <div className="flex items-center gap-2 font-bold text-emerald-400 text-sm">
+                      <Shield className="w-4 h-4 shrink-0 text-emerald-400" />
+                      <span>Cam kết hoàn thành đủ số trận Thắng — An tâm tuyệt đối</span>
                     </div>
                     <p className="text-zinc-200">
-                      • Chúng tôi chỉ hoàn thành đúng đủ{' '}
-                      <strong className="text-white">{matchCount} trận đấu</strong> do bạn chọn và{' '}
-                      <strong className="text-amber-300">không phân biệt kết quả Thắng / Thua</strong>.
+                      • Booster cam kết cày đủ đúng{' '}
+                      <strong className="text-white">{matchCount} trận Thắng</strong> bạn đã đặt — chỉ những trận{' '}
+                      <strong className="text-emerald-300">Thắng</strong> mới được tính vào tiến độ hoàn thành đơn hàng.
                     </p>
                     <p className="text-zinc-300">
-                      • Dịch vụ này <strong>không áp dụng chính sách cày bù trận thua</strong> — mọi trận đấu tuyển thủ đã hoàn thành đều được ghi nhận hợp lệ vào tiến độ đơn hàng.
+                      • Trường hợp phát sinh trận thua, Booster sẽ{' '}
+                      <strong className="text-white">chủ động đánh bù miễn phí</strong> cho đến khi đủ đúng {matchCount} trận Thắng, hoàn toàn{' '}
+                      <strong className="text-emerald-300">không phát sinh thêm chi phí</strong>.
                     </p>
-                    <div className="pt-2 border-t border-amber-500/15 text-zinc-400 text-[11px]">
-                      💡 <em>Nếu bạn muốn cam kết số trận thắng ròng (thua 1 trận tuyển thủ phải đánh bù lại 1 trận thắng), vui lòng chọn gói <strong>Cày Trận Thắng (Net Wins)</strong>.</em>
-                    </div>
+                    <p className="text-zinc-400 text-[11px] pt-1 border-t border-emerald-500/15">
+                      ✓ Lịch sử từng trận đấu được cập nhật minh bạch theo thời gian thực và bảo chứng thanh toán Escrow 100% bởi LeoRank.
+                    </p>
                   </div>
 
                   {/* Khối Chọn Hàng Đợi (Đơn/Đôi vs Linh Hoạt) */}
@@ -4354,7 +4356,7 @@ function ServiceBookingContent() {
                   {isPromotion
                     ? 'Tóm Tắt Chuỗi Thăng Hạng'
                     : isMatches
-                      ? 'Tóm Tắt Đơn Cày Theo Trận'
+                      ? 'Tóm Tắt Đơn Cày Trận Thắng'
                       : isPlacements
                         ? 'Tóm Tắt Phân Hạng Đầu Mùa'
                         : isPointBoost
@@ -4367,7 +4369,7 @@ function ServiceBookingContent() {
                   {isPromotion
                     ? 'Chuỗi Thăng Hạng'
                     : isMatches
-                      ? `${matchCount} trận đấu`
+                      ? `${matchCount} trận thắng`
                       : isPlacements
                         ? `${placementMatches} trận phân hạng`
                         : isPointBoost
@@ -4402,14 +4404,14 @@ function ServiceBookingContent() {
                     <div className="flex justify-between text-zinc-300">
                       <span>Dịch vụ:</span>
                       <span className="font-bold text-white flex items-center gap-1.5">
-                        <Gamepad2 size={13} className="text-blue-400" />
-                        <span>Cày Theo Số Trận</span>
+                        <Gamepad2 size={13} className="text-emerald-400" />
+                        <span>Cày Theo Số Trận Thắng</span>
                       </span>
                     </div>
                     <div className="flex justify-between text-zinc-400">
                       <span>Số lượng:</span>
-                      <span className="font-extrabold text-blue-400 text-sm">
-                        {matchCount} trận
+                      <span className="font-extrabold text-emerald-400 text-sm">
+                        {matchCount} trận thắng
                       </span>
                     </div>
                     <div className="flex justify-between text-zinc-400">
@@ -4421,7 +4423,7 @@ function ServiceBookingContent() {
                     <div className="flex justify-between text-zinc-400">
                       <span>Đơn giá:</span>
                       <span className="font-mono text-zinc-300">
-                        {unitPrice.toLocaleString('vi-VN')} đ / trận
+                        {unitPrice.toLocaleString('vi-VN')} đ / trận thắng
                       </span>
                     </div>
                     {!isValorant && !isAov && (
@@ -4434,9 +4436,9 @@ function ServiceBookingContent() {
                       </div>
                     )}
                     <div className="flex justify-between text-zinc-400">
-                      <span>Quy cách cày:</span>
-                      <span className="text-amber-400 font-semibold text-xs">
-                        Đủ {matchCount} trận (Không tính thắng/thua)
+                      <span>Cam kết:</span>
+                      <span className="text-emerald-400 font-semibold text-xs">
+                        Đủ {matchCount} trận thắng (Đánh bù nếu thua)
                       </span>
                     </div>
                   </>
