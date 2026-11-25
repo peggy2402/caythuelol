@@ -40,6 +40,10 @@ interface MessageProps {
   searchTerm?: string;
   isOnline?: boolean;
   partner?: any;
+  orderContext?: {
+    serviceType?: string;
+    details?: any;
+  };
   onReact: (emoji: string) => void;
   onReply: () => void;
   onDelete?: () => void;
@@ -55,6 +59,7 @@ export default function MessageItem({
   searchTerm = '',
   isOnline = false,
   partner,
+  orderContext,
   onReact,
   onReply,
   onDelete,
@@ -245,13 +250,32 @@ export default function MessageItem({
             <div className="flex justify-between gap-2">
               <span className="text-zinc-500">Dịch vụ:</span>
               <span className="text-zinc-200 font-medium truncate max-w-[150px]">
-                {formatServiceNameVi(meta.serviceType)}
+                {formatServiceNameVi(meta.serviceType || orderContext?.serviceType, orderContext?.details)}
               </span>
             </div>
             <div className="flex justify-between gap-2">
               <span className="text-zinc-500">Mục tiêu:</span>
               <span className="text-cyan-300 font-semibold text-right">
-                {formatRankDisplayVi(meta.currentRank)} → {formatRankDisplayVi(meta.desiredRank)}
+                {(() => {
+                  if (meta.targetDisplay) return meta.targetDisplay;
+                  const isMatches = meta.serviceType === 'MATCHES' || meta.isMatches || orderContext?.serviceType === 'MATCHES' || orderContext?.details?.is_matches;
+                  if (isMatches) {
+                    const count = meta.matchCount || orderContext?.details?.match_count || orderContext?.details?.matches || 1;
+                    const queue = (meta.queueType || orderContext?.details?.queue_type) === 'FLEX' ? 'Linh hoạt' : 'Đơn / Đôi';
+                    return `Cày ${count} trận (${queue})`;
+                  }
+                  const isPlacements = meta.serviceType === 'PLACEMENTS' || meta.isPlacements || orderContext?.serviceType === 'PLACEMENTS' || orderContext?.details?.is_placements;
+                  if (isPlacements) {
+                    const count = meta.placementMatches || orderContext?.details?.placement_matches || 5;
+                    return `Cày ${count} trận phân hạng`;
+                  }
+                  const curr = formatRankDisplayVi(meta.currentRank);
+                  const des = formatRankDisplayVi(meta.desiredRank);
+                  if (curr !== '—' && des !== '—') return `${curr} → ${des}`;
+                  if (des !== '—') return des;
+                  if (curr !== '—') return curr;
+                  return 'Theo yêu cầu';
+                })()}
               </span>
             </div>
             <div className="flex justify-between gap-2">
@@ -358,7 +382,25 @@ export default function MessageItem({
             </div>
             <div className="flex justify-between gap-2">
               <span className="text-zinc-500">Mục tiêu:</span>
-              <span className="text-cyan-300 font-semibold">{formatRankDisplayVi(meta.desiredRank)}</span>
+              <span className="text-cyan-300 font-semibold text-right">
+                {(() => {
+                  if (meta.targetDisplay) return meta.targetDisplay;
+                  const isMatches = meta.serviceType === 'MATCHES' || meta.isMatches || orderContext?.serviceType === 'MATCHES' || orderContext?.details?.is_matches;
+                  if (isMatches) {
+                    const count = meta.matchCount || orderContext?.details?.match_count || orderContext?.details?.matches || 1;
+                    const queue = (meta.queueType || orderContext?.details?.queue_type) === 'FLEX' ? 'Linh hoạt' : 'Đơn / Đôi';
+                    return `Cày ${count} trận (${queue})`;
+                  }
+                  const isPlacements = meta.serviceType === 'PLACEMENTS' || meta.isPlacements || orderContext?.serviceType === 'PLACEMENTS' || orderContext?.details?.is_placements;
+                  if (isPlacements) {
+                    const count = meta.placementMatches || orderContext?.details?.placement_matches || 5;
+                    return `Cày ${count} trận phân hạng`;
+                  }
+                  const formattedDes = formatRankDisplayVi(meta.desiredRank);
+                  if (formattedDes && formattedDes !== '—') return formattedDes;
+                  return 'Theo yêu cầu đơn hàng';
+                })()}
+              </span>
             </div>
             <div className="flex justify-between gap-2">
               <span className="text-zinc-500">Thành tích:</span>

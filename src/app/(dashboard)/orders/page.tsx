@@ -530,15 +530,63 @@ export default function OrdersPage() {
 
                       {/* Rank & details */}
                       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-zinc-400">
-                        {order.details?.current_rank && order.details?.desired_rank ? (
-                          <span className="flex items-center gap-1.5 font-medium text-zinc-200">
-                            <span>{formatRankDisplayVi(order.details.current_rank)}</span>
-                            <span className="text-blue-400 font-bold">&rarr;</span>
-                            <span className="text-cyan-300 font-semibold">{formatRankDisplayVi(order.details.desired_rank)}</span>
-                          </span>
-                        ) : order.details?.rank ? (
-                          <span className="text-zinc-200">{formatRankDisplayVi(order.details.rank)}</span>
-                        ) : null}
+                        {(() => {
+                          if (order.serviceType === 'MATCHES' || order.details?.is_matches) {
+                            const count = order.details?.match_count || order.details?.matches || 1;
+                            const queue = order.details?.queue_type === 'FLEX' ? 'Linh Hoạt' : 'Đơn / Đôi';
+                            return (
+                              <span className="font-semibold text-blue-400">
+                                Cày {count} trận ({queue})
+                              </span>
+                            );
+                          }
+                          if (order.serviceType === 'PLACEMENTS' || order.details?.is_placements) {
+                            const count = order.details?.placement_matches || order.details?.matches || 5;
+                            const prev = order.details?.previous_rank_label || order.details?.previous_season_rank;
+                            return (
+                              <span className="font-semibold text-amber-400">
+                                Cày {count} trận phân hạng{prev ? ` (${formatRankDisplayVi(prev)})` : ''}
+                              </span>
+                            );
+                          }
+                          if (order.details?.is_point_boost || order.details?.calc_mode === 'BY_LP' || order.details?.segment) {
+                            const unit = order.details?.unit || 'LP';
+                            const start = order.details?.start_lp ?? order.details?.current_points ?? 0;
+                            const target = order.details?.target_lp ?? order.details?.desired_points ?? 100;
+                            return (
+                              <span className="font-semibold text-cyan-300">
+                                {start} {unit} &rarr; {target} {unit}
+                              </span>
+                            );
+                          }
+                          if (order.serviceType === 'NET_WINS') {
+                            return (
+                              <span className="font-semibold text-blue-400">
+                                +{order.details?.num_games || 0} Trận thắng
+                              </span>
+                            );
+                          }
+                          if (order.details?.current_rank && order.details?.desired_rank) {
+                            return (
+                              <span className="flex items-center gap-1.5 font-medium text-zinc-200">
+                                <span>{formatRankDisplayVi(order.details.current_rank)}</span>
+                                <span className="text-blue-400 font-bold">&rarr;</span>
+                                <span className="text-cyan-300 font-semibold">{formatRankDisplayVi(order.details.desired_rank)}</span>
+                              </span>
+                            );
+                          }
+                          if (order.details?.current_level && order.details?.desired_level) {
+                            return (
+                              <span className="font-medium text-zinc-200">
+                                Cấp {order.details.current_level} &rarr; Cấp {order.details.desired_level}
+                              </span>
+                            );
+                          }
+                          if (order.details?.rank) {
+                            return <span className="text-zinc-200">{formatRankDisplayVi(order.details.rank)}</span>;
+                          }
+                          return null;
+                        })()}
 
                         {order.details?.server && (
                           <>

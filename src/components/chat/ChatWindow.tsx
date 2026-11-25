@@ -20,10 +20,14 @@ interface ChatWindowProps {
   initialMessages?: any[];
   partner?: any; // Thông tin người chat cùng
   orderRole?: OrderParticipantRole; // Vai trò thực tế trên đơn hàng (CUSTOMER | BOOSTER | ADMIN)
+  orderContext?: {
+    serviceType?: string;
+    details?: any;
+  };
   trigger?: 'default' | 'side'; // New prop
 }
 
-export default function ChatWindow({ orderId, currentUser, title, initialMessages = [], partner, orderRole, trigger = 'default' }: ChatWindowProps) {
+export default function ChatWindow({ orderId, currentUser, title, initialMessages = [], partner, orderRole, orderContext, trigger = 'default' }: ChatWindowProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const [isMaximized, setIsMaximized] = useState(false);
@@ -795,6 +799,7 @@ export default function ChatWindow({ orderId, currentUser, title, initialMessage
                         isMaximized={isMaximized}
                         isOnline={isPartnerOnline}
                         partner={partner}
+                        orderContext={orderContext}
                         searchTerm={searchTerm} // Truyền từ khóa xuống để highlight
                         onReact={(emoji) => handleReact(msg._id, emoji)}
                         onReply={() => setReplyingTo(msg)}

@@ -2538,6 +2538,10 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                 ? 'BOOSTER'
                 : (user?.role === 'ADMIN' || user?.role === 'STAFF' ? 'ADMIN' : undefined)
           }
+          orderContext={{
+            serviceType: order.serviceType,
+            details: order.details,
+          }}
           trigger="side" 
         />
       )}

@@ -62,6 +62,49 @@ const BOOSTER_STATUS_CATALOG: Record<
   },
 };
 
+function formatServiceName(serviceType?: string, details?: any): string {
+  if (details?.is_matches || serviceType === 'MATCHES') return 'Cày Theo Số Trận';
+  if (details?.is_placements || serviceType === 'PLACEMENTS') return 'Phân Hạng Đầu Mùa';
+  if (details?.is_point_boost || details?.calc_mode === 'BY_LP' || details?.segment) return 'Cày Điểm LP Cao Thủ / Thách Đấu';
+  if (!serviceType) return 'Dịch vụ Cày Thuê';
+  const clean = serviceType.toUpperCase().replace(/[-\s]/g, '_');
+  const map: Record<string, string> = {
+    MATCHES: 'Cày Theo Số Trận',
+    RANK_BOOST: 'Cày Cấp Bậc Rank',
+    NET_WINS: 'Cày Trận Thắng (Net Wins)',
+    PROMOTION: 'Chuỗi Thăng Hạng',
+    PLACEMENTS: 'Phân Hạng Đầu Mùa',
+    POINT_BOOST: 'Cày Điểm LP Cao Thủ / Thách Đấu',
+    COACHING: 'Huấn Luyện Coaching 1-1',
+    LEVELING: 'Cày Cấp Độ (Level)',
+  };
+  return map[clean] || serviceType.replace(/_/g, ' ');
+}
+
+function resolveOrderTargetDisplay(order: any): string {
+  const isMatches = order.serviceType === 'MATCHES' || order.details?.is_matches;
+  const isPlacements = order.serviceType === 'PLACEMENTS' || order.details?.is_placements;
+  if (isMatches) {
+    const count = order.details?.match_count || order.details?.matches || order.details?.steps_count || 1;
+    const queue = order.details?.queue_type === 'FLEX' ? 'Linh hoạt' : 'Đơn / Đôi';
+    return `Cày ${count} trận (${queue})`;
+  }
+  if (isPlacements) {
+    const count = order.details?.placement_matches || order.details?.matches || 5;
+    const prev = order.details?.previous_rank_label || order.details?.previous_season_rank;
+    return `Cày ${count} trận phân hạng${prev ? ` (${prev})` : ''}`;
+  }
+  if (order.serviceType === 'NET_WINS') {
+    return order.details?.num_games ? `+${order.details.num_games} Trận thắng` : `${order.details?.target_lp || 0} LP`;
+  }
+  const curr = order.details?.current_rank || order.snapshot?.initialState?.rankLabel;
+  const des = order.details?.desired_rank || order.snapshot?.targetState?.rankLabel;
+  if (curr && des && des !== '—') return `${curr} → ${des}`;
+  if (des && des !== '—') return des;
+  if (curr && curr !== '—') return curr;
+  return 'Theo yêu cầu đơn hàng';
+}
+
 const ORDER_STATUS_LABELS: Record<string, string> = {
   PENDING_PAYMENT: 'Chờ thanh toán',
   PAID: 'Đã thanh toán - Chờ nhận',
@@ -451,11 +494,16 @@ export class ChatService {
     ).toUpperCase();
     const server = order.details?.server || 'VN';
 
+    const isMatches = order.serviceType === 'MATCHES' || order.details?.is_matches;
+    const isPlacements = order.serviceType === 'PLACEMENTS' || order.details?.is_placements;
+    const targetDisplay = resolveOrderTargetDisplay(order);
+    const serviceName = formatServiceName(order.serviceType, order.details);
+
     const summaryLines = [
       `Đơn hàng #${code} (${game} - ${server})`,
-      `Dịch vụ: ${order.serviceType}`,
+      `Dịch vụ: ${serviceName}`,
       `Trạng thái: ${statusLabel}`,
-      `Mục tiêu: ${currentRank} → ${desiredRank}`,
+      `Mục tiêu: ${targetDisplay}`,
       `Trận đã đấu: ${wins}W / ${losses}L (${matches.length} trận)`,
     ];
 
@@ -466,6 +514,11 @@ export class ChatService {
         command: 'ORDER_INFO',
         orderCode: code,
         serviceType: order.serviceType,
+        targetDisplay,
+        isMatches: Boolean(isMatches),
+        isPlacements: Boolean(isPlacements),
+        matchCount: order.details?.match_count || order.details?.matches || 1,
+        queueType: order.details?.queue_type || 'SOLO_DUO',
         status: order.status,
         statusLabel,
         game,
@@ -1003,9 +1056,15 @@ export class ChatService {
       lpChange: Number(m.lp_change ?? 0),
     }));
 
+    const isMatches = order.serviceType === 'MATCHES' || order.details?.is_matches;
+    const isPlacements = order.serviceType === 'PLACEMENTS' || order.details?.is_placements;
+    const targetDisplay = resolveOrderTargetDisplay(order);
+
     const summaryLines = [
       `Báo cáo tiến độ đơn #${orderCode}`,
-      `Rank hiện tại: ${currentRank} (${currentLp} LP) → Mục tiêu: ${desiredRank}`,
+      isMatches || isPlacements
+        ? `Mục tiêu: ${targetDisplay} (Hiện tại: ${currentRank}${currentLp ? ` - ${currentLp} LP` : ''})`
+        : `Rank hiện tại: ${currentRank} (${currentLp} LP) → Mục tiêu: ${targetDisplay}`,
       `Thành tích: ${wins} Thắng / ${losses} Thua (${winRate}% WR)`,
       ...(cleanNote ? [`Ghi chú: ${cleanNote}`] : []),
     ];
@@ -1016,6 +1075,12 @@ export class ChatService {
       metadata: {
         command: 'PROGRESS_REPORT',
         orderCode,
+        serviceType: order.serviceType,
+        targetDisplay,
+        isMatches: Boolean(isMatches),
+        isPlacements: Boolean(isPlacements),
+        matchCount: order.details?.match_count || order.details?.matches || 1,
+        queueType: order.details?.queue_type || 'SOLO_DUO',
         currentRank,
         currentLp,
         desiredRank,
