@@ -271,12 +271,29 @@ function ServiceBookingContent() {
   const [addons, setAddons] = useState<AddonSelections>({
     schedule: false,
     specificRole: false,
-    selectedRoles: ['random'],
+    selectedRoles: ['jungle'],
     specificChamps: false,
     livestream: false,
     flash: false,
     duo: false,
   });
+
+  // Tự động đồng bộ selectedRoles phù hợp với tựa game (LMHT mặc định Jungle, Liên Quân có Bất Kỳ)
+  useEffect(() => {
+    const hasRandom = mobaLanes.some((l) => l.id === 'random');
+    setAddons((prev) => {
+      const current = prev.selectedRoles || [];
+      const hasInvalid = current.some((r) => !mobaLanes.some((l) => l.id === r));
+      if (current.length === 0 || hasInvalid) {
+        const defaultRole = hasRandom ? 'random' : (mobaLanes[0]?.id || 'jungle');
+        return {
+          ...prev,
+          selectedRoles: [defaultRole],
+        };
+      }
+      return prev;
+    });
+  }, [mobaLanes]);
 
   const handleToggleLane = useCallback((laneId: string) => {
     setAddons((prev) => {

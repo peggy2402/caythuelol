@@ -35,6 +35,9 @@ export function AddonsAndRolesSection({
   assignedBooster,
   onRerollBooster,
 }: AddonsAndRolesSectionProps) {
+  const hasRandom = mobaLanes.some((l) => l.id === 'random');
+  const defaultFirstRole = hasRandom ? 'random' : (mobaLanes[0]?.id || 'jungle');
+
   return (
     <div className="pt-2 border-t border-zinc-800/80">
       <span className="text-xs font-bold text-zinc-300 block mb-3 uppercase tracking-wider">
@@ -125,13 +128,18 @@ export function AddonsAndRolesSection({
             checked={addons.specificRole && specificRoleCfg.enabled}
             onChange={(e) => {
               const checked = e.target.checked;
+              const currentValid = (addons.selectedRoles || []).filter((r) =>
+                mobaLanes.some((l) => l.id === r)
+              );
               setAddons({
                 ...addons,
                 specificRole: checked,
                 selectedRoles:
-                  checked && (!addons.selectedRoles || addons.selectedRoles.length === 0)
-                    ? [mobaLanes[0]?.id || 'jungle']
-                    : addons.selectedRoles,
+                  checked && currentValid.length === 0
+                    ? [defaultFirstRole]
+                    : currentValid.length > 0
+                    ? currentValid
+                    : [defaultFirstRole],
               });
             }}
             className="w-4 h-4 rounded bg-zinc-900 border-zinc-700 text-blue-600 focus:ring-0 disabled:opacity-40"
@@ -173,7 +181,7 @@ export function AddonsAndRolesSection({
             >
               {mobaLanes.map((lane) => {
                 const isSelected = (addons.selectedRoles || []).includes(lane.id);
-                const isRandomActive = (addons.selectedRoles || []).includes('random');
+                const isRandomActive = hasRandom && (addons.selectedRoles || []).includes('random');
                 const specificCount = (addons.selectedRoles || []).filter((id) => id !== 'random').length;
                 const isMax2Reached = !isRandomActive && specificCount >= 2;
 
@@ -220,17 +228,17 @@ export function AddonsAndRolesSection({
 
             {/* Thanh trạng thái chỉ dẫn */}
             <div className="pt-2 border-t border-white/5 flex items-center justify-between text-[11px]">
-              {(addons.selectedRoles || []).includes('random') ? (
+              {hasRandom && (addons.selectedRoles || []).includes('random') ? (
                 <span className="text-purple-300 font-medium">
                   ✓ Đã chọn <strong>Đường Bất Kỳ</strong> (Tuyển thủ sẽ chọn vị trí tối ưu).
                 </span>
               ) : (addons.selectedRoles || []).length === 2 ? (
                 <span className="text-emerald-400 font-medium">
-                  ✓ Đã chọn đủ 2 vị trí (Bấm vào đường đã chọn để bỏ chọn nếu muốn đổi).
+                  ✓ Đã chọn 2 vị trí (Bấm vào vị trí đã chọn để bỏ chọn nếu muốn đổi).
                 </span>
               ) : (addons.selectedRoles || []).length === 1 ? (
-                <span className="text-amber-400 font-medium">
-                  ⚠️ Đã chọn 1 vị trí. Bạn có thể chọn thêm vị trí thứ 2 (hoặc để tuyển thủ chỉ định đường còn lại).
+                <span className="text-emerald-400 font-medium">
+                  ✓ Đã chọn: <strong>{mobaLanes.find((l) => l.id === addons.selectedRoles?.[0])?.name || addons.selectedRoles?.[0]}</strong> (Có thể chọn thêm vị trí thứ 2).
                 </span>
               ) : (
                 <span className="text-zinc-400">
