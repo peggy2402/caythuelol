@@ -4,8 +4,10 @@
 import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useLanguage } from '@/lib/i18n';
 import { socket } from '@/lib/socket';
+import { getLaneMeta } from '@/lib/lanes';
 import { 
   Loader2, CheckCircle2, AlertCircle, Clock, 
   Shield, DollarSign, CreditCard,
@@ -1395,9 +1397,31 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
     }) 
     : [];
 
+  // Trích xuất danh sách Vị trí / Đường chỉ định
+  const extractedRoles: string[] = (() => {
+    const raw =
+      order.options?.roles ||
+      order.options?.selectedRoles ||
+      order.details?.roles ||
+      order.details?.selectedRoles ||
+      order.details?.addons?.roles ||
+      order.details?.addons?.selectedRoles ||
+      order.details?.service_data?.roles;
+    if (Array.isArray(raw) && raw.length > 0) return raw.map(String);
+    if (typeof raw === 'string' && raw.trim()) return [raw.trim()];
+    return [];
+  })();
+
+  const hasSpecificRole = Boolean(
+    order.options?.specificRole ||
+    order.details?.addons?.specificRole ||
+    order.details?.specificRole ||
+    extractedRoles.length > 0
+  );
+
   // Tách riêng các tùy chọn phức tạp (Mảng) và đơn giản (Boolean)
   const scheduleOption = activeOptions.find(([k]) => k === 'schedule');
-  const rolesOption = activeOptions.find(([k]) => k === 'roles' || k === 'specificRole');
+  const rolesOption = activeOptions.find(([k]) => k === 'roles' || k === 'selectedRoles' || k === 'specificRole');
   
   // Kiểm tra giới hạn 7 ngày đánh giá & 24 giờ khiếu nại sau khi đơn hoàn thành
   const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
@@ -1422,7 +1446,7 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
 
   const simpleOptions = activeOptions.filter(([k, v]) => {
       if (k === 'schedule' && Array.isArray(v)) return false; // Nếu là mảng lịch -> ẩn khỏi list đơn giản
-      if ((k === 'roles' || k === 'specificRole') && Array.isArray(v)) return false; // Nếu là mảng roles -> ẩn khỏi list đơn giản
+      if (k === 'roles' || k === 'selectedRoles' || k === 'specificRole' || k === 'rolesDisplay') return false; // Vị trí hiển thị hàng riêng biệt
       return true;
   });
 
@@ -2142,55 +2166,77 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                                             })()}
                                         </span>
                                     </div>
-                                    {/* Extra Options */}
-                                    {activeOptions.length > 0 && (
-                                        <div className="pt-3 border-t border-zinc-800">
-                                            <span className="text-zinc-500 block mb-2 text-xs font-bold uppercase tracking-wider">Tùy chọn thêm:</span>
-                                            
-                                            <div className="space-y-3">
-                                                {/* 1. Các tùy chọn đơn giản (Badges) */}
-                                                {simpleOptions.length > 0 && (
-                                                    <div className="flex flex-wrap gap-2">
-                                                        {simpleOptions.map(([key, val]) => (
-                                                            <span key={key} className="px-2.5 py-1 bg-zinc-900 border border-zinc-700 rounded-lg text-xs text-zinc-300 font-medium">
-                                                                {optionLabels[key] || key}
-                                                                {Array.isArray(val) && typeof val[0] !== 'object' ? `: ${val.join(', ')}` : ''}
+                                    {/* Vị trí / Đường chỉ định (Hiển thị cân đối 2 bên kèm Logo / Tên đường) */}
+                                    {hasSpecificRole && (
+                                        <div className="flex justify-between items-start pt-3 border-t border-zinc-800 gap-3">
+                                            <span className="text-zinc-500 shrink-0">Vị trí / Đường:</span>
+                                            <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                                                {extractedRoles.length > 0 ? (
+                                                    extractedRoles.map((roleId: string) => {
+                                                        const meta = getLaneMeta(roleId, order.game);
+                                                        return (
+                                                            <span
+                                                                key={roleId}
+                                                                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-blue-500/10 border border-blue-500/25 text-blue-300 font-bold text-xs shadow-sm"
+                                                            >
+                                                                {meta.image && (
+                                                                    <Image
+                                                                        src={meta.image}
+                                                                        alt={meta.name}
+                                                                        width={16}
+                                                                        height={16}
+                                                                        className="w-4 h-4 object-contain"
+                                                                    />
+                                                                )}
+                                                                <span>{meta.name}</span>
                                                             </span>
-                                                        ))}
-                                                    </div>
+                                                        );
+                                                    })
+                                                ) : (
+                                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-purple-500/10 border border-purple-500/25 text-purple-300 font-bold text-xs shadow-sm">
+                                                        <Image
+                                                            src="/images/lane-aov/random-lane.png"
+                                                            alt="Đường Bất Kỳ"
+                                                            width={16}
+                                                            height={16}
+                                                            className="w-4 h-4 object-contain"
+                                                        />
+                                                        <span>Đường Bất Kỳ (Linh hoạt)</span>
+                                                    </span>
                                                 )}
+                                            </div>
+                                        </div>
+                                    )}
 
-                                                {/* 2. Vị trí (Roles Block - chỉ hiển thị nếu có mảng roles cụ thể, nếu chỉ là boolean true thì đã có badge phía trên) */}
-                                                {rolesOption && Array.isArray(rolesOption[1]) && rolesOption[1].length > 0 && (
-                                                    <div className="bg-zinc-900/50 rounded-lg p-3 border border-zinc-800/50">
-                                                        <span className="text-zinc-400 text-xs block mb-2 flex items-center gap-1.5 font-medium">
-                                                            <Crosshair size={12} className="text-blue-400" /> Tùy chọn vị trí / đường:
-                                                        </span>
-                                                        <div className="flex flex-wrap gap-2">
-                                                            {rolesOption[1].map((role: any) => (
-                                                                <span key={String(role)} className="text-xs font-bold px-2.5 py-1 bg-blue-500/10 border border-blue-500/20 rounded-md text-blue-300">
-                                                                    {String(role)}
-                                                                </span>
-                                                            ))}
-                                                        </div>
-                                                    </div>
-                                                )}
+                                    {/* Các tùy chọn mở rộng khác (Cày siêu tốc, Duo, Stream, Đặt lịch) */}
+                                    {simpleOptions.length > 0 && (
+                                        <div className="flex justify-between items-center pt-2.5 border-t border-zinc-800 gap-3">
+                                            <span className="text-zinc-500 shrink-0">Tùy chọn khác:</span>
+                                            <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                                                {simpleOptions.map(([key, val]) => (
+                                                    <span key={key} className="px-2.5 py-1 bg-zinc-900 border border-zinc-700/80 rounded-xl text-xs text-zinc-300 font-medium">
+                                                        {optionLabels[key] || key}
+                                                        {Array.isArray(val) && typeof val[0] !== 'object' ? `: ${val.join(', ')}` : ''}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
 
-                                                {/* 3. Lịch cấm (Schedule Block) */}
-                                                {scheduleOption && Array.isArray(scheduleOption[1]) && scheduleOption[1].length > 0 && (
-                                                    <div className="bg-red-500/5 rounded-lg p-3 border border-red-500/10">
-                                                        <span className="text-red-400 text-xs block mb-2 flex items-center gap-1.5 font-medium">
-                                                            <Clock size={12} /> Khung giờ nghỉ (Cấm chơi):
+                                    {/* Khung giờ nghỉ (Schedule Block) nếu có */}
+                                    {scheduleOption && Array.isArray(scheduleOption[1]) && scheduleOption[1].length > 0 && (
+                                        <div className="pt-2.5 border-t border-zinc-800">
+                                            <div className="bg-red-500/5 rounded-xl p-3 border border-red-500/15">
+                                                <span className="text-red-400 text-xs block mb-2 flex items-center gap-1.5 font-bold">
+                                                    <Clock size={12} /> Khung giờ nghỉ (Cấm tuyển thủ chơi):
+                                                </span>
+                                                <div className="flex flex-wrap gap-2">
+                                                    {scheduleOption[1].map((w: any, idx: number) => (
+                                                        <span key={idx} className="text-xs font-bold px-2.5 py-1 bg-red-500/10 text-red-400 border border-red-500/25 rounded-lg flex items-center gap-1.5">
+                                                            {w.start} - {w.end}
                                                         </span>
-                                                        <div className="flex flex-wrap gap-2">
-                                                            {scheduleOption[1].map((w: any, idx: number) => (
-                                                                <span key={idx} className="text-xs font-bold px-2.5 py-1 bg-red-500/10 text-red-400 border border-red-500/20 rounded-md flex items-center gap-1.5">
-                                                                    {w.start} - {w.end}
-                                                                </span>
-                                                            ))}
-                                                        </div>
-                                                    </div>
-                                                )}
+                                                    ))}
+                                                </div>
                                             </div>
                                         </div>
                                     )}

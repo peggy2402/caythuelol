@@ -1,0 +1,165 @@
+// src/lib/lanes.ts
+
+export interface LaneMeta {
+  id: string; // 'top' | 'jungle' | 'mid' | 'adc' | 'sp' | 'random'
+  name: string;
+  shortName: string;
+  image: string;
+  description: string;
+}
+
+export const MOBA_LANES_AOV: LaneMeta[] = [
+  {
+    id: 'top',
+    name: 'Đường Caesar',
+    shortName: 'Caesar',
+    image: '/images/lane-aov/top.png',
+    description: 'Đấu sĩ, đỡ đòn đường Tà thần Caesar',
+  },
+  {
+    id: 'jungle',
+    name: 'Đi Rừng',
+    shortName: 'Rừng',
+    image: '/images/lane-aov/jungle.png',
+    description: 'Sát thủ, đấu sĩ kiểm soát rừng và mục tiêu lớn',
+  },
+  {
+    id: 'mid',
+    name: 'Đường Giữa',
+    shortName: 'Mid',
+    image: '/images/lane-aov/mid.png',
+    description: 'Pháp sư kiểm soát khu vực trung tâm bản đồ',
+  },
+  {
+    id: 'adc',
+    name: 'Đường Rồng',
+    shortName: 'Xạ Thủ',
+    image: '/images/lane-aov/adc.png',
+    description: 'Xạ thủ sát thương vật lý chủ lực đường Rồng Ánh Sáng',
+  },
+  {
+    id: 'sp',
+    name: 'Trợ Thủ',
+    shortName: 'Trợ Thủ',
+    image: '/images/lane-aov/sp.png',
+    description: 'Đỡ đòn, hỗ trợ mở giao tranh và bảo kê chủ lực',
+  },
+  {
+    id: 'random',
+    name: 'Đường Bất Kỳ',
+    shortName: 'Bất Kỳ',
+    image: '/images/lane-aov/random-lane.png',
+    description: 'Tuyển thủ tự chọn vị trí tối ưu theo từng trận',
+  },
+];
+
+export const MOBA_LANES_LOL: LaneMeta[] = [
+  {
+    id: 'top',
+    name: 'Đường Trên (Top)',
+    shortName: 'Top',
+    image: '/images/lane-aov/top.png',
+    description: 'Đấu sĩ, đỡ đòn đường trên',
+  },
+  {
+    id: 'jungle',
+    name: 'Đi Rừng (Jungle)',
+    shortName: 'Jungle',
+    image: '/images/lane-aov/jungle.png',
+    description: 'Kiểm soát rừng và can thiệp các đường',
+  },
+  {
+    id: 'mid',
+    name: 'Đường Giữa (Mid)',
+    shortName: 'Mid',
+    image: '/images/lane-aov/mid.png',
+    description: 'Pháp sư, sát thủ đường giữa',
+  },
+  {
+    id: 'adc',
+    name: 'Xạ Thủ (Bot / ADC)',
+    shortName: 'ADC',
+    image: '/images/lane-aov/adc.png',
+    description: 'Xạ thủ đường dưới',
+  },
+  {
+    id: 'sp',
+    name: 'Hỗ Trợ (Support)',
+    shortName: 'Support',
+    image: '/images/lane-aov/sp.png',
+    description: 'Hỗ trợ kiểm soát tầm nhìn và giao tranh',
+  },
+  {
+    id: 'random',
+    name: 'Đường Bất Kỳ (Fill)',
+    shortName: 'Bất Kỳ',
+    image: '/images/lane-aov/random-lane.png',
+    description: 'Tuyển thủ tự chọn vị trí tối ưu theo từng trận',
+  },
+];
+
+export function getMobaLanes(gameId?: string): LaneMeta[] {
+  const g = (gameId || '').toLowerCase();
+  if (g.includes('lol') || g.includes('league')) {
+    return MOBA_LANES_LOL;
+  }
+  return MOBA_LANES_AOV;
+}
+
+export function isMobaGame(gameId?: string): boolean {
+  const g = (gameId || '').toLowerCase();
+  return (
+    g.includes('aov') ||
+    g.includes('lienquan') ||
+    g.includes('lol') ||
+    g.includes('league') ||
+    g.includes('wild_rift')
+  );
+}
+
+export function getLaneMeta(laneId: string, gameId?: string): LaneMeta {
+  const lanes = getMobaLanes(gameId);
+  const key = (laneId || '').toLowerCase().trim();
+
+  const direct = lanes.find(
+    (l) =>
+      l.id.toLowerCase() === key ||
+      l.name.toLowerCase() === key ||
+      l.shortName.toLowerCase() === key,
+  );
+  if (direct) return direct;
+
+  if (key.includes('top') || key.includes('caesar') || key.includes('trên')) return lanes[0];
+  if (key.includes('jungle') || key.includes('rừng') || key.includes('jg')) return lanes[1];
+  if (key.includes('mid') || key.includes('giữa')) return lanes[2];
+  if (
+    key.includes('adc') ||
+    key.includes('rồng') ||
+    key.includes('bot') ||
+    key.includes('dưới') ||
+    key.includes('xạ thủ')
+  )
+    return lanes[3];
+  if (
+    key.includes('sp') ||
+    key.includes('trợ thủ') ||
+    key.includes('hỗ trợ') ||
+    key.includes('sup')
+  )
+    return lanes[4];
+  if (
+    key.includes('random') ||
+    key.includes('bất kỳ') ||
+    key.includes('fill') ||
+    key.includes('any')
+  )
+    return lanes[5];
+
+  return {
+    id: laneId,
+    name: laneId,
+    shortName: laneId,
+    image: '/images/lane-aov/random-lane.png',
+    description: 'Vị trí chỉ định',
+  };
+}

@@ -68,6 +68,7 @@ import {
   getAovTierPackageCurrentTotal,
   resolveAovStarRate,
 } from '@/lib/aov';
+import { getMobaLanes, getLaneMeta, isMobaGame, LaneMeta } from '@/lib/lanes';
 import { ProviderLogo } from './components/ProviderLogo';
 import {
   LolServer,
@@ -213,14 +214,43 @@ function ServiceBookingContent() {
   const [showGainTooltip, setShowGainTooltip] = useState(false);
 
   // 2. States cho Tùy chọn mở rộng (Addons)
+  const isMoba = useMemo(() => isMobaGame(game.id), [game.id]);
+  const mobaLanes = useMemo(() => getMobaLanes(game.id), [game.id]);
+
   const [addons, setAddons] = useState<AddonSelections>({
     schedule: false,
     specificRole: false,
+    selectedRoles: ['random'],
     specificChamps: false,
     livestream: false,
     flash: false,
     duo: false,
   });
+
+  const handleToggleLane = useCallback((laneId: string) => {
+    setAddons((prev) => {
+      const current = prev.selectedRoles || [];
+
+      if (laneId === 'random') {
+        if (current.includes('random')) {
+          return { ...prev, selectedRoles: [] };
+        }
+        return { ...prev, selectedRoles: ['random'] };
+      }
+
+      let updated = current.filter((id) => id !== 'random');
+      if (updated.includes(laneId)) {
+        updated = updated.filter((id) => id !== laneId);
+      } else {
+        if (updated.length >= 2) {
+          toast.info('Bạn chỉ được chọn tối đa 2 vị trí đường. Bấm vào đường đã chọn nếu muốn đổi vị trí!');
+          return prev;
+        }
+        updated.push(laneId);
+      }
+      return { ...prev, selectedRoles: updated };
+    });
+  }, []);
 
   // 3. States cho Thông tin tài khoản cần cày
   const [accountType, setAccountType] = useState<string>(isAov ? 'Garena' : 'Riot');
@@ -1390,6 +1420,14 @@ function ServiceBookingContent() {
       return;
     }
 
+    if (addons.specificRole) {
+      const selected = addons.selectedRoles || [];
+      if (selected.length === 0) {
+        toast.error('Vui lòng chọn ít nhất 1 vị trí đường hoặc chọn Đường Bất Kỳ');
+        return;
+      }
+    }
+
     try {
       setIsSubmitting(true);
 
@@ -1397,11 +1435,24 @@ function ServiceBookingContent() {
       const aovTargetRankInfo = isAov && isPointBoost && isSelectedAovHighStar ? getAovHighRankByStars(desiredPoints) : null;
       const resolvedOrderServiceType = serviceSlug.toUpperCase().replace(/-/g, '_');
 
+      const resolvedRoles = addons.specificRole ? (addons.selectedRoles || []) : [];
+      const resolvedAddons = {
+        ...addons,
+        roles: resolvedRoles,
+        selectedRoles: resolvedRoles,
+      };
+
       const orderPayload = {
         game: game.id.toUpperCase(),
         serviceType: resolvedOrderServiceType,
         boosterId: assignedBooster?.user?._id || null,
         is_auto_matched: !isManualSelectBooster && Boolean(assignedBooster),
+        options: {
+          ...resolvedAddons,
+          roles: resolvedRoles,
+          selectedRoles: resolvedRoles,
+          rolesDisplay: resolvedRoles.map((r) => getLaneMeta(r, game.id).name),
+        },
         pricing: {
           original_price: calculation.totalPrice,
           listed_price: calculation.totalPrice,
@@ -1438,7 +1489,9 @@ function ServiceBookingContent() {
             target_division: selectedPromo.toDivision,
             queue_type: queueType,
             server,
-            addons,
+            addons: resolvedAddons,
+            roles: resolvedRoles,
+            selectedRoles: resolvedRoles,
             steps_count: 1,
           }
           : isMatches
@@ -1449,7 +1502,9 @@ function ServiceBookingContent() {
               matches: matchCount,
               queue_type: queueType,
               server,
-              addons,
+              addons: resolvedAddons,
+              roles: resolvedRoles,
+              selectedRoles: resolvedRoles,
               unit_price: unitPrice,
               steps_count: matchCount,
               ingame_name: checkedAccount?.riotId || null,
@@ -1465,7 +1520,9 @@ function ServiceBookingContent() {
               steps_count: placementMatches,
               queue_type: queueType,
               server,
-              addons,
+              addons: resolvedAddons,
+              roles: resolvedRoles,
+              selectedRoles: resolvedRoles,
               unit_price: placementEffectivePricePerMatch,
               ingame_name: checkedAccount?.riotId || null,
             }
@@ -1496,7 +1553,9 @@ function ServiceBookingContent() {
               lp_gain: isAov ? null : lpGain,
               queue_type: queueType,
               server,
-              addons,
+              addons: resolvedAddons,
+              roles: resolvedRoles,
+              selectedRoles: resolvedRoles,
               ingame_name: checkedAccount?.riotId || null,
             }
             : {
@@ -1508,7 +1567,9 @@ function ServiceBookingContent() {
               lp_gain: isAov ? null : lpGain,
               queue_type: queueType,
               server,
-              addons,
+              addons: resolvedAddons,
+              roles: resolvedRoles,
+              selectedRoles: resolvedRoles,
               ingame_name: checkedAccount?.riotId || null,
               steps_count: calculation.stepsCount,
             },
@@ -3473,7 +3534,16 @@ function ServiceBookingContent() {
                       type="checkbox"
                       disabled={!specificRoleCfg.enabled}
                       checked={addons.specificRole && specificRoleCfg.enabled}
-                      onChange={(e) => setAddons({ ...addons, specificRole: e.target.checked })}
+                      onChange={(e) => {
+                        const checked = e.target.checked;
+                        setAddons({
+                          ...addons,
+                          specificRole: checked,
+                          selectedRoles: checked && (!addons.selectedRoles || addons.selectedRoles.length === 0)
+                            ? ['random']
+                            : addons.selectedRoles,
+                        });
+                      }}
                       className="w-4 h-4 rounded bg-zinc-900 border-zinc-700 text-blue-600 focus:ring-0 disabled:opacity-40"
                     />
                     <div className="flex items-center gap-1.5 text-xs text-zinc-200 font-medium">
@@ -3488,6 +3558,100 @@ function ServiceBookingContent() {
                       <Info size={13} className="text-blue-400" />
                     </div>
                   </label>
+
+                  {/* Khối chọn Vị trí / Đường chi tiết */}
+                  {addons.specificRole && specificRoleCfg.enabled && (
+                    <div className="p-3.5 sm:p-4 rounded-2xl bg-zinc-950/90 border border-blue-500/30 space-y-3 shadow-lg shadow-blue-500/5 transition-all">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1.5">
+                          <Sparkles size={14} className="text-blue-400" />
+                          <span className="text-xs font-bold text-white">
+                            Chỉ định vị trí bạn muốn cày
+                          </span>
+                        </div>
+                        <span className="text-[11px] text-zinc-400">
+                          (Chọn tối đa 2 đường hoặc Bất kỳ)
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                        {mobaLanes.map((lane) => {
+                          const isSelected = (addons.selectedRoles || []).includes(lane.id);
+                          const isRandomActive = (addons.selectedRoles || []).includes('random');
+                          const specificCount = (addons.selectedRoles || []).filter((id) => id !== 'random').length;
+                          const isMax2Reached = !isRandomActive && specificCount >= 2;
+
+                          // Quy tắc vô hiệu hoá:
+                          // 1. Khi chọn 'Đường Bất Kỳ' -> 5 đường còn lại bị xám
+                          // 2. Khi chọn 2 đường cụ thể (VD Caesar & Rừng) -> các đường khác và nút Bất kỳ bị xám
+                          const isDisabled =
+                            (!isSelected && isRandomActive && lane.id !== 'random') ||
+                            (!isSelected && isMax2Reached && lane.id !== 'random') ||
+                            (lane.id === 'random' && specificCount > 0);
+
+                          return (
+                            <button
+                              key={lane.id}
+                              type="button"
+                              disabled={isDisabled}
+                              onClick={() => handleToggleLane(lane.id)}
+                              className={`flex items-center gap-2.5 p-2 sm:p-2.5 rounded-xl border text-left transition-all relative ${
+                                isSelected
+                                  ? 'bg-blue-500/20 border-blue-400 text-white shadow-md shadow-blue-500/20 ring-1 ring-blue-400'
+                                  : isDisabled
+                                  ? 'bg-zinc-950/40 border-zinc-900 opacity-30 cursor-not-allowed grayscale pointer-events-none'
+                                  : 'bg-zinc-900/80 border-zinc-800 hover:border-zinc-700 hover:bg-zinc-850 text-zinc-300 cursor-pointer active:scale-95'
+                              }`}
+                            >
+                              <div className="w-8 h-8 rounded-lg bg-black/50 border border-white/10 flex items-center justify-center shrink-0 p-1">
+                                <Image
+                                  src={lane.image}
+                                  alt={lane.name}
+                                  width={26}
+                                  height={26}
+                                  className="w-full h-full object-contain"
+                                />
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <div className="text-xs font-bold truncate">
+                                  {lane.name}
+                                </div>
+                                <div className="text-[10px] text-zinc-400 truncate">
+                                  {lane.shortName}
+                                </div>
+                              </div>
+                              {isSelected && (
+                                <div className="w-4 h-4 rounded-full bg-blue-500 flex items-center justify-center text-white shrink-0">
+                                  <Check size={10} strokeWidth={3} />
+                                </div>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      {/* Thanh trạng thái chỉ dẫn */}
+                      <div className="pt-2 border-t border-white/5 flex items-center justify-between text-[11px]">
+                        {(addons.selectedRoles || []).includes('random') ? (
+                          <span className="text-purple-300 font-medium">
+                            ✓ Đã chọn <strong>Đường Bất Kỳ</strong> (Tuyển thủ sẽ chọn vị trí tối ưu).
+                          </span>
+                        ) : (addons.selectedRoles || []).length === 2 ? (
+                          <span className="text-emerald-400 font-medium">
+                            ✓ Đã chọn đủ 2 vị trí (Bấm vào đường đã chọn để bỏ chọn nếu muốn đổi).
+                          </span>
+                        ) : (addons.selectedRoles || []).length === 1 ? (
+                          <span className="text-amber-400 font-medium">
+                            ⚠️ Bạn đã chọn 1 đường. Có thể chọn thêm 1 đường hoặc bấm Đường Bất Kỳ.
+                          </span>
+                        ) : (
+                          <span className="text-zinc-400">
+                            👉 Vui lòng chọn 1-2 vị trí ưu tiên hoặc chọn Đường Bất Kỳ.
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
 
                   <label className={`flex items-center gap-3 p-2.5 rounded-xl border select-none transition-colors ${specificChampsCfg.enabled
                       ? 'bg-zinc-950/60 border-zinc-800/80 hover:border-zinc-700 cursor-pointer'
@@ -3910,6 +4074,36 @@ function ServiceBookingContent() {
                     <span>{currentAccountTypeObj.name}</span>
                   </span>
                 </div>
+
+                {addons.specificRole && (
+                  <div className="flex justify-between items-start text-zinc-400 pt-2 border-t border-zinc-800/80">
+                    <span className="shrink-0">Vị trí / Đường:</span>
+                    <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                      {(addons.selectedRoles && addons.selectedRoles.length > 0) ? (
+                        addons.selectedRoles.map((roleId) => {
+                          const meta = getLaneMeta(roleId, game.id);
+                          return (
+                            <span
+                              key={roleId}
+                              className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-blue-500/10 border border-blue-500/25 text-blue-300 font-bold text-xs"
+                            >
+                              <Image
+                                src={meta.image}
+                                alt={meta.name}
+                                width={14}
+                                height={14}
+                                className="w-3.5 h-3.5 object-contain"
+                              />
+                              <span>{meta.name}</span>
+                            </span>
+                          );
+                        })
+                      ) : (
+                        <span className="text-zinc-300 font-medium text-xs">Đường Bất Kỳ</span>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Voucher Input */}

@@ -240,6 +240,7 @@ export function getRankImage(gameCode: string, step: RankDivision | any): string
 export interface AddonSelections {
   schedule?: boolean; // Đặt lịch cày
   specificRole?: boolean; // Tùy chọn vị trí / đường
+  selectedRoles?: string[]; // Danh sách vị trí/đường đã chọn (VD: ['top', 'jungle'] hoặc ['random'])
   specificChamps?: boolean; // Tùy chọn tướng (+30%)
   livestream?: boolean; // Xem trực tiếp (+349.000đ)
   flash?: boolean; // Cày siêu tốc (+35%)
