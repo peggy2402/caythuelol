@@ -1,5 +1,5 @@
 import React from 'react';
-import { Calendar, Clock, Sun, Sunset, Moon, Sparkles, ShieldCheck, AlertTriangle } from 'lucide-react';
+import { Calendar, Clock, Sun, Sunset, Moon, Sparkles, ShieldCheck, AlertTriangle, ThumbsUp } from 'lucide-react';
 import { ScheduleDetails } from '@/lib/rank-calculator';
 
 interface ScheduleConfigPanelProps {
@@ -29,13 +29,13 @@ export const TIME_SHIFTS = [
   },
   {
     id: '19:00 - 23:00',
-    name: 'Ca Tối (Khuyên Dùng)',
+    name: 'Ca Tối',
     time: '19:00 – 23:00',
     icon: Moon,
     color: 'text-blue-400',
     border: 'border-blue-500/30',
     bg: 'bg-blue-500/10',
-    badge: 'Phổ biến nhất',
+    recommended: true,
   },
   {
     id: '23:00 - 04:00',
@@ -192,24 +192,27 @@ export function ScheduleConfigPanel({
                     timeWindow: shift.id,
                   })
                 }
-                className={`p-2.5 rounded-xl border text-left transition-all relative flex flex-col justify-between cursor-pointer ${
+                className={`p-2.5 rounded-xl border text-left transition-all relative flex flex-col justify-between cursor-pointer min-w-0 ${
                   isSelected
                     ? 'bg-gradient-to-b from-blue-900/30 to-blue-950/60 border-blue-400 ring-1 ring-blue-400/50 shadow-md shadow-blue-500/20 text-white'
                     : 'bg-zinc-900/80 border-zinc-800 text-zinc-400 hover:border-zinc-700 hover:text-white'
                 }`}
               >
-                <div className="flex items-center justify-between mb-1">
-                  <div className="flex items-center gap-1.5">
-                    <ShiftIcon size={14} className={shift.color} />
+                <div className="flex items-center justify-between mb-1 gap-1 min-w-0">
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <ShiftIcon size={14} className={`${shift.color} shrink-0`} />
                     <span className="font-bold text-xs truncate">{shift.name}</span>
                   </div>
-                  {shift.badge && (
-                    <span className="text-[9px] font-black px-1.5 py-0.2 rounded bg-blue-500/20 text-blue-300 border border-blue-500/30 whitespace-nowrap hidden sm:inline">
-                      HOT
+                  {shift.recommended && (
+                    <span
+                      title="Khuyên dùng / Giờ vàng cày rank"
+                      className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-amber-400/15 text-amber-300 border border-amber-400/30 shadow-[0_0_12px_rgba(251,191,36,0.45)] shrink-0"
+                    >
+                      <ThumbsUp size={11} className="fill-amber-400 text-amber-300 drop-shadow-[0_0_6px_rgba(251,191,36,0.7)]" />
                     </span>
                   )}
                 </div>
-                <div className="font-mono text-[11px] font-black text-cyan-300">
+                <div className="font-mono text-[11px] font-black text-cyan-300 truncate">
                   {shift.time}
                 </div>
               </button>
