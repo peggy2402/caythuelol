@@ -1,18 +1,27 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useLanguage } from '@/lib/i18n';
 import Link from 'next/link';
-import Image from 'next/image';
-import { 
-  FileText, Loader2, Plus, Clock, CheckCircle2, 
-  AlertCircle, PlayCircle, XCircle, Filter, 
-  Gamepad2, User, ChevronRight, Sparkles, Shield
+import {
+  FileText, Loader2, Plus, Clock, CheckCircle2,
+  AlertCircle, PlayCircle, XCircle, Filter,
+  Gamepad2, User, ChevronRight, Search, Calendar, X, RotateCcw
 } from 'lucide-react';
 import { GAMES_CATALOG, GameDefinition } from '@/lib/games';
 import { getBoosterOrderValue } from '@/lib/orderPricing';
 import { formatRankDisplayVi } from '@/lib/riotRanks';
 import { formatServiceNameVi } from '@/lib/orderStatus';
+
+// Chuẩn hóa chuỗi để tìm kiếm không dấu, không phân biệt hoa thường
+function normalizeText(str: string): string {
+  return (str || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/g, 'd')
+    .trim();
+}
 
 // Helper lấy metadata tựa game
 function getGameMeta(gameCode?: string) {
@@ -107,11 +116,29 @@ function getStatusBadge(status: string, hasBooster?: boolean) {
   }
 }
 
+type DatePreset = 'ALL' | 'TODAY' | '7D' | '30D' | 'CUSTOM';
+
+function parseLocalDateStart(ymd: string): Date | null {
+  const parts = ymd.split('-').map(Number);
+  if (parts.length !== 3 || parts.some(isNaN)) return null;
+  return new Date(parts[0], parts[1] - 1, parts[2], 0, 0, 0, 0);
+}
+
+function parseLocalDateEnd(ymd: string): Date | null {
+  const parts = ymd.split('-').map(Number);
+  if (parts.length !== 3 || parts.some(isNaN)) return null;
+  return new Date(parts[0], parts[1] - 1, parts[2], 23, 59, 59, 999);
+}
+
 export default function OrdersPage() {
   const { t } = useLanguage();
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('ALL');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [datePreset, setDatePreset] = useState<DatePreset>('ALL');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
   const [currentUser, setCurrentUser] = useState<any>(null);
 
   useEffect(() => {
@@ -129,6 +156,119 @@ export default function OrdersPage() {
       .finally(() => setLoading(false));
   }, []);
 
+  const hasActiveFilters =
+    statusFilter !== 'ALL' ||
+    searchQuery.trim() !== '' ||
+    datePreset !== 'ALL' ||
+    dateFrom !== '' ||
+    dateTo !== '';
+
+  const resetAllFilters = () => {
+    setStatusFilter('ALL');
+    setSearchQuery('');
+    setDatePreset('ALL');
+    setDateFrom('');
+    setDateTo('');
+  };
+
+  // Logic lọc đơn hàng kết hợp: trạng thái + từ khóa (mã đơn, tên đơn/game, tên booster) + khoảng ngày
+  const filteredOrders = useMemo(() => {
+    const rawQuery = searchQuery.trim();
+    const cleanQuery = normalizeText(rawQuery.replace(/^[#@]+/, ''));
+
+    // Tính mốc thời gian theo preset
+    const now = new Date();
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+    let rangeStart: Date | null = null;
+    let rangeEnd: Date | null = null;
+
+    if (datePreset === 'TODAY') {
+      rangeStart = startOfToday;
+    } else if (datePreset === '7D') {
+      rangeStart = new Date(startOfToday);
+      rangeStart.setDate(rangeStart.getDate() - 6);
+    } else if (datePreset === '30D') {
+      rangeStart = new Date(startOfToday);
+      rangeStart.setDate(rangeStart.getDate() - 29);
+    } else if (datePreset === 'CUSTOM') {
+      rangeStart = dateFrom ? parseLocalDateStart(dateFrom) : null;
+      rangeEnd = dateTo ? parseLocalDateEnd(dateTo) : null;
+    }
+
+    return orders.filter((order) => {
+      // 1. Lọc theo trạng thái
+      if (statusFilter === 'PROCESSING' && !['PENDING_PAYMENT', 'PAID', 'APPROVED', 'IN_PROGRESS'].includes(order.status)) {
+        return false;
+      }
+      if (statusFilter === 'COMPLETED' && order.status !== 'COMPLETED') {
+        return false;
+      }
+      if (statusFilter === 'CANCELLED' && !['REJECTED', 'REFUNDED', 'DISPUTED', 'CANCELLED'].includes(order.status)) {
+        return false;
+      }
+
+      // 2. Lọc theo ngày tạo đơn
+      if (rangeStart || rangeEnd) {
+        const createdDate = new Date(order.createdAt);
+        if (isNaN(createdDate.getTime())) return false;
+        if (rangeStart && createdDate < rangeStart) return false;
+        if (rangeEnd && createdDate > rangeEnd) return false;
+      }
+
+      // 3. Lọc theo từ khóa: mã đơn hàng, tên đơn/dịch vụ, tên game, hoặc tên/username Booster
+      if (cleanQuery) {
+        const gameCode = order.snapshot?.gameCode || order.details?.game || 'LOL';
+        const gameMeta = getGameMeta(gameCode);
+        const serviceName =
+          order.snapshot?.serviceName ||
+          formatServiceName(order.serviceType || order.snapshot?.serviceSlug, order.details);
+
+        const orderCode = order.orderCode || '';
+        const shortId = order._id ? String(order._id).slice(-6) : '';
+        const fullId = order._id ? String(order._id) : '';
+        const boosterUsername = order.boosterId?.username || '';
+        const boosterFullName = order.boosterId?.profile?.full_name || '';
+
+        const searchableFields = [
+          orderCode,
+          `#${orderCode}`,
+          shortId,
+          fullId,
+          serviceName,
+          order.serviceType || '',
+          order.snapshot?.serviceSlug || '',
+          gameMeta.name,
+          gameMeta.shortName,
+          gameCode,
+          boosterUsername,
+          `@${boosterUsername}`,
+          boosterFullName,
+        ];
+
+        const matched = searchableFields.some((field) =>
+          normalizeText(String(field)).includes(cleanQuery)
+        );
+        if (!matched) return false;
+      }
+
+      return true;
+    });
+  }, [orders, statusFilter, searchQuery, datePreset, dateFrom, dateTo]);
+
+  // Đếm số lượng đơn theo trạng thái
+  const statusCounts = useMemo(() => {
+    return {
+      ALL: orders.length,
+      PROCESSING: orders.filter((o) =>
+        ['PENDING_PAYMENT', 'PAID', 'APPROVED', 'IN_PROGRESS'].includes(o.status)
+      ).length,
+      COMPLETED: orders.filter((o) => o.status === 'COMPLETED').length,
+      CANCELLED: orders.filter((o) =>
+        ['REJECTED', 'REFUNDED', 'DISPUTED', 'CANCELLED'].includes(o.status)
+      ).length,
+    };
+  }, [orders]);
+
   if (loading) {
     return (
       <div className="flex justify-center p-20">
@@ -137,24 +277,22 @@ export default function OrdersPage() {
     );
   }
 
-  // Logic lọc đơn hàng
-  const filteredOrders = orders.filter(order => {
-    if (statusFilter === 'ALL') return true;
-    if (statusFilter === 'PROCESSING') return ['PENDING_PAYMENT', 'PAID', 'APPROVED', 'IN_PROGRESS'].includes(order.status);
-    if (statusFilter === 'COMPLETED') return order.status === 'COMPLETED';
-    if (statusFilter === 'CANCELLED') return ['REJECTED', 'REFUNDED', 'DISPUTED', 'CANCELLED'].includes(order.status);
-    return true;
-  });
-
   const filterOptions = [
-    { id: 'ALL', label: t('catAll') },
-    { id: 'PROCESSING', label: t('processing') },
-    { id: 'COMPLETED', label: t('completedOrders') },
-    { id: 'CANCELLED', label: t('statusCancelled') },
+    { id: 'ALL', label: t('catAll'), count: statusCounts.ALL },
+    { id: 'PROCESSING', label: t('processing'), count: statusCounts.PROCESSING },
+    { id: 'COMPLETED', label: t('completedOrders'), count: statusCounts.COMPLETED },
+    { id: 'CANCELLED', label: t('statusCancelled'), count: statusCounts.CANCELLED },
+  ];
+
+  const datePresetOptions: { id: DatePreset; label: string }[] = [
+    { id: 'ALL', label: 'Mọi ngày' },
+    { id: 'TODAY', label: 'Hôm nay' },
+    { id: '7D', label: '7 ngày qua' },
+    { id: '30D', label: '30 ngày qua' },
   ];
 
   return (
-    <div className="space-y-6 animate-fade-in max-w-5xl mx-auto">
+    <div className="space-y-5 animate-fade-in max-w-5xl mx-auto">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-2xl font-bold text-white">{t('orders')}</h1>
@@ -169,22 +307,148 @@ export default function OrdersPage() {
         </Link>
       </div>
 
-      {/* Filter Tabs */}
+      {/* Bộ lọc & Tìm kiếm đơn hàng */}
       {orders.length > 0 && (
-        <div className="flex flex-wrap items-center gap-2">
-          {filterOptions.map(option => (
-            <button
-              key={option.id}
-              onClick={() => setStatusFilter(option.id)}
-              className={`px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-all ${
-                statusFilter === option.id
-                  ? 'bg-blue-600 text-white shadow-[0_0_15px_rgba(37,99,235,0.4)]'
-                  : 'bg-zinc-900 border border-zinc-800 text-zinc-400 hover:bg-zinc-800 hover:text-white'
-              }`}
-            >
-              {option.label}
-            </button>
-          ))}
+        <div className="bg-zinc-900/60 border border-zinc-800/80 rounded-2xl p-4 space-y-3.5">
+          {/* Hàng 1: Tabs trạng thái + Ô tìm kiếm */}
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+            {/* Filter Tabs */}
+            <div className="flex flex-wrap items-center gap-2">
+              {filterOptions.map((option) => (
+                <button
+                  key={option.id}
+                  type="button"
+                  onClick={() => setStatusFilter(option.id)}
+                  className={`px-3.5 py-2 rounded-full text-xs sm:text-sm font-bold whitespace-nowrap transition-all inline-flex items-center gap-1.5 cursor-pointer ${
+                    statusFilter === option.id
+                      ? 'bg-blue-600 text-white shadow-[0_0_15px_rgba(37,99,235,0.4)]'
+                      : 'bg-zinc-950/80 border border-zinc-800 text-zinc-400 hover:bg-zinc-800 hover:text-white'
+                  }`}
+                >
+                  <span>{option.label}</span>
+                  <span
+                    className={`text-[11px] px-1.5 py-0.2 rounded-full tabular-nums ${
+                      statusFilter === option.id
+                        ? 'bg-white/20 text-white'
+                        : 'bg-zinc-800 text-zinc-400'
+                    }`}
+                  >
+                    {option.count}
+                  </span>
+                </button>
+              ))}
+            </div>
+
+            {/* Search Input */}
+            <div className="relative w-full lg:w-80 shrink-0">
+              <Search className="w-4 h-4 text-zinc-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Tìm mã đơn, tên đơn, tên booster..."
+                className="w-full h-10 bg-zinc-950/90 border border-zinc-800 focus:border-blue-500/70 focus:ring-2 focus:ring-blue-500/20 rounded-xl pl-10 pr-9 text-sm text-white placeholder:text-zinc-500 outline-none transition-all"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  aria-label="Xóa từ khóa tìm kiếm"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors cursor-pointer"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Hàng 2: Lọc theo ngày (Preset nhanh + Từ ngày / Đến ngày) */}
+          <div className="pt-3 border-t border-white/5 flex flex-col md:flex-row md:items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-zinc-400 mr-0.5">
+                <Calendar className="w-3.5 h-3.5 text-blue-400" />
+                <span>Lọc ngày:</span>
+              </span>
+
+              {datePresetOptions.map((preset) => (
+                <button
+                  key={preset.id}
+                  type="button"
+                  onClick={() => {
+                    setDatePreset(preset.id);
+                    if (preset.id !== 'CUSTOM') {
+                      setDateFrom('');
+                      setDateTo('');
+                    }
+                  }}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all border cursor-pointer ${
+                    datePreset === preset.id
+                      ? 'bg-blue-500/15 text-blue-300 border-blue-500/40'
+                      : 'bg-zinc-950/70 text-zinc-400 border-zinc-800 hover:text-white hover:border-zinc-700'
+                  }`}
+                >
+                  {preset.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Chọn khoảng ngày cụ thể */}
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="flex items-center gap-1.5 bg-zinc-950/80 border border-zinc-800 rounded-xl px-2.5 py-1.5">
+                <span className="text-[11px] text-zinc-500 font-medium">Từ</span>
+                <input
+                  type="date"
+                  value={dateFrom}
+                  max={dateTo || undefined}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setDateFrom(val);
+                    setDatePreset(val || dateTo ? 'CUSTOM' : 'ALL');
+                  }}
+                  aria-label="Từ ngày"
+                  className="bg-transparent text-xs text-zinc-200 outline-none [color-scheme:dark] cursor-pointer"
+                />
+              </div>
+
+              <span className="text-zinc-600 text-xs">&rarr;</span>
+
+              <div className="flex items-center gap-1.5 bg-zinc-950/80 border border-zinc-800 rounded-xl px-2.5 py-1.5">
+                <span className="text-[11px] text-zinc-500 font-medium">Đến</span>
+                <input
+                  type="date"
+                  value={dateTo}
+                  min={dateFrom || undefined}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setDateTo(val);
+                    setDatePreset(val || dateFrom ? 'CUSTOM' : 'ALL');
+                  }}
+                  aria-label="Đến ngày"
+                  className="bg-transparent text-xs text-zinc-200 outline-none [color-scheme:dark] cursor-pointer"
+                />
+              </div>
+
+              {hasActiveFilters && (
+                <button
+                  type="button"
+                  onClick={resetAllFilters}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-semibold text-zinc-300 hover:text-white transition-colors cursor-pointer"
+                >
+                  <RotateCcw className="w-3 h-3" />
+                  <span>Đặt lại</span>
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Tóm tắt kết quả lọc khi đang tìm kiếm / lọc */}
+          {hasActiveFilters && (
+            <div className="text-xs text-zinc-400 flex items-center justify-between pt-1">
+              <span>
+                Tìm thấy <strong className="text-white tabular-nums">{filteredOrders.length}</strong> / {orders.length} đơn hàng
+              </span>
+            </div>
+          )}
         </div>
       )}
 
@@ -201,10 +465,22 @@ export default function OrdersPage() {
           </Link>
         </div>
       ) : filteredOrders.length === 0 ? (
-        <div className="text-center py-12 bg-zinc-900/30 rounded-2xl border border-zinc-800 border-dashed">
+        <div className="text-center py-12 px-4 bg-zinc-900/30 rounded-2xl border border-zinc-800 border-dashed">
           <Filter className="w-12 h-12 text-zinc-700 mx-auto mb-3" />
-          <p className="text-zinc-500">Không tìm thấy đơn hàng nào với trạng thái này.</p>
-          <button onClick={() => setStatusFilter('ALL')} className="text-blue-500 hover:underline text-sm mt-2">Xóa bộ lọc</button>
+          <p className="text-zinc-300 font-medium text-sm">
+            Không tìm thấy đơn hàng nào khớp với bộ lọc hiện tại.
+          </p>
+          <p className="text-zinc-500 text-xs mt-1">
+            Thử đổi từ khóa tìm kiếm, khoảng ngày hoặc trạng thái đơn hàng.
+          </p>
+          <button
+            type="button"
+            onClick={resetAllFilters}
+            className="inline-flex items-center gap-1.5 mt-4 px-4 py-2 rounded-xl bg-blue-600/15 hover:bg-blue-600/25 border border-blue-500/30 text-blue-400 text-xs font-bold transition-colors cursor-pointer"
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
+            <span>Xóa tất cả bộ lọc</span>
+          </button>
         </div>
       ) : (
         <div className="grid gap-4">
@@ -232,7 +508,7 @@ export default function OrdersPage() {
                     <div className="space-y-1.5 min-w-0 flex-1">
                       {/* Title & Badges */}
                       <div className="flex flex-wrap items-center gap-2">
-                        <span 
+                        <span
                           className="px-2.5 py-0.5 rounded-md text-xs font-bold uppercase tracking-wider border shadow-sm"
                           style={{
                             backgroundColor: `${gameMeta.accentColor}15`,
