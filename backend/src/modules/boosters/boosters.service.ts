@@ -1304,6 +1304,7 @@ export class BoostersService {
           title: 'Đơn hàng của bạn đã được nhận!',
           message: `Tuyển thủ @${booster?.username || 'Booster'} đã nhận đơn hàng #${orderCodeDisplay} của bạn từ Sàn Việc Làm và sẽ sớm tiến hành cày.`,
           type: 'ORDER_UPDATE',
+          variant: 'success',
           link: `/orders/${order._id}`,
         });
       })

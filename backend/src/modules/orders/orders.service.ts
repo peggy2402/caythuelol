@@ -291,6 +291,7 @@ export class OrdersService {
               title: 'Bạn có đơn hàng mới cần cày!',
               message: `Khách hàng @${user.username} vừa đặt đơn #${orderCodeDisplay} - ${gameDisplay}${routeText}. Vào Sàn Việc Làm để xác nhận nhận đơn ngay!`,
               type: 'ORDER_UPDATE',
+              variant: 'info',
               link: '/booster/jobs',
             });
             this.chatGateway.broadcastBoosterJobsUpdated(validBoosterId.toString());
@@ -301,6 +302,7 @@ export class OrdersService {
               title: 'Đặt đơn cày thuê thành công!',
               message: `Đơn hàng #${orderCodeDisplay} - ${gameDisplay}${routeText} đã được gửi tới Tuyển thủ @${booster?.username || 'Booster'} và đang chờ xác nhận nhận đơn.`,
               type: 'ORDER_UPDATE',
+              variant: 'success',
               link: `/orders/${newOrder._id}`,
             });
           })
@@ -313,6 +315,7 @@ export class OrdersService {
             title: 'Đặt đơn cày thuê thành công!',
             message: `Đơn hàng #${orderCodeDisplay} - ${gameDisplay}${routeText} đã được đưa lên Sàn Việc Làm. Hệ thống sẽ báo ngay khi có Tuyển thủ nhận đơn!`,
             type: 'ORDER_UPDATE',
+            variant: 'success',
             link: `/orders/${newOrder._id}`,
           })
           .catch(() => {});
@@ -344,6 +347,7 @@ export class OrdersService {
                 title: 'Có đơn hàng mới đang chờ nhận!',
                 message: `Đơn #${orderCodeDisplay} - ${gameDisplay}${routeText} đang chờ trên Sàn Việc Làm. Vào nhận đơn ngay!`,
                 type: 'ORDER_UPDATE',
+                variant: 'info',
                 link: '/booster/jobs',
               });
             }
@@ -584,6 +588,7 @@ export class OrdersService {
           title: 'Đơn hàng của bạn đã được nhận!',
           message: `Tuyển thủ @${booster?.username || 'Booster'} đã xác nhận nhận đơn hàng #${orderCodeDisplay} của bạn và sẽ sớm tiến hành cày.`,
           type: 'ORDER_UPDATE',
+          variant: 'success',
           link: `/orders/${order._id}`,
         });
       })
@@ -841,6 +846,7 @@ export class OrdersService {
           title: 'Đơn hàng của bạn đã hoàn thành!',
           message: `Tuyển thủ đã báo cáo hoàn thành đơn hàng #${completedCode}. Vui lòng kiểm tra kết quả và đánh giá Tuyển thủ!`,
           type: 'ORDER_UPDATE',
+          variant: 'success',
           link: `/orders/${order._id}`,
         })
         .catch(() => {});

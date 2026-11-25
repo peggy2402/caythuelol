@@ -34,6 +34,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { socket } from '@/lib/socket';
 import { logout } from '@/lib/logout';
 import { toast } from 'sonner';
+import { showSystemNotification } from '@/lib/toast-notification';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { apiFetch } from '@/lib/api';
@@ -277,14 +278,9 @@ export default function Navbar() {
           localStorage.setItem('user', JSON.stringify(currentUser));
         };
 
-        // 2. Notification Update with deduplication
+        // 2. Notification Update with system-wide styling & deduplication
         const handleNotification = (data: any) => {
-          const notiId = data._id || data.id || `noti-${data.title}-${data.message}`;
-          if (recentNavbarNotiIds.has(notiId)) return;
-          recentNavbarNotiIds.add(notiId);
-          setTimeout(() => recentNavbarNotiIds.delete(notiId), 5000);
-
-          toast(data.title, { id: notiId, description: data.message });
+          showSystemNotification(data);
           setNotifications((prev) => [data, ...prev]);
           setUnreadCount((prev) => prev + 1);
         };

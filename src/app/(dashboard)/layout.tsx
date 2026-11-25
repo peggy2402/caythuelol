@@ -25,6 +25,7 @@ import { useLanguage } from '../../lib/i18n';
 import Sidebar from '@/components/Sidebar';
 import { socket } from '@/lib/socket';
 import { toast } from 'sonner';
+import { showSystemNotification } from '@/lib/toast-notification';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { apiFetch } from '@/lib/api';
@@ -227,13 +228,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       // Xử lý thông báo Realtime (Order, Match, Message, System)
       const handleNotification = (data: any) => {
         console.log('🔔 Notification:', data);
-        const notiId = data._id || data.id || `noti-${data.title}-${data.message}`;
-        if (recentNotiIds.has(notiId)) return;
-        recentNotiIds.add(notiId);
-        setTimeout(() => recentNotiIds.delete(notiId), 5000);
-
-        // Hiển thị Toast duy nhất (deduplicated by id)
-        toast(data.title, { id: notiId, description: data.message });
+        showSystemNotification(data);
         
         // Cập nhật danh sách thông báo
         setNotifications((prev) => [data, ...prev]);

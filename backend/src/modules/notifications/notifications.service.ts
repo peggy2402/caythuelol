@@ -9,6 +9,7 @@ export interface CreateNotificationInput {
   title: string;
   message: string;
   type?: INotification['type'];
+  variant?: INotification['variant'];
   link?: string;
 }
 
@@ -29,6 +30,7 @@ export class NotificationsService {
         title: input.title,
         message: input.message,
         type: input.type || 'ORDER_UPDATE',
+        variant: input.variant || 'info',
         link: input.link,
         isRead: false,
       });
@@ -61,6 +63,7 @@ export class NotificationsService {
           title: payload.title,
           message: payload.message,
           type: payload.type || 'ORDER_UPDATE',
+          variant: payload.variant || 'info',
           link: payload.link,
           isRead: false,
         })),

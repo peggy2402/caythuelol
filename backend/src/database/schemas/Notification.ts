@@ -5,6 +5,7 @@ export interface INotification extends Document {
   title: string;
   message: string;
   type: 'ORDER_UPDATE' | 'SYSTEM' | 'PAYMENT' | 'MATCH_UPDATE' | 'MESSAGE' | 'ORDER_EXPIRED' | 'REFUND' | 'RATE_REMINDER';
+  variant?: 'success' | 'warning' | 'error' | 'info';
   link?: string;
   isRead: boolean;
   createdAt: Date;
@@ -16,6 +17,7 @@ const NotificationSchema = new Schema<INotification>(
     title: { type: String, required: true },
     message: { type: String, required: true },
     type: { type: String, enum: ['ORDER_UPDATE', 'SYSTEM', 'PAYMENT', 'MATCH_UPDATE', 'MESSAGE', 'ORDER_EXPIRED', 'REFUND', 'RATE_REMINDER'], default: 'SYSTEM' },
+    variant: { type: String, enum: ['success', 'warning', 'error', 'info'], default: 'info' },
     link: { type: String },
     isRead: { type: Boolean, default: false },
   },
