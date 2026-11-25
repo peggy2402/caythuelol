@@ -179,7 +179,7 @@ export default function RootLayout({
                   toast: '!rounded-2xl !backdrop-blur-xl !border !shadow-[0_20px_50px_rgba(0,0,0,0.8)] font-sans !py-3.5 !px-4',
                   title: '!font-bold !text-sm !tracking-tight text-white',
                   description: '!text-xs !leading-relaxed !opacity-95 text-zinc-300 mt-1',
-                  actionButton: '!rounded-xl !text-xs !font-bold !px-3 !py-1.5 !transition-all hover:!scale-105 active:!scale-95 cursor-pointer !bg-white/10 !border !border-white/20 hover:!bg-white/20 text-white',
+                  actionButton: '!rounded-full !text-xs !font-black !px-4 !py-2 !transition-all hover:!scale-105 active:!scale-95 cursor-pointer !bg-white !text-emerald-950 !shadow-xl hover:!bg-zinc-100 !border-0',
                   closeButton: '!border-zinc-800 !bg-zinc-900/90 hover:!bg-zinc-800 text-zinc-400 hover:text-white',
                 },
               }}

@@ -176,41 +176,57 @@
 }
 
 /* Sonner Toast Action Button High-Contrast Polish */
-[data-sonner-toast] [data-button] {
+[data-sonner-toast] [data-button],
+[data-sonner-toast] button[data-button],
+[data-sonner-toast] [data-action],
+[data-sonner-toast] [data-action-button] {
   background-color: #ffffff !important;
-  color: #022c22 !important;
+  color: #064e3b !important;
   font-weight: 800 !important;
   font-size: 12px !important;
   line-height: 1 !important;
-  padding: 8px 16px !important;
+  padding: 8px 18px !important;
   border-radius: 9999px !important;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35) !important;
-  border: 1px solid rgba(255, 255, 255, 0.4) !important;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.35) !important;
+  border: 1px solid rgba(255, 255, 255, 0.9) !important;
   transition: all 0.2s ease !important;
   cursor: pointer !important;
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
+  white-space: nowrap !important;
 }
 
-[data-sonner-toast][data-type="success"] [data-button] {
+[data-sonner-toast][data-type="success"] [data-button],
+[data-sonner-toast][data-type="success"] button[data-button] {
   background-color: #ffffff !important;
-  color: #064e3b !important; /* Deep emerald text on pure white button */
+  color: #064e3b !important; /* Deep emerald text on pure white */
 }
 
-[data-sonner-toast][data-type="info"] [data-button] {
+[data-sonner-toast][data-type="info"] [data-button],
+[data-sonner-toast][data-type="info"] button[data-button] {
   background-color: #ffffff !important;
-  color: #0369a1 !important; /* Deep sky text on white */
+  color: #0369a1 !important; /* Deep sky text on pure white */
 }
 
-[data-sonner-toast][data-type="warning"] [data-button] {
+[data-sonner-toast][data-type="warning"] [data-button],
+[data-sonner-toast][data-type="warning"] button[data-button] {
   background-color: #ffffff !important;
   color: #78350f !important;
 }
 
-[data-sonner-toast][data-type="error"] [data-button] {
+[data-sonner-toast][data-type="error"] [data-button],
+[data-sonner-toast][data-type="error"] button[data-button] {
   background-color: #ffffff !important;
   color: #7f1d1d !important;
+}
+
+[data-sonner-toast] [data-button]:hover,
+[data-sonner-toast] button[data-button]:hover {
+  background-color: #f0fdf4 !important;
+  color: #022c22 !important;
+  transform: translateY(-1px) scale(1.05) !important;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45) !important;
 }
 
 [data-sonner-toast] [data-button]:hover {
