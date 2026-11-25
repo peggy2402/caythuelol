@@ -89,50 +89,124 @@ export function generateWorkingScheduleNote(
   return `Làm từ ${from} -> ${to} ${daysText}`;
 }
 
-export function getBoosterWorkingScheduleText(booster: any): string {
-  if (!booster) return 'Làm từ 8:00 -> 17:30 hàng ngày';
+export interface ExtractedBoosterSchedule {
+  workingSchedule?: BoosterWorkingSchedule;
+  daysOfWeek: string[]; // ['T2', 'T3', 'T4', 'T5', 'T6', 'T7']
+  fromTime: string; // '08:00'
+  toTime: string; // '17:30'
+  shifts?: string[];
+  note?: string;
+  scheduleText: string;
+}
 
+/**
+ * Trích xuất cấu hình lịch làm việc của Tuyển thủ từ mọi biến thể dữ liệu (user, boosterProfile, boosterData, service_settings)
+ */
+export function extractBoosterSchedule(booster: any): ExtractedBoosterSchedule {
+  if (!booster) {
+    return {
+      daysOfWeek: ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'],
+      fromTime: '08:00',
+      toTime: '17:30',
+      scheduleText: 'Làm từ 8:00 -> 17:30 hàng ngày',
+    };
+  }
+
+  // Quét toàn bộ mọi cấu trúc dữ liệu lồng nhau có thể có
   const settings =
     booster.booster_info?.service_settings ||
     booster.service_settings ||
     booster.boosterData?.service_settings ||
     booster.boosterData?.booster_info?.service_settings ||
-    booster;
+    booster.boosterData?.boosterProfile?.service_settings ||
+    booster.boosterProfile?.service_settings ||
+    booster.user?.service_settings ||
+    booster.user?.booster_info?.service_settings ||
+    booster.user?.boosterProfile?.service_settings ||
+    (booster.workingSchedule ? booster : null);
 
-  const workingSchedule = settings?.workingSchedule;
-  const scheduleAddon = settings?.addonsConfig?.schedule || settings?.addons?.schedule;
+  const workingSchedule = settings?.workingSchedule || booster.workingSchedule;
+  const scheduleAddon =
+    settings?.addonsConfig?.schedule ||
+    settings?.addons?.schedule ||
+    booster.addonsConfig?.schedule;
 
-  // 1. Explicit note if customized
-  if (workingSchedule?.note && workingSchedule.note.trim()) {
-    return workingSchedule.note.trim();
+  let note = (workingSchedule?.note || scheduleAddon?.customHours || '').trim();
+
+  // 1. Phân tích danh sách ngày
+  let daysOfWeek: string[] =
+    workingSchedule?.daysOfWeek || scheduleAddon?.daysOfWeek || [];
+  if (!Array.isArray(daysOfWeek) || daysOfWeek.length === 0) {
+    if (note) {
+      const lowerNote = note.toLowerCase();
+      if (lowerNote.includes('trừ cn') || lowerNote.includes('t2 - t7')) {
+        daysOfWeek = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
+      } else if (lowerNote.includes('thứ 7, cn') || lowerNote.includes('cuối tuần')) {
+        daysOfWeek = ['T7', 'CN'];
+      } else if (lowerNote.includes('hàng ngày') || lowerNote.includes('cả tuần')) {
+        daysOfWeek = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
+      }
+    }
   }
-  if (scheduleAddon?.customHours && scheduleAddon.customHours.trim()) {
-    return scheduleAddon.customHours.trim();
+
+  // 2. Phân tích giờ bắt đầu / kết thúc
+  let fromTime = (workingSchedule?.fromTime || scheduleAddon?.fromTime || '').trim();
+  let toTime = (workingSchedule?.toTime || scheduleAddon?.toTime || '').trim();
+
+  if ((!fromTime || !toTime) && note) {
+    const timeMatch = note.match(/(\d{1,2}:\d{2})\s*(?:->|-|–|đến)\s*(\d{1,2}:\d{2})/);
+    if (timeMatch) {
+      if (!fromTime) fromTime = timeMatch[1].padStart(5, '0');
+      if (!toTime) toTime = timeMatch[2].padStart(5, '0');
+    }
   }
 
-  // 2. Structured fromTime & toTime & daysOfWeek
-  const fromTime = workingSchedule?.fromTime || scheduleAddon?.fromTime || '08:00';
-  const toTime = workingSchedule?.toTime || scheduleAddon?.toTime || '17:30';
-  const days = workingSchedule?.daysOfWeek || scheduleAddon?.daysOfWeek;
-
-  if (days && days.length > 0) {
-    return generateWorkingScheduleNote(fromTime, toTime, days);
+  if (!fromTime) fromTime = '08:00';
+  if (!toTime) toTime = '17:30';
+  if (daysOfWeek.length === 0) {
+    daysOfWeek = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
   }
 
-  // 3. Shift badges
   const shifts = workingSchedule?.shifts || scheduleAddon?.shifts;
-  if (Array.isArray(shifts) && shifts.length > 0) {
-    const shiftNames = shifts.map((s: string) => {
-      if (s === 'morning') return 'Sáng (08-12h)';
-      if (s === 'afternoon') return 'Chiều (13-17h)';
-      if (s === 'evening') return 'Tối (19-23h)';
-      if (s === 'night') return 'Đêm (23-04h)';
-      return s;
-    });
-    return `Ca: ${shiftNames.join(', ')}`;
-  }
+  const scheduleText =
+    note || generateWorkingScheduleNote(fromTime, toTime, daysOfWeek);
 
-  return 'Làm từ 8:00 -> 17:30 hàng ngày';
+  return {
+    workingSchedule,
+    daysOfWeek,
+    fromTime,
+    toTime,
+    shifts,
+    note,
+    scheduleText,
+  };
+}
+
+export function getBoosterWorkingScheduleText(booster: any): string {
+  if (!booster) return 'Làm từ 8:00 -> 17:30 hàng ngày';
+  return extractBoosterSchedule(booster).scheduleText;
+}
+
+export function checkIfShiftConflictsWithBooster(shiftId: string, booster: any): boolean {
+  if (!booster) return false;
+  const { fromTime, toTime } = extractBoosterSchedule(booster);
+  const parts = shiftId.split(/[-–]/).map((s) => s.trim());
+  if (parts.length !== 2) return false;
+
+  const toMinutes = (timeStr: string) => {
+    const [h, m] = timeStr.split(':').map(Number);
+    return (h || 0) * 60 + (m || 0);
+  };
+
+  const bStartMin = toMinutes(fromTime);
+  let bEndMin = toMinutes(toTime);
+  if (bEndMin < bStartMin) bEndMin += 24 * 60;
+
+  let cStartMin = toMinutes(parts[0]);
+  let cEndMin = toMinutes(parts[1]);
+  if (cEndMin < cStartMin) cEndMin += 24 * 60;
+
+  return cStartMin < bStartMin || cEndMin > bEndMin;
 }
 
 /**
@@ -215,26 +289,11 @@ export function validateScheduleWithBooster(
     };
   }
 
-  const settings =
-    booster.booster_info?.service_settings ||
-    booster.service_settings ||
-    booster.boosterData?.service_settings ||
-    booster.boosterData?.booster_info?.service_settings ||
-    booster;
-
-  const workingSchedule = settings?.workingSchedule;
-  const scheduleAddon = settings?.addonsConfig?.schedule || settings?.addons?.schedule;
-
-  // Lấy danh sách ngày làm việc
-  const rawDays: string[] =
-    workingSchedule?.daysOfWeek || scheduleAddon?.daysOfWeek || [];
-  const normalizedDays = rawDays.map((d: any) =>
+  const { daysOfWeek, fromTime, toTime, scheduleText } = extractBoosterSchedule(booster);
+  const normalizedDays = daysOfWeek.map((d: any) =>
     d.toString().toUpperCase().replace('THỨ ', 'T')
   );
-
-  const fromTime = workingSchedule?.fromTime || scheduleAddon?.fromTime;
-  const toTime = workingSchedule?.toTime || scheduleAddon?.toTime;
-  const boosterScheduleText = getBoosterWorkingScheduleText(booster);
+  const boosterScheduleText = scheduleText;
 
   // 1. Kiểm tra ngày
   const dateObj = parseLocalDate(scheduleDetails.startDate);

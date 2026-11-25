@@ -20,6 +20,8 @@ import {
   getDayOfWeekName,
   validateScheduleWithBooster,
   getBoosterWorkingScheduleText,
+  extractBoosterSchedule,
+  checkIfShiftConflictsWithBooster,
 } from '@/lib/booster-helpers';
 
 interface ScheduleConfigPanelProps {
@@ -112,25 +114,19 @@ export function ScheduleConfigPanel({
 
   // Xử lý tự động căn chỉnh sang ca/ngày hợp lệ của Booster
   const handleAutoAlignBooster = () => {
+    const boosterInfo = extractBoosterSchedule(assignedBooster);
     const targetDate = validation.suggestedStartDate || scheduleDetails.startDate || todayStr;
-    const targetTimeWindow = validation.suggestedTimeWindow;
+    const from = boosterInfo.fromTime || '08:00';
+    const to = boosterInfo.toTime || '17:30';
 
-    if (targetTimeWindow) {
-      const parts = targetTimeWindow.split('-').map((s) => s.trim());
-      onChangeSchedule({
-        ...scheduleDetails,
-        startDate: targetDate,
-        mode: 'TIME_WINDOW',
-        timeWindow: 'CUSTOM',
-        customStartTime: parts[0] || '08:00',
-        customEndTime: parts[1] || '17:30',
-      });
-    } else {
-      onChangeSchedule({
-        ...scheduleDetails,
-        startDate: targetDate,
-      });
-    }
+    onChangeSchedule({
+      ...scheduleDetails,
+      startDate: targetDate,
+      mode: 'TIME_WINDOW',
+      timeWindow: `${from} - ${to}`,
+      customStartTime: from,
+      customEndTime: to,
+    });
   };
 
   return (
@@ -321,22 +317,32 @@ export function ScheduleConfigPanel({
           {TIME_SHIFTS.map((shift) => {
             const isSelected = !isCustomTime && currentWindow === shift.id;
             const ShiftIcon = shift.icon;
+            const isShiftOutside = assignedBooster
+              ? checkIfShiftConflictsWithBooster(shift.id, assignedBooster)
+              : false;
 
             return (
               <button
                 key={shift.id}
                 type="button"
-                onClick={() =>
+                onClick={() => {
+                  const parts = shift.id.split(/[-–]/).map((s) => s.trim());
                   onChangeSchedule({
                     ...scheduleDetails,
                     mode: 'TIME_WINDOW',
                     timeWindow: shift.id,
-                  })
-                }
+                    customStartTime: parts[0] || '19:00',
+                    customEndTime: parts[1] || '23:00',
+                  });
+                }}
                 className={`p-2.5 rounded-xl border text-left transition-all relative flex flex-col justify-between cursor-pointer min-w-0 ${
                   isSelected
-                    ? 'bg-gradient-to-b from-blue-900/30 to-blue-950/60 border-blue-400 ring-1 ring-blue-400/50 shadow-md shadow-blue-500/20 text-white'
-                    : 'bg-zinc-900/80 border-zinc-800 text-zinc-400 hover:border-zinc-700 hover:text-white'
+                    ? isShiftOutside
+                      ? 'bg-gradient-to-b from-amber-950/40 to-amber-900/60 border-amber-400 ring-1 ring-amber-400/60 shadow-md shadow-amber-500/20 text-white'
+                      : 'bg-gradient-to-b from-blue-900/30 to-blue-950/60 border-blue-400 ring-1 ring-blue-400/50 shadow-md shadow-blue-500/20 text-white'
+                    : isShiftOutside
+                      ? 'bg-zinc-900/60 border-zinc-800/80 text-zinc-400 hover:border-zinc-700 hover:text-white'
+                      : 'bg-zinc-900/80 border-zinc-800 text-zinc-400 hover:border-zinc-700 hover:text-white'
                 }`}
               >
                 <div className="flex items-center justify-between mb-1 gap-1 min-w-0">
@@ -344,14 +350,21 @@ export function ScheduleConfigPanel({
                     <ShiftIcon size={14} className={`${shift.color} shrink-0`} />
                     <span className="font-bold text-xs truncate">{shift.name}</span>
                   </div>
-                  {shift.recommended && (
+                  {isShiftOutside ? (
+                    <span
+                      title="Khung giờ này nằm ngoài giờ làm việc của Tuyển thủ"
+                      className="text-[9px] font-bold text-amber-400 bg-amber-400/15 border border-amber-400/30 px-1.5 py-0.5 rounded-full shrink-0"
+                    >
+                      Lệch giờ
+                    </span>
+                  ) : shift.recommended ? (
                     <span
                       title="Khuyên dùng / Giờ vàng cày rank"
                       className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-amber-400/15 text-amber-300 border border-amber-400/30 shadow-[0_0_12px_rgba(251,191,36,0.45)] shrink-0"
                     >
                       <ThumbsUp size={11} className="fill-amber-400 text-amber-300 drop-shadow-[0_0_6px_rgba(251,191,36,0.7)]" />
                     </span>
-                  )}
+                  ) : null}
                 </div>
                 <div className="font-mono text-[11px] font-black text-cyan-300 truncate">
                   {shift.time}
