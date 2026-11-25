@@ -1,7 +1,7 @@
 // src/app/services/[game]/[service]/page.tsx
 'use client';
 
-import React, { useState, useEffect, useMemo, Suspense } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, Suspense } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -46,7 +46,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatRankDisplayVi } from '@/lib/riotRanks';
-import { getGameById, GAMES_CATALOG, getServiceMeta, LOL_PROMOTION_SERIES, PromotionTierItem } from '@/lib/games';
+import { getGameById, GAMES_CATALOG, getServiceMeta, LOL_PROMOTION_SERIES, PromotionTierItem, LOL_PLACEMENT_TIERS, PlacementTierItem } from '@/lib/games';
 import {
   LOL_RANK_STEPS,
   VALORANT_RANK_STEPS,
@@ -1219,7 +1219,7 @@ function ServiceBookingContent() {
     return serviceDef.defaultPrice || 35000;
   }, [assignedBooster, matchingBoosterService?.price, serviceDef.defaultPrice]);
 
-  // Đơn giá mỗi trận cho Phân Hạng Đầu Mùa (Placements)
+  // Đơn giá mỗi trận cơ bản cho Phân Hạng Đầu Mùa (Placements)
   const placementUnitPrice = useMemo(() => {
     if (assignedBooster && typeof matchingBoosterService?.price === 'number' && matchingBoosterService.price > 0) {
       return matchingBoosterService.price;
@@ -1227,11 +1227,34 @@ function ServiceBookingContent() {
     return serviceDef.defaultPrice || 30000;
   }, [assignedBooster, matchingBoosterService?.price, serviceDef.defaultPrice]);
 
-  // Đơn giá thực tế theo mức Rank mùa trước
+  // Lấy đơn giá / 1 trận phân hạng theo mức Rank mùa trước (hỗ trợ Booster override từng rank chi tiết)
+  const getPlacementTierPrice = useCallback(
+    (tierKey: string) => {
+      // 1. Kiểm tra Booster có cấu hình giá riêng cho bậc rank này trong stepOverrides không
+      const boosterOverride =
+        matchingBoosterService?.stepOverrides?.[tierKey] ??
+        boosterStepOverrides?.[tierKey];
+      if (assignedBooster && typeof boosterOverride === 'number' && boosterOverride > 0) {
+        return boosterOverride;
+      }
+
+      // 2. Nếu Booster có đơn giá cơ bản và áp hệ số
+      const tierDef = LOL_PLACEMENT_TIERS.find((t) => t.id === tierKey);
+      const mult = tierDef?.multiplier ?? PLACEMENT_TIER_MULTIPLIERS[tierKey] ?? 1.0;
+      if (assignedBooster && typeof matchingBoosterService?.price === 'number' && matchingBoosterService.price > 0) {
+        return Math.round(matchingBoosterService.price * mult);
+      }
+
+      // 3. Mặc định theo hệ thống
+      return tierDef?.defaultPrice ?? Math.round((serviceDef.defaultPrice || 30000) * mult);
+    },
+    [assignedBooster, matchingBoosterService, boosterStepOverrides, serviceDef.defaultPrice]
+  );
+
+  // Đơn giá thực tế theo mức Rank mùa trước đã chọn
   const placementEffectivePricePerMatch = useMemo(() => {
-    const mult = PLACEMENT_TIER_MULTIPLIERS[previousSeasonRank] || 1.0;
-    return Math.round(placementUnitPrice * mult);
-  }, [placementUnitPrice, previousSeasonRank]);
+    return getPlacementTierPrice(previousSeasonRank);
+  }, [getPlacementTierPrice, previousSeasonRank]);
 
   // Tỷ lệ cọc giữ chỗ: Ưu tiên tỷ lệ booster cấu hình riêng cho gói này, nếu không thì lấy mặc định theo dịch vụ
   const effectiveDepositPercent = useMemo(() => {
@@ -3520,9 +3543,7 @@ function ServiceBookingContent() {
                       {PLACEMENT_AVAILABLE_TIERS.map((tierKey) => {
                         const tierMeta = TIER_CONFIG[tierKey];
                         const isSelected = previousSeasonRank === tierKey;
-                        const matchPriceForTier = Math.round(
-                          placementUnitPrice * (PLACEMENT_TIER_MULTIPLIERS[tierKey] || 1.0)
-                        );
+                        const matchPriceForTier = getPlacementTierPrice(tierKey);
 
                         return (
                           <button

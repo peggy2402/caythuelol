@@ -44,6 +44,8 @@ import {
   ServiceTemplate,
   LOL_MASTERY_STEPS,
   LOL_PROMOTION_SERIES,
+  LOL_PLACEMENT_TIERS,
+  PlacementTierItem,
 } from '@/lib/games';
 import {
   LOL_RANK_STEPS,
@@ -183,6 +185,7 @@ export default function BoosterServicesStudio() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalStep, setModalStep] = useState<1 | 2>(1);
   const [editingServiceId, setEditingServiceId] = useState<string | null>(null);
+  const [placementQuickPrice, setPlacementQuickPrice] = useState<number>(30000);
 
   const [formData, setFormData] = useState<CustomService>({
     id: '',
@@ -595,7 +598,13 @@ export default function BoosterServicesStudio() {
     } else if (isAov && (cleanDesc.includes('MMR') || cleanDesc.includes('LP') || cleanDesc.includes('RR'))) {
       cleanDesc = 'Tính tiền theo từng Sao (5k–30k+/sao) từ Đồng–Kim Cương, Tinh Anh, Cao Thủ, Đại Cao Thủ đến Chiến Tướng.';
     }
-    const cleanUnit = isVal ? 'Điểm RR' : isAov ? (svc.serviceType === 'net-wins' ? 'Sao' : (svc.unitName || 'Sao')) : (svc.unitName || 'Điểm LP');
+    const cleanUnit = (svc.serviceType === 'placements' || svc.serviceType === 'matches')
+      ? 'Trận'
+      : isVal
+        ? 'Điểm RR'
+        : isAov
+          ? (svc.serviceType === 'net-wins' ? 'Sao' : (svc.unitName || 'Sao'))
+          : (svc.unitName || 'Điểm LP');
 
     // Chuẩn hóa tierRates cũ cho AOV nếu có
     let normalizedTierRates = svc.tierRates;
@@ -691,9 +700,16 @@ export default function BoosterServicesStudio() {
         formData.price = 40000;
       }
     }
+    if (formData.serviceType === 'placements') {
+      formData.unitName = 'Trận';
+      if (!formData.price || formData.price <= 0) {
+        formData.price = formData.stepOverrides?.['IRON'] || 30000;
+      }
+    }
     if (
       formData.serviceType !== 'rank-boost' &&
       formData.serviceType !== 'promotion' &&
+      formData.serviceType !== 'placements' &&
       (!formData.price || formData.price <= 0)
     ) {
       toast.error('Vui lòng nhập đơn giá hợp lệ (> 0 VNĐ)');
@@ -2825,57 +2841,187 @@ export default function BoosterServicesStudio() {
                                       </div>
                                     )}
 
-                                    {/* TRƯỜNG HỢP 6: PHÂN HẠNG ĐẦU MÙA (PLACEMENTS) */}
+                                    {/* TRƯỜNG HỢP 6: PHÂN HẠNG ĐẦU MÙA (PLACEMENTS: 8 RANK TỪ SẮT ĐẾN CAO THỦ) */}
                                     {formData.serviceType === 'placements' && (
                                       <div className="space-y-4">
-                                        <div className="p-3.5 rounded-xl bg-purple-950/20 border border-purple-500/20 text-xs text-zinc-300">
+                                        <div className="p-3.5 rounded-2xl bg-purple-950/20 border border-purple-500/20 text-xs text-zinc-300">
                                           <div className="flex items-center gap-2 font-bold text-purple-300 mb-1">
-                                            <Medal size={15} />
-                                            <span>Phân Hạng Đầu Mùa (Tối Đa 5 Trận Phân Hạng)</span>
+                                            <Medal size={16} />
+                                            <span>Phân Hạng Đầu Mùa (Tối Đa 5 Trận · 8 Mốc Rank Mùa Trước)</span>
                                           </div>
                                           <p className="text-[11px] text-zinc-400 leading-relaxed">
-                                            Cấu hình đơn giá theo từng trận phân hạng (Khách hàng được chọn từ 1 đến tối đa 5 trận).
+                                            Tương ứng với góc nhìn khách hàng (chọn Rank mùa trước từ <strong>Sắt đến Cao Thủ</strong> và chọn từ <strong>1 đến 5 trận</strong>). Thiết lập đơn giá / 1 trận phân hạng cho từng bậc rank dưới đây:
                                           </p>
                                         </div>
 
-                                        <div>
-                                          <label className="text-zinc-400 font-bold uppercase block mb-1">
-                                            Đơn Giá / 1 Trận Phân Hạng (VNĐ) <span className="text-red-500">*</span>
-                                          </label>
-                                          <div className="relative">
-                                            <input
-                                              type="text"
-                                              inputMode="numeric"
-                                              pattern="[0-9]*"
-                                              placeholder="VD: 30000"
-                                              value={formData.price || ''}
-                                              onChange={(e) => {
-                                                const clean = e.target.value.replace(/\D/g, '').replace(/^0+/, '');
+                                        {/* Thanh công cụ áp dụng giá nhanh */}
+                                        <div className="p-3.5 rounded-2xl bg-zinc-950/90 border border-zinc-800 space-y-3">
+                                          <div className="flex flex-wrap items-center justify-between gap-2">
+                                            <span className="text-xs font-bold text-zinc-300 flex items-center gap-1.5">
+                                              <Sparkles size={13} className="text-purple-400" />
+                                              <span>Công Cụ Thiết Lập Giá Nhanh</span>
+                                            </span>
+                                            <button
+                                              type="button"
+                                              onClick={() => {
+                                                const defaultSteps: Record<string, number> = {};
+                                                LOL_PLACEMENT_TIERS.forEach((t) => {
+                                                  defaultSteps[t.id] = t.defaultPrice;
+                                                });
                                                 setFormData({
                                                   ...formData,
-                                                  price: clean ? parseInt(clean, 10) : 0,
+                                                  price: 30000,
                                                   unitName: 'Trận',
+                                                  stepOverrides: defaultSteps,
                                                 });
+                                                toast.success('Đã khôi phục bảng giá mặc định theo hệ thống');
                                               }}
-                                              className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3.5 py-2.5 text-white font-mono font-bold outline-none focus:border-purple-500 text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                                            />
-                                            <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-zinc-500 font-mono">
-                                              VNĐ / Trận
-                                            </span>
+                                              className="text-[11px] font-bold text-cyan-400 hover:text-cyan-300 px-2.5 py-1 rounded-lg bg-cyan-500/10 border border-cyan-500/25 transition-colors cursor-pointer"
+                                            >
+                                              Dùng giá mặc định hệ thống
+                                            </button>
                                           </div>
-                                          <p className="text-[11px] text-zinc-500 mt-1.5">
-                                            Đơn vị tính cố định theo <strong>Trận</strong> (Khách hàng được chọn linh hoạt từ 1 đến 5 trận).
-                                          </p>
+
+                                          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                                            <div className="relative flex-1">
+                                              <input
+                                                type="text"
+                                                inputMode="numeric"
+                                                pattern="[0-9]*"
+                                                placeholder="VD: 30000"
+                                                value={placementQuickPrice || ''}
+                                                onChange={(e) => {
+                                                  const clean = e.target.value.replace(/\D/g, '').replace(/^0+/, '');
+                                                  setPlacementQuickPrice(clean ? parseInt(clean, 10) : 0);
+                                                }}
+                                                className="w-full bg-zinc-900 border border-zinc-700/80 rounded-xl px-3.5 py-2 text-xs sm:text-sm text-white font-mono font-bold outline-none focus:border-purple-500"
+                                              />
+                                              <span className="text-xs text-zinc-500 font-mono absolute right-3 top-1/2 -translate-y-1/2">
+                                                đ / trận
+                                              </span>
+                                            </div>
+
+                                            <button
+                                              type="button"
+                                              onClick={() => {
+                                                if (placementQuickPrice <= 0) {
+                                                  toast.error('Vui lòng nhập số tiền hợp lệ');
+                                                  return;
+                                                }
+                                                const newSteps: Record<string, number> = {};
+                                                LOL_PLACEMENT_TIERS.forEach((t) => {
+                                                  newSteps[t.id] = Math.round(placementQuickPrice * t.multiplier);
+                                                });
+                                                setFormData({
+                                                  ...formData,
+                                                  price: placementQuickPrice,
+                                                  unitName: 'Trận',
+                                                  stepOverrides: newSteps,
+                                                });
+                                                toast.success('Đã tự động tính giá theo hệ số rank cho 8 mốc');
+                                              }}
+                                              className="px-3.5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs transition-colors shrink-0 flex items-center justify-center gap-1.5 cursor-pointer"
+                                            >
+                                              <span>Tự động nhân hệ số Rank</span>
+                                            </button>
+
+                                            <button
+                                              type="button"
+                                              onClick={() => {
+                                                if (placementQuickPrice <= 0) {
+                                                  toast.error('Vui lòng nhập số tiền hợp lệ');
+                                                  return;
+                                                }
+                                                const newSteps: Record<string, number> = {};
+                                                LOL_PLACEMENT_TIERS.forEach((t) => {
+                                                  newSteps[t.id] = placementQuickPrice;
+                                                });
+                                                setFormData({
+                                                  ...formData,
+                                                  price: placementQuickPrice,
+                                                  unitName: 'Trận',
+                                                  stepOverrides: newSteps,
+                                                });
+                                                toast.success(`Đã áp dụng ${placementQuickPrice.toLocaleString('vi-VN')} đ cho tất cả 8 rank`);
+                                              }}
+                                              className="px-3.5 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-bold text-xs transition-colors shrink-0 flex items-center justify-center gap-1.5 cursor-pointer"
+                                            >
+                                              <span>Áp dụng giá này cho tất cả</span>
+                                            </button>
+                                          </div>
                                         </div>
 
-                                        {formData.price > 0 && (
-                                          <div className="p-3 rounded-xl bg-zinc-950 border border-zinc-800 text-[11px] text-zinc-300 flex items-center justify-between">
-                                            <span>Trọn gói tối đa 5 trận phân hạng:</span>
-                                            <span className="font-mono font-bold text-purple-400 text-xs">
-                                              {new Intl.NumberFormat('vi-VN').format((formData.price || 0) * 5)} đ
+                                        {/* Bảng giá chi tiết 8 mức Rank từ Sắt đến Cao Thủ */}
+                                        <div className="space-y-2.5">
+                                          <div className="flex items-center justify-between">
+                                            <label className="text-zinc-200 font-extrabold uppercase block text-xs sm:text-sm">
+                                              Bảng Giá Theo Từng Mức Rank Mùa Trước (8 Mốc)
+                                            </label>
+                                            <span className="text-[11px] text-zinc-400">
+                                              Đơn vị: <strong>VNĐ / 1 trận</strong>
                                             </span>
                                           </div>
-                                        )}
+
+                                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                            {LOL_PLACEMENT_TIERS.map((tier) => {
+                                              const overrideVal = formData.stepOverrides?.[tier.id] ?? tier.defaultPrice;
+                                              return (
+                                                <div
+                                                  key={tier.id}
+                                                  className="flex items-center justify-between p-3.5 rounded-2xl bg-zinc-950/90 border border-zinc-800 hover:border-purple-500/40 transition-colors gap-3"
+                                                >
+                                                  <div className="flex items-center gap-3 min-w-0">
+                                                    <div className="w-10 h-10 rounded-xl bg-black/50 border border-white/5 flex items-center justify-center p-1 shrink-0">
+                                                      <img
+                                                        src={tier.icon}
+                                                        alt={tier.name}
+                                                        className="w-full h-full object-contain filter drop-shadow-[0_2px_5px_rgba(0,0,0,0.5)]"
+                                                      />
+                                                    </div>
+                                                    <div className="min-w-0">
+                                                      <div className="font-extrabold text-white text-xs sm:text-sm">
+                                                        Rank {tier.name}
+                                                      </div>
+                                                      <div className="text-[10px] text-zinc-400 font-mono mt-0.5">
+                                                        Gói 5 trận: <span className="text-purple-400 font-bold font-mono">{(overrideVal * 5).toLocaleString('vi-VN')} đ</span>
+                                                      </div>
+                                                    </div>
+                                                  </div>
+
+                                                  <div className="relative w-36 shrink-0">
+                                                    <input
+                                                      type="text"
+                                                      inputMode="numeric"
+                                                      pattern="[0-9]*"
+                                                      value={overrideVal || ''}
+                                                      placeholder="VD: 30000"
+                                                      onChange={(e) => {
+                                                        const clean = e.target.value.replace(/\D/g, '').replace(/^0+/, '');
+                                                        const val = clean ? parseInt(clean, 10) : 0;
+                                                        const steps = { ...(formData.stepOverrides || {}) };
+                                                        if (val <= 0) {
+                                                          delete steps[tier.id];
+                                                        } else {
+                                                          steps[tier.id] = val;
+                                                        }
+                                                        setFormData({
+                                                          ...formData,
+                                                          unitName: 'Trận',
+                                                          price: steps['IRON'] || formData.price || tier.defaultPrice,
+                                                          stepOverrides: steps,
+                                                        });
+                                                      }}
+                                                      className="w-full bg-zinc-900 border border-zinc-700/90 rounded-xl pr-14 pl-3 py-2 text-xs sm:text-sm text-white font-mono font-bold text-right outline-none focus:border-purple-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                                    />
+                                                    <span className="text-[11px] font-bold text-zinc-500 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none">
+                                                      đ/trận
+                                                    </span>
+                                                  </div>
+                                                </div>
+                                              );
+                                            })}
+                                          </div>
+                                        </div>
                                       </div>
                                     )}
 
