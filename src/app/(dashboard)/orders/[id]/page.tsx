@@ -1940,19 +1940,17 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                                 <span className="text-zinc-200 font-mono">{order.boosterId.profile.discord_id}</span>
                               </div>
                             )}
-                            {order.boosterId.phoneNumber && (
-                              <div>
-                                <span className="text-zinc-500 block">Số điện thoại</span>
-                                <a
-                                  href={`tel:${order.boosterId.phoneNumber}`}
-                                  className="text-emerald-400 hover:underline font-mono font-semibold"
-                                >
-                                  {order.boosterId.phoneNumber}
-                                </a>
-                              </div>
-                            )}
                             {order.boosterId.phoneNumber && (() => {
                               const cleanPhone = String(order.boosterId.phoneNumber).replace(/[^\d+]/g, '');
+                              const handleMobilePhoneClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+                                // Khi test trong iframe giả lập điện thoại trên PC, iframe không hỗ trợ scheme tel: -> chặn lỗi Unsupported URL scheme và sao chép SĐT
+                                const isInIframe = typeof window !== 'undefined' && window.self !== window.top;
+                                if (isInIframe) {
+                                  e.preventDefault();
+                                  navigator.clipboard?.writeText(cleanPhone).catch(() => {});
+                                  toast.info(`SĐT Booster: ${order.boosterId.phoneNumber} (Đã sao chép — trên điện thoại thật sẽ tự mở app Gọi điện)`);
+                                }
+                              };
                               return (
                                 <div>
                                   <span className="text-zinc-500 block">Số điện thoại</span>
@@ -1961,8 +1959,10 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                                       {/* Mobile (Customer): chỉ hiển thị icon Phone, bấm vào tự mở ứng dụng gọi điện nhập sẵn SĐT */}
                                       <a
                                         href={`tel:${cleanPhone}`}
-                                        aria-label="Gọi điện cho Booster"
-                                        title="Gọi điện cho Booster"
+                                        target="_top"
+                                        onClick={handleMobilePhoneClick}
+                                        aria-label={`Gọi điện cho Booster (${order.boosterId.phoneNumber})`}
+                                        title={`Gọi điện: ${order.boosterId.phoneNumber}`}
                                         className="inline-flex md:hidden items-center justify-center w-10 h-10 mt-1 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 active:scale-95 border border-emerald-500/35 text-emerald-400 transition-all shadow-sm shadow-emerald-500/10"
                                       >
                                         <Phone className="w-5 h-5" />
@@ -1998,9 +1998,13 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                               <div className="sm:col-span-2">
                                 <span className="text-zinc-500 block mb-1.5">Dịch vụ cung cấp</span>
                                 <div className="flex flex-wrap gap-1.5">
-                                  {(boosterProfile?.services || order.boosterId.booster_info?.services || []).map((svc: string) => (
+                                  {Array.from(
+                                    new Set<string>(
+                                      (boosterProfile?.services || order.boosterId.booster_info?.services || []).filter(Boolean)
+                                    )
+                                  ).map((svc: string, idx: number) => (
                                     <span
-                                      key={svc}
+                                      key={`${svc}-${idx}`}
                                       className="px-2 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-zinc-300 text-[11px] font-medium"
                                     >
                                       {svc.replace(/_/g, ' ')}
