@@ -1,11 +1,33 @@
-import React from 'react';
-import { Calendar, Clock, Sun, Sunset, Moon, Sparkles, ShieldCheck, AlertTriangle, ThumbsUp } from 'lucide-react';
+import React, { useEffect } from 'react';
+import {
+  Calendar,
+  Clock,
+  Sun,
+  Sunset,
+  Moon,
+  Sparkles,
+  ShieldCheck,
+  AlertTriangle,
+  ThumbsUp,
+  Shuffle,
+  CheckCircle2,
+} from 'lucide-react';
 import { ScheduleDetails } from '@/lib/rank-calculator';
+import {
+  getLocalDateString,
+  getOffsetLocalDateString,
+  parseLocalDate,
+  getDayOfWeekName,
+  validateScheduleWithBooster,
+  getBoosterWorkingScheduleText,
+} from '@/lib/booster-helpers';
 
 interface ScheduleConfigPanelProps {
   scheduleDetails: ScheduleDetails;
   onChangeSchedule: (updated: ScheduleDetails) => void;
   percent: number;
+  assignedBooster?: any;
+  onRerollBooster?: () => void;
 }
 
 export const TIME_SHIFTS = [
@@ -52,18 +74,23 @@ export function ScheduleConfigPanel({
   scheduleDetails,
   onChangeSchedule,
   percent,
+  assignedBooster,
+  onRerollBooster,
 }: ScheduleConfigPanelProps) {
-  // Format dates for quick selection
-  const now = new Date();
-  const todayStr = now.toISOString().split('T')[0];
+  // Lấy ngày chuẩn theo giờ địa phương (local timezone / GMT+7)
+  const todayStr = getLocalDateString();
+  const tomorrowStr = getOffsetLocalDateString(1);
+  const dayAfterStr = getOffsetLocalDateString(2);
 
-  const tomorrow = new Date(now);
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  const tomorrowStr = tomorrow.toISOString().split('T')[0];
-
-  const dayAfter = new Date(now);
-  dayAfter.setDate(dayAfter.getDate() + 2);
-  const dayAfterStr = dayAfter.toISOString().split('T')[0];
+  // Tự động sửa ngày nếu đang chọn ngày quá khứ
+  useEffect(() => {
+    if (!scheduleDetails.startDate || scheduleDetails.startDate < todayStr) {
+      onChangeSchedule({
+        ...scheduleDetails,
+        startDate: todayStr,
+      });
+    }
+  }, [scheduleDetails.startDate, todayStr]);
 
   const formatDateDisplay = (dateStr: string) => {
     if (!dateStr) return '';
@@ -74,8 +101,37 @@ export function ScheduleConfigPanel({
     return dateStr;
   };
 
+  const selectedDateObj = parseLocalDate(scheduleDetails.startDate || todayStr);
+  const selectedDayName = getDayOfWeekName(selectedDateObj);
+
   const currentWindow = scheduleDetails.timeWindow || '19:00 - 23:00';
   const isCustomTime = currentWindow === 'CUSTOM';
+
+  // Kiểm tra tính tương thích với Booster đã ghép
+  const validation = validateScheduleWithBooster(scheduleDetails, assignedBooster);
+
+  // Xử lý tự động căn chỉnh sang ca/ngày hợp lệ của Booster
+  const handleAutoAlignBooster = () => {
+    const targetDate = validation.suggestedStartDate || scheduleDetails.startDate || todayStr;
+    const targetTimeWindow = validation.suggestedTimeWindow;
+
+    if (targetTimeWindow) {
+      const parts = targetTimeWindow.split('-').map((s) => s.trim());
+      onChangeSchedule({
+        ...scheduleDetails,
+        startDate: targetDate,
+        mode: 'TIME_WINDOW',
+        timeWindow: 'CUSTOM',
+        customStartTime: parts[0] || '08:00',
+        customEndTime: parts[1] || '17:30',
+      });
+    } else {
+      onChangeSchedule({
+        ...scheduleDetails,
+        startDate: targetDate,
+      });
+    }
+  };
 
   return (
     <div className="p-4 sm:p-5 rounded-2xl bg-zinc-950/90 border border-blue-500/40 shadow-xl space-y-4 text-xs animate-in fade-in zoom-in-95 duration-200">
@@ -97,17 +153,92 @@ export function ScheduleConfigPanel({
         </div>
 
         <div className="self-start sm:self-auto px-2.5 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-300 font-mono text-[10px] font-bold">
-          {scheduleDetails.timezone || 'GMT+7 (Giờ VN)'}
+          {scheduleDetails.timezone || 'GMT+7 (Việt Nam)'}
         </div>
       </div>
 
+      {/* Hiển thị giờ làm việc của Booster hiện tại */}
+      {assignedBooster && (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-2.5 rounded-xl bg-cyan-950/40 border border-cyan-500/30 text-xs">
+          <div className="flex items-center gap-2 min-w-0">
+            <Clock size={13} className="text-cyan-400 shrink-0" />
+            <span className="text-zinc-400 truncate">
+              Giờ làm việc của{' '}
+              <strong className="text-zinc-200">
+                {assignedBooster.user?.name || assignedBooster.user?.username || 'Tuyển thủ'}
+              </strong>
+              :
+            </span>
+            <span className="text-cyan-300 font-bold truncate">
+              {validation.boosterScheduleText || getBoosterWorkingScheduleText(assignedBooster)}
+            </span>
+          </div>
+          <div className="text-[11px] text-zinc-400 shrink-0">
+            {validation.hasConflict ? (
+              <span className="text-amber-400 font-bold flex items-center gap-1">
+                <AlertTriangle size={12} />
+                Lệch khung giờ/ngày
+              </span>
+            ) : (
+              <span className="text-emerald-400 font-bold flex items-center gap-1">
+                <CheckCircle2 size={12} />
+                Lịch khớp hoàn hảo
+              </span>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* CẢNH BÁO XUNG ĐỘT LỊCH NẾU CHỌN NGOÀI GIỜ LÀM VIỆC CỦA BOOSTER */}
+      {validation.hasConflict && (
+        <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/40 text-amber-200 text-xs space-y-2 animate-in fade-in zoom-in-95">
+          <div className="flex items-center gap-2 font-bold text-amber-400">
+            <AlertTriangle size={15} className="shrink-0 text-amber-400 animate-pulse" />
+            <span>Cảnh báo: Khung giờ đã chọn không khớp với lịch làm việc của Tuyển thủ!</span>
+          </div>
+
+          <p className="text-[11px] text-zinc-300 leading-relaxed">
+            {validation.message}
+          </p>
+
+          <div className="flex flex-wrap items-center gap-2 pt-1 text-[11px]">
+            <span className="text-zinc-400 font-medium">👉 Giải pháp xử lý:</span>
+            <button
+              type="button"
+              onClick={handleAutoAlignBooster}
+              className="px-2.5 py-1 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white font-bold transition-all cursor-pointer shadow-sm active:scale-95"
+            >
+              Căn chỉnh theo giờ Booster
+            </button>
+            {onRerollBooster && (
+              <button
+                type="button"
+                onClick={onRerollBooster}
+                className="px-2.5 py-1 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 font-bold transition-all cursor-pointer flex items-center gap-1 active:scale-95"
+              >
+                <Shuffle size={12} />
+                <span>Ghép tuyển thủ khác</span>
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* 1. Chọn Ngày Bắt Đầu */}
       <div className="space-y-1.5">
-        <label className="font-bold text-zinc-300 flex items-center gap-1.5">
-          <Calendar size={13} className="text-blue-400" />
-          <span>1. Ngày bắt đầu cày mong muốn:</span>
-          <span className="text-red-500">*</span>
-        </label>
+        <div className="flex items-center justify-between gap-2">
+          <label className="font-bold text-zinc-300 flex items-center gap-1.5">
+            <Calendar size={13} className="text-blue-400" />
+            <span>1. Ngày bắt đầu cày mong muốn:</span>
+            <span className="text-red-500">*</span>
+          </label>
+          <span className="text-[10px] text-zinc-400">
+            Đang chọn:{' '}
+            <strong className="text-cyan-300">
+              {selectedDayName}, {formatDateDisplay(scheduleDetails.startDate || todayStr)}
+            </strong>
+          </span>
+        </div>
 
         <div className="flex flex-wrap items-center gap-2">
           <button
@@ -156,6 +287,16 @@ export function ScheduleConfigPanel({
             />
           </div>
         </div>
+
+        {/* Cảnh báo ngày nếu Booster không làm việc vào ngày này */}
+        {validation.dayConflict && (
+          <div className="text-[11px] text-amber-400 flex items-center gap-1.5 pt-0.5">
+            <AlertTriangle size={12} className="shrink-0" />
+            <span>
+              Tuyển thủ không làm việc vào <strong>{selectedDayName}</strong>. Vui lòng chọn ngày khác hoặc đổi tuyển thủ.
+            </span>
+          </div>
+        )}
       </div>
 
       {/* 2. Chọn Khung Giờ (Ca Trực) */}
@@ -281,6 +422,16 @@ export function ScheduleConfigPanel({
             </div>
           )}
         </div>
+
+        {/* Cảnh báo giờ nếu khung giờ nằm ngoài giờ Booster */}
+        {validation.timeConflict && (
+          <div className="text-[11px] text-amber-400 flex items-center gap-1.5 pt-0.5">
+            <AlertTriangle size={12} className="shrink-0" />
+            <span>
+              Khung giờ này nằm ngoài giờ làm việc của Tuyển thủ. Booster có thể từ chối nhận nếu không sắp xếp được.
+            </span>
+          </div>
+        )}
       </div>
 
       {/* 3. Ghi Chú Riêng Về Lịch Cho Booster */}

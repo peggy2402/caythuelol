@@ -1,8 +1,9 @@
 import React from 'react';
 import Link from 'next/link';
-import { Users, Crown, Zap, Star, ArrowRight, Search, Shuffle } from 'lucide-react';
+import { Users, Crown, Zap, Star, ArrowRight, Search, Shuffle, Clock } from 'lucide-react';
 import { toast } from 'sonner';
 import UserBadge from '@/components/UserBadge';
+import { getBoosterWorkingScheduleText } from '@/lib/booster-helpers';
 
 interface BoosterSelectionSectionProps {
   assignedBooster: any;
@@ -238,6 +239,12 @@ export function BoosterSelectionSection({
                           </span>
                         </>
                       )}
+                    </div>
+
+                    {/* Khung giờ làm việc của Tuyển thủ */}
+                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-cyan-950/40 border border-cyan-500/30 text-cyan-300 text-[11px] font-semibold w-fit mt-1.5">
+                      <Clock size={12} className="text-cyan-400 shrink-0" />
+                      <span className="truncate">{getBoosterWorkingScheduleText(assignedBooster)}</span>
                     </div>
                   </div>
                 </div>

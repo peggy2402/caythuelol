@@ -121,6 +121,7 @@ import { QueueAndServerSection } from './components/sections/QueueAndServerSecti
 import { AddonsAndRolesSection } from './components/sections/AddonsAndRolesSection';
 import { AccountCredentialsSection } from './components/sections/AccountCredentialsSection';
 import { OrderSummarySidebar } from './components/sections/OrderSummarySidebar';
+import { getLocalDateString, validateScheduleWithBooster } from '@/lib/booster-helpers';
 
 function ServiceBookingContent() {
   const params = useParams();
@@ -1540,6 +1541,29 @@ function ServiceBookingContent() {
       }
     }
 
+    if (addons.schedule) {
+      if (!addons.scheduleDetails?.startDate) {
+        toast.error('Vui lòng chọn ngày bắt đầu cày mong muốn');
+        return;
+      }
+      const todayStr = getLocalDateString();
+      if (addons.scheduleDetails.startDate < todayStr) {
+        toast.error('Ngày bắt đầu cày không thể ở quá khứ. Vui lòng chọn từ hôm nay trở đi.');
+        return;
+      }
+
+      if (assignedBooster) {
+        const scheduleVal = validateScheduleWithBooster(addons.scheduleDetails, assignedBooster);
+        if (scheduleVal.hasConflict) {
+          toast.error(
+            `Xung đột lịch với Tuyển thủ: ${scheduleVal.message || 'Lịch đã chọn nằm ngoài thời gian làm việc của Booster.'} Vui lòng căn chỉnh lại hoặc đổi tuyển thủ!`,
+            { duration: 6000 }
+          );
+          return;
+        }
+      }
+    }
+
     try {
       setIsSubmitting(true);
 
@@ -1958,6 +1982,8 @@ function ServiceBookingContent() {
                 duoCfg={duoCfg}
                 mobaLanes={mobaLanes}
                 handleToggleLane={handleToggleLane}
+                assignedBooster={assignedBooster}
+                onRerollBooster={handleRandomRerollBooster}
               />
 
               <AccountCredentialsSection

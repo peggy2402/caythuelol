@@ -3,6 +3,7 @@ import Image from 'next/image';
 import { Info, Sparkles, Check } from 'lucide-react';
 import { AddonSelections, ScheduleDetails } from '@/lib/rank-calculator';
 import { LaneMeta } from '@/lib/lanes';
+import { getLocalDateString } from '@/lib/booster-helpers';
 import { ScheduleConfigPanel } from './ScheduleConfigPanel';
 
 interface AddonsAndRolesSectionProps {
@@ -16,6 +17,8 @@ interface AddonsAndRolesSectionProps {
   duoCfg: { enabled: boolean; percent: number };
   mobaLanes: LaneMeta[];
   handleToggleLane: (laneId: string) => void;
+  assignedBooster?: any;
+  onRerollBooster?: () => void;
 }
 
 export function AddonsAndRolesSection({
@@ -29,6 +32,8 @@ export function AddonsAndRolesSection({
   duoCfg,
   mobaLanes,
   handleToggleLane,
+  assignedBooster,
+  onRerollBooster,
 }: AddonsAndRolesSectionProps) {
   return (
     <div className="pt-2 border-t border-zinc-800/80">
@@ -56,7 +61,7 @@ export function AddonsAndRolesSection({
                 scheduleDetails: checked
                   ? addons.scheduleDetails || {
                       mode: 'TIME_WINDOW',
-                      startDate: new Date().toISOString().split('T')[0],
+                      startDate: getLocalDateString(),
                       timeWindow: '19:00 - 23:00',
                       customStartTime: '19:00',
                       customEndTime: '23:00',
@@ -87,7 +92,7 @@ export function AddonsAndRolesSection({
             scheduleDetails={
               addons.scheduleDetails || {
                 mode: 'TIME_WINDOW',
-                startDate: new Date().toISOString().split('T')[0],
+                startDate: getLocalDateString(),
                 timeWindow: '19:00 - 23:00',
                 customStartTime: '19:00',
                 customEndTime: '23:00',
@@ -102,6 +107,8 @@ export function AddonsAndRolesSection({
               }))
             }
             percent={Math.round(scheduleCfg.percent)}
+            assignedBooster={assignedBooster}
+            onRerollBooster={onRerollBooster}
           />
         )}
 
