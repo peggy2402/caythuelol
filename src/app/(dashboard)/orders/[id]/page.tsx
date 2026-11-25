@@ -13,7 +13,6 @@ import {
   Shield, DollarSign, CreditCard,
   Play, CheckSquare, Lock, Flag, Swords, Trophy, Save, Crosshair, ArrowLeft, Search, RefreshCw, AlertTriangle, XCircle, Zap
 } from 'lucide-react';
-import { Pencil, Trash2, X, Plus, Eye, EyeOff, History, ArrowUpRight, ArrowDownLeft, Star, User, Award, Gamepad2, ExternalLink, ChevronsUpDown, Globe } from 'lucide-react';
 import { Pencil, Trash2, X, Plus, Eye, EyeOff, History, ArrowUpRight, ArrowDownLeft, Star, User, Award, Gamepad2, ExternalLink, ChevronsUpDown, Globe, Phone } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
@@ -1550,8 +1549,8 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                       })()}
                     </span>
                     <span className={`px-3 py-1 rounded-full text-xs sm:text-sm font-semibold border ${disputeRemainingMs > 0
-                        ? 'bg-amber-950/50 border-amber-900/60 text-amber-500 shadow-[0_0_12px_rgba(245,158,11,0.15)] animate-pulse'
-                        : 'bg-zinc-900 border-zinc-800 text-zinc-500'
+                      ? 'bg-amber-950/50 border-amber-900/60 text-amber-500 shadow-[0_0_12px_rgba(245,158,11,0.15)] animate-pulse'
+                      : 'bg-zinc-900 border-zinc-800 text-zinc-500'
                       }`}>
                       {formatDisputeCountdown(disputeRemainingMs)}
                     </span>
@@ -1818,8 +1817,8 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                                         type="button"
                                         onClick={() => applySelectedLeague(l)}
                                         className={`px-3 py-2 rounded-lg text-xs font-semibold flex items-center gap-2.5 transition-all border ${isSelected
-                                            ? 'bg-blue-600/20 border-blue-500 text-blue-300 ring-1 ring-blue-500/40 shadow-sm'
-                                            : 'bg-zinc-950/80 border-zinc-800 hover:border-zinc-700 text-zinc-300 hover:text-white'
+                                          ? 'bg-blue-600/20 border-blue-500 text-blue-300 ring-1 ring-blue-500/40 shadow-sm'
+                                          : 'bg-zinc-950/80 border-zinc-800 hover:border-zinc-700 text-zinc-300 hover:text-white'
                                           }`}
                                       >
                                         <span className="text-base">{icon}</span>
@@ -1886,8 +1885,8 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                                   {order.boosterId.booster_info?.isReady !== undefined && (
                                     <span
                                       className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${order.boosterId.booster_info.isReady
-                                          ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-                                          : 'bg-zinc-800 text-zinc-400 border-zinc-700'
+                                        ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                                        : 'bg-zinc-800 text-zinc-400 border-zinc-700'
                                         }`}
                                     >
                                       {order.boosterId.booster_info.isReady ? 'Đang sẵn sàng' : 'Tạm nghỉ'}
@@ -2875,10 +2874,10 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
           <DialogHeader className="flex flex-col items-center text-center space-y-3">
             <div
               className={`w-16 h-16 rounded-2xl flex items-center justify-center border shadow-xl relative transition-all ${statusModal.targetStatus === 'IN_PROGRESS'
-                  ? 'bg-blue-500/10 border-blue-500/30 text-blue-400 shadow-blue-500/20 ring-4 ring-blue-500/10'
-                  : statusModal.targetStatus === 'COMPLETED'
-                    ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 shadow-emerald-500/20 ring-4 ring-emerald-500/10'
-                    : 'bg-amber-500/10 border-amber-500/30 text-amber-400 shadow-amber-500/20 ring-4 ring-amber-500/10'
+                ? 'bg-blue-500/10 border-blue-500/30 text-blue-400 shadow-blue-500/20 ring-4 ring-blue-500/10'
+                : statusModal.targetStatus === 'COMPLETED'
+                  ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 shadow-emerald-500/20 ring-4 ring-emerald-500/10'
+                  : 'bg-amber-500/10 border-amber-500/30 text-amber-400 shadow-amber-500/20 ring-4 ring-amber-500/10'
                 }`}
             >
               {statusModal.targetStatus === 'IN_PROGRESS' ? (
@@ -2949,16 +2948,16 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                 <span className="text-zinc-400">Trạng thái mới:</span>
                 <span
                   className={`inline-flex items-center gap-1.5 font-bold px-2.5 py-0.5 rounded-full text-[11px] border ${statusModal.targetStatus === 'IN_PROGRESS'
-                      ? 'bg-blue-500/15 text-blue-400 border-blue-500/30'
-                      : statusModal.targetStatus === 'COMPLETED'
-                        ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
-                        : 'bg-amber-500/15 text-amber-400 border-amber-500/30'
+                    ? 'bg-blue-500/15 text-blue-400 border-blue-500/30'
+                    : statusModal.targetStatus === 'COMPLETED'
+                      ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
+                      : 'bg-amber-500/15 text-amber-400 border-amber-500/30'
                     }`}
                 >
                   <span
                     className={`w-1.5 h-1.5 rounded-full ${statusModal.targetStatus === 'IN_PROGRESS'
-                        ? 'bg-blue-400 animate-pulse'
-                        : 'bg-emerald-400'
+                      ? 'bg-blue-400 animate-pulse'
+                      : 'bg-emerald-400'
                       }`}
                   />
                   {getOrderStatusInfo(statusModal.targetStatus).label}
@@ -2982,10 +2981,10 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
               disabled={statusModal.loading}
               onClick={executeStatusUpdate}
               className={`w-full py-2.5 sm:py-3 rounded-xl text-xs font-bold text-white shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 active:scale-95 ${statusModal.targetStatus === 'IN_PROGRESS'
-                  ? 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 shadow-blue-600/30 ring-1 ring-blue-400/40'
-                  : statusModal.targetStatus === 'COMPLETED'
-                    ? 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 shadow-emerald-600/30 ring-1 ring-emerald-400/40'
-                    : 'bg-blue-600 hover:bg-blue-500'
+                ? 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 shadow-blue-600/30 ring-1 ring-blue-400/40'
+                : statusModal.targetStatus === 'COMPLETED'
+                  ? 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 shadow-emerald-600/30 ring-1 ring-emerald-400/40'
+                  : 'bg-blue-600 hover:bg-blue-500'
                 }`}
             >
               {statusModal.loading ? (
@@ -3054,8 +3053,8 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                 <span className="text-zinc-500">Kết quả:</span>
                 <span
                   className={`font-bold px-2 py-0.5 rounded text-[11px] ${deleteMatchModal.matchInfo.result === 'WIN'
-                      ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                      : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+                    ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                    : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
                     }`}
                 >
                   {deleteMatchModal.matchInfo.result === 'WIN' ? 'Thắng (Win)' : 'Thua (Loss)'}
@@ -3066,8 +3065,8 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                   <span className="text-zinc-500">Điểm LP:</span>
                   <span
                     className={`font-mono font-bold ${Number(deleteMatchModal.matchInfo.lp_change) >= 0
-                        ? 'text-emerald-400'
-                        : 'text-rose-400'
+                      ? 'text-emerald-400'
+                      : 'text-rose-400'
                       }`}
                   >
                     {Number(deleteMatchModal.matchInfo.lp_change) > 0
@@ -3237,8 +3236,8 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
 
                       <div className="flex items-center gap-3">
                         <span className={`px-2 py-0.5 rounded text-[11px] font-bold ${m.result === 'WIN'
-                            ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                            : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+                          ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                          : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
                           }`}>
                           {m.result === 'WIN' ? 'Thắng' : 'Thua'}
                         </span>
@@ -3388,8 +3387,8 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                               type="button"
                               onClick={() => setRiotMatchId(mId)}
                               className={`text-[11px] font-mono px-2 py-1 rounded border transition-colors cursor-pointer ${riotMatchId === mId
-                                  ? 'bg-blue-600/30 text-blue-300 border-blue-500/50 font-bold'
-                                  : 'bg-zinc-900 text-zinc-300 border-white/5 hover:border-blue-500/30 hover:text-white'
+                                ? 'bg-blue-600/30 text-blue-300 border-blue-500/50 font-bold'
+                                : 'bg-zinc-900 text-zinc-300 border-white/5 hover:border-blue-500/30 hover:text-white'
                                 }`}
                             >
                               {mId}
