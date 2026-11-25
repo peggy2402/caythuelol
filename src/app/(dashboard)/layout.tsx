@@ -46,6 +46,9 @@ const DASHBOARD_LANGS = [
   { code: 'jp' as const, label: '日本語', flagCode: 'JP' },
 ];
 
+// Cache deduplicate thông báo socket để tránh nhảy trùng lặp 2 toast
+const recentNotiIds = new Set<string>();
+
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isLangMenuOpen, setIsLangMenuOpen] = useState(false);
@@ -224,8 +227,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       // Xử lý thông báo Realtime (Order, Match, Message, System)
       const handleNotification = (data: any) => {
         console.log('🔔 Notification:', data);
-        // Hiển thị Toast
-        toast(data.title, { description: data.message });
+        const notiId = data._id || data.id || `noti-${data.title}-${data.message}`;
+        if (recentNotiIds.has(notiId)) return;
+        recentNotiIds.add(notiId);
+        setTimeout(() => recentNotiIds.delete(notiId), 5000);
+
+        // Hiển thị Toast duy nhất (deduplicated by id)
+        toast(data.title, { id: notiId, description: data.message });
         
         // Cập nhật danh sách thông báo
         setNotifications((prev) => [data, ...prev]);

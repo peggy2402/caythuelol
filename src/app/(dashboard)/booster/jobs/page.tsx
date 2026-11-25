@@ -27,6 +27,12 @@ import { formatRankDisplayVi } from '@/lib/riotRanks';
 import { formatServiceNameVi } from '@/lib/orderStatus';
 
 const formatServiceTypeVi = (serviceType?: string, details?: any): string => {
+  if (details?.is_matches || serviceType === 'MATCHES') {
+    return 'Cày Theo Số Trận';
+  }
+  if (details?.is_placements || serviceType === 'PLACEMENTS') {
+    return 'Phân Hạng Đầu Mùa';
+  }
   if (details?.is_point_boost || details?.calc_mode === 'BY_LP' || details?.segment) {
     return 'Cày Điểm LP';
   }
@@ -297,13 +303,38 @@ export default function JobMarketPage() {
         );
     }
 
-    if (serviceType === 'PLACEMENTS') {
+    if (serviceType === 'MATCHES' || details?.is_matches) {
+        const matchCount = details?.match_count || details?.matches || 1;
+        const queueVi = details?.queue_type === 'FLEX' ? 'Linh Hoạt (Flex)' : 'Đơn / Đôi';
         return (
             <div className="flex items-center justify-between p-3 bg-black/20 rounded-lg border border-white/5">
-                <span className="text-zinc-400 text-xs">Yêu cầu</span>
+                <span className="text-zinc-400 text-xs">Mục tiêu</span>
                 <div className="text-right">
-                    <div className="font-bold text-white text-sm">{formatRankDisplayVi(details?.prev_rank)}</div>
-                    <div className="text-xs text-blue-400 font-bold">{details?.num_games} Trận đầu mùa</div>
+                    <div className="font-bold text-white text-sm">
+                        Cày <span className="text-blue-400 font-extrabold">{matchCount}</span> trận
+                    </div>
+                    <div className="text-xs text-zinc-400 mt-0.5">
+                        Hàng chờ: <span className="text-zinc-300 font-semibold">{queueVi}</span>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    if (serviceType === 'PLACEMENTS' || details?.is_placements) {
+        const matches = details?.placement_matches || details?.matches || details?.num_games || 5;
+        const prevRank = details?.previous_rank_label || details?.previous_season_rank || details?.prev_rank;
+        const queueVi = details?.queue_type === 'FLEX' ? 'Linh Hoạt (Flex)' : 'Đơn / Đôi';
+        return (
+            <div className="flex items-center justify-between p-3 bg-black/20 rounded-lg border border-white/5">
+                <span className="text-zinc-400 text-xs">Mục tiêu</span>
+                <div className="text-right">
+                    <div className="font-bold text-white text-sm">
+                        <span className="text-amber-400 font-extrabold">{matches}</span> trận phân hạng
+                    </div>
+                    <div className="text-xs text-zinc-400 mt-0.5">
+                        Rank mùa trước: <span className="text-amber-300 font-semibold">{formatRankDisplayVi(prevRank || 'Chưa có')}</span> • {queueVi}
+                    </div>
                 </div>
             </div>
         );

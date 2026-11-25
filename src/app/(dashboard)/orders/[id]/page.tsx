@@ -631,6 +631,18 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
       const isFlexOrder = rawQueue.includes('FLEX') || rawQueue.includes('LINH');
       const isSoloDuoOrder = !isFlexOrder;
 
+      // Giới hạn số trận đấu đối với Cày Theo Số Trận hoặc Phân Hạng Đầu Mùa
+      const isMatchesService = order?.serviceType === 'MATCHES' || order?.details?.is_matches;
+      const isPlacementsService = order?.serviceType === 'PLACEMENTS' || order?.details?.is_placements;
+      if (!editingMatchId && (isMatchesService || isPlacementsService)) {
+        const maxAllowed = Number(order?.details?.match_count || order?.details?.placement_matches || order?.details?.matches || order?.details?.steps_count || order?.details?.num_games || (isMatchesService ? 10 : 5));
+        const currentCount = order?.match_history?.length || 0;
+        if (currentCount >= maxAllowed) {
+          toast.error(`Đơn hàng đã cập nhật đủ ${currentCount}/${maxAllowed} trận theo yêu cầu. Không thể thêm trận vượt quá giới hạn!`);
+          return;
+        }
+      }
+
       // Validate Queue trước khi lưu nếu có dữ liệu chi tiết
       if (!editingMatchId && fetchedMatchData) {
         if (!isValorant && fetchedMatchData.info?.queueId !== undefined) {
@@ -913,6 +925,25 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
         );
         setIsSubmittingBatch(false);
         return;
+      }
+
+      // Giới hạn số trận đấu đối với Cày Theo Số Trận hoặc Phân Hạng Đầu Mùa
+      const isMatchesBatch = order?.serviceType === 'MATCHES' || order?.details?.is_matches;
+      const isPlacementsBatch = order?.serviceType === 'PLACEMENTS' || order?.details?.is_placements;
+      if (isMatchesBatch || isPlacementsBatch) {
+        const maxAllowed = Number(order?.details?.match_count || order?.details?.placement_matches || order?.details?.matches || order?.details?.steps_count || order?.details?.num_games || (isMatchesBatch ? 10 : 5));
+        const currentCount = order?.match_history?.length || 0;
+        const remaining = maxAllowed - currentCount;
+        if (remaining <= 0) {
+          toast.error(`Đơn hàng đã cập nhật đủ ${maxAllowed}/${maxAllowed} trận! Không thể thêm trận mới.`);
+          setIsSubmittingBatch(false);
+          return;
+        }
+        if (matchesToSave.length > remaining) {
+          toast.error(`Đơn hàng chỉ còn thiếu ${remaining} trận nữa là đủ ${maxAllowed} trận. Bạn đang chọn nhập ${matchesToSave.length} trận!`);
+          setIsSubmittingBatch(false);
+          return;
+        }
       }
 
       const res = await fetch(`/api/orders/${order._id}/matches/batch`, {
@@ -1615,45 +1646,77 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                                             )}
                                         </div>
 
-                                        {/* Rank Progression Display */}
+                                        {/* Rank / Match Progression Display */}
                                         <div className="bg-zinc-950/70 p-4 rounded-xl border border-zinc-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                                            <div>
-                                                <span className="text-xs text-zinc-500 block mb-1">Tiến độ rank mục tiêu:</span>
-                                                <div className="flex items-center gap-2 flex-wrap">
-                                                    <span className="text-xl sm:text-2xl font-black text-white">
-                                                        {formatRankDisplayVi(
-                                                            liveLeagueInfo 
-                                                                ? (['MASTER', 'GRANDMASTER', 'CHALLENGER', 'RADIANT'].includes(liveLeagueInfo.tier?.toUpperCase()) 
-                                                                    ? liveLeagueInfo.tier 
-                                                                    : `${liveLeagueInfo.tier} ${liveLeagueInfo.rank || ''}`.trim()) 
-                                                                : (order.details?.current_rank || order.details?.segment_label || (order.details?.is_point_boost ? 'Cao Thủ' : 'Khởi điểm'))
+                                            {(order.serviceType === 'MATCHES' || order.details?.is_matches) ? (
+                                                <div>
+                                                    <span className="text-xs text-zinc-500 block mb-1">Mục tiêu cày trận:</span>
+                                                    <div className="flex items-center gap-2 flex-wrap">
+                                                        <span className="text-xl sm:text-2xl font-black text-white">
+                                                            Cày {order.details?.match_count || order.details?.matches || 1} Trận
+                                                        </span>
+                                                        <span className="text-xs font-bold px-2 py-0.5 rounded bg-blue-500/15 text-blue-400 border border-blue-500/30">
+                                                            {order.details?.queue_type === 'FLEX' ? 'Linh Hoạt (Flex)' : 'Đơn / Đôi'}
+                                                        </span>
+                                                    </div>
+                                                    <div className="text-xs text-zinc-400 mt-1">
+                                                        Tiến độ hiện tại: <span className="text-emerald-400 font-bold font-mono">{order.match_history?.length || 0}</span> / <span className="font-bold font-mono">{order.details?.match_count || order.details?.matches || 1}</span> trận (Chỉ tính số lượng trận)
+                                                    </div>
+                                                </div>
+                                            ) : (order.serviceType === 'PLACEMENTS' || order.details?.is_placements) ? (
+                                                <div>
+                                                    <span className="text-xs text-zinc-500 block mb-1">Mục tiêu phân hạng:</span>
+                                                    <div className="flex items-center gap-2 flex-wrap">
+                                                        <span className="text-xl sm:text-2xl font-black text-white">
+                                                            {order.details?.placement_matches || order.details?.matches || 5} Trận Phân Hạng
+                                                        </span>
+                                                        <span className="text-xs font-bold px-2 py-0.5 rounded bg-amber-500/15 text-amber-400 border border-amber-500/30">
+                                                            Rank cũ: {formatRankDisplayVi(order.details?.previous_rank_label || order.details?.previous_season_rank || 'Chưa có')}
+                                                        </span>
+                                                    </div>
+                                                    <div className="text-xs text-zinc-400 mt-1">
+                                                        Tiến độ hiện tại: <span className="text-emerald-400 font-bold font-mono">{order.match_history?.length || 0}</span> / <span className="font-bold font-mono">{order.details?.placement_matches || order.details?.matches || 5}</span> trận phân hạng
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <div>
+                                                    <span className="text-xs text-zinc-500 block mb-1">Tiến độ rank mục tiêu:</span>
+                                                    <div className="flex items-center gap-2 flex-wrap">
+                                                        <span className="text-xl sm:text-2xl font-black text-white">
+                                                            {formatRankDisplayVi(
+                                                                liveLeagueInfo 
+                                                                    ? (['MASTER', 'GRANDMASTER', 'CHALLENGER', 'RADIANT'].includes(liveLeagueInfo.tier?.toUpperCase()) 
+                                                                        ? liveLeagueInfo.tier 
+                                                                        : `${liveLeagueInfo.tier} ${liveLeagueInfo.rank || ''}`.trim()) 
+                                                                    : (order.details?.current_rank || order.details?.segment_label || (order.details?.is_point_boost ? 'Cao Thủ' : 'Khởi điểm'))
+                                                            )}
+                                                        </span>
+                                                        {(order.details?.desired_rank || order.details?.is_point_boost) && (
+                                                            <>
+                                                                <span className="text-blue-400 font-bold text-lg">&rarr;</span>
+                                                                <span className="text-xl sm:text-2xl font-black text-cyan-300">
+                                                                    {order.details?.desired_rank 
+                                                                        ? formatRankDisplayVi(order.details.desired_rank) 
+                                                                        : `${order.details?.segment_label || 'Cao Thủ'} (${order.details?.desired_points ?? order.details?.target_points ?? 0} ${order.details?.unit || 'LP'})`
+                                                                    }
+                                                                </span>
+                                                            </>
                                                         )}
-                                                    </span>
-                                                    {(order.details?.desired_rank || order.details?.is_point_boost) && (
-                                                        <>
-                                                            <span className="text-blue-400 font-bold text-lg">&rarr;</span>
-                                                            <span className="text-xl sm:text-2xl font-black text-cyan-300">
-                                                                {order.details?.desired_rank 
-                                                                    ? formatRankDisplayVi(order.details.desired_rank) 
-                                                                    : `${order.details?.segment_label || 'Cao Thủ'} (${order.details?.desired_points ?? order.details?.target_points ?? 0} ${order.details?.unit || 'LP'})`
-                                                                }
-                                                            </span>
-                                                        </>
-                                                    )}
+                                                    </div>
+                                                    <div className="text-xs text-blue-400 font-bold mt-1">
+                                                        {liveLeagueInfo 
+                                                            ? `${liveLeagueInfo.leaguePoints ?? 0} LP` 
+                                                            : order.details?.is_point_boost
+                                                                ? `${order.details?.current_points ?? 0} / ${order.details?.desired_points ?? order.details?.target_points ?? 0} ${order.details?.unit || 'LP'} (+${order.details?.gained_points ?? 0} ${order.details?.unit || 'LP'})`
+                                                                : (order.details?.current_lp !== undefined && order.details?.current_lp !== null) 
+                                                                    ? `${order.details.current_lp} LP` 
+                                                                    : order.details?.steps_count 
+                                                                        ? `${order.details.steps_count} Bậc Rank` 
+                                                                        : ''
+                                                        }
+                                                    </div>
                                                 </div>
-                                                <div className="text-xs text-blue-400 font-bold mt-1">
-                                                    {liveLeagueInfo 
-                                                        ? `${liveLeagueInfo.leaguePoints ?? 0} LP` 
-                                                        : order.details?.is_point_boost
-                                                            ? `${order.details?.current_points ?? 0} / ${order.details?.desired_points ?? order.details?.target_points ?? 0} ${order.details?.unit || 'LP'} (+${order.details?.gained_points ?? 0} ${order.details?.unit || 'LP'})`
-                                                            : (order.details?.current_lp !== undefined && order.details?.current_lp !== null) 
-                                                                ? `${order.details.current_lp} LP` 
-                                                                : order.details?.steps_count 
-                                                                    ? `${order.details.steps_count} Bậc Rank` 
-                                                                    : ''
-                                                    }
-                                                </div>
-                                            </div>
+                                            )}
 
                                             {liveLeagueInfo && (
                                                 <div className="text-right text-xs text-zinc-400 bg-zinc-900/60 p-2.5 rounded-lg border border-zinc-800">
@@ -2011,19 +2074,24 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                                     <div className="flex justify-between items-center">
                                         <span className="text-zinc-500">Loại dịch vụ:</span>
                                         <span className="text-white font-bold">
-                                            {(() => {
-                                                if (order.details?.is_point_boost) return 'Cày Điểm LP Cao Thủ / Thách Đấu';
-                                                if (order.serviceType === 'NET_WINS') return 'Cày Trận Thắng (Net Wins)';
-                                                if (order.serviceType === 'RANK_BOOST') return 'Cày Cấp Bậc Rank';
-                                                if (order.serviceType === 'PLACEMENTS') return 'Cày Trận Phân Hạng';
-                                                return order.serviceType.replace(/_/g, ' ');
-                                            })()}
+                                            {formatServiceName(order.serviceType || order.snapshot?.serviceSlug, order.details)}
                                         </span>
                                     </div>
                                     <div className="flex justify-between items-center">
                                         <span className="text-zinc-500">Mục tiêu:</span>
                                         <span className="text-blue-400 font-bold text-right">
                                             {(() => {
+                                                if (order.serviceType === 'MATCHES' || order.details?.is_matches) {
+                                                    const queue = order.details?.queue_type === 'FLEX' ? 'Linh hoạt' : 'Đơn / Đôi';
+                                                    const count = order.details?.match_count || order.details?.matches || order.details?.steps_count || order.details?.num_games || 1;
+                                                    return `Cày ${count} trận (${queue})`;
+                                                }
+                                                if (order.serviceType === 'PLACEMENTS' || order.details?.is_placements) {
+                                                    const queue = order.details?.queue_type === 'FLEX' ? 'Linh hoạt' : 'Đơn / Đôi';
+                                                    const count = order.details?.placement_matches || order.details?.matches || order.details?.steps_count || order.details?.num_games || 5;
+                                                    const prevRank = order.details?.previous_rank_label || formatRankDisplayVi(order.details?.previous_season_rank || order.details?.prev_rank) || 'Chưa có';
+                                                    return `Cày ${count} trận (${queue} • Mùa trước: ${prevRank})`;
+                                                }
                                                 if (order.serviceType === 'NET_WINS') {
                                                     const isPointBoost = Boolean(order.details?.is_point_boost || order.details?.calc_mode === 'BY_LP' || order.details?.segment);
                                                     const unit = order.details?.unit || 'LP';
@@ -2039,9 +2107,6 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                                                     return order.details?.calc_mode === 'BY_GAMES' || order.details?.num_games 
                                                         ? `+${order.details?.num_games || 0} Trận thắng (${rankLabel})`
                                                         : `${order.details?.start_lp ?? order.details?.current_lp ?? 0} LP ➜ ${order.details?.target_lp ?? 0} LP (${rankLabel})`;
-                                                }
-                                                if (order.serviceType === 'PLACEMENTS') {
-                                                    return `${order.details.num_games} Trận (Rank cũ: ${formatRankDisplayVi(order.details.prev_rank)})`;
                                                 }
                                                 if (order.serviceType === 'MASTERY') {
                                                     return `${order.details.champion} (Lv.${order.details.current_mastery} ➜ Lv.${order.details.desired_mastery})`;
@@ -2408,28 +2473,50 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                             </div>
 
                             {/* Add Match Form (Booster Only) */}
-                            {isBooster && order.status === 'IN_PROGRESS' && (
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-                                    <button 
-                                        type="button"
-                                        onClick={() => setIsBatchModalOpen(true)}
-                                        className="w-full py-3 bg-gradient-to-r from-blue-600/25 via-blue-600/15 to-indigo-600/25 border border-blue-500/40 hover:border-blue-400 rounded-xl text-blue-300 hover:text-white transition-all flex items-center justify-center gap-2 font-bold text-sm shadow-lg shadow-blue-500/10 cursor-pointer"
-                                    >
-                                        <Zap className="w-4 h-4 text-blue-400" /> Nhập nhanh danh sách (Paste)
-                                    </button>
-                                    <button 
-                                        type="button"
-                                        onClick={() => {
-                                            setMatchForm({ mode: 'Rank Đơn/Đôi', champion: '', result: 'WIN', lp_change: '', reason: '' });
-                                            setEditingMatchId(null);
-                                            setIsMatchModalOpen(true);
-                                        }}
-                                        className="w-full py-3 border-2 border-dashed border-zinc-800 hover:border-zinc-600 hover:bg-zinc-900/60 rounded-xl text-zinc-400 hover:text-white transition-all flex items-center justify-center gap-2 font-bold text-sm cursor-pointer"
-                                    >
-                                        <Plus className="w-4 h-4" /> Thêm thủ công 1 trận
-                                    </button>
-                                </div>
-                            )}
+                            {isBooster && order.status === 'IN_PROGRESS' && (() => {
+                                const isMatchesCheck = order.serviceType === 'MATCHES' || order.details?.is_matches;
+                                const isPlacementsCheck = order.serviceType === 'PLACEMENTS' || order.details?.is_placements;
+                                const maxAllowed = (isMatchesCheck || isPlacementsCheck)
+                                    ? Number(order.details?.match_count || order.details?.placement_matches || order.details?.matches || order.details?.steps_count || order.details?.num_games || (isMatchesCheck ? 10 : 5))
+                                    : null;
+                                const currentCount = order.match_history?.length || 0;
+                                const isLimitReached = maxAllowed !== null && currentCount >= maxAllowed;
+
+                                if (isLimitReached) {
+                                    return (
+                                        <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 flex items-center gap-3 mt-2 shadow-lg shadow-emerald-500/5">
+                                            <CheckCircle2 className="w-5 h-5 shrink-0 text-emerald-400" />
+                                            <div className="text-xs">
+                                                <p className="font-bold text-emerald-400 text-sm">Đã cập nhật đủ {currentCount}/{maxAllowed} trận theo yêu cầu đơn hàng!</p>
+                                                <p className="text-zinc-400 mt-0.5">Tiến độ trận đấu đã đủ số lượng. Bạn có thể chỉnh sửa các trận đã lưu hoặc nhấn &quot;Báo cáo hoàn thành&quot;.</p>
+                                            </div>
+                                        </div>
+                                    );
+                                }
+
+                                return (
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                                        <button 
+                                            type="button"
+                                            onClick={() => setIsBatchModalOpen(true)}
+                                            className="w-full py-3 bg-gradient-to-r from-blue-600/25 via-blue-600/15 to-indigo-600/25 border border-blue-500/40 hover:border-blue-400 rounded-xl text-blue-300 hover:text-white transition-all flex items-center justify-center gap-2 font-bold text-sm shadow-lg shadow-blue-500/10 cursor-pointer"
+                                        >
+                                            <Zap className="w-4 h-4 text-blue-400" /> Nhập nhanh danh sách (Paste)
+                                        </button>
+                                        <button 
+                                            type="button"
+                                            onClick={() => {
+                                                setMatchForm({ mode: 'Rank Đơn/Đôi', champion: '', result: 'WIN', lp_change: '', reason: '' });
+                                                setEditingMatchId(null);
+                                                setIsMatchModalOpen(true);
+                                            }}
+                                            className="w-full py-3 border-2 border-dashed border-zinc-800 hover:border-zinc-600 hover:bg-zinc-900/60 rounded-xl text-zinc-400 hover:text-white transition-all flex items-center justify-center gap-2 font-bold text-sm cursor-pointer"
+                                        >
+                                            <Plus className="w-4 h-4" /> Thêm thủ công 1 trận
+                                        </button>
+                                    </div>
+                                );
+                            })()}
                         </div>
                     )}
                 </div>
@@ -2728,6 +2815,29 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                 <span className="text-zinc-500">Dịch vụ:</span>
                 <span className="font-semibold text-blue-300 text-right">
                   {getGameMeta(order.snapshot?.gameCode || order.details?.game || 'LOL').name} • {formatServiceName(order.serviceType || order.snapshot?.serviceSlug, order.details)}
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-zinc-300">
+                <span className="text-zinc-500">Mục tiêu:</span>
+                <span className="font-semibold text-white text-right">
+                  {(() => {
+                    if (order.serviceType === 'MATCHES' || order.details?.is_matches) {
+                      const count = order.details?.match_count || order.details?.matches || order.details?.steps_count || order.details?.num_games || 1;
+                      const queue = order.details?.queue_type === 'FLEX' ? 'Linh hoạt' : 'Đơn / Đôi';
+                      return `Cày ${count} trận (${queue})`;
+                    }
+                    if (order.serviceType === 'PLACEMENTS' || order.details?.is_placements) {
+                      const count = order.details?.placement_matches || order.details?.matches || order.details?.steps_count || 5;
+                      return `${count} trận phân hạng`;
+                    }
+                    if (order.serviceType === 'NET_WINS') {
+                      return order.details?.num_games ? `+${order.details.num_games} Trận thắng` : `${order.details?.target_lp || 0} LP`;
+                    }
+                    const curr = order.details?.current_rank ? formatRankDisplayVi(order.details.current_rank) : order.details?.current_level;
+                    const des = order.details?.desired_rank ? formatRankDisplayVi(order.details?.desired_rank) : order.details?.desired_level;
+                    if (curr && des) return `${curr} ➜ ${des}`;
+                    return curr || des || 'Theo yêu cầu';
+                  })()}
                 </span>
               </div>
               <div className="flex items-center justify-between text-zinc-300">

@@ -245,14 +245,26 @@ export default function BoosterOrdersPage() {
                           <span>
                             {order.details.start_lp ?? order.details.current_points ?? 0} {order.details.unit || 'LP'} <span className="text-zinc-600">&rarr;</span> {order.details.target_lp ?? order.details.desired_points ?? 100} {order.details.unit || 'LP'}
                           </span>
-                        ) : order.details?.current_rank ? (
+                        ) : (order.serviceType === 'MATCHES' || order.details?.is_matches) ? (
+                          <span className="text-blue-400 font-bold">
+                            {order.details?.match_count || order.details?.matches || 1} trận ({order.details?.queue_type === 'FLEX' ? 'Linh Hoạt' : 'Đơn / Đôi'})
+                          </span>
+                        ) : (order.serviceType === 'PLACEMENTS' || order.details?.is_placements) ? (
+                          <span className="text-amber-400 font-bold">
+                            {order.details?.placement_matches || order.details?.matches || 5} trận phân hạng ({formatRankDisplayVi(order.details?.previous_rank_label || order.details?.previous_season_rank || 'Khởi điểm')})
+                          </span>
+                        ) : (order.details?.current_rank && order.details?.desired_rank) ? (
                           <>
                             {formatRankDisplayVi(order.details.current_rank)} <span className="text-zinc-600">&rarr;</span> {formatRankDisplayVi(order.details.desired_rank)}
                           </>
-                        ) : (
+                        ) : (order.details?.current_level && order.details?.desired_level) ? (
                           <>
-                            {order.details?.current_level} <span className="text-zinc-600">&rarr;</span> {order.details?.desired_level}
+                            {order.details.current_level} <span className="text-zinc-600">&rarr;</span> {order.details.desired_level}
                           </>
+                        ) : (
+                          <span className="text-zinc-400">
+                            {order.details?.service_name || formatServiceNameVi(order.serviceType || order.service_type, order.details)}
+                          </span>
                         )}
                       </span>
                       <span className="hidden sm:inline w-1 h-1 rounded-full bg-zinc-700 self-center"></span>

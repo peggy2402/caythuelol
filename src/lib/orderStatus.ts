@@ -111,16 +111,23 @@ export function getOrderStatusInfo(status?: string, hasBooster?: boolean): Order
  * tránh hiển thị raw enum như RANK_BOOST, NET_WINS gây khó hiểu.
  */
 export function formatServiceNameVi(serviceType?: string, details?: any): string {
+  if (details?.is_matches) {
+    return 'Cày Theo Số Trận';
+  }
+  if (details?.is_placements) {
+    return 'Phân Hạng Đầu Mùa';
+  }
   if (details?.is_point_boost || details?.calc_mode === 'BY_LP' || details?.segment) {
     return 'Cày Điểm LP Cao Thủ / Thách Đấu';
   }
   if (!serviceType) return 'Dịch vụ Cày Thuê';
   const clean = serviceType.toUpperCase().replace(/[-\s]/g, '_');
   const map: Record<string, string> = {
+    MATCHES: 'Cày Theo Số Trận',
     RANK_BOOST: 'Cày Cấp Bậc Rank',
     NET_WINS: 'Cày Trận Thắng (Net Wins)',
     PROMOTION: 'Chuỗi Thăng Hạng',
-    PLACEMENTS: 'Đấu Phân Hạng Đầu Mùa',
+    PLACEMENTS: 'Phân Hạng Đầu Mùa',
     CHAMPION_RANK: 'Cày Rank Theo Tướng',
     MASTERY: 'Thông Thạo Tướng',
     CHAMPION_MASTERY: 'Thông Thạo Tướng',

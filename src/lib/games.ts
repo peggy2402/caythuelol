@@ -951,6 +951,73 @@ export const LOL_PROMOTION_SERIES: PromotionTierItem[] = [
   },
 ];
 
+export interface PlacementTierItem {
+  id: string; // 'IRON', 'BRONZE', 'SILVER', 'GOLD', 'PLATINUM', 'EMERALD', 'DIAMOND', 'MASTER'
+  name: string; // 'Sắt', 'Đồng', 'Bạc', 'Vàng', 'Bạch Kim', 'Lục Bảo', 'Kim Cương', 'Cao Thủ'
+  icon: string;
+  defaultPrice: number;
+  multiplier: number;
+}
+
+export const LOL_PLACEMENT_TIERS: PlacementTierItem[] = [
+  {
+    id: 'IRON',
+    name: 'Sắt',
+    icon: '/images/ranks/iron.png',
+    defaultPrice: 30000,
+    multiplier: 1.0,
+  },
+  {
+    id: 'BRONZE',
+    name: 'Đồng',
+    icon: '/images/ranks/bronze.png',
+    defaultPrice: 30000,
+    multiplier: 1.0,
+  },
+  {
+    id: 'SILVER',
+    name: 'Bạc',
+    icon: '/images/ranks/silver.png',
+    defaultPrice: 32000,
+    multiplier: 1.05,
+  },
+  {
+    id: 'GOLD',
+    name: 'Vàng',
+    icon: '/images/ranks/gold.png',
+    defaultPrice: 35000,
+    multiplier: 1.15,
+  },
+  {
+    id: 'PLATINUM',
+    name: 'Bạch Kim',
+    icon: '/images/ranks/platinum.png',
+    defaultPrice: 40000,
+    multiplier: 1.3,
+  },
+  {
+    id: 'EMERALD',
+    name: 'Lục Bảo',
+    icon: '/images/ranks/emerald.png',
+    defaultPrice: 45000,
+    multiplier: 1.5,
+  },
+  {
+    id: 'DIAMOND',
+    name: 'Kim Cương',
+    icon: '/images/ranks/diamond.png',
+    defaultPrice: 55000,
+    multiplier: 1.8,
+  },
+  {
+    id: 'MASTER',
+    name: 'Cao Thủ',
+    icon: '/images/ranks/master.png',
+    defaultPrice: 70000,
+    multiplier: 2.2,
+  },
+];
+
 export const STANDARD_SERVICE_TEMPLATES: Record<string, ServiceTemplate[]> = {
   LOL: [
     {

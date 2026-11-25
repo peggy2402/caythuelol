@@ -1033,6 +1033,23 @@ export class OrdersService {
       order.match_history = [];
     }
 
+    // Giới hạn số trận đấu đối với Cày Theo Số Trận hoặc Phân Hạng Đầu Mùa
+    const isMatchesService = order.serviceType === 'MATCHES' || order.details?.is_matches;
+    const isPlacementsService = order.serviceType === 'PLACEMENTS' || order.details?.is_placements;
+    if (isMatchesService || isPlacementsService) {
+      const maxAllowed = Number(
+        order.details?.match_count ||
+        order.details?.placement_matches ||
+        order.details?.matches ||
+        order.details?.steps_count ||
+        order.details?.num_games ||
+        (isMatchesService ? 10 : 5)
+      );
+      if (order.match_history.length >= maxAllowed) {
+        throw new BadRequestException(`Đơn hàng đã cập nhật đủ ${order.match_history.length}/${maxAllowed} trận theo yêu cầu. Không thể thêm trận vượt quá số lượng!`);
+      }
+    }
+
     const newMatch: any = {
       match_id: new Types.ObjectId().toString(),
       mode: body.mode || 'Rank Đơn/Đôi',
@@ -1096,6 +1113,23 @@ export class OrdersService {
       order.match_history = [];
     }
 
+    // Giới hạn số trận đấu đối với Cày Theo Số Trận hoặc Phân Hạng Đầu Mùa
+    const isMatchesService = order.serviceType === 'MATCHES' || order.details?.is_matches;
+    const isPlacementsService = order.serviceType === 'PLACEMENTS' || order.details?.is_placements;
+    if (isMatchesService || isPlacementsService) {
+      const maxAllowed = Number(
+        order.details?.match_count ||
+        order.details?.placement_matches ||
+        order.details?.matches ||
+        order.details?.steps_count ||
+        order.details?.num_games ||
+        (isMatchesService ? 10 : 5)
+      );
+      if (order.match_history.length >= maxAllowed) {
+        throw new BadRequestException(`Đơn hàng đã cập nhật đủ ${order.match_history.length}/${maxAllowed} trận theo yêu cầu. Không thể thêm trận vượt quá số lượng!`);
+      }
+    }
+
     const existingRiotIds = new Set(
       order.match_history
         .map((m: any) => m.riotMatchId)
@@ -1150,6 +1184,23 @@ export class OrdersService {
         match_history: order.match_history,
         addedCount: 0,
       };
+    }
+
+    if (isMatchesService || isPlacementsService) {
+      const maxAllowed = Number(
+        order.details?.match_count ||
+        order.details?.placement_matches ||
+        order.details?.matches ||
+        order.details?.steps_count ||
+        order.details?.num_games ||
+        (isMatchesService ? 10 : 5)
+      );
+      const remainingAllowed = maxAllowed - order.match_history.length;
+      if (newMatchesToAdd.length > remainingAllowed) {
+        throw new BadRequestException(
+          `Đơn hàng chỉ còn thiếu ${remainingAllowed} trận nữa là hoàn thành ${maxAllowed} trận theo yêu cầu. Bạn đang chọn thêm ${newMatchesToAdd.length} trận.`
+        );
+      }
     }
 
     order.match_history.unshift(...newMatchesToAdd);

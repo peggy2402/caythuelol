@@ -54,6 +54,9 @@ const DROPDOWN_MOTION = {
   transition: { duration: 0.18, ease: [0.22, 1, 0.36, 1] as const },
 };
 
+// Cache deduplicate thông báo socket trên Navbar để tránh hiển thị 2 toast
+const recentNavbarNotiIds = new Set<string>();
+
 function LanguageIcon({ className = 'w-4 h-4' }: { className?: string }) {
   return (
     <svg
@@ -247,6 +250,8 @@ export default function Navbar() {
   useEffect(() => {
     const userData = localStorage.getItem('user');
     const token = localStorage.getItem('token');
+    let cleanupSocket: (() => void) | null = null;
+
     if (userData) {
       try {
         const parsedUser = JSON.parse(userData);
@@ -272,9 +277,14 @@ export default function Navbar() {
           localStorage.setItem('user', JSON.stringify(currentUser));
         };
 
-        // 2. Notification Update
+        // 2. Notification Update with deduplication
         const handleNotification = (data: any) => {
-          toast(data.title, { description: data.message });
+          const notiId = data._id || data.id || `noti-${data.title}-${data.message}`;
+          if (recentNavbarNotiIds.has(notiId)) return;
+          recentNavbarNotiIds.add(notiId);
+          setTimeout(() => recentNavbarNotiIds.delete(notiId), 5000);
+
+          toast(data.title, { id: notiId, description: data.message });
           setNotifications((prev) => [data, ...prev]);
           setUnreadCount((prev) => prev + 1);
         };
@@ -307,7 +317,7 @@ export default function Navbar() {
         // Fetch fresh balance on mount to fix 0đ issue
         fetchUserData();
 
-        return () => {
+        cleanupSocket = () => {
           socket.off('connect', joinRoom);
           socket.off('wallet_update', handleWalletUpdate);
           socket.off('notification', handleNotification);
@@ -325,7 +335,9 @@ export default function Navbar() {
 
     window.addEventListener('user-updated', handleUserUpdate);
     window.addEventListener('focus', fetchUserData); // Auto refresh khi quay lại tab
+
     return () => {
+      if (cleanupSocket) cleanupSocket();
       window.removeEventListener('user-updated', handleUserUpdate);
       window.removeEventListener('focus', fetchUserData);
     };
