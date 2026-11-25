@@ -17,7 +17,7 @@ import Link from 'next/link';
 const RANKS = ['Iron', 'Bronze', 'Silver', 'Gold', 'Platinum', 'Emerald', 'Diamond', 'Master', 'Grandmaster', 'Challenger'];
 const DIVISIONS = ['IV', 'III', 'II', 'I'];
 const SERVERS = ['VN', 'KR', 'JP', 'EUW', 'NA'];
-const ACCOUNT_TYPES = ['Riot', 'Facebook', 'Google', 'Apple', 'Xbox', 'PlayStation'];
+const ACCOUNT_TYPES = ['Garena', 'Riot', 'Facebook', 'Google', 'Apple', 'Xbox', 'PlayStation'];
 
 // Base Prices (Example)
 const RANK_BASE_PRICES: Record<string, number> = {

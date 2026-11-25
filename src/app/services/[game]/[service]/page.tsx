@@ -139,16 +139,25 @@ const AOV_ACCOUNT_TYPES = [
     name: 'Garena',
     desc: 'Tài khoản Garena chính thức Liên Quân Mobile VN',
     badge: 'Khuyên dùng',
+    logo: '/images/logo-aov/logo-garena.png',
   },
   {
     id: 'Facebook',
     name: 'Facebook',
     desc: 'Đăng nhập liên kết tài khoản Facebook',
+    logo: '/images/logo-aov/logo-facebook.png',
   },
   {
     id: 'Apple',
     name: 'Apple',
     desc: 'Đăng nhập thông qua Apple ID / iCloud (iOS)',
+    logo: '/images/logo-aov/logo-apple.png',
+  },
+  {
+    id: 'Google',
+    name: 'Google',
+    desc: 'Đăng nhập thông qua tài khoản Google (Android / iOS)',
+    logo: '/images/logo-aov/logo-google.png',
   },
 ];
 
@@ -641,42 +650,44 @@ const findRankStepIndex = (gameCode: string, tier: string, div?: string): number
 
 // Component hiển thị Logo các nhà cung cấp tài khoản
 function ProviderLogo({ provider, className = 'w-5 h-5' }: { provider: string; className?: string }) {
-  switch (provider) {
+  const p = (provider || '').trim();
+  switch (p) {
     case 'Garena':
       return (
-        <svg className={className} viewBox="0 0 24 24" fill="none">
-          <rect width="24" height="24" rx="6" fill="#DC2626" />
-          <path
-            d="M15.8 9.2A4.8 4.8 0 1 0 16.5 14H12.5V11.8H19V13.1C18.7 16.5 15.8 19 12.1 19A7 7 0 1 1 17.3 7.3L15.8 9.2Z"
-            fill="#FFFFFF"
-          />
-        </svg>
+        <img
+          src="/images/logo-aov/logo-garena.png"
+          alt="Garena"
+          className={`${className} object-contain shrink-0`}
+        />
+      );
+    case 'Facebook':
+      return (
+        <img
+          src="/images/logo-aov/logo-facebook.png"
+          alt="Facebook"
+          className={`${className} object-contain shrink-0`}
+        />
+      );
+    case 'Apple':
+      return (
+        <img
+          src="/images/logo-aov/logo-apple.png"
+          alt="Apple"
+          className={`${className} object-contain shrink-0`}
+        />
+      );
+    case 'Google':
+      return (
+        <img
+          src="/images/logo-aov/logo-google.png"
+          alt="Google"
+          className={`${className} object-contain shrink-0`}
+        />
       );
     case 'Riot':
       return (
         <svg className={className} viewBox="0 0 24 24" fill="#EF4444">
           <path d="M13.43 2.18L2.09 7.64l3.19 11.75 4.67-1.3-1.63-6 1.7-.47 1.25 4.61 2.55-.71-1.25-4.61 1.7-.47 1.25 4.61 2.55-.71-1.6-5.89 2.45-.68.84 3.09 2.5-.7L21.91 2.6l-8.48-.42zM3.48 20.37l4.9-1.36.95 3.49-4.9 1.36-.95-3.49z" />
-        </svg>
-      );
-    case 'Facebook':
-      return (
-        <svg className={className} viewBox="0 0 24 24" fill="#1877F2">
-          <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
-        </svg>
-      );
-    case 'Google':
-      return (
-        <svg className={className} viewBox="0 0 24 24">
-          <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z" />
-          <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.27v3.15C3.25 21.36 7.31 24 12 24z" />
-          <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.27C.46 8.2 0 10.04 0 12s.46 3.8 1.27 5.42l4.01-3.15z" />
-          <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.31 0 3.25 2.64 1.27 6.58l4.01 3.15c.95-2.83 3.6-4.98 6.72-4.98z" />
-        </svg>
-      );
-    case 'Apple':
-      return (
-        <svg className={className} viewBox="0 0 170 170" fill="currentColor">
-          <path d="M150.37 130.25c-2.45 5.66-5.35 10.87-8.71 15.66-4.58 6.53-8.33 11.05-11.22 13.56-4.48 4.12-9.28 6.23-14.42 6.35-3.69 0-8.14-1.05-13.32-3.18-5.19-2.12-9.97-3.17-14.34-3.17-4.58 0-9.49 1.05-14.75 3.17-5.26 2.13-9.5 3.24-12.74 3.35-4.35.13-9.16-1.9-14.42-6.08-3.7-3.04-7.58-7.7-11.64-13.98-6.19-9.56-11.02-20.91-14.48-34.05-3.47-13.14-5.2-25.17-5.2-36.1 0-13.59 3.39-25.04 10.18-34.36 6.78-9.31 15.35-14.07 25.7-14.28 4.7 0 9.87 1.25 15.52 3.75 5.65 2.5 9.4 3.8 11.25 3.92 1.48-.12 5.56-1.5 12.24-4.14 6.68-2.63 12.08-3.83 16.2-3.6 12.08.74 21.57 5.17 28.48 13.3-10.74 6.53-16.01 15.44-15.82 26.74.19 8.92 3.52 16.48 10 22.68 6.47 6.2 14.16 9.68 23.07 10.45-2.12 6.54-4.87 13.14-8.24 19.8zM119.22 31.84c0-7.39 2.65-14.44 7.95-21.14 5.3-6.7 11.85-10.7 19.64-12-0.21 2.22-.21 3.92-.21 5.08 0 7.39-2.76 14.54-8.27 21.46-5.51 6.91-12.19 10.7-20.04 11.36-.11-1.48-.17-3.08-.17-4.76z" />
         </svg>
       );
     case 'Xbox':
@@ -4296,7 +4307,9 @@ function ServiceBookingContent() {
                       className="w-full bg-zinc-950 border border-zinc-800 hover:border-zinc-700 rounded-xl px-3 py-2.5 text-xs text-white flex items-center justify-between transition-colors shadow-inner group"
                     >
                       <div className="flex items-center gap-2 truncate">
-                        <ProviderLogo provider={accountType} className="w-4 h-4 shrink-0" />
+                        <div className="w-5 h-5 rounded-md flex items-center justify-center shrink-0 overflow-hidden">
+                          <ProviderLogo provider={accountType} className="w-4 h-4 object-contain" />
+                        </div>
                         <span className="font-bold truncate text-white">{currentAccountTypeObj.name}</span>
                       </div>
                       <ChevronDown size={13} className="text-zinc-500 group-hover:text-white shrink-0 ml-1 transition-colors" />
@@ -4309,7 +4322,19 @@ function ServiceBookingContent() {
                     </label>
                     <input
                       type="text"
-                      placeholder={isAov ? 'Tài khoản Garena / Facebook / Email' : 'Tên đăng nhập / Riot ID'}
+                      placeholder={
+                        isAov
+                          ? accountType === 'Garena'
+                            ? 'Tài khoản Garena (Tên đăng nhập / Email / SĐT)'
+                            : accountType === 'Facebook'
+                            ? 'Tài khoản Facebook (Email / SĐT đăng nhập)'
+                            : accountType === 'Apple'
+                            ? 'Apple ID / Email iCloud'
+                            : accountType === 'Google'
+                            ? 'Tài khoản Google (Email / Gmail)'
+                            : 'Tài khoản Liên Quân cần cày'
+                          : 'Tên đăng nhập / Riot ID'
+                      }
                       value={ingameAccount}
                       onChange={(e) => setIngameAccount(e.target.value)}
                       className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2.5 text-xs text-white placeholder-zinc-500 outline-none focus:border-blue-500 transition-colors"
@@ -4581,7 +4606,9 @@ function ServiceBookingContent() {
                 <div className="flex justify-between text-zinc-400">
                   <span>Loại tài khoản:</span>
                   <span className="text-zinc-200 flex items-center gap-1.5">
-                    <ProviderLogo provider={accountType} className="w-3.5 h-3.5" />
+                    <span className="w-4 h-4 rounded flex items-center justify-center shrink-0 overflow-hidden">
+                      <ProviderLogo provider={accountType} className="w-4 h-4 object-contain" />
+                    </span>
                     <span>{currentAccountTypeObj.name}</span>
                   </span>
                 </div>
@@ -5291,8 +5318,8 @@ function ServiceBookingContent() {
                               }`}
                           >
                             <div className="flex items-center gap-3 min-w-0">
-                              <div className="w-10 h-10 rounded-xl bg-zinc-900 border border-zinc-800 flex items-center justify-center shrink-0">
-                                <ProviderLogo provider={acc.id} className="w-5 h-5" />
+                              <div className="w-10 h-10 rounded-xl bg-zinc-900/90 border border-zinc-800 p-2 flex items-center justify-center shrink-0 overflow-hidden shadow-inner">
+                                <ProviderLogo provider={acc.id} className="w-6 h-6 object-contain" />
                               </div>
                               <div className="min-w-0">
                                 <div className="flex items-center gap-1.5">
@@ -5300,7 +5327,7 @@ function ServiceBookingContent() {
                                     {acc.name}
                                   </span>
                                   {acc.badge && (
-                                    <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-red-500/10 text-red-400 border border-red-500/20">
+                                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md bg-rose-500/10 text-rose-400 border border-rose-500/20">
                                       {acc.badge}
                                     </span>
                                   )}
@@ -5312,8 +5339,8 @@ function ServiceBookingContent() {
                             </div>
 
                             {isSelected && (
-                              <span className="w-6 h-6 rounded-full bg-purple-500 text-white flex items-center justify-center shrink-0">
-                                <Check size={14} />
+                              <span className="w-6 h-6 rounded-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white flex items-center justify-center shrink-0 shadow-sm shadow-purple-500/30">
+                                <Check size={13} strokeWidth={3} />
                               </span>
                             )}
                           </div>
