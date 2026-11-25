@@ -290,6 +290,10 @@ export default async function ShortProfilePage({ params }: Props) {
     boosterData?.service_settings?.coupon ||
     data.user?.booster_info?.service_settings?.coupon;
 
+  const boosterSchedule =
+    boosterData?.service_settings?.addonsConfig?.schedule ||
+    data.user?.booster_info?.service_settings?.addonsConfig?.schedule;
+
   const matchedServices: ServiceItem[] = [];
 
   if (Array.isArray(customServicesList) && customServicesList.length > 0) {
@@ -440,6 +444,11 @@ export default async function ShortProfilePage({ params }: Props) {
                     <CheckCircle2 size={12} className="text-emerald-400" />
                     Verified
                   </span>
+                  {boosterSchedule?.enabled && boosterSchedule.shifts && boosterSchedule.shifts.length > 0 && (
+                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-xs font-medium">
+                      ⏰ Giờ cày: {boosterSchedule.shifts.map((s: string) => s === 'morning' ? 'Sáng' : s === 'afternoon' ? 'Chiều' : s === 'evening' ? 'Tối' : 'Đêm').join(', ')}
+                    </span>
+                  )}
                 </div>
 
                 {/* Header Interactive: Metric Chips + Nút Thuê ngay + Nút Tim + Nút Share */}

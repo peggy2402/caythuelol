@@ -84,9 +84,23 @@ export default function OrderServiceCard({
       extractedRoles.length > 0
   );
 
+  const scheduleDetails =
+    order.options?.scheduleDetails ||
+    order.details?.scheduleDetails ||
+    order.details?.addons?.scheduleDetails ||
+    order.details?.service_data?.scheduleDetails;
+
+  const hasSchedule = Boolean(
+    order.options?.schedule ||
+      order.details?.addons?.schedule ||
+      order.details?.schedule ||
+      scheduleDetails
+  );
+
   const scheduleOption = activeOptions.find(([k]) => k === 'schedule');
   const simpleOptions = activeOptions.filter(([k, v]) => {
-    if (k === 'schedule' && Array.isArray(v)) return false;
+    if (k === 'schedule') return false;
+    if (k === 'scheduleDetails') return false;
     if (k === 'roles' || k === 'selectedRoles' || k === 'specificRole' || k === 'rolesDisplay') return false;
     return true;
   });
@@ -253,7 +267,54 @@ export default function OrderServiceCard({
             </div>
           )}
 
-          {/* Khung giờ nghỉ (Schedule Block) nếu có */}
+          {/* Lịch Cày Cam Kết (Scheduled Boosting - SLA) */}
+          {hasSchedule && (
+            <div className="pt-2.5 border-t border-zinc-800">
+              <div className="bg-blue-500/10 rounded-xl p-3.5 border border-blue-500/30 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-blue-400 text-xs flex items-center gap-1.5 font-bold">
+                    <Clock size={14} /> Lịch Cày Đặt Trước (SLA Cam Kết)
+                  </span>
+                  <span className="px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 font-mono text-[10px] font-bold border border-blue-500/30">
+                    {scheduleDetails?.timezone || 'GMT+7'}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                  <div className="p-2 rounded-lg bg-zinc-900/80 border border-white/5">
+                    <span className="text-zinc-500 text-[11px] block">Ngày bắt đầu cày:</span>
+                    <span className="font-bold text-white font-mono">
+                      {scheduleDetails?.startDate
+                        ? scheduleDetails.startDate.split('-').reverse().join('/')
+                        : 'Theo thỏa thuận'}
+                    </span>
+                  </div>
+
+                  <div className="p-2 rounded-lg bg-zinc-900/80 border border-white/5">
+                    <span className="text-zinc-500 text-[11px] block">Khung giờ thực hiện:</span>
+                    <span className="font-bold text-cyan-300 font-mono">
+                      {scheduleDetails?.timeWindow === 'CUSTOM'
+                        ? `${scheduleDetails.customStartTime || '20:00'} – ${scheduleDetails.customEndTime || '23:00'}`
+                        : (scheduleDetails?.timeWindow || '19:00 – 23:00 (Ca Tối)')}
+                    </span>
+                  </div>
+                </div>
+
+                {scheduleDetails?.customerNote && (
+                  <div className="text-[11px] text-zinc-300 bg-black/40 p-2 rounded-lg border border-white/5">
+                    <strong className="text-zinc-400">Ghi chú của khách:</strong> {scheduleDetails.customerNote}
+                  </div>
+                )}
+
+                <div className="text-[10px] text-zinc-400 pt-1 flex items-center gap-1 border-t border-blue-500/20">
+                  <span className="text-emerald-400 font-bold">✓ Cam kết:</span>
+                  <span>Booster đăng nhập đúng giờ • Khách không vào game trong khung giờ này.</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Khung giờ nghỉ cũ nếu có */}
           {scheduleOption && Array.isArray(scheduleOption[1]) && scheduleOption[1].length > 0 && (
             <div className="pt-2.5 border-t border-zinc-800">
               <div className="bg-red-500/5 rounded-xl p-3 border border-red-500/15">

@@ -245,8 +245,19 @@ export function getRankImage(gameCode: string, step: RankDivision | any): string
   return `/images/ranks/${tierLower || 'master'}.png`;
 }
 
+export interface ScheduleDetails {
+  mode: 'TIME_WINDOW' | 'SPECIFIC_TIME';
+  startDate: string; // YYYY-MM-DD
+  timeWindow?: string; // '08:00 - 12:00' | '13:00 - 17:00' | '19:00 - 23:00' | '23:00 - 04:00' | 'CUSTOM'
+  customStartTime?: string; // '19:00'
+  customEndTime?: string; // '23:00'
+  timezone: string; // 'GMT+7 (Việt Nam)'
+  customerNote?: string;
+}
+
 export interface AddonSelections {
   schedule?: boolean; // Đặt lịch cày
+  scheduleDetails?: ScheduleDetails; // Chi tiết cấu hình lịch cày
   specificRole?: boolean; // Tùy chọn vị trí / đường
   selectedRoles?: string[]; // Danh sách vị trí/đường đã chọn (VD: ['top', 'jungle'] hoặc ['random'])
   specificChamps?: boolean; // Tùy chọn tướng (+30%)

@@ -1,8 +1,9 @@
 import React from 'react';
 import Image from 'next/image';
 import { Info, Sparkles, Check } from 'lucide-react';
-import { AddonSelections } from '@/lib/rank-calculator';
+import { AddonSelections, ScheduleDetails } from '@/lib/rank-calculator';
 import { LaneMeta } from '@/lib/lanes';
+import { ScheduleConfigPanel } from './ScheduleConfigPanel';
 
 interface AddonsAndRolesSectionProps {
   addons: AddonSelections;
@@ -47,7 +48,24 @@ export function AddonsAndRolesSection({
             type="checkbox"
             disabled={!scheduleCfg.enabled}
             checked={addons.schedule && scheduleCfg.enabled}
-            onChange={(e) => setAddons({ ...addons, schedule: e.target.checked })}
+            onChange={(e) => {
+              const checked = e.target.checked;
+              setAddons({
+                ...addons,
+                schedule: checked,
+                scheduleDetails: checked
+                  ? addons.scheduleDetails || {
+                      mode: 'TIME_WINDOW',
+                      startDate: new Date().toISOString().split('T')[0],
+                      timeWindow: '19:00 - 23:00',
+                      customStartTime: '19:00',
+                      customEndTime: '23:00',
+                      timezone: 'GMT+7 (Việt Nam)',
+                      customerNote: '',
+                    }
+                  : addons.scheduleDetails,
+              });
+            }}
             className="w-4 h-4 rounded bg-zinc-900 border-zinc-700 text-blue-600 focus:ring-0 disabled:opacity-40"
           />
           <div className="flex items-center gap-1.5 text-xs text-zinc-200 font-medium">
@@ -62,6 +80,30 @@ export function AddonsAndRolesSection({
             <Info size={13} className="text-blue-400" />
           </div>
         </label>
+
+        {/* Khối Cấu Hình Đặt Lịch Cày Chi Tiết (SLA Cam Kết) */}
+        {addons.schedule && scheduleCfg.enabled && (
+          <ScheduleConfigPanel
+            scheduleDetails={
+              addons.scheduleDetails || {
+                mode: 'TIME_WINDOW',
+                startDate: new Date().toISOString().split('T')[0],
+                timeWindow: '19:00 - 23:00',
+                customStartTime: '19:00',
+                customEndTime: '23:00',
+                timezone: 'GMT+7 (Việt Nam)',
+                customerNote: '',
+              }
+            }
+            onChangeSchedule={(updated: ScheduleDetails) =>
+              setAddons((prev) => ({
+                ...prev,
+                scheduleDetails: updated,
+              }))
+            }
+            percent={Math.round(scheduleCfg.percent)}
+          />
+        )}
 
         <label
           className={`flex items-center gap-3 p-2.5 rounded-xl border select-none transition-colors ${

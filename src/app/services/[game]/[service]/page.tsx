@@ -1548,8 +1548,11 @@ function ServiceBookingContent() {
       const resolvedOrderServiceType = serviceSlug.toUpperCase().replace(/-/g, '_');
 
       const resolvedRoles = addons.specificRole ? (addons.selectedRoles || []) : [];
+      const resolvedSchedule = addons.schedule ? addons.scheduleDetails : undefined;
       const resolvedAddons = {
         ...addons,
+        schedule: Boolean(addons.schedule),
+        scheduleDetails: resolvedSchedule,
         roles: resolvedRoles,
         selectedRoles: resolvedRoles,
       };

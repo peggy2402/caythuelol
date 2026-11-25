@@ -425,6 +425,26 @@ export function OrderSummarySidebar({
               </span>
             </div>
 
+            {addons.schedule && (
+              <div className="flex justify-between items-start text-zinc-400 pt-2 border-t border-zinc-800/80">
+                <span className="shrink-0">Lịch cày:</span>
+                <div className="text-right">
+                  <div className="text-blue-400 font-bold">
+                    {addons.scheduleDetails?.startDate
+                      ? `${addons.scheduleDetails.startDate.split('-').reverse().slice(0, 2).join('/')} • ${
+                          addons.scheduleDetails.timeWindow === 'CUSTOM'
+                            ? `${addons.scheduleDetails.customStartTime || '20:00'} - ${addons.scheduleDetails.customEndTime || '23:00'}`
+                            : (addons.scheduleDetails.timeWindow || '19:00 - 23:00')
+                        }`
+                      : 'Đã hẹn lịch'}
+                  </div>
+                  <div className="text-[10px] text-zinc-500 font-mono">
+                    {addons.scheduleDetails?.timezone || 'GMT+7 (Việt Nam)'}
+                  </div>
+                </div>
+              </div>
+            )}
+
             {addons.specificRole && (
               <div className="flex justify-between items-start text-zinc-400 pt-2 border-t border-zinc-800/80">
                 <span className="shrink-0">Vị trí / Đường:</span>

@@ -108,6 +108,7 @@ export function BoosterSelectModal({
                   const bProfile = b.boosterProfile || b.booster_info || b;
                   const bCoupon = bProfile?.service_settings?.coupon;
                   const bMultiplier = bProfile?.service_settings?.standardConfig?.rankPriceMultiplier;
+                  const bSchedule = bProfile?.service_settings?.addonsConfig?.schedule;
 
                   return (
                     <div
@@ -173,6 +174,11 @@ export function BoosterSelectModal({
                             {bCoupon?.isActive && (
                               <span className="px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold text-[10px]">
                                 Voucher -{bCoupon.discountPercent}%
+                              </span>
+                            )}
+                            {bSchedule?.enabled && bSchedule.shifts && bSchedule.shifts.length > 0 && (
+                              <span className="px-1.5 py-0.5 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 font-semibold text-[10px] flex items-center gap-1">
+                                ⏰ Ca: {bSchedule.shifts.map((s: string) => s === 'morning' ? 'Sáng' : s === 'afternoon' ? 'Chiều' : s === 'evening' ? 'Tối' : 'Đêm').join(', ')}
                               </span>
                             )}
                           </div>

@@ -114,7 +114,7 @@ export interface BoosterCoupon {
 
 export interface AddonsConfig {
   specificRole: { enabled: boolean; percent: number };
-  schedule: { enabled: boolean; percent: number };
+  schedule: { enabled: boolean; percent: number; shifts?: string[]; customHours?: string };
   specificChamps: { enabled: boolean; percent: number };
   livestream: { enabled: boolean; fee: number };
   flash: { enabled: boolean; percent: number };
@@ -160,7 +160,7 @@ export default function BoosterServicesStudio() {
   // 3. Cấu hình phụ phí Addons (6 tiện ích)
   const [addonsConfig, setAddonsConfig] = useState<AddonsConfig>({
     specificRole: { enabled: true, percent: 25 },
-    schedule: { enabled: true, percent: 20 },
+    schedule: { enabled: true, percent: 20, shifts: ['19:00 - 23:00', '23:00 - 04:00'] },
     specificChamps: { enabled: true, percent: 30 },
     livestream: { enabled: true, fee: 349000 },
     flash: { enabled: true, percent: 35 },
@@ -1708,6 +1708,71 @@ export default function BoosterServicesStudio() {
                   <span className="text-xs text-cyan-400 font-bold">%</span>
                 </div>
               </div>
+
+              {/* Ca làm việc sẵn sàng của Booster */}
+              {addonsConfig.schedule.enabled && (
+                <div className="pt-2 border-t border-zinc-800/80 space-y-2">
+                  <label className="text-[10px] text-zinc-400 uppercase font-semibold block">
+                    Khung giờ sẵn sàng cày (SLA Ca làm việc):
+                  </label>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    {[
+                      { id: 'morning', label: 'Sáng (08:00 - 12:00)' },
+                      { id: 'afternoon', label: 'Chiều (13:00 - 17:00)' },
+                      { id: 'evening', label: 'Tối (19:00 - 23:00)' },
+                      { id: 'night', label: 'Đêm (23:00 - 04:00)' },
+                    ].map((shift) => {
+                      const currentShifts = addonsConfig.schedule.shifts || [];
+                      const isSelected = currentShifts.includes(shift.id);
+                      return (
+                        <button
+                          key={shift.id}
+                          type="button"
+                          onClick={() => {
+                            const newShifts = isSelected
+                              ? currentShifts.filter((s) => s !== shift.id)
+                              : [...currentShifts, shift.id];
+                            const updated = {
+                              ...addonsConfig,
+                              schedule: {
+                                ...addonsConfig.schedule,
+                                shifts: newShifts,
+                              },
+                            };
+                            setAddonsConfig(updated);
+                            syncAllServices(customServices, updated);
+                          }}
+                          className={`px-2 py-1.5 rounded-lg text-[10px] font-semibold border text-left transition-all ${
+                            isSelected
+                              ? 'bg-cyan-500/15 border-cyan-500/40 text-cyan-300'
+                              : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-zinc-200'
+                          }`}
+                        >
+                          {isSelected ? '✓ ' : '+ '}
+                          {shift.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <input
+                    type="text"
+                    placeholder="Ghi chú thêm giờ cày (VD: Rảnh cả ngày cuối tuần...)"
+                    value={addonsConfig.schedule.customHours || ''}
+                    onChange={(e) => {
+                      const updated = {
+                        ...addonsConfig,
+                        schedule: {
+                          ...addonsConfig.schedule,
+                          customHours: e.target.value,
+                        },
+                      };
+                      setAddonsConfig(updated);
+                      syncAllServices(customServices, updated);
+                    }}
+                    className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-2.5 py-1.5 text-[11px] text-zinc-200 placeholder:text-zinc-500 outline-none focus:border-cyan-500"
+                  />
+                </div>
+              )}
             </div>
 
             {/* 3. Tùy chọn tướng */}
