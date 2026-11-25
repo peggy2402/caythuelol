@@ -1953,29 +1953,37 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                               };
                               return (
                                 <div>
-                                  <span className="text-zinc-500 block">Số điện thoại</span>
                                   {isCustomer ? (
                                     <>
-                                      {/* Mobile (Customer): chỉ hiển thị icon Phone, bấm vào tự mở ứng dụng gọi điện nhập sẵn SĐT */}
-                                      <a
-                                        href={`tel:${cleanPhone}`}
-                                        target="_top"
-                                        onClick={handleMobilePhoneClick}
-                                        aria-label={`Gọi điện cho Booster (${order.boosterId.phoneNumber})`}
-                                        title={`Gọi điện: ${order.boosterId.phoneNumber}`}
-                                        className="inline-flex md:hidden items-center justify-center w-10 h-10 mt-1 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 active:scale-95 border border-emerald-500/35 text-emerald-400 transition-all shadow-sm shadow-emerald-500/10"
-                                      >
-                                        <Phone className="w-5 h-5" />
-                                      </a>
+                                      {/* Mobile (Customer): chỉ hiển thị chữ "Số điện thoại" + icon Phone ngay bên cạnh (ẩn dãy số) */}
+                                      <div className="flex md:hidden items-center gap-2.5">
+                                        <span className="text-zinc-500">Số điện thoại</span>
+                                        <a
+                                          href={`tel:${cleanPhone}`}
+                                          target="_top"
+                                          onClick={handleMobilePhoneClick}
+                                          aria-label="Gọi điện cho Booster"
+                                          title="Gọi điện cho Booster"
+                                          className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 active:scale-95 border border-emerald-500/35 text-emerald-400 transition-all shadow-sm shadow-emerald-500/10 shrink-0"
+                                        >
+                                          <Phone className="w-4 h-4" />
+                                        </a>
+                                      </div>
                                       {/* Desktop (Customer): giữ nguyên hiển thị số điện thoại */}
-                                      <span className="hidden md:inline-block text-emerald-400 font-mono font-semibold">
+                                      <div className="hidden md:block">
+                                        <span className="text-zinc-500 block">Số điện thoại</span>
+                                        <span className="text-emerald-400 font-mono font-semibold">
+                                          {order.boosterId.phoneNumber}
+                                        </span>
+                                      </div>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <span className="text-zinc-500 block">Số điện thoại</span>
+                                      <span className="text-emerald-400 font-mono font-semibold">
                                         {order.boosterId.phoneNumber}
                                       </span>
                                     </>
-                                  ) : (
-                                    <span className="text-emerald-400 font-mono font-semibold">
-                                      {order.boosterId.phoneNumber}
-                                    </span>
                                   )}
                                 </div>
                               );
