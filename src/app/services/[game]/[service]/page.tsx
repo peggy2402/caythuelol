@@ -515,6 +515,32 @@ function ServiceBookingContent() {
     );
   }, [aovOddAvailableSteps, aovOddStartStepId, activeRankSteps]);
 
+  const aovOddTiersInSegment = useMemo(() => {
+    const tiers: { tier: string; name: string; icon: string; image: string }[] = [];
+    const tierMeta: Record<string, { name: string; icon: string; image: string }> = {
+      BRONZE: { name: 'Đồng', icon: '🥉', image: AOV_RANK_IMAGES.BRONZE },
+      SILVER: { name: 'Bạc', icon: '🥈', image: AOV_RANK_IMAGES.SILVER },
+      GOLD: { name: 'Vàng', icon: '🥇', image: AOV_RANK_IMAGES.GOLD },
+      PLATINUM: { name: 'Bạch Kim', icon: '💎', image: AOV_RANK_IMAGES.PLATINUM },
+      DIAMOND: { name: 'Kim Cương', icon: '🔷', image: AOV_RANK_IMAGES.DIAMOND },
+      VETERAN: { name: 'Tinh Anh', icon: '🔮', image: AOV_RANK_IMAGES.VETERAN },
+    };
+
+    for (const s of aovOddAvailableSteps) {
+      if (!tiers.some((t) => t.tier === s.tier)) {
+        tiers.push({
+          tier: s.tier,
+          ...(tierMeta[s.tier] || { name: s.tier, icon: '🛡️', image: s.image }),
+        });
+      }
+    }
+    return tiers;
+  }, [aovOddAvailableSteps]);
+
+  const aovOddDivisionsForCurrentTier = useMemo(() => {
+    return aovOddAvailableSteps.filter((s) => s.tier === aovOddStartStep.tier);
+  }, [aovOddAvailableSteps, aovOddStartStep.tier]);
+
   const aovOddTargetRank = useMemo(() => {
     if (!isAov || isSelectedAovHighStar || !aovOddStartStep) return null;
     return calculateAovOddStarTargetRank(
@@ -2466,14 +2492,94 @@ function ServiceBookingContent() {
                         </div>
                       </div>
 
-                      {/* 1. Chọn Bậc & Đoàn Hiện Tại */}
+                      {/* Banner tổng quan Bậc & Đoàn đang chọn */}
+                      <div className="p-3 sm:p-3.5 rounded-2xl bg-gradient-to-r from-zinc-900 via-cyan-950/20 to-zinc-900 border border-cyan-500/40 shadow-inner flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-12 h-12 rounded-xl bg-black/60 border border-cyan-500/30 p-1 flex items-center justify-center shrink-0 shadow-[0_0_15px_rgba(6,182,212,0.25)]">
+                            <img src={aovOddStartStep.image} alt={aovOddStartStep.label} className="w-full h-full object-contain" />
+                          </div>
+                          <div className="min-w-0">
+                            <span className="text-[10px] uppercase font-bold text-cyan-400 tracking-wider block">
+                              Bậc & Đoàn Hiện Tại Bạn Đang Chọn:
+                            </span>
+                            <div className="text-sm sm:text-base font-black text-white flex items-center gap-2 flex-wrap">
+                              <span>{aovOddStartStep.label}</span>
+                              <span className="text-xs font-extrabold px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/40 font-mono">
+                                {aovOddCurrentStarsInDiv} / {aovOddStartStep.starsPerDivision || 5} ★
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="hidden sm:flex flex-col items-end shrink-0">
+                          <span className="text-[10px] text-zinc-400 font-medium">Phân khúc:</span>
+                          <span className="text-xs font-black text-cyan-300">
+                            {selectedPointTierObj.label}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* 1A. Nếu phân khúc có nhiều bậc (Đồng -> Bạch Kim), hiển thị hàng chọn Bậc rõ ràng */}
+                      {aovOddTiersInSegment.length > 1 && (
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-bold text-zinc-300 flex items-center justify-between">
+                            <span>1A. Chọn Bậc Rank Hiện Tại:</span>
+                            <span className="text-[11px] text-zinc-500">Đồng, Bạc, Vàng hoặc Bạch Kim</span>
+                          </label>
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                            {aovOddTiersInSegment.map((t) => {
+                              const isCurrentTier = aovOddStartStep.tier === t.tier;
+                              return (
+                                <button
+                                  key={t.tier}
+                                  type="button"
+                                  onClick={() => {
+                                    const tierSteps = aovOddAvailableSteps.filter((s) => s.tier === t.tier);
+                                    if (tierSteps.length > 0) {
+                                      const targetStep = tierSteps[Math.floor(tierSteps.length / 2)] || tierSteps[0];
+                                      setAovOddStartStepId(targetStep.id);
+                                      const maxS = (targetStep.starsPerDivision || 5) - 1;
+                                      if (aovOddCurrentStarsInDiv > maxS) setAovOddCurrentStarsInDiv(maxS);
+                                    }
+                                  }}
+                                  className={`p-2.5 rounded-xl border flex items-center gap-2.5 transition-all cursor-pointer ${
+                                    isCurrentTier
+                                      ? 'bg-cyan-500/20 border-cyan-400 ring-1 ring-cyan-400/50 shadow-sm text-cyan-200'
+                                      : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:border-zinc-700 hover:text-white'
+                                  }`}
+                                >
+                                  <img src={t.image} alt={t.name} className="w-6 h-6 object-contain shrink-0" />
+                                  <div className="min-w-0 text-left">
+                                    <span className="text-xs font-black block truncate">{t.name}</span>
+                                  </div>
+                                  {isCurrentTier && <Check size={14} className="text-cyan-400 ml-auto shrink-0" />}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* 1B. Chọn Đoàn (Division: V -> I) - Hiển thị to rõ, không bao giờ bị cắt chữ */}
                       <div className="space-y-2">
-                        <label className="text-xs font-bold text-zinc-300 flex items-center gap-1.5">
-                          <span>1. Bậc & Đoàn hiện tại của tài khoản:</span>
-                          <span className="text-red-500">*</span>
-                        </label>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
-                          {aovOddAvailableSteps.map((step) => {
+                        <div className="flex items-center justify-between">
+                          <label className="text-xs font-bold text-zinc-300 flex items-center gap-1.5">
+                            <span>{aovOddTiersInSegment.length > 1 ? '1B.' : '1.'} Chọn Đoàn Rank Hiện Tại:</span>
+                            <span className="text-red-500">*</span>
+                          </label>
+                          <span className="text-[11px] text-zinc-400">
+                            Đang chọn: <strong className="text-cyan-300 font-bold">{aovOddStartStep.label}</strong>
+                          </span>
+                        </div>
+
+                        <div className={`grid ${
+                          aovOddDivisionsForCurrentTier.length === 3
+                            ? 'grid-cols-3'
+                            : aovOddDivisionsForCurrentTier.length === 4
+                            ? 'grid-cols-4'
+                            : 'grid-cols-5'
+                        } gap-2 sm:gap-3`}>
+                          {aovOddDivisionsForCurrentTier.map((step) => {
                             const isCurrentStep = aovOddStartStep.id === step.id;
                             return (
                               <button
@@ -2484,21 +2590,38 @@ function ServiceBookingContent() {
                                   const maxS = (step.starsPerDivision || 5) - 1;
                                   if (aovOddCurrentStarsInDiv > maxS) setAovOddCurrentStarsInDiv(maxS);
                                 }}
-                                className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer flex items-center gap-2 ${
+                                className={`p-2 sm:p-2.5 rounded-2xl border flex flex-col items-center justify-center text-center transition-all cursor-pointer relative ${
                                   isCurrentStep
-                                    ? 'bg-cyan-500/20 border-cyan-400 ring-1 ring-cyan-400/50 shadow-[0_0_15px_rgba(6,182,212,0.2)]'
-                                    : 'bg-zinc-900/80 border-zinc-800 hover:border-zinc-700 hover:bg-zinc-800/60'
+                                    ? 'bg-gradient-to-b from-cyan-500/25 to-cyan-950/40 border-cyan-400 ring-2 ring-cyan-400/50 shadow-[0_0_20px_rgba(6,182,212,0.25)] scale-[1.02]'
+                                    : 'bg-zinc-900/90 border-zinc-800 hover:border-zinc-700 hover:bg-zinc-800/80 text-zinc-400 hover:text-white'
                                 }`}
                               >
-                                <img src={step.image} alt={step.label} className="w-6 h-6 object-contain shrink-0" />
-                                <div className="min-w-0">
-                                  <span className={`text-xs font-extrabold block truncate ${isCurrentStep ? 'text-cyan-200' : 'text-white'}`}>
-                                    {step.label}
-                                  </span>
-                                  <span className="text-[10px] text-zinc-500 block truncate">
-                                    {step.starsPerDivision || 5} sao/đoàn
-                                  </span>
+                                {/* Icon Rank */}
+                                <div className="w-8 h-8 sm:w-10 sm:h-10 mb-1 flex items-center justify-center">
+                                  <img
+                                    src={step.image}
+                                    alt={step.label}
+                                    className="w-full h-full object-contain drop-shadow"
+                                  />
                                 </div>
+
+                                {/* Đoàn La Mã to rõ */}
+                                <span className={`text-xs sm:text-sm font-black whitespace-nowrap uppercase tracking-tight ${
+                                  isCurrentStep ? 'text-white' : 'text-zinc-200'
+                                }`}>
+                                  Đoàn {step.division}
+                                </span>
+
+                                {/* Số sao mỗi đoàn */}
+                                <span className="text-[10px] text-zinc-400 whitespace-nowrap mt-0.5">
+                                  {step.starsPerDivision || 5} sao
+                                </span>
+
+                                {isCurrentStep && (
+                                  <div className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-cyan-400 text-black flex items-center justify-center shadow-md">
+                                    <Check size={10} strokeWidth={3} />
+                                  </div>
+                                )}
                               </button>
                             );
                           })}
