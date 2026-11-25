@@ -7,186 +7,41 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useLanguage } from '@/lib/i18n';
 import { socket } from '@/lib/socket';
-import { getLaneMeta } from '@/lib/lanes';
 import {
-  Loader2, CheckCircle2, AlertCircle, Clock,
-  Shield, DollarSign, CreditCard,
-  Play, CheckSquare, Lock, Flag, Swords, Trophy, Save, Crosshair, ArrowLeft, Search, RefreshCw, AlertTriangle, XCircle, Zap
+  Loader2,
+  Clock,
+  ArrowLeft,
 } from 'lucide-react';
-import { Pencil, Trash2, X, Plus, Eye, EyeOff, History, ArrowUpRight, ArrowDownLeft, Star, User, Award, Gamepad2, ExternalLink, ChevronsUpDown, Globe, Phone, ChevronDown, ChevronUp } from 'lucide-react';
-import { format } from 'date-fns';
 import { toast } from 'sonner';
 import ChatWindow from '@/components/chat/ChatWindow';
-import { motion, AnimatePresence } from 'framer-motion';
-import NetWinsOrderView from '@/components/orders/NetWinsOrderView';
-import RankBoostOrderView from '@/components/orders/RankBoostOrderView';
-import PromotionOrderView from '@/components/orders/PromotionOrderView';
-import PlacementsOrderView from '@/components/orders/PlacementsOrderView';
-import MatchesOrderView from '@/components/orders/MatchesOrderView';
-import MasteryOrderView from '@/components/orders/MasteryOrderView';
-import LevelingOrderView from '@/components/orders/LevelingOrderView';
-import OnBetOrderView from '@/components/orders/OnBetOrderView';
-import CoachingOrderView from '@/components/orders/CoachingOrderView';
 import SettlementModal from '@/components/orders/SettlementModal';
 import RatingModal from '@/components/orders/RatingModal';
-import { GAMES_CATALOG, GameDefinition, getServiceMeta } from '@/lib/games';
 import ServerSelectModal from '@/components/ServerSelectModal';
-import ServerFlag from '@/components/ServerFlag';
-import { getServerByCode } from '@/lib/servers';
-import { getBoosterOrderValue, getBoosterDepositValue } from '@/lib/orderPricing';
-import { getOrderStatusInfo, formatServiceNameVi } from '@/lib/orderStatus';
-import { formatRankDisplayVi, LOL_QUEUE_NAMES, getLolQueueName } from '@/lib/riotRanks';
+import { getOrderStatusInfo } from '@/lib/orderStatus';
+import { formatRankDisplayVi, getLolQueueName } from '@/lib/riotRanks';
+
+// Extracted Sub-components and Helpers
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from '@/components/ui/dialog';
-
-// Helper lấy metadata tựa game
-function getGameMeta(gameCode?: string) {
-  const code = (gameCode || 'LOL').toUpperCase();
-  const game = GAMES_CATALOG.find((g: GameDefinition) => g.id.toUpperCase() === code);
-  if (game) {
-    return {
-      name: game.name,
-      shortName: game.shortName,
-      accentColor: game.accentColor || '#06b6d4',
-    };
-  }
-  return {
-    name: code,
-    shortName: code,
-    accentColor: '#3b82f6',
-  };
-}
-
-// Helper format tên dịch vụ thân thiện
-function formatServiceName(serviceType?: string, details?: any) {
-  return formatServiceNameVi(serviceType, details);
-}
-
-// Helper làm gọn thông tin chi tiết trận đấu (loại bỏ challenges hàng trăm KB của Riot để tránh lỗi 413 Payload Too Large)
-function sanitizeMatchDetailClient(detail: any) {
-  if (!detail || typeof detail !== 'object') return null;
-  try {
-    if (detail.info && Array.isArray(detail.info.participants)) {
-      return {
-        metadata: detail.metadata || null,
-        info: {
-          gameCreation: detail.info.gameCreation,
-          gameDuration: detail.info.gameDuration,
-          gameEndTimestamp: detail.info.gameEndTimestamp,
-          gameId: detail.info.gameId,
-          gameMode: detail.info.gameMode,
-          gameType: detail.info.gameType,
-          gameVersion: detail.info.gameVersion,
-          mapId: detail.info.mapId,
-          queueId: detail.info.queueId,
-          teams: detail.info.teams,
-          participants: detail.info.participants.map((p: any) => ({
-            teamId: p.teamId,
-            win: p.win,
-            championName: p.championName,
-            champLevel: p.champLevel,
-            riotIdGameName: p.riotIdGameName,
-            summonerName: p.summonerName,
-            riotIdTagline: p.riotIdTagline,
-            kills: p.kills,
-            deaths: p.deaths,
-            assists: p.assists,
-            item0: p.item0,
-            item1: p.item1,
-            item2: p.item2,
-            item3: p.item3,
-            item4: p.item4,
-            item5: p.item5,
-            item6: p.item6,
-            totalDamageDealtToChampions: p.totalDamageDealtToChampions,
-            goldEarned: p.goldEarned,
-            totalMinionsKilled: p.totalMinionsKilled,
-            neutralMinionsKilled: p.neutralMinionsKilled,
-          })),
-        },
-      };
-    }
-    return detail;
-  } catch {
-    return detail;
-  }
-}
-
-// Trả về style màu sắc cho badge Game
-const getBoosterGameBadgeStyle = (gameCode: string): string => {
-  const code = (gameCode || '').toUpperCase();
-  if (code.includes('LOL') || code.includes('LMHT')) return 'bg-blue-500/15 text-blue-400 border-blue-500/30';
-  if (code.includes('AOV') || code.includes('LIENQUAN')) return 'bg-orange-500/15 text-orange-400 border-orange-500/30';
-  if (code.includes('VAL')) return 'bg-rose-500/15 text-rose-400 border-rose-500/30';
-  if (code.includes('TFT') || code.includes('DTCL')) return 'bg-amber-500/15 text-amber-400 border-amber-500/30';
-  if (code.includes('CS2') || code.includes('CS')) return 'bg-yellow-500/15 text-yellow-400 border-yellow-500/30';
-  return 'bg-cyan-500/15 text-cyan-400 border-cyan-500/30';
-};
-
-// Định dạng tên dịch vụ tiếng Việt chuẩn chỉ, gọn gàng theo từng tựa game
-const formatBoosterServiceLabel = (gameCode: string, slug: string, customName?: string): string => {
-  const normGame = (gameCode || 'LOL').toUpperCase();
-  const cleanSlug = (slug || '').toLowerCase().replace(/_/g, '-');
-
-  if (normGame === 'LOL' || normGame === 'LMHT') {
-    if (cleanSlug.includes('rank')) return 'Cày Rank / Elo';
-    if (cleanSlug.includes('net-win') || cleanSlug.includes('win') || cleanSlug.includes('lp')) return 'Cày Điểm Cao Thủ / Thách Đấu';
-    if (cleanSlug.includes('match')) return 'Cày Số Trận Thắng';
-    if (cleanSlug.includes('placement')) return 'Phân Hạng Đầu Mùa';
-    if (cleanSlug.includes('promo')) return 'Chuỗi Thăng Hạng';
-    if (cleanSlug.includes('level')) return 'Cày Cấp Độ 1-30';
-    if (cleanSlug.includes('mastery')) return 'Cày Thông Thạo Tướng';
-    if (cleanSlug.includes('coach')) return 'Huấn Luyện Coaching';
-  }
-
-  if (normGame === 'AOV' || normGame === 'LIENQUAN') {
-    if (cleanSlug.includes('rank')) return 'Cày Rank Bậc';
-    if (cleanSlug.includes('net-win') || cleanSlug.includes('win') || cleanSlug.includes('sao') || cleanSlug.includes('star')) return 'Cày Rank Theo Số Sao';
-    if (cleanSlug.includes('match')) return 'Cày Số Trận Thắng';
-    if (cleanSlug.includes('placement')) return 'Phân Hạng Đầu Mùa';
-    if (cleanSlug.includes('promo')) return 'Chuỗi Thăng Hạng';
-    if (cleanSlug.includes('coach')) return 'Huấn Luyện Coaching';
-  }
-
-  if (normGame === 'VALORANT' || normGame === 'VAL') {
-    if (cleanSlug.includes('rank')) return 'Cày Rank / Elo';
-    if (cleanSlug.includes('placement')) return 'Cày Phân Hạng';
-    if (cleanSlug.includes('net-win') || cleanSlug.includes('win') || cleanSlug.includes('rr')) return 'Cày Điểm RR';
-    if (cleanSlug.includes('match')) return 'Cày Số Trận Thắng';
-    if (cleanSlug.includes('level')) return 'Cày Cấp 20';
-    if (cleanSlug.includes('coach')) return 'Huấn Luyện Coaching';
-  }
-
-  if (normGame === 'TFT' || normGame === 'DTCL') {
-    if (cleanSlug.includes('rank')) return 'Cày Rank / Top ĐTCL';
-    if (cleanSlug.includes('net-win') || cleanSlug.includes('win') || cleanSlug.includes('lp')) return 'Cày Điểm LP ĐTCL';
-    if (cleanSlug.includes('match')) return 'Cày Số Trận ĐTCL';
-    if (cleanSlug.includes('placement')) return 'Phân Hạng ĐTCL';
-    if (cleanSlug.includes('coach')) return 'Huấn Luyện Coaching';
-  }
-
-  if (normGame === 'CS2') {
-    if (cleanSlug.includes('rank')) return 'Cày Premier / Competitive';
-    if (cleanSlug.includes('net-win') || cleanSlug.includes('win') || cleanSlug.includes('rating')) return 'Cày Điểm Rating CS2';
-    if (cleanSlug.includes('match')) return 'Cày Số Trận CS2';
-    if (cleanSlug.includes('coach')) return 'Huấn Luyện Coaching';
-  }
-
-  if (customName && customName !== slug && !customName.includes('-')) {
-    return customName;
-  }
-
-  const meta = getServiceMeta(normGame, cleanSlug);
-  if (meta?.name) return meta.name;
-
-  return cleanSlug.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
-};
+  getGameMeta,
+  formatServiceName,
+  sanitizeMatchDetailClient,
+  formatBoosterServiceLabel,
+} from './components/orderHelpers';
+import CancelOrderModal from './components/CancelOrderModal';
+import EditAccountModal from './components/EditAccountModal';
+import StatusConfirmModal from './components/StatusConfirmModal';
+import DeleteMatchModal from './components/DeleteMatchModal';
+import BatchMatchModal from './components/BatchMatchModal';
+import DisputeModal from './components/DisputeModal';
+import MatchFormModal from './components/MatchFormModal';
+import MatchDetailModal from './components/MatchDetailModal';
+import OrderDisputeBanner from './components/OrderDisputeBanner';
+import OrderBoosterCard from './components/OrderBoosterCard';
+import OrderAccountCard from './components/OrderAccountCard';
+import OrderServiceCard from './components/OrderServiceCard';
+import OrderPaymentCard from './components/OrderPaymentCard';
+import OrderMatchHistoryList from './components/OrderMatchHistoryList';
+import { OrderGameProgressCard } from './components/OrderGameProgressCard';
 
 export default function OrderDetailsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -1543,19 +1398,6 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
     finally { setIsFetchingRiot(false); }
   };
 
-  // Helper tính KDA
-  const calculateKDA = (k: number, d: number, a: number) => {
-    return ((k + a) / Math.max(1, d)).toFixed(1);
-  };
-
-  // Helper tính Team KDA
-  const calculateTeamStats = (participants: any[]) => {
-    const teams: Record<number, { kills: number, deaths: number, assists: number }> = { 100: { kills: 0, deaths: 0, assists: 0 }, 200: { kills: 0, deaths: 0, assists: 0 } };
-    participants.forEach(p => {
-      if (teams[p.teamId]) { teams[p.teamId].kills += p.kills; teams[p.teamId].deaths += p.deaths; teams[p.teamId].assists += p.assists; }
-    });
-    return teams;
-  };
 
   // --- UI COMPONENTS ---
   const StatusBadge = ({ status }: { status: string }) => {
@@ -1686,10 +1528,15 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
   return (
     <div className="w-full text-white font-sans">
       <div className="max-w-5xl mx-auto">
-
         <div className="mb-4">
           <Link
-            href={user?.role === 'BOOSTER' ? '/booster/my-orders' : user?.role === 'ADMIN' ? '/admin/orders' : '/orders'}
+            href={
+              user?.role === 'BOOSTER'
+                ? '/booster/my-orders'
+                : user?.role === 'ADMIN'
+                ? '/admin/orders'
+                : '/orders'
+            }
             className="inline-flex items-center gap-2 text-sm font-medium text-zinc-400 hover:text-white transition-colors"
           >
             <ArrowLeft className="w-4 h-4" /> Quay lại danh sách đơn hàng
@@ -1701,12 +1548,15 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
           {/* Status Card */}
           <div className="bg-zinc-900/80 backdrop-blur-md border border-zinc-800 rounded-2xl p-6 shadow-xl relative overflow-hidden">
             {/* Background Glow */}
-            <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none"></div>
+            <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none" />
 
             {(() => {
               const gameCode = order.snapshot?.gameCode || order.details?.game || 'LOL';
               const gameMeta = getGameMeta(gameCode);
-              const serviceName = formatServiceName(order.serviceType || order.snapshot?.serviceSlug, order.details);
+              const serviceName = formatServiceName(
+                order.serviceType || order.snapshot?.serviceSlug,
+                order.details
+              );
 
               return (
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 relative z-10">
@@ -1734,8 +1584,10 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                       <Clock size={12} /> {new Date(order.createdAt).toLocaleString('vi-VN')}
                       {order.details?.server && (
                         <>
-                          <span className="w-1 h-1 rounded-full bg-zinc-600"></span>
-                          <span>Máy chủ: <strong className="text-zinc-300">{order.details.server}</strong></span>
+                          <span className="w-1 h-1 rounded-full bg-zinc-600" />
+                          <span>
+                            Máy chủ: <strong className="text-zinc-300">{order.details.server}</strong>
+                          </span>
                         </>
                       )}
                     </p>
@@ -1745,120 +1597,48 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
               );
             })()}
 
-            {/* Dispute Deadline Card (UI chuẩn theo ảnh 2) */}
-            {order.status === 'COMPLETED' && disputeDeadline && (
-              <div className="mt-4 p-4 sm:p-5 rounded-2xl bg-zinc-950/80 border border-zinc-800 shadow-md space-y-3 relative z-10">
-                {/* Title */}
-                <div className="flex items-center gap-2 text-white font-bold text-sm sm:text-base">
-                  <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5 text-amber-500 shrink-0" />
-                  <span>Thời hạn gửi khiếu nại</span>
-                </div>
-
-                {/* Content: Hạn cuối + Thời gian + Badge đếm ngược */}
-                <div className="space-y-1">
-                  <div className="text-xs text-zinc-400 font-medium">Hạn cuối</div>
-                  <div className="flex items-center justify-between gap-3 flex-wrap">
-                    <span className="text-xl sm:text-2xl font-bold font-mono text-white tracking-tight">
-                      {(() => {
-                        const h = disputeDeadline.getHours();
-                        const period = h < 6 ? 'Rạng sáng' : h < 12 ? 'Sáng' : h < 18 ? 'Chiều' : 'Tối';
-                        return `${format(disputeDeadline, 'HH:mm:ss')} (${period}) • ${format(disputeDeadline, 'dd/MM/yyyy')}`;
-                      })()}
-                    </span>
-                    <span className={`px-3 py-1 rounded-full text-xs sm:text-sm font-semibold border ${disputeRemainingMs > 0
-                      ? 'bg-amber-950/50 border-amber-900/60 text-amber-500 shadow-[0_0_12px_rgba(245,158,11,0.15)] animate-pulse'
-                      : 'bg-zinc-900 border-zinc-800 text-zinc-500'
-                      }`}>
-                      {formatDisputeCountdown(disputeRemainingMs)}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Footer description */}
-                <p className="text-xs text-zinc-400 leading-relaxed pt-1">
-                  Nếu chưa hài lòng hoặc gặp vấn đề với dịch vụ, đừng ngần ngại gửi khiếu nại để LeoRank hỗ trợ bạn nhé!
-                </p>
-              </div>
-            )}
-
-            {/* Actions */}
-            <div className="mt-6 space-y-3">
-              {/* Khi đơn đang chờ tuyển thủ nhận (PAID hoặc PENDING_PAYMENT) và người xem là Customer */}
-              {isCustomer && ['PENDING_PAYMENT', 'PAID'].includes(order.status) && (
-                <div className="space-y-3">
-                  <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs sm:text-sm flex items-start gap-3">
-                    <Clock className="w-5 h-5 text-amber-400 shrink-0 mt-0.5 animate-pulse" />
-                    <div>
-                      <p className="font-bold text-amber-200">Đơn hàng đang chờ Tuyển thủ nhận việc trên Sàn</p>
-                      <p className="text-xs text-amber-300/80 mt-0.5">Bạn có thể chỉnh sửa thông tin tài khoản hoặc hủy đơn để nhận lại 100% tiền cọc về ví bất kỳ lúc nào.</p>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <button
-                      onClick={() => setIsEditAccountModalOpen(true)}
-                      className="w-full py-3 bg-zinc-800 hover:bg-zinc-700 text-white font-bold rounded-xl flex items-center justify-center gap-2 transition-colors border border-zinc-700 text-sm shadow-md"
-                    >
-                      <Pencil className="w-4 h-4 text-blue-400" /> Chỉnh sửa thông tin tài khoản
-                    </button>
-                    <button
-                      onClick={() => setIsCancelModalOpen(true)}
-                      className="w-full py-3 bg-red-950/40 hover:bg-red-900/60 text-red-400 hover:text-red-300 font-bold rounded-xl flex items-center justify-center gap-2 transition-colors border border-red-500/30 text-sm shadow-md"
-                    >
-                      <XCircle className="w-4 h-4 text-red-500" /> Hủy đơn hàng (Hoàn 100% tiền)
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {isBooster && order.status === 'APPROVED' && (
-                <button onClick={() => handleUpdateStatus('IN_PROGRESS')} className="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl flex items-center justify-center gap-2 transition-colors">
-                  <Play className="w-4 h-4" /> Bắt đầu cày
-                </button>
-              )}
-              {isBooster && order.status === 'IN_PROGRESS' && (
-                <button onClick={() => handleUpdateStatus('COMPLETED')} className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl flex items-center justify-center gap-2 transition-colors shadow-lg shadow-emerald-600/20">
-                  <CheckSquare className="w-4 h-4" /> Báo cáo hoàn thành
-                </button>
-              )}
-
-              {/* Nút báo lỗi chung CHỈ hiển thị khi đơn đã có tuyển thủ nhận việc hoặc hoàn thành (Customer trong vòng 24h) */}
-              {['APPROVED', 'IN_PROGRESS', 'COMPLETED'].includes(order.status) && (
-                isDisputeExpired ? (
-                  <div className="w-full py-3 px-4 bg-zinc-900/60 text-zinc-400 text-xs font-medium rounded-xl flex items-center justify-center gap-2 border border-zinc-800 text-center">
-                    <Lock className="w-4 h-4 text-emerald-400 shrink-0" />
-                    <span>Đã quá thời hạn 24h khiếu nại — Số tiền đơn hàng đã thuộc hoàn toàn về Booster.</span>
-                  </div>
-                ) : (
-                  <button onClick={() => setIsDisputeModalOpen(true)} className="w-full py-3 bg-red-900/20 hover:bg-red-900/40 text-red-400 font-bold rounded-xl flex items-center justify-center gap-2 transition-colors border border-red-500/20">
-                    <AlertTriangle className="w-4 h-4" /> Báo lỗi / Có vấn đề
-                  </button>
-                )
-              )}
-
-              {/* Nút Đánh giá Booster */}
-              {canRate && (
-                <button onClick={() => setIsRatingModalOpen(true)} className="w-full py-3 bg-yellow-600 hover:bg-yellow-500 text-white font-bold rounded-xl flex items-center justify-center gap-2 transition-colors shadow-lg shadow-yellow-600/20">
-                  <Star className="w-4 h-4 fill-current" /> Đánh giá Booster
-                </button>
-              )}
-
-              {/* Thông báo quá hạn đánh giá */}
-              {isCustomer && order.status === 'COMPLETED' && !order.rating && isRatingExpired && (
-                <div className="w-full py-3 bg-zinc-900/50 text-zinc-500 font-medium rounded-xl flex items-center justify-center gap-2 border border-zinc-800">
-                  <Clock className="w-4 h-4" /> Đã hết hạn đánh giá (Quá 7 ngày)
-                </div>
-              )}
-            </div>
+            <OrderDisputeBanner
+              order={order}
+              isCustomer={isCustomer}
+              isBooster={isBooster}
+              disputeDeadline={disputeDeadline}
+              disputeRemainingMs={disputeRemainingMs}
+              formatDisputeCountdown={formatDisputeCountdown}
+              isDisputeExpired={isDisputeExpired}
+              canRate={canRate}
+              isRatingExpired={isRatingExpired}
+              onOpenEditAccount={() => setIsEditAccountModalOpen(true)}
+              onOpenCancelModal={() => setIsCancelModalOpen(true)}
+              onOpenDisputeModal={() => setIsDisputeModalOpen(true)}
+              onOpenRatingModal={() => setIsRatingModalOpen(true)}
+              onUpdateStatus={handleUpdateStatus}
+            />
           </div>
 
           {/* TABS: Info vs Progress */}
-          <div id="order-tabs-container" className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden shadow-lg scroll-mt-24">
+          <div
+            id="order-tabs-container"
+            className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden shadow-lg scroll-mt-24"
+          >
             <div className="flex border-b border-zinc-800">
-              <button onClick={() => setActiveTab('INFO')} className={`flex-1 py-4 text-sm font-bold transition-all border-b-2 ${activeTab === 'INFO' ? 'bg-zinc-800/50 text-white border-blue-500' : 'text-zinc-500 border-transparent hover:text-zinc-300 hover:bg-zinc-800/30'}`}>
+              <button
+                onClick={() => setActiveTab('INFO')}
+                className={`flex-1 py-4 text-sm font-bold transition-all border-b-2 ${
+                  activeTab === 'INFO'
+                    ? 'bg-zinc-800/50 text-white border-blue-500'
+                    : 'text-zinc-500 border-transparent hover:text-zinc-300 hover:bg-zinc-800/30'
+                }`}
+              >
                 Thông tin đơn hàng
               </button>
-              <button onClick={() => setActiveTab('PROGRESS')} className={`flex-1 py-4 text-sm font-bold transition-all border-b-2 ${activeTab === 'PROGRESS' ? 'bg-zinc-800/50 text-white border-blue-500' : 'text-zinc-500 border-transparent hover:text-zinc-300 hover:bg-zinc-800/30'}`}>
+              <button
+                onClick={() => setActiveTab('PROGRESS')}
+                className={`flex-1 py-4 text-sm font-bold transition-all border-b-2 ${
+                  activeTab === 'PROGRESS'
+                    ? 'bg-zinc-800/50 text-white border-blue-500'
+                    : 'text-zinc-500 border-transparent hover:text-zinc-300 hover:bg-zinc-800/30'
+                }`}
+              >
                 Tiến độ & Trận đấu
               </button>
             </div>
@@ -1866,1024 +1646,82 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
             <div className="p-6">
               {activeTab === 'INFO' ? (
                 <div className="space-y-6">
-                  {/* Unified Game Profile & Rank Status Block */}
-                  {(() => {
-                    const gameCode = order.snapshot?.gameCode || order.details?.game || 'LOL';
-                    const gameMeta = getGameMeta(gameCode);
-                    const serviceName = formatServiceName(order.serviceType || order.snapshot?.serviceSlug);
+                  <OrderGameProgressCard
+                    order={order}
+                    liveLeagueInfo={liveLeagueInfo}
+                    isBooster={isBooster}
+                    ingameName={ingameName}
+                    setIngameName={setIngameName}
+                    handleCheckAndSaveRank={handleCheckAndSaveRank}
+                    isCheckingRank={isCheckingRank}
+                    availableLeagues={availableLeagues}
+                    applySelectedLeague={applySelectedLeague}
+                  />
 
-                    return (
-                      <div className="bg-zinc-900 border border-zinc-800 p-5 rounded-2xl animate-in fade-in duration-300 space-y-4">
-                        <div className="flex justify-between items-center">
-                          <div className="flex items-center gap-2">
-                            <Trophy className="w-4 h-4 text-yellow-500" />
-                            <h3 className="text-sm font-bold text-zinc-300 uppercase">
-                              Hồ sơ Game & Lộ trình Cày Rank
-                            </h3>
-                            <span
-                              className="px-2 py-0.5 rounded text-[11px] font-bold uppercase border"
-                              style={{
-                                backgroundColor: `${gameMeta.accentColor}15`,
-                                color: gameMeta.accentColor,
-                                borderColor: `${gameMeta.accentColor}30`,
-                              }}
-                            >
-                              {gameMeta.name}
-                            </span>
-                          </div>
+                  <OrderBoosterCard
+                    order={order}
+                    isBooster={isBooster}
+                    isCustomer={isCustomer}
+                    boosterProfile={boosterProfile}
+                    boosterGamesWithServices={boosterGamesWithServices}
+                    collapsedGames={collapsedGames}
+                    toggleGameCollapse={toggleGameCollapse}
+                  />
 
-                          {order.details?.ingame_name && (
-                            <button
-                              onClick={handleCheckAndSaveRank}
-                              disabled={isCheckingRank}
-                              className="p-1.5 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-zinc-400 hover:text-white transition-colors disabled:opacity-50"
-                              title="Làm mới Rank từ Riot"
-                            >
-                              {isCheckingRank ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
-                            </button>
-                          )}
-                        </div>
+                  <OrderAccountCard
+                    order={order}
+                    isCustomer={isCustomer}
+                    showPassword={showPassword}
+                    setShowPassword={setShowPassword}
+                    onOpenEditAccount={() => setIsEditAccountModalOpen(true)}
+                  />
 
-                        {/* Rank / Match Progression Display */}
-                        <div className="bg-zinc-950/70 p-4 rounded-xl border border-zinc-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                          {(order.serviceType === 'MATCHES' || order.details?.is_matches) ? (
-                            <div>
-                              <span className="text-xs text-zinc-500 block mb-1">Mục tiêu cày trận:</span>
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <span className="text-xl sm:text-2xl font-black text-white">
-                                  Cày {order.details?.match_count || order.details?.matches || 1} Trận
-                                </span>
-                                <span className="text-xs font-bold px-2 py-0.5 rounded bg-blue-500/15 text-blue-400 border border-blue-500/30">
-                                  {order.details?.queue_type === 'FLEX' ? 'Linh Hoạt (Flex)' : 'Đơn / Đôi'}
-                                </span>
-                              </div>
-                              <div className="text-xs text-zinc-400 mt-1">
-                                Tiến độ hiện tại: <span className="text-emerald-400 font-bold font-mono">{order.match_history?.length || 0}</span> / <span className="font-bold font-mono">{order.details?.match_count || order.details?.matches || 1}</span> trận (Chỉ tính số lượng trận)
-                              </div>
-                            </div>
-                          ) : (order.serviceType === 'PLACEMENTS' || order.details?.is_placements) ? (
-                            <div>
-                              <span className="text-xs text-zinc-500 block mb-1">Mục tiêu phân hạng:</span>
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <span className="text-xl sm:text-2xl font-black text-white">
-                                  {order.details?.placement_matches || order.details?.matches || 5} Trận Phân Hạng
-                                </span>
-                                <span className="text-xs font-bold px-2 py-0.5 rounded bg-amber-500/15 text-amber-400 border border-amber-500/30">
-                                  Rank cũ: {formatRankDisplayVi(order.details?.previous_rank_label || order.details?.previous_season_rank || 'Chưa có')}
-                                </span>
-                              </div>
-                              <div className="text-xs text-zinc-400 mt-1">
-                                Tiến độ hiện tại: <span className="text-emerald-400 font-bold font-mono">{order.match_history?.length || 0}</span> / <span className="font-bold font-mono">{order.details?.placement_matches || order.details?.matches || 5}</span> trận phân hạng
-                              </div>
-                            </div>
-                          ) : (
-                            <div>
-                              <span className="text-xs text-zinc-500 block mb-1">Tiến độ rank mục tiêu:</span>
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <span className="text-xl sm:text-2xl font-black text-white">
-                                  {formatRankDisplayVi(
-                                    liveLeagueInfo
-                                      ? (['MASTER', 'GRANDMASTER', 'CHALLENGER', 'RADIANT'].includes(liveLeagueInfo.tier?.toUpperCase())
-                                        ? liveLeagueInfo.tier
-                                        : `${liveLeagueInfo.tier} ${liveLeagueInfo.rank || ''}`.trim())
-                                      : (order.details?.current_rank || order.details?.segment_label || (order.details?.is_point_boost ? 'Cao Thủ' : 'Khởi điểm'))
-                                  )}
-                                </span>
-                                {(order.details?.desired_rank || order.details?.is_point_boost) && (
-                                  <>
-                                    <span className="text-blue-400 font-bold text-lg">&rarr;</span>
-                                    <span className="text-xl sm:text-2xl font-black text-cyan-300">
-                                      {order.details?.desired_rank
-                                        ? formatRankDisplayVi(order.details.desired_rank)
-                                        : `${order.details?.segment_label || 'Cao Thủ'} (${order.details?.desired_points ?? order.details?.target_points ?? 0} ${order.details?.unit || 'LP'})`
-                                      }
-                                    </span>
-                                  </>
-                                )}
-                              </div>
-                              <div className="text-xs text-blue-400 font-bold mt-1">
-                                {liveLeagueInfo
-                                  ? `${liveLeagueInfo.leaguePoints ?? 0} LP`
-                                  : order.details?.is_point_boost
-                                    ? `${order.details?.current_points ?? 0} / ${order.details?.desired_points ?? order.details?.target_points ?? 0} ${order.details?.unit || 'LP'} (+${order.details?.gained_points ?? 0} ${order.details?.unit || 'LP'})`
-                                    : (order.details?.current_lp !== undefined && order.details?.current_lp !== null)
-                                      ? `${order.details.current_lp} LP`
-                                      : order.details?.steps_count
-                                        ? `${order.details.steps_count} Bậc Rank`
-                                        : ''
-                                }
-                              </div>
-                            </div>
-                          )}
+                  <OrderServiceCard
+                    order={order}
+                    isBooster={isBooster}
+                    isCustomer={isCustomer}
+                    vodLink={vodLink}
+                    setVodLink={setVodLink}
+                    onUpdateVodLink={handleUpdateVodLink}
+                    isUpdatingVod={isUpdatingVod}
+                  />
 
-                          {liveLeagueInfo && (
-                            <div className="text-right text-xs text-zinc-400 bg-zinc-900/60 p-2.5 rounded-lg border border-zinc-800">
-                              <div>Thắng: <span className="text-green-400 font-bold">{liveLeagueInfo.wins}</span></div>
-                              <div>Thua: <span className="text-red-400 font-bold">{liveLeagueInfo.losses}</span></div>
-                              <div>Tỉ lệ: <span className="text-white">{Math.round((liveLeagueInfo.wins / (liveLeagueInfo.wins + liveLeagueInfo.losses)) * 100)}%</span></div>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Booster Input Area */}
-                        {isBooster && ['IN_PROGRESS', 'APPROVED'].includes(order.status) && (
-                          <div className="pt-3 border-t border-zinc-800">
-                            <label className="text-xs font-bold text-zinc-500 uppercase mb-2 block">Cập nhật Ingame & Check Rank</label>
-                            <div className="flex flex-col sm:flex-row gap-2">
-                              <input
-                                type="text"
-                                value={ingameName}
-                                onChange={(e) => setIngameName(e.target.value)}
-                                className="flex-1 bg-zinc-950 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white focus:border-blue-500 outline-none"
-                                placeholder="Tên Ingame#Tag..."
-                              />
-                              <button
-                                onClick={handleCheckAndSaveRank}
-                                disabled={isCheckingRank}
-                                className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-50 whitespace-nowrap w-full sm:w-auto"
-                              >
-                                {isCheckingRank ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Kiểm tra'}
-                              </button>
-                            </div>
-                            <p className="text-[10px] text-zinc-500 mt-2">
-                              * Nhập tên ingame chính xác để hệ thống tự động lấy Rank và {(order.snapshot?.gameCode || order.details?.game || order.details?.gameCode || '').toUpperCase().includes('VAL') ? 'RR' : 'LP'} từ {(order.snapshot?.gameCode || order.details?.game || order.details?.gameCode || '').toUpperCase().includes('VAL') ? 'Valorant' : 'Riot Games'}.
-                            </p>
-
-                            {/* Danh sách các bậc xếp hạng tìm thấy */}
-                            {availableLeagues.length > 0 && (
-                              <div className="mt-3 p-3 bg-zinc-900/90 rounded-xl border border-zinc-800/80 space-y-2">
-                                <span className="text-[11px] font-semibold text-zinc-400 flex items-center gap-1.5">
-                                  <span>⚡</span> Bậc xếp hạng tìm thấy:
-                                </span>
-                                <div className="flex flex-wrap gap-2">
-                                  {availableLeagues.map((l: any, idx: number) => {
-                                    const isVal = (order.snapshot?.gameCode || order.details?.game || order.details?.gameCode || '').toUpperCase().includes('VAL');
-                                    const isSolo = l.queueType === 'RANKED_SOLO_5x5';
-                                    const isCompVal = l.queueType === 'COMPETITIVE';
-                                    const queueLabel = isCompVal ? 'Competitive' : (isSolo ? 'Đơn / Đôi' : 'Linh Hoạt');
-                                    const isApex = ['MASTER', 'GRANDMASTER', 'CHALLENGER', 'RADIANT'].includes(l.tier?.toUpperCase());
-                                    const tierVi = formatRankDisplayVi(l.tier);
-                                    const rankText = isApex ? tierVi : `${tierVi} ${l.rank || ''}`.trim();
-                                    const isSelected = liveLeagueInfo?.queueType === l.queueType;
-                                    const unit = isVal ? 'RR' : 'LP';
-                                    const icon = isCompVal ? '🎯' : (isSolo ? '👑' : '🛡️');
-
-                                    return (
-                                      <button
-                                        key={idx}
-                                        type="button"
-                                        onClick={() => applySelectedLeague(l)}
-                                        className={`px-3 py-2 rounded-lg text-xs font-semibold flex items-center gap-2.5 transition-all border ${isSelected
-                                          ? 'bg-blue-600/20 border-blue-500 text-blue-300 ring-1 ring-blue-500/40 shadow-sm'
-                                          : 'bg-zinc-950/80 border-zinc-800 hover:border-zinc-700 text-zinc-300 hover:text-white'
-                                          }`}
-                                      >
-                                        <span className="text-base">{icon}</span>
-                                        <div className="text-left">
-                                          <div className="text-[10px] text-zinc-400 font-medium">{queueLabel}</div>
-                                          <div className="font-bold text-white text-xs">{rankText} <span className="text-cyan-400 font-normal">({l.leaguePoints ?? 0} {unit})</span></div>
-                                        </div>
-                                        {l.wins > 0 && (
-                                          <span className="text-[10px] text-zinc-500 border-l border-zinc-800 pl-2">
-                                            {l.wins}W {l.losses > 0 ? `/ ${l.losses}L` : ''}
-                                          </span>
-                                        )}
-                                      </button>
-                                    );
-                                  })}
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        )}
-
-                        {/* Customer View of Ingame Name */}
-                        {!isBooster && (
-                          <div className="pt-3 border-t border-zinc-800/80 flex justify-between items-center text-xs">
-                            <span className="text-zinc-500">Tên Ingame:</span>
-                            <span className="font-medium text-white font-mono bg-zinc-950 px-2.5 py-1 rounded border border-zinc-800">
-                              {order.details?.ingame_name || 'Chưa cập nhật'}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })()}
-
-                  {/* Booster Info */}
-                  {!isBooster && (
-                    <div>
-                      <h3 className="text-sm font-bold text-zinc-400 uppercase mb-3 flex items-center gap-2">
-                        <Award className="w-4 h-4 text-blue-400" /> Thông tin Tuyển thủ (Booster)
-                      </h3>
-                      {order.boosterId ? (
-                        <div className="bg-zinc-950 p-5 rounded-xl border border-zinc-800 space-y-4">
-                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                            <div className="flex items-center gap-3.5 min-w-0">
-                              <div className="w-12 h-12 rounded-full bg-zinc-800 overflow-hidden shrink-0 border border-zinc-700 flex items-center justify-center">
-                                {order.boosterId.profile?.avatar ? (
-                                  <img
-                                    src={order.boosterId.profile.avatar}
-                                    alt={order.boosterId.username}
-                                    className="w-full h-full object-cover"
-                                  />
-                                ) : (
-                                  <User className="w-6 h-6 text-zinc-500" />
-                                )}
-                              </div>
-                              <div className="min-w-0">
-                                <div className="flex items-center gap-2 flex-wrap">
-                                  <span className="font-bold text-white text-base truncate">
-                                    {boosterProfile?.displayName || order.boosterId.username}
-                                  </span>
-                                  <span className="text-xs text-zinc-500 font-mono">
-                                    @{order.boosterId.username}
-                                  </span>
-                                  {order.boosterId.booster_info?.isReady !== undefined && (
-                                    <span
-                                      className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${order.boosterId.booster_info.isReady
-                                        ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-                                        : 'bg-zinc-800 text-zinc-400 border-zinc-700'
-                                        }`}
-                                    >
-                                      {order.boosterId.booster_info.isReady ? 'Đang sẵn sàng' : 'Tạm nghỉ'}
-                                    </span>
-                                  )}
-                                </div>
-                                <div className="flex items-center gap-3 text-xs text-zinc-400 mt-1 flex-wrap">
-                                  <span className="inline-flex items-center gap-1 text-amber-400 font-semibold">
-                                    <Star className="w-3.5 h-3.5 fill-amber-400" />
-                                    {Number(boosterProfile?.rating ?? order.boosterId.booster_info?.rating ?? 5).toFixed(1)}
-                                  </span>
-                                  <span>
-                                    {boosterProfile?.completedOrders ?? order.boosterId.booster_info?.completed_orders ?? 0} đơn hoàn thành
-                                  </span>
-                                  {order.boosterId.booster_info?.ingame_name && (
-                                    <span className="text-zinc-300">
-                                      In-game: <strong className="font-mono text-white">{order.boosterId.booster_info.ingame_name}</strong>
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-
-                            <Link
-                              href={`/b/${order.boosterId.username}`}
-                              target="_blank"
-                              className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-blue-600/15 hover:bg-blue-600/25 text-blue-400 border border-blue-500/30 text-xs font-bold transition-colors shrink-0"
-                            >
-                              <span>Xem hồ sơ</span>
-                              <ExternalLink className="w-3.5 h-3.5" />
-                            </Link>
-                          </div>
-
-                          {(boosterProfile?.bio || order.boosterId.booster_info?.bio) && (
-                            <p className="text-xs text-zinc-300 leading-relaxed bg-zinc-900/70 p-3 rounded-lg border border-white/5">
-                              {boosterProfile?.bio || order.boosterId.booster_info?.bio}
-                            </p>
-                          )}
-
-                          {/* Chi tiết liên hệ & thông tin game của Booster */}
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs pt-2 border-t border-zinc-800/80">
-                            {order.boosterId.email && (
-                              <div>
-                                <span className="text-zinc-500 block">Email liên hệ</span>
-                                <span className="text-zinc-200 font-medium">{order.boosterId.email}</span>
-                              </div>
-                            )}
-                            {order.boosterId.profile?.discord_id && (
-                              <div>
-                                <span className="text-zinc-500 block">Discord ID</span>
-                                <span className="text-zinc-200 font-mono">{order.boosterId.profile.discord_id}</span>
-                              </div>
-                            )}
-                            {order.boosterId.phoneNumber && (() => {
-                              const cleanPhone = String(order.boosterId.phoneNumber).replace(/[^\d+]/g, '');
-                              const handleMobilePhoneClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
-                                // Khi test trong iframe giả lập điện thoại trên PC, iframe không hỗ trợ scheme tel: -> chặn lỗi Unsupported URL scheme và sao chép SĐT
-                                const isInIframe = typeof window !== 'undefined' && window.self !== window.top;
-                                if (isInIframe) {
-                                  e.preventDefault();
-                                  navigator.clipboard?.writeText(cleanPhone).catch(() => {});
-                                  toast.info(`SĐT Booster: ${order.boosterId.phoneNumber} (Đã sao chép — trên điện thoại thật sẽ tự mở app Gọi điện)`);
-                                }
-                              };
-                              return (
-                                <div>
-                                  {isCustomer ? (
-                                    <>
-                                      {/* Mobile (Customer): chỉ hiển thị chữ "Số điện thoại" + icon Phone ngay bên cạnh (ẩn dãy số) */}
-                                      <div className="flex md:hidden items-center gap-2.5">
-                                        <span className="text-zinc-500">Số điện thoại</span>
-                                        <a
-                                          href={`tel:${cleanPhone}`}
-                                          target="_top"
-                                          onClick={handleMobilePhoneClick}
-                                          aria-label="Gọi điện cho Booster"
-                                          title="Gọi điện cho Booster"
-                                          className="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 active:scale-95 border border-emerald-500/35 text-emerald-400 transition-all shadow-sm shadow-emerald-500/10 shrink-0"
-                                        >
-                                          <Phone className="w-4 h-4" />
-                                        </a>
-                                      </div>
-                                      {/* Desktop (Customer): giữ nguyên hiển thị số điện thoại */}
-                                      <div className="hidden md:block">
-                                        <span className="text-zinc-500 block">Số điện thoại</span>
-                                        <span className="text-emerald-400 font-mono font-semibold">
-                                          {order.boosterId.phoneNumber}
-                                        </span>
-                                      </div>
-                                    </>
-                                  ) : (
-                                    <>
-                                      <span className="text-zinc-500 block">Số điện thoại</span>
-                                      <span className="text-emerald-400 font-mono font-semibold">
-                                        {order.boosterId.phoneNumber}
-                                      </span>
-                                    </>
-                                  )}
-                                </div>
-                              );
-                            })()}
-                            {order.boosterId.profile?.facebook_url && (
-                              <div>
-                                <span className="text-zinc-500 block">Facebook cá nhân</span>
-                                <a
-                                  href={order.boosterId.profile.facebook_url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-blue-400 hover:underline font-medium inline-flex items-center gap-1 break-all"
-                                >
-                                  <span>{order.boosterId.profile.facebook_url}</span>
-                                  <ExternalLink className="w-3 h-3 shrink-0" />
-                                </a>
-                              </div>
-                            )}
-                          </div>
-
-                          {/* 🎮 Hồ sơ Game & Dịch vụ cung cấp */}
-                          {boosterGamesWithServices.length > 0 && (
-                            <div className="pt-3 border-t border-zinc-800/80 space-y-3">
-                              <div className="flex items-center justify-between">
-                                <div className="text-xs text-zinc-400 font-bold flex items-center gap-1.5 uppercase tracking-wide">
-                                  <Gamepad2 className="w-4 h-4 text-blue-400" /> Hồ sơ Game & Dịch vụ cung cấp
-                                </div>
-                                <span className="text-[11px] text-zinc-500 font-medium">
-                                  {boosterGamesWithServices.length} tựa game nhận cày
-                                </span>
-                              </div>
-
-                              <div className="grid grid-cols-1 gap-2.5">
-                                {boosterGamesWithServices.map((g) => {
-                                  const isCollapsed = Boolean(collapsedGames[g.gameCode]);
-                                  return (
-                                    <div
-                                      key={g.gameCode}
-                                      className="rounded-xl bg-zinc-900/60 border border-zinc-800/80 hover:border-zinc-700/80 transition-all overflow-hidden"
-                                    >
-                                      {/* Header bar của từng tựa game (Clickable trên cả desktop & mobile để thu gọn/mở rộng) */}
-                                      <button
-                                        type="button"
-                                        onClick={() => toggleGameCollapse(g.gameCode)}
-                                        className="w-full p-3 sm:px-4 sm:py-3 flex items-center justify-between gap-3 text-left hover:bg-white/[0.02] transition-colors cursor-pointer"
-                                      >
-                                        <div className="flex items-center gap-2.5 flex-wrap min-w-0">
-                                          <span
-                                            className={`px-2.5 py-0.5 rounded-lg text-xs font-black tracking-wide border ${getBoosterGameBadgeStyle(
-                                              g.gameCode
-                                            )}`}
-                                          >
-                                            {g.gameCode}
-                                          </span>
-                                          <span className="text-xs text-zinc-400 font-mono flex items-center gap-1.5">
-                                            <span className="text-zinc-500">Server:</span>
-                                            <strong className="text-zinc-200 font-semibold bg-zinc-950 px-2 py-0.5 rounded border border-zinc-800">
-                                              {g.servers.join(', ')}
-                                            </strong>
-                                          </span>
-
-                                          {Array.isArray(g.ranks) && g.ranks.length > 0 && (
-                                            <span className="text-[11px] text-zinc-400 hidden sm:inline-flex items-center gap-1">
-                                              • Rank: <strong className="text-blue-400 font-medium">{g.ranks.join(', ')}</strong>
-                                            </span>
-                                          )}
-                                        </div>
-
-                                        <div className="flex items-center gap-2 shrink-0">
-                                          <span className="text-[11px] text-zinc-500 font-medium hidden sm:inline">
-                                            {g.services.length} dịch vụ
-                                          </span>
-                                          <ChevronDown
-                                            className={`w-4 h-4 text-zinc-400 transition-transform duration-200 ${
-                                              isCollapsed ? '-rotate-90' : 'rotate-0'
-                                            }`}
-                                          />
-                                        </div>
-                                      </button>
-
-                                      {/* Danh sách Dịch vụ cung cấp chi tiết */}
-                                      {!isCollapsed && (
-                                        <div className="px-3 pb-3 sm:px-4 sm:pb-3.5 pt-1 border-t border-white/[0.04] space-y-2.5">
-                                          <div className="flex flex-wrap gap-2">
-                                            {g.services.map((svc) => (
-                                              <span
-                                                key={svc.slug}
-                                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zinc-950/90 border border-zinc-800 text-zinc-200 hover:text-white hover:border-zinc-700 text-xs font-semibold shadow-sm transition-all"
-                                              >
-                                                <span className="w-1.5 h-1.5 rounded-full bg-blue-400 shrink-0" />
-                                                {svc.name}
-                                              </span>
-                                            ))}
-                                          </div>
-
-                                          {/* Thông tin vị trí & tướng tủ nếu có */}
-                                          {Boolean((g.roles && g.roles.length > 0) || (g.champions && g.champions.length > 0)) && (
-                                            <div className="pt-2 border-t border-white/[0.03] text-[11px] text-zinc-400 flex flex-wrap gap-x-4 gap-y-1">
-                                              {g.roles && g.roles.length > 0 && (
-                                                <span>Vị trí: <strong className="text-zinc-200">{g.roles.join(', ')}</strong></span>
-                                              )}
-                                              {g.champions && g.champions.length > 0 && (
-                                                <span>Tướng tủ: <strong className="text-zinc-200">{g.champions.slice(0, 6).join(', ')}</strong></span>
-                                              )}
-                                            </div>
-                                          )}
-                                        </div>
-                                      )}
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      ) : (
-                        <div className="bg-zinc-950 p-4 rounded-xl border border-amber-500/20 text-xs text-amber-300 flex items-center gap-2.5">
-                          <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping shrink-0" />
-                          <span className="font-medium">Tuyển thủ: <strong className="text-amber-200">Đang tìm kiếm...</strong> (Đơn hàng đang chờ tuyển thủ tiếp nhận trên sàn)</span>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Account Info */}
-                  <div>
-                    <div className="flex items-center justify-between mb-3">
-                      <h3 className="text-sm font-bold text-zinc-400 uppercase flex items-center gap-2">
-                        <Shield className="w-4 h-4 text-emerald-400" /> Tài khoản Game
-                      </h3>
-                      {isCustomer && ['PENDING_PAYMENT', 'PAID'].includes(order.status) && (
-                        <button
-                          onClick={() => setIsEditAccountModalOpen(true)}
-                          className="text-xs text-blue-400 hover:text-blue-300 font-semibold inline-flex items-center gap-1 hover:underline"
-                        >
-                          <Pencil className="w-3.5 h-3.5" /> Chỉnh sửa
-                        </button>
-                      )}
-                    </div>
-
-                    {(() => {
-                      const username = order.details?.account_info?.username || order.details?.account_username || order.account_credentials?.username || 'Chưa cập nhật';
-                      const rawPassword = order.details?.account_info?.password || order.details?.account_password || order.account_credentials?.password || '';
-                      const platform = order.details?.account_info?.platform || order.details?.account_type || order.account_credentials?.platform || 'RIOT';
-
-                      return (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-zinc-950 p-4 rounded-xl border border-zinc-800">
-                          <div>
-                            <span className="text-xs text-zinc-500 block">Nền tảng / Loại tài khoản</span>
-                            <span className="font-medium text-white uppercase">{platform}</span>
-                          </div>
-                          <div>
-                            <span className="text-xs text-zinc-500 block">Tên tài khoản / Đăng nhập</span>
-                            <span className="font-mono text-cyan-300 font-bold text-sm">{username}</span>
-                          </div>
-                          <div>
-                            <span className="text-xs text-zinc-500 block">Mật khẩu</span>
-                            <div className="font-mono text-white flex items-center gap-2">
-                              <span>{showPassword ? (rawPassword || '••••••••') : '••••••••'}</span>
-                              {rawPassword ? (
-                                <button
-                                  onClick={() => setShowPassword(!showPassword)}
-                                  className="text-zinc-400 hover:text-white p-1 rounded hover:bg-zinc-800 transition-colors"
-                                  title={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
-                                >
-                                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                                </button>
-                              ) : (
-                                <Lock className="w-3 h-3 text-zinc-600" />
-                              )}
-                            </div>
-                          </div>
-                          <div>
-                            <span className="text-xs text-zinc-500 block">Máy chủ (Server)</span>
-                            <span className="text-white font-medium">{order.details?.server || 'Mặc định'}</span>
-                          </div>
-                          <div>
-                            <span className="text-xs text-zinc-500 block">Chế độ</span>
-                            <span className="text-white">{['SOLO', 'SOLO_DUO'].includes(order.details?.queue_type || order.details?.queueType) ? 'Đơn / Đôi' : (order.details?.queue_type || order.details?.queueType) === 'FLEX' ? 'Linh Hoạt' : (order.details?.queue_type || order.details?.queueType) || 'Mặc định'}</span>
-                          </div>
-                          {order.details?.note && (
-                            <div className="md:col-span-2 pt-2 border-t border-zinc-900">
-                              <span className="text-xs text-zinc-500 block">Ghi chú</span>
-                              <p className="text-xs text-zinc-300 bg-zinc-900/60 p-2.5 rounded-lg border border-white/5 mt-1">{order.details.note}</p>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })()}
-                  </div>
-
-                  {/* Service Info */}
-                  <div>
-                    <h3 className="text-sm font-bold text-zinc-400 uppercase mb-3 flex items-center gap-2"><Trophy className="w-4 h-4" /> Dịch vụ</h3>
-                    <div className="bg-zinc-950 p-4 rounded-xl border border-zinc-800 space-y-3 text-sm">
-                      <div className="flex justify-between items-center">
-                        <span className="text-zinc-500">Loại dịch vụ:</span>
-                        <span className="text-white font-bold">
-                          {formatServiceName(order.serviceType || order.snapshot?.serviceSlug, order.details)}
-                        </span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-zinc-500">Mục tiêu:</span>
-                        <span className="text-blue-400 font-bold text-right">
-                          {(() => {
-                            if (order.serviceType === 'MATCHES' || order.details?.is_matches) {
-                              const queue = order.details?.queue_type === 'FLEX' ? 'Linh hoạt' : 'Đơn / Đôi';
-                              const count = order.details?.match_count || order.details?.matches || order.details?.steps_count || order.details?.num_games || 1;
-                              return `Cày ${count} trận (${queue})`;
-                            }
-                            if (order.serviceType === 'PLACEMENTS' || order.details?.is_placements) {
-                              const queue = order.details?.queue_type === 'FLEX' ? 'Linh hoạt' : 'Đơn / Đôi';
-                              const count = order.details?.placement_matches || order.details?.matches || order.details?.steps_count || order.details?.num_games || 5;
-                              const prevRank = order.details?.previous_rank_label || formatRankDisplayVi(order.details?.previous_season_rank || order.details?.prev_rank) || 'Chưa có';
-                              return `Cày ${count} trận (${queue} • Mùa trước: ${prevRank})`;
-                            }
-                            if (order.serviceType === 'NET_WINS') {
-                              const isPointBoost = Boolean(order.details?.is_point_boost || order.details?.calc_mode === 'BY_LP' || order.details?.segment);
-                              const unit = order.details?.unit || 'LP';
-                              const segmentLabel = order.details?.segment_label || (order.details?.segment ? formatRankDisplayVi(order.details.segment) : null);
-                              const rankLabel = segmentLabel || formatRankDisplayVi(order.details?.current_rank || order.details?.rank) || 'Khởi điểm';
-
-                              if (isPointBoost) {
-                                const start = order.details?.start_lp ?? order.details?.current_points ?? order.details?.current_lp ?? 0;
-                                const target = order.details?.target_lp ?? order.details?.desired_points ?? order.details?.target_points ?? (start + (order.details?.gained_points || 0));
-                                return `${start} ${unit} ➜ ${target} ${unit} (${rankLabel})`;
-                              }
-
-                              return order.details?.calc_mode === 'BY_GAMES' || order.details?.num_games
-                                ? `+${order.details?.num_games || 0} Trận thắng (${rankLabel})`
-                                : `${order.details?.start_lp ?? order.details?.current_lp ?? 0} LP ➜ ${order.details?.target_lp ?? 0} LP (${rankLabel})`;
-                            }
-                            if (order.serviceType === 'MASTERY') {
-                              return `${order.details.champion} (Lv.${order.details.current_mastery} ➜ Lv.${order.details.desired_mastery})`;
-                            }
-                            if (order.serviceType === 'ONBET') {
-                              return `${order.details.game_count} Trận (${order.details.rank_label})`;
-                            }
-                            if (order.serviceType === 'COACHING') {
-                              return `${order.details.coaching_type} (${order.details.hours} Giờ)`;
-                            }
-                            // Default (Rank Boost, Leveling, Promotion)
-                            const curr = order.details.current_rank ? formatRankDisplayVi(order.details.current_rank) : order.details.current_level;
-                            const des = order.details.desired_rank ? formatRankDisplayVi(order.details.desired_rank) : order.details.desired_level;
-                            return `${curr} ➜ ${des}`;
-                          })()}
-                        </span>
-                      </div>
-                      {/* Vị trí / Đường chỉ định (Hiển thị cân đối 2 bên kèm Logo / Tên đường) */}
-                      {hasSpecificRole && (
-                        <div className="flex justify-between items-start pt-3 border-t border-zinc-800 gap-3">
-                          <span className="text-zinc-500 shrink-0">Vị trí / Đường:</span>
-                          <div className="flex items-center gap-1.5 flex-wrap justify-end">
-                            {extractedRoles.length > 0 ? (
-                              extractedRoles.map((roleId: string) => {
-                                const meta = getLaneMeta(roleId, order.game);
-                                return (
-                                  <span
-                                    key={roleId}
-                                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-blue-500/10 border border-blue-500/25 text-blue-300 font-bold text-xs shadow-sm"
-                                  >
-                                    {meta.image && (
-                                      <Image
-                                        src={meta.image}
-                                        alt={meta.name}
-                                        width={16}
-                                        height={16}
-                                        className="w-4 h-4 object-contain"
-                                      />
-                                    )}
-                                    <span>{meta.name}</span>
-                                  </span>
-                                );
-                              })
-                            ) : (
-                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-purple-500/10 border border-purple-500/25 text-purple-300 font-bold text-xs shadow-sm">
-                                <Image
-                                  src="/images/lane-aov/random-lane.png"
-                                  alt="Đường Bất Kỳ"
-                                  width={16}
-                                  height={16}
-                                  className="w-4 h-4 object-contain"
-                                />
-                                <span>Đường Bất Kỳ (Linh hoạt)</span>
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Các tùy chọn mở rộng khác (Cày siêu tốc, Duo, Stream, Đặt lịch) */}
-                      {simpleOptions.length > 0 && (
-                        <div className="flex justify-between items-center pt-2.5 border-t border-zinc-800 gap-3">
-                          <span className="text-zinc-500 shrink-0">Tùy chọn khác:</span>
-                          <div className="flex items-center gap-1.5 flex-wrap justify-end">
-                            {simpleOptions.map(([key, val]) => (
-                              <span key={key} className="px-2.5 py-1 bg-zinc-900 border border-zinc-700/80 rounded-xl text-xs text-zinc-300 font-medium">
-                                {optionLabels[key] || key}
-                                {Array.isArray(val) && typeof val[0] !== 'object' ? `: ${val.join(', ')}` : ''}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Khung giờ nghỉ (Schedule Block) nếu có */}
-                      {scheduleOption && Array.isArray(scheduleOption[1]) && scheduleOption[1].length > 0 && (
-                        <div className="pt-2.5 border-t border-zinc-800">
-                          <div className="bg-red-500/5 rounded-xl p-3 border border-red-500/15">
-                            <span className="text-red-400 text-xs block mb-2 flex items-center gap-1.5 font-bold">
-                              <Clock size={12} /> Khung giờ nghỉ (Cấm tuyển thủ chơi):
-                            </span>
-                            <div className="flex flex-wrap gap-2">
-                              {scheduleOption[1].map((w: any, idx: number) => (
-                                <span key={idx} className="text-xs font-bold px-2.5 py-1 bg-red-500/10 text-red-400 border border-red-500/25 rounded-lg flex items-center gap-1.5">
-                                  {w.start} - {w.end}
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* NET WINS SPECIAL VIEW */}
-                  {order.serviceType === 'NET_WINS' && (
-                    <NetWinsOrderView
-                      order={order}
-                      isBooster={isBooster}
-                      isCustomer={isCustomer}
-                      onPayRemaining={handleOpenPayModal}
-                      onRefund={handleOpenRefundModal}
-                    />
-                  )}
-
-                  {/* RANK BOOST SPECIAL VIEW (NEW) */}
-                  {order.serviceType === 'RANK_BOOST' && (
-                    <RankBoostOrderView order={order} />
-                  )}
-
-                  {/* PROMOTION SPECIAL VIEW */}
-                  {order.serviceType === 'PROMOTION' && (
-                    <PromotionOrderView order={order} />
-                  )}
-
-                  {/* PLACEMENTS SPECIAL VIEW */}
-                  {order.serviceType === 'PLACEMENTS' && (
-                    <PlacementsOrderView order={order} />
-                  )}
-
-                  {/* MATCHES SPECIAL VIEW (CÀY THEO SỐ TRẬN) */}
-                  {(order.serviceType === 'MATCHES' || order.details?.is_matches) && (
-                    <MatchesOrderView order={order} isBooster={isBooster} />
-                  )}
-
-                  {/* MASTERY SPECIAL VIEW */}
-                  {order.serviceType === 'MASTERY' && (
-                    <MasteryOrderView order={order} />
-                  )}
-
-                  {/* LEVELING SPECIAL VIEW */}
-                  {order.serviceType === 'LEVELING' && (
-                    <LevelingOrderView order={order} />
-                  )}
-
-                  {/* ONBET SPECIAL VIEW */}
-                  {order.serviceType === 'ONBET' && (
-                    <OnBetOrderView order={order} />
-                  )}
-
-                  {/* COACHING SPECIAL VIEW */}
-                  {order.serviceType === 'COACHING' && (
-                    <CoachingOrderView
-                      order={order}
-                      isBooster={isBooster}
-                      vodLink={vodLink}
-                      setVodLink={setVodLink}
-                      onUpdateVodLink={handleUpdateVodLink}
-                      isUpdatingVod={isUpdatingVod}
-                    />
-                  )}
-
-                  {/* Payment Info */}
-                  <div>
-                    <h3 className="text-sm font-bold text-zinc-400 uppercase mb-3 flex items-center gap-2"><DollarSign className="w-4 h-4" /> Thanh toán</h3>
-                    <div className="bg-zinc-950 p-4 rounded-xl border border-zinc-800 space-y-3 text-sm">
-                      {Boolean(isBooster && (order.pricing?.funding_source === 'PLATFORM' || (order.pricing?.platform_subsidy && Number(order.pricing.platform_subsidy) > 0))) && (
-                        <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-xs space-y-1 mb-2">
-                          <div className="flex items-center gap-1.5 text-emerald-400 font-bold">
-                            <CheckCircle2 size={14} className="shrink-0" />
-                            <span>Voucher do Hệ thống LeoRank tài trợ 100%</span>
-                          </div>
-                          <p className="text-zinc-400 leading-relaxed text-[11px]">
-                            Khách hàng sử dụng voucher tri ân <b className="text-white font-mono">{order.pricing?.coupon_code || ''}</b> ({Number(order.pricing?.platform_subsidy || order.pricing?.discount_amount || 0).toLocaleString()} đ). Khoản này được Sàn tài trợ bù đủ, thu nhập của bạn được <b className="text-emerald-400">bảo toàn trọn vẹn 100%</b> theo giá niêm yết!
-                          </p>
-                        </div>
-                      )}
-
-                      {Boolean(isBooster && (order.pricing?.listed_price || order.pricing?.original_price) && order.pricing?.discount_amount && Number(order.pricing.discount_amount) > 0) && (
-                        <>
-                          <div className="flex justify-between text-xs text-zinc-400">
-                            <span>Giá niêm yết dịch vụ:</span>
-                            <span className="font-mono text-zinc-300">
-                              {(Number(order.pricing.listed_price || order.pricing.original_price)).toLocaleString()} đ
-                            </span>
-                          </div>
-                          <div className="flex justify-between text-xs text-emerald-400">
-                            <span>Voucher giảm giá (Khách dùng):</span>
-                            <span className="font-mono">
-                              -{Number(order.pricing.discount_amount).toLocaleString()} đ {order.pricing.funding_source === 'PLATFORM' ? '(Sàn bù 100%)' : ''}
-                            </span>
-                          </div>
-                        </>
-                      )}
-
-                      <div className="flex justify-between items-center pt-1 border-t border-zinc-800/60">
-                        <span className="text-zinc-400">{isBooster ? 'Thu nhập thực nhận của bạn:' : 'Tổng thanh toán:'}</span>
-                        <span className={`text-base font-bold ${isBooster ? 'text-emerald-400' : 'text-white'}`}>
-                          {(isBooster
-                            ? getBoosterOrderValue(order.pricing)
-                            : order.pricing.total_amount
-                          ).toLocaleString()} đ
-                        </span>
-                      </div>
-                      {order.pricing.deposit_amount < order.pricing.total_amount ? (
-                        <div className="flex justify-between">
-                          <span className="text-zinc-500">
-                            {['NET_WINS', 'ONBET'].includes(order.serviceType)
-                              ? `Đã cọc (${Math.round((order.pricing.deposit_amount / order.pricing.total_amount) * 100)}%):`
-                              : 'Đã cọc:'}
-                          </span>
-                          <span className="text-yellow-400 font-bold">
-                            {(isBooster
-                              ? getBoosterDepositValue(order.pricing)
-                              : order.pricing.deposit_amount
-                            ).toLocaleString()} đ
-                          </span>
-                        </div>
-                      ) : (
-                        <div className="flex justify-between">
-                          <span className="text-zinc-500">Trạng thái:</span>
-                          <span className="text-green-400 font-bold">Đã thanh toán 100%</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Transaction History (New Section) */}
-                  <div>
-                    <h3 className="text-sm font-bold text-zinc-400 uppercase mb-3 flex items-center gap-2"><History className="w-4 h-4" /> Lịch sử giao dịch</h3>
-                    <div className="bg-zinc-950 border border-zinc-800 rounded-xl overflow-hidden">
-                      {transactions.length > 0 ? (
-                        <div className="divide-y divide-zinc-800">
-                          {transactions.map((tx: any) => {
-                            // Logic hiển thị dấu và màu sắc (FIX lỗi +- hiển thị cùng lúc)
-                            // Trong DB: Payment là âm (-), Deposit/Refund là dương (+)
-                            const isPositive = tx.amount > 0;
-                            const amountDisplay = isPositive
-                              ? `+${tx.amount.toLocaleString()} đ`
-                              : `${tx.amount.toLocaleString()} đ`; // Số âm đã có dấu -
-
-                            const isPayment = ['PAYMENT_HOLD', 'PAYMENT_RELEASE', 'WITHDRAWAL'].includes(tx.type);
-
-                            return (
-                              <div key={tx._id} className="p-4 flex items-center justify-between hover:bg-zinc-900/50 transition-colors">
-                                <div className="flex items-center gap-3">
-                                  <div className={`p-2 rounded-lg ${isPositive ? 'bg-green-500/10' : 'bg-red-500/10'}`}>
-                                    {isPositive ? <ArrowDownLeft className={`w-4 h-4 text-green-500`} /> : <ArrowUpRight className={`w-4 h-4 text-red-500`} />}
-                                  </div>
-                                  <div>
-                                    <div className="text-sm font-bold text-white">
-                                      {tx.type === 'PAYMENT_HOLD' ? (
-                                        (order.pricing?.deposit_percent && order.pricing.deposit_percent < 100)
-                                          ? `Thanh toán cọc (${order.pricing.deposit_percent}%)`
-                                          : 'Thanh toán đơn hàng (100% Escrow)'
-                                      ) :
-                                        tx.type === 'PAYMENT_RELEASE' ? 'Thanh toán bổ sung' :
-                                          tx.type === 'REFUND' ? 'Hoàn tiền vào ví' :
-                                            tx.type === 'TIP_SENT' ? 'Gửi tiền Tip cho Booster' :
-                                              tx.type === 'TIP_RECEIVED' ? 'Nhận tiền Tip từ khách hàng' :
-                                                (tx.description && !tx.description.startsWith('BankAPINotify') ? tx.description : (tx.type === 'DEPOSIT' ? 'Nạp tiền vào tài khoản' : tx.type))}
-                                    </div>
-                                    <div className="text-xs text-zinc-500">{new Date(tx.createdAt).toLocaleString('vi-VN')}</div>
-                                  </div>
-                                </div>
-                                <div className={`font-mono font-bold ${isPositive ? 'text-green-400' : 'text-red-400'}`}>
-                                  {amountDisplay}
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      ) : (
-                        <div className="p-6 text-center text-zinc-500 text-sm">Chưa có giao dịch nào được ghi nhận.</div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Hiển thị chi tiết Đánh giá (Nếu đã đánh giá) */}
-                  {order.rating && (
-                    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-                      <h3 className="text-sm font-bold text-zinc-400 uppercase mb-3 flex items-center gap-2"><Star className="w-4 h-4" /> Đánh giá của bạn</h3>
-                      <div className="bg-zinc-950 p-4 rounded-xl border border-zinc-800 space-y-3">
-                        {(() => {
-                          const stars = typeof order.rating.stars === 'number'
-                            ? order.rating.stars
-                            : typeof order.rating.rating === 'number'
-                              ? order.rating.rating
-                              : 5;
-                          const label = stars === 5 ? 'Tuyệt vời' : stars === 4 ? 'Rất tốt' : stars === 3 ? 'Bình thường' : stars === 2 ? 'Tệ' : 'Rất tệ';
-                          return (
-                            <div className="flex items-center gap-2 text-yellow-400">
-                              {[...Array(5)].map((_, i) => (
-                                <Star key={i} size={18} className={i < stars ? "fill-current" : "text-zinc-700"} />
-                              ))}
-                              <span className="text-white font-bold ml-2">
-                                {label}
-                              </span>
-                            </div>
-                          );
-                        })()}
-                        {(order.rating.comment || order.review) && (
-                          <div className="p-3 bg-zinc-900 rounded-lg text-sm text-zinc-300 italic border border-zinc-800 break-words whitespace-pre-wrap">
-                            "{order.rating.comment || order.review}"
-                          </div>
-                        )}
-                        <div className="text-[10px] text-zinc-500 font-mono">
-                          Gửi lúc: {new Date(order.rating.createdAt || order.updatedAt).toLocaleString('vi-VN')}
-                        </div>
-                      </div>
-                    </div>
-                  )}
+                  <OrderPaymentCard
+                    order={order}
+                    isBooster={isBooster}
+                    transactions={transactions}
+                  />
                 </div>
               ) : (
                 <div className="space-y-6">
-                  {/* Match History List */}
-                  <div className="space-y-3">
-                    <AnimatePresence mode="popLayout">
-                      {order.match_history?.length > 0 ? (
-                        order.match_history.map((match: any, idx: number) => (
-                          <motion.div
-                            key={idx}
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, scale: 0.95 }}
-                            transition={{ duration: 0.3, delay: idx * 0.05 }}
-                            className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-zinc-950 border border-zinc-800 rounded-xl gap-4"
-                          >
-                            {/* Left: Result Image & Basic Info */}
-                            <div className="flex items-start gap-4">
-                              <div className={`w-16 h-16 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center shrink-0`}>
-                                <img
-                                  src={match.result === 'WIN' ? '/images/victory.png' : '/images/defeat.png'}
-                                  alt={match.result}
-                                  className="w-10 h-10 sm:w-8 sm:h-8 object-contain"
-                                />
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <div className="text-base sm:text-sm font-bold text-white truncate">{match.champion}</div>
-                                <div className="text-xs text-zinc-400 mb-1">Chế độ: {match.mode}</div>
-                                <div className="text-[10px] text-zinc-500">{new Date(match.timestamp).toLocaleString('vi-VN')}</div>
-                                {match.reason && <div className="text-xs text-zinc-400 mt-1 italic line-clamp-1">{match.reason}</div>}
-                              </div>
-                            </div>
-
-                            {/* Right: Stats & Actions */}
-                            <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between gap-4 sm:gap-1 border-t sm:border-t-0 border-zinc-800 pt-3 sm:pt-0">
-                              {/* LP Change */}
-                              <div className={`text-lg sm:text-base font-black ${match.lp_change >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                                {match.lp_change > 0 ? '+' : ''}{match.lp_change} <span className="text-xs font-normal text-zinc-500">LP</span>
-                              </div>
-
-                              {/* Action Buttons */}
-                              <div className="flex items-center gap-2">
-                                {/* Eye Button: Hiển thị nếu có detail HOẶC có riotMatchId */}
-                                {(match.detail || match.riotMatchId) ? (
-                                  <button
-                                    type="button"
-                                    onClick={() => handleViewMatchDetail(match)}
-                                    disabled={loadingDetailMatchId === (match.match_id || match.riotMatchId)}
-                                    className="p-2 bg-zinc-900 hover:bg-blue-600 hover:text-white text-blue-400 rounded-lg transition-colors border border-zinc-800 cursor-pointer disabled:opacity-50"
-                                    title="Xem chi tiết trận đấu"
-                                  >
-                                    {loadingDetailMatchId === (match.match_id || match.riotMatchId) ? (
-                                      <Loader2 size={16} className="animate-spin text-blue-400" />
-                                    ) : (
-                                      <Eye size={16} />
-                                    )}
-                                  </button>
-                                ) : (
-                                  <div className="p-2 text-zinc-700 border border-zinc-800 rounded-lg cursor-not-allowed" title="Trận đấu nhập thủ công không có dữ liệu Riot / Valorant">
-                                    <Eye size={16} />
-                                  </div>
-                                )}
-
-                                {/* Edit/Delete Buttons (Booster Only) */}
-                                {isBooster && order.status === 'IN_PROGRESS' && (
-                                  <>
-                                    <button onClick={() => handleEditMatch(match)} className="p-2 bg-zinc-900 hover:bg-yellow-600 hover:text-white text-zinc-400 rounded-lg transition-colors border border-zinc-800" title="Sửa">
-                                      <Pencil size={16} />
-                                    </button>
-                                    <button onClick={() => handlePromptDeleteMatch(match)} className="p-2 bg-zinc-900 hover:bg-rose-600 hover:text-white text-zinc-400 rounded-lg transition-colors border border-zinc-800 cursor-pointer" title="Xóa trận đấu">
-                                      <Trash2 size={16} />
-                                    </button>
-                                  </>
-                                )}
-                              </div>
-                            </div>
-                          </motion.div>
-                        ))
-                      ) : (
-                        <motion.div
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          className="text-center py-8 text-zinc-500 border border-dashed border-zinc-800 rounded-xl"
-                        >
-                          Chưa có trận đấu nào được cập nhật.
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </div>
-
-                  {/* Add Match Form (Booster Only) */}
-                  {isBooster && order.status === 'IN_PROGRESS' && (() => {
-                    const isMatchesCheck = order.serviceType === 'MATCHES' || order.details?.is_matches;
-                    const isPlacementsCheck = order.serviceType === 'PLACEMENTS' || order.details?.is_placements;
-                    const maxAllowed = (isMatchesCheck || isPlacementsCheck)
-                      ? Number(order.details?.match_count || order.details?.placement_matches || order.details?.matches || order.details?.steps_count || order.details?.num_games || (isMatchesCheck ? 10 : 5))
-                      : null;
-                    const currentProgress = isMatchesCheck
-                      ? (order.match_history || []).filter((m: any) => m.result === 'WIN').length
-                      : (order.match_history?.length || 0);
-                    const isLimitReached = maxAllowed !== null && currentProgress >= maxAllowed;
-
-                    if (isLimitReached) {
-                      return (
-                        <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 flex items-center gap-3 mt-2 shadow-lg shadow-emerald-500/5">
-                          <CheckCircle2 className="w-5 h-5 shrink-0 text-emerald-400" />
-                          <div className="text-xs">
-                            <p className="font-bold text-emerald-400 text-sm">
-                              {isMatchesCheck
-                                ? `Đã đạt đủ ${currentProgress}/${maxAllowed} trận thắng theo cam kết đơn hàng!`
-                                : `Đã cập nhật đủ ${currentProgress}/${maxAllowed} trận theo yêu cầu đơn hàng!`}
-                            </p>
-                            <p className="text-zinc-400 mt-0.5">Tiến độ trận đấu đã đủ số lượng. Bạn có thể chỉnh sửa các trận đã lưu hoặc nhấn &quot;Báo cáo hoàn thành&quot;.</p>
-                          </div>
-                        </div>
-                      );
-                    }
-
-                    return (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-                        <button
-                          type="button"
-                          onClick={() => setIsBatchModalOpen(true)}
-                          className="w-full py-3 bg-gradient-to-r from-blue-600/25 via-blue-600/15 to-indigo-600/25 border border-blue-500/40 hover:border-blue-400 rounded-xl text-blue-300 hover:text-white transition-all flex items-center justify-center gap-2 font-bold text-sm shadow-lg shadow-blue-500/10 cursor-pointer"
-                        >
-                          <Zap className="w-4 h-4 text-blue-400" /> Nhập nhanh danh sách (Paste)
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setMatchForm({ mode: 'Rank Đơn/Đôi', champion: '', result: 'WIN', lp_change: '', reason: '' });
-                            setEditingMatchId(null);
-                            setIsMatchModalOpen(true);
-                          }}
-                          className="w-full py-3 border-2 border-dashed border-zinc-800 hover:border-zinc-600 hover:bg-zinc-900/60 rounded-xl text-zinc-400 hover:text-white transition-all flex items-center justify-center gap-2 font-bold text-sm cursor-pointer"
-                        >
-                          <Plus className="w-4 h-4" /> Thêm thủ công 1 trận
-                        </button>
-                      </div>
-                    );
-                  })()}
+                  <OrderMatchHistoryList
+                    order={order}
+                    isBooster={isBooster}
+                    loadingDetailMatchId={loadingDetailMatchId}
+                    onViewMatchDetail={handleViewMatchDetail}
+                    onEditMatch={handleEditMatch}
+                    onPromptDeleteMatch={handlePromptDeleteMatch}
+                    onOpenBatchModal={() => setIsBatchModalOpen(true)}
+                    onOpenAddMatchModal={() => {
+                      setMatchForm({
+                        mode: 'Rank Đơn/Đôi',
+                        champion: '',
+                        result: 'WIN',
+                        lp_change: '',
+                        reason: '',
+                      });
+                      setEditingMatchId(null);
+                      setIsMatchModalOpen(true);
+                    }}
+                  />
                 </div>
               )}
             </div>
           </div>
         </div>
-
       </div>
 
-      {/* Floating Chat Window - CHỈ HIỂN THỊ KHI ĐÃ CÓ BOOSTER NHẬN ĐƠN */}
+      {/* Floating Chat Window */}
       {order.boosterId && (
         <ChatWindow
           orderId={order.orderCode || order._id}
@@ -2893,8 +1731,10 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
             (order.customerId?._id || order.customerId) === user?._id
               ? 'CUSTOMER'
               : (order.boosterId?._id || order.boosterId) === user?._id
-                ? 'BOOSTER'
-                : (user?.role === 'ADMIN' || user?.role === 'STAFF' ? 'ADMIN' : undefined)
+              ? 'BOOSTER'
+              : user?.role === 'ADMIN' || user?.role === 'STAFF'
+              ? 'ADMIN'
+              : undefined
           }
           orderContext={{
             serviceType: order.serviceType,
@@ -2904,199 +1744,34 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
         />
       )}
 
-      {/* Modal Hủy Đơn Hàng & Hoàn 100% Tiền */}
-      {isCancelModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-md p-6 shadow-2xl animate-in zoom-in-95 duration-200">
-            <div className="flex items-center gap-3 text-red-400 mb-4">
-              <div className="p-3 bg-red-500/10 rounded-xl border border-red-500/20">
-                <XCircle className="w-6 h-6 text-red-500" />
-              </div>
-              <div>
-                <h3 className="text-lg font-bold text-white">Xác nhận Hủy Đơn Hàng</h3>
-                <p className="text-xs text-zinc-400">Hoàn tiền 100% ngay lập tức vào Ví tài khoản</p>
-              </div>
-            </div>
+      {/* Cancel Order Modal */}
+      <CancelOrderModal
+        isOpen={isCancelModalOpen}
+        onClose={() => setIsCancelModalOpen(false)}
+        order={order}
+        cancelReason={cancelReason}
+        setCancelReason={setCancelReason}
+        isSubmittingCancel={isSubmittingCancel}
+        onConfirmCancel={handleCancelOrder}
+      />
 
-            <div className="bg-zinc-950 p-4 rounded-xl border border-zinc-800 space-y-2 mb-4 text-xs">
-              <div className="flex justify-between">
-                <span className="text-zinc-500">Mã đơn hàng:</span>
-                <span className="font-mono text-cyan-300 font-bold">#{order.orderCode || order._id.slice(-6).toUpperCase()}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-zinc-500">Số tiền hoàn trả:</span>
-                <span className="font-mono text-emerald-400 font-bold text-sm">
-                  {((order.pricing?.deposit_amount ?? order.pricing?.total_amount) || 0).toLocaleString()} đ
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-zinc-500">Hình thức hoàn:</span>
-                <span className="text-zinc-300 font-medium">Cộng trực tiếp vào số dư ví</span>
-              </div>
-            </div>
+      {/* Edit Account Modal */}
+      <EditAccountModal
+        isOpen={isEditAccountModalOpen}
+        onClose={() => setIsEditAccountModalOpen(false)}
+        form={editAccountForm}
+        setForm={setEditAccountForm}
+        onOpenServerModal={() => setIsServerModalOpen(true)}
+        isSubmitting={isSubmittingEditAccount}
+        onSave={handleSaveAccount}
+      />
 
-            <div className="space-y-1.5 mb-6">
-              <label className="text-xs font-semibold text-zinc-400 block">Lý do hủy đơn (tùy chọn):</label>
-              <textarea
-                className="w-full bg-zinc-950 border border-zinc-700 rounded-xl p-3 text-sm text-white focus:border-red-500 outline-none h-24"
-                placeholder="Ví dụ: Đổi ý, muốn đặt gói cày khác, bận công việc..."
-                value={cancelReason}
-                onChange={e => setCancelReason(e.target.value)}
-              />
-            </div>
-
-            <div className="flex gap-3 justify-end">
-              <button
-                onClick={() => setIsCancelModalOpen(false)}
-                className="px-4 py-2.5 text-sm text-zinc-400 hover:text-white rounded-xl hover:bg-zinc-800 transition-colors"
-                disabled={isSubmittingCancel}
-              >
-                Đóng
-              </button>
-              <button
-                onClick={handleCancelOrder}
-                disabled={isSubmittingCancel}
-                className="px-5 py-2.5 bg-red-600 hover:bg-red-500 text-white rounded-xl text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-50 transition-colors shadow-lg shadow-red-600/30"
-              >
-                {isSubmittingCancel ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Xác nhận hủy & Hoàn tiền'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Modal Chỉnh Sửa Thông Tin Tài Khoản */}
-      {isEditAccountModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-lg p-6 shadow-2xl animate-in zoom-in-95 duration-200">
-            <div className="flex justify-between items-center mb-5">
-              <div className="flex items-center gap-2.5">
-                <div className="p-2.5 bg-blue-500/10 rounded-xl border border-blue-500/20 text-blue-400">
-                  <Shield className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-bold text-white">Chỉnh sửa tài khoản Game</h3>
-                  <p className="text-xs text-zinc-400">Cập nhật ID, mật khẩu hoặc ghi chú cho Tuyển thủ</p>
-                </div>
-              </div>
-              <button onClick={() => setIsEditAccountModalOpen(false)} className="text-zinc-500 hover:text-white p-1 rounded-lg">
-                <X size={20} />
-              </button>
-            </div>
-
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="text-xs font-semibold text-zinc-400 block mb-1.5">Tên đăng nhập / ID:</label>
-                  <input
-                    type="text"
-                    className="w-full bg-zinc-950 border border-zinc-700 rounded-xl px-3.5 py-2.5 text-sm text-white font-mono focus:border-blue-500 outline-none"
-                    value={editAccountForm.username}
-                    onChange={e => setEditAccountForm({ ...editAccountForm, username: e.target.value })}
-                    placeholder="Username..."
-                  />
-                </div>
-                <div>
-                  <label className="text-xs font-semibold text-zinc-400 block mb-1.5">Mật khẩu game:</label>
-                  <input
-                    type="text"
-                    className="w-full bg-zinc-950 border border-zinc-700 rounded-xl px-3.5 py-2.5 text-sm text-white font-mono focus:border-blue-500 outline-none"
-                    value={editAccountForm.password}
-                    onChange={e => setEditAccountForm({ ...editAccountForm, password: e.target.value })}
-                    placeholder="Mật khẩu..."
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="text-xs font-semibold text-zinc-400 block mb-1.5">Nền tảng:</label>
-                  <input
-                    type="text"
-                    className="w-full bg-zinc-950 border border-zinc-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:border-blue-500 outline-none uppercase"
-                    value={editAccountForm.platform}
-                    onChange={e => setEditAccountForm({ ...editAccountForm, platform: e.target.value })}
-                    placeholder="Riot / Steam / Garena..."
-                  />
-                </div>
-                <div>
-                  <label className="text-xs font-semibold text-zinc-400 block mb-1.5 flex items-center justify-between">
-                    <span>Máy chủ (Server):</span>
-                    <span
-                      onClick={() => setIsServerModalOpen(true)}
-                      className="text-[11px] text-blue-400 hover:text-blue-300 font-semibold cursor-pointer"
-                    >
-                      Chọn từ danh sách
-                    </span>
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => setIsServerModalOpen(true)}
-                    className="w-full bg-zinc-950 border border-zinc-700 hover:border-zinc-500 rounded-xl px-3.5 py-2.5 text-sm text-white focus:border-blue-500 outline-none flex items-center justify-between transition-all text-left group"
-                  >
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      {getServerByCode(editAccountForm.server) ? (
-                        <>
-                          <ServerFlag code={getServerByCode(editAccountForm.server)?.code} size="sm" />
-                          <span className="font-semibold text-white truncate">{getServerByCode(editAccountForm.server)?.name}</span>
-                          <span className="text-[11px] text-zinc-400 bg-zinc-800 px-1.5 py-0.5 rounded border border-white/5 font-mono shrink-0">
-                            {getServerByCode(editAccountForm.server)?.code}
-                          </span>
-                        </>
-                      ) : editAccountForm.server ? (
-                        <div className="flex items-center gap-2">
-                          <Globe className="w-4 h-4 text-zinc-400" />
-                          <span className="font-mono text-white font-bold">{editAccountForm.server}</span>
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-2 text-zinc-500">
-                          <Globe className="w-4 h-4 text-zinc-500" />
-                          <span>Chọn máy chủ (VN, SEA, KR...)...</span>
-                        </div>
-                      )}
-                    </div>
-                    <ChevronsUpDown className="w-4 h-4 text-zinc-400 group-hover:text-white shrink-0 ml-2 transition-colors" />
-                  </button>
-                </div>
-              </div>
-
-              <div>
-                <label className="text-xs font-semibold text-zinc-400 block mb-1.5">Ghi chú thêm cho Tuyển thủ:</label>
-                <textarea
-                  className="w-full bg-zinc-950 border border-zinc-700 rounded-xl p-3 text-sm text-white focus:border-blue-500 outline-none h-20"
-                  value={editAccountForm.note}
-                  onChange={e => setEditAccountForm({ ...editAccountForm, note: e.target.value })}
-                  placeholder="Ví dụ: Chỉ cày sau 23h đêm, không tiêu Tinh Hoa Lam..."
-                />
-              </div>
-            </div>
-
-            <div className="flex gap-3 justify-end mt-6 pt-4 border-t border-zinc-800">
-              <button
-                onClick={() => setIsEditAccountModalOpen(false)}
-                className="px-4 py-2.5 text-sm text-zinc-400 hover:text-white rounded-xl hover:bg-zinc-800 transition-colors"
-                disabled={isSubmittingEditAccount}
-              >
-                Hủy
-              </button>
-              <button
-                onClick={handleSaveAccount}
-                disabled={isSubmittingEditAccount}
-                className="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-50 transition-colors shadow-lg shadow-blue-500/25"
-              >
-                {isSubmittingEditAccount ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Lưu thay đổi'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Server Select Modal for Edit Account */}
+      {/* Modal Chọn Server */}
       <ServerSelectModal
         isOpen={isServerModalOpen}
         onClose={() => setIsServerModalOpen(false)}
         selectedServer={editAccountForm.server}
-        onSelectServer={(code) => setEditAccountForm((prev) => ({ ...prev, server: code }))}
+        onSelectServer={(code: string) => setEditAccountForm((prev) => ({ ...prev, server: code }))}
       />
 
       {/* Unified Settlement Modal */}
@@ -3118,776 +1793,72 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
         onSuccess={() => window.location.reload()}
       />
 
-      {/* Centered Modal: Xác nhận thay đổi trạng thái đơn hàng */}
-      <Dialog
-        open={statusModal.isOpen}
-        onOpenChange={(open) => {
-          if (!statusModal.loading) {
-            setStatusModal((prev) => ({ ...prev, isOpen: open }));
-          }
-        }}
-      >
-        <DialogContent className="sm:max-w-[420px] bg-[#0c101a] border border-zinc-800/80 text-white p-5 sm:p-6 rounded-3xl shadow-[0_25px_80px_rgba(0,0,0,0.85)] backdrop-blur-2xl space-y-4">
-          <DialogHeader className="flex flex-col items-center text-center space-y-3">
-            <div
-              className={`w-16 h-16 rounded-2xl flex items-center justify-center border shadow-xl relative transition-all ${statusModal.targetStatus === 'IN_PROGRESS'
-                ? 'bg-blue-500/10 border-blue-500/30 text-blue-400 shadow-blue-500/20 ring-4 ring-blue-500/10'
-                : statusModal.targetStatus === 'COMPLETED'
-                  ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 shadow-emerald-500/20 ring-4 ring-emerald-500/10'
-                  : 'bg-amber-500/10 border-amber-500/30 text-amber-400 shadow-amber-500/20 ring-4 ring-amber-500/10'
-                }`}
-            >
-              {statusModal.targetStatus === 'IN_PROGRESS' ? (
-                <Play className="w-8 h-8 fill-blue-400 ml-1 drop-shadow-md" />
-              ) : statusModal.targetStatus === 'COMPLETED' ? (
-                <CheckCircle2 className="w-8 h-8" />
-              ) : (
-                <AlertCircle className="w-8 h-8" />
-              )}
-            </div>
+      {/* Status Confirm Modal */}
+      <StatusConfirmModal
+        statusModal={statusModal}
+        setStatusModal={setStatusModal}
+        order={order}
+        onConfirm={executeStatusUpdate}
+      />
 
-            <DialogTitle className="text-lg sm:text-xl font-black text-white tracking-tight">
-              {statusModal.targetStatus === 'IN_PROGRESS'
-                ? 'Xác nhận Bắt đầu cày'
-                : statusModal.targetStatus === 'COMPLETED'
-                  ? 'Xác nhận Báo cáo hoàn thành'
-                  : 'Xác nhận thay đổi trạng thái'}
-            </DialogTitle>
+      {/* Delete Match Modal */}
+      <DeleteMatchModal
+        deleteMatchModal={deleteMatchModal}
+        setDeleteMatchModal={setDeleteMatchModal}
+        onConfirmDelete={handleConfirmDeleteMatch}
+      />
 
-            <DialogDescription className="text-xs text-zinc-400 leading-relaxed max-w-[340px] text-center">
-              {statusModal.targetStatus === 'IN_PROGRESS' || statusModal.targetStatus === 'IN_PROCESS'
-                ? 'Sau khi bắt đầu cày, trạng thái đơn sẽ chuyển sang "Đang cày...". Khách hàng sẽ nhận được thông báo để theo dõi tiến độ.'
-                : statusModal.targetStatus === 'COMPLETED'
-                  ? 'Bạn xác nhận đã đạt mục tiêu đơn hàng. Đơn sẽ chuyển sang trạng thái "Hoàn thành" để tiến hành nghiệm thu và quyết toán.'
-                  : `Bạn có chắc chắn muốn chuyển trạng thái đơn hàng sang "${getOrderStatusInfo(statusModal.targetStatus).label}"?`}
-            </DialogDescription>
-          </DialogHeader>
-
-          {/* Chi tiết đơn tóm tắt */}
-          {order && (
-            <div className="bg-zinc-950/80 border border-zinc-800/90 rounded-2xl p-4 space-y-2.5 my-1 text-xs shadow-inner">
-              <div className="flex items-center justify-between text-zinc-300">
-                <span className="text-zinc-400">Mã đơn hàng:</span>
-                <span className="font-mono font-extrabold text-white bg-zinc-900 border border-zinc-800 px-2 py-0.5 rounded-md">
-                  #{order.orderCode || order._id.slice(-6).toUpperCase()}
-                </span>
-              </div>
-              <div className="flex items-center justify-between text-zinc-300">
-                <span className="text-zinc-400">Dịch vụ:</span>
-                <span className="font-bold text-blue-400 text-right truncate max-w-[220px]">
-                  {getGameMeta(order.snapshot?.gameCode || order.details?.game || 'LOL').name} • {formatServiceName(order.serviceType || order.snapshot?.serviceSlug, order.details)}
-                </span>
-              </div>
-              <div className="flex items-center justify-between text-zinc-300">
-                <span className="text-zinc-400">Mục tiêu:</span>
-                <span className="font-bold text-white text-right">
-                  {(() => {
-                    if (order.serviceType === 'MATCHES' || order.details?.is_matches) {
-                      const count = order.details?.match_count || order.details?.matches || order.details?.steps_count || order.details?.num_games || 1;
-                      const queue = order.details?.queue_type === 'FLEX' ? 'Linh hoạt' : 'Đơn / Đôi';
-                      return `Cày ${count} trận (${queue})`;
-                    }
-                    if (order.serviceType === 'PLACEMENTS' || order.details?.is_placements) {
-                      const count = order.details?.placement_matches || order.details?.matches || order.details?.steps_count || 5;
-                      return `${count} trận phân hạng`;
-                    }
-                    if (order.serviceType === 'NET_WINS') {
-                      return order.details?.num_games ? `+${order.details.num_games} Trận thắng` : `${order.details?.target_lp || 0} LP`;
-                    }
-                    const curr = order.details?.current_rank ? formatRankDisplayVi(order.details.current_rank) : order.details?.current_level;
-                    const des = order.details?.desired_rank ? formatRankDisplayVi(order.details?.desired_rank) : order.details?.desired_level;
-                    if (curr && des) return `${curr} ➜ ${des}`;
-                    return curr || des || 'Theo yêu cầu';
-                  })()}
-                </span>
-              </div>
-              <div className="flex items-center justify-between text-zinc-300 pt-2 border-t border-zinc-800/80">
-                <span className="text-zinc-400">Trạng thái mới:</span>
-                <span
-                  className={`inline-flex items-center gap-1.5 font-bold px-2.5 py-0.5 rounded-full text-[11px] border ${statusModal.targetStatus === 'IN_PROGRESS'
-                    ? 'bg-blue-500/15 text-blue-400 border-blue-500/30'
-                    : statusModal.targetStatus === 'COMPLETED'
-                      ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
-                      : 'bg-amber-500/15 text-amber-400 border-amber-500/30'
-                    }`}
-                >
-                  <span
-                    className={`w-1.5 h-1.5 rounded-full ${statusModal.targetStatus === 'IN_PROGRESS'
-                      ? 'bg-blue-400 animate-pulse'
-                      : 'bg-emerald-400'
-                      }`}
-                  />
-                  {getOrderStatusInfo(statusModal.targetStatus).label}
-                </span>
-              </div>
-            </div>
-          )}
-
-          {/* Action buttons - Clean 2-column grid on both mobile & desktop */}
-          <div className="grid grid-cols-2 gap-3 pt-3 border-t border-zinc-800/80 w-full">
-            <button
-              type="button"
-              disabled={statusModal.loading}
-              onClick={() => setStatusModal((prev) => ({ ...prev, isOpen: false }))}
-              className="w-full py-2.5 sm:py-3 rounded-xl text-xs font-bold text-zinc-300 hover:text-white bg-zinc-900/90 hover:bg-zinc-800 border border-zinc-800 transition-colors cursor-pointer disabled:opacity-50 flex items-center justify-center active:scale-95"
-            >
-              Hủy
-            </button>
-            <button
-              type="button"
-              disabled={statusModal.loading}
-              onClick={executeStatusUpdate}
-              className={`w-full py-2.5 sm:py-3 rounded-xl text-xs font-bold text-white shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 active:scale-95 ${statusModal.targetStatus === 'IN_PROGRESS'
-                ? 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 shadow-blue-600/30 ring-1 ring-blue-400/40'
-                : statusModal.targetStatus === 'COMPLETED'
-                  ? 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 shadow-emerald-600/30 ring-1 ring-emerald-400/40'
-                  : 'bg-blue-600 hover:bg-blue-500'
-                }`}
-            >
-              {statusModal.loading ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>Đang xử lý...</span>
-                </>
-              ) : statusModal.targetStatus === 'IN_PROGRESS' ? (
-                <>
-                  <Play className="w-3.5 h-3.5 fill-white ml-0.5" />
-                  <span>Bắt đầu ngay</span>
-                </>
-              ) : statusModal.targetStatus === 'COMPLETED' ? (
-                <>
-                  <CheckCircle2 className="w-3.5 h-3.5" />
-                  <span>Xác nhận</span>
-                </>
-              ) : (
-                <span>Đồng ý</span>
-              )}
-            </button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Centered Modal: Xác nhận xóa trận đấu */}
-      <Dialog
-        open={deleteMatchModal.isOpen}
-        onOpenChange={(open) => {
-          if (!deleteMatchModal.loading) {
-            setDeleteMatchModal((prev) => ({ ...prev, isOpen: open }));
-          }
-        }}
-      >
-        <DialogContent className="sm:max-w-[420px] bg-zinc-950 border border-white/10 text-white p-6 rounded-2xl shadow-2xl backdrop-blur-xl">
-          <DialogHeader className="flex flex-col items-center text-center space-y-3">
-            <div className="w-14 h-14 rounded-2xl flex items-center justify-center border shadow-lg bg-rose-500/10 border-rose-500/30 text-rose-400 shadow-rose-500/10">
-              <Trash2 className="w-7 h-7" />
-            </div>
-
-            <DialogTitle className="text-lg font-bold text-white">
-              Xác nhận xóa trận đấu
-            </DialogTitle>
-
-            <DialogDescription className="text-xs text-zinc-400 leading-relaxed max-w-[320px]">
-              Bạn có chắc chắn muốn xóa trận đấu này khỏi lịch sử cày rank? Hành động này không thể hoàn tác.
-            </DialogDescription>
-          </DialogHeader>
-
-          {/* Tóm tắt thông tin trận đấu cần xóa */}
-          {deleteMatchModal.matchInfo && (
-            <div className="bg-zinc-900/80 border border-white/5 rounded-xl p-3.5 space-y-2 my-2 text-xs">
-              <div className="flex items-center justify-between text-zinc-300">
-                <span className="text-zinc-500">Chế độ:</span>
-                <span className="font-medium text-white">
-                  {deleteMatchModal.matchInfo.mode || 'Rank Đơn/Đôi'}
-                </span>
-              </div>
-              <div className="flex items-center justify-between text-zinc-300">
-                <span className="text-zinc-500">Tướng:</span>
-                <span className="font-semibold text-blue-300">
-                  {deleteMatchModal.matchInfo.champion || 'Chưa rõ'}
-                </span>
-              </div>
-              <div className="flex items-center justify-between text-zinc-300">
-                <span className="text-zinc-500">Kết quả:</span>
-                <span
-                  className={`font-bold px-2 py-0.5 rounded text-[11px] ${deleteMatchModal.matchInfo.result === 'WIN'
-                    ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                    : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
-                    }`}
-                >
-                  {deleteMatchModal.matchInfo.result === 'WIN' ? 'Thắng (Win)' : 'Thua (Loss)'}
-                </span>
-              </div>
-              {deleteMatchModal.matchInfo.lp_change !== undefined && deleteMatchModal.matchInfo.lp_change !== '' && (
-                <div className="flex items-center justify-between text-zinc-300">
-                  <span className="text-zinc-500">Điểm LP:</span>
-                  <span
-                    className={`font-mono font-bold ${Number(deleteMatchModal.matchInfo.lp_change) >= 0
-                      ? 'text-emerald-400'
-                      : 'text-rose-400'
-                      }`}
-                  >
-                    {Number(deleteMatchModal.matchInfo.lp_change) > 0
-                      ? `+${deleteMatchModal.matchInfo.lp_change}`
-                      : deleteMatchModal.matchInfo.lp_change}{' '}
-                    LP
-                  </span>
-                </div>
-              )}
-            </div>
-          )}
-
-          <DialogFooter className="flex items-center justify-end gap-2.5 pt-3 border-t border-white/10 sm:space-x-0">
-            <button
-              type="button"
-              disabled={deleteMatchModal.loading}
-              onClick={() => setDeleteMatchModal((prev) => ({ ...prev, isOpen: false }))}
-              className="px-4 py-2.5 rounded-xl text-xs font-semibold text-zinc-300 hover:text-white bg-zinc-900 hover:bg-zinc-800 border border-white/10 transition-colors cursor-pointer disabled:opacity-50"
-            >
-              Hủy
-            </button>
-            <button
-              type="button"
-              disabled={deleteMatchModal.loading}
-              onClick={handleConfirmDeleteMatch}
-              className="px-4 py-2.5 rounded-xl text-xs font-bold text-white bg-rose-600 hover:bg-rose-500 shadow-lg shadow-rose-600/25 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
-            >
-              {deleteMatchModal.loading ? (
-                <>
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  <span>Đang xóa...</span>
-                </>
-              ) : (
-                <>
-                  <Trash2 className="w-3.5 h-3.5" />
-                  <span>Xác nhận xóa</span>
-                </>
-              )}
-            </button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Centered Modal: Nhập nhanh hàng loạt trận đấu */}
-      <Dialog open={isBatchModalOpen} onOpenChange={setIsBatchModalOpen}>
-        <DialogContent className="sm:max-w-[620px] max-h-[90vh] flex flex-col bg-zinc-950 border border-white/10 text-white p-6 rounded-2xl shadow-2xl backdrop-blur-xl overflow-hidden">
-          <DialogHeader className="space-y-1.5 pb-2 border-b border-white/10">
-            <div className="flex items-center gap-2.5">
-              <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/30 text-blue-400 flex items-center justify-center shadow-lg shadow-blue-500/10">
-                <Zap className="w-5 h-5 text-blue-400" />
-              </div>
-              <div>
-                <DialogTitle className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
-                  Nhập nhanh danh sách trận đấu
-                </DialogTitle>
-                <DialogDescription className="text-xs text-zinc-400">
-                  Dán chuỗi Match ID kèm điểm LP để hệ thống tự động nhận diện và cập nhật
-                </DialogDescription>
-              </div>
-            </div>
-          </DialogHeader>
-
-          <div className="flex-1 overflow-y-auto space-y-4 py-2 pr-1">
-            {/* Quick Helper Button: Điền trận gần nhất */}
-            {(() => {
-              const rawQueue = String(order?.details?.queueType || order?.details?.queue_type || order?.serviceType || '').toUpperCase();
-              const isFlex = rawQueue.includes('FLEX') || rawQueue.includes('LINH');
-              const queueLabel = isFlex ? 'Linh Hoạt' : 'Đơn / Đôi';
-
-              if (recentMatches.length === 0) return null;
-
-              return (
-                <div className="flex items-center justify-between bg-zinc-900/60 border border-white/5 rounded-xl p-2.5 text-xs">
-                  <div className="flex items-center gap-1.5 text-zinc-300">
-                    <History className="w-3.5 h-3.5 text-blue-400" />
-                    <span>Có <strong>{recentMatches.length}</strong> trận {queueLabel} gần nhất:</span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const sampleText = recentMatches.slice(0, 5).map(id => `${id} +20`).join('\n');
-                      handleParseBatchText(sampleText);
-                    }}
-                    className="px-2.5 py-1 bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 border border-blue-500/30 rounded-lg text-[11px] font-semibold transition-colors cursor-pointer"
-                  >
-                    Dán nhanh {Math.min(5, recentMatches.length)} trận
-                  </button>
-                </div>
-              );
-            })()}
-
-            {/* Textarea dán dữ liệu */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-zinc-300 flex items-center justify-between">
-                <span>Dán danh sách trận (Mỗi trận 1 dòng):</span>
-                <span className="text-[11px] text-zinc-500 font-mono">
-                  {(order.snapshot?.gameCode || order.details?.game || order.details?.gameCode || '').toUpperCase().includes('VAL')
-                    ? 'Định dạng: MatchID [+/-RR]'
-                    : 'Định dạng: MatchID [+/-LP]'}
-                </span>
-              </label>
-              <textarea
-                rows={5}
-                value={batchInputText}
-                onChange={(e) => handleParseBatchText(e.target.value)}
-                placeholder={(order.snapshot?.gameCode || order.details?.game || order.details?.gameCode || '').toUpperCase().includes('VAL')
-                  ? `ba7a9a92-be79-494e-bdad-483131edb85c +18\nba7a9a92-be79-494e-bdad-483131edb85c -14`
-                  : `VN2_1640656388 +25\nVN2_1640608730 -14\nVN2_1640571634 +20\nVN2_1640492570 +21\nVN2_1640449961 -16`}
-                className="w-full bg-zinc-900/90 border border-zinc-800 rounded-xl p-3 text-xs sm:text-sm font-mono text-white placeholder-zinc-600 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all resize-none"
-              />
-            </div>
-
-            {/* Parsed Preview Table */}
-            {parsedBatchMatches.length > 0 && (
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-xs">
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold text-white">Xem trước ({parsedBatchMatches.length} trận):</span>
-                    <span className="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[11px] font-bold">
-                      {parsedBatchMatches.filter(m => m.result === 'WIN').length} Thắng
-                    </span>
-                    <span className="px-2 py-0.5 rounded bg-rose-500/10 text-rose-400 border border-rose-500/20 text-[11px] font-bold">
-                      {parsedBatchMatches.filter(m => m.result === 'LOSS').length} Thua
-                    </span>
-                    <span className="font-mono text-zinc-400 text-[11px]">
-                      Tổng:{' '}
-                      <strong className={parsedBatchMatches.reduce((acc, m) => acc + m.lp_change, 0) >= 0 ? 'text-emerald-400' : 'text-rose-400'}>
-                        {parsedBatchMatches.reduce((acc, m) => acc + m.lp_change, 0) >= 0 ? '+' : ''}
-                        {parsedBatchMatches.reduce((acc, m) => acc + m.lp_change, 0)} {(order.snapshot?.gameCode || order.details?.game || order.details?.gameCode || '').toUpperCase().includes('VAL') ? 'RR' : 'LP'}
-                      </strong>
-                    </span>
-                  </div>
-
-                  <button
-                    type="button"
-                    disabled={isFetchingRiotBatch}
-                    onClick={handleAutoFetchRiotForBatch}
-                    className="px-2.5 py-1 bg-zinc-900 hover:bg-zinc-800 text-blue-300 border border-blue-500/30 rounded-lg text-[11px] font-semibold flex items-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
-                  >
-                    {isFetchingRiotBatch ? (
-                      <>
-                        <Loader2 className="w-3 h-3 animate-spin" />
-                        <span>Đang kéo trận...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Search className="w-3 h-3" />
-                        <span>{(order.snapshot?.gameCode || order.details?.game || order.details?.gameCode || '').toUpperCase().includes('VAL') ? 'Lấy KDA & Agent' : 'Lấy KDA & Tướng'}</span>
-                      </>
-                    )}
-                  </button>
-                </div>
-
-                <div className="bg-zinc-900/70 border border-white/5 rounded-xl max-h-48 overflow-y-auto divide-y divide-white/5">
-                  {parsedBatchMatches.map((m, idx) => (
-                    <div key={idx} className="p-2.5 flex items-center justify-between text-xs hover:bg-white/[0.02]">
-                      <div className="flex items-center gap-2.5">
-                        <span className="text-zinc-500 font-mono text-[11px] w-4">{idx + 1}.</span>
-                        <div>
-                          <div className="font-mono font-bold text-white text-xs">{m.matchId}</div>
-                          <div className="text-[11px] text-zinc-400 flex items-center gap-1.5 mt-0.5">
-                            {m.champion && <span className="text-blue-300 font-semibold">{m.champion}</span>}
-                            {m.reason && <span className="text-zinc-500">• {m.reason}</span>}
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-3">
-                        <span className={`px-2 py-0.5 rounded text-[11px] font-bold ${m.result === 'WIN'
-                          ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                          : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
-                          }`}>
-                          {m.result === 'WIN' ? 'Thắng' : 'Thua'}
-                        </span>
-                        <span className={`font-mono font-bold text-xs w-16 text-right ${m.lp_change >= 0 ? 'text-emerald-400' : 'text-rose-400'
-                          }`}>
-                          {m.lp_change > 0 ? `+${m.lp_change}` : m.lp_change} {(order.snapshot?.gameCode || order.details?.game || order.details?.gameCode || '').toUpperCase().includes('VAL') ? 'RR' : 'LP'}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setParsedBatchMatches(prev => prev.filter((_, i) => i !== idx));
-                          }}
-                          className="text-zinc-500 hover:text-rose-400 p-1 cursor-pointer transition-colors"
-                          title="Xóa trận này khỏi danh sách dán"
-                        >
-                          <X size={14} />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-
-          <DialogFooter className="flex items-center justify-end gap-2.5 pt-3 border-t border-white/10 sm:space-x-0">
-            <button
-              type="button"
-              disabled={isSubmittingBatch}
-              onClick={() => {
-                setIsBatchModalOpen(false);
-                setBatchInputText('');
-                setParsedBatchMatches([]);
-              }}
-              className="px-4 py-2.5 rounded-xl text-xs font-semibold text-zinc-300 hover:text-white bg-zinc-900 hover:bg-zinc-800 border border-white/10 transition-colors cursor-pointer disabled:opacity-50"
-            >
-              Hủy
-            </button>
-            <button
-              type="button"
-              disabled={isSubmittingBatch || parsedBatchMatches.length === 0}
-              onClick={handleSaveBatchMatches}
-              className="px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 shadow-lg shadow-blue-600/25 transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isSubmittingBatch ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>Đang lưu...</span>
-                </>
-              ) : (
-                <>
-                  <CheckCircle2 className="w-4 h-4" />
-                  <span>Lưu tất cả ({parsedBatchMatches.length} trận)</span>
-                </>
-              )}
-            </button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Batch Match Modal */}
+      <BatchMatchModal
+        isOpen={isBatchModalOpen}
+        onClose={() => setIsBatchModalOpen(false)}
+        order={order}
+        recentMatches={recentMatches}
+        batchInputText={batchInputText}
+        onParseBatchText={handleParseBatchText}
+        parsedBatchMatches={parsedBatchMatches}
+        setParsedBatchMatches={setParsedBatchMatches}
+        isFetchingRiotBatch={isFetchingRiotBatch}
+        onAutoFetchRiotForBatch={handleAutoFetchRiotForBatch}
+        isSubmittingBatch={isSubmittingBatch}
+        onSaveBatchMatches={handleSaveBatchMatches}
+      />
 
       {/* Dispute Modal */}
-      {isDisputeModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-md p-6">
-            <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2"><AlertCircle className="w-6 h-6 text-red-500" /> Báo lỗi / Khiếu nại</h3>
-            <textarea
-              className="w-full bg-zinc-950 border border-zinc-700 rounded-xl p-3 text-white mb-4 h-32"
-              placeholder="Mô tả vấn đề của bạn (VD: Tài khoản sai mật khẩu, bị khóa, Booster vi phạm...)"
-              value={disputeReason} onChange={e => setDisputeReason(e.target.value)}
-            />
-            <div className="flex gap-3 justify-end">
-              <button onClick={() => setIsDisputeModalOpen(false)} className="px-4 py-2 text-zinc-400 hover:text-white">Hủy</button>
-              <button onClick={handleDispute} disabled={isSubmittingDispute} className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-lg font-bold flex items-center justify-center w-32 disabled:opacity-50">
-                {isSubmittingDispute
-                  ? <Loader2 className="w-5 h-5 animate-spin" />
-                  : 'Gửi yêu cầu'
-                }
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <DisputeModal
+        isOpen={isDisputeModalOpen}
+        onClose={() => setIsDisputeModalOpen(false)}
+        disputeReason={disputeReason}
+        setDisputeReason={setDisputeReason}
+        isSubmittingDispute={isSubmittingDispute}
+        onConfirmDispute={handleDispute}
+      />
 
-      {/* Match Update Modal */}
-      {isMatchModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-lg p-6 shadow-2xl animate-in zoom-in-95 duration-200">
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-xl font-bold text-white flex items-center gap-2">
-                <Swords className="w-5 h-5 text-blue-500" />
-                {editingMatchId ? 'Chỉnh sửa trận đấu' : 'Cập nhật trận đấu'}
-              </h3>
-              <button onClick={handleCancelEdit} className="text-zinc-500 hover:text-white"><X size={20} /></button>
-            </div>
+      {/* Match Form Modal */}
+      <MatchFormModal
+        isOpen={isMatchModalOpen}
+        onClose={handleCancelEdit}
+        editingMatchId={editingMatchId}
+        order={order}
+        riotMatchId={riotMatchId}
+        setRiotMatchId={setRiotMatchId}
+        isFetchingRiot={isFetchingRiot}
+        onFetchRiotMatch={handleFetchRiotMatch}
+        recentMatches={recentMatches}
+        onRefreshRecentMatches={fetchRecentMatchesForOrder}
+        matchForm={matchForm}
+        setMatchForm={setMatchForm}
+        isAddingMatch={isAddingMatch}
+        onSaveMatch={handleSaveMatch}
+      />
 
-            {/* Riot Match Fetcher (Only for new matches) */}
-            {!editingMatchId && (
-              <div className="space-y-2 mb-6">
-                <div className="flex flex-col sm:flex-row gap-2">
-                  <input
-                    type="text"
-                    placeholder={(order?.snapshot?.gameCode || order?.details?.game || order?.details?.gameCode || '').toUpperCase().includes('VAL') ? "Nhập Match ID Valorant (VD: ba7a9a92-be79-494e-bdad-483131edb85c)" : "Nhập Match ID (VD: 1640656388 hoặc VN2_1640656388)"}
-                    className="flex-1 bg-zinc-950 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white font-mono"
-                    value={riotMatchId}
-                    onChange={e => setRiotMatchId(e.target.value)}
-                  />
-                  <button
-                    type="button"
-                    onClick={handleFetchRiotMatch}
-                    disabled={isFetchingRiot}
-                    className="bg-blue-600 hover:bg-blue-500 text-white px-3.5 py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-2 w-full sm:w-auto transition-colors disabled:opacity-50 cursor-pointer"
-                  >
-                    {isFetchingRiot ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
-                    Lấy Info
-                  </button>
-                </div>
-
-                {(() => {
-                  const rawQueue = String(order?.details?.queueType || order?.details?.queue_type || order?.serviceType || '').toUpperCase();
-                  const isFlex = rawQueue.includes('FLEX') || rawQueue.includes('LINH');
-                  const queueBadge = isFlex ? 'Linh Hoạt' : 'Đơn / Đôi';
-
-                  return (
-                    <div className="bg-zinc-950/80 border border-white/5 rounded-xl p-2.5 space-y-1.5">
-                      <div className="text-[11px] font-semibold text-zinc-400 flex items-center justify-between">
-                        <span className="flex items-center gap-1.5 text-zinc-200">
-                          <History className="w-3.5 h-3.5 text-blue-400" />
-                          Trận đấu gần đây ({queueBadge}): <strong className="text-blue-400">{recentMatches.length}</strong>
-                        </span>
-                        <div className="flex items-center gap-2">
-                          <button
-                            type="button"
-                            onClick={fetchRecentMatchesForOrder}
-                            title="Tải lại danh sách trận từ Riot"
-                            className="text-zinc-400 hover:text-blue-400 transition-colors p-0.5 cursor-pointer"
-                          >
-                            <RefreshCw className="w-3 h-3" />
-                          </button>
-                          <span className="text-[10px] text-zinc-500">Bấm để tự điền</span>
-                        </div>
-                      </div>
-                      {recentMatches.length > 0 ? (
-                        <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto pr-1">
-                          {recentMatches.slice(0, 10).map((mId) => (
-                            <button
-                              key={mId}
-                              type="button"
-                              onClick={() => setRiotMatchId(mId)}
-                              className={`text-[11px] font-mono px-2 py-1 rounded border transition-colors cursor-pointer ${riotMatchId === mId
-                                ? 'bg-blue-600/30 text-blue-300 border-blue-500/50 font-bold'
-                                : 'bg-zinc-900 text-zinc-300 border-white/5 hover:border-blue-500/30 hover:text-white'
-                                }`}
-                            >
-                              {mId}
-                            </button>
-                          ))}
-                        </div>
-                      ) : (
-                        <div className="text-[11px] text-zinc-500 py-0.5 italic flex items-center justify-between">
-                          <span>Chưa có trận {queueBadge} gần đây của tài khoản này.</span>
-                          <button
-                            type="button"
-                            onClick={fetchRecentMatchesForOrder}
-                            className="text-blue-400 hover:underline text-[10px] cursor-pointer"
-                          >
-                            Quét lại
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })()}
-              </div>
-            )}
-
-            <form onSubmit={handleSaveMatch} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <input type="text" placeholder="Tướng (VD: Lee Sin)" className="bg-zinc-950 border border-zinc-700 rounded-lg px-3 py-3 text-sm text-white" value={matchForm.champion} onChange={e => setMatchForm({ ...matchForm, champion: e.target.value })} required />
-                <select className="bg-zinc-950 border border-zinc-700 rounded-lg px-3 py-3 text-sm text-white" value={matchForm.result} onChange={e => setMatchForm({ ...matchForm, result: e.target.value })}>
-                  <option value="WIN">Thắng (Win)</option>
-                  <option value="LOSS">Thua (Loss)</option>
-                </select>
-              </div>
-              <input type="number" placeholder="Điểm (+/- LP)" className="w-full bg-zinc-950 border border-zinc-700 rounded-lg px-3 py-3 text-sm text-white" value={matchForm.lp_change} onChange={e => setMatchForm({ ...matchForm, lp_change: e.target.value })} required />
-              <input type="text" placeholder="Ghi chú (Tùy chọn)" className="w-full bg-zinc-950 border border-zinc-700 rounded-lg px-3 py-3 text-sm text-white" value={matchForm.reason} onChange={e => setMatchForm({ ...matchForm, reason: e.target.value })} />
-
-              <button type="submit" disabled={isAddingMatch} className="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed mt-2">
-                {isAddingMatch ? <Loader2 className="w-5 h-5 animate-spin" /> : (editingMatchId ? 'Lưu thay đổi' : 'Thêm trận đấu')}
-              </button>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Match Detail Popup (Eye Icon) */}
-      {selectedMatchDetail && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/90 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-          <div className="bg-zinc-950 border border-zinc-800 rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
-            <div className="p-4 border-b border-zinc-800 flex justify-between items-center bg-zinc-900">
-              <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                <Swords className="w-5 h-5 text-yellow-500" /> Chi tiết trận đấu
-              </h3>
-              <button onClick={() => setSelectedMatchDetail(null)} className="text-zinc-400 hover:text-white"><X size={20} /></button>
-            </div>
-
-            <div className="overflow-y-auto p-4 md:p-6 space-y-6">
-              {(() => {
-                // Xác định tên người chơi để highlight
-                const targetName = (order.details.ingame_name || order.details.account_username || '').toLowerCase().replace(/\s/g, '').replace('#', '');
-
-                // TRƯỜNG HỢP 1: TRẬN ĐẤU VALORANT (HenrikDev format)
-                if (selectedMatchDetail.players?.all_players) {
-                  const allPlayers = selectedMatchDetail.players.all_players;
-                  const bluePlayers = allPlayers.filter((p: any) => p.team?.toLowerCase() === 'blue');
-                  const redPlayers = allPlayers.filter((p: any) => p.team?.toLowerCase() === 'red');
-                  const blueWon = selectedMatchDetail.teams?.blue?.has_won;
-                  const redWon = selectedMatchDetail.teams?.red?.has_won;
-                  const blueRounds = selectedMatchDetail.teams?.blue?.rounds_won ?? 0;
-                  const redRounds = selectedMatchDetail.teams?.red?.rounds_won ?? 0;
-
-                  const ValTeamBlock = ({ players, color, title, won, rounds }: any) => (
-                    <div className="space-y-3">
-                      <div className={`flex justify-between items-center pb-2 border-b ${color === 'blue' ? 'border-blue-500/30' : 'border-red-500/30'}`}>
-                        <div className="flex items-center gap-2">
-                          <span className={`font-bold ${color === 'blue' ? 'text-blue-400' : 'text-red-400'}`}>{title}</span>
-                          <span className={`px-2 py-0.5 text-[10px] font-bold uppercase rounded border ${won ? 'bg-green-500/10 text-green-400 border-green-500/20' : 'bg-red-500/10 text-red-400 border-red-500/20'}`}>
-                            {won ? 'Chiến Thắng' : 'Thất Bại'} ({rounds} Rounds)
-                          </span>
-                        </div>
-                      </div>
-                      <div className="space-y-2">
-                        {players.map((p: any, idx: number) => {
-                          const pFull = `${p.name || ''}#${p.tag || ''}`.toLowerCase().replace(/\s/g, '');
-                          const isMe = targetName && (pFull.includes(targetName) || targetName.includes(p.name?.toLowerCase()));
-                          const agentIcon = p.assets?.agent?.small || p.assets?.agent?.bust || '';
-
-                          return (
-                            <div key={idx} className={`flex gap-3 p-3 rounded-xl border transition-colors ${isMe ? 'bg-yellow-500/10 border-yellow-500/50' : 'bg-zinc-900/50 border-zinc-800/50 hover:bg-zinc-900'}`}>
-                              <div className="relative w-12 h-12 sm:w-14 sm:h-14 shrink-0 bg-zinc-800 rounded-lg overflow-hidden border border-zinc-700 flex items-center justify-center">
-                                {agentIcon ? (
-                                  <img src={agentIcon} alt={p.character} className="w-full h-full object-cover" />
-                                ) : (
-                                  <span className="text-xs font-bold text-zinc-400">{p.character?.slice(0, 2)}</span>
-                                )}
-                                <div className="absolute bottom-0 right-0 bg-black/80 text-[9px] text-white px-1 rounded-tl font-mono">
-                                  {p.level || p.character}
-                                </div>
-                              </div>
-                              <div className="flex-1 min-w-0 flex flex-col justify-between gap-1">
-                                <div className="flex justify-between items-start">
-                                  <div className="min-w-0 pr-2">
-                                    <div className={`text-sm font-bold truncate ${isMe ? 'text-yellow-400' : 'text-white'}`}>
-                                      {p.name}#{p.tag} {isMe && '(Tôi)'}
-                                    </div>
-                                    <div className="text-[11px] text-zinc-400 flex items-center gap-1.5">
-                                      <span className="font-semibold text-blue-300">{p.character}</span>
-                                      {p.currenttier_patched && <span className="text-zinc-500">• {p.currenttier_patched}</span>}
-                                    </div>
-                                  </div>
-                                  <div className="text-right shrink-0">
-                                    <div className={`text-sm font-mono font-bold ${isMe ? 'text-yellow-200' : 'text-white'}`}>
-                                      {p.stats?.kills}/<span className="text-red-400">{p.stats?.deaths}</span>/{p.stats?.assists}
-                                    </div>
-                                    <div className="text-[10px] font-bold text-zinc-500">
-                                      {calculateKDA(p.stats?.kills ?? 0, p.stats?.deaths ?? 0, p.stats?.assists ?? 0)} KDA • {p.stats?.score} pts
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  );
-
-                  return (
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between text-xs text-zinc-400 bg-zinc-900/60 p-3 rounded-xl border border-zinc-800">
-                        <div>Map: <span className="text-white font-bold">{selectedMatchDetail.metadata?.map}</span> • Mode: <span className="text-cyan-400 font-bold">{selectedMatchDetail.metadata?.mode}</span></div>
-                        <div>Thời gian: <span className="text-white font-mono">{Math.floor((selectedMatchDetail.metadata?.game_length || 0) / 60)} phút</span></div>
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                        <ValTeamBlock players={bluePlayers} color="blue" title="Blue Team" won={blueWon} rounds={blueRounds} />
-                        <ValTeamBlock players={redPlayers} color="red" title="Red Team" won={redWon} rounds={redRounds} />
-                      </div>
-                    </div>
-                  );
-                }
-
-                // TRƯỜNG HỢP 2: TRẬN ĐẤU LEAGUE OF LEGENDS (Riot format)
-                if (selectedMatchDetail.info?.participants) {
-                  const teams = calculateTeamStats(selectedMatchDetail.info.participants);
-                  const blueTeam = selectedMatchDetail.info.participants.filter((p: any) => p.teamId === 100);
-                  const redTeam = selectedMatchDetail.info.participants.filter((p: any) => p.teamId === 200);
-
-                  const TeamBlock = ({ teamId, players, color, title }: any) => {
-                    const isWin = players.length > 0 ? players[0].win : false;
-                    return (
-                      <div className="space-y-3">
-                        <div className={`flex justify-between items-center pb-2 border-b ${color === 'blue' ? 'border-blue-500/30' : 'border-red-500/30'}`}>
-                          <div className="flex items-center gap-2">
-                            <span className={`font-bold ${color === 'blue' ? 'text-blue-400' : 'text-red-400'}`}>{title}</span>
-                            {players.length > 0 && (
-                              <span className={`px-2 py-0.5 text-[10px] font-bold uppercase rounded border ${isWin ? 'bg-green-500/10 text-green-400 border-green-500/20' : 'bg-red-500/10 text-red-400 border-red-500/20'}`}>
-                                {isWin ? 'Chiến Thắng' : 'Thất Bại'}
-                              </span>
-                            )}
-                          </div>
-                          <span className="text-sm font-mono text-white">
-                            {teams[teamId]?.kills ?? 0} / <span className="text-red-400">{teams[teamId]?.deaths ?? 0}</span> / {teams[teamId]?.assists ?? 0}
-                          </span>
-                        </div>
-                        <div className="space-y-2">
-                          {players.map((p: any, idx: number) => {
-                            const pName = (p.riotIdGameName || p.summonerName || '').toLowerCase().replace(/\s/g, '');
-                            const pTag = (p.riotIdTagline || '').toLowerCase();
-                            const fullName = pName + pTag;
-                            const isMe = targetName && (fullName.includes(targetName) || targetName.includes(pName));
-
-                            return (
-                              <div key={idx} className={`flex gap-3 p-3 rounded-xl border transition-colors ${isMe ? 'bg-yellow-500/10 border-yellow-500/50' : 'bg-zinc-900/50 border-zinc-800/50 hover:bg-zinc-900'}`}>
-                                <div className="relative w-12 h-12 sm:w-14 sm:h-14 shrink-0">
-                                  <img
-                                    src={`https://ddragon.leagueoflegends.com/cdn/${dDragonVersion}/img/champion/${p.championName}.png`}
-                                    alt={p.championName}
-                                    className={`w-full h-full rounded-lg object-cover border ${isMe ? 'border-yellow-500' : 'border-zinc-700'}`}
-                                  />
-                                  <div className="absolute bottom-0 right-0 bg-black/80 text-[10px] text-white px-1 rounded-tl border-t border-l border-zinc-700 font-mono">
-                                    {p.champLevel}
-                                  </div>
-                                </div>
-                                <div className="flex-1 min-w-0 flex flex-col justify-between gap-1.5">
-                                  <div className="flex justify-between items-start">
-                                    <div className="min-w-0 pr-2">
-                                      <div className={`text-sm font-bold truncate leading-tight ${isMe ? 'text-yellow-400' : 'text-white'}`}>
-                                        {p.riotIdGameName || p.summonerName} {isMe && '(Tôi)'}
-                                      </div>
-                                      <div className="text-[10px] text-zinc-500 truncate leading-tight">
-                                        {p.championName}
-                                      </div>
-                                    </div>
-                                    <div className="text-right shrink-0">
-                                      <div className={`text-sm font-mono font-bold leading-tight ${isMe ? 'text-yellow-200' : 'text-white'}`}>
-                                        {p.kills}/<span className="text-red-400">{p.deaths}</span>/{p.assists}
-                                      </div>
-                                      <div className="text-[10px] font-bold text-zinc-500 leading-tight">
-                                        {calculateKDA(p.kills, p.deaths, p.assists)} KDA
-                                      </div>
-                                    </div>
-                                  </div>
-                                  <div className="flex gap-1 overflow-x-auto no-scrollbar">
-                                    {[p.item0, p.item1, p.item2, p.item3, p.item4, p.item5].map((itemId, i) => (
-                                      <div key={i} className={`w-6 h-6 sm:w-7 sm:h-7 rounded bg-zinc-800 border overflow-hidden shrink-0 ${isMe ? 'border-yellow-500/30' : 'border-zinc-700'}`}>
-                                        {itemId > 0 && <img src={`https://ddragon.leagueoflegends.com/cdn/${dDragonVersion}/img/item/${itemId}.png`} alt="Item" className="w-full h-full object-cover" />}
-                                      </div>
-                                    ))}
-                                    <div className={`w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-zinc-800 border overflow-hidden ml-1 shrink-0 ${isMe ? 'border-yellow-500/30' : 'border-zinc-700'}`}>
-                                      {p.item6 > 0 && <img src={`https://ddragon.leagueoflegends.com/cdn/${dDragonVersion}/img/item/${p.item6}.png`} alt="Trinket" className="w-full h-full object-cover" />}
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    );
-                  };
-
-                  return (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                      <TeamBlock teamId={100} players={blueTeam} color="blue" title="Blue Team" />
-                      <TeamBlock teamId={200} players={redTeam} color="red" title="Red Team" />
-                    </div>
-                  );
-                }
-
-                // Fallback: Nếu không đúng cấu trúc chi tiết
-                return (
-                  <div className="text-center py-12 text-zinc-400 space-y-2">
-                    <p className="font-bold text-white text-base">Thông tin tổng quan trận đấu</p>
-                    <p className="text-xs text-zinc-500">Mã trận: {selectedMatchDetail.matchId || 'Không xác định'}</p>
-                    <pre className="text-left text-xs bg-zinc-900 p-4 rounded-xl border border-zinc-800 overflow-x-auto text-zinc-300 font-mono mt-4">
-                      {JSON.stringify(selectedMatchDetail, null, 2)}
-                    </pre>
-                  </div>
-                );
-              })()}
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Match Detail Modal */}
+      <MatchDetailModal
+        selectedMatchDetail={selectedMatchDetail}
+        onClose={() => setSelectedMatchDetail(null)}
+        order={order}
+        dDragonVersion={dDragonVersion}
+      />
     </div>
   );
 }
