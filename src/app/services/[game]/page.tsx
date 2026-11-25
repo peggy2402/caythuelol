@@ -754,7 +754,8 @@ function GameServicesContent() {
                   return (
                     <div
                       key={booster._id}
-                      className="group bg-zinc-900/60 border border-white/10 hover:border-blue-500/40 rounded-2xl p-5 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 flex flex-col justify-between"
+                      onClick={() => router.push(`/b/${encodeURIComponent(booster.username)}`)}
+                      className="group bg-zinc-900/60 border border-white/10 hover:border-blue-500/40 rounded-2xl p-5 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 flex flex-col justify-between cursor-pointer"
                     >
                       <div>
                         {/* Avatar & Online status */}
@@ -765,6 +766,10 @@ function GameServicesContent() {
                                 src={booster.avatar}
                                 alt={booster.username}
                                 className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  e.currentTarget.onerror = null;
+                                  e.currentTarget.src = '/default-avatar.png';
+                                }}
                               />
                             ) : (
                               <User className="w-full h-full p-2 text-zinc-500" />
@@ -817,13 +822,17 @@ function GameServicesContent() {
                       <div className="pt-4 border-t border-white/5 flex items-center gap-2">
                         <Link
                           href={`/b/${booster.username}`}
+                          onClick={(e) => e.stopPropagation()}
                           className="flex-1 py-2 px-3 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white font-bold text-xs text-center transition-colors"
                         >
                           Hồ sơ chi tiết
                         </Link>
                         <button
                           type="button"
-                          onClick={() => setSelectedBoosterForHire(booster)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedBoosterForHire(booster);
+                          }}
                           className="flex-1 py-2 px-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs text-center transition-colors shadow-md shadow-blue-600/20 cursor-pointer"
                         >
                           Thuê tuyển thủ
