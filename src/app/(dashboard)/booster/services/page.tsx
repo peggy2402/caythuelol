@@ -2838,20 +2838,11 @@ export default function BoosterServicesStudio() {
                                           </p>
                                         </div>
 
-                                        <div className="grid grid-cols-2 gap-3">
-                                          <div>
-                                            <label className="text-zinc-400 font-bold uppercase block mb-1">Đơn Vị Tính</label>
-                                            <input
-                                              type="text"
-                                              value={formData.unitName || 'Trận'}
-                                              onChange={(e) => setFormData({ ...formData, unitName: e.target.value })}
-                                              className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-white font-medium outline-none focus:border-cyan-500 text-xs"
-                                            />
-                                          </div>
-                                          <div>
-                                            <label className="text-zinc-400 font-bold uppercase block mb-1">
-                                              Đơn Giá / 1 Trận Phân Hạng (VNĐ)
-                                            </label>
+                                        <div>
+                                          <label className="text-zinc-400 font-bold uppercase block mb-1">
+                                            Đơn Giá / 1 Trận Phân Hạng (VNĐ) <span className="text-red-500">*</span>
+                                          </label>
+                                          <div className="relative">
                                             <input
                                               type="text"
                                               inputMode="numeric"
@@ -2860,11 +2851,21 @@ export default function BoosterServicesStudio() {
                                               value={formData.price || ''}
                                               onChange={(e) => {
                                                 const clean = e.target.value.replace(/\D/g, '').replace(/^0+/, '');
-                                                setFormData({ ...formData, price: clean ? parseInt(clean, 10) : 0 });
+                                                setFormData({
+                                                  ...formData,
+                                                  price: clean ? parseInt(clean, 10) : 0,
+                                                  unitName: 'Trận',
+                                                });
                                               }}
-                                              className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3 py-2 text-white font-mono font-bold outline-none focus:border-cyan-500 text-xs [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                              className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-3.5 py-2.5 text-white font-mono font-bold outline-none focus:border-purple-500 text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                             />
+                                            <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-zinc-500 font-mono">
+                                              VNĐ / Trận
+                                            </span>
                                           </div>
+                                          <p className="text-[11px] text-zinc-500 mt-1.5">
+                                            Đơn vị tính cố định theo <strong>Trận</strong> (Khách hàng được chọn linh hoạt từ 1 đến 5 trận).
+                                          </p>
                                         </div>
 
                                         {formData.price > 0 && (
