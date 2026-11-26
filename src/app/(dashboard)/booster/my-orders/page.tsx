@@ -365,7 +365,9 @@ export default function BoosterOrdersPage() {
             // Theme màu sắc theo trạng thái
             const theme = isInProgress
               ? {
-                  leftBar: 'bg-gradient-to-b from-blue-500 to-cyan-400 shadow-[0_0_12px_rgba(59,130,246,0.6)]',
+                  cardBorder:
+                    'border-blue-500/30 hover:border-blue-400/60 shadow-[0_0_20px_rgba(59,130,246,0.06)] hover:shadow-[0_0_25px_rgba(59,130,246,0.12)]',
+                  cardBg: 'bg-gradient-to-br from-blue-950/25 via-zinc-950/95 to-zinc-950',
                   iconBox: 'bg-blue-500/15 border-blue-500/30 text-blue-400 shadow-inner shadow-blue-500/10',
                   badge: 'bg-blue-500/15 text-blue-300 border-blue-500/30',
                   badgeDot: 'bg-blue-400 animate-ping',
@@ -377,7 +379,9 @@ export default function BoosterOrdersPage() {
                 }
               : isApproved
               ? {
-                  leftBar: 'bg-gradient-to-b from-purple-500 to-indigo-500 shadow-[0_0_12px_rgba(168,85,247,0.6)]',
+                  cardBorder:
+                    'border-purple-500/30 hover:border-purple-400/60 shadow-[0_0_20px_rgba(168,85,247,0.06)] hover:shadow-[0_0_25px_rgba(168,85,247,0.12)]',
+                  cardBg: 'bg-gradient-to-br from-purple-950/25 via-zinc-950/95 to-zinc-950',
                   iconBox: 'bg-purple-500/15 border-purple-500/30 text-purple-300 shadow-inner shadow-purple-500/10',
                   badge: 'bg-purple-500/15 text-purple-300 border-purple-500/30',
                   badgeDot: 'bg-purple-400',
@@ -389,7 +393,9 @@ export default function BoosterOrdersPage() {
                 }
               : isCancelled
               ? {
-                  leftBar: 'bg-gradient-to-b from-rose-500 to-red-600 shadow-[0_0_12px_rgba(244,63,94,0.6)]',
+                  cardBorder:
+                    'border-rose-500/25 hover:border-rose-400/50 shadow-[0_0_20px_rgba(244,63,94,0.05)]',
+                  cardBg: 'bg-gradient-to-br from-rose-950/25 via-zinc-950/95 to-zinc-950',
                   iconBox: 'bg-red-500/15 border-red-500/30 text-red-400 shadow-inner shadow-red-500/10',
                   badge: 'bg-red-500/15 text-red-300 border-red-500/30',
                   badgeDot: 'bg-red-400',
@@ -400,7 +406,9 @@ export default function BoosterOrdersPage() {
                   Icon: XCircle,
                 }
               : {
-                  leftBar: 'bg-gradient-to-b from-emerald-500 to-teal-500 shadow-[0_0_12px_rgba(16,185,129,0.6)]',
+                  cardBorder:
+                    'border-emerald-500/30 hover:border-emerald-400/60 shadow-[0_0_20px_rgba(16,185,129,0.06)] hover:shadow-[0_0_25px_rgba(16,185,129,0.12)]',
+                  cardBg: 'bg-gradient-to-br from-emerald-950/25 via-zinc-950/95 to-zinc-950',
                   iconBox: 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400 shadow-inner shadow-emerald-500/10',
                   badge: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30',
                   badgeDot: 'bg-emerald-400',
@@ -450,10 +458,8 @@ export default function BoosterOrdersPage() {
               <div
                 key={order._id}
                 onClick={() => router.push(`/orders/${order._id}`)}
-                className="group relative rounded-2xl bg-zinc-950/90 border border-zinc-800/80 hover:border-zinc-700 transition-all p-4 sm:p-5 shadow-lg overflow-hidden cursor-pointer active:scale-[0.995]"
+                className={`group relative rounded-2xl border transition-all duration-200 p-4 sm:p-5 shadow-lg overflow-hidden cursor-pointer active:scale-[0.995] ${theme.cardBorder} ${theme.cardBg}`}
               >
-                {/* Viền phát sáng bên trái */}
-                <div className={`absolute left-0 top-0 bottom-0 w-1 sm:w-1.5 rounded-l-2xl ${theme.leftBar}`} />
 
                 <div className="flex flex-col gap-3.5">
                   {/* HÀNG 1: HEADER CARD (ICON, TIÊU ĐỀ, MÃ ĐƠN, TÊN KHÁCH, NGÀY) */}
