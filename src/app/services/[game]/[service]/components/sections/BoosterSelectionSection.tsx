@@ -1,9 +1,11 @@
-import React from 'react';
+'use client';
+
+import React, { useState } from 'react';
 import Link from 'next/link';
-import { Users, Crown, Zap, Star, ArrowRight, Search, Shuffle, Clock } from 'lucide-react';
+import { Users, Crown, Zap, Star, Search, Shuffle, Clock, Sparkles, Check } from 'lucide-react';
 import { toast } from 'sonner';
 import UserBadge from '@/components/UserBadge';
-import { getBoosterWorkingScheduleText } from '@/lib/booster-helpers';
+import { getBoosterConciseScheduleText } from '@/lib/booster-helpers';
 
 interface BoosterSelectionSectionProps {
   assignedBooster: any;
@@ -18,6 +20,57 @@ interface BoosterSelectionSectionProps {
   boosterMultiplier: number;
 }
 
+function BoosterRadarScanner() {
+  return (
+    <div className="p-6 rounded-2xl border border-cyan-500/40 bg-zinc-950/90 shadow-2xl flex flex-col items-center justify-center min-h-[148px] relative overflow-hidden animate-in fade-in duration-200">
+      {/* Background Radar Grid */}
+      <div className="absolute inset-0 bg-[radial-gradient(#06b6d4_1px,transparent_1px)] [background-size:16px_16px] opacity-15" />
+
+      {/* Tactical Radar Display */}
+      <div className="relative w-20 h-20 mb-3 flex items-center justify-center">
+        {/* Radar Pulse Rings */}
+        <div className="absolute inset-0 rounded-full border border-cyan-500/30 animate-ping opacity-30" />
+        <div className="absolute inset-1 rounded-full border border-cyan-500/30" />
+        <div className="absolute inset-4 rounded-full border border-cyan-500/40" />
+
+        {/* Crosshairs */}
+        <div className="absolute inset-x-0 top-1/2 h-px bg-cyan-500/30 -translate-y-1/2" />
+        <div className="absolute inset-y-0 left-1/2 w-px bg-cyan-500/30 -translate-x-1/2" />
+
+        {/* Rotating Radar Beam Sweep */}
+        <div
+          className="absolute inset-0 rounded-full animate-spin"
+          style={{
+            background:
+              'conic-gradient(from 0deg, transparent 0deg, transparent 270deg, rgba(6, 182, 212, 0.45) 360deg)',
+            animationDuration: '1s',
+            animationTimingFunction: 'linear',
+            animationIterationCount: 'infinite',
+          }}
+        />
+
+        {/* Radar blip targets */}
+        <div className="absolute top-2.5 right-3.5 w-2 h-2 rounded-full bg-cyan-400 animate-pulse shadow-[0_0_8px_#22d3ee]" />
+        <div className="absolute bottom-3 left-3 w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping shadow-[0_0_8px_#34d399]" />
+
+        {/* Radar Center Beacon */}
+        <div className="w-2.5 h-2.5 rounded-full bg-cyan-400 shadow-[0_0_10px_#22d3ee] z-10" />
+      </div>
+
+      {/* Radar Text */}
+      <div className="text-center relative z-10 space-y-1">
+        <div className="text-xs sm:text-sm font-extrabold text-white flex items-center justify-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
+          <span>Đang quét radar tuyển thủ trực tuyến...</span>
+        </div>
+        <p className="text-[11px] text-zinc-400 font-mono">
+          Phân tích SLA • Tỷ lệ thắng • Lịch làm việc phù hợp
+        </p>
+      </div>
+    </div>
+  );
+}
+
 export function BoosterSelectionSection({
   assignedBooster,
   isManualSelectBooster,
@@ -30,6 +83,64 @@ export function BoosterSelectionSection({
   handleRandomRerollBooster,
   boosterMultiplier,
 }: BoosterSelectionSectionProps) {
+  const [isRadarScanning, setIsRadarScanning] = useState(false);
+
+  const handleRerollWithRadar = () => {
+    if (isRadarScanning) return;
+    setIsRadarScanning(true);
+    setTimeout(() => {
+      handleRandomRerollBooster();
+      setIsRadarScanning(false);
+    }, 700);
+  };
+
+  const handlePinBooster = () => {
+    if (!assignedBooster) return;
+    setIsManualSelectBooster(true);
+    const username =
+      assignedBooster?.user?.username ||
+      assignedBooster?.boosterData?.username ||
+      assignedBooster?.username ||
+      '';
+    toast.success(`Đã giữ tuyển thủ @${username} cho đơn hàng này!`);
+  };
+
+  const avatarUrl =
+    assignedBooster?.user?.profile?.avatar ||
+    assignedBooster?.user?.avatar ||
+    assignedBooster?.boosterData?.avatar ||
+    assignedBooster?.booster?.avatar ||
+    assignedBooster?.avatar ||
+    '';
+
+  const displayName =
+    assignedBooster?.boosterData?.displayName ||
+    assignedBooster?.booster?.displayName ||
+    assignedBooster?.user?.displayName ||
+    assignedBooster?.user?.username ||
+    'Tuyển thủ';
+
+  const username =
+    assignedBooster?.user?.username ||
+    assignedBooster?.boosterData?.username ||
+    assignedBooster?.booster?.username ||
+    '';
+
+  const rating =
+    assignedBooster?.boosterData?.rating ||
+    assignedBooster?.booster?.rating ||
+    assignedBooster?.user?.rating ||
+    assignedBooster?.user?.booster_info?.rating ||
+    5.0;
+
+  const completedCount =
+    assignedBooster?.boosterData?.completedOrders ||
+    assignedBooster?.boosterData?.completed_orders ||
+    assignedBooster?.booster?.completed_orders ||
+    assignedBooster?.user?.completedOrders ||
+    assignedBooster?.user?.booster_info?.completed_orders ||
+    0;
+
   return (
     <div className="bg-zinc-900/60 border border-white/10 rounded-3xl p-5 sm:p-6 shadow-xl backdrop-blur-md space-y-4">
       <div className="flex items-center justify-between">
@@ -137,171 +248,130 @@ export function BoosterSelectionSection({
         </button>
       </div>
 
-      {/* Card Tuyển Thủ Đang Chọn / Được Ghép */}
+      {/* Card Tuyển Thủ Đang Chọn / Được Ghép (Model Ảnh 2) */}
       {assignedBooster ? (
-        <div
-          className={`p-3.5 sm:p-4 rounded-2xl border space-y-3 animate-in fade-in duration-200 ${
-            isManualSelectBooster
-              ? 'bg-purple-950/20 border-purple-500/40 shadow-[0_0_15px_rgba(168,85,247,0.1)]'
-              : 'bg-blue-950/20 border-blue-500/40 shadow-[0_0_15px_rgba(59,130,246,0.1)]'
-          }`}
-        >
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            {(() => {
-              const avatarUrl =
-                assignedBooster?.user?.profile?.avatar ||
-                assignedBooster?.user?.avatar ||
-                assignedBooster?.boosterData?.avatar ||
-                assignedBooster?.booster?.avatar ||
-                assignedBooster?.avatar ||
-                '';
+        isRadarScanning ? (
+          <BoosterRadarScanner />
+        ) : (
+          <div
+            className={`p-4 sm:p-5 rounded-2xl border space-y-3.5 relative overflow-hidden transition-all duration-300 animate-in fade-in zoom-in-95 ${
+              isManualSelectBooster
+                ? 'bg-purple-950/20 border-purple-500/40 shadow-[0_0_20px_rgba(168,85,247,0.12)]'
+                : 'bg-zinc-950/80 border-zinc-800 shadow-xl'
+            }`}
+          >
+            {/* Top row: Avatar + Info + Actions */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3.5">
+              {/* Left: Avatar + Info */}
+              <div className="flex items-center gap-3.5 min-w-0">
+                <div
+                  className={`w-12 h-12 rounded-full overflow-hidden border-2 flex items-center justify-center text-white font-bold text-base shadow-md shrink-0 ${
+                    isManualSelectBooster
+                      ? 'bg-gradient-to-br from-purple-500/20 to-blue-500/20 border-purple-500/50'
+                      : 'bg-zinc-800 border-zinc-700/80'
+                  }`}
+                >
+                  {avatarUrl ? (
+                    <img
+                      src={avatarUrl}
+                      alt={displayName}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = '/default-avatar.png';
+                      }}
+                    />
+                  ) : (
+                    (displayName || username || 'B').slice(0, 1).toUpperCase()
+                  )}
+                </div>
 
-              const displayName =
-                assignedBooster?.boosterData?.displayName ||
-                assignedBooster?.booster?.displayName ||
-                assignedBooster?.user?.displayName ||
-                assignedBooster?.user?.username ||
-                'Tuyển thủ';
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-extrabold text-white text-base truncate">
+                      {displayName}
+                    </span>
+                    <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-950/70 text-emerald-400 border border-emerald-500/30 flex items-center gap-1.5 shadow-sm">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                      Sẵn sàng nhận đơn
+                    </span>
+                  </div>
 
-              const username =
-                assignedBooster?.user?.username ||
-                assignedBooster?.boosterData?.username ||
-                assignedBooster?.booster?.username ||
-                '';
-
-              const rating =
-                assignedBooster?.boosterData?.rating ||
-                assignedBooster?.booster?.rating ||
-                assignedBooster?.user?.rating ||
-                assignedBooster?.user?.booster_info?.rating ||
-                5.0;
-
-              const completedCount =
-                assignedBooster?.boosterData?.completedOrders ||
-                assignedBooster?.boosterData?.completed_orders ||
-                assignedBooster?.booster?.completed_orders ||
-                assignedBooster?.user?.completedOrders ||
-                assignedBooster?.user?.booster_info?.completed_orders ||
-                0;
-
-              return (
-                <div className="flex items-center gap-3">
-                  <div
-                    className={`w-12 h-12 rounded-2xl overflow-hidden border flex items-center justify-center text-white font-bold text-base shadow-inner shrink-0 ${
-                      isManualSelectBooster
-                        ? 'bg-gradient-to-br from-purple-500/20 to-blue-500/20 border-purple-500/40'
-                        : 'bg-gradient-to-br from-blue-500/20 to-cyan-500/20 border-blue-500/40'
-                    }`}
-                  >
-                    {avatarUrl ? (
-                      <img
-                        src={avatarUrl}
-                        alt={displayName}
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).src = '/default-avatar.png';
-                        }}
-                      />
-                    ) : (
-                      (displayName || username || 'B').slice(0, 1).toUpperCase()
+                  <div className="flex items-center gap-1.5 text-xs text-zinc-400 mt-1 flex-wrap">
+                    <span className="font-mono text-zinc-300">@{username}</span>
+                    <span>•</span>
+                    <span className="flex items-center gap-0.5 text-amber-400 font-bold">
+                      <Star size={12} fill="currentColor" />
+                      {rating > 0 ? rating.toFixed(1) : '5.0'}
+                    </span>
+                    <span>•</span>
+                    <span className="text-zinc-300">{completedCount} đơn hoàn thành</span>
+                    {username && (
+                      <>
+                        <span>•</span>
+                        <Link
+                          href={`/b/${username}`}
+                          target="_blank"
+                          className="text-cyan-400 hover:text-cyan-300 font-semibold inline-flex items-center gap-0.5 hover:underline"
+                        >
+                          <span>Xem hồ sơ</span>
+                          <span className="text-xs">➔</span>
+                        </Link>
+                      </>
                     )}
                   </div>
-                  <div>
-                    <div>
-                      <div className="flex items-center gap-1.5 min-w-0">
-                        <span className="font-extrabold text-white text-sm truncate">
-                          {displayName}
-                        </span>
-                        <UserBadge role="BOOSTER" size="sm" />
-                      </div>
-                      <div className="text-xs text-zinc-400 font-mono truncate">
-                        @{username}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 text-xs text-zinc-400 mt-1">
-                      <span
-                        className={`flex items-center gap-1 font-bold ${
-                          rating > 0 ? 'text-amber-400' : 'text-zinc-500'
-                        }`}
-                      >
-                        <Star size={12} fill="currentColor" />
-                        {rating > 0 ? rating.toFixed(1) : '5.0'}
-                      </span>
-                      <span>•</span>
-                      <span className="text-zinc-300">
-                        {completedCount} đơn hoàn thành
-                      </span>
-                      {boosterMultiplier !== 1.0 && (
-                        <>
-                          <span>•</span>
-                          <span className="text-blue-400 font-bold">
-                            Hệ số giá: {(boosterMultiplier * 100).toFixed(0)}%
-                          </span>
-                        </>
-                      )}
-                    </div>
-
-                    {/* Khung giờ làm việc của Tuyển thủ */}
-                    <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-cyan-950/40 border border-cyan-500/30 text-cyan-300 text-[11px] font-semibold w-fit mt-1.5">
-                      <Clock size={12} className="text-cyan-400 shrink-0" />
-                      <span className="truncate">{getBoosterWorkingScheduleText(assignedBooster)}</span>
-                    </div>
-                  </div>
                 </div>
-              );
-            })()}
+              </div>
 
-            <div className="flex items-center gap-2 self-start sm:self-auto">
-              {isManualSelectBooster ? (
-                <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-purple-500/15 border border-purple-500/30 text-purple-400 flex items-center gap-1">
-                  <Crown size={12} />
-                  Chỉ định
+              {/* Right: Actions */}
+              <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
+                <button
+                  type="button"
+                  onClick={handleRerollWithRadar}
+                  disabled={isRadarScanning}
+                  className="px-3.5 py-2 rounded-xl bg-zinc-900/90 hover:bg-zinc-800 text-zinc-200 border border-zinc-700/70 text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-sm active:scale-95 cursor-pointer disabled:opacity-50"
+                  title="Tìm và ghép tuyển thủ khác"
+                >
+                  <Shuffle size={13} className={isRadarScanning ? 'animate-spin text-cyan-400' : ''} />
+                  <span>Đổi người khác</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handlePinBooster}
+                  className={`px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 shadow-lg active:scale-95 cursor-pointer ${
+                    isManualSelectBooster
+                      ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-cyan-500/10'
+                      : 'bg-cyan-500 hover:bg-cyan-400 text-black shadow-cyan-500/25'
+                  }`}
+                  title={isManualSelectBooster ? 'Đã giữ tuyển thủ này cho đơn' : 'Khóa và giữ tuyển thủ này'}
+                >
+                  {isManualSelectBooster ? (
+                    <Check size={13} className="text-cyan-400 stroke-[3]" />
+                  ) : (
+                    <Zap size={13} className="fill-current" />
+                  )}
+                  <span>{isManualSelectBooster ? 'Đã giữ tuyển thủ' : 'Giữ tuyển thủ này'}</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Bottom Bar: Schedule & Auto-match SLA status */}
+            <div className="px-3.5 py-2 rounded-xl bg-zinc-900/50 border border-white/5 flex flex-col sm:flex-row sm:items-center justify-between text-xs text-zinc-400 gap-2">
+              <div className="flex items-center gap-1.5 text-zinc-300">
+                <Sparkles size={13} className="text-amber-400 shrink-0" />
+                <span>
+                  {isManualSelectBooster
+                    ? 'Tuyển thủ được chỉ định và giữ theo yêu cầu của bạn'
+                    : 'Hệ thống đã tự động ghép tuyển thủ phù hợp nhất'}
                 </span>
-              ) : (
-                <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-blue-500/15 border border-blue-500/30 text-blue-400 flex items-center gap-1">
-                  <Zap size={12} />
-                  Ghép tự động
-                </span>
-              )}
-              <Link
-                href={`/b/${assignedBooster?.user?.username || ''}`}
-                target="_blank"
-                className="text-xs text-blue-400 hover:text-blue-300 font-semibold inline-flex items-center gap-1"
-              >
-                <span>Hồ sơ</span>
-                <ArrowRight size={12} />
-              </Link>
+              </div>
+              <div className="flex items-center gap-1.5 text-cyan-300 font-mono text-[11px] sm:text-xs">
+                <Clock size={13} className="text-cyan-400 shrink-0" />
+                <span>{getBoosterConciseScheduleText(assignedBooster)}</span>
+              </div>
             </div>
           </div>
-
-          {/* Nút Đổi Tuyển Thủ */}
-          <div className="pt-2.5 border-t border-zinc-900 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-            <span className="text-[11px] text-zinc-400">
-              {isManualSelectBooster
-                ? 'Tuyển thủ theo yêu cầu của bạn'
-                : 'Hệ thống đã tự động ghép tuyển thủ phù hợp nhất'}
-            </span>
-            {isManualSelectBooster ? (
-              <button
-                type="button"
-                onClick={() => setIsBoosterModalOpen(true)}
-                className="px-3 py-1.5 rounded-xl bg-purple-500/15 hover:bg-purple-500/25 text-purple-300 border border-purple-500/30 text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-sm active:scale-95 self-start sm:self-auto"
-              >
-                <Search size={13} />
-                <span>Đổi sang tuyển thủ khác</span>
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={handleRandomRerollBooster}
-                className="px-3 py-1.5 rounded-xl bg-blue-500/15 hover:bg-blue-500/25 text-blue-300 border border-blue-500/30 text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-sm active:scale-95 self-start sm:self-auto"
-              >
-                <Shuffle size={13} />
-                <span>Ghép tuyển thủ khác (ngẫu nhiên)</span>
-              </button>
-            )}
-          </div>
-        </div>
+        )
       ) : (
         <div className="p-3.5 sm:p-4 rounded-2xl bg-zinc-950/60 border border-zinc-800 flex items-center gap-3 text-xs text-zinc-400">
           <Users size={18} className="text-zinc-500 shrink-0" />

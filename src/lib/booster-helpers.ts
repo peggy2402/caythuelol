@@ -187,6 +187,30 @@ export function getBoosterWorkingScheduleText(booster: any): string {
   return extractBoosterSchedule(booster).scheduleText;
 }
 
+/**
+ * Trả về định dạng rút gọn tinh gọn cho thẻ Tuyển thủ (ví dụ: T2 – T7 • 08:00 – 17:30 (trừ CN))
+ */
+export function getBoosterConciseScheduleText(booster: any): string {
+  if (!booster) return 'Hàng ngày • 08:00 – 17:30';
+  const { fromTime, toTime, daysOfWeek } = extractBoosterSchedule(booster);
+  const timeRange = `${fromTime || '08:00'} – ${toTime || '17:30'}`;
+
+  const daysSet = new Set(daysOfWeek || []);
+  if (daysSet.size >= 7 || (daysSet.has('T2') && daysSet.has('CN') && daysSet.size >= 7)) {
+    return `Hàng ngày • ${timeRange}`;
+  }
+  if (daysSet.has('T2') && daysSet.has('T7') && !daysSet.has('CN') && daysSet.size === 6) {
+    return `T2 – T7 • ${timeRange} (trừ CN)`;
+  }
+  if (daysSet.has('T7') && daysSet.has('CN') && daysSet.size === 2) {
+    return `T7 – CN • ${timeRange}`;
+  }
+  if (daysOfWeek && daysOfWeek.length > 0) {
+    return `${daysOfWeek.join(', ')} • ${timeRange}`;
+  }
+  return `Hàng ngày • ${timeRange}`;
+}
+
 export function checkIfShiftConflictsWithBooster(shiftId: string, booster: any): boolean {
   if (!booster) return false;
   const { fromTime, toTime } = extractBoosterSchedule(booster);
