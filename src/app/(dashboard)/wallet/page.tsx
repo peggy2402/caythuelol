@@ -6,6 +6,7 @@ import { useLanguage } from '@/lib/i18n';
 import { toast } from 'sonner';
 import { socket } from '@/lib/socket';
 import confetti from 'canvas-confetti';
+import { playDepositSuccessSound } from '@/lib/sound';
 import { Wallet, ArrowUpRight, ArrowDownLeft, History, CreditCard, Loader2, QrCode, Copy, Check, X, RefreshCw, XCircle, CheckCircle2, ShieldCheck, AlertCircle, ChevronLeft, ChevronRight, Clock, Lock, Search, Filter } from 'lucide-react';
 import DepositModal from '@/components/dashboard/DepositModal';
 
@@ -204,12 +205,8 @@ export default function WalletPage() {
           setIsWaitingForPayment(false);
           setIsSuccess(true);
 
-          // Phát âm thanh (Ưu tiên phát ở đây vì có tương tác người dùng)
-          try {
-            const audio = new Audio('/sounds/coins.mp3');
-            audio.volume = 1.0;
-            await audio.play();
-          } catch (e) { console.error("Sound play error:", e); }
+          // Phát âm thanh tức thì (Zero Latency) đồng thời với pháo hoa
+          playDepositSuccessSound(1.0);
 
           // Hiệu ứng pháo hoa (Confetti)
           const duration = 3000;
@@ -297,11 +294,8 @@ export default function WalletPage() {
           setIsWaitingForPayment(false);
           setIsSuccess(true);
 
-          try {
-            const audio = new Audio('/sounds/coins.mp3');
-            audio.volume = 1.0;
-            audio.play().catch(() => {});
-          } catch (e) {}
+          // Phát âm thanh tức thì (Zero Latency)
+          playDepositSuccessSound(1.0);
 
           try {
             confetti({

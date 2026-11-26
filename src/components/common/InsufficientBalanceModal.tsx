@@ -20,6 +20,7 @@ import {
 import { toast } from 'sonner';
 import confetti from 'canvas-confetti';
 import { socket } from '@/lib/socket';
+import { playDepositSuccessSound } from '@/lib/sound';
 
 export interface InsufficientBalanceModalProps {
   isOpen: boolean;
@@ -117,11 +118,8 @@ export default function InsufficientBalanceModal({
   // Xử lý nạp thành công
   const triggerSuccess = (newBalance: number) => {
     setIsSuccess(true);
-    try {
-      const audio = new Audio('/sounds/coins.mp3');
-      audio.volume = 1.0;
-      audio.play().catch(() => {});
-    } catch {}
+    // Phát âm thanh Zero-Latency và tung pháo hoa đồng thời ngay lập tức
+    playDepositSuccessSound(1.0);
 
     try {
       confetti({

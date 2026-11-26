@@ -16,6 +16,7 @@ import {
 import { toast } from 'sonner';
 import confetti from 'canvas-confetti';
 import { socket } from '@/lib/socket';
+import { playDepositSuccessSound } from '@/lib/sound';
 
 export interface PaymentInfo {
   transactionId?: string;
@@ -132,11 +133,8 @@ export default function DepositModal({
     setIsWaitingForPayment(false);
     setIsSuccess(true);
 
-    try {
-      const audio = new Audio('/sounds/coins.mp3');
-      audio.volume = 1.0;
-      audio.play().catch(() => {});
-    } catch (e) {}
+    // Phát âm thanh Zero-Latency và tung pháo hoa đồng thời ngay tức khắc
+    playDepositSuccessSound(1.0);
 
     try {
       confetti({

@@ -26,6 +26,7 @@ import Sidebar from '@/components/Sidebar';
 import { socket } from '@/lib/socket';
 import { toast } from 'sonner';
 import { showSystemNotification } from '@/lib/toast-notification';
+import { playDepositSuccessSound } from '@/lib/sound';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { apiFetch } from '@/lib/api';
@@ -203,14 +204,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
       const handleWalletUpdate = (data: { balance: number }) => {
         console.log('💰 Socket Wallet Update:', data);
-        // Hiệu ứng âm thanh tiền về (ting ting)
+        // Hiệu ứng âm thanh tiền về (ting ting) tức thì không độ trễ
         // Chỉ phát ở Layout nếu KHÔNG PHẢI trang Wallet (vì trang Wallet đã tự xử lý phát âm thanh rồi)
         if (pathname !== '/wallet') {
-          try {
-            const audio = new Audio('/sounds/coins.mp3');
-            audio.volume = 0.8;
-            audio.play().catch((err) => console.log('Audio play failed:', err));
-          } catch (e) {}
+          playDepositSuccessSound(0.8);
         }
 
         const newBalance = data.balance;
