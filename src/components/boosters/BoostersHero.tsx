@@ -1,46 +1,81 @@
 'use client';
 
-import { ShieldCheck, Users, Star, Zap, Shield } from 'lucide-react';
+import React from 'react';
+import { ShieldCheck, Flame } from 'lucide-react';
+import { motion } from 'framer-motion';
 
-export default function BoostersHero() {
-  const metrics = [
-    { label: 'Tuyển thủ sẵn sàng', value: '500+ Pro', icon: Users, color: 'text-cyan-400' },
-    { label: 'Đánh giá hài lòng', value: '4.9/5.0 ★', icon: Star, color: 'text-amber-400' },
-    { label: 'Thời gian ghép', value: 'Dưới 3 phút', icon: Zap, color: 'text-emerald-400' },
-    { label: 'Bảo chứng tài chính', value: '100% Escrow', icon: Shield, color: 'text-blue-400' }
-  ];
+export const GAME_BRANCHES = [
+  { id: 'ALL', name: 'Tất cả' },
+  { id: 'LOL', name: 'LMHT' },
+  { id: 'VALORANT', name: 'Valorant' },
+  { id: 'AOV', name: 'Liên Quân' },
+  { id: 'TFT', name: 'ĐTCL' },
+  { id: 'WILDRIFT', name: 'Tốc Chiến' },
+];
 
+interface BoostersHeroProps {
+  selectedGame: string;
+  onSelectGame: (gameId: string) => void;
+  totalBoosters: number;
+}
+
+export default function BoostersHero({
+  selectedGame,
+  onSelectGame,
+  totalBoosters,
+}: BoostersHeroProps) {
   return (
-    <div className="text-center mb-12 sm:mb-16">
-      <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-cyan-950/40 border border-cyan-500/30 text-cyan-300 text-xs font-bold uppercase tracking-wider mb-5 backdrop-blur-md shadow-[0_0_20px_rgba(6,182,212,0.2)]">
-        <ShieldCheck className="w-4 h-4 text-cyan-400" />
-        <span>100% Tuyển Thủ Định Danh KYC • Bảo Chứng Escrow</span>
-      </div>
+    <div className="mb-8 sm:mb-10">
+      {/* Header Row: Tiêu đề bên trái, Tabs nhánh Game bên phải theo Mẫu thiết kế */}
+      <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 pb-6 border-b border-white/[0.08]">
+        {/* Left Side: Brand badge, Title & Description */}
+        <div className="max-w-2xl">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-cyan-950/50 border border-cyan-500/30 text-cyan-300 text-xs font-bold uppercase tracking-wider mb-3.5 backdrop-blur-md shadow-[0_0_15px_rgba(6,182,212,0.2)]">
+            <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
+            <span>Đội Ngũ Tuyển Thủ Xác Thực</span>
+          </div>
 
-      <h1 className="text-3xl sm:text-5xl md:text-6xl font-black text-white mb-4 tracking-tight uppercase">
-        Đội Ngũ Tuyển Thủ & <span className="bg-gradient-to-r from-cyan-400 via-sky-300 to-amber-300 bg-clip-text text-transparent">Booster Thách Đấu</span>
-      </h1>
+          <h1 className="text-2xl sm:text-4xl md:text-5xl font-black text-white tracking-tight uppercase mb-3">
+            Chọn <span className="bg-gradient-to-r from-cyan-400 via-sky-300 to-indigo-400 bg-clip-text text-transparent">Pro Booster</span> Đồng Hành
+          </h1>
 
-      <p className="text-zinc-400 text-sm sm:text-base max-w-2xl mx-auto leading-relaxed">
-        Khám phá danh sách các tuyển thủ Thách Đấu 1000+ LP, Radiant Valorant được kiểm tra trình độ gắt gao. Xem tỷ lệ thắng, đánh giá và đặt cày trực tiếp.
-      </p>
+          <p className="text-zinc-400 text-xs sm:text-sm leading-relaxed max-w-xl">
+            Giao diện thẻ tuyển thủ thế hệ mới: Trực quan hóa bậc xếp hạng, tỷ lệ thắng và khung giờ hoạt động ngay trong tầm mắt.
+          </p>
+        </div>
 
-      {/* 4 Trust Metrics Strip */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 max-w-3xl mx-auto mt-8">
-        {metrics.map((metric, i) => {
-          const Icon = metric.icon;
-          return (
-            <div key={i} className="p-3.5 rounded-2xl bg-zinc-900/60 border border-zinc-800/80 backdrop-blur-sm flex items-center gap-3 text-left">
-              <div className={`p-2 rounded-xl bg-zinc-950 border border-zinc-800 ${metric.color}`}>
-                <Icon className="w-4 h-4" />
-              </div>
-              <div>
-                <div className="text-xs text-zinc-500 font-medium">{metric.label}</div>
-                <div className="text-sm font-black text-white font-mono">{metric.value}</div>
-              </div>
-            </div>
-          );
-        })}
+        {/* Right Side: Chia nhánh theo tựa game (Game Branches Tabs) */}
+        <div className="w-full lg:w-auto overflow-x-auto no-scrollbar pb-1 sm:pb-0">
+          <div className="inline-flex items-center gap-1.5 p-1.5 rounded-2xl bg-zinc-900/90 border border-white/10 backdrop-blur-xl shadow-xl min-w-max">
+            {GAME_BRANCHES.map((game) => {
+              const isSelected = selectedGame === game.id;
+              return (
+                <button
+                  key={game.id}
+                  type="button"
+                  onClick={() => onSelectGame(game.id)}
+                  className={`relative px-3.5 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
+                    isSelected
+                      ? 'text-white'
+                      : 'text-zinc-400 hover:text-white hover:bg-white/[0.04]'
+                  }`}
+                >
+                  {isSelected && (
+                    <motion.span
+                      layoutId="activeGameBranchPill"
+                      transition={{ type: 'spring', stiffness: 420, damping: 32 }}
+                      className="absolute inset-0 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 shadow-[0_4px_16px_rgba(37,99,235,0.4)]"
+                    />
+                  )}
+                  <span className="relative z-10">
+                    {game.name}
+                    {game.id === 'ALL' && totalBoosters > 0 && ` (${totalBoosters})`}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
       </div>
     </div>
   );

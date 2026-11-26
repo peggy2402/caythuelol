@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Search, Filter, X, ArrowUpDown, ChevronRight, Flame, Swords, Shield } from 'lucide-react';
+import { Search, Filter, X, ArrowUpDown, ChevronDown, RotateCcw } from 'lucide-react';
 import { useSearchHistory } from '@/hooks/useSearchHistory';
 import SearchHistoryDropdown, { SearchSuggestionItem } from '@/components/common/SearchHistoryDropdown';
 
@@ -11,6 +11,7 @@ export const SERVICE_OPTIONS = [
   { value: 'PLACEMENTS', label: 'Phân Hạng Đầu Mùa (5 Trận)' },
   { value: 'LEVELING', label: 'Cày Cấp Độ 1-30' },
   { value: 'MASTERY', label: 'Cày Thông Thạo Tướng' },
+  { value: 'COACHING', label: 'Huấn Luyện Coaching 1-1' },
 ];
 
 interface BoosterItem {
@@ -46,7 +47,18 @@ export default function BoostersFilterBar({
   const containerRef = useRef<HTMLDivElement>(null);
   const { history, addSearch, removeSearch, clearHistory } = useSearchHistory('recent_boosters_page_search');
 
-  // Tìm kiếm live booster từ backend API khi gõ từ khóa
+  // Đóng dropdown khi click ngoài
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Live search booster từ API
   useEffect(() => {
     const q = searchTerm.trim();
     if (!q) {
@@ -75,11 +87,10 @@ export default function BoostersFilterBar({
     return () => clearTimeout(timer);
   }, [searchTerm]);
 
-  // Kết hợp data từ prop boosters và live API
+  // Kết hợp data suggestions
   const liveSuggestions: SearchSuggestionItem[] = React.useMemo(() => {
     const map = new Map<string, SearchSuggestionItem>();
 
-    // 1. Thêm từ danh sách boosters hiện có trên trang
     (boosters || []).forEach((b) => {
       const name = b.displayName || b.username;
       map.set(name.toLowerCase(), {
@@ -90,7 +101,6 @@ export default function BoostersFilterBar({
       });
     });
 
-    // 2. Thêm từ kết quả live fetch API
     fetchedSuggestions.forEach((s) => {
       if (!map.has(s.label.toLowerCase())) {
         map.set(s.label.toLowerCase(), s);
@@ -99,16 +109,6 @@ export default function BoostersFilterBar({
 
     return Array.from(map.values());
   }, [boosters, fetchedSuggestions]);
-
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setIsDropdownOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
 
   const handleSelect = (val: string) => {
     setSearchTerm(val);
@@ -125,12 +125,16 @@ export default function BoostersFilterBar({
     }
   };
 
+  const hasActiveFilters = Boolean(searchTerm || filterService || sortBy !== 'rating_desc');
+
   return (
-    <div className="bg-zinc-900/80 border border-zinc-800 p-5 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] mb-10 backdrop-blur-xl space-y-4">
-      <div className="flex flex-col md:flex-row gap-3">
-        {/* Search Input */}
+    <div className="mb-8">
+      {/* Thanh Console Lọc & Tìm Kiếm Tối Giản, Đẹp Mắt */}
+      <div className="bg-zinc-900/80 border border-white/10 rounded-2xl p-2.5 sm:p-3 shadow-xl backdrop-blur-xl flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2.5">
+        
+        {/* 1. Ô Tìm Kiếm Tuyển Thủ (Live Suggestions + History) */}
         <div ref={containerRef} className="relative flex-1 z-30">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 pointer-events-none" />
           <input
             type="text"
             placeholder="Tìm kiếm tuyển thủ theo tên hoặc nickname..."
@@ -141,14 +145,14 @@ export default function BoostersFilterBar({
               setIsDropdownOpen(true);
             }}
             onKeyDown={handleKeyDown}
-            className="w-full bg-zinc-950 border border-zinc-800 rounded-2xl pl-11 pr-10 py-3 text-sm text-white placeholder:text-zinc-600 focus:border-cyan-500 outline-none transition-colors"
+            className="w-full bg-zinc-950/80 border border-white/10 rounded-xl pl-10 pr-9 py-2.5 text-xs sm:text-sm text-white placeholder:text-zinc-500 focus:border-cyan-500/80 focus:ring-1 focus:ring-cyan-500/20 outline-none transition-all"
           />
           {searchTerm && (
             <button
               onClick={() => setSearchTerm('')}
-              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white transition-colors"
             >
-              <X className="w-4 h-4" />
+              <X className="w-3.5 h-3.5" />
             </button>
           )}
 
@@ -166,95 +170,57 @@ export default function BoostersFilterBar({
           />
         </div>
 
-        {/* Service Filter */}
-        <div className="relative min-w-[220px]">
-          <Filter className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
-          <select
-            value={filterService}
-            onChange={(e) => setFilterService(e.target.value)}
-            className="w-full appearance-none bg-zinc-950 border border-zinc-800 rounded-2xl pl-10 pr-9 py-3 text-xs sm:text-sm font-medium text-white focus:border-cyan-500 outline-none transition-colors cursor-pointer"
-          >
-            <option value="">Tất cả dịch vụ cung cấp</option>
-            {SERVICE_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
-          <ChevronRight className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 rotate-90 text-zinc-500 pointer-events-none" />
+        {/* 2. Dải Bộ Lọc Dịch Vụ & Sắp Xếp */}
+        <div className="flex items-center gap-2 w-full md:w-auto">
+          {/* Lọc Dịch Vụ */}
+          <div className="relative flex-1 md:w-56">
+            <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400 pointer-events-none" />
+            <select
+              value={filterService}
+              onChange={(e) => setFilterService(e.target.value)}
+              className="w-full appearance-none bg-zinc-950/80 border border-white/10 rounded-xl pl-9 pr-8 py-2.5 text-xs sm:text-sm font-medium text-white focus:border-cyan-500 outline-none transition-colors cursor-pointer truncate"
+            >
+              <option value="">Tất cả dịch vụ</option>
+              {SERVICE_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+            <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-500 pointer-events-none" />
+          </div>
+
+          {/* Sắp Xếp */}
+          <div className="relative flex-1 md:w-56">
+            <ArrowUpDown className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-400 pointer-events-none" />
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="w-full appearance-none bg-zinc-950/80 border border-white/10 rounded-xl pl-9 pr-8 py-2.5 text-xs sm:text-sm font-medium text-white focus:border-cyan-500 outline-none transition-colors cursor-pointer truncate"
+            >
+              <option value="rating_desc">⭐ Đánh giá cao nhất</option>
+              <option value="orders_desc">🏆 Nhiều đơn hoàn thành nhất</option>
+            </select>
+            <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-zinc-500 pointer-events-none" />
+          </div>
+
+          {/* Nút Reset bộ lọc (khi có lọc) */}
+          {hasActiveFilters && (
+            <button
+              type="button"
+              onClick={() => {
+                setSearchTerm('');
+                setFilterService('');
+                setSortBy('rating_desc');
+              }}
+              title="Đặt lại bộ lọc"
+              className="px-3 py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white transition-colors flex items-center justify-center shrink-0 text-xs font-bold gap-1"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Đặt lại</span>
+            </button>
+          )}
         </div>
-
-        {/* Sort Filter */}
-        <div className="relative min-w-[200px]">
-          <ArrowUpDown className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
-          <select
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value)}
-            className="w-full appearance-none bg-zinc-950 border border-zinc-800 rounded-2xl pl-10 pr-9 py-3 text-xs sm:text-sm font-medium text-white focus:border-cyan-500 outline-none transition-colors cursor-pointer"
-          >
-            <option value="rating_desc">Đánh giá cao nhất (⭐ 5.0)</option>
-            <option value="orders_desc">Nhiều đơn hoàn thành nhất</option>
-          </select>
-          <ChevronRight className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 rotate-90 text-zinc-500 pointer-events-none" />
-        </div>
-      </div>
-
-      {/* Quick Filter Chips */}
-      <div className="flex flex-wrap items-center gap-2 pt-3 border-t border-zinc-800">
-        <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider mr-1">Bộ lọc nhanh:</span>
-
-        <button
-          onClick={() => {
-            setFilterService('');
-            setSortBy('rating_desc');
-          }}
-          className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-            !filterService && sortBy === 'rating_desc'
-              ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-sm'
-              : 'bg-zinc-950 text-zinc-400 hover:text-white border border-zinc-800'
-          }`}
-        >
-          ⭐ Top Đánh Giá Cao
-        </button>
-
-        <button
-          onClick={() => {
-            setFilterService('');
-            setSortBy('orders_desc');
-          }}
-          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-            !filterService && sortBy === 'orders_desc'
-              ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-sm'
-              : 'bg-zinc-950 text-zinc-400 hover:text-white border border-zinc-800'
-          }`}
-        >
-          <Flame className="w-3.5 h-3.5 text-amber-400" />
-          <span>Nhiều Đơn Hoàn Thành</span>
-        </button>
-
-        <button
-          onClick={() => setFilterService('RANK_BOOST')}
-          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-            filterService === 'RANK_BOOST'
-              ? 'bg-blue-500/20 text-blue-300 border border-blue-500/40 shadow-sm'
-              : 'bg-zinc-950 text-zinc-400 hover:text-white border border-zinc-800'
-          }`}
-        >
-          <Swords className="w-3.5 h-3.5 text-blue-400" />
-          <span>Cày Rank / Elo</span>
-        </button>
-
-        <button
-          onClick={() => setFilterService('PLACEMENTS')}
-          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
-            filterService === 'PLACEMENTS'
-              ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm'
-              : 'bg-zinc-950 text-zinc-400 hover:text-white border border-zinc-800'
-          }`}
-        >
-          <Shield className="w-3.5 h-3.5 text-emerald-400" />
-          <span>Phân Hạng Đầu Mùa</span>
-        </button>
       </div>
     </div>
   );

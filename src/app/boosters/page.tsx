@@ -27,6 +27,7 @@ interface Booster {
 export default function BoostersPage() {
   const [boosters, setBoosters] = useState<Booster[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedGame, setSelectedGame] = useState('ALL');
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [filterService, setFilterService] = useState('');
@@ -51,6 +52,7 @@ export default function BoostersPage() {
           search: debouncedSearch,
           service: filterService,
           sort: sortBy,
+          ...(selectedGame !== 'ALL' ? { game: selectedGame } : {}),
         });
 
         const res = await fetch(`/api/boosters?${query.toString()}`);
@@ -68,7 +70,7 @@ export default function BoostersPage() {
     };
 
     fetchBoosters();
-  }, [debouncedSearch, filterService, sortBy, page]);
+  }, [debouncedSearch, filterService, sortBy, selectedGame, page]);
 
   // Fetch bookmarks
   useEffect(() => {
@@ -132,8 +134,15 @@ export default function BoostersPage() {
       <div className="fixed bottom-0 right-0 w-[600px] h-[500px] bg-amber-500/10 blur-[150px] pointer-events-none rounded-full" />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 relative z-10">
-        {/* 1. Hero & Trust Metrics */}
-        <BoostersHero />
+        {/* 1. Hero & Nhánh Tựa Game (Game Branches) */}
+        <BoostersHero
+          selectedGame={selectedGame}
+          onSelectGame={(gameId) => {
+            setSelectedGame(gameId);
+            setPage(1);
+          }}
+          totalBoosters={boosters.length}
+        />
 
         {/* 2. Filters & Search Console */}
         <BoostersFilterBar
@@ -146,7 +155,7 @@ export default function BoostersPage() {
           boosters={boosters}
         />
 
-        {/* 3. Booster Grid */}
+        {/* 3. Booster Grid (Responsive 1 col mobile, 2 col sm, 3 col lg, 4 col xl) */}
         {loading ? (
           <div className="flex flex-col justify-center items-center h-80 gap-4 text-cyan-400">
             <Loader2 className="w-10 h-10 animate-spin" />
@@ -154,7 +163,7 @@ export default function BoostersPage() {
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 sm:gap-6">
               {boosters.length > 0 ? (
                 boosters.map((booster) => (
                   <BoosterCard
@@ -171,9 +180,11 @@ export default function BoostersPage() {
                   <p className="text-xs text-zinc-500 mb-6">Thử thay đổi từ khóa tìm kiếm hoặc đặt lại bộ lọc.</p>
                   <button
                     onClick={() => {
+                      setSelectedGame('ALL');
                       setSearchTerm('');
                       setFilterService('');
                       setSortBy('rating_desc');
+                      setPage(1);
                     }}
                     className="px-5 py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white font-bold text-xs transition-colors"
                   >
