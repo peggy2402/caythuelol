@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { Users, Crown, Zap, Star, Search, Shuffle, Clock, Sparkles, Check } from 'lucide-react';
+import { Users, Crown, Zap, Star, Search, Shuffle, Clock, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import UserBadge from '@/components/UserBadge';
 import { getBoosterConciseScheduleText } from '@/lib/booster-helpers';
@@ -92,17 +92,6 @@ export function BoosterSelectionSection({
       handleRandomRerollBooster();
       setIsRadarScanning(false);
     }, 700);
-  };
-
-  const handlePinBooster = () => {
-    if (!assignedBooster) return;
-    setIsManualSelectBooster(true);
-    const username =
-      assignedBooster?.user?.username ||
-      assignedBooster?.boosterData?.username ||
-      assignedBooster?.username ||
-      '';
-    toast.success(`Đã giữ tuyển thủ @${username} cho đơn hàng này!`);
   };
 
   const avatarUrl =
@@ -331,24 +320,6 @@ export function BoosterSelectionSection({
                 >
                   <Shuffle size={13} className={isRadarScanning ? 'animate-spin text-cyan-400' : ''} />
                   <span>Đổi người khác</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handlePinBooster}
-                  className={`px-4 py-2 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-1.5 shadow-lg active:scale-95 cursor-pointer ${
-                    isManualSelectBooster
-                      ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-cyan-500/10'
-                      : 'bg-cyan-500 hover:bg-cyan-400 text-black shadow-cyan-500/25'
-                  }`}
-                  title={isManualSelectBooster ? 'Đã giữ tuyển thủ này cho đơn' : 'Khóa và giữ tuyển thủ này'}
-                >
-                  {isManualSelectBooster ? (
-                    <Check size={13} className="text-cyan-400 stroke-[3]" />
-                  ) : (
-                    <Zap size={13} className="fill-current" />
-                  )}
-                  <span>{isManualSelectBooster ? 'Đã giữ tuyển thủ' : 'Giữ tuyển thủ này'}</span>
                 </button>
               </div>
             </div>
