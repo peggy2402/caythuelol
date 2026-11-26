@@ -13,9 +13,18 @@ interface ChampionCardProps {
   onLeave?: () => void;
 }
 
+const ROLE_NAMES_VI: Record<string, string> = {
+  Fighter: 'Đấu Sĩ',
+  Tank: 'Đỡ Đòn',
+  Mage: 'Pháp Sư',
+  Assassin: 'Sát Thủ',
+  Marksman: 'Xạ Thủ',
+  Support: 'Hỗ Trợ',
+};
+
 export const StatBar = ({ label, value, color }: { label: string; value: number; color: string }) => (
   <div className="flex items-center gap-2 text-[10px]">
-    <span className="w-8 text-zinc-400 font-semibold">{label}</span>
+    <span className="w-10 text-zinc-400 font-semibold">{label}</span>
     <div className="flex-1 h-1.5 bg-zinc-800 rounded-full overflow-hidden">
       <div 
         className={`h-full rounded-full ${color}`} 
@@ -33,29 +42,37 @@ export function ChampionTooltip({
   champion: any; 
   style: React.CSSProperties;
 }) {
+  const translatedRoles = (champion.tags || [])
+    .map((t: string) => ROLE_NAMES_VI[t] || t)
+    .join(', ');
+
+  const subtitle = champion.title 
+    ? `${champion.title} • ${translatedRoles}` 
+    : translatedRoles;
+
   return (
     <div 
       style={style}
       className="absolute z-50 pointer-events-none transition-all duration-150 ease-out hidden md:block"
     >
-      <div className="w-56 bg-zinc-950/95 backdrop-blur-md border border-cyan-500/40 rounded-xl p-3 shadow-2xl shadow-cyan-950/50 animate-in fade-in zoom-in-95 duration-150">
+      <div className="w-64 bg-zinc-950/95 backdrop-blur-md border border-cyan-500/40 rounded-xl p-3 shadow-2xl shadow-cyan-950/50 animate-in fade-in zoom-in-95 duration-150">
         <div className="flex justify-between items-start mb-2">
-          <div>
-            <h4 className="font-bold text-white text-sm">{champion.name}</h4>
-            <p className="text-[10px] text-zinc-400">{champion.tags?.join(', ')}</p>
+          <div className="min-w-0 pr-2">
+            <h4 className="font-bold text-white text-sm truncate">{champion.name}</h4>
+            <p className="text-[10px] text-cyan-300/80 truncate font-medium">{subtitle}</p>
           </div>
-          <div className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${
+          <div className={`px-1.5 py-0.5 rounded text-[9px] font-bold shrink-0 ${
             champion.info?.difficulty > 7 ? 'bg-red-500/20 text-red-400 border border-red-500/30' :
             champion.info?.difficulty > 3 ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30' :
             'bg-green-500/20 text-green-400 border border-green-500/30'
           }`}>
-            Diff: {champion.info?.difficulty ?? 5}
+            Độ khó: {champion.info?.difficulty ?? 5}/10
           </div>
         </div>
         <div className="space-y-1.5 pt-2 border-t border-white/10">
-          <StatBar label="ATK" value={champion.info?.attack ?? 5} color="bg-red-500" />
-          <StatBar label="MAG" value={champion.info?.magic ?? 5} color="bg-blue-500" />
-          <StatBar label="DEF" value={champion.info?.defense ?? 5} color="bg-green-500" />
+          <StatBar label="CÔNG" value={champion.info?.attack ?? 5} color="bg-red-500" />
+          <StatBar label="PHÉP" value={champion.info?.magic ?? 5} color="bg-blue-500" />
+          <StatBar label="THỦ" value={champion.info?.defense ?? 5} color="bg-green-500" />
         </div>
       </div>
     </div>

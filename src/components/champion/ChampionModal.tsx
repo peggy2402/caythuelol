@@ -57,7 +57,7 @@ export default function ChampionModal({
     const modalRect = modalRef.current.getBoundingClientRect();
     const cardRect = hoveredData.rect;
 
-    const tooltipWidth = 224; // w-56
+    const tooltipWidth = 256; // w-64
     const tooltipHeight = 125;
 
     // Centered on card, relative to modal container

@@ -78,13 +78,20 @@ export class PublicController {
   @Public()
   @Get('champions')
   @ApiOperation({ summary: 'Get League of Legends champions list with dynamic version and language' })
-  @ApiQuery({ name: 'lang', required: false, description: 'Language code (e.g. vi_VN, en_US). Defaults to vi_VN' })
+  @ApiQuery({ name: 'lang', required: false, description: 'Language code (e.g. vi_VN, en_US). Defaults to auto-detect by client IP' })
   @ApiQuery({ name: 'version', required: false, description: 'Riot patch version (e.g. 16.23.1). Defaults to latest' })
   async getChampions(
+    @Req() req: any,
     @Query('lang') lang?: string,
     @Query('version') version?: string,
   ) {
-    return this.publicService.getChampions(lang, version);
+    let targetLang = lang;
+    if (!targetLang) {
+      // Tự động nhận diện ngôn ngữ theo IP: Việt Nam -> vi_VN, quốc tế -> en_US
+      const geo = this.publicService.detectGeoLocale(req);
+      targetLang = geo.country === 'VN' ? 'vi_VN' : 'en_US';
+    }
+    return this.publicService.getChampions(targetLang, version);
   }
 
   @Public()

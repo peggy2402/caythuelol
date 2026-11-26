@@ -11,6 +11,11 @@ export interface FilterState {
   resource: string[];
 }
 
+interface FilterOption {
+  value: string;
+  label: string;
+}
+
 interface ChampionFiltersProps {
   filters: FilterState;
   setFilters: React.Dispatch<React.SetStateAction<FilterState>>;
@@ -30,77 +35,106 @@ export default function ChampionFilters({ filters, setFilters, onReset }: Champi
     });
   };
 
-  const FilterSection = ({ title, category, options }: { title: string, category: keyof FilterState, options: string[] }) => (
-    <div className="mb-6">
-      <h4 className="text-xs font-bold text-zinc-500 uppercase mb-3 tracking-wider">{title}</h4>
-      <div className="flex flex-wrap gap-2">
-        {options.map(opt => (
-          <button
-            key={opt}
-            onClick={() => toggleFilter(category, opt)}
-            className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all border ${
-              filters[category].includes(opt)
-                ? 'bg-blue-600 border-blue-500 text-white shadow-lg shadow-blue-500/20'
-                : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:border-zinc-600 hover:text-zinc-200'
-            }`}
-          >
-            {opt}
-          </button>
-        ))}
+  const roleOptions: FilterOption[] = [
+    { value: 'Fighter', label: 'Đấu Sĩ' },
+    { value: 'Tank', label: 'Đỡ Đòn' },
+    { value: 'Mage', label: 'Pháp Sư' },
+    { value: 'Assassin', label: 'Sát Thủ' },
+    { value: 'Marksman', label: 'Xạ Thủ' },
+    { value: 'Support', label: 'Hỗ Trợ' },
+  ];
+
+  const difficultyOptions: FilterOption[] = [
+    { value: 'Easy', label: 'Dễ' },
+    { value: 'Medium', label: 'Trung Bình' },
+    { value: 'Hard', label: 'Khó' },
+  ];
+
+  const attackOptions: FilterOption[] = [
+    { value: 'AD', label: 'Vật Lý (AD)' },
+    { value: 'AP', label: 'Phép Thuật (AP)' },
+    { value: 'Hybrid', label: 'Hỗn Hợp (Hybrid)' },
+  ];
+
+  const resourceOptions: FilterOption[] = [
+    { value: 'Mana', label: 'Năng Lượng (Mana)' },
+    { value: 'Energy', label: 'Nội Năng (Energy)' },
+    { value: 'No Resource', label: 'Không Tốn' },
+  ];
+
+  const FilterSection = ({ 
+    title, 
+    category, 
+    options 
+  }: { 
+    title: string; 
+    category: keyof FilterState; 
+    options: FilterOption[];
+  }) => (
+    <div className="mb-5">
+      <h4 className="text-xs font-bold text-zinc-400 uppercase mb-2.5 tracking-wider">{title}</h4>
+      <div className="flex flex-wrap gap-1.5">
+        {options.map(opt => {
+          const isSelected = filters[category].includes(opt.value);
+          return (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => toggleFilter(category, opt.value)}
+              className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all border cursor-pointer ${
+                isSelected
+                  ? 'bg-cyan-600/30 border-cyan-500 text-cyan-300 shadow-md shadow-cyan-500/20'
+                  : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:border-zinc-700 hover:text-zinc-200'
+              }`}
+            >
+              {opt.label}
+            </button>
+          );
+        })}
       </div>
     </div>
   );
 
   return (
     <div className="h-full overflow-y-auto pr-2 custom-scrollbar">
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-5 pb-3 border-b border-white/5">
         <h3 className="text-sm font-bold text-white flex items-center gap-2">
-          <Filter className="w-4 h-4 text-blue-500" />
-          Filters
+          <Filter className="w-4 h-4 text-cyan-400" />
+          <span>Bộ lọc tướng</span>
         </h3>
         <button 
+          type="button"
           onClick={onReset}
-          className="text-xs text-zinc-500 hover:text-white flex items-center gap-1 transition-colors"
+          className="text-xs text-zinc-500 hover:text-white flex items-center gap-1 transition-colors cursor-pointer"
         >
           <RotateCcw className="w-3 h-3" />
-          {t('resetFilters')}
+          <span>{t('resetFilters') || 'Đặt lại'}</span>
         </button>
       </div>
 
       <FilterSection 
-        title={t('filterRole')} 
+        title={t('filterRole') || 'Vai trò'} 
         category="roles" 
-        options={['Fighter', 'Tank', 'Mage', 'Assassin', 'Marksman', 'Support']} 
+        options={roleOptions} 
       />
 
       <FilterSection 
-        title={t('filterDifficulty')} 
+        title={t('filterDifficulty') || 'Độ khó'} 
         category="difficulty" 
-        options={['Easy', 'Medium', 'Hard']} 
+        options={difficultyOptions} 
       />
 
       <FilterSection 
-        title={t('filterAttack')} 
+        title={t('filterAttack') || 'Loại sát thương'} 
         category="attackType" 
-        options={['AD', 'AP', 'Hybrid']} 
+        options={attackOptions} 
       />
 
       <FilterSection 
-        title={t('filterResource')} 
+        title={t('filterResource') || 'Tài nguyên sử dụng'} 
         category="resource" 
-        options={['Mana', 'Energy', 'No Resource']} 
+        options={resourceOptions} 
       />
-      
-      {/* Combat Profile - Simplified as Toggles for UX */}
-      <div className="mb-6">
-        <h4 className="text-xs font-bold text-zinc-500 uppercase mb-3 tracking-wider">Combat Profile</h4>
-        <div className="space-y-2">
-           {/* This could be extended with more logic, keeping it simple for now as requested */}
-           <div className="text-xs text-zinc-600 italic">
-             Advanced stats filtering enabled automatically based on selection.
-           </div>
-        </div>
-      </div>
     </div>
   );
 }
