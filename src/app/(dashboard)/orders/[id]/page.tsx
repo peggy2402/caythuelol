@@ -1472,37 +1472,80 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
     );
   };
 
+  // HÀM RENDER MÀN HÌNH CHẶN BẢO MẬT TOÀN MÀN HÌNH (FULLSCREEN ACCESS DENIED)
+  const renderAccessDeniedScreen = (orderCode?: string) => (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 backdrop-blur-2xl p-4 sm:p-6 overflow-y-auto">
+      {/* Ambient Red Glow Effects */}
+      <div className="absolute w-[500px] h-[500px] bg-red-600/10 rounded-full blur-[140px] pointer-events-none" />
+      <div className="absolute w-[350px] h-[350px] bg-rose-600/5 rounded-full blur-[100px] pointer-events-none -translate-x-1/2 -translate-y-1/2" />
+
+      {/* Main Alert Card */}
+      <div className="relative max-w-lg w-full bg-zinc-950/90 border border-red-500/30 rounded-3xl p-6 sm:p-10 text-center shadow-[0_0_60px_rgba(239,68,68,0.18)] overflow-hidden backdrop-blur-3xl animate-in fade-in zoom-in-95 duration-200">
+        {/* Neon Glowing Edge */}
+        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-red-500 to-transparent shadow-[0_0_15px_#ef4444]" />
+
+        {/* Shield Icon with glowing ring */}
+        <div className="relative mx-auto w-20 h-20 sm:w-24 sm:h-24 mb-6 flex items-center justify-center">
+          <div className="absolute inset-0 rounded-3xl bg-red-500/20 blur-xl animate-pulse" />
+          <div className="relative w-full h-full rounded-3xl bg-gradient-to-br from-red-500/15 via-rose-950/30 to-zinc-950 border border-red-500/40 flex items-center justify-center text-red-400 shadow-inner shadow-red-500/20">
+            <ShieldAlert className="w-10 h-10 sm:w-12 sm:h-12 drop-shadow-[0_0_12px_rgba(239,68,68,0.8)]" />
+          </div>
+        </div>
+
+        {/* Badge */}
+        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-widest bg-red-500/10 border border-red-500/25 text-red-400 mb-3">
+          <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-ping" />
+          <span>BẢO MẬT • TRUY CẬP HẠN CHẾ</span>
+        </div>
+
+        {/* Title */}
+        <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+          Truy Cập Bị Từ Chối
+        </h2>
+
+        {/* Order Code */}
+        <div className="inline-flex items-center gap-2 mt-3 px-3.5 py-1.5 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-zinc-300 font-mono">
+          <span>Mã đơn hàng:</span>
+          <strong className="text-cyan-400 font-bold">#{orderCode || id}</strong>
+        </div>
+
+        {/* Explanation */}
+        <p className="text-xs sm:text-sm text-zinc-400 mt-4 leading-relaxed max-w-sm mx-auto">
+          Bạn không có quyền truy cập hoặc thao tác trên đơn hàng này. Để bảo vệ an toàn tài khoản game và quyền riêng tư, hệ thống chỉ mở quyền cho <strong className="text-zinc-200">Khách tạo đơn</strong> và <strong className="text-zinc-200">Tuyển thủ phụ trách</strong>.
+        </p>
+
+        {/* Action Buttons - Thoáng đãng, không bao giờ bị bó hay gãy dòng */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 mt-7">
+          <Link
+            href={
+              user?.role === 'BOOSTER'
+                ? '/booster/my-orders'
+                : user?.role === 'ADMIN'
+                ? '/admin/orders'
+                : '/orders'
+            }
+            className="px-6 py-3.5 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm shadow-lg shadow-blue-600/30 transition-all flex items-center justify-center gap-2 whitespace-nowrap active:scale-95 cursor-pointer"
+          >
+            <ArrowLeft size={16} className="shrink-0" />
+            <span>Về danh sách đơn của bạn</span>
+          </Link>
+          <Link
+            href="/"
+            className="px-6 py-3.5 rounded-2xl bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-white border border-zinc-700/80 font-bold text-sm transition-all flex items-center justify-center gap-2 whitespace-nowrap active:scale-95 cursor-pointer"
+          >
+            <Home size={16} className="shrink-0" />
+            <span>Trang chủ</span>
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+
   if (loading) return <BarLoader className="py-24" />;
 
   // MÀN HÌNH CHẶN TRUY CẬP KHI KHÔNG CÓ QUYỀN
   if (accessDenied) {
-    return (
-      <div className="min-h-[70vh] flex items-center justify-center p-4">
-        <div className="max-w-md w-full bg-zinc-900 border border-red-500/30 rounded-2xl p-6 sm:p-8 text-center shadow-2xl relative overflow-hidden animate-in fade-in zoom-in-95">
-          <div className="w-16 h-16 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-400 flex items-center justify-center mx-auto mb-4">
-            <ShieldAlert size={32} />
-          </div>
-          <h2 className="text-xl font-bold text-white mb-2">Truy Cập Bị Từ Chối</h2>
-          <p className="text-sm text-zinc-400 mb-6 leading-relaxed">
-            Bạn không có quyền truy cập hoặc thực hiện thao tác trên đơn hàng <strong className="text-white font-mono">#{id}</strong>. Đơn hàng này thuộc về Khách hàng và Tuyển thủ khác.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Link
-              href={user?.role === 'BOOSTER' ? '/booster/my-orders' : user?.role === 'ADMIN' ? '/admin/orders' : '/orders'}
-              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold transition shadow-lg shadow-blue-600/30"
-            >
-              <ArrowLeft size={16} /> Về danh sách đơn của bạn
-            </Link>
-            <Link
-              href="/"
-              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-sm font-semibold transition"
-            >
-              <Home size={16} /> Trang chủ
-            </Link>
-          </div>
-        </div>
-      </div>
-    );
+    return renderAccessDeniedScreen(id);
   }
 
   if (!order) {
@@ -1532,35 +1575,9 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
   // Người có quyền tham gia đơn hàng: Khách tạo đơn, Tuyển thủ được giao, hoặc Admin/Staff
   const isParticipant = isAssignedBooster || isOrderCustomer || isAdmin;
 
-  // Nếu người dùng KHÔNG thuộc đơn hàng này: Chặn ngay lập tức
+  // Nếu người dùng KHÔNG thuộc đơn hàng này: Chặn ngay lập tức toàn màn hình
   if (!isParticipant) {
-    return (
-      <div className="min-h-[70vh] flex items-center justify-center p-4">
-        <div className="max-w-md w-full bg-zinc-900 border border-red-500/30 rounded-2xl p-6 sm:p-8 text-center shadow-2xl relative overflow-hidden animate-in fade-in zoom-in-95">
-          <div className="w-16 h-16 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-400 flex items-center justify-center mx-auto mb-4">
-            <ShieldAlert size={32} />
-          </div>
-          <h2 className="text-xl font-bold text-white mb-2">Truy Cập Bị Từ Chối</h2>
-          <p className="text-sm text-zinc-400 mb-6 leading-relaxed">
-            Bạn không có quyền truy cập hoặc thực hiện thao tác trên đơn hàng <strong className="text-white font-mono">#{order.orderCode || id}</strong>. Đơn hàng này thuộc về Khách hàng và Tuyển thủ khác.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Link
-              href={user?.role === 'BOOSTER' ? '/booster/my-orders' : user?.role === 'ADMIN' ? '/admin/orders' : '/orders'}
-              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold transition shadow-lg shadow-blue-600/30"
-            >
-              <ArrowLeft size={16} /> Về danh sách đơn của bạn
-            </Link>
-            <Link
-              href="/"
-              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-sm font-semibold transition"
-            >
-              <Home size={16} /> Trang chủ
-            </Link>
-          </div>
-        </div>
-      </div>
-    );
+    return renderAccessDeniedScreen(order.orderCode || id);
   }
 
   // Quyền thao tác nghiệp vụ: Chỉ gán true khi đúng người
