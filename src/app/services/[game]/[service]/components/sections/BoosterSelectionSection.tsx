@@ -264,36 +264,34 @@ export function BoosterSelectionSection({
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3.5">
               {/* Left: Avatar + Info */}
               <div className="flex items-center gap-3.5 min-w-0">
-                <div
-                  className={`w-12 h-12 rounded-full overflow-hidden border-2 flex items-center justify-center text-white font-bold text-base shadow-md shrink-0 ${
-                    isManualSelectBooster
-                      ? 'bg-gradient-to-br from-purple-500/20 to-blue-500/20 border-purple-500/50'
-                      : 'bg-zinc-800 border-zinc-700/80'
-                  }`}
-                >
-                  {avatarUrl ? (
-                    <img
-                      src={avatarUrl}
-                      alt={displayName}
-                      className="w-full h-full object-cover"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src = '/default-avatar.png';
-                      }}
-                    />
-                  ) : (
-                    (displayName || username || 'B').slice(0, 1).toUpperCase()
-                  )}
+                {/* Avatar with glowing & blinking green border */}
+                <div className="relative shrink-0">
+                  <div className="absolute -inset-1 rounded-full bg-emerald-500/25 animate-pulse blur-sm" />
+                  <div className="absolute -inset-0.5 rounded-full border-2 border-emerald-400 animate-pulse" />
+                  <div className="relative w-12 h-12 rounded-full overflow-hidden border-2 border-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.5)] flex items-center justify-center text-white font-bold text-base bg-zinc-900">
+                    {avatarUrl ? (
+                      <img
+                        src={avatarUrl}
+                        alt={displayName}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = '/default-avatar.png';
+                        }}
+                      />
+                    ) : (
+                      (displayName || username || 'B').slice(0, 1).toUpperCase()
+                    )}
+                  </div>
+                  {/* Status Indicator Dot */}
+                  <span className="absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-zinc-950 shadow-[0_0_8px_#10b981]" />
                 </div>
 
                 <div className="min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
+                  <div className="flex items-center gap-2">
                     <span className="font-extrabold text-white text-base truncate">
                       {displayName}
                     </span>
-                    <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-950/70 text-emerald-400 border border-emerald-500/30 flex items-center gap-1.5 shadow-sm">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                      Sẵn sàng nhận đơn
-                    </span>
+                    <UserBadge role="BOOSTER" size="sm" />
                   </div>
 
                   <div className="flex items-center gap-1.5 text-xs text-zinc-400 mt-1 flex-wrap">
