@@ -301,7 +301,7 @@ export default function InsufficientBalanceModal({
                   <div>
                     <div className="flex items-center gap-2">
                       <h3 className="text-lg sm:text-xl font-extrabold text-white tracking-tight">
-                        Nạp Tiền Giữ Cọc
+                        Nạp Tiền & Thanh Toán
                       </h3>
                       <span className="px-2 py-0.5 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 font-bold text-[10px] uppercase tracking-wider">
                         Tự động 24/7

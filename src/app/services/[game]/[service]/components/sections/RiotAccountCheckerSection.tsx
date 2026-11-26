@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import {
   ShieldCheck,
@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { getRankImage } from '@/lib/rank-calculator';
 import { GameDefinition } from '@/lib/games';
+import SmartSearchHistoryDropdown, { SearchHistoryItem } from '@/components/common/SmartSearchHistoryDropdown';
 
 interface RiotAccountCheckerSectionProps {
   isRiotGame: boolean;
@@ -62,6 +63,103 @@ export function RiotAccountCheckerSection({
   setQueueType,
   handleCheckAccountRank,
 }: RiotAccountCheckerSectionProps) {
+  const [recentSearches, setRecentSearches] = useState<SearchHistoryItem[]>([]);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const inputWrapperRef = useRef<HTMLDivElement>(null);
+
+  // Đọc lịch sử từ localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem('recent_riot_searches');
+        if (stored) {
+          setRecentSearches(JSON.parse(stored));
+        } else {
+          // Mẫu mặc định ban đầu nếu chưa có lịch sử
+          const defaults: SearchHistoryItem[] = [
+            { id: '1', riotId: 'Mary Tái Lâm #2003', server: 'VN', isFavorite: true },
+            { id: '2', riotId: 'QyenSaDin #0175', server: 'VN', isFavorite: false },
+          ];
+          setRecentSearches(defaults);
+        }
+      } catch {}
+    }
+  }, []);
+
+  const saveRecent = (items: SearchHistoryItem[]) => {
+    setRecentSearches(items);
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('recent_riot_searches', JSON.stringify(items));
+      } catch {}
+    }
+  };
+
+  // Tự động lưu tài khoản khi tra cứu thành công
+  useEffect(() => {
+    if (checkedAccount && checkedAccount.riotId) {
+      setRecentSearches((prev) => {
+        const filtered = prev.filter(
+          (item) => item.riotId.toLowerCase() !== checkedAccount.riotId.toLowerCase()
+        );
+        const newItem: SearchHistoryItem = {
+          id: Date.now().toString(),
+          riotId: checkedAccount.riotId,
+          server: server || 'VN',
+          tier: checkedAccount.tier,
+          rank: checkedAccount.rank,
+          isFavorite: prev.find((p) => p.riotId.toLowerCase() === checkedAccount.riotId.toLowerCase())?.isFavorite || false,
+          timestamp: Date.now(),
+        };
+        const updated = [newItem, ...filtered].slice(0, 10);
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('recent_riot_searches', JSON.stringify(updated));
+        }
+        return updated;
+      });
+    }
+  }, [checkedAccount, server]);
+
+  // Đóng dropdown khi click ra ngoài
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (inputWrapperRef.current && !inputWrapperRef.current.contains(e.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleSelectItem = (item: SearchHistoryItem) => {
+    setAccountCheckInput(item.riotId);
+    setIsDropdownOpen(false);
+    setTimeout(() => {
+      const form = inputWrapperRef.current?.closest('form');
+      if (form) {
+        form.requestSubmit();
+      }
+    }, 50);
+  };
+
+  const handleRemoveItem = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const updated = recentSearches.filter((item) => item.id !== id);
+    saveRecent(updated);
+  };
+
+  const handleToggleFavorite = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const updated = recentSearches.map((item) =>
+      item.id === id ? { ...item, isFavorite: !item.isFavorite } : item
+    );
+    saveRecent(updated);
+  };
+
+  const handleClearAll = () => {
+    saveRecent([]);
+  };
+
   if (!isRiotGame || (!isRankBoost && !isPointBoost && serviceSlug !== 'net-wins')) {
     return null;
   }
@@ -69,7 +167,7 @@ export function RiotAccountCheckerSection({
   return (
     <div
       id="riot-account-check-box"
-      className="p-4 sm:p-5 rounded-2xl bg-zinc-950/80 border border-blue-500/30 shadow-[0_0_25px_rgba(59,130,246,0.08)] space-y-4 relative overflow-hidden backdrop-blur-sm"
+      className="p-4 sm:p-5 rounded-2xl bg-zinc-950/80 border border-blue-500/30 shadow-[0_0_25px_rgba(59,130,246,0.08)] space-y-4 relative backdrop-blur-sm z-20"
     >
       <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-blue-500/60 to-transparent pointer-events-none" />
 
@@ -107,17 +205,22 @@ export function RiotAccountCheckerSection({
       </div>
 
       {/* Input & Button Tra cứu (Tự động nhận diện khi gõ) */}
-      <form onSubmit={(e) => handleCheckAccountRank(e, false)} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
-        <div className="relative flex-1">
+      <form onSubmit={(e) => handleCheckAccountRank(e, false)} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 relative z-30">
+        <div ref={inputWrapperRef} className="relative flex-1">
           <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-500 pointer-events-none">
             <Search size={16} />
           </div>
           <input
             type="text"
             value={accountCheckInput}
+            onFocus={() => setIsDropdownOpen(true)}
             onChange={(e) => {
               setAccountCheckInput(e.target.value);
+              setIsDropdownOpen(true);
               if (accountCheckError) setAccountCheckError('');
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') setIsDropdownOpen(false);
             }}
             placeholder="Nhập Ingame # Tagline (Ví dụ: Mary Tái Lâm #2003)"
             className="w-full h-11 bg-zinc-900/90 border border-zinc-800 rounded-xl pl-10 pr-28 text-xs sm:text-sm text-white placeholder-zinc-500 outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/30 transition-all font-medium"
@@ -136,6 +239,18 @@ export function RiotAccountCheckerSection({
               </div>
             ) : null}
           </div>
+
+          {/* Dropdown Lịch Sử Tìm Kiếm Kiểu OP.GG */}
+          <SmartSearchHistoryDropdown
+            isOpen={isDropdownOpen}
+            onClose={() => setIsDropdownOpen(false)}
+            query={accountCheckInput}
+            recentItems={recentSearches}
+            onSelect={handleSelectItem}
+            onRemove={handleRemoveItem}
+            onToggleFavorite={handleToggleFavorite}
+            onClearAll={handleClearAll}
+          />
         </div>
         <button
           type="submit"
