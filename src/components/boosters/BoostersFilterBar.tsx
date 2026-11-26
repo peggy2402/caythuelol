@@ -1,6 +1,9 @@
 'use client';
 
+import React, { useState, useRef, useEffect } from 'react';
 import { Search, Filter, X, ArrowUpDown, ChevronRight, Flame, Swords, Shield } from 'lucide-react';
+import { useSearchHistory } from '@/hooks/useSearchHistory';
+import SearchHistoryDropdown from '@/components/common/SearchHistoryDropdown';
 
 export const SERVICE_OPTIONS = [
   { value: 'RANK_BOOST', label: 'Cày Rank / Elo Siêu Tốc' },
@@ -27,17 +30,51 @@ export default function BoostersFilterBar({
   sortBy,
   setSortBy
 }: BoostersFilterBarProps) {
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const { history, addSearch, removeSearch, clearHistory } = useSearchHistory('recent_boosters_page_search');
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleSelect = (val: string) => {
+    setSearchTerm(val);
+    addSearch(val);
+    setIsDropdownOpen(false);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && searchTerm.trim()) {
+      addSearch(searchTerm.trim());
+      setIsDropdownOpen(false);
+    } else if (e.key === 'Escape') {
+      setIsDropdownOpen(false);
+    }
+  };
+
   return (
     <div className="bg-zinc-900/80 border border-zinc-800 p-5 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] mb-10 backdrop-blur-xl space-y-4">
       <div className="flex flex-col md:flex-row gap-3">
         {/* Search Input */}
-        <div className="relative flex-1">
+        <div ref={containerRef} className="relative flex-1 z-30">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
           <input
             type="text"
             placeholder="Tìm kiếm tuyển thủ theo tên hoặc nickname..."
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onFocus={() => setIsDropdownOpen(true)}
+            onChange={(e) => {
+              setSearchTerm(e.target.value);
+              setIsDropdownOpen(true);
+            }}
+            onKeyDown={handleKeyDown}
             className="w-full bg-zinc-950 border border-zinc-800 rounded-2xl pl-11 pr-10 py-3 text-sm text-white placeholder:text-zinc-600 focus:border-cyan-500 outline-none transition-colors"
           />
           {searchTerm && (
@@ -48,6 +85,18 @@ export default function BoostersFilterBar({
               <X className="w-4 h-4" />
             </button>
           )}
+
+          {/* Dropdown Lịch Sử Tìm Kiếm */}
+          <SearchHistoryDropdown
+            isOpen={isDropdownOpen}
+            onClose={() => setIsDropdownOpen(false)}
+            query={searchTerm}
+            history={history}
+            onSelect={handleSelect}
+            onRemove={removeSearch}
+            onClearAll={clearHistory}
+            title="Tuyển thủ tìm gần đây"
+          />
         </div>
 
         {/* Service Filter */}

@@ -73,14 +73,12 @@ export function RiotAccountCheckerSection({
       try {
         const stored = localStorage.getItem('recent_riot_searches');
         if (stored) {
-          setRecentSearches(JSON.parse(stored));
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed)) {
+            setRecentSearches(parsed);
+          }
         } else {
-          // Mẫu mặc định ban đầu nếu chưa có lịch sử
-          const defaults: SearchHistoryItem[] = [
-            { id: '1', riotId: 'Mary Tái Lâm #2003', server: 'VN', isFavorite: true },
-            { id: '2', riotId: 'QyenSaDin #0175', server: 'VN', isFavorite: false },
-          ];
-          setRecentSearches(defaults);
+          setRecentSearches([]);
         }
       } catch {}
     }
@@ -205,7 +203,33 @@ export function RiotAccountCheckerSection({
       </div>
 
       {/* Input & Button Tra cứu (Tự động nhận diện khi gõ) */}
-      <form onSubmit={(e) => handleCheckAccountRank(e, false)} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 relative z-30">
+      <form
+        onSubmit={(e) => {
+          if (accountCheckInput.trim()) {
+            const clean = accountCheckInput.trim();
+            setRecentSearches((prev) => {
+              const filtered = prev.filter(
+                (item) => item.riotId.toLowerCase() !== clean.toLowerCase()
+              );
+              const newItem: SearchHistoryItem = {
+                id: Date.now().toString(),
+                riotId: clean,
+                server: server || 'VN',
+                isFavorite: prev.find((p) => p.riotId.toLowerCase() === clean.toLowerCase())?.isFavorite || false,
+                timestamp: Date.now(),
+              };
+              const updated = [newItem, ...filtered].slice(0, 10);
+              if (typeof window !== 'undefined') {
+                localStorage.setItem('recent_riot_searches', JSON.stringify(updated));
+              }
+              return updated;
+            });
+          }
+          setIsDropdownOpen(false);
+          handleCheckAccountRank(e, false);
+        }}
+        className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 relative z-30"
+      >
         <div ref={inputWrapperRef} className="relative flex-1">
           <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-500 pointer-events-none">
             <Search size={16} />

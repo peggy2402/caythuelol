@@ -1,6 +1,9 @@
 'use client';
 
-import { ShieldCheck, Search, Swords, Crosshair, Gamepad2, Trophy, Layers, type LucideIcon } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { ShieldCheck, Search, Swords, Crosshair, Gamepad2, Trophy, Layers, X, type LucideIcon } from 'lucide-react';
+import { useSearchHistory } from '@/hooks/useSearchHistory';
+import SearchHistoryDropdown, { SearchSuggestionItem } from '@/components/common/SearchHistoryDropdown';
 
 export type CategoryKey = 'ALL' | 'MOBA' | 'FPS' | 'TACTICS' | 'ACTION';
 
@@ -18,6 +21,16 @@ export const CATEGORIES: CategoryTab[] = [
   { id: 'ACTION', label: 'Sinh tồn / Nhập vai', icon: Trophy },
 ];
 
+const GAME_SUGGESTIONS: SearchSuggestionItem[] = [
+  { label: 'Liên Minh Huyền Thoại', subLabel: 'LOL, LMHT, Rank Boost, Duo', category: 'MOBA' },
+  { label: 'Valorant', subLabel: 'FPS, Ranked, Competitive, Đấu Xếp Hạng', category: 'FPS' },
+  { label: 'Đấu Trường Chân Lý', subLabel: 'TFT, ĐTCL, Cờ Nhân Phẩm', category: 'Chiến thuật' },
+  { label: 'Liên Quân Mobile', subLabel: 'AOV, LQM, Cày Sao, Thách Đấu', category: 'MOBA' },
+  { label: 'Tốc Chiến', subLabel: 'Wild Rift, LMHT Tốc Chiến Mobile', category: 'MOBA' },
+  { label: 'CS:GO 2', subLabel: 'Counter-Strike 2, Premier, Faceit', category: 'FPS' },
+  { label: 'FC Online', subLabel: 'FO4, FIFA Online, Xếp Hạng 1vs1', category: 'Thể thao' },
+];
+
 interface ServicesHeroProps {
   searchTerm: string;
   setSearchTerm: (term: string) => void;
@@ -31,6 +44,35 @@ export default function ServicesHero({
   selectedCategory,
   setSelectedCategory,
 }: ServicesHeroProps) {
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const { history, addSearch, removeSearch, clearHistory } = useSearchHistory('recent_games_search');
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleSelect = (val: string) => {
+    setSearchTerm(val);
+    addSearch(val);
+    setIsDropdownOpen(false);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && searchTerm.trim()) {
+      addSearch(searchTerm.trim());
+      setIsDropdownOpen(false);
+    } else if (e.key === 'Escape') {
+      setIsDropdownOpen(false);
+    }
+  };
+
   return (
     <div className="text-center max-w-4xl mx-auto mb-12 sm:mb-16">
       <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-cyan-950/40 border border-cyan-500/30 text-cyan-300 text-xs font-bold uppercase tracking-wider mb-5 backdrop-blur-md shadow-[0_0_20px_rgba(6,182,212,0.2)]">
@@ -50,14 +92,41 @@ export default function ServicesHero({
       </p>
 
       {/* Search Bar */}
-      <div className="relative max-w-lg mx-auto mb-8">
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+      <div ref={containerRef} className="relative max-w-lg mx-auto mb-8 z-30 text-left">
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500 pointer-events-none" />
         <input
           type="text"
           placeholder="Tìm kiếm tựa game (LMHT, Valorant, ĐTCL, Liên Quân, Tốc Chiến...)"
           value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full bg-zinc-900/90 border border-zinc-800 rounded-2xl pl-11 pr-4 py-3.5 text-sm text-white placeholder-zinc-500 focus:border-cyan-500 outline-none transition-colors shadow-2xl backdrop-blur-xl"
+          onFocus={() => setIsDropdownOpen(true)}
+          onChange={(e) => {
+            setSearchTerm(e.target.value);
+            setIsDropdownOpen(true);
+          }}
+          onKeyDown={handleKeyDown}
+          className="w-full bg-zinc-900/90 border border-zinc-800 rounded-2xl pl-11 pr-10 py-3.5 text-sm text-white placeholder-zinc-500 focus:border-cyan-500 outline-none transition-colors shadow-2xl backdrop-blur-xl"
+        />
+        {searchTerm && (
+          <button
+            type="button"
+            onClick={() => setSearchTerm('')}
+            className="absolute right-3.5 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        )}
+
+        {/* Dropdown Lịch Sử & Gợi Ý Tựa Game */}
+        <SearchHistoryDropdown
+          isOpen={isDropdownOpen}
+          onClose={() => setIsDropdownOpen(false)}
+          query={searchTerm}
+          history={history}
+          onSelect={handleSelect}
+          onRemove={removeSearch}
+          onClearAll={clearHistory}
+          liveSuggestions={GAME_SUGGESTIONS}
+          title="Tựa game tìm gần đây"
         />
       </div>
 
