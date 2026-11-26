@@ -313,7 +313,7 @@ export function PointAndStarBoostSection({
                         if (tierSteps.length > 0) {
                           const targetStep = tierSteps[Math.floor(tierSteps.length / 2)] || tierSteps[0];
                           setAovOddStartStepId(targetStep.id);
-                          const maxS = (targetStep.starsPerDivision || 5) - 1;
+                          const maxS = targetStep.starsPerDivision || 5;
                           if (aovOddCurrentStarsInDiv > maxS) setAovOddCurrentStarsInDiv(maxS);
                         }
                       }}
@@ -364,7 +364,7 @@ export function PointAndStarBoostSection({
                     type="button"
                     onClick={() => {
                       setAovOddStartStepId(step.id);
-                      const maxS = (step.starsPerDivision || 5) - 1;
+                      const maxS = step.starsPerDivision || 5;
                       if (aovOddCurrentStarsInDiv > maxS) setAovOddCurrentStarsInDiv(maxS);
                     }}
                     className={`p-2 sm:p-2.5 rounded-2xl border flex flex-col items-center justify-center text-center transition-all cursor-pointer relative ${
@@ -419,7 +419,7 @@ export function PointAndStarBoostSection({
               </span>
             </div>
             <div className="flex flex-wrap gap-2">
-              {Array.from({ length: aovOddStartStep.starsPerDivision || 5 }).map((_, starNum) => {
+              {Array.from({ length: (aovOddStartStep.starsPerDivision || 5) + 1 }).map((_, starNum) => {
                 const isSelected = aovOddCurrentStarsInDiv === starNum;
                 return (
                   <button

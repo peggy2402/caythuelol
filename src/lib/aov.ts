@@ -584,7 +584,13 @@ export function getAovOddStarStepsForSegment(segmentId: string): AovRankStep[] {
 }
 
 /**
- * Tính toán rank đích khi cày thêm số sao lẻ từ một bậc/đoàn bất kỳ
+ * Tính toán rank đích khi cày thêm số sao lẻ từ một bậc/đoàn bất kỳ.
+ * Quy tắc chuẩn Liên Quân Mobile (Garena VN):
+ * - Mỗi đoàn có sức chứa `divCapacity` sao (3, 4 hoặc 5 sao).
+ * - Đạt đầy `divCapacity` sao vẫn ở đoàn hiện tại (VD: Kim Cương I 5/5 sao).
+ * - Khi vượt qua `divCapacity` sao (nhảy đoàn/nhảy bậc), đoàn mới luôn bắt đầu từ 1 sao
+ *   (VD: Kim Cương I 5 sao + 1 sao -> Tinh Anh V 1 sao; Tinh Anh V 5 sao + 1 sao -> Tinh Anh IV 1 sao;
+ *    Tinh Anh I 5 sao + 1 sao -> Cao Thủ 1 sao).
  */
 export function calculateAovOddStarTargetRank(
   startStepId: string,
@@ -607,19 +613,21 @@ export function calculateAovOddStarTargetRank(
   while (currentIdx < AOV_RANK_LADDER.length) {
     const curStep = AOV_RANK_LADDER[currentIdx];
     if (curStep.isHighRank) {
-      // Đã leo lên Cao Thủ (Master) trở lên
+      // Đã leo lên Cao Thủ (Master) trở lên — sử dụng getAovHighRankByStars để hiển thị chính xác cả Đại Cao Thủ / Chiến Tướng
+      const highInfo = getAovHighRankByStars(remainingStars);
       return {
         targetStepId: curStep.id,
-        targetStepLabel: `Cao Thủ (${remainingStars} sao)`,
+        targetStepLabel: highInfo.label,
         targetStarsInDiv: remainingStars,
-        targetImage: curStep.image,
+        targetImage: highInfo.image,
         isPromotedToMaster: true,
-        summaryText: `Từ ${startStep.label} (${currentStarsInDiv} sao) ➔ Cao Thủ (${remainingStars} sao)`,
+        summaryText: `Từ ${startStep.label} (${currentStarsInDiv} sao) ➔ ${highInfo.label}`,
       };
     }
 
     const divCapacity = curStep.starsPerDivision || 5;
-    if (remainingStars < divCapacity) {
+    // Còn trong sức chứa của đoàn hiện tại (0 .. divCapacity sao) -> chưa nhảy đoàn
+    if (remainingStars <= divCapacity) {
       return {
         targetStepId: curStep.id,
         targetStepLabel: `${curStep.label} (${remainingStars} sao)`,
@@ -630,7 +638,7 @@ export function calculateAovOddStarTargetRank(
       };
     }
 
-    // Đạt đủ hoặc vượt sao đoàn -> Thăng đoàn tiếp theo
+    // Vượt quá sức chứa đoàn hiện tại -> Thăng đoàn tiếp theo (số sao dư luôn >= 1, bắt đầu từ 1 sao)
     remainingStars -= divCapacity;
     currentIdx += 1;
   }
@@ -845,8 +853,10 @@ export function calculateAovOddStarBoost({
         tierId = 'veteran_master';
       }
 
-      if (curStars >= capacity) {
-        curStars = 0;
+      // Đồng bộ quy tắc nhảy rank Liên Quân Mobile: đạt đầy `capacity` sao vẫn ở đoàn hiện tại;
+      // vượt qua `capacity` mới thăng đoàn tiếp theo và bắt đầu từ 1 sao (không về 0 sao)
+      if (curStars > capacity) {
+        curStars = 1;
         curStepIdx += 1;
       }
     } else {

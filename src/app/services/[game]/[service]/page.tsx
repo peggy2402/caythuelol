@@ -535,7 +535,7 @@ function ServiceBookingContent() {
         const defaultStep = steps[Math.floor(steps.length / 2)] || steps[0];
         setAovOddStartStepId(defaultStep.id);
         const maxStars = defaultStep.starsPerDivision || 5;
-        setAovOddCurrentStarsInDiv(Math.min(3, maxStars - 1));
+        setAovOddCurrentStarsInDiv(Math.min(3, maxStars));
       }
     }
   };
