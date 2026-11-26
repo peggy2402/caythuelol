@@ -182,8 +182,8 @@ export default function UserBadge({
       {/* Floating Tooltip */}
       {showTooltip && (
         <span
-          className={`absolute px-2.5 py-1 rounded-lg bg-zinc-900/95 border border-white/15 text-white text-[11px] font-semibold whitespace-nowrap shadow-2xl backdrop-blur-md z-50 pointer-events-none animate-in fade-in zoom-in-95 duration-150 flex items-center gap-1.5 ${
-            vPlacement === 'bottom' ? 'top-full mt-2' : 'bottom-full mb-2'
+          className={`absolute px-2.5 py-1 rounded-lg bg-zinc-900/95 border border-white/15 text-white text-[11px] font-semibold whitespace-nowrap shadow-2xl backdrop-blur-md z-[100] pointer-events-none animate-in fade-in zoom-in-95 duration-150 flex items-center gap-1.5 ${
+            vPlacement === 'bottom' ? 'top-full mt-2' : 'bottom-full mb-2.5'
           } ${
             placement === 'left'
               ? 'left-0 translate-x-0'

@@ -243,7 +243,7 @@ export function BoosterSelectionSection({
           <BoosterRadarScanner />
         ) : (
           <div
-            className={`p-4 sm:p-5 rounded-2xl border space-y-3.5 relative overflow-hidden transition-all duration-300 animate-in fade-in zoom-in-95 ${
+            className={`p-4 sm:p-5 rounded-2xl border space-y-3.5 relative overflow-visible transition-all duration-300 animate-in fade-in zoom-in-95 ${
               isManualSelectBooster
                 ? 'bg-purple-950/20 border-purple-500/40 shadow-[0_0_20px_rgba(168,85,247,0.12)]'
                 : 'bg-zinc-950/80 border-zinc-800 shadow-xl'
@@ -280,7 +280,7 @@ export function BoosterSelectionSection({
                     <span className="font-extrabold text-white text-base truncate">
                       {displayName}
                     </span>
-                    <UserBadge role="BOOSTER" size="sm" />
+                    <UserBadge role="BOOSTER" size="sm" tooltipPosition="top" />
                   </div>
 
                   <div className="flex items-center gap-1.5 text-xs text-zinc-400 mt-1 flex-wrap">

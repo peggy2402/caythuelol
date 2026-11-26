@@ -1,11 +1,13 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Image from 'next/image';
-import { Trophy, Clock } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Trophy, Clock, Pencil, Sparkles, Shuffle } from 'lucide-react';
 import { getLaneMeta } from '@/lib/lanes';
 import { formatRankDisplayVi } from '@/lib/riotRanks';
 import { formatServiceName } from './orderHelpers';
+import EditOptionsModal from './EditOptionsModal';
 import NetWinsOrderView from '@/components/orders/NetWinsOrderView';
 import RankBoostOrderView from '@/components/orders/RankBoostOrderView';
 import PromotionOrderView from '@/components/orders/PromotionOrderView';
@@ -55,6 +57,17 @@ export default function OrderServiceCard({
   onUpdateVodLink,
   isUpdatingVod,
 }: OrderServiceCardProps) {
+  const router = useRouter();
+  const [isEditOptionsOpen, setIsEditOptionsOpen] = useState(false);
+
+  const gameCode = (
+    order.game ||
+    order.snapshot?.gameCode ||
+    order.details?.game ||
+    order.service_data?.game ||
+    'LOL'
+  ).toUpperCase();
+
   // Trích xuất các tùy chọn addons
   const activeOptions = Object.entries(
     order.details?.addons ||
@@ -84,6 +97,27 @@ export default function OrderServiceCard({
       extractedRoles.length > 0
   );
 
+  const extractedChampions: string[] = (() => {
+    const raw =
+      order.options?.champions ||
+      order.options?.selectedChampions ||
+      order.details?.champions ||
+      order.details?.selectedChampions ||
+      order.details?.addons?.champions ||
+      order.details?.addons?.selectedChampions ||
+      order.details?.service_data?.champions;
+    if (Array.isArray(raw) && raw.length > 0) return raw.map(String);
+    if (typeof raw === 'string' && raw.trim()) return [raw.trim()];
+    return [];
+  })();
+
+  const hasSpecificChamps = Boolean(
+    order.options?.specificChamps ||
+      order.details?.addons?.specificChamps ||
+      order.details?.specificChamps ||
+      extractedChampions.length > 0
+  );
+
   const scheduleDetails =
     order.options?.scheduleDetails ||
     order.details?.scheduleDetails ||
@@ -98,20 +132,36 @@ export default function OrderServiceCard({
   );
 
   const scheduleOption = activeOptions.find(([k]) => k === 'schedule');
-  const simpleOptions = activeOptions.filter(([k, v]) => {
-    if (k === 'schedule') return false;
-    if (k === 'scheduleDetails') return false;
+  const simpleOptions = activeOptions.filter(([k]) => {
+    if (k === 'schedule' || k === 'scheduleDetails') return false;
     if (k === 'roles' || k === 'selectedRoles' || k === 'specificRole' || k === 'rolesDisplay') return false;
+    if (k === 'champions' || k === 'selectedChampions' || k === 'specificChamps') return false;
     return true;
   });
+
+  const canEditOptions =
+    isCustomer &&
+    ['PAID', 'ACCEPTED'].includes(order.status) &&
+    (hasSpecificRole || hasSpecificChamps || hasSchedule);
 
   return (
     <>
       {/* Service Info */}
       <div>
-        <h3 className="text-sm font-bold text-zinc-400 uppercase mb-3 flex items-center gap-2">
-          <Trophy className="w-4 h-4" /> Dịch vụ
-        </h3>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-bold text-zinc-400 uppercase flex items-center gap-2">
+            <Trophy className="w-4 h-4" /> Dịch vụ
+          </h3>
+          {canEditOptions && (
+            <button
+              type="button"
+              onClick={() => setIsEditOptionsOpen(true)}
+              className="px-2.5 py-1 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 hover:text-blue-300 border border-blue-500/25 text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer shadow-sm active:scale-95"
+            >
+              <Pencil className="w-3.5 h-3.5" /> Điều chỉnh tùy chọn
+            </button>
+          )}
+        </div>
         <div className="bg-zinc-950 p-4 rounded-xl border border-zinc-800 space-y-3 text-sm">
           <div className="flex justify-between items-center">
             <span className="text-zinc-500">Loại dịch vụ:</span>
@@ -214,7 +264,7 @@ export default function OrderServiceCard({
               <div className="flex items-center gap-1.5 flex-wrap justify-end">
                 {extractedRoles.length > 0 ? (
                   extractedRoles.map((roleId: string) => {
-                    const meta = getLaneMeta(roleId, order.game);
+                    const meta = getLaneMeta(roleId, gameCode);
                     return (
                       <span
                         key={roleId}
@@ -235,15 +285,31 @@ export default function OrderServiceCard({
                   })
                 ) : (
                   <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-purple-500/10 border border-purple-500/25 text-purple-300 font-bold text-xs shadow-sm">
-                    <Image
-                      src="/images/lane-aov/random-lane.png"
-                      alt="Đường Bất Kỳ"
-                      width={16}
-                      height={16}
-                      className="w-4 h-4 object-contain"
-                    />
+                    <Shuffle className="w-3.5 h-3.5 text-purple-400" />
                     <span>Đường Bất Kỳ (Linh hoạt)</span>
                   </span>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Tướng chỉ định (Tùy chọn tướng tủ) */}
+          {hasSpecificChamps && (
+            <div className="flex justify-between items-start pt-3 border-t border-zinc-800 gap-3">
+              <span className="text-zinc-500 shrink-0">Tướng chỉ định:</span>
+              <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                {extractedChampions.length > 0 ? (
+                  extractedChampions.map((champ: string) => (
+                    <span
+                      key={champ}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-amber-500/10 border border-amber-500/25 text-amber-300 font-bold text-xs shadow-sm"
+                    >
+                      <Sparkles className="w-3 h-3 text-amber-400" />
+                      <span>{champ}</span>
+                    </span>
+                  ))
+                ) : (
+                  <span className="text-xs text-zinc-400">Tuyển thủ tự chọn</span>
                 )}
               </div>
             </div>
@@ -355,7 +421,9 @@ export default function OrderServiceCard({
       {order.serviceType === 'PROMOTION' && <PromotionOrderView order={order} />}
 
       {/* PLACEMENTS SPECIAL VIEW */}
-      {order.serviceType === 'PLACEMENTS' && <PlacementsOrderView order={order} />}
+      {order.serviceType === 'PLACEMENTS' && (
+        <PlacementsOrderView order={order} isBooster={isBooster} />
+      )}
 
       {/* MATCHES SPECIAL VIEW (CÀY THEO SỐ TRẬN) */}
       {(order.serviceType === 'MATCHES' || order.details?.is_matches) && (
@@ -382,6 +450,14 @@ export default function OrderServiceCard({
           isUpdatingVod={isUpdatingVod}
         />
       )}
+
+      {/* MODAL ĐIỀU CHỈNH TÙY CHỌN MỞ RỘNG (DÀNH CHO KHÁCH HÀNG KHI CHƯA IN_PROGRESS) */}
+      <EditOptionsModal
+        isOpen={isEditOptionsOpen}
+        onClose={() => setIsEditOptionsOpen(false)}
+        order={order}
+        onSuccess={() => router.refresh()}
+      />
     </>
   );
 }

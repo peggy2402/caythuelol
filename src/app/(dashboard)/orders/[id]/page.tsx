@@ -1257,13 +1257,18 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
         const formattedRank = isApexTier ? tierVi : `${tierVi}${league.rank ? ' ' + league.rank : ''}`;
         const formattedName = data.gameName ? `${data.gameName}#${data.tagLine}` : nameToCheck;
         const rankUnit = isValorant ? 'RR' : 'LP';
+        const isPlacements = order?.serviceType === 'PLACEMENTS' || order?.details?.is_placements;
 
         // Tự động lưu vào DB luôn
-        const updateBody = {
+        // ĐỐI VỚI ĐƠN PHÂN HẠNG: Không tự động đè current_rank (vì current_rank là Rank Tạm Tính sau từng trận phân hạng)
+        const updateBody: any = {
           ingame_name: formattedName,
-          current_rank: formattedRank,
-          current_lp: league.leaguePoints ?? 0
         };
+
+        if (!isPlacements) {
+          updateBody.current_rank = formattedRank;
+          updateBody.current_lp = league.leaguePoints ?? 0;
+        }
 
         // Gọi API update details
         const patchRes = await fetch(`/api/orders/${order._id}/details`, {
@@ -1276,7 +1281,11 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
           throw new Error(patchErr.message || 'Lỗi khi lưu thông tin Rank vào đơn hàng');
         }
 
-        toast.success(`Đã cập nhật: ${formattedRank} - ${league.leaguePoints ?? 0} ${rankUnit} (${targetQueueName})`);
+        if (isPlacements) {
+          toast.success(`Đã lưu Ingame: ${formattedName}. Rank trên Riot: ${formattedRank} (Tham khảo). Đối với đơn Phân Hạng, vui lòng chỉnh Rank Tạm Tính theo từng trận!`);
+        } else {
+          toast.success(`Đã cập nhật: ${formattedRank} - ${league.leaguePoints ?? 0} ${rankUnit} (${targetQueueName})`);
+        }
 
         // Cập nhật UI local (để hiển thị ngay lập tức)
         setOrder((prev: any) => ({

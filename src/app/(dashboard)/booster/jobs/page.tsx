@@ -19,13 +19,15 @@ import {
   RefreshCw,
   PlusCircle,
   ArrowRightLeft,
-  ShieldAlert
+  ShieldAlert,
+  Sparkles,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 import { getGameById } from '@/lib/games';
 import { formatRankDisplayVi } from '@/lib/riotRanks';
 import { formatServiceNameVi } from '@/lib/orderStatus';
+import { getLaneMeta } from '@/lib/lanes';
 
 const formatServiceTypeVi = (serviceType?: string, details?: any): string => {
   if (details?.is_matches || serviceType === 'MATCHES') {
@@ -69,6 +71,7 @@ interface Job {
     gameCode?: string;
     serviceSlug?: string;
   };
+  options?: any;
   details: any;
   pricing: {
     booster_earnings: number;
@@ -497,6 +500,36 @@ export default function JobMarketPage() {
       {/* Details */}
       <div className="flex-1 space-y-3 mb-5">
         {renderJobInfo(job)}
+
+        {/* Tóm tắt yêu cầu mở rộng (Lịch cày, Vị trí, Tướng) */}
+        {(() => {
+          const jRoles: string[] = job.options?.roles || job.options?.selectedRoles || job.details?.roles || job.details?.selectedRoles || [];
+          const jChamps: string[] = job.options?.champions || job.options?.selectedChampions || job.details?.champions || job.details?.selectedChampions || [];
+          const jSched = job.options?.scheduleDetails || job.details?.scheduleDetails || job.details?.addons?.scheduleDetails;
+          if (jRoles.length === 0 && jChamps.length === 0 && !jSched) return null;
+
+          return (
+            <div className="flex items-center gap-1.5 flex-wrap pt-1 text-[11px]">
+              {jSched && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-blue-500/15 border border-blue-500/30 text-blue-300 font-medium">
+                  <Clock className="w-3 h-3 text-blue-400" />
+                  <span>{jSched.timeWindow || 'Theo lịch hẹn'}</span>
+                </span>
+              )}
+              {jRoles.length > 0 && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 font-medium">
+                  <span>Lane: {jRoles.map(r => getLaneMeta(r, gameCode).shortName || r).join(', ')}</span>
+                </span>
+              )}
+              {jChamps.length > 0 && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-amber-500/15 border border-amber-500/30 text-amber-300 font-medium">
+                  <span>Tướng: {jChamps.slice(0, 2).join(', ')}{jChamps.length > 2 ? '...' : ''}</span>
+                </span>
+              )}
+            </div>
+          );
+        })()}
+
         {type === 'DIRECT' && (
             <div className="flex items-center gap-2 text-xs text-yellow-500 bg-yellow-500/10 p-2 rounded-xl border border-yellow-500/20">
                 <AlertCircle className="w-3.5 h-3.5 shrink-0" />
@@ -623,7 +656,7 @@ export default function JobMarketPage() {
 
       {/* MODAL XÁC NHẬN TỪ CHỐI & CHUYỂN GIAO ĐƠN CHỈ ĐỊNH (CĂN GIỮA MÀN HÌNH) */}
       <Dialog open={rejectModal.isOpen} onOpenChange={(open) => !open && setRejectModal((prev) => ({ ...prev, isOpen: false }))}>
-        <DialogContent className="max-w-md bg-zinc-950 border border-white/10 text-white rounded-2xl p-6 shadow-2xl">
+        <DialogContent className="max-w-md sm:max-w-lg bg-zinc-950 border border-white/10 text-white rounded-2xl p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader className="space-y-2">
             <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-400 flex items-center justify-center mx-auto mb-1 shadow-inner">
               <ArrowRightLeft className="w-6 h-6" />
@@ -723,7 +756,7 @@ export default function JobMarketPage() {
 
       {/* MODAL XÁC NHẬN NHẬN ĐƠN / NHẬN VIỆC (CĂN GIỮA MÀN HÌNH) */}
       <Dialog open={acceptModal.isOpen} onOpenChange={(open) => !open && setAcceptModal((prev) => ({ ...prev, isOpen: false }))}>
-        <DialogContent className="max-w-md bg-zinc-950 border border-white/10 text-white rounded-2xl p-6 shadow-2xl">
+        <DialogContent className="max-w-md sm:max-w-lg bg-zinc-950 border border-white/10 text-white rounded-2xl p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader className="space-y-2">
             <div className="w-12 h-12 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 flex items-center justify-center mx-auto mb-1 shadow-inner shadow-emerald-500/10">
               <CheckCircle2 className="w-6 h-6" />
@@ -767,6 +800,145 @@ export default function JobMarketPage() {
                   </span>
                 </div>
               )}
+
+              {/* TÙY CHỌN MỞ RỘNG (YÊU CẦU ĐẶC BIỆT TỪ KHÁCH HÀNG) */}
+              {(() => {
+                const jobGame = acceptModal.job.snapshot?.gameCode || acceptModal.job.details?.game || 'LOL';
+                const jobRoles: string[] =
+                  acceptModal.job.options?.roles ||
+                  acceptModal.job.options?.selectedRoles ||
+                  acceptModal.job.details?.roles ||
+                  acceptModal.job.details?.selectedRoles ||
+                  [];
+                const jobChamps: string[] =
+                  acceptModal.job.options?.champions ||
+                  acceptModal.job.options?.selectedChampions ||
+                  acceptModal.job.details?.champions ||
+                  acceptModal.job.details?.selectedChampions ||
+                  [];
+                const jobSchedule =
+                  acceptModal.job.options?.scheduleDetails ||
+                  acceptModal.job.details?.scheduleDetails ||
+                  acceptModal.job.details?.addons?.scheduleDetails;
+
+                const hasDuo = Boolean(acceptModal.job.options?.duo || acceptModal.job.details?.addons?.duo);
+                const hasStream = Boolean(acceptModal.job.options?.livestream || acceptModal.job.options?.streaming);
+                const hasFlash = Boolean(acceptModal.job.options?.flash || acceptModal.job.options?.flashPosition);
+
+                const hasAnyOption = jobRoles.length > 0 || jobChamps.length > 0 || Boolean(jobSchedule) || hasDuo || hasStream || hasFlash;
+                if (!hasAnyOption) return null;
+
+                return (
+                  <div className="pt-2 border-t border-white/5 space-y-2">
+                    <div className="text-[11px] font-bold text-blue-400 flex items-center gap-1.5 uppercase tracking-wide">
+                      <Sparkles className="w-3 h-3 text-blue-400" /> Yêu cầu dịch vụ kèm theo:
+                    </div>
+
+                    {/* Vị trí / Đường */}
+                    {jobRoles.length > 0 && (
+                      <div className="flex items-start justify-between gap-2">
+                        <span className="text-zinc-400 shrink-0">Vị trí / Đường:</span>
+                        <div className="flex items-center gap-1 flex-wrap justify-end">
+                          {jobRoles.map((r: string) => {
+                            const meta = getLaneMeta(r, jobGame);
+                            return (
+                              <span
+                                key={r}
+                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-blue-500/10 border border-blue-500/25 text-blue-300 font-semibold text-[11px]"
+                              >
+                                {meta.image && (
+                                  <img
+                                    src={meta.image}
+                                    alt={meta.name}
+                                    className="w-3.5 h-3.5 object-contain"
+                                  />
+                                )}
+                                <span>{meta.name}</span>
+                              </span>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Tướng chỉ định */}
+                    {jobChamps.length > 0 && (
+                      <div className="flex items-start justify-between gap-2">
+                        <span className="text-zinc-400 shrink-0">Tướng chỉ định:</span>
+                        <div className="flex items-center gap-1 flex-wrap justify-end">
+                          {jobChamps.map((c: string) => (
+                            <span
+                              key={c}
+                              className="px-2 py-0.5 rounded-lg bg-amber-500/10 border border-amber-500/25 text-amber-300 font-bold text-[11px]"
+                            >
+                              {c}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Lịch cày cam kết */}
+                    {jobSchedule && (
+                      <div className="p-2.5 rounded-lg bg-blue-950/30 border border-blue-500/20 text-xs space-y-1">
+                        <div className="flex items-center justify-between text-blue-300 font-semibold text-[11px]">
+                          <span className="flex items-center gap-1">
+                            <Clock className="w-3 h-3 text-blue-400" /> Lịch cày đặt trước (SLA)
+                          </span>
+                          <span className="text-[10px] text-zinc-400 font-mono">
+                            {jobSchedule.timezone || 'GMT+7'}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between text-[11px] text-zinc-300">
+                          <span className="text-zinc-400">
+                            Bắt đầu:{' '}
+                            <strong className="text-white">
+                              {jobSchedule.startDate
+                                ? jobSchedule.startDate.split('-').reverse().join('/')
+                                : 'Hôm nay'}
+                            </strong>
+                          </span>
+                          <span className="font-mono font-bold text-cyan-300">
+                            {jobSchedule.timeWindow === 'CUSTOM'
+                              ? `${jobSchedule.customStartTime || '08:00'} – ${jobSchedule.customEndTime || '17:30'}`
+                              : (jobSchedule.timeWindow || '08:00 – 17:30')}
+                          </span>
+                        </div>
+                        {jobSchedule.customerNote && (
+                          <div className="text-[10px] text-zinc-400 italic">
+                            Ghi chú: {jobSchedule.customerNote}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Tùy chọn phụ khác */}
+                    {(hasDuo || hasStream || hasFlash) && (
+                      <div className="flex items-center justify-between gap-2 text-xs">
+                        <span className="text-zinc-400 shrink-0">Tùy chọn khác:</span>
+                        <div className="flex items-center gap-1 flex-wrap justify-end">
+                          {hasDuo && (
+                            <span className="px-2 py-0.5 rounded-lg bg-purple-500/10 border border-purple-500/20 text-purple-300 text-[11px]">
+                              Duo cùng khách
+                            </span>
+                          )}
+                          {hasStream && (
+                            <span className="px-2 py-0.5 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-300 text-[11px]">
+                              Livestream
+                            </span>
+                          )}
+                          {hasFlash && (
+                            <span className="px-2 py-0.5 rounded-lg bg-yellow-500/10 border border-yellow-500/20 text-yellow-300 text-[11px]">
+                              Tốc biến (Flash)
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+
               <div className="flex items-center justify-between text-zinc-300 pt-1.5 border-t border-white/5">
                 <span className="text-zinc-500">Giá trị đơn hàng nhận được:</span>
                 <span className="font-bold text-emerald-400 font-mono text-base">

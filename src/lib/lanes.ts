@@ -93,10 +93,11 @@ export const MOBA_LANES_LOL: LaneMeta[] = [
 
 export function getMobaLanes(gameId?: string): LaneMeta[] {
   const g = (gameId || '').toLowerCase();
-  if (g.includes('lol') || g.includes('league')) {
-    return MOBA_LANES_LOL;
+  if (g.includes('aov') || g.includes('lienquan') || g.includes('lqm') || g.includes('arena_of_valor')) {
+    return MOBA_LANES_AOV;
   }
-  return MOBA_LANES_AOV;
+  // Mặc định cho LMHT (LOL, LEAGUE) hoặc các tựa game MOBA khác
+  return MOBA_LANES_LOL;
 }
 
 export function isMobaGame(gameId?: string): boolean {
@@ -152,11 +153,12 @@ export function getLaneMeta(laneId: string, gameId?: string): LaneMeta {
   )
     return lanes.find((l) => l.id === 'random') || lanes[0];
 
+  const isAov = (gameId || '').toLowerCase().includes('aov') || (gameId || '').toLowerCase().includes('lienquan');
   return {
     id: laneId,
     name: laneId,
     shortName: laneId,
-    image: '/images/lane-aov/random-lane.png',
+    image: isAov ? '/images/lane-aov/random-lane.png' : '/images/lane-lol/mid.png',
     description: 'Vị trí chỉ định',
   };
 }

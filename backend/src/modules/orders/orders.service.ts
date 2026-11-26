@@ -1000,6 +1000,38 @@ export class OrdersService {
       ...updateData,
     };
     order.markModified('details');
+
+    // Đồng bộ sang order.options nếu có chỉnh sửa tùy chọn mở rộng (roles, champions, schedule)
+    if (updateData.options) {
+      order.options = {
+        ...(order.options || {}),
+        ...updateData.options,
+      };
+      order.markModified('options');
+    }
+    if (
+      updateData.roles ||
+      updateData.selectedRoles ||
+      updateData.champions ||
+      updateData.selectedChampions ||
+      updateData.scheduleDetails
+    ) {
+      if (!order.options) order.options = {};
+      if (updateData.roles || updateData.selectedRoles) {
+        order.options.roles = updateData.roles || updateData.selectedRoles;
+        order.options.selectedRoles = updateData.selectedRoles || updateData.roles;
+        if (updateData.rolesDisplay) order.options.rolesDisplay = updateData.rolesDisplay;
+      }
+      if (updateData.champions || updateData.selectedChampions) {
+        order.options.champions = updateData.champions || updateData.selectedChampions;
+        order.options.selectedChampions = updateData.selectedChampions || updateData.champions;
+      }
+      if (updateData.scheduleDetails) {
+        order.options.scheduleDetails = updateData.scheduleDetails;
+      }
+      order.markModified('options');
+    }
+
     await order.save();
 
     return {
