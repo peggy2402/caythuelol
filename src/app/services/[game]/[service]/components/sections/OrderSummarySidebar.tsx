@@ -152,37 +152,42 @@ export function OrderSummarySidebar({
   return (
     <>
       {/* CỘT PHẢI: BẢNG GIÁ TỔNG, CHI TIẾT BƯỚC NHẢY & THANH TOÁN ESCROW (Fixed / Sticky trên Desktop xl+) */}
-      <div className="xl:col-span-5 xl:sticky xl:top-24 self-start space-y-6 z-20">
-        <div className="bg-zinc-900/80 border border-white/10 rounded-3xl p-6 shadow-2xl backdrop-blur-md space-y-5 max-h-[calc(100vh-7.5rem)] overflow-y-auto scrollbar-none">
-          <h3 className="text-base font-extrabold text-white flex items-center justify-between">
-            <span>
-              {isPromotion
-                ? 'Tóm Tắt Chuỗi Thăng Hạng'
-                : isMatches
-                ? 'Tóm Tắt Đơn Cày Trận Thắng'
-                : isPlacements
-                ? 'Tóm Tắt Phân Hạng Đầu Mùa'
-                : isPointBoost
-                ? isAov
-                  ? 'Tóm Tắt Đơn Cày Rank Cao Cấp'
-                  : `Tóm Tắt Đơn Cày Điểm ${pointUnit}`
-                : 'Tóm Tắt Đơn Cày Rank'}
-            </span>
-            <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">
-              {isPromotion
-                ? 'Chuỗi Thăng Hạng'
-                : isMatches
-                ? `${matchCount} trận thắng`
-                : isPlacements
-                ? `${placementMatches} trận phân hạng`
-                : isPointBoost
-                ? `${gainedPoints} ${pointUnit} (+${gainedPoints})`
-                : `${calculation.stepsCount} bậc thăng hạng`}
-            </span>
-          </h3>
+      <div className="xl:col-span-5 xl:sticky xl:top-24 self-start z-20">
+        <div className="bg-zinc-900/90 border border-white/10 rounded-3xl shadow-2xl backdrop-blur-xl flex flex-col max-h-[calc(100vh-7rem)] overflow-hidden">
+          {/* 1. HEADER CỐ ĐỊNH Ở ĐẦU CARD */}
+          <div className="p-5 pb-3.5 border-b border-white/5 flex items-center justify-between shrink-0 bg-zinc-900/60">
+            <h3 className="text-base font-extrabold text-white flex items-center justify-between w-full">
+              <span>
+                {isPromotion
+                  ? 'Tóm Tắt Chuỗi Thăng Hạng'
+                  : isMatches
+                  ? 'Tóm Tắt Đơn Cày Trận Thắng'
+                  : isPlacements
+                  ? 'Tóm Tắt Phân Hạng Đầu Mùa'
+                  : isPointBoost
+                  ? isAov
+                    ? 'Tóm Tắt Đơn Cày Rank Cao Cấp'
+                    : `Tóm Tắt Đơn Cày Điểm ${pointUnit}`
+                  : 'Tóm Tắt Đơn Cày Rank'}
+              </span>
+              <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                {isPromotion
+                  ? 'Chuỗi Thăng Hạng'
+                  : isMatches
+                  ? `${matchCount} trận thắng`
+                  : isPlacements
+                  ? `${placementMatches} trận phân hạng`
+                  : isPointBoost
+                  ? `${gainedPoints} ${pointUnit} (+${gainedPoints})`
+                  : `${calculation.stepsCount} bậc thăng hạng`}
+              </span>
+            </h3>
+          </div>
 
-          {/* Chi tiết lộ trình */}
-          <div className="p-3.5 rounded-2xl bg-zinc-950/80 border border-white/5 space-y-2 text-xs">
+          {/* 2. KHU VỰC CUỘN ĐỘC LẬP: Chi tiết lộ trình, Voucher, Phân rã phụ phí */}
+          <div className="flex-1 overflow-y-auto p-5 space-y-4 scrollbar-thin scrollbar-thumb-zinc-700/60 scrollbar-track-transparent">
+            {/* Chi tiết lộ trình */}
+            <div className="p-3.5 rounded-2xl bg-zinc-950/80 border border-white/5 space-y-2 text-xs">
             {isPromotion ? (
               <>
                 <div className="flex justify-between text-zinc-300">
@@ -599,24 +604,34 @@ export function OrderSummarySidebar({
                 {finalPrice.toLocaleString('vi-VN')} đ
               </span>
             </div>
+          </div>
+        </div>
 
-            <div className="pt-2.5 border-t border-zinc-800 space-y-2">
-              <div className="flex justify-between items-baseline gap-2">
-                <span className="text-xs sm:text-sm font-bold text-emerald-400 whitespace-nowrap">
-                  {finalDeposit < finalPrice ? `Thanh toán tiền cọc (${effectiveDepositPercent}%):` : 'Số tiền thanh toán ngay:'}
-                </span>
-                <span className="text-xl sm:text-2xl font-black text-emerald-400 font-mono whitespace-nowrap tracking-tight">
-                  {finalDeposit.toLocaleString('vi-VN')} đ
-                </span>
+        {/* 3. FOOTER CỐ ĐỊNH Ở ĐÁY CARD (PINNED CTA & THANH TOÁN ESCROW) */}
+        <div className="p-4 sm:p-5 pt-3.5 bg-zinc-950/95 border-t border-white/10 shrink-0 space-y-3 rounded-b-3xl shadow-[0_-8px_20px_rgba(0,0,0,0.5)]">
+          <div className="flex justify-between items-baseline gap-2">
+            <div>
+              <div className="text-xs font-bold text-emerald-400">
+                {finalDeposit < finalPrice ? `Tiền cọc (${effectiveDepositPercent}%):` : 'Thanh toán ngay:'}
               </div>
-              <div className="flex items-center gap-1.5 text-[11px] text-zinc-400 bg-emerald-500/5 border border-emerald-500/15 px-2.5 py-1.5 rounded-xl">
-                <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                <span className="leading-tight">
+              <div className="flex items-center gap-1 text-[10px] text-zinc-400 mt-0.5">
+                <ShieldCheck className="w-3 h-3 text-emerald-400 shrink-0" />
+                <span>
                   {finalDeposit < finalPrice
-                    ? 'Tạm giữ an toàn • Số tiền còn lại chỉ trả khi hoàn thành'
-                    : 'Tạm giữ Escrow an toàn • Chỉ chuyển tiền khi bạn hài lòng'}
+                    ? 'Tạm giữ an toàn Escrow'
+                    : 'Tạm giữ an toàn • Hài lòng mới chi'}
                 </span>
               </div>
+            </div>
+            <div className="text-right">
+              <div className="text-xl sm:text-2xl font-black text-emerald-400 font-mono tracking-tight">
+                {finalDeposit.toLocaleString('vi-VN')} đ
+              </div>
+              {finalDeposit < finalPrice && (
+                <div className="text-[10px] text-zinc-500 font-mono">
+                  Tổng đơn: {finalPrice.toLocaleString('vi-VN')} đ
+                </div>
+              )}
             </div>
           </div>
 
@@ -625,7 +640,7 @@ export function OrderSummarySidebar({
             type="button"
             disabled={isOrderDisabled}
             onClick={handlePlaceOrder}
-            className="hidden xl:flex w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-extrabold text-sm shadow-xl shadow-blue-600/30 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 items-center justify-center gap-2 cursor-pointer"
+            className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-600 hover:from-blue-500 hover:to-indigo-500 text-white font-extrabold text-sm shadow-xl shadow-blue-600/30 transition-all hover:scale-[1.01] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed items-center justify-center gap-2 cursor-pointer flex"
           >
             {isSubmitting ? (
               <Loader2 className="w-5 h-5 animate-spin" />
@@ -637,12 +652,13 @@ export function OrderSummarySidebar({
             )}
           </button>
 
-          <div className="hidden xl:flex text-[11px] text-zinc-500 text-center items-center justify-center gap-1.5">
-            <Shield size={12} className="text-emerald-400" />
+          <div className="flex text-[10px] text-zinc-400 text-center items-center justify-center gap-1.5">
+            <Shield size={11} className="text-emerald-400 shrink-0" />
             <span>Hoàn tiền 100% nếu không hoàn thành đúng tiến độ.</span>
           </div>
         </div>
       </div>
+    </div>
 
       {/* STICKY BOTTOM CHECKOUT BAR (Mobile & Tablet) */}
       <div className="xl:hidden fixed bottom-0 left-0 right-0 z-40 bg-zinc-950/95 backdrop-blur-xl border-t border-zinc-800 p-3 sm:p-4 shadow-[0_-10px_30px_rgba(0,0,0,0.8)]">
