@@ -72,6 +72,7 @@ import {
   resolveAovStarRate,
 } from '@/lib/aov';
 import { StarIcon, renderWithStarIcon } from '@/app/services/[game]/[service]/components/StarIcon';
+import ChampionModal from '@/components/champion/ChampionModal';
 
 const ICON_MAP: Record<string, LucideIcon> = {
   Swords,
@@ -217,6 +218,20 @@ export default function BoosterServicesStudio() {
     isActive: false,
   });
 
+  // 5b. Danh sách Tướng tủ sở trường (Champion Pool)
+  const [playingChampions, setPlayingChampions] = useState<string[]>([]);
+  const [allChampionsList, setAllChampionsList] = useState<any[]>([]);
+  const [isBoosterChampionModalOpen, setIsBoosterChampionModalOpen] = useState(false);
+
+  useEffect(() => {
+    fetch('/api/champions')
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data)) setAllChampionsList(data);
+      })
+      .catch((err) => console.error('Failed to load champions:', err));
+  }, []);
+
   // 6. Danh mục loại hình dịch vụ có sẵn lấy từ API
   const [availableServiceTypes, setAvailableServiceTypes] = useState<any[]>([]);
 
@@ -265,7 +280,8 @@ export default function BoosterServicesStudio() {
     updatedWorkingScheduleOrOptions?:
       | BoosterWorkingSchedule
       | { showToast?: boolean; successMessage?: string },
-    maybeOptions?: { showToast?: boolean; successMessage?: string }
+    maybeOptions?: { showToast?: boolean; successMessage?: string },
+    updatedPlayingChampions?: string[]
   ) => {
     try {
       setSaving(true);
@@ -273,6 +289,7 @@ export default function BoosterServicesStudio() {
       const cpn = updatedCoupon || coupon;
       const steps = updatedStepOverrides || stepOverrides;
       const games = updatedSelectedGames || selectedGames;
+      const champs = updatedPlayingChampions !== undefined ? updatedPlayingChampions : playingChampions;
 
       let ws: BoosterWorkingSchedule = workingSchedule;
       let options: { showToast?: boolean; successMessage?: string } | undefined = maybeOptions;
@@ -312,10 +329,12 @@ export default function BoosterServicesStudio() {
           .map((s) => s.slug || s.serviceType || s.name),
         addonsConfig: addons,
         workingSchedule: ws,
+        playingChampions: champs,
         standardConfig: {
           addonsConfig: addons,
           stepOverrides: steps,
           workingSchedule: ws,
+          playingChampions: champs,
         },
       };
 
@@ -475,6 +494,15 @@ export default function BoosterServicesStudio() {
 
           if (s.coupon) {
             setCoupon(s.coupon);
+          }
+
+          if (s.playingChampions || s.service_settings?.playingChampions || s.standardConfig?.playingChampions) {
+            setPlayingChampions(
+              s.playingChampions ||
+              s.service_settings?.playingChampions ||
+              s.standardConfig?.playingChampions ||
+              []
+            );
           }
         }
       } catch (err) {
@@ -2495,14 +2523,128 @@ export default function BoosterServicesStudio() {
       </div>
 
       {/* ========================================================================= */}
-      {/* SECTION 5: MÃ GIẢM GIÁ RIÊNG CỦA TUYỂN THỦ                                */}
+      {/* SECTION 5: CẤU HÌNH TƯỚNG TỦ SỞ TRƯỜNG (CHAMPION POOL)                     */}
+      {/* ========================================================================= */}
+      <div className="bg-zinc-900/60 border border-zinc-800/80 rounded-3xl p-5 sm:p-6 shadow-xl backdrop-blur-md space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-zinc-800 gap-3">
+          <div>
+            <h3 className="text-base sm:text-lg font-black text-white flex items-center gap-2">
+              <Shield size={18} className="text-cyan-400" />
+              <span>5. Bể Tướng Tủ Sở Trường (Champion Pool)</span>
+            </h3>
+            <p className="text-xs text-zinc-400 mt-0.5">
+              Chọn các tướng bạn tự tin đạt tỷ lệ thắng cao nhất (3 – 10 tướng). Khách hàng sẽ nhìn thấy danh sách này trên hồ sơ cá nhân và được gợi ý ưu tiên chọn khi đặt gói &quot;Tùy chọn tướng (+30%)&quot;.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setIsBoosterChampionModalOpen(true)}
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs shadow-lg shadow-cyan-600/20 transition-all cursor-pointer self-start sm:self-auto shrink-0 active:scale-95"
+          >
+            <Plus size={15} />
+            <span>{playingChampions.length > 0 ? 'Thêm / Đổi tướng tủ' : '+ Chọn tướng tủ'}</span>
+          </button>
+        </div>
+
+        {/* Danh sách tướng tủ hiện tại */}
+        {playingChampions.length > 0 ? (
+          <div className="space-y-3">
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-zinc-400 font-medium">
+                Đang cấu hình: <strong className="text-white font-bold">{playingChampions.length}/10</strong> tướng tủ
+              </span>
+              <span className="text-[11px] text-cyan-400 font-bold">
+                ✓ Đã đồng bộ lên hồ sơ công khai &amp; gợi ý khi khách đặt đơn
+              </span>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+              {playingChampions.map((champName) => {
+                const champObj = allChampionsList.find(
+                  (c) =>
+                    c.name?.toLowerCase() === champName?.toLowerCase() ||
+                    c.id?.toLowerCase() === champName?.toLowerCase()
+                );
+                return (
+                  <div
+                    key={champName}
+                    className="p-2.5 rounded-2xl bg-zinc-950/80 border border-zinc-800/80 hover:border-cyan-500/40 flex items-center gap-3 transition-colors group relative"
+                  >
+                    <div className="w-10 h-10 rounded-xl overflow-hidden border border-cyan-400/40 shrink-0 bg-zinc-900 shadow-inner">
+                      {champObj?.imageUrl ? (
+                        <img
+                          src={champObj.imageUrl}
+                          alt={champName}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-xs font-bold text-cyan-400 bg-zinc-800">
+                          {champName.slice(0, 2).toUpperCase()}
+                        </div>
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <span className="text-xs font-black text-white block truncate">
+                        {champObj?.name || champName}
+                      </span>
+                      <span className="text-[10px] text-zinc-400 block truncate">
+                        {champObj?.tags?.join(', ') || 'Tướng tủ'}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const updated = playingChampions.filter((c) => c !== champName);
+                        setPlayingChampions(updated);
+                        syncAllServices(
+                          customServices,
+                          addonsConfig,
+                          coupon,
+                          stepOverrides,
+                          selectedGames,
+                          workingSchedule,
+                          { showToast: true, successMessage: `Đã bỏ tướng ${champName} khỏi danh sách tủ!` },
+                          updated
+                        );
+                      }}
+                      className="p-1 rounded-lg text-zinc-500 hover:text-red-400 hover:bg-zinc-800 transition-colors cursor-pointer"
+                      title="Xóa tướng này"
+                    >
+                      <X size={13} />
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ) : (
+          <div
+            onClick={() => setIsBoosterChampionModalOpen(true)}
+            className="p-8 border-2 border-dashed border-zinc-800 hover:border-cyan-500/50 rounded-2xl flex flex-col items-center justify-center gap-2 text-center cursor-pointer bg-zinc-950/30 transition-all group"
+          >
+            <div className="w-12 h-12 rounded-2xl bg-cyan-500/10 text-cyan-400 flex items-center justify-center group-hover:scale-110 transition-transform">
+              <Shield size={24} />
+            </div>
+            <span className="text-sm font-bold text-white group-hover:text-cyan-300">
+              Bạn chưa cấu hình Tướng tủ nào
+            </span>
+            <span className="text-xs text-zinc-400 max-w-md">
+              Bấm vào đây để chọn các vị tướng bạn có kỹ năng cao nhất. Tướng tủ sẽ được hiển thị với huy hiệu nổi bật trên hồ sơ tuyển thủ và được gợi ý cho khách hàng.
+            </span>
+          </div>
+        )}
+      </div>
+
+      {/* ========================================================================= */}
+      {/* SECTION 6: MÃ GIẢM GIÁ RIÊNG CỦA TUYỂN THỦ                                */}
       {/* ========================================================================= */}
       <div className="bg-zinc-900/60 border border-zinc-800/80 rounded-3xl p-5 sm:p-6 shadow-xl backdrop-blur-md space-y-4 max-w-2xl">
         <div className="flex items-center justify-between pb-3 border-b border-zinc-800">
           <div>
             <h3 className="text-base sm:text-lg font-black text-white flex items-center gap-2">
               <Tag size={18} className="text-amber-400" />
-              <span>5. Mã Giảm Giá Riêng Của Bạn</span>
+              <span>6. Mã Giảm Giá Riêng Của Bạn</span>
             </h3>
             <p className="text-xs text-zinc-400 mt-0.5">
               Tạo mã ưu đãi độc quyền dành riêng cho khách hàng quen khi chỉ định bạn làm tuyển thủ cày chính.
@@ -4127,6 +4269,31 @@ export default function BoosterServicesStudio() {
           </div>
         </div>
       )}
+
+      {/* Modal Chọn Tướng Tủ của Booster (Champion Pool) */}
+      <ChampionModal
+        isOpen={isBoosterChampionModalOpen}
+        onClose={() => setIsBoosterChampionModalOpen(false)}
+        champions={allChampionsList}
+        multiSelect={true}
+        maxSelect={10}
+        selectedIds={playingChampions}
+        title="Chọn danh sách Tướng tủ sở trường (Champion Pool)"
+        onSelectMultiple={(selectedChamps) => {
+          const names = selectedChamps.map((c) => c.name || c.id);
+          setPlayingChampions(names);
+          syncAllServices(
+            customServices,
+            addonsConfig,
+            coupon,
+            stepOverrides,
+            selectedGames,
+            workingSchedule,
+            { showToast: true, successMessage: `Đã lưu ${names.length} tướng tủ vào hồ sơ tuyển thủ!` },
+            names
+          );
+        }}
+      />
     </div>
   );
 }

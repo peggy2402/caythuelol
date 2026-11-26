@@ -477,6 +477,26 @@ export function OrderSummarySidebar({
                 </div>
               </div>
             )}
+
+            {addons.specificChamps && (
+              <div className="flex justify-between items-start text-zinc-400 pt-2 border-t border-zinc-800/80">
+                <span className="shrink-0">Tướng chỉ định:</span>
+                <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                  {addons.selectedChampions && addons.selectedChampions.length > 0 ? (
+                    addons.selectedChampions.map((champName) => (
+                      <span
+                        key={champName}
+                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 font-bold text-xs"
+                      >
+                        <span>{champName}</span>
+                      </span>
+                    ))
+                  ) : (
+                    <span className="text-zinc-400 italic text-xs">Chưa chọn tướng</span>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Voucher Input */}

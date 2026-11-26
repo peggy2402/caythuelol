@@ -98,6 +98,7 @@ import {
 } from './constants/bookingConfig';
 import { RankSelectModal } from './components/modals/RankSelectModal';
 import { ServerSelectModal } from './components/modals/ServerSelectModal';
+import ChampionModal from '@/components/champion/ChampionModal';
 import { AccountTypeModal } from './components/modals/AccountTypeModal';
 import { BoosterSelectModal } from './components/modals/BoosterSelectModal';
 import { BoosterSelectionSection } from './components/sections/BoosterSelectionSection';
@@ -323,6 +324,29 @@ function ServiceBookingContent() {
   const [boosterList, setBoosterList] = useState<any[]>([]);
   const [isManualSelectBooster, setIsManualSelectBooster] = useState(Boolean(cleanBoosterUsername));
   const [isBoosterModalOpen, setIsBoosterModalOpen] = useState(false);
+
+  // 4b. Danh sách tướng và modal chọn tướng cho tính năng "Tùy chọn tướng (+30%)"
+  const [championsList, setChampionsList] = useState<any[]>([]);
+  const [isChampionModalOpen, setIsChampionModalOpen] = useState(false);
+
+  useEffect(() => {
+    fetch('/api/champions')
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data)) setChampionsList(data);
+      })
+      .catch((err) => console.error('Failed to load champions:', err));
+  }, []);
+
+  const boosterChampions: string[] = useMemo(() => {
+    if (!assignedBooster) return [];
+    return (
+      assignedBooster.booster_info?.service_settings?.playingChampions ||
+      assignedBooster.playingChampions ||
+      assignedBooster.service_settings?.playingChampions ||
+      []
+    );
+  }, [assignedBooster]);
 
   // 5. States cho Mã giảm giá, Phí sàn & Submit
   const [couponCode, setCouponCode] = useState('');
@@ -1549,6 +1573,15 @@ function ServiceBookingContent() {
       }
     }
 
+    if (addons.specificChamps) {
+      const selected = addons.selectedChampions || [];
+      if (selected.length === 0) {
+        toast.error('Vui lòng chọn ít nhất 1 tướng ưu tiên hoặc tắt tùy chọn tướng!');
+        setIsChampionModalOpen(true);
+        return;
+      }
+    }
+
     if (addons.schedule) {
       if (!addons.scheduleDetails?.startDate) {
         toast.error('Vui lòng chọn ngày bắt đầu cày mong muốn');
@@ -1580,6 +1613,7 @@ function ServiceBookingContent() {
       const resolvedOrderServiceType = serviceSlug.toUpperCase().replace(/-/g, '_');
 
       const resolvedRoles = addons.specificRole ? (addons.selectedRoles || []) : [];
+      const resolvedChamps = addons.specificChamps ? (addons.selectedChampions || []) : [];
       const resolvedSchedule = addons.schedule ? addons.scheduleDetails : undefined;
       const resolvedAddons = {
         ...addons,
@@ -1587,6 +1621,8 @@ function ServiceBookingContent() {
         scheduleDetails: resolvedSchedule,
         roles: resolvedRoles,
         selectedRoles: resolvedRoles,
+        champions: resolvedChamps,
+        selectedChampions: resolvedChamps,
       };
 
       const orderPayload = {
@@ -1599,6 +1635,8 @@ function ServiceBookingContent() {
           roles: resolvedRoles,
           selectedRoles: resolvedRoles,
           rolesDisplay: resolvedRoles.map((r) => getLaneMeta(r, game.id).name),
+          champions: resolvedChamps,
+          selectedChampions: resolvedChamps,
         },
         pricing: {
           original_price: calculation.totalPrice,
@@ -1992,6 +2030,9 @@ function ServiceBookingContent() {
                 handleToggleLane={handleToggleLane}
                 assignedBooster={assignedBooster}
                 onRerollBooster={handleRandomRerollBooster}
+                onOpenChampionModal={() => setIsChampionModalOpen(true)}
+                championsList={championsList}
+                boosterChampions={boosterChampions}
               />
 
               <AccountCredentialsSection
@@ -2117,6 +2158,29 @@ function ServiceBookingContent() {
           boosters={boosterList}
           assignedBooster={assignedBooster}
           onSelectBooster={handleSelectBooster}
+        />
+
+        {/* Modal Chọn Tướng Chỉ Định (+30%) */}
+        <ChampionModal
+          isOpen={isChampionModalOpen}
+          onClose={() => setIsChampionModalOpen(false)}
+          champions={championsList}
+          multiSelect={true}
+          maxSelect={3}
+          selectedIds={addons.selectedChampions || []}
+          boosterChampions={boosterChampions}
+          title="Chỉ định tướng bạn muốn cày"
+          onSelectMultiple={(selectedChamps) => {
+            const names = selectedChamps.map((c) => c.name || c.id);
+            setAddons((prev) => ({
+              ...prev,
+              specificChamps: true,
+              selectedChampions: names,
+            }));
+            if (names.length > 0) {
+              toast.success(`Đã chọn ${names.length} tướng ưu tiên!`);
+            }
+          }}
         />
       </main>
     </div>

@@ -261,6 +261,7 @@ export interface AddonSelections {
   specificRole?: boolean; // Tùy chọn vị trí / đường
   selectedRoles?: string[]; // Danh sách vị trí/đường đã chọn (VD: ['top', 'jungle'] hoặc ['random'])
   specificChamps?: boolean; // Tùy chọn tướng (+30%)
+  selectedChampions?: string[]; // Danh sách tướng chỉ định (VD: ['Aatrox', 'Yasuo'])
   livestream?: boolean; // Xem trực tiếp (+349.000đ)
   flash?: boolean; // Cày siêu tốc (+35%)
   duo?: boolean; // Chơi cùng Booster (+50%)
