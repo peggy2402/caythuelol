@@ -201,20 +201,108 @@ export class PublicService {
     return { success: true, url: result.secure_url };
   }
 
-  async getChampions() {
+  private cachedDDragonVersion: string | null = null;
+  private lastVersionFetchTime = 0;
+  private championCache: Map<string, { data: any[]; timestamp: number }> = new Map();
+
+  async getLatestDDragonVersion(): Promise<string> {
+    const now = Date.now();
+    // Cache version trong 6 giờ
+    if (this.cachedDDragonVersion && now - this.lastVersionFetchTime < 6 * 3600 * 1000) {
+      return this.cachedDDragonVersion;
+    }
+
     try {
-      const res = await axios.get(
-        'https://ddragon.leagueoflegends.com/cdn/14.24.1/data/en_US/champion.json',
-      );
+      const res = await axios.get('https://ddragon.leagueoflegends.com/api/versions.json', {
+        timeout: 5000,
+      });
+      if (Array.isArray(res.data) && res.data.length > 0 && typeof res.data[0] === 'string') {
+        this.cachedDDragonVersion = res.data[0];
+        this.lastVersionFetchTime = now;
+        return this.cachedDDragonVersion;
+      }
+    } catch (err: any) {
+      // Fallback nếu Riot DDragon API tạm thời không phản hồi
+    }
+
+    return this.cachedDDragonVersion || '16.23.1';
+  }
+
+  async getDDragonVersions(): Promise<string[]> {
+    try {
+      const res = await axios.get('https://ddragon.leagueoflegends.com/api/versions.json', {
+        timeout: 5000,
+      });
+      if (Array.isArray(res.data) && res.data.length > 0) {
+        if (typeof res.data[0] === 'string') {
+          this.cachedDDragonVersion = res.data[0];
+          this.lastVersionFetchTime = Date.now();
+        }
+        return res.data;
+      }
+    } catch {
+      // Fallback
+    }
+    return [this.cachedDDragonVersion || '16.23.1'];
+  }
+
+  async getChampions(lang?: string, customVersion?: string) {
+    // Chuẩn hoá ngôn ngữ: hỗ trợ 'vi_VN', 'en_US', 'vi', 'en', mặc định ưu tiên 'vi_VN'
+    let normalizedLang = 'vi_VN';
+    if (lang) {
+      const lower = lang.toLowerCase();
+      if (lower.startsWith('en')) {
+        normalizedLang = 'en_US';
+      } else if (lower.startsWith('vi') || lower.startsWith('vn')) {
+        normalizedLang = 'vi_VN';
+      } else {
+        normalizedLang = lang;
+      }
+    }
+
+    const version = customVersion?.trim() || (await this.getLatestDDragonVersion());
+    const cacheKey = `${version}_${normalizedLang}`;
+    const now = Date.now();
+
+    // Check in-memory cache (TTL: 6 giờ)
+    const cached = this.championCache.get(cacheKey);
+    if (cached && now - cached.timestamp < 6 * 3600 * 1000) {
+      return cached.data;
+    }
+
+    try {
+      // Tải danh sách tướng động theo phiên bản Riot mới nhất và ngôn ngữ
+      const url = `https://ddragon.leagueoflegends.com/cdn/${version}/data/${normalizedLang}/champion.json`;
+      let res;
+      try {
+        res = await axios.get(url, { timeout: 8000 });
+      } catch (fetchErr) {
+        // Nếu fetch bản tiếng Việt vi_VN lỗi (ví dụ patch mới chưa kịp có locale vi), tự động fallback sang en_US
+        if (normalizedLang !== 'en_US') {
+          const fallbackUrl = `https://ddragon.leagueoflegends.com/cdn/${version}/data/en_US/champion.json`;
+          res = await axios.get(fallbackUrl, { timeout: 8000 });
+        } else {
+          throw fetchErr;
+        }
+      }
+
       const raw = res.data;
       const dataObj = raw?.data || {};
-      const version = raw?.version || '14.24.1';
+      const activeVersion = raw?.version || version;
+
       const list = Object.values(dataObj).map((c: any) => ({
         ...c,
-        imageUrl: `https://ddragon.leagueoflegends.com/cdn/${version}/img/champion/${c.image?.full || c.id + '.png'}`,
+        version: activeVersion,
+        imageUrl: `https://ddragon.leagueoflegends.com/cdn/${activeVersion}/img/champion/${c.image?.full || c.id + '.png'}`,
       }));
+
+      // Lưu vào cache
+      this.championCache.set(cacheKey, { data: list, timestamp: now });
       return list;
-    } catch {
+    } catch (err: any) {
+      // Nếu có cache cũ thì trả về tránh gián đoạn UI
+      const stale = this.championCache.get(cacheKey);
+      if (stale) return stale.data;
       return [];
     }
   }

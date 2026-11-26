@@ -32,28 +32,11 @@ import BoosterAvatar from '@/components/BoosterAvatar';
 import UserBadge from '@/components/UserBadge';
 import { API_BASE_URL } from '@/lib/api';
 import { getBoosterWorkingScheduleText } from '@/lib/booster-helpers';
+import { getLatestDDragonVersion } from '@/lib/ddragon';
 
 type Props = {
   params: Promise<{ username: string }>;
 };
-
-// Helper fetch dynamic latest Riot Data Dragon patch version
-async function getLatestDDragonVersion(): Promise<string> {
-  try {
-    const res = await fetch('https://ddragon.leagueoflegends.com/api/versions.json', {
-      next: { revalidate: 86400 }, // Cache 24 hours
-    });
-    if (res.ok) {
-      const versions = await res.json();
-      if (Array.isArray(versions) && versions.length > 0 && typeof versions[0] === 'string') {
-        return versions[0];
-      }
-    }
-  } catch {
-    // Fallback if network or ddragon is unreachable
-  }
-  return '14.24.1';
-}
 
 async function getBooster(username: string) {
   try {
