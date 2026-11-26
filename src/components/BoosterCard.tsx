@@ -2,7 +2,8 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Star, Heart, Loader2, ShieldCheck, Trophy, ArrowRight, Gamepad2, Clock, Crown } from 'lucide-react';
+import { Star, Heart, Loader2, Trophy, ArrowRight, Gamepad2, Clock, Crown } from 'lucide-react';
+import UserBadge from '@/components/UserBadge';
 import { getBoosterWorkingScheduleText } from '@/lib/booster-helpers';
 
 interface BoosterCardProps {
@@ -73,6 +74,38 @@ export function formatBoosterCardServiceBadge(raw: string): string {
 
   return map[s] || raw.replace(/_/g, ' ');
 }
+
+// Trích xuất tất cả tựa game có dịch vụ của tuyển thủ
+export const getBoosterActiveGames = (booster: any): string[] => {
+  const customServices = 
+    booster.booster_info?.service_settings?.customServices ||
+    booster.service_settings?.customServices ||
+    booster.customServices;
+
+  if (Array.isArray(customServices) && customServices.length > 0) {
+    const activeServices = customServices.filter((s: any) => s && s.isActive !== false);
+    const activeGameCodes = activeServices
+      .map((s: any) => s.gameCode || s.game || '')
+      .filter((code: string) => Boolean(code.trim()));
+    
+    if (activeGameCodes.length > 0) {
+      return Array.from(new Set(activeGameCodes.map((code: string) => formatGameName(code))));
+    }
+  }
+
+  if (Array.isArray(booster.games) && booster.games.length > 0) {
+    const codes = booster.games.map((g: any) => g.gameCode || g.game).filter(Boolean);
+    if (codes.length > 0) {
+      return Array.from(new Set(codes.map((c: string) => formatGameName(String(c)))));
+    }
+  }
+
+  if (Array.isArray(booster.booster_info?.main_games) && booster.booster_info.main_games.length > 0) {
+    return Array.from(new Set(booster.booster_info.main_games.map((c: string) => formatGameName(String(c)))));
+  }
+
+  return ['LMHT'];
+};
 
 // Trích xuất tựa game chính của tuyển thủ
 export const getPrimaryGame = (booster: any): string => {
@@ -305,13 +338,11 @@ export default function BoosterCard({ booster, isBookmarked, onToggleBookmark }:
           </div>
         </div>
 
-        {/* 4. Tên hiển thị & Tích xanh xác thực & Username */}
+        {/* 4. Tên hiển thị & Huy hiệu Booster chính thức & Username */}
         <div className="relative z-10 text-center mt-4 mb-2">
           <h3 className="text-sm sm:text-base font-extrabold text-white group-hover:text-cyan-400 transition-colors flex items-center justify-center gap-1.5">
             <span className="truncate">{booster.displayName || booster.username}</span>
-            <span title="Tuyển thủ xác thực KYC">
-              <ShieldCheck className="w-4 h-4 text-cyan-400 shrink-0" />
-            </span>
+            <UserBadge role="BOOSTER" size="sm" />
           </h3>
           <span className="text-xs text-zinc-500 font-mono">@{booster.username}</span>
         </div>

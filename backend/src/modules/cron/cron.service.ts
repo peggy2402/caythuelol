@@ -156,8 +156,8 @@ export class CronService {
     }
   }
 
-  // 5. Job đối soát SePay dự phòng (chạy mỗi 2 phút): kéo các giao dịch bị sót hoặc trễ webhook
-  @Cron('*/2 * * * *')
+  // 5. Job đối soát SePay dự phòng (chạy mỗi 30 giây): tự động kéo các giao dịch nạp tiền nếu webhook bị trễ
+  @Cron(CronExpression.EVERY_30_SECONDS)
   async handleSepayReconciliation() {
     const accessToken = process.env.SEPAY_ACCESS_TOKEN?.trim();
     if (!accessToken) {

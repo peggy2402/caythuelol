@@ -1,36 +1,44 @@
 'use client';
 
 import React from 'react';
-import { ShieldCheck, Flame } from 'lucide-react';
-import { motion } from 'framer-motion';
 
-export const GAME_BRANCHES = [
+export const ALL_SUPPORTED_GAMES = [
   { id: 'ALL', name: 'Tất cả' },
   { id: 'LOL', name: 'LMHT' },
   { id: 'VALORANT', name: 'Valorant' },
   { id: 'AOV', name: 'Liên Quân' },
   { id: 'TFT', name: 'ĐTCL' },
   { id: 'WILDRIFT', name: 'Tốc Chiến' },
+  { id: 'CS2', name: 'CS2' },
 ];
 
 interface BoostersHeroProps {
   selectedGame: string;
   onSelectGame: (gameId: string) => void;
   totalBoosters: number;
+  gameCounts?: Record<string, number>;
 }
 
 export default function BoostersHero({
   selectedGame,
   onSelectGame,
   totalBoosters,
+  gameCounts = {},
 }: BoostersHeroProps) {
+  // Lọc chỉ hiển thị các nhánh tựa game đang THỰC SỰ CÓ tuyển thủ (hoặc tab Tất cả)
+  const displayBranches = ALL_SUPPORTED_GAMES.filter((game) => {
+    if (game.id === 'ALL') return true;
+    const count = gameCounts[game.id] || 0;
+    return count > 0;
+  });
+
   return (
     <div className="mb-8 sm:mb-10">
-      {/* Header Row: Tiêu đề bên trái, Tabs nhánh Game bên phải theo Mẫu thiết kế */}
-      <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 pb-6 border-b border-white/[0.08]">
+      {/* Header Row: Tiêu đề bên trái, Tabs nhánh Game bên phải phẳng không viền hộp xám */}
+      <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 pb-4">
         {/* Left Side: Brand badge, Title & Description */}
         <div className="max-w-2xl">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-cyan-950/50 border border-cyan-500/30 text-cyan-300 text-xs font-bold uppercase tracking-wider mb-3.5 backdrop-blur-md shadow-[0_0_15px_rgba(6,182,212,0.2)]">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-950/40 border border-cyan-500/30 text-cyan-300 text-xs font-bold uppercase tracking-wider mb-3 backdrop-blur-md">
             <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
             <span>Đội Ngũ Tuyển Thủ Xác Thực</span>
           </div>
@@ -44,33 +52,32 @@ export default function BoostersHero({
           </p>
         </div>
 
-        {/* Right Side: Chia nhánh theo tựa game (Game Branches Tabs) */}
-        <div className="w-full lg:w-auto overflow-x-auto no-scrollbar pb-1 sm:pb-0">
-          <div className="inline-flex items-center gap-1.5 p-1.5 rounded-2xl bg-zinc-900/90 border border-white/10 backdrop-blur-xl shadow-xl min-w-max">
-            {GAME_BRANCHES.map((game) => {
+        {/* Right Side: Chia nhánh theo tựa game - THIẾT KẾ PHẲNG KHÔNG VIỀN HỘP XÁM */}
+        <div className="w-full lg:w-auto overflow-x-auto no-scrollbar py-1">
+          <div className="inline-flex items-center gap-1.5 min-w-max p-1">
+            {displayBranches.map((game) => {
               const isSelected = selectedGame === game.id;
+              const count = game.id === 'ALL' ? totalBoosters : (gameCounts[game.id] || 0);
+
               return (
                 <button
                   key={game.id}
                   type="button"
                   onClick={() => onSelectGame(game.id)}
-                  className={`relative px-3.5 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
+                  className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap cursor-pointer flex items-center gap-1.5 ${
                     isSelected
-                      ? 'text-white'
-                      : 'text-zinc-400 hover:text-white hover:bg-white/[0.04]'
+                      ? 'bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white shadow-lg shadow-blue-600/30 font-extrabold scale-[1.02]'
+                      : 'text-zinc-400 hover:text-white hover:bg-white/[0.06] bg-transparent'
                   }`}
                 >
-                  {isSelected && (
-                    <motion.span
-                      layoutId="activeGameBranchPill"
-                      transition={{ type: 'spring', stiffness: 420, damping: 32 }}
-                      className="absolute inset-0 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 shadow-[0_4px_16px_rgba(37,99,235,0.4)]"
-                    />
+                  <span>{game.name}</span>
+                  {count > 0 && (
+                    <span className={`text-[11px] font-mono px-1.5 py-0.2 rounded-md ${
+                      isSelected ? 'bg-white/20 text-white' : 'text-zinc-400'
+                    }`}>
+                      ({count})
+                    </span>
                   )}
-                  <span className="relative z-10">
-                    {game.name}
-                    {game.id === 'ALL' && totalBoosters > 0 && ` (${totalBoosters})`}
-                  </span>
                 </button>
               );
             })}

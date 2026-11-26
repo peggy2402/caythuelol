@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { User as UserIcon, Loader2 } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import { toast } from 'sonner';
-import BoosterCard from '@/components/BoosterCard';
+import BoosterCard, { getBoosterActiveGames } from '@/components/BoosterCard';
 import BoostersHero from '@/components/boosters/BoostersHero';
 import BoostersFilterBar from '@/components/boosters/BoostersFilterBar';
 import BoostersPagination from '@/components/boosters/BoostersPagination';
@@ -28,6 +28,7 @@ export default function BoostersPage() {
   const [boosters, setBoosters] = useState<Booster[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedGame, setSelectedGame] = useState('ALL');
+  const [gameCounts, setGameCounts] = useState<Record<string, number>>({});
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [filterService, setFilterService] = useState('');
@@ -35,6 +36,41 @@ export default function BoostersPage() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [bookmarks, setBookmarks] = useState<string[]>([]);
+
+  // Tính toán số lượng tuyển thủ thực tế cho từng nhánh tựa game
+  useEffect(() => {
+    const fetchDistribution = async () => {
+      try {
+        const res = await fetch('/api/boosters?limit=100');
+        if (!res.ok) return;
+        const data = await res.json();
+        const list = data.boosters || [];
+        const counts: Record<string, number> = { ALL: list.length };
+
+        list.forEach((b: any) => {
+          const games = getBoosterActiveGames(b);
+          games.forEach((g: string) => {
+            const upper = g.toUpperCase();
+            let code = 'LOL';
+            if (upper.includes('VAL')) code = 'VALORANT';
+            else if (upper.includes('LMHT') || upper.includes('LOL')) code = 'LOL';
+            else if (upper.includes('LIENQUAN') || upper.includes('AOV') || upper.includes('LIÊN QUÂN')) code = 'AOV';
+            else if (upper.includes('DTCL') || upper.includes('TFT') || upper.includes('ĐTCL')) code = 'TFT';
+            else if (upper.includes('TỐC CHIẾN') || upper.includes('WILDRIFT')) code = 'WILDRIFT';
+            else if (upper.includes('CS2') || upper.includes('CS')) code = 'CS2';
+
+            counts[code] = (counts[code] || 0) + 1;
+          });
+        });
+
+        setGameCounts(counts);
+      } catch (err) {
+        console.error('Failed to calculate game counts', err);
+      }
+    };
+
+    fetchDistribution();
+  }, []);
 
   // Debounce search
   useEffect(() => {
@@ -141,7 +177,8 @@ export default function BoostersPage() {
             setSelectedGame(gameId);
             setPage(1);
           }}
-          totalBoosters={boosters.length}
+          totalBoosters={gameCounts['ALL'] || boosters.length}
+          gameCounts={gameCounts}
         />
 
         {/* 2. Filters & Search Console */}
