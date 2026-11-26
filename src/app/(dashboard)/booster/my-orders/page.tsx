@@ -461,13 +461,13 @@ export default function BoosterOrdersPage() {
                 className={`group relative rounded-2xl border transition-all duration-200 p-4 sm:p-5 shadow-lg overflow-hidden cursor-pointer active:scale-[0.995] ${theme.cardBorder} ${theme.cardBg}`}
               >
 
-                <div className="flex flex-col gap-3.5">
-                  {/* HÀNG 1: HEADER CARD (ICON, TIÊU ĐỀ, MÃ ĐƠN, TÊN KHÁCH, NGÀY) */}
-                  <div className="flex items-start justify-between gap-3">
+                <div className="flex flex-col gap-3 sm:gap-3.5">
+                  {/* HÀNG 1: HEADER CARD (ICON, TIÊU ĐỀ, MÃ ĐƠN, TÊN KHÁCH & STATUS BADGE GÓC PHẢI) */}
+                  <div className="flex items-start justify-between gap-2.5">
                     <div className="flex items-center gap-3 min-w-0">
                       {/* Icon Squircle */}
                       <div
-                        className={`w-10 h-10 rounded-xl border flex items-center justify-center shrink-0 transition-transform group-hover:scale-105 ${theme.iconBox}`}
+                        className={`w-10 h-10 sm:w-11 sm:h-11 rounded-xl border flex items-center justify-center shrink-0 transition-transform group-hover:scale-105 ${theme.iconBox}`}
                       >
                         <theme.Icon className="w-5 h-5" />
                       </div>
@@ -486,13 +486,16 @@ export default function BoosterOrdersPage() {
                           <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-white/5 border border-white/10 text-zinc-300 shrink-0">
                             {gameMeta?.shortName || gameCode}
                           </span>
+                        </div>
 
+                        {/* Sub metadata: Mã đơn + Khách hàng + Ngày tạo */}
+                        <div className="flex items-center gap-2 text-xs text-zinc-400 mt-1 flex-wrap">
                           {/* Order Code Badge with Copy button */}
                           <button
                             type="button"
                             onClick={(e) => handleCopyCode(e, orderCode)}
                             title="Sao chép mã đơn hàng"
-                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-700 text-[11px] font-mono transition-colors cursor-pointer"
+                            className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-700 text-[11px] font-mono transition-colors cursor-pointer"
                           >
                             <span>#{orderCode}</span>
                             {copiedCode === orderCode ? (
@@ -501,129 +504,135 @@ export default function BoosterOrdersPage() {
                               <Copy className="w-3 h-3" />
                             )}
                           </button>
-                        </div>
 
-                        {/* Sub metadata: Khách hàng + Ngày tạo */}
-                        <div className="flex items-center gap-3 text-xs text-zinc-400 mt-1">
-                          <span className="flex items-center gap-1 truncate">
-                            <User className="w-3 h-3 text-zinc-500" />
+                          <span className="text-zinc-600 hidden sm:inline">•</span>
+
+                          <span className="flex items-center gap-1 text-[11px] text-zinc-400 truncate">
+                            <User className="w-3 h-3 text-zinc-500 shrink-0" />
                             <span>
                               Khách: <strong className="text-zinc-300 font-medium">{customerName}</strong>
                             </span>
                           </span>
-                          <span className="w-1 h-1 rounded-full bg-zinc-700 shrink-0" />
-                          <span className="flex items-center gap-1 text-zinc-400 font-mono text-[11px]">
-                            <Calendar className="w-3 h-3 text-zinc-500" />
+
+                          <span className="text-zinc-600 hidden sm:inline">•</span>
+
+                          <span className="hidden sm:flex items-center gap-1 text-zinc-500 font-mono text-[11px]">
+                            <Calendar className="w-3 h-3" />
                             <span>{orderDate}</span>
                           </span>
                         </div>
                       </div>
                     </div>
+
+                    {/* Status Badge ở góc trên bên phải */}
+                    <div className="shrink-0">
+                      <span
+                        className={`inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full text-[11px] sm:text-xs font-bold border tracking-wide whitespace-nowrap shadow-sm ${theme.badge}`}
+                      >
+                        <span className={`w-1.5 h-1.5 rounded-full ${theme.badgeDot} shrink-0`} />
+                        <span>{theme.label}</span>
+                      </span>
+                    </div>
                   </div>
 
-                  {/* HÀNG 2: MỤC TIÊU & TÙY CHỌN BỔ TRỢ (ĐƯỜNG KẺ ĐỨT NGĂN CÁCH) */}
-                  <div className="pt-2.5 pb-2 border-t border-b border-zinc-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-zinc-500 font-medium text-xs">Mục tiêu:</span>
-                      {order.details?.is_point_boost ? (
-                        <span className="px-3 py-1 rounded-xl bg-zinc-900 border border-zinc-700/80 font-mono font-bold text-white shadow-sm">
-                          {order.details.start_lp ?? order.details.current_points ?? 0}{' '}
-                          {order.details.unit || 'LP'}{' '}
-                          <span className="text-cyan-400">➔</span>{' '}
-                          {order.details.target_lp ?? order.details.desired_points ?? 100}{' '}
-                          {order.details.unit || 'LP'}
-                        </span>
-                      ) : order.serviceType === 'MATCHES' || order.details?.is_matches ? (
-                        <span className="px-3 py-1 rounded-xl bg-zinc-900 border border-zinc-700/80 font-bold text-blue-300 shadow-sm flex items-center gap-1.5">
-                          <Trophy className="w-3.5 h-3.5 text-blue-400" />
-                          <span>
-                            {order.details?.match_count || order.details?.matches || 1} trận (
-                            {order.details?.queue_type === 'FLEX' ? 'Linh Hoạt' : 'Đơn / Đôi'})
+                  {/* HÀNG 2: MỤC TIÊU & TÙY CHỌN BỔ TRỢ (CONTAINER GLASS NHẸ NHÀNG) */}
+                  <div className="rounded-xl bg-zinc-900/50 border border-zinc-800/60 p-2.5 sm:p-3 space-y-2">
+                    <div className="flex items-center justify-between gap-2 flex-wrap text-xs">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-zinc-400 font-medium text-xs">Mục tiêu:</span>
+                        {order.details?.is_point_boost ? (
+                          <span className="px-3 py-1 rounded-xl bg-zinc-900 border border-zinc-700/80 font-mono font-bold text-white shadow-sm">
+                            {order.details.start_lp ?? order.details.current_points ?? 0}{' '}
+                            {order.details.unit || 'LP'}{' '}
+                            <span className="text-cyan-400">➔</span>{' '}
+                            {order.details.target_lp ?? order.details.desired_points ?? 100}{' '}
+                            {order.details.unit || 'LP'}
                           </span>
-                        </span>
-                      ) : order.serviceType === 'PLACEMENTS' || order.details?.is_placements ? (
-                        <span className="px-3 py-1 rounded-xl bg-zinc-900 border border-zinc-700/80 font-bold text-amber-300 shadow-sm flex items-center gap-1.5">
-                          <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                          <span>
-                            {order.details?.placement_matches || order.details?.matches || 5} trận
-                            phân hạng
+                        ) : order.serviceType === 'MATCHES' || order.details?.is_matches ? (
+                          <span className="px-3 py-1 rounded-xl bg-zinc-900 border border-zinc-700/80 font-bold text-blue-300 shadow-sm flex items-center gap-1.5">
+                            <Trophy className="w-3.5 h-3.5 text-blue-400" />
+                            <span>
+                              {order.details?.match_count || order.details?.matches || 1} trận (
+                              {order.details?.queue_type === 'FLEX' ? 'Linh Hoạt' : 'Đơn / Đôi'})
+                            </span>
                           </span>
-                        </span>
-                      ) : order.details?.current_rank && order.details?.desired_rank ? (
-                        <span className="px-3 py-1 rounded-xl bg-zinc-900 border border-zinc-700/80 font-bold text-white shadow-sm flex items-center gap-1.5">
-                          <span>{formatRankDisplayVi(order.details.current_rank)}</span>
-                          <span className="text-cyan-400 font-bold">➔</span>
-                          <span className="text-cyan-300">
-                            {formatRankDisplayVi(order.details.desired_rank)}
+                        ) : order.serviceType === 'PLACEMENTS' || order.details?.is_placements ? (
+                          <span className="px-3 py-1 rounded-xl bg-zinc-900 border border-zinc-700/80 font-bold text-amber-300 shadow-sm flex items-center gap-1.5">
+                            <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                            <span>
+                              {order.details?.placement_matches || order.details?.matches || 5} trận
+                              phân hạng
+                            </span>
                           </span>
-                        </span>
-                      ) : order.details?.current_level && order.details?.desired_level ? (
-                        <span className="px-3 py-1 rounded-xl bg-zinc-900 border border-zinc-700/80 font-bold text-white shadow-sm flex items-center gap-1.5">
-                          <span>Lv.{order.details.current_level}</span>
-                          <span className="text-cyan-400">➔</span>
-                          <span className="text-cyan-300">Lv.{order.details.desired_level}</span>
-                        </span>
-                      ) : (
-                        <span className="text-zinc-300 font-medium">Theo thỏa thuận</span>
-                      )}
+                        ) : order.details?.current_rank && order.details?.desired_rank ? (
+                          <span className="px-3 py-1 rounded-xl bg-zinc-900 border border-zinc-700/80 font-bold text-white shadow-sm flex items-center gap-1.5">
+                            <span>{formatRankDisplayVi(order.details.current_rank)}</span>
+                            <span className="text-cyan-400 font-bold">➔</span>
+                            <span className="text-cyan-300">
+                              {formatRankDisplayVi(order.details.desired_rank)}
+                            </span>
+                          </span>
+                        ) : order.details?.current_level && order.details?.desired_level ? (
+                          <span className="px-3 py-1 rounded-xl bg-zinc-900 border border-zinc-700/80 font-bold text-white shadow-sm flex items-center gap-1.5">
+                            <span>Lv.{order.details.current_level}</span>
+                            <span className="text-cyan-400">➔</span>
+                            <span className="text-cyan-300">Lv.{order.details.desired_level}</span>
+                          </span>
+                        ) : (
+                          <span className="text-zinc-300 font-medium">Theo thỏa thuận</span>
+                        )}
+                      </div>
                     </div>
 
                     {/* Preview Addons/SLA nếu có (Lịch cày, lane, champions) */}
-                    <div className="flex items-center gap-1.5 flex-wrap sm:justify-end">
-                      {schedule && (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-blue-500/10 border border-blue-500/25 text-blue-300 text-[11px] font-medium">
-                          <Clock className="w-3 h-3 text-blue-400" />
-                          <span>{schedule.timeWindow || 'SLA cam kết'}</span>
-                        </span>
-                      )}
-                      {roles.length > 0 && (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-indigo-500/10 border border-indigo-500/25 text-indigo-300 text-[11px] font-medium">
-                          <span>Lane: {roles.join(', ')}</span>
-                        </span>
-                      )}
-                      {champs.length > 0 && (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-amber-500/10 border border-amber-500/25 text-amber-300 text-[11px] font-medium">
-                          <span>Tướng: {champs.slice(0, 2).join(', ')}{champs.length > 2 ? '...' : ''}</span>
-                        </span>
-                      )}
-                    </div>
+                    {(schedule || roles.length > 0 || champs.length > 0) && (
+                      <div className="flex items-center gap-1.5 flex-wrap pt-2 border-t border-zinc-800/40 text-[11px]">
+                        {schedule && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-blue-500/10 border border-blue-500/25 text-blue-300 font-medium">
+                            <Clock className="w-3 h-3 text-blue-400 shrink-0" />
+                            <span>{schedule.timeWindow || 'SLA cam kết'}</span>
+                          </span>
+                        )}
+                        {roles.length > 0 && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-indigo-500/10 border border-indigo-500/25 text-indigo-300 font-medium">
+                            <span>Lane: {roles.join(', ')}</span>
+                          </span>
+                        )}
+                        {champs.length > 0 && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-amber-500/10 border border-amber-500/25 text-amber-300 font-medium">
+                            <span>Tướng: {champs.slice(0, 3).join(', ')}{champs.length > 3 ? '...' : ''}</span>
+                          </span>
+                        )}
+                      </div>
+                    )}
                   </div>
 
-                  {/* HÀNG 3: FOOTER CARD (THU NHẬP & STATUS BADGE + ACTION BUTTON) */}
+                  {/* HÀNG 3: FOOTER CARD (THU NHẬP & ACTION BUTTON THOÁNG ĐÃNG) */}
                   <div className="flex items-center justify-between gap-3 pt-0.5">
                     {/* Cột trái: Thu nhập */}
-                    <div>
-                      <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-zinc-500 block">
+                    <div className="min-w-0">
+                      <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-zinc-500 block leading-tight">
                         THU NHẬP
                       </span>
                       <span
-                        className={`text-base sm:text-lg font-black font-mono tracking-tight ${
+                        className={`text-base sm:text-lg font-black font-mono tracking-tight whitespace-nowrap block mt-0.5 ${
                           isCancelled
                             ? 'text-zinc-500 line-through'
                             : 'text-emerald-400 drop-shadow-[0_0_8px_rgba(52,211,153,0.3)]'
                         }`}
                       >
-                        {new Intl.NumberFormat('vi-VN').format(earnings)} đ
+                        {new Intl.NumberFormat('vi-VN').format(earnings)}&nbsp;đ
                       </span>
                     </div>
 
-                    {/* Cột phải: Status Badge & Action Button */}
-                    <div className="flex items-center gap-2 sm:gap-2.5">
-                      {/* Status Badge */}
-                      <span
-                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold border tracking-wide whitespace-nowrap shadow-sm ${theme.badge}`}
-                      >
-                        <span className={`w-1.5 h-1.5 rounded-full ${theme.badgeDot} shrink-0`} />
-                        <span>{theme.label}</span>
-                      </span>
-
-                      {/* Action Button */}
+                    {/* Cột phải: Action Button */}
+                    <div className="shrink-0">
                       {isApproved ? (
                         <button
                           type="button"
                           disabled={startingId === order._id}
                           onClick={(e) => handleStartBoost(e, order._id)}
-                          className={`px-4 py-1.5 rounded-xl text-xs transition-all cursor-pointer shadow-sm active:scale-95 flex items-center gap-1.5 ${theme.actionBtn}`}
+                          className={`px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap transition-all cursor-pointer shadow-md active:scale-95 flex items-center gap-1.5 ${theme.actionBtn}`}
                         >
                           {startingId === order._id ? (
                             <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -638,7 +647,7 @@ export default function BoosterOrdersPage() {
                             e.stopPropagation();
                             router.push(`/orders/${order._id}`);
                           }}
-                          className={`px-4 py-1.5 rounded-xl text-xs transition-all cursor-pointer shadow-sm active:scale-95 ${theme.actionBtn}`}
+                          className={`px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap transition-all cursor-pointer shadow-md active:scale-95 ${theme.actionBtn}`}
                         >
                           <span>{theme.actionText}</span>
                         </button>
