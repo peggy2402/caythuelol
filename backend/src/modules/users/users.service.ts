@@ -181,14 +181,11 @@ export class UsersService {
     user.markModified('booster_info');
     await user.save();
 
-    // Cập nhật trực tiếp vào MongoDB collection để đảm bảo Schema.Types.Mixed được lưu tuyệt đối 100%
+    // Cập nhật an toàn vào MongoDB collection (chỉ cập nhật booster_info cha để tránh lỗi xung đột path con của MongoDB)
     await this.userModel.collection.updateOne(
       { _id: user._id },
       {
         $set: {
-          'booster_info.currentRank': user.booster_info.currentRank,
-          'booster_info.highestRank': user.booster_info.highestRank,
-          'booster_info.bio': user.booster_info.bio,
           booster_info: user.booster_info,
         },
       },
