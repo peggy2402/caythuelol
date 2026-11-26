@@ -23,6 +23,8 @@ import {
   Percent,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import InsufficientBalanceModal from '@/components/common/InsufficientBalanceModal';
+import DepositModal from '@/components/dashboard/DepositModal';
 
 interface BoosterInfo {
   _id: string;
@@ -83,6 +85,24 @@ export default function BookCustomServicePage() {
   const [couponCode, setCouponCode] = useState('');
   const [appliedDiscount, setAppliedDiscount] = useState<number>(0);
   const [couponError, setCouponError] = useState('');
+
+  // States cho xử lý Số dư ví không đủ & Nạp tiền thông minh
+  const [isInsufficientModalOpen, setIsInsufficientModalOpen] = useState(false);
+  const [isDepositModalOpen, setIsDepositModalOpen] = useState(false);
+
+  const handleDepositSuccess = (newBalance: number) => {
+    if (currentUser) {
+      const updatedUser = { ...currentUser, wallet_balance: newBalance };
+      setCurrentUser(updatedUser);
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+      window.dispatchEvent(new CustomEvent('user-updated'));
+    }
+    setIsDepositModalOpen(false);
+    toast.success('Nạp tiền thành công!', {
+      description: `Số dư mới: ${newBalance.toLocaleString('vi-VN')} đ. Bạn có thể bấm "Đặt đơn & Thanh toán cọc" ngay.`,
+      duration: 6000,
+    });
+  };
 
   // Fetch Service Details
   useEffect(() => {
@@ -174,8 +194,18 @@ export default function BookCustomServicePage() {
     }
 
     if (!isBalanceSufficient) {
-      toast.error(`Số dư ví (${walletBalance.toLocaleString('vi-VN')} đ) không đủ để thanh toán tiền cọc (${depositAmount.toLocaleString('vi-VN')} đ). Vui lòng nạp thêm tiền vào ví.`);
-      router.push('/wallet');
+      setIsInsufficientModalOpen(true);
+      toast.error('Số dư ví không đủ để thanh toán', {
+        description: `Bạn còn thiếu ${(depositAmount - walletBalance).toLocaleString('vi-VN')} đ để đặt cọc.`,
+        duration: 8000,
+        action: {
+          label: 'Nạp tiền ngay ➔',
+          onClick: () => {
+            setIsInsufficientModalOpen(false);
+            setIsDepositModalOpen(true);
+          },
+        },
+      });
       return;
     }
 
@@ -221,6 +251,25 @@ export default function BookCustomServicePage() {
 
       const data = await res.json();
       if (!res.ok) {
+        if (
+          Boolean(data.insufficientBalance) ||
+          (typeof data.message === 'string' && data.message.includes('Số dư ví không đủ'))
+        ) {
+          const missAmount = Number(data.missingAmount) || Math.max(0, depositAmount - walletBalance);
+          setIsInsufficientModalOpen(true);
+          toast.error('Số dư ví không đủ để thanh toán', {
+            description: `Bạn còn thiếu ${missAmount.toLocaleString('vi-VN')} đ để hoàn tất đơn.`,
+            duration: 8000,
+            action: {
+              label: 'Nạp tiền ngay ➔',
+              onClick: () => {
+                setIsInsufficientModalOpen(false);
+                setIsDepositModalOpen(true);
+              },
+            },
+          });
+          return;
+        }
         throw new Error(data.message || 'Không thể tạo đơn hàng');
       }
 
@@ -667,13 +716,14 @@ export default function BookCustomServicePage() {
                   )}
                 </button>
               ) : (
-                <Link
-                  href="/wallet"
-                  className="w-full py-3.5 px-4 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-extrabold text-sm shadow-lg shadow-amber-600/25 transition-all flex items-center justify-center gap-2 text-center"
+                <button
+                  type="button"
+                  onClick={() => setIsInsufficientModalOpen(true)}
+                  className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-amber-600 via-orange-600 to-amber-500 hover:from-amber-500 hover:to-orange-500 text-white font-extrabold text-sm shadow-lg shadow-amber-600/25 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95"
                 >
                   <Wallet className="w-4 h-4" />
-                  <span>Nạp tiền vào ví</span>
-                </Link>
+                  <span>Nạp tiền vào ví (+{(depositAmount - walletBalance).toLocaleString('vi-VN')} đ)</span>
+                </button>
               )}
 
               <div className="flex items-center justify-center gap-1.5 text-xs text-zinc-400">
@@ -683,6 +733,29 @@ export default function BookCustomServicePage() {
             </div>
           </div>
         </div>
+
+        {/* Modal Cảnh báo & Giải pháp khi Số dư ví không đủ */}
+        <InsufficientBalanceModal
+          isOpen={isInsufficientModalOpen}
+          onClose={() => setIsInsufficientModalOpen(false)}
+          requiredAmount={depositAmount}
+          currentBalance={walletBalance}
+          missingAmount={Math.max(0, depositAmount - walletBalance)}
+          orderTitle={service?.name}
+          onOpenDeposit={() => {
+            setIsInsufficientModalOpen(false);
+            setIsDepositModalOpen(true);
+          }}
+        />
+
+        {/* Modal Quét mã VietQR Nạp tiền tại chỗ */}
+        <DepositModal
+          isOpen={isDepositModalOpen}
+          onClose={() => setIsDepositModalOpen(false)}
+          user={currentUser}
+          initialAmount={Math.max(0, depositAmount - walletBalance)}
+          onSuccess={handleDepositSuccess}
+        />
       </main>
     </div>
   );

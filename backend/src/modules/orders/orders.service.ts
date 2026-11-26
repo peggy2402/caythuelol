@@ -89,7 +89,14 @@ export class OrdersService {
 
       const amountToDeduct = pricing.deposit_amount || pricing.total_amount;
       if (user.wallet_balance < amountToDeduct) {
-        throw new BadRequestException('Số dư ví không đủ để thanh toán. Vui lòng nạp thêm tiền.');
+        throw new BadRequestException({
+          statusCode: 400,
+          message: 'Số dư ví không đủ để thanh toán. Vui lòng nạp thêm tiền.',
+          insufficientBalance: true,
+          requiredAmount: amountToDeduct,
+          currentBalance: user.wallet_balance,
+          missingAmount: amountToDeduct - user.wallet_balance,
+        });
       }
 
       const customCode = 'BK-' + Math.random().toString(36).substring(2, 8).toUpperCase();
@@ -1483,7 +1490,14 @@ export class OrdersService {
       const customer = await this.userModel.findById(userId);
       if (!customer) throw new NotFoundException('Không tìm thấy tài khoản khách hàng');
       if (Number(customer.wallet_balance || 0) < amount) {
-        throw new BadRequestException('Số dư ví của bạn không đủ để thanh toán phần quyết toán còn lại. Vui lòng nạp thêm tiền!');
+        throw new BadRequestException({
+          statusCode: 400,
+          message: 'Số dư ví của bạn không đủ để thanh toán phần quyết toán còn lại. Vui lòng nạp thêm tiền!',
+          insufficientBalance: true,
+          requiredAmount: amount,
+          currentBalance: Number(customer.wallet_balance || 0),
+          missingAmount: amount - Number(customer.wallet_balance || 0),
+        });
       }
       customer.wallet_balance -= amount;
       await customer.save();

@@ -30,11 +30,12 @@ export interface PaymentInfo {
 export interface DepositModalProps {
   isOpen: boolean;
   onClose: () => void;
-  user: any;
-  bankConfig: any;
+  user?: any;
+  bankConfig?: any;
   pendingTx?: { qrUrl: string; info: PaymentInfo } | null;
   setPendingTx?: (tx: { qrUrl: string; info: PaymentInfo } | null) => void;
   onSuccess?: (newBalance: number) => void;
+  initialAmount?: number;
 }
 
 export default function DepositModal({
@@ -45,10 +46,17 @@ export default function DepositModal({
   pendingTx: externalPendingTx,
   setPendingTx: externalSetPendingTx,
   onSuccess,
+  initialAmount,
 }: DepositModalProps) {
   const [internalPendingTx, setInternalPendingTx] = useState<{ qrUrl: string; info: PaymentInfo } | null>(null);
   const pendingTx = externalPendingTx !== undefined ? externalPendingTx : internalPendingTx;
   const setPendingTx = externalSetPendingTx || setInternalPendingTx;
+
+  const [internalBankConfig, setInternalBankConfig] = useState<any>(null);
+  const activeBankConfig = bankConfig || internalBankConfig;
+
+  const [internalUser, setInternalUser] = useState<any>(null);
+  const activeUser = user || internalUser;
 
   const [depositAmount, setDepositAmount] = useState('');
   const [isDepositing, setIsDepositing] = useState(false);
@@ -57,13 +65,47 @@ export default function DepositModal({
   const [isFailed, setIsFailed] = useState(false);
   const [failReason, setFailReason] = useState('');
 
-  const initialBalanceRef = useRef<number>(user?.wallet_balance || 0);
+  const initialBalanceRef = useRef<number>(activeUser?.wallet_balance || 0);
 
   useEffect(() => {
-    if (user?.wallet_balance !== undefined) {
-      initialBalanceRef.current = user.wallet_balance;
+    if (activeUser?.wallet_balance !== undefined) {
+      initialBalanceRef.current = activeUser.wallet_balance;
     }
-  }, [user?.wallet_balance]);
+  }, [activeUser?.wallet_balance]);
+
+  // Tự động tải bankConfig nếu chưa được truyền từ props
+  useEffect(() => {
+    if (isOpen && !bankConfig && !internalBankConfig) {
+      fetch('/api/wallet')
+        .then((res) => res.json())
+        .then((data) => {
+          if (data?.bankInfo) {
+            setInternalBankConfig(data.bankInfo);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [isOpen, bankConfig, internalBankConfig]);
+
+  // Tự động đọc user từ localStorage nếu chưa được truyền từ props
+  useEffect(() => {
+    if (isOpen && !user && !internalUser && typeof window !== 'undefined') {
+      const stored = localStorage.getItem('user');
+      if (stored) {
+        try {
+          setInternalUser(JSON.parse(stored));
+        } catch {}
+      }
+    }
+  }, [isOpen, user, internalUser]);
+
+  // Tự động điền số tiền gợi ý (thiếu hụt) nếu có
+  useEffect(() => {
+    if (isOpen && initialAmount && initialAmount > 0) {
+      const targetVal = Math.max(10000, Math.ceil(initialAmount));
+      setDepositAmount(targetVal.toLocaleString('vi-VN'));
+    }
+  }, [isOpen, initialAmount]);
 
   // Phím ESC để đóng modal
   useEffect(() => {
@@ -115,13 +157,13 @@ export default function DepositModal({
 
   // Socket lắng nghe biến động số dư khi modal mở
   useEffect(() => {
-    if (!isOpen || !user?._id) return;
+    if (!isOpen || !activeUser?._id) return;
 
     if (!socket.connected) {
       socket.connect();
     }
     const joinRoom = () => {
-      socket.emit('join_user_room', user._id);
+      socket.emit('join_user_room', activeUser._id);
     };
     joinRoom();
     socket.on('connect', joinRoom);
@@ -218,22 +260,22 @@ export default function DepositModal({
       toast.error('Số tiền nạp tối thiểu là 10.000 đ');
       return;
     }
-    if (!bankConfig || !user) {
+    if (!activeBankConfig || !activeUser) {
       toast.error('Đang tải cấu hình ngân hàng, vui lòng thử lại');
       return;
     }
 
-    const bankId = bankConfig.bankId || bankConfig.bankName || 'MB';
-    const bankName = bankConfig.bankName || bankConfig.bankId || 'MB Bank';
-    const accountNo = bankConfig.accountNo || bankConfig.accountNumber || '';
-    const accountName = bankConfig.accountName || bankConfig.accountHolder || '';
+    const bankId = activeBankConfig.bankId || activeBankConfig.bankName || 'MB';
+    const bankName = activeBankConfig.bankName || activeBankConfig.bankId || 'MB Bank';
+    const accountNo = activeBankConfig.accountNo || activeBankConfig.accountNumber || '';
+    const accountName = activeBankConfig.accountName || activeBankConfig.accountHolder || '';
 
     if (!accountNo) {
       toast.error('Hệ thống chưa cấu hình Số tài khoản nhận tiền. Vui lòng liên hệ Admin!');
       return;
     }
 
-    const cleanUsername = user.username.toUpperCase().replace(/[^A-Z0-9]/g, '');
+    const cleanUsername = (activeUser.username || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
     const transferContent = `ZT${cleanUsername}`;
     const qrUrl = `https://qr.sepay.vn/img?acc=${encodeURIComponent(accountNo)}&bank=${encodeURIComponent(bankId)}&amount=${amount}&des=${encodeURIComponent(transferContent)}`;
 
@@ -525,8 +567,8 @@ export default function DepositModal({
                   <button
                     type="button"
                     onClick={() => {
-                      if (onSuccess && user?.wallet_balance) {
-                        onSuccess(user.wallet_balance);
+                      if (onSuccess && activeUser?.wallet_balance) {
+                        onSuccess(activeUser.wallet_balance);
                       }
                       toast.info('Đang kiểm tra biến động tài khoản...');
                     }}

@@ -7,6 +7,8 @@ import { Loader2, ShieldCheck, Wallet, ArrowRight, AlertCircle, CheckCircle2, Ti
 import { toast } from 'sonner';
 import Navbar from '@/components/Navbar';
 import { formatServiceNameVi } from '@/lib/orderStatus';
+import InsufficientBalanceModal from '@/components/common/InsufficientBalanceModal';
+import DepositModal from '@/components/dashboard/DepositModal';
 
 function CheckoutContent() {
   const router = useRouter();
@@ -16,6 +18,24 @@ function CheckoutContent() {
   const [couponCode, setCouponCode] = useState('');
   const [appliedCoupon, setAppliedCoupon] = useState<any>(null);
   const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
+
+  // States cho xử lý Số dư ví không đủ & Nạp tiền thông minh
+  const [isInsufficientModalOpen, setIsInsufficientModalOpen] = useState(false);
+  const [isDepositModalOpen, setIsDepositModalOpen] = useState(false);
+
+  const handleDepositSuccess = (newBalance: number) => {
+    if (user) {
+      const updatedUser = { ...user, wallet_balance: newBalance };
+      setUser(updatedUser);
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+      window.dispatchEvent(new CustomEvent('user-updated'));
+    }
+    setIsDepositModalOpen(false);
+    toast.success('Nạp tiền thành công!', {
+      description: `Số dư mới: ${newBalance.toLocaleString('vi-VN')} đ. Bạn có thể bấm "Xác nhận & Đặt cọc" ngay.`,
+      duration: 6000,
+    });
+  };
 
   useEffect(() => {
     const userStr = localStorage.getItem('user');
@@ -113,7 +133,18 @@ function CheckoutContent() {
 
   const handleConfirmPayment = async () => {
     if (!isSufficient) {
-      toast.error('Số dư không đủ, vui lòng nạp thêm!');
+      setIsInsufficientModalOpen(true);
+      toast.error('Số dư ví không đủ để thanh toán', {
+        description: `Bạn còn thiếu ${(paymentAmount - walletBalance).toLocaleString('vi-VN')} đ để hoàn tất đơn.`,
+        duration: 8000,
+        action: {
+          label: 'Nạp tiền ngay ➔',
+          onClick: () => {
+            setIsInsufficientModalOpen(false);
+            setIsDepositModalOpen(true);
+          },
+        },
+      });
       return;
     }
 
@@ -138,7 +169,27 @@ function CheckoutContent() {
       });
 
       const result = await res.json();
-      if (!res.ok) throw new Error(result.error);
+      if (!res.ok) {
+        if (
+          Boolean(result.insufficientBalance) ||
+          (typeof result.message === 'string' && result.message.includes('Số dư ví không đủ'))
+        ) {
+          const missAmount = Number(result.missingAmount) || Math.max(0, paymentAmount - walletBalance);
+          setIsInsufficientModalOpen(true);
+          toast.error('Số dư ví không đủ', {
+            description: `Bạn còn thiếu ${missAmount.toLocaleString('vi-VN')} đ.`,
+            action: {
+              label: 'Nạp tiền ngay ➔',
+              onClick: () => {
+                setIsInsufficientModalOpen(false);
+                setIsDepositModalOpen(true);
+              },
+            },
+          });
+          return;
+        }
+        throw new Error(result.error || result.message || 'Lỗi thanh toán');
+      }
 
       toast.success('Thanh toán thành công!');
       router.push(`/orders/${result.orderId}`);
@@ -568,10 +619,11 @@ function CheckoutContent() {
                 </button>
               ) : (
                 <button
-                  onClick={() => router.push('/wallet')}
-                  className="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl flex items-center justify-center gap-2 transition-all"
+                  type="button"
+                  onClick={() => setIsInsufficientModalOpen(true)}
+                  className="w-full py-3 bg-gradient-to-r from-amber-600 via-orange-600 to-amber-500 hover:from-amber-500 hover:to-orange-500 text-white font-bold rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg shadow-amber-600/25 cursor-pointer active:scale-95"
                 >
-                  <Wallet /> Nạp tiền ngay
+                  <Wallet className="w-4 h-4" /> Nạp tiền thiếu (+{(paymentAmount - walletBalance).toLocaleString('vi-VN')} đ)
                 </button>
               )}
 
@@ -582,6 +634,29 @@ function CheckoutContent() {
           </div>
         </div>
       </div>
+
+      {/* Modal Cảnh báo & Giải pháp khi Số dư ví không đủ */}
+      <InsufficientBalanceModal
+        isOpen={isInsufficientModalOpen}
+        onClose={() => setIsInsufficientModalOpen(false)}
+        requiredAmount={paymentAmount}
+        currentBalance={walletBalance}
+        missingAmount={Math.max(0, paymentAmount - walletBalance)}
+        orderTitle={formatServiceNameVi(serviceType)}
+        onOpenDeposit={() => {
+          setIsInsufficientModalOpen(false);
+          setIsDepositModalOpen(true);
+        }}
+      />
+
+      {/* Modal Quét mã VietQR Nạp tiền tại chỗ */}
+      <DepositModal
+        isOpen={isDepositModalOpen}
+        onClose={() => setIsDepositModalOpen(false)}
+        user={user}
+        initialAmount={Math.max(0, paymentAmount - walletBalance)}
+        onSuccess={handleDepositSuccess}
+      />
     </div>
   );
 }

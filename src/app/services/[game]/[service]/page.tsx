@@ -115,6 +115,8 @@ import { AddonsAndRolesSection } from './components/sections/AddonsAndRolesSecti
 import { AccountCredentialsSection } from './components/sections/AccountCredentialsSection';
 import { OrderSummarySidebar } from './components/sections/OrderSummarySidebar';
 import { getLocalDateString, validateScheduleWithBooster } from '@/lib/booster-helpers';
+import InsufficientBalanceModal from '@/components/common/InsufficientBalanceModal';
+import DepositModal from '@/components/dashboard/DepositModal';
 
 function ServiceBookingContent() {
   const params = useParams();
@@ -355,6 +357,42 @@ function ServiceBookingContent() {
   const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
   const [platformFeePercent, setPlatformFeePercent] = useState<number>(5);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // States cho xử lý Số dư ví không đủ & Nạp tiền thông minh
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [isInsufficientModalOpen, setIsInsufficientModalOpen] = useState(false);
+  const [insufficientDetails, setInsufficientDetails] = useState<{
+    requiredAmount: number;
+    currentBalance: number;
+    missingAmount: number;
+  }>({ requiredAmount: 0, currentBalance: 0, missingAmount: 0 });
+  const [isDepositModalOpen, setIsDepositModalOpen] = useState(false);
+  const [depositAmountPreset, setDepositAmountPreset] = useState<number>(0);
+
+  // Đồng bộ thông tin User từ localStorage và cập nhật số dư
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('user');
+      if (stored) {
+        try {
+          setCurrentUser(JSON.parse(stored));
+        } catch {}
+      }
+    }
+  }, []);
+
+  const handleDepositSuccess = (newBalance: number) => {
+    if (currentUser) {
+      const updated = { ...currentUser, wallet_balance: newBalance };
+      setCurrentUser(updated);
+      localStorage.setItem('user', JSON.stringify(updated));
+    }
+    setIsDepositModalOpen(false);
+    toast.success('Nạp tiền thành công!', {
+      description: `Số dư mới: ${newBalance.toLocaleString('vi-VN')} đ. Bạn có thể bấm "Đặt Cày Ngay" để hoàn tất đơn hàng.`,
+      duration: 6000,
+    });
+  };
 
   // Helper lấy token
   const getHeaders = () => {
@@ -1791,11 +1829,40 @@ function ServiceBookingContent() {
       const data = await res.json();
 
       if (res.ok && data.success) {
+        toast.success('Đặt cọc và khởi tạo đơn hàng thành công!');
         router.push(`/orders/${data.order?._id || data.orderId || ''}`);
       } else {
-        toast.error(data.message || 'Số dư ví không đủ để giữ cọc hoặc lỗi hệ thống');
-        if (data.insufficientBalance) {
-          router.push('/wallet?tab=deposit');
+        const isInsufficient =
+          Boolean(data.insufficientBalance) ||
+          (typeof data.message === 'string' && data.message.includes('Số dư ví không đủ')) ||
+          (typeof data.error === 'string' && data.error.includes('Số dư ví không đủ'));
+
+        if (isInsufficient) {
+          const reqAmount = Number(data.requiredAmount) || finalDeposit || finalPrice;
+          const currBal = Number(data.currentBalance ?? currentUser?.wallet_balance ?? 0);
+          const missAmount = Number(data.missingAmount) || Math.max(0, reqAmount - currBal);
+
+          setInsufficientDetails({
+            requiredAmount: reqAmount,
+            currentBalance: currBal,
+            missingAmount: missAmount,
+          });
+          setDepositAmountPreset(missAmount);
+          setIsInsufficientModalOpen(true);
+
+          toast.error('Số dư ví không đủ để thanh toán', {
+            description: `Bạn còn thiếu ${missAmount.toLocaleString('vi-VN')} đ để hoàn tất đơn.`,
+            duration: 8000,
+            action: {
+              label: 'Nạp tiền ngay ➔',
+              onClick: () => {
+                setIsInsufficientModalOpen(false);
+                setIsDepositModalOpen(true);
+              },
+            },
+          });
+        } else {
+          toast.error(data.message || 'Số dư ví không đủ để giữ cọc hoặc lỗi hệ thống');
         }
       }
     } catch {
@@ -2182,6 +2249,29 @@ function ServiceBookingContent() {
               toast.success(`Đã chọn ${names.length} tướng ưu tiên!`);
             }
           }}
+        />
+
+        {/* Modal Cảnh báo & Giải pháp khi Số dư ví không đủ */}
+        <InsufficientBalanceModal
+          isOpen={isInsufficientModalOpen}
+          onClose={() => setIsInsufficientModalOpen(false)}
+          requiredAmount={insufficientDetails.requiredAmount}
+          currentBalance={insufficientDetails.currentBalance}
+          missingAmount={insufficientDetails.missingAmount}
+          orderTitle={`Cày thuê ${game.name}`}
+          onOpenDeposit={() => {
+            setIsInsufficientModalOpen(false);
+            setIsDepositModalOpen(true);
+          }}
+        />
+
+        {/* Modal Quét mã VietQR Nạp tiền tại chỗ */}
+        <DepositModal
+          isOpen={isDepositModalOpen}
+          onClose={() => setIsDepositModalOpen(false)}
+          user={currentUser}
+          initialAmount={depositAmountPreset}
+          onSuccess={handleDepositSuccess}
         />
       </main>
     </div>
