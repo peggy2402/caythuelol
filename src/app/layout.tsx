@@ -6,6 +6,7 @@ import CookieConsent from "@/components/CookieConsent";
 import { ChatProvider } from "@/contexts/ChatContext"; // Import ChatProvider
 import ApiInterceptor from "@/components/ApiInterceptor";
 import { Toaster } from "sonner";
+import { Analytics } from "@vercel/analytics/next";
 
 const beVietnamPro = Be_Vietnam_Pro({
   subsets: ["latin", "vietnamese"],
@@ -186,6 +187,7 @@ export default function RootLayout({
             />
           </ChatProvider>
         </LanguageProvider>
+        <Analytics />
       </body>
     </html>
   );
