@@ -126,6 +126,11 @@ function LoginForm() {
       }
 
       toast.success(t('welcomeBack'));
+      const redirectUrl = searchParams.get('redirect');
+      if (redirectUrl && redirectUrl.startsWith('/')) {
+        window.location.href = redirectUrl;
+        return;
+      }
       // Chuyển hướng về dashboard
       window.location.href = '/services';
     } catch (err: any) {

@@ -143,15 +143,28 @@ export default function OrdersPage() {
   const [currentUser, setCurrentUser] = useState<any>(null);
 
   useEffect(() => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+    const stored = typeof window !== 'undefined' ? localStorage.getItem('user') : null;
+
+    if (!token || !stored) {
+      window.location.href = '/login?redirect=/orders';
+      return;
+    }
+
     try {
-      const stored = localStorage.getItem('user');
       if (stored) setCurrentUser(JSON.parse(stored));
     } catch (e) {}
 
     fetch('/api/orders')
-      .then((res) => res.json())
+      .then((res) => {
+        if (res.status === 401) {
+          window.location.href = '/login?redirect=/orders';
+          return null;
+        }
+        return res.json();
+      })
       .then((data) => {
-        if (data.orders) setOrders(data.orders);
+        if (data && data.orders) setOrders(data.orders);
       })
       .catch((err) => console.error(err))
       .finally(() => setLoading(false));

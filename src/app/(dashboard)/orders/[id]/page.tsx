@@ -15,6 +15,7 @@ import {
   ShieldAlert,
   Home,
   PackageX,
+  LogIn,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import ChatWindow from '@/components/chat/ChatWindow';
@@ -1473,6 +1474,22 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
     );
   };
 
+  // Xác định trạng thái đăng nhập của người dùng
+  const isLoggedIn = Boolean(
+    user ||
+    (typeof window !== 'undefined' && localStorage.getItem('token') && localStorage.getItem('user'))
+  );
+
+  // Link đích của nút Về danh sách đơn: Nếu chưa đăng nhập -> /login, nếu đã đăng nhập -> theo role
+  const getOrdersDestination = () => {
+    if (!isLoggedIn) {
+      return `/login?redirect=${encodeURIComponent(`/orders/${id}`)}`;
+    }
+    if (user?.role === 'BOOSTER') return '/booster/my-orders';
+    if (user?.role === 'ADMIN') return '/admin/orders';
+    return '/orders';
+  };
+
   // HÀM RENDER MÀN HÌNH CHẶN BẢO MẬT TOÀN MÀN HÌNH (FULLSCREEN ACCESS DENIED)
   const renderAccessDeniedScreen = (orderCode?: string) => (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/95 backdrop-blur-2xl p-4 sm:p-6 overflow-y-auto">
@@ -1518,17 +1535,15 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
         {/* Action Buttons - Thoáng đãng, không bao giờ bị bó hay gãy dòng */}
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 mt-7">
           <Link
-            href={
-              user?.role === 'BOOSTER'
-                ? '/booster/my-orders'
-                : user?.role === 'ADMIN'
-                ? '/admin/orders'
-                : '/orders'
-            }
+            href={getOrdersDestination()}
             className="px-6 py-3.5 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm shadow-lg shadow-blue-600/30 transition-all flex items-center justify-center gap-2 whitespace-nowrap active:scale-95 cursor-pointer"
           >
-            <ArrowLeft size={16} className="shrink-0" />
-            <span>Về danh sách đơn của bạn</span>
+            {isLoggedIn ? (
+              <ArrowLeft size={16} className="shrink-0" />
+            ) : (
+              <LogIn size={16} className="shrink-0" />
+            )}
+            <span>{isLoggedIn ? 'Về danh sách đơn của bạn' : 'Đăng nhập tài khoản'}</span>
           </Link>
           <Link
             href="/"
@@ -1587,17 +1602,15 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
         {/* Action Buttons - Thiết kế rộng rãi, thoáng đãng, sang trọng */}
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 mt-7">
           <Link
-            href={
-              user?.role === 'BOOSTER'
-                ? '/booster/my-orders'
-                : user?.role === 'ADMIN'
-                ? '/admin/orders'
-                : '/orders'
-            }
+            href={getOrdersDestination()}
             className="px-6 py-3.5 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm shadow-lg shadow-blue-600/30 transition-all flex items-center justify-center gap-2 whitespace-nowrap active:scale-95 cursor-pointer"
           >
-            <ArrowLeft size={16} className="shrink-0" />
-            <span>Về danh sách đơn của bạn</span>
+            {isLoggedIn ? (
+              <ArrowLeft size={16} className="shrink-0" />
+            ) : (
+              <LogIn size={16} className="shrink-0" />
+            )}
+            <span>{isLoggedIn ? 'Về danh sách đơn của bạn' : 'Đăng nhập tài khoản'}</span>
           </Link>
           <Link
             href="/"
@@ -1728,16 +1741,15 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
       <div className="max-w-5xl mx-auto">
         <div className="mb-4">
           <Link
-            href={
-              user?.role === 'BOOSTER'
-                ? '/booster/my-orders'
-                : user?.role === 'ADMIN'
-                ? '/admin/orders'
-                : '/orders'
-            }
+            href={getOrdersDestination()}
             className="inline-flex items-center gap-2 text-sm font-medium text-zinc-400 hover:text-white transition-colors"
           >
-            <ArrowLeft className="w-4 h-4" /> Quay lại danh sách đơn hàng
+            {isLoggedIn ? (
+              <ArrowLeft className="w-4 h-4" />
+            ) : (
+              <LogIn className="w-4 h-4" />
+            )}
+            <span>{isLoggedIn ? 'Quay lại danh sách đơn hàng' : 'Đăng nhập tài khoản'}</span>
           </Link>
         </div>
 
