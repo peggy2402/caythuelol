@@ -36,8 +36,8 @@ export function PromotionSeriesSection({
         </div>
 
         {/* Dãy 7 Huy Hiệu Rank Nằm Ngang (Sắt I -> Kim Cương I) */}
-        <div className="relative pt-8 pb-3">
-          <div className="flex items-center justify-between sm:justify-center gap-2 sm:gap-4 overflow-x-auto pb-2 scrollbar-none px-1">
+        <div className="relative">
+          <div className="flex items-center justify-between sm:justify-center gap-2 sm:gap-4 overflow-x-auto sm:overflow-visible pt-10 pb-4 px-3 scrollbar-none">
             {LOL_PROMOTION_SERIES.map((promo) => {
               const isSelected = selectedPromoId === promo.id;
               return (
