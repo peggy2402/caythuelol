@@ -14,6 +14,7 @@ import {
   ArrowLeft,
   ShieldAlert,
   Home,
+  PackageX,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import ChatWindow from '@/components/chat/ChatWindow';
@@ -1474,7 +1475,7 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
 
   // HÀM RENDER MÀN HÌNH CHẶN BẢO MẬT TOÀN MÀN HÌNH (FULLSCREEN ACCESS DENIED)
   const renderAccessDeniedScreen = (orderCode?: string) => (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 backdrop-blur-2xl p-4 sm:p-6 overflow-y-auto">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/95 backdrop-blur-2xl p-4 sm:p-6 overflow-y-auto">
       {/* Ambient Red Glow Effects */}
       <div className="absolute w-[500px] h-[500px] bg-red-600/10 rounded-full blur-[140px] pointer-events-none" />
       <div className="absolute w-[350px] h-[350px] bg-rose-600/5 rounded-full blur-[100px] pointer-events-none -translate-x-1/2 -translate-y-1/2" />
@@ -1541,6 +1542,75 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
     </div>
   );
 
+  // HÀM RENDER MÀN HÌNH ĐƠN HÀNG KHÔNG TỒN TẠI (HIỂN THỊ ĐÈ LÊN TẤT CẢ - FULLSCREEN NOT FOUND)
+  const renderOrderNotFoundScreen = () => (
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-[#07090e]/95 backdrop-blur-2xl p-4 sm:p-6 overflow-y-auto">
+      {/* Ambient Cyan/Blue Glow Effects */}
+      <div className="absolute w-[500px] h-[500px] bg-cyan-600/10 rounded-full blur-[140px] pointer-events-none" />
+      <div className="absolute w-[350px] h-[350px] bg-blue-600/5 rounded-full blur-[100px] pointer-events-none -translate-x-1/2 -translate-y-1/2" />
+
+      {/* Main Alert Card */}
+      <div className="relative max-w-lg w-full bg-zinc-950/90 border border-zinc-800/80 rounded-3xl p-6 sm:p-10 text-center shadow-[0_0_60px_rgba(6,182,212,0.12)] overflow-hidden backdrop-blur-3xl animate-in fade-in zoom-in-95 duration-200">
+        {/* Neon Glowing Edge */}
+        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-cyan-500 to-transparent shadow-[0_0_15px_#06b6d4]" />
+
+        {/* Package Icon with glowing ring */}
+        <div className="relative mx-auto w-20 h-20 sm:w-24 sm:h-24 mb-6 flex items-center justify-center">
+          <div className="absolute inset-0 rounded-3xl bg-cyan-500/20 blur-xl animate-pulse" />
+          <div className="relative w-full h-full rounded-3xl bg-gradient-to-br from-cyan-500/15 via-blue-950/30 to-zinc-950 border border-cyan-500/30 flex items-center justify-center text-cyan-400 shadow-inner shadow-cyan-500/20">
+            <PackageX className="w-10 h-10 sm:w-12 sm:h-12 drop-shadow-[0_0_12px_rgba(6,182,212,0.8)]" />
+          </div>
+        </div>
+
+        {/* Badge */}
+        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-widest bg-cyan-500/10 border border-cyan-500/25 text-cyan-400 mb-3">
+          <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping" />
+          <span>THÔNG BÁO HỆ THỐNG • 404 NOT FOUND</span>
+        </div>
+
+        {/* Title */}
+        <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+          Không Tìm Thấy Đơn Hàng
+        </h2>
+
+        {/* Order Code */}
+        <div className="inline-flex items-center gap-2 mt-3 px-3.5 py-1.5 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-zinc-300 font-mono">
+          <span>Mã tra cứu:</span>
+          <strong className="text-cyan-400 font-bold">#{id}</strong>
+        </div>
+
+        {/* Explanation */}
+        <p className="text-xs sm:text-sm text-zinc-400 mt-4 leading-relaxed max-w-sm mx-auto">
+          Đơn hàng không tồn tại hoặc đã bị xóa khỏi hệ thống. Vui lòng kiểm tra lại đường dẫn liên kết hoặc tra cứu trong danh sách đơn hàng của bạn.
+        </p>
+
+        {/* Action Buttons - Thiết kế rộng rãi, thoáng đãng, sang trọng */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 mt-7">
+          <Link
+            href={
+              user?.role === 'BOOSTER'
+                ? '/booster/my-orders'
+                : user?.role === 'ADMIN'
+                ? '/admin/orders'
+                : '/orders'
+            }
+            className="px-6 py-3.5 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm shadow-lg shadow-blue-600/30 transition-all flex items-center justify-center gap-2 whitespace-nowrap active:scale-95 cursor-pointer"
+          >
+            <ArrowLeft size={16} className="shrink-0" />
+            <span>Về danh sách đơn của bạn</span>
+          </Link>
+          <Link
+            href="/"
+            className="px-6 py-3.5 rounded-2xl bg-zinc-900 hover:bg-zinc-800 text-zinc-300 hover:text-white border border-zinc-700/80 font-bold text-sm transition-all flex items-center justify-center gap-2 whitespace-nowrap active:scale-95 cursor-pointer"
+          >
+            <Home size={16} className="shrink-0" />
+            <span>Trang chủ</span>
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+
   if (loading) return <BarLoader className="py-24" />;
 
   // MÀN HÌNH CHẶN TRUY CẬP KHI KHÔNG CÓ QUYỀN
@@ -1548,18 +1618,9 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
     return renderAccessDeniedScreen(id);
   }
 
+  // MÀN HÌNH ĐƠN HÀNG KHÔNG TỒN TẠI (HIỂN THỊ ĐÈ LÊN TRÊN TẤT CẢ)
   if (!order) {
-    return (
-      <div className="py-20 px-4 flex flex-col items-center justify-center gap-4 text-center">
-        <p className="text-zinc-400 text-base">Đơn hàng không tồn tại hoặc đã bị xóa khỏi hệ thống.</p>
-        <Link
-          href={user?.role === 'BOOSTER' ? '/booster/my-orders' : user?.role === 'ADMIN' ? '/admin/orders' : '/orders'}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white text-sm font-semibold transition-colors"
-        >
-          <ArrowLeft className="w-4 h-4" /> Quay lại danh sách đơn hàng
-        </Link>
-      </div>
-    );
+    return renderOrderNotFoundScreen();
   }
 
   // --- KIỂM TRA PHÂN QUYỀN CHÍNH XÁC THEO TỪNG ĐƠN HÀNG ---
