@@ -1847,7 +1847,7 @@ export default function BoosterServicesStudio() {
                     {[
                       { label: 'Hành chính (08:00 – 17:30)', from: '08:00', to: '17:30' },
                       { label: 'Ca Sáng (08:00 – 12:00)', from: '08:00', to: '12:00' },
-                      { label: 'Ca Chiều (13:00 – 17:00)', from: '13:00', to: '17:00' },
+                      { label: 'Ca Chiều (13:30 – 17:30)', from: '13:30', to: '17:30' },
                       { label: 'Ca Tối (19:00 – 23:00)', from: '19:00', to: '23:00' },
                       { label: 'Ca Đêm (23:00 – 04:00)', from: '23:00', to: '04:00' },
                     ].map((item, idx) => {

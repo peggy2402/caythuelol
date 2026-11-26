@@ -43,9 +43,9 @@ export const TIME_SHIFTS = [
     bg: 'bg-amber-500/10',
   },
   {
-    id: '13:00 - 17:00',
+    id: '13:30 - 17:30',
     name: 'Ca Chiều',
-    time: '13:00 – 17:00',
+    time: '13:30 – 17:30',
     icon: Sunset,
     color: 'text-orange-400',
     border: 'border-orange-500/30',
@@ -155,32 +155,46 @@ export function ScheduleConfigPanel({
 
       {/* Hiển thị giờ làm việc của Booster hiện tại */}
       {assignedBooster && (
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-2.5 rounded-xl bg-cyan-950/40 border border-cyan-500/30 text-xs">
-          <div className="flex items-center gap-2 min-w-0">
-            <Clock size={13} className="text-cyan-400 shrink-0" />
-            <span className="text-zinc-400 truncate">
-              Giờ làm việc của{' '}
-              <strong className="text-zinc-200">
-                {assignedBooster.user?.name || assignedBooster.user?.username || 'Tuyển thủ'}
-              </strong>
-              :
-            </span>
-            <span className="text-cyan-300 font-bold truncate">
+        <div className="p-3 sm:p-3.5 rounded-2xl bg-gradient-to-r from-cyan-950/60 to-blue-950/40 border border-cyan-500/40 text-xs space-y-2 shadow-md shadow-cyan-950/30">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 rounded-lg bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 flex items-center justify-center shrink-0">
+                <Clock size={13} />
+              </div>
+              <span className="text-zinc-300 font-medium">
+                Khung giờ làm việc của Tuyển thủ:{' '}
+                <strong className="text-white font-extrabold text-xs sm:text-sm">
+                  {assignedBooster.user?.name || assignedBooster.user?.username?.split('@')[0] || 'Tuyển thủ'}
+                </strong>
+                {assignedBooster.user?.username && (
+                  <span className="text-cyan-300 font-mono text-[11px] ml-1 opacity-90">
+                    (@{assignedBooster.user.username.split('@')[0]})
+                  </span>
+                )}
+              </span>
+            </div>
+
+            <div className="shrink-0">
+              {validation.hasConflict ? (
+                <span className="px-2.5 py-1 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-300 text-[11px] font-bold flex items-center gap-1.5 shadow-sm">
+                  <AlertTriangle size={12} className="text-amber-400 animate-pulse" />
+                  Lệch khung giờ / ngày
+                </span>
+              ) : (
+                <span className="px-2.5 py-1 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-[11px] font-bold flex items-center gap-1.5 shadow-sm">
+                  <CheckCircle2 size={12} className="text-emerald-400" />
+                  Lịch khớp hoàn hảo
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Dòng hiển thị đầy đủ giờ làm việc, KHÔNG CẮT BỚT BẰNG DẤU ... */}
+          <div className="p-2 sm:p-2.5 rounded-xl bg-zinc-950/80 border border-cyan-500/20 flex items-center gap-2.5">
+            <span className="w-2 h-2 rounded-full bg-cyan-400 shrink-0 shadow-[0_0_8px_rgba(34,211,238,0.8)]" />
+            <span className="text-xs sm:text-[13px] font-black text-cyan-300 tracking-wide break-words">
               {validation.boosterScheduleText || getBoosterWorkingScheduleText(assignedBooster)}
             </span>
-          </div>
-          <div className="text-[11px] text-zinc-400 shrink-0">
-            {validation.hasConflict ? (
-              <span className="text-amber-400 font-bold flex items-center gap-1">
-                <AlertTriangle size={12} />
-                Lệch khung giờ/ngày
-              </span>
-            ) : (
-              <span className="text-emerald-400 font-bold flex items-center gap-1">
-                <CheckCircle2 size={12} />
-                Lịch khớp hoàn hảo
-              </span>
-            )}
           </div>
         </div>
       )}
@@ -348,12 +362,12 @@ export function ScheduleConfigPanel({
                 <div className="flex items-center justify-between mb-1 gap-1 min-w-0">
                   <div className="flex items-center gap-1.5 min-w-0">
                     <ShiftIcon size={14} className={`${shift.color} shrink-0`} />
-                    <span className="font-bold text-xs truncate">{shift.name}</span>
+                    <span className="font-bold text-xs whitespace-nowrap">{shift.name}</span>
                   </div>
                   {isShiftOutside ? (
                     <span
                       title="Khung giờ này nằm ngoài giờ làm việc của Tuyển thủ"
-                      className="text-[9px] font-bold text-amber-400 bg-amber-400/15 border border-amber-400/30 px-1.5 py-0.5 rounded-full shrink-0"
+                      className="text-[9px] font-bold text-amber-300 bg-amber-400/20 border border-amber-400/40 px-1.5 py-0.5 rounded-full shrink-0 whitespace-nowrap"
                     >
                       Lệch giờ
                     </span>
