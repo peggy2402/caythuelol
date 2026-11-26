@@ -12,6 +12,8 @@ import {
   Loader2,
   Clock,
   ArrowLeft,
+  ShieldAlert,
+  Home,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import ChatWindow from '@/components/chat/ChatWindow';
@@ -344,23 +346,34 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
   }>>([]);
   const [isSubmittingBatch, setIsSubmittingBatch] = useState(false);
   const [isFetchingRiotBatch, setIsFetchingRiotBatch] = useState(false);
+  const [accessDenied, setAccessDenied] = useState(false);
 
   // --- POLLING FALLBACK (Cứ 5s tải lại data 1 lần để chắc chắn cập nhật) ---
   useEffect(() => {
+    if (accessDenied) return;
     const interval = setInterval(() => {
       if (!id) return;
-      fetch(`/api/orders/${id}`).then(res => res.json()).then(data => {
-        if (data.success && data.order) {
-          setOrder((prev: any) => ({ ...prev, ...data.order }));
-          if (data.order.orderCode && id !== data.order.orderCode) {
-            window.history.replaceState(null, '', `/orders/${data.order.orderCode}`);
+      fetch(`/api/orders/${id}`)
+        .then((res) => {
+          if (res.status === 403) {
+            setAccessDenied(true);
+            return null;
           }
-        }
-      });
+          return res.json();
+        })
+        .then((data) => {
+          if (data?.success && data?.order) {
+            setOrder((prev: any) => ({ ...prev, ...data.order }));
+            if (data.order.orderCode && id !== data.order.orderCode) {
+              window.history.replaceState(null, '', `/orders/${data.order.orderCode}`);
+            }
+          }
+        })
+        .catch(() => {});
     }, 5000); // 5 giây
 
     return () => clearInterval(interval);
-  }, [id]);
+  }, [id, accessDenied]);
 
   // Load User
   useEffect(() => {
@@ -435,9 +448,24 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
     const fetchData = async () => {
       try {
         const orderRes = await fetch(`/api/orders/${id}`);
-        if (!orderRes.ok) throw new Error('Failed to load order');
+        if (!orderRes.ok) {
+          if (orderRes.status === 403) {
+            setAccessDenied(true);
+            setLoading(false);
+            return;
+          }
+          throw new Error('Failed to load order');
+        }
 
         const orderData = await orderRes.json();
+        if (orderData.success === false) {
+          if (orderData.statusCode === 403 || orderData.message?.includes('quyền')) {
+            setAccessDenied(true);
+            setLoading(false);
+            return;
+          }
+        }
+
         setOrder(orderData.order);
         setBoosterProfile(orderData.boosterProfile || null);
 
@@ -1445,6 +1473,38 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
   };
 
   if (loading) return <BarLoader className="py-24" />;
+
+  // MÀN HÌNH CHẶN TRUY CẬP KHI KHÔNG CÓ QUYỀN
+  if (accessDenied) {
+    return (
+      <div className="min-h-[70vh] flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-zinc-900 border border-red-500/30 rounded-2xl p-6 sm:p-8 text-center shadow-2xl relative overflow-hidden animate-in fade-in zoom-in-95">
+          <div className="w-16 h-16 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-400 flex items-center justify-center mx-auto mb-4">
+            <ShieldAlert size={32} />
+          </div>
+          <h2 className="text-xl font-bold text-white mb-2">Truy Cập Bị Từ Chối</h2>
+          <p className="text-sm text-zinc-400 mb-6 leading-relaxed">
+            Bạn không có quyền truy cập hoặc thực hiện thao tác trên đơn hàng <strong className="text-white font-mono">#{id}</strong>. Đơn hàng này thuộc về Khách hàng và Tuyển thủ khác.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <Link
+              href={user?.role === 'BOOSTER' ? '/booster/my-orders' : user?.role === 'ADMIN' ? '/admin/orders' : '/orders'}
+              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold transition shadow-lg shadow-blue-600/30"
+            >
+              <ArrowLeft size={16} /> Về danh sách đơn của bạn
+            </Link>
+            <Link
+              href="/"
+              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-sm font-semibold transition"
+            >
+              <Home size={16} /> Trang chủ
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (!order) {
     return (
       <div className="py-20 px-4 flex flex-col items-center justify-center gap-4 text-center">
@@ -1459,8 +1519,53 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
     );
   }
 
-  const isBooster = user?.role === 'BOOSTER';
-  const isCustomer = user?.role === 'CUSTOMER';
+  // --- KIỂM TRA PHÂN QUYỀN CHÍNH XÁC THEO TỪNG ĐƠN HÀNG ---
+  const currentUserId = String(user?._id || user?.userId || user?.id || '');
+  const orderBoosterId = String(order?.boosterId?._id || order?.boosterId || '');
+  const orderCustomerId = String(order?.customerId?._id || order?.customerId || '');
+  const isAdmin = user?.role === 'ADMIN' || user?.role === 'STAFF';
+
+  // Xác định chính xác người dùng hiện tại có phải là người trong đơn này không
+  const isAssignedBooster = Boolean(currentUserId && orderBoosterId && currentUserId === orderBoosterId);
+  const isOrderCustomer = Boolean(currentUserId && orderCustomerId && currentUserId === orderCustomerId);
+
+  // Người có quyền tham gia đơn hàng: Khách tạo đơn, Tuyển thủ được giao, hoặc Admin/Staff
+  const isParticipant = isAssignedBooster || isOrderCustomer || isAdmin;
+
+  // Nếu người dùng KHÔNG thuộc đơn hàng này: Chặn ngay lập tức
+  if (!isParticipant) {
+    return (
+      <div className="min-h-[70vh] flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-zinc-900 border border-red-500/30 rounded-2xl p-6 sm:p-8 text-center shadow-2xl relative overflow-hidden animate-in fade-in zoom-in-95">
+          <div className="w-16 h-16 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-400 flex items-center justify-center mx-auto mb-4">
+            <ShieldAlert size={32} />
+          </div>
+          <h2 className="text-xl font-bold text-white mb-2">Truy Cập Bị Từ Chối</h2>
+          <p className="text-sm text-zinc-400 mb-6 leading-relaxed">
+            Bạn không có quyền truy cập hoặc thực hiện thao tác trên đơn hàng <strong className="text-white font-mono">#{order.orderCode || id}</strong>. Đơn hàng này thuộc về Khách hàng và Tuyển thủ khác.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <Link
+              href={user?.role === 'BOOSTER' ? '/booster/my-orders' : user?.role === 'ADMIN' ? '/admin/orders' : '/orders'}
+              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold transition shadow-lg shadow-blue-600/30"
+            >
+              <ArrowLeft size={16} /> Về danh sách đơn của bạn
+            </Link>
+            <Link
+              href="/"
+              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-sm font-semibold transition"
+            >
+              <Home size={16} /> Trang chủ
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Quyền thao tác nghiệp vụ: Chỉ gán true khi đúng người
+  const isBooster = isAssignedBooster || isAdmin;
+  const isCustomer = isOrderCustomer || isAdmin;
   const partner = isCustomer ? order.boosterId : order.customerId;
 
   // Lọc các tùy chọn đã được kích hoạt (true hoặc mảng có phần tử)

@@ -163,7 +163,7 @@ export default function OrderDisputeBanner({
         )}
 
         {/* Nút báo lỗi chung CHỈ hiển thị khi đơn đã có tuyển thủ nhận việc hoặc hoàn thành (Customer trong vòng 24h và CHƯA nghiệm thu/đánh giá) */}
-        {['APPROVED', 'IN_PROGRESS', 'COMPLETED'].includes(order.status) && (
+        {(isCustomer || isBooster) && ['APPROVED', 'IN_PROGRESS', 'COMPLETED'].includes(order.status) && (
           hasRated ? (
             <div className="w-full py-3 px-4 bg-emerald-950/20 text-emerald-400 text-xs font-semibold rounded-xl flex items-center justify-center gap-2 border border-emerald-500/25 text-center">
               <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />

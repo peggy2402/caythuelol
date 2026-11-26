@@ -47,7 +47,7 @@ export class OrdersController {
   @Get(':id')
   @ApiOperation({ summary: 'Get order details by ID or custom code' })
   async getOrderDetails(@Param('id') id: string, @ReqUser() user: any) {
-    return this.ordersService.getOrderDetails(id, user.userId);
+    return this.ordersService.getOrderDetails(id, user.userId, user.role);
   }
 
   @Post(':id/cancel')

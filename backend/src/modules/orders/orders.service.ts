@@ -379,7 +379,7 @@ export class OrdersService {
     return { success: true, orders };
   }
 
-  async getOrderDetails(orderId: string, userId: string) {
+  async getOrderDetails(orderId: string, userId: string, userRole?: string) {
     let filter: any;
     if (Types.ObjectId.isValid(orderId)) {
       filter = { $or: [{ _id: new Types.ObjectId(orderId) }, { orderCode: orderId }] };
@@ -395,6 +395,39 @@ export class OrdersService {
 
     if (!order) throw new NotFoundException('Không tìm thấy đơn hàng');
 
+    const customerIdStr = (order.customerId as any)?._id?.toString() || order.customerId?.toString();
+    const boosterIdStr = (order.boosterId as any)?._id?.toString() || order.boosterId?.toString();
+    const uid = userId?.toString();
+
+    const isCustomer = Boolean(customerIdStr && uid && customerIdStr === uid);
+    const isBooster = Boolean(boosterIdStr && uid && boosterIdStr === uid);
+    const isAdmin = userRole === UserRole.ADMIN || userRole === UserRole.STAFF;
+
+    // KIỂM TRA PHÂN QUYỀN TRUY CẬP (ACCESS CONTROL):
+    if (!isCustomer && !isBooster && !isAdmin) {
+      // Nếu là đơn hàng ở trạng thái mở trong Chợ đơn hàng (chưa có booster nhận) và user là BOOSTER
+      const isAvailableInMarket = !boosterIdStr && ['PAID', 'PENDING_CONFIRM'].includes(order.status);
+      if (isAvailableInMarket && userRole === UserRole.BOOSTER) {
+        // Booster vãng lai xem đơn trong chợ: Ẩn thông tin tài khoản đăng nhập
+        if (order.details?.account_credentials) {
+          order.details.account_credentials = {
+            ...order.details.account_credentials,
+            password: '******',
+          };
+        }
+        if (order.details?.account_info) {
+          order.details.account_info = {
+            ...order.details.account_info,
+            password: '******',
+          };
+        }
+      } else {
+        throw new ForbiddenException(
+          'Bạn không có quyền truy cập đơn hàng này. Đơn hàng này thuộc về Khách hàng và Tuyển thủ khác!'
+        );
+      }
+    }
+
     let boosterProfile = null;
     if (order.boosterId && (order.boosterId as any)._id) {
       boosterProfile = await this.boosterProfileModel
@@ -402,7 +435,16 @@ export class OrdersService {
         .lean();
     }
 
-    return { success: true, order, boosterProfile };
+    return { 
+      success: true, 
+      order, 
+      boosterProfile,
+      viewerPermissions: {
+        isCustomer,
+        isBooster,
+        isAdmin,
+      }
+    };
   }
 
   async cancelOrder(orderId: string, userId: string, reason?: string) {
@@ -660,12 +702,22 @@ export class OrdersService {
     };
   }
 
-  async updateOrderStatus(orderId: string, boosterId: string, status: OrderStatus) {
-    const order = await this.orderModel.findOne({
-      _id: orderId,
-      boosterId: new Types.ObjectId(boosterId),
-    });
-    if (!order) throw new NotFoundException('Không tìm thấy đơn hàng của bạn');
+  async updateOrderStatus(orderId: string, boosterId: string, status: OrderStatus, userRole?: string) {
+    let filter: any;
+    if (Types.ObjectId.isValid(orderId)) {
+      filter = { $or: [{ _id: new Types.ObjectId(orderId) }, { orderCode: orderId }] };
+    } else {
+      filter = { orderCode: orderId.trim().toUpperCase() };
+    }
+
+    const order = await this.orderModel.findOne(filter);
+    if (!order) throw new NotFoundException('Không tìm thấy đơn hàng');
+
+    const assignedBoosterId = order.boosterId?._id?.toString() || order.boosterId?.toString();
+    const isAdmin = userRole === UserRole.ADMIN || userRole === UserRole.STAFF;
+    if (!isAdmin && (!assignedBoosterId || assignedBoosterId !== boosterId.toString())) {
+      throw new ForbiddenException('Bạn không phải là Tuyển thủ phụ trách đơn hàng này');
+    }
 
     order.status = status;
     if (!order.timeline) order.timeline = [];
@@ -680,16 +732,26 @@ export class OrdersService {
     return { success: true, order };
   }
 
-  async completeOrder(orderId: string, boosterId: string, resultData?: any) {
+  async completeOrder(orderId: string, boosterId: string, resultData?: any, userRole?: string) {
     const session = await this.connection.startSession();
     session.startTransaction();
 
     try {
-      const order = await this.orderModel
-        .findOne({ _id: orderId, boosterId: new Types.ObjectId(boosterId) })
-        .session(session);
+      let filter: any;
+      if (Types.ObjectId.isValid(orderId)) {
+        filter = { $or: [{ _id: new Types.ObjectId(orderId) }, { orderCode: orderId }] };
+      } else {
+        filter = { orderCode: orderId.trim().toUpperCase() };
+      }
 
+      const order = await this.orderModel.findOne(filter).session(session);
       if (!order) throw new NotFoundException('Không tìm thấy đơn hàng');
+
+      const assignedBoosterId = order.boosterId?._id?.toString() || order.boosterId?.toString();
+      const isAdmin = userRole === UserRole.ADMIN || userRole === UserRole.STAFF;
+      if (!isAdmin && (!assignedBoosterId || assignedBoosterId !== boosterId.toString())) {
+        throw new ForbiddenException('Bạn không phải là Tuyển thủ phụ trách đơn hàng này');
+      }
 
       if (order.status !== OrderStatus.IN_PROGRESS && order.status !== OrderStatus.APPROVED) {
         throw new BadRequestException('Đơn hàng chưa ở trạng thái có thể báo cáo hoàn thành');
@@ -928,8 +990,24 @@ export class OrdersService {
   }
 
   async createDispute(orderId: string, userId: string, reason: string, userRole?: string) {
-    const order = await this.orderModel.findById(orderId);
+    let filter: any;
+    if (Types.ObjectId.isValid(orderId)) {
+      filter = { $or: [{ _id: new Types.ObjectId(orderId) }, { orderCode: orderId }] };
+    } else {
+      filter = { orderCode: orderId.trim().toUpperCase() };
+    }
+
+    const order = await this.orderModel.findOne(filter);
     if (!order) throw new NotFoundException('Không tìm thấy đơn hàng');
+
+    const customerIdStr = (order.customerId as any)?._id?.toString() || order.customerId?.toString();
+    const boosterIdStr = (order.boosterId as any)?._id?.toString() || order.boosterId?.toString();
+    const isAdmin = userRole === UserRole.ADMIN || userRole === UserRole.STAFF;
+    const uid = userId?.toString();
+
+    if (uid !== customerIdStr && uid !== boosterIdStr && !isAdmin) {
+      throw new ForbiddenException('Bạn không có quyền báo lỗi hoặc khiếu nại đơn hàng này');
+    }
 
     // Cơ chế 24h & Nghiệm thu: Customer không được khiếu nại nếu đã đánh giá nghiệm thu hoặc quá 24 giờ
     if (order.status === OrderStatus.COMPLETED && userRole !== UserRole.ADMIN && userRole !== UserRole.STAFF) {
