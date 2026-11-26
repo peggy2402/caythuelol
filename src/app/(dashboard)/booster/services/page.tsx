@@ -1079,30 +1079,18 @@ export default function BoosterServicesStudio() {
   return (
     <div className="space-y-8 max-w-7xl mx-auto pb-32">
       {/* HEADER SECTION */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-zinc-800">
-        <div>
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-              Cấu Hình Dịch Vụ & Bảng Giá
-            </h1>
-            <span className="text-xs px-2.5 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 font-bold border border-cyan-500/20">
-              Booster Studio
-            </span>
-          </div>
-          <p className="text-xs sm:text-sm text-zinc-400 mt-1">
-            Tự do cấu hình từng dịch vụ nhận cày, bảng giá chi tiết từng bậc rank và mức phụ phí tiện ích riêng.
-          </p>
+      <div className="pb-4 border-b border-zinc-800">
+        <div className="flex items-center gap-3">
+          <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+            Cấu Hình Dịch Vụ & Bảng Giá
+          </h1>
+          <span className="text-xs px-2.5 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 font-bold border border-cyan-500/20">
+            Booster Studio
+          </span>
         </div>
-
-        <button
-          type="button"
-          onClick={handleSaveAll}
-          disabled={saving}
-          className="hidden sm:flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-black text-xs shadow-lg shadow-blue-600/30 transition-all active:scale-95 shrink-0 cursor-pointer disabled:opacity-50"
-        >
-          {saving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
-          <span>{saving ? 'Đang lưu...' : 'Lưu toàn bộ thay đổi'}</span>
-        </button>
+        <p className="text-xs sm:text-sm text-zinc-400 mt-1">
+          Tự do cấu hình từng dịch vụ nhận cày, bảng giá chi tiết từng bậc rank và mức phụ phí tiện ích riêng.
+        </p>
       </div>
 
       {/* ========================================================================= */}
