@@ -579,7 +579,7 @@ export default async function ShortProfilePage({ params }: Props) {
             {/* Champion Pool (or Fallback Lane Mastery Card) */}
             {championPool.length > 0 ? (
               <div className="bg-zinc-900/70 border border-white/10 rounded-2xl p-5 shadow-lg backdrop-blur-md">
-                <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center justify-between mb-3.5">
                   <h3 className="text-sm font-bold text-zinc-200 flex items-center gap-2">
                     <Shield size={16} className="text-blue-400" />
                     Tướng tủ ({championPool.length})
@@ -588,23 +588,22 @@ export default async function ShortProfilePage({ params }: Props) {
                     Patch {ddragonVersion}
                   </span>
                 </div>
-                <div className="grid grid-cols-5 gap-2">
+                <div className="flex flex-wrap items-center gap-3.5 pt-1.5 pb-0.5">
                   {championPool.slice(0, 10).map((champ: string) => (
                     <div
                       key={champ}
-                      className="group relative flex flex-col items-center"
-                      title={champ}
+                      className="group flex flex-col items-center cursor-default"
                     >
-                      <div className="relative w-10 h-10 rounded-xl overflow-hidden border border-zinc-700 group-hover:border-blue-500 group-hover:scale-110 transition-all duration-200 bg-zinc-800 shadow-sm">
+                      <div className="relative w-12 h-12 rounded-xl overflow-hidden border border-zinc-700/80 group-hover:border-blue-400 group-hover:ring-2 group-hover:ring-blue-500/40 transition-all duration-200 bg-zinc-800/90 shadow-md group-hover:shadow-[0_0_15px_rgba(59,130,246,0.35)] group-hover:-translate-y-0.5">
                         <Image
                           src={`https://ddragon.leagueoflegends.com/cdn/${ddragonVersion}/img/champion/${champ}.png`}
                           alt={champ}
                           fill
-                          sizes="40px"
+                          sizes="48px"
                           className="object-cover"
                         />
                       </div>
-                      <span className="text-[9px] text-zinc-400 group-hover:text-white truncate max-w-full text-center mt-1">
+                      <span className="text-[11px] font-semibold text-zinc-300 group-hover:text-blue-400 truncate max-w-[64px] text-center mt-1.5 transition-colors">
                         {champ}
                       </span>
                     </div>
