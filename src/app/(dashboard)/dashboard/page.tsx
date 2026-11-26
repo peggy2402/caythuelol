@@ -95,7 +95,7 @@ export default function DashboardPage() {
     return (
       <BarLoader
         className="h-96"
-        label="Đang tải Player Command Center..."
+        label="Đang tải..."
       />
     );
   }

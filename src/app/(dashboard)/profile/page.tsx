@@ -1604,7 +1604,7 @@ export default function ProfilePage() {
               {/* Booster Operations Shortcuts */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <Link
-                  href="/market"
+                  href="/booster/jobs"
                   className="rounded-2xl border border-white/5 bg-zinc-900/60 p-4 hover:border-blue-500/30 transition-all group"
                 >
                   <ShoppingBag className="w-6 h-6 text-blue-400 mb-2 group-hover:scale-110 transition-transform" />
@@ -1612,7 +1612,7 @@ export default function ProfilePage() {
                   <div className="text-xs text-zinc-500">Xem và nhận các đơn mới</div>
                 </Link>
                 <Link
-                  href="/my-orders"
+                  href="/booster/my-orders"
                   className="rounded-2xl border border-white/5 bg-zinc-900/60 p-4 hover:border-emerald-500/30 transition-all group"
                 >
                   <CheckCheck className="w-6 h-6 text-emerald-400 mb-2 group-hover:scale-110 transition-transform" />
@@ -1620,7 +1620,7 @@ export default function ProfilePage() {
                   <div className="text-xs text-zinc-500">Tiến độ cày các đơn đã nhận</div>
                 </Link>
                 <Link
-                  href="/boosters/services"
+                  href="/booster/services"
                   className="rounded-2xl border border-white/5 bg-zinc-900/60 p-4 hover:border-yellow-500/30 transition-all group"
                 >
                   <Settings className="w-6 h-6 text-yellow-400 mb-2 group-hover:scale-110 transition-transform" />
