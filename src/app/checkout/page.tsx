@@ -140,8 +140,7 @@ function CheckoutContent() {
         action: {
           label: 'Nạp tiền ngay ➔',
           onClick: () => {
-            setIsInsufficientModalOpen(false);
-            setIsDepositModalOpen(true);
+            setIsInsufficientModalOpen(true);
           },
         },
       });
@@ -181,8 +180,7 @@ function CheckoutContent() {
             action: {
               label: 'Nạp tiền ngay ➔',
               onClick: () => {
-                setIsInsufficientModalOpen(false);
-                setIsDepositModalOpen(true);
+                setIsInsufficientModalOpen(true);
               },
             },
           });
@@ -635,7 +633,7 @@ function CheckoutContent() {
         </div>
       </div>
 
-      {/* Modal Cảnh báo & Giải pháp khi Số dư ví không đủ */}
+      {/* Modal Quét mã VietQR Nạp tiền Giữ Cọc trực tiếp */}
       <InsufficientBalanceModal
         isOpen={isInsufficientModalOpen}
         onClose={() => setIsInsufficientModalOpen(false)}
@@ -643,10 +641,8 @@ function CheckoutContent() {
         currentBalance={walletBalance}
         missingAmount={Math.max(0, paymentAmount - walletBalance)}
         orderTitle={formatServiceNameVi(serviceType)}
-        onOpenDeposit={() => {
-          setIsInsufficientModalOpen(false);
-          setIsDepositModalOpen(true);
-        }}
+        user={user}
+        onSuccess={handleDepositSuccess}
       />
 
       {/* Modal Quét mã VietQR Nạp tiền tại chỗ */}

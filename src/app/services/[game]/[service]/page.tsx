@@ -1856,8 +1856,7 @@ function ServiceBookingContent() {
             action: {
               label: 'Nạp tiền ngay ➔',
               onClick: () => {
-                setIsInsufficientModalOpen(false);
-                setIsDepositModalOpen(true);
+                setIsInsufficientModalOpen(true);
               },
             },
           });
@@ -2251,7 +2250,7 @@ function ServiceBookingContent() {
           }}
         />
 
-        {/* Modal Cảnh báo & Giải pháp khi Số dư ví không đủ */}
+        {/* Modal Quét mã VietQR Nạp tiền Giữ Cọc trực tiếp */}
         <InsufficientBalanceModal
           isOpen={isInsufficientModalOpen}
           onClose={() => setIsInsufficientModalOpen(false)}
@@ -2259,10 +2258,8 @@ function ServiceBookingContent() {
           currentBalance={insufficientDetails.currentBalance}
           missingAmount={insufficientDetails.missingAmount}
           orderTitle={`Cày thuê ${game.name}`}
-          onOpenDeposit={() => {
-            setIsInsufficientModalOpen(false);
-            setIsDepositModalOpen(true);
-          }}
+          user={currentUser}
+          onSuccess={handleDepositSuccess}
         />
 
         {/* Modal Quét mã VietQR Nạp tiền tại chỗ */}

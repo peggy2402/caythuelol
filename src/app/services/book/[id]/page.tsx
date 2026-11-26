@@ -201,8 +201,7 @@ export default function BookCustomServicePage() {
         action: {
           label: 'Nạp tiền ngay ➔',
           onClick: () => {
-            setIsInsufficientModalOpen(false);
-            setIsDepositModalOpen(true);
+            setIsInsufficientModalOpen(true);
           },
         },
       });
@@ -263,8 +262,7 @@ export default function BookCustomServicePage() {
             action: {
               label: 'Nạp tiền ngay ➔',
               onClick: () => {
-                setIsInsufficientModalOpen(false);
-                setIsDepositModalOpen(true);
+                setIsInsufficientModalOpen(true);
               },
             },
           });
@@ -734,7 +732,7 @@ export default function BookCustomServicePage() {
           </div>
         </div>
 
-        {/* Modal Cảnh báo & Giải pháp khi Số dư ví không đủ */}
+        {/* Modal Quét mã VietQR Nạp tiền Giữ Cọc trực tiếp */}
         <InsufficientBalanceModal
           isOpen={isInsufficientModalOpen}
           onClose={() => setIsInsufficientModalOpen(false)}
@@ -742,10 +740,8 @@ export default function BookCustomServicePage() {
           currentBalance={walletBalance}
           missingAmount={Math.max(0, depositAmount - walletBalance)}
           orderTitle={service?.name}
-          onOpenDeposit={() => {
-            setIsInsufficientModalOpen(false);
-            setIsDepositModalOpen(true);
-          }}
+          user={currentUser}
+          onSuccess={handleDepositSuccess}
         />
 
         {/* Modal Quét mã VietQR Nạp tiền tại chỗ */}
