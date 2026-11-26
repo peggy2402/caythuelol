@@ -369,6 +369,8 @@ function GameServicesContent() {
           boostersCount={filteredBoosters.length}
           searchTerm={searchTerm}
           setSearchTerm={setSearchTerm}
+          servicesList={groupedServices}
+          boostersList={filteredBoosters}
         />
 
         {/* 3. Tab Gói Dịch Vụ */}

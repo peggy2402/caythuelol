@@ -4,17 +4,18 @@ import React from 'react';
 import { Clock, X, Trash2, Search, ArrowUpLeft } from 'lucide-react';
 
 export function HighlightTextYellow({ text, query }: { text: string; query: string }) {
-  if (!query || !query.trim()) return <span>{text}</span>;
+  if (!query || !query.trim() || !text) return <span>{text}</span>;
 
   try {
     const escaped = query.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const regex = new RegExp(`(${escaped})`, 'gi');
-    const parts = text.split(regex);
+    const splitRegex = new RegExp(`(${escaped})`, 'gi');
+    const testRegex = new RegExp(`^(${escaped})$`, 'i');
+    const parts = text.split(splitRegex);
 
     return (
       <span>
         {parts.map((part, i) =>
-          regex.test(part) ? (
+          testRegex.test(part) ? (
             <span
               key={i}
               className="text-amber-300 font-extrabold bg-amber-400/20 px-0.5 rounded"
@@ -36,6 +37,7 @@ export interface SearchSuggestionItem {
   label: string;
   subLabel?: string;
   category?: string;
+  avatar?: string;
 }
 
 interface SearchHistoryDropdownProps {
@@ -82,18 +84,9 @@ export default function SearchHistoryDropdown({
   const hasHistory = filteredHistory.length > 0;
   const hasSuggestions = filteredSuggestions.length > 0;
 
-  // Nếu không có cả lịch sử lẫn gợi ý
+  // Nếu không có cả lịch sử lẫn gợi ý, tự động ẩn dropdown (không hiện thông báo giả gây hiểu lầm)
   if (!hasHistory && !hasSuggestions) {
-    if (!cleanQuery) return null; // Không hiển thị nếu chưa gõ và lịch sử trống
-    return (
-      <div
-        onClick={(e) => e.stopPropagation()}
-        className="absolute top-full left-0 right-0 mt-1.5 bg-[#0f1118]/95 border border-zinc-800 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.7)] backdrop-blur-xl z-50 p-4 text-center text-xs text-zinc-500 animate-in fade-in zoom-in-95 duration-150"
-      >
-        <Search className="w-5 h-5 text-zinc-600 mx-auto mb-1.5 opacity-60" />
-        <span>Không có kết quả nào khớp với &ldquo;{query}&rdquo;</span>
-      </div>
-    );
+    return null;
   }
 
   return (
@@ -110,28 +103,36 @@ export default function SearchHistoryDropdown({
               {filteredSuggestions.length} kết quả
             </span>
           </div>
-          <div className="max-h-48 overflow-y-auto py-1 divide-y divide-zinc-800/30">
-            {filteredSuggestions.slice(0, 5).map((sugg, idx) => (
+          <div className="max-h-56 overflow-y-auto py-1 divide-y divide-zinc-800/30 custom-dark-scrollbar">
+            {filteredSuggestions.slice(0, 6).map((sugg, idx) => (
               <div
                 key={idx}
                 onClick={() => onSelect(sugg.label)}
                 className="px-3.5 py-2.5 hover:bg-zinc-800/70 flex items-center justify-between gap-3 cursor-pointer group transition-colors"
               >
                 <div className="flex items-center gap-2.5 min-w-0">
-                  <Search size={13} className="text-cyan-400 shrink-0" />
+                  {sugg.avatar ? (
+                    <img
+                      src={sugg.avatar}
+                      alt={sugg.label}
+                      className="w-7 h-7 rounded-xl object-cover ring-1 ring-cyan-500/30 shrink-0"
+                    />
+                  ) : (
+                    <Search size={13} className="text-cyan-400 shrink-0" />
+                  )}
                   <div className="min-w-0">
                     <div className="text-xs font-semibold text-zinc-200 group-hover:text-cyan-400 transition-colors truncate">
                       <HighlightTextYellow text={sugg.label} query={query} />
                     </div>
                     {sugg.subLabel && (
-                      <div className="text-[10px] text-zinc-500 truncate">
+                      <div className="text-[10px] text-zinc-400 truncate">
                         <HighlightTextYellow text={sugg.subLabel} query={query} />
                       </div>
                     )}
                   </div>
                 </div>
                 {sugg.category && (
-                  <span className="px-2 py-0.5 rounded-md bg-zinc-800 text-[10px] font-medium text-zinc-400 shrink-0">
+                  <span className="px-2 py-0.5 rounded-md bg-zinc-800 border border-zinc-700/50 text-[10px] font-medium text-cyan-300 shrink-0">
                     {sugg.category}
                   </span>
                 )}

@@ -3,7 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Search, Filter, X, ArrowUpDown, ChevronRight, Flame, Swords, Shield } from 'lucide-react';
 import { useSearchHistory } from '@/hooks/useSearchHistory';
-import SearchHistoryDropdown from '@/components/common/SearchHistoryDropdown';
+import SearchHistoryDropdown, { SearchSuggestionItem } from '@/components/common/SearchHistoryDropdown';
 
 export const SERVICE_OPTIONS = [
   { value: 'RANK_BOOST', label: 'Cày Rank / Elo Siêu Tốc' },
@@ -13,6 +13,15 @@ export const SERVICE_OPTIONS = [
   { value: 'MASTERY', label: 'Cày Thông Thạo Tướng' },
 ];
 
+interface BoosterItem {
+  _id?: string;
+  username: string;
+  displayName?: string;
+  avatar?: string;
+  rating?: number;
+  completedOrders?: number;
+}
+
 interface BoostersFilterBarProps {
   searchTerm: string;
   setSearchTerm: (term: string) => void;
@@ -20,6 +29,7 @@ interface BoostersFilterBarProps {
   setFilterService: (service: string) => void;
   sortBy: string;
   setSortBy: (sort: string) => void;
+  boosters?: BoosterItem[];
 }
 
 export default function BoostersFilterBar({
@@ -28,11 +38,67 @@ export default function BoostersFilterBar({
   filterService,
   setFilterService,
   sortBy,
-  setSortBy
+  setSortBy,
+  boosters = []
 }: BoostersFilterBarProps) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [fetchedSuggestions, setFetchedSuggestions] = useState<SearchSuggestionItem[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
   const { history, addSearch, removeSearch, clearHistory } = useSearchHistory('recent_boosters_page_search');
+
+  // Tìm kiếm live booster từ backend API khi gõ từ khóa
+  useEffect(() => {
+    const q = searchTerm.trim();
+    if (!q) {
+      setFetchedSuggestions([]);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/boosters?search=${encodeURIComponent(q)}&limit=6`);
+        if (!res.ok) return;
+        const data = await res.json();
+        const list: BoosterItem[] = data.boosters || [];
+        const items: SearchSuggestionItem[] = list.map((b) => ({
+          label: b.displayName || b.username,
+          subLabel: `@${b.username} • ⭐ ${(b.rating ?? 5).toFixed(1)} (${b.completedOrders ?? 0} đơn)`,
+          category: 'Tuyển thủ',
+          avatar: b.avatar,
+        }));
+        setFetchedSuggestions(items);
+      } catch (err) {
+        console.error('Error fetching booster suggestions:', err);
+      }
+    }, 150);
+
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  // Kết hợp data từ prop boosters và live API
+  const liveSuggestions: SearchSuggestionItem[] = React.useMemo(() => {
+    const map = new Map<string, SearchSuggestionItem>();
+
+    // 1. Thêm từ danh sách boosters hiện có trên trang
+    (boosters || []).forEach((b) => {
+      const name = b.displayName || b.username;
+      map.set(name.toLowerCase(), {
+        label: name,
+        subLabel: `@${b.username} • ⭐ ${(b.rating ?? 5).toFixed(1)} (${b.completedOrders ?? 0} đơn)`,
+        category: 'Tuyển thủ',
+        avatar: b.avatar,
+      });
+    });
+
+    // 2. Thêm từ kết quả live fetch API
+    fetchedSuggestions.forEach((s) => {
+      if (!map.has(s.label.toLowerCase())) {
+        map.set(s.label.toLowerCase(), s);
+      }
+    });
+
+    return Array.from(map.values());
+  }, [boosters, fetchedSuggestions]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -86,7 +152,7 @@ export default function BoostersFilterBar({
             </button>
           )}
 
-          {/* Dropdown Lịch Sử Tìm Kiếm */}
+          {/* Dropdown Lịch Sử & Gợi Ý Tuyển Thủ Trực Tuyến */}
           <SearchHistoryDropdown
             isOpen={isDropdownOpen}
             onClose={() => setIsDropdownOpen(false)}
@@ -95,6 +161,7 @@ export default function BoostersFilterBar({
             onSelect={handleSelect}
             onRemove={removeSearch}
             onClearAll={clearHistory}
+            liveSuggestions={liveSuggestions}
             title="Tuyển thủ tìm gần đây"
           />
         </div>

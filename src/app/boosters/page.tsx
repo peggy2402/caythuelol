@@ -143,6 +143,7 @@ export default function BoostersPage() {
           setFilterService={setFilterService}
           sortBy={sortBy}
           setSortBy={setSortBy}
+          boosters={boosters}
         />
 
         {/* 3. Booster Grid */}

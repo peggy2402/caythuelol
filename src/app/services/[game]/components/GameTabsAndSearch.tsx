@@ -4,7 +4,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Swords, Users, Search, X } from 'lucide-react';
 import { useSearchHistory } from '@/hooks/useSearchHistory';
-import SearchHistoryDropdown from '@/components/common/SearchHistoryDropdown';
+import SearchHistoryDropdown, { SearchSuggestionItem } from '@/components/common/SearchHistoryDropdown';
 
 interface GameTabsAndSearchProps {
   activeTab: 'SERVICES' | 'BOOSTERS';
@@ -13,6 +13,8 @@ interface GameTabsAndSearchProps {
   boostersCount: number;
   searchTerm: string;
   setSearchTerm: (term: string) => void;
+  servicesList?: Array<{ name: string; desc?: string }>;
+  boostersList?: Array<{ displayName?: string; username: string; rating?: number; completedOrders?: number; avatar?: string }>;
 }
 
 export function GameTabsAndSearch({
@@ -22,11 +24,30 @@ export function GameTabsAndSearch({
   boostersCount,
   searchTerm,
   setSearchTerm,
+  servicesList = [],
+  boostersList = [],
 }: GameTabsAndSearchProps) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const storageKey = activeTab === 'SERVICES' ? 'recent_services_search' : 'recent_boosters_search';
   const { history, addSearch, removeSearch, clearHistory } = useSearchHistory(storageKey);
+
+  const liveSuggestions: SearchSuggestionItem[] = React.useMemo(() => {
+    if (activeTab === 'SERVICES') {
+      return servicesList.map((s) => ({
+        label: s.name,
+        subLabel: s.desc,
+        category: 'Gói dịch vụ',
+      }));
+    } else {
+      return boostersList.map((b) => ({
+        label: b.displayName || b.username,
+        subLabel: `@${b.username} • ⭐ ${(b.rating ?? 5).toFixed(1)} (${b.completedOrders ?? 0} đơn)`,
+        category: 'Tuyển thủ',
+        avatar: b.avatar,
+      }));
+    }
+  }, [activeTab, servicesList, boostersList]);
 
   // Đóng khi click ngoài
   useEffect(() => {
@@ -113,7 +134,7 @@ export function GameTabsAndSearch({
           </button>
         )}
 
-        {/* Dropdown Lịch Sử Tìm Kiếm */}
+        {/* Dropdown Lịch Sử & Gợi Ý */}
         <SearchHistoryDropdown
           isOpen={isDropdownOpen}
           onClose={() => setIsDropdownOpen(false)}
@@ -122,6 +143,7 @@ export function GameTabsAndSearch({
           onSelect={handleSelect}
           onRemove={removeSearch}
           onClearAll={clearHistory}
+          liveSuggestions={liveSuggestions}
           title={activeTab === 'SERVICES' ? 'Gói dịch vụ tìm gần đây' : 'Tuyển thủ tìm gần đây'}
         />
       </div>
