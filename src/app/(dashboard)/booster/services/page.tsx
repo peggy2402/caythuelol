@@ -364,6 +364,23 @@ export default function BoosterServicesStudio() {
     }
   };
 
+  // Hàm lưu toàn bộ cài đặt (dùng chung cho Header & Nút nổi Fixed Bottom-Right)
+  const handleSaveAll = () => {
+    syncAllServices(
+      customServices,
+      addonsConfig,
+      coupon,
+      stepOverrides,
+      selectedGames,
+      workingSchedule,
+      {
+        showToast: true,
+        successMessage: 'Đã lưu toàn bộ cấu hình dịch vụ thành công!',
+      },
+      playingChampions
+    );
+  };
+
   // Cập nhật lịch làm việc của Booster
   const handleUpdateWorkingSchedule = (partial: Partial<BoosterWorkingSchedule>) => {
     const nextDays = partial.daysOfWeek ?? workingSchedule.daysOfWeek ?? ['T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
@@ -1060,7 +1077,7 @@ export default function BoosterServicesStudio() {
   }
 
   return (
-    <div className="space-y-8 max-w-7xl mx-auto pb-16">
+    <div className="space-y-8 max-w-7xl mx-auto pb-32">
       {/* HEADER SECTION */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-zinc-800">
         <div>
@@ -1079,14 +1096,9 @@ export default function BoosterServicesStudio() {
 
         <button
           type="button"
-          onClick={() =>
-            syncAllServices(customServices, addonsConfig, coupon, stepOverrides, selectedGames, {
-              showToast: true,
-              successMessage: 'Đã lưu toàn bộ cấu hình dịch vụ thành công!',
-            })
-          }
+          onClick={handleSaveAll}
           disabled={saving}
-          className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-black text-xs shadow-lg shadow-blue-600/30 transition-all active:scale-95 shrink-0 cursor-pointer disabled:opacity-50"
+          className="hidden sm:flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-black text-xs shadow-lg shadow-blue-600/30 transition-all active:scale-95 shrink-0 cursor-pointer disabled:opacity-50"
         >
           {saving ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
           <span>{saving ? 'Đang lưu...' : 'Lưu toàn bộ thay đổi'}</span>
@@ -4295,6 +4307,26 @@ export default function BoosterServicesStudio() {
           );
         }}
       />
+
+      {/* FLOATING ACTION BUTTON (Luôn nổi ở góc phải dưới trên Mobile & Desktop, nằm trên thanh điều hướng) */}
+      <div className="fixed bottom-20 right-4 sm:bottom-6 sm:right-6 lg:bottom-8 lg:right-8 z-50 animate-in fade-in slide-in-from-bottom-4 duration-300">
+        <button
+          type="button"
+          onClick={handleSaveAll}
+          disabled={saving}
+          className="flex items-center gap-2.5 px-5 py-3 rounded-2xl bg-gradient-to-r from-blue-600 via-cyan-500 to-blue-600 hover:from-blue-500 hover:to-cyan-400 text-white font-extrabold text-xs sm:text-sm shadow-2xl shadow-cyan-500/40 border border-white/20 transition-all hover:scale-105 active:scale-95 cursor-pointer disabled:opacity-50"
+          title="Lưu toàn bộ cấu hình dịch vụ & bảng giá"
+        >
+          {saving ? (
+            <Loader2 size={16} className="animate-spin text-white" />
+          ) : (
+            <Save size={16} className="text-white drop-shadow" />
+          )}
+          <span className="drop-shadow-sm font-black tracking-wide">
+            {saving ? 'Đang lưu...' : 'Lưu toàn bộ thay đổi'}
+          </span>
+        </button>
+      </div>
     </div>
   );
 }
