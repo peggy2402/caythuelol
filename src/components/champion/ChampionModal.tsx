@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { X, Search, SlidersHorizontal, Loader2, AlertCircle, Check, Sparkles, Star } from 'lucide-react';
 import { toast } from 'sonner';
 import { useLanguage } from '@/lib/i18n';
-import ChampionCard from './ChampionCard';
+import ChampionCard, { ChampionTooltip } from './ChampionCard';
 import ChampionFilters, { FilterState } from './ChampionFilters';
 
 interface ChampionModalProps {
@@ -36,6 +36,8 @@ export default function ChampionModal({
   boosterChampions = [],
 }: ChampionModalProps) {
   const { t } = useLanguage();
+  const modalRef = useRef<HTMLDivElement>(null);
+  const [hoveredData, setHoveredData] = useState<{ champion: any; rect: DOMRect } | null>(null);
   const [search, setSearch] = useState('');
   const [showMobileFilters, setShowMobileFilters] = useState(false);
   const [onlyBoosterFavs, setOnlyBoosterFavs] = useState(false);
@@ -49,9 +51,47 @@ export default function ChampionModal({
     resource: []
   });
 
+  // Calculate dynamic floating tooltip position inside modal (escapes scroll container & never gets clipped)
+  const tooltipStyle = useMemo(() => {
+    if (!hoveredData || !modalRef.current) return null;
+    const modalRect = modalRef.current.getBoundingClientRect();
+    const cardRect = hoveredData.rect;
+
+    const tooltipWidth = 224; // w-56
+    const tooltipHeight = 125;
+
+    // Centered on card, relative to modal container
+    const cardCenterX = cardRect.left + cardRect.width / 2 - modalRect.left;
+    let posX = cardCenterX - tooltipWidth / 2;
+
+    // Clamp horizontally inside modal with safe margins
+    const minX = 16;
+    const maxX = modalRect.width - tooltipWidth - 16;
+    if (posX < minX) posX = minX;
+    if (posX > maxX) posX = maxX;
+
+    const cardTopInModal = cardRect.top - modalRect.top;
+    let posY: number;
+
+    // Check vertical positioning
+    // If enough space above the card (above header ~68px)
+    if (cardTopInModal - tooltipHeight - 10 >= 68) {
+      posY = cardTopInModal - tooltipHeight - 8;
+    } else {
+      // Show below the card
+      posY = cardTopInModal + cardRect.height + 8;
+    }
+
+    return {
+      left: `${posX}px`,
+      top: `${posY}px`,
+    };
+  }, [hoveredData]);
+
   // Reset state when opening
   useEffect(() => {
     if (isOpen) {
+      setHoveredData(null);
       setSearch('');
       setShowMobileFilters(false);
       setOnlyBoosterFavs(false);
@@ -155,7 +195,10 @@ export default function ChampionModal({
         onClick={onClose}
       />
 
-      <div className="relative w-full max-w-5xl h-[88vh] bg-zinc-950 border border-white/10 rounded-3xl shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+      <div 
+        ref={modalRef}
+        className="relative w-full max-w-5xl h-[88vh] bg-zinc-950 border border-white/10 rounded-3xl shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200"
+      >
         
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-white/10 bg-zinc-900/60 gap-3">
@@ -265,7 +308,11 @@ export default function ChampionModal({
           )}
 
           {/* Grid Champions */}
-          <div className="flex-1 overflow-y-auto p-4 sm:p-5 bg-zinc-950 custom-scrollbar">
+          <div 
+            onScroll={() => setHoveredData(null)}
+            onMouseLeave={() => setHoveredData(null)}
+            className="flex-1 overflow-y-auto p-4 sm:p-5 bg-zinc-950 custom-scrollbar"
+          >
             {champions.length === 0 ? (
               <div className="h-full flex flex-col items-center justify-center text-zinc-400 gap-3">
                 <Loader2 className="w-8 h-8 animate-spin text-cyan-500" />
@@ -305,6 +352,8 @@ export default function ChampionModal({
                       selectionOrder={selectionOrder !== undefined && selectionOrder > 0 ? selectionOrder : undefined}
                       isBoosterFavorite={isBoosterFav}
                       onClick={() => handleChampionClick(champ)}
+                      onHover={(c, rect) => setHoveredData({ champion: c, rect })}
+                      onLeave={() => setHoveredData(null)}
                     />
                   );
                 })}
@@ -312,6 +361,14 @@ export default function ChampionModal({
             )}
           </div>
         </div>
+
+        {/* Floating Champion Tooltip (Always within modal bounds, never clipped) */}
+        {hoveredData && tooltipStyle && (
+          <ChampionTooltip 
+            champion={hoveredData.champion} 
+            style={tooltipStyle} 
+          />
+        )}
 
         {/* Footer */}
         <div className="p-3.5 sm:p-4 border-t border-white/10 bg-zinc-900/80 flex flex-col sm:flex-row items-center justify-between gap-3">

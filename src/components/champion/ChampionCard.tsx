@@ -2,7 +2,6 @@
 
 import React from 'react';
 import Image from 'next/image';
-import { Info } from 'lucide-react';
 
 interface ChampionCardProps {
   champion: any;
@@ -10,19 +9,58 @@ interface ChampionCardProps {
   onClick: () => void;
   selectionOrder?: number;
   isBoosterFavorite?: boolean;
+  onHover?: (champ: any, rect: DOMRect) => void;
+  onLeave?: () => void;
 }
 
-const StatBar = ({ label, value, color }: { label: string; value: number; color: string }) => (
+export const StatBar = ({ label, value, color }: { label: string; value: number; color: string }) => (
   <div className="flex items-center gap-2 text-[10px]">
-    <span className="w-8 text-zinc-400">{label}</span>
+    <span className="w-8 text-zinc-400 font-semibold">{label}</span>
     <div className="flex-1 h-1.5 bg-zinc-800 rounded-full overflow-hidden">
       <div 
         className={`h-full rounded-full ${color}`} 
-        style={{ width: `${(value / 10) * 100}%` }} 
+        style={{ width: `${Math.min(100, Math.max(0, (value / 10) * 100))}%` }} 
       />
     </div>
+    <span className="text-[9px] text-zinc-500 font-mono w-3 text-right">{value}</span>
   </div>
 );
+
+export function ChampionTooltip({ 
+  champion, 
+  style 
+}: { 
+  champion: any; 
+  style: React.CSSProperties;
+}) {
+  return (
+    <div 
+      style={style}
+      className="absolute z-50 pointer-events-none transition-all duration-150 ease-out hidden md:block"
+    >
+      <div className="w-56 bg-zinc-950/95 backdrop-blur-md border border-cyan-500/40 rounded-xl p-3 shadow-2xl shadow-cyan-950/50 animate-in fade-in zoom-in-95 duration-150">
+        <div className="flex justify-between items-start mb-2">
+          <div>
+            <h4 className="font-bold text-white text-sm">{champion.name}</h4>
+            <p className="text-[10px] text-zinc-400">{champion.tags?.join(', ')}</p>
+          </div>
+          <div className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${
+            champion.info?.difficulty > 7 ? 'bg-red-500/20 text-red-400 border border-red-500/30' :
+            champion.info?.difficulty > 3 ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30' :
+            'bg-green-500/20 text-green-400 border border-green-500/30'
+          }`}>
+            Diff: {champion.info?.difficulty ?? 5}
+          </div>
+        </div>
+        <div className="space-y-1.5 pt-2 border-t border-white/10">
+          <StatBar label="ATK" value={champion.info?.attack ?? 5} color="bg-red-500" />
+          <StatBar label="MAG" value={champion.info?.magic ?? 5} color="bg-blue-500" />
+          <StatBar label="DEF" value={champion.info?.defense ?? 5} color="bg-green-500" />
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function ChampionCard({
   champion,
@@ -30,10 +68,17 @@ export default function ChampionCard({
   onClick,
   selectionOrder,
   isBoosterFavorite,
+  onHover,
+  onLeave,
 }: ChampionCardProps) {
   return (
     <div 
       onClick={onClick}
+      onMouseEnter={(e) => {
+        const rect = e.currentTarget.getBoundingClientRect();
+        onHover?.(champion, rect);
+      }}
+      onMouseLeave={() => onLeave?.()}
       className={`group relative cursor-pointer transition-all duration-200 select-none ${
         isSelected ? 'scale-105' : 'hover:scale-105'
       }`}
@@ -72,35 +117,11 @@ export default function ChampionCard({
           </div>
         )}
         
-        {/* Overlay Name (Mobile/Small) */}
+        {/* Overlay Name */}
         <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/95 via-black/70 to-transparent p-1 pt-4">
           <p className="text-center text-[10px] font-bold text-white truncate px-1">
             {champion.name}
           </p>
-        </div>
-      </div>
-
-      {/* Tooltip (Desktop Only) */}
-      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50 hidden md:block">
-        <div className="bg-zinc-950/95 backdrop-blur-md border border-zinc-800 rounded-lg p-3 shadow-xl">
-          <div className="flex justify-between items-start mb-2">
-            <div>
-              <h4 className="font-bold text-white text-sm">{champion.name}</h4>
-              <p className="text-[10px] text-zinc-400">{champion.tags.join(', ')}</p>
-            </div>
-            <div className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${
-              champion.info.difficulty > 7 ? 'bg-red-500/20 text-red-400' :
-              champion.info.difficulty > 3 ? 'bg-yellow-500/20 text-yellow-400' :
-              'bg-green-500/20 text-green-400'
-            }`}>
-              Diff: {champion.info.difficulty}
-            </div>
-          </div>
-          <div className="space-y-1">
-            <StatBar label="ATK" value={champion.info.attack} color="bg-red-500" />
-            <StatBar label="MAG" value={champion.info.magic} color="bg-blue-500" />
-            <StatBar label="DEF" value={champion.info.defense} color="bg-green-500" />
-          </div>
         </div>
       </div>
     </div>
