@@ -654,8 +654,8 @@ export class BoostersService {
         bio: profile?.bio || booster.booster_info?.bio || '',
         rating: profile?.rating || booster.booster_info?.rating || 0,
         completedOrders: profile?.completedOrders || booster.booster_info?.completed_orders || 0,
-        currentRank: (app as any)?.currentRank || 'N/A',
-        highestRank: (app as any)?.highestRank || 'N/A',
+        currentRank: booster.booster_info?.currentRank || (profile as any)?.currentRank || (app as any)?.currentRank || 'N/A',
+        highestRank: booster.booster_info?.highestRank || (profile as any)?.highestRank || (app as any)?.highestRank || 'N/A',
         coupon: coupon && coupon.isActive ? coupon : null,
       },
     };
@@ -962,14 +962,16 @@ export class BoostersService {
       addonsConfig: existingSettings.addonsConfig || existingSettings.standardConfig?.addonsConfig,
       profile: user.profile || profile,
       currentRank:
+        user.booster_info?.currentRank ||
+        (profile as any)?.currentRank ||
         (profile as any)?.games?.find((g: any) => g.ranks?.length > 1 && g.ranks[1] && g.ranks[1] !== 'N/A')?.ranks?.[1] ||
         (profile as any)?.games?.find((g: any) => g.ranks?.length > 0 && g.ranks[0] && g.ranks[0] !== 'N/A')?.ranks?.[0] ||
-        user.booster_info?.currentRank ||
         (application as any)?.currentRank ||
         'Cao Thủ',
       highestRank:
-        (profile as any)?.games?.find((g: any) => g.ranks?.length > 0 && g.ranks[0] && g.ranks[0] !== 'N/A')?.ranks?.[0] ||
         user.booster_info?.highestRank ||
+        (profile as any)?.highestRank ||
+        (profile as any)?.games?.find((g: any) => g.ranks?.length > 0 && g.ranks[0] && g.ranks[0] !== 'N/A')?.ranks?.[0] ||
         (application as any)?.highestRank ||
         'Thách Đấu',
       performanceScore: (profile as any)?.performanceScore || user.booster_info?.performanceScore || 85,

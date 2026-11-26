@@ -26,6 +26,13 @@ export class UsersService {
       const boosterProfile = await this.boosterProfileModel.findOne({ userId: user._id });
       if (boosterProfile) {
         userObj.booster_profile = boosterProfile;
+        if (!userObj.booster_info) userObj.booster_info = {};
+        if (boosterProfile.currentRank && (!userObj.booster_info.currentRank || userObj.booster_info.currentRank === 'N/A')) {
+          userObj.booster_info.currentRank = boosterProfile.currentRank;
+        }
+        if (boosterProfile.highestRank && (!userObj.booster_info.highestRank || userObj.booster_info.highestRank === 'N/A')) {
+          userObj.booster_info.highestRank = boosterProfile.highestRank;
+        }
       }
     } else if (user.role === 'CUSTOMER') {
       // VIP Tier xác định theo VIP Pass đã mua HOẶC Tổng điểm tích luỹ lịch sử (total_points_earned)
@@ -88,9 +95,20 @@ export class UsersService {
         user.booster_info = {};
       }
       user.booster_info.bio = bio;
+      user.markModified('booster_info');
+    }
+    if (user.profile) {
+      user.markModified('profile');
     }
 
     await user.save();
+
+    if (bio !== undefined) {
+      await this.userModel.collection.updateOne(
+        { _id: user._id },
+        { $set: { 'booster_info.bio': bio } },
+      );
+    }
 
     if (user.role === 'BOOSTER' && bio !== undefined) {
       await this.boosterProfileModel.findOneAndUpdate(
@@ -131,11 +149,15 @@ export class UsersService {
         avatar: user.profile?.avatar,
         bio: data.bio || '',
         games: data.games || [],
+        currentRank: user.booster_info.currentRank,
+        highestRank: user.booster_info.highestRank,
       });
     } else {
       if (data.bio !== undefined) boosterProfile.bio = data.bio;
       if (data.displayName !== undefined) boosterProfile.displayName = data.displayName;
       if (data.games !== undefined) boosterProfile.games = data.games;
+      if (user.booster_info.currentRank !== undefined) boosterProfile.currentRank = user.booster_info.currentRank;
+      if (user.booster_info.highestRank !== undefined) boosterProfile.highestRank = user.booster_info.highestRank;
     }
 
     // Tự động sync rank game chính vào booster_info nếu chưa truyền cụ thể
@@ -144,16 +166,34 @@ export class UsersService {
       if (activeGame && activeGame.ranks && activeGame.ranks.length > 0) {
         if (!data.highestRank && activeGame.ranks[0] && activeGame.ranks[0] !== 'N/A') {
           user.booster_info.highestRank = activeGame.ranks[0];
+          boosterProfile.highestRank = activeGame.ranks[0];
         }
         if (!data.currentRank && activeGame.ranks[1] && activeGame.ranks[1] !== 'N/A') {
           user.booster_info.currentRank = activeGame.ranks[1];
+          boosterProfile.currentRank = activeGame.ranks[1];
         } else if (!data.currentRank && activeGame.ranks[0] && activeGame.ranks[0] !== 'N/A') {
           user.booster_info.currentRank = activeGame.ranks[0];
+          boosterProfile.currentRank = activeGame.ranks[0];
         }
       }
     }
 
+    user.markModified('booster_info');
     await user.save();
+
+    // Cập nhật trực tiếp vào MongoDB collection để đảm bảo Schema.Types.Mixed được lưu tuyệt đối 100%
+    await this.userModel.collection.updateOne(
+      { _id: user._id },
+      {
+        $set: {
+          'booster_info.currentRank': user.booster_info.currentRank,
+          'booster_info.highestRank': user.booster_info.highestRank,
+          'booster_info.bio': user.booster_info.bio,
+          booster_info: user.booster_info,
+        },
+      },
+    );
+
     await boosterProfile.save();
 
     return {

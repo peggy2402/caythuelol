@@ -22,6 +22,8 @@ export interface IBoosterProfile extends Document {
   displayName?: string; // Tên hiển thị (nếu muốn khác username)
   avatar?: string; // Avatar tuyển thủ
   bio: string;
+  currentRank?: string;
+  highestRank?: string;
   
   // Hỗ trợ nhiều game với rank và năng lực độc lập
   games: IBoosterGameProfile[];
@@ -67,6 +69,8 @@ const BoosterProfileSchema = new Schema<IBoosterProfile>(
     displayName: { type: String },
     avatar: { type: String },
     bio: { type: String, default: '' },
+    currentRank: { type: String },
+    highestRank: { type: String },
     
     // Cấu trúc mới hỗ trợ nhiều game
     games: { type: [BoosterGameProfileSchema], default: [] },

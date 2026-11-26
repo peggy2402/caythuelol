@@ -516,7 +516,7 @@ export default async function ShortProfilePage({ params }: Props) {
               boosterGames={
                 boosterData?.games && boosterData.games.length > 0
                   ? boosterData.games
-                  : [{ gameCode: 'LOL', ranks: ['Thách Đấu', 'Cao Thủ'], servers: ['VN'] }]
+                  : [{ gameCode: 'LOL', ranks: [boosterData?.highestRank || 'Thách Đấu', boosterData?.currentRank || 'Cao Thủ'], servers: ['VN'] }]
               }
               defaultCurrentRank={boosterData?.currentRank || 'Cao Thủ'}
               defaultHighestRank={boosterData?.highestRank || 'Thách Đấu'}

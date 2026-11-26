@@ -150,7 +150,9 @@ export default function BoosterCard({ booster, isBookmarked, onToggleBookmark }:
   
   // Game & Rank thật
   const primaryGameCode = (booster.games?.[0]?.gameCode || booster.games?.[0]?.game || '').toUpperCase();
-  const userRank = booster.games?.[0]?.ranks?.[0] || booster.booster_info?.currentRank || '';
+  const userRank = (booster.games?.[0]?.ranks?.[0] && booster.games[0].ranks[0] !== 'N/A')
+    ? booster.games[0].ranks[0]
+    : (booster.booster_info?.highestRank || booster.booster_info?.currentRank || '');
   const cleanRankKey = resolveRankImageKey(userRank);
   const isPrimaryAov =
     ['AOV', 'LIENQUAN', 'LQM', 'ARENA_OF_VALOR'].includes(primaryGameCode) ||
