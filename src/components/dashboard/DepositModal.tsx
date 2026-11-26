@@ -120,7 +120,11 @@ export default function DepositModal({
     if (!socket.connected) {
       socket.connect();
     }
-    socket.emit('join_user_room', user._id);
+    const joinRoom = () => {
+      socket.emit('join_user_room', user._id);
+    };
+    joinRoom();
+    socket.on('connect', joinRoom);
 
     const handleUpdate = (data: { balance: number; message: string; type?: string }) => {
       if (data.type === 'REJECT') {
@@ -137,6 +141,7 @@ export default function DepositModal({
     socket.on('balance_updated', handleUpdate);
 
     return () => {
+      socket.off('connect', joinRoom);
       socket.off('wallet_update', handleUpdate);
       socket.off('balance_updated', handleUpdate);
     };
@@ -153,7 +158,8 @@ export default function DepositModal({
         const res = await fetch(`/api/wallet?page=1&limit=5&_t=${Date.now()}_${Math.random()}`);
         if (!res.ok || !isMounted) return;
         const data = await res.json();
-        const currentBal = data.wallet?.balance ?? data.wallet?.wallet_balance ?? 0;
+        // Sửa bug đọc data.balance (trước đây đọc data.wallet?.balance nên luôn bằng 0)
+        const currentBal = data.balance ?? data.availableBalance ?? data.wallet?.balance ?? 0;
         const latestTx = data.transactions?.[0];
 
         // 1. Kiểm tra theo Transaction ID nếu có
@@ -164,7 +170,7 @@ export default function DepositModal({
 
         // 2. Kiểm tra nếu số dư tăng lên
         const isBalanceIncreased =
-          initialBalanceRef.current > 0 && currentBal > initialBalanceRef.current;
+          initialBalanceRef.current > 0 ? currentBal > initialBalanceRef.current : currentBal > 0;
 
         // 3. Kiểm tra giao dịch nạp tiền thành công gần nhất khớp số tiền
         const isMatchedRecentTx =

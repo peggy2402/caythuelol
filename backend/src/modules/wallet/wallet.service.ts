@@ -140,7 +140,7 @@ export class WalletService {
       status: TransactionStatus.PENDING,
       balanceAfter: user.wallet_balance,
       description: `Nạp tiền vào tài khoản (${amount.toLocaleString('vi-VN')} đ)`,
-      metadata: { gateway: 'SePay' },
+      metadata: { gateway: 'BANK_TRANSFER' },
     });
 
     await transaction.save();

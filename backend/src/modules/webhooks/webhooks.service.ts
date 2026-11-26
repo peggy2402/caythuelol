@@ -55,12 +55,15 @@ export class WebhooksService {
       return { success: true, message: 'Ignored outgoing transaction' };
     }
 
-    // Idempotency check
+    // Idempotency check: kiểm tra theo metadata.id hoặc description chứa ID giao dịch (hỗ trợ cả SePay cũ và Mã GD mới)
     const existing = await this.transactionModel.findOne({
-      description: { $regex: `SePay #${data.id}`, $options: 'i' },
+      $or: [
+        { 'metadata.id': data.id },
+        { description: { $regex: `#${data.id}`, $options: 'i' } },
+      ],
     });
     if (existing) {
-      this.logger.log(`🟡 [SePay Webhook] Skipped duplicate SePay ID ${data.id}`);
+      this.logger.log(`🟡 [Webhook] Skipped duplicate transaction ID ${data.id}`);
       return { success: true, message: 'Transaction already processed', id: existing._id };
     }
 
@@ -202,9 +205,9 @@ export class WebhooksService {
 
     if (transaction) {
       transaction.status = TransactionStatus.SUCCESS;
-      transaction.description = `${transaction.description} - SePay #${data.id}`;
+      transaction.description = `${transaction.description} - Mã GD #${data.id}`;
       transaction.balanceAfter = updatedUser.wallet_balance;
-      transaction.metadata = data;
+      transaction.metadata = { ...data, gateway: 'BANK_TRANSFER' };
       await transaction.save();
     } else {
       transaction = await this.transactionModel.create({
@@ -213,12 +216,12 @@ export class WebhooksService {
         amount: data.transferAmount,
         status: TransactionStatus.SUCCESS,
         balanceAfter: updatedUser.wallet_balance,
-        metadata: data,
-        description: `Nạp tiền tự động (SePay #${data.id})`,
+        metadata: { ...data, gateway: 'BANK_TRANSFER' },
+        description: `Nạp tiền tự động (Mã GD #${data.id})`,
       });
     }
 
-    this.logger.log(`✅ [SePay Webhook] Credited ${data.transferAmount} to ${user.username}`);
+    this.logger.log(`✅ [Webhook] Credited ${data.transferAmount} to ${user.username}`);
 
     try {
       this.chatGateway.broadcastBalanceUpdate(

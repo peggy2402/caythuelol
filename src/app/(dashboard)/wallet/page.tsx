@@ -169,13 +169,17 @@ export default function WalletPage() {
   // Socket.io Integration: Fix triệt để vấn đề cập nhật
   useEffect(() => {
     if (currentUser && currentUser._id) {
-      // 1. Kết nối và Join Room theo User ID
+      // 1. Kết nối và Join Room theo User ID (kèm tự động re-join khi reconnect)
       if (!socket.connected) {
         socket.connect();
       }
       
-      // console.log('🔌 Socket joining room:', currentUser._id);
-      socket.emit('join_user_room', currentUser._id);
+      const joinRoom = () => {
+        socket.emit('join_user_room', currentUser._id);
+      };
+
+      joinRoom();
+      socket.on('connect', joinRoom);
 
       // 2. Xử lý khi nhận được thông báo từ Server
       const handleWalletUpdate = async (data: { balance: number, message: string, type?: string }) => {
@@ -194,7 +198,6 @@ export default function WalletPage() {
 
         // Cập nhật UI ngay lập tức (Force Update)
         setBalance(data.balance);
-        // Note: pending_balance might also need update via socket if implemented on backend
         
         if (isDepositModalOpen) {
           // Nếu đang mở modal nạp tiền -> Chuyển sang trạng thái thành công
@@ -209,7 +212,6 @@ export default function WalletPage() {
           } catch (e) { console.error("Sound play error:", e); }
 
           // Hiệu ứng pháo hoa (Confetti)
-          // Bắn liên tục trong 3 giây
           const duration = 3000;
           const end = Date.now() + duration;
 
@@ -245,39 +247,52 @@ export default function WalletPage() {
         } else {
           await fetchWalletData(currentPage, limit);
         }
-
-        // Gọi fetch lại dữ liệu để đảm bảo đồng bộ với DB
       };
 
       socket.on('wallet_update', handleWalletUpdate);
       socket.on('balance_updated', handleWalletUpdate);
 
       return () => {
+        socket.off('connect', joinRoom);
         socket.off('wallet_update', handleWalletUpdate);
         socket.off('balance_updated', handleWalletUpdate);
       };
     }
   }, [currentUser, isDepositModalOpen]); // Thêm dependency để socket closure cập nhật state mới nhất
 
-  // Cơ chế Polling tự động kiểm tra giao dịch nạp tiền khi đang hiển thị popup chờ (Backup cho Socket)
+  // Cơ chế Polling tự động kiểm tra giao dịch nạp tiền ngay khi QR xuất hiện hoặc đang chờ (Backup Socket)
   useEffect(() => {
-    if (!isWaitingForPayment) return;
+    if (!isDepositModalOpen || (!pendingTx && !isWaitingForPayment) || isSuccess) return;
 
+    let isMounted = true;
     const initialBal = balance;
+
     const interval = setInterval(async () => {
       try {
         const res = await fetch(`/api/wallet?page=1&limit=5&t=${Date.now()}`);
-        if (!res.ok) return;
+        if (!res.ok || !isMounted) return;
         const data = await res.json();
-        const currentBal = data.wallet?.balance ?? data.wallet?.wallet_balance ?? 0;
+        // Sửa triệt để bug data.balance (trước đây đọc data.wallet?.balance dẫn đến luôn bằng 0)
+        const currentBal = data.balance ?? data.availableBalance ?? data.wallet?.balance ?? 0;
         const latestTx = data.transactions?.[0];
 
-        // Nếu số dư đã tăng lên hoặc có giao dịch nạp tiền PENDING đã chuyển sang SUCCESS
+        // 1. Kiểm tra theo Transaction ID nếu có
         const isTxSuccess = pendingTx?.info?.transactionId
           ? latestTx?._id === pendingTx.info.transactionId && latestTx?.status === 'SUCCESS'
-          : latestTx?.type === 'DEPOSIT' && latestTx?.status === 'SUCCESS' && currentBal > initialBal;
+          : false;
 
-        if (isTxSuccess || currentBal > initialBal) {
+        // 2. Kiểm tra nếu số dư đã tăng lên
+        const isBalanceIncreased = initialBal > 0 ? currentBal > initialBal : currentBal > 0;
+
+        // 3. Kiểm tra giao dịch nạp tiền thành công gần nhất khớp số tiền (trong 3 phút)
+        const isMatchedRecentTx =
+          latestTx?.type === 'DEPOSIT' &&
+          latestTx?.status === 'SUCCESS' &&
+          pendingTx?.info?.amount &&
+          latestTx?.amount === pendingTx.info.amount &&
+          Date.now() - new Date(latestTx.createdAt).getTime() < 3 * 60 * 1000;
+
+        if (isTxSuccess || isBalanceIncreased || isMatchedRecentTx) {
           setBalance(currentBal);
           setIsWaitingForPayment(false);
           setIsSuccess(true);
@@ -297,6 +312,7 @@ export default function WalletPage() {
           } catch (e) {}
 
           setTimeout(async () => {
+            if (!isMounted) return;
             setIsDepositModalOpen(false);
             setIsSuccess(false);
             setPendingTx(null);
@@ -307,10 +323,13 @@ export default function WalletPage() {
       } catch (err) {
         console.error('Polling deposit check error:', err);
       }
-    }, 2500);
+    }, 1500); // Polling siêu tốc mỗi 1.5s để cập nhật ngay khi tiền về
 
-    return () => clearInterval(interval);
-  }, [isWaitingForPayment, balance, pendingTx]);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, [isDepositModalOpen, isWaitingForPayment, balance, pendingTx, isSuccess]);
 
   // Bước 1: Hiển thị QR Code (Chưa tạo giao dịch DB)
   const handleShowQR = (e: React.FormEvent) => {
@@ -518,8 +537,13 @@ export default function WalletPage() {
   };
 
   const getTransactionTitle = (tx: Transaction) => {
-    if (tx.description && !tx.description.startsWith('BankAPINotify')) {
-      return tx.description;
+    let desc = tx.description || '';
+    if (desc) {
+      // Tự động lọc sạch chữ "SePay" khỏi tất cả các giao dịch (kể cả các bản ghi cũ trong DB)
+      desc = desc.replace(/SePay\s*#/gi, 'Mã GD #').replace(/\bSePay\b/gi, 'Ngân hàng');
+      if (!desc.startsWith('BankAPINotify')) {
+        return desc;
+      }
     }
     if (tx.type === 'DEPOSIT') {
       return `Nạp tiền vào tài khoản (${formatCurrency(Math.abs(tx.amount))})`;
@@ -531,7 +555,7 @@ export default function WalletPage() {
     if (tx.type === 'RELEASE' || tx.type === 'PAYMENT_RELEASE') return 'Nhận tiền công cày thuê';
     if (tx.type === 'REFUND') return 'Hoàn tiền vào ví';
     if (tx.type === 'DISPUTE_PENALTY') return 'Truy thu tiền khiếu nại đơn';
-    return tx.description || tx.type;
+    return desc || tx.type;
   };
 
   const getTransactionStatusMeta = (status: string, type?: string) => {
