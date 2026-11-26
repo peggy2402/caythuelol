@@ -11,7 +11,7 @@ import {
 import { toast } from 'sonner';
 import { PointBoostTierSegment } from '@/lib/rank-calculator';
 import { resolveAovStarRate, getAovHighRankByStars } from '@/lib/aov';
-import { StarIcon } from '../StarIcon';
+import { StarIcon, renderWithStarIcon } from '../StarIcon';
 
 interface PointAndStarBoostSectionProps {
   isPointBoost: boolean;
@@ -138,7 +138,7 @@ export function PointAndStarBoostSection({
               )}
               <span className={`text-[10px] font-black px-2 py-0.5 rounded-lg border whitespace-nowrap font-mono tracking-tight flex items-center gap-1 ${tier.badgeColor}`}>
                 {isHighElo && <StarIcon size={11} />}
-                <span>{tier.shortLabel}</span>
+                <span>{renderWithStarIcon(tier.shortLabel, 11)}</span>
               </span>
             </div>
             {isSelected && (
@@ -158,10 +158,10 @@ export function PointAndStarBoostSection({
           </div>
 
           <div className="text-xs sm:text-sm font-black text-white mb-0.5 leading-snug">
-            {tier.label}
+            {renderWithStarIcon(tier.label, 13)}
           </div>
           <div className="text-[11px] text-zinc-400 mb-2 leading-relaxed">
-            {tier.desc}
+            {renderWithStarIcon(tier.desc, 11)}
           </div>
         </div>
 
@@ -190,8 +190,14 @@ export function PointAndStarBoostSection({
           </span>
           <span className="text-red-500">*</span>
         </label>
-        <span className="text-[11px] text-cyan-400 font-semibold">
-          {isAov ? 'Đơn vị tính: Sao (★)' : `Đơn vị tính: Điểm ${pointUnit}`}
+        <span className="text-[11px] text-cyan-400 font-semibold flex items-center gap-1">
+          {isAov ? (
+            <>
+              Đơn vị tính: Sao (<StarIcon size={12} className="-translate-y-[1px]" />)
+            </>
+          ) : (
+            `Đơn vị tính: Điểm ${pointUnit}`
+          )}
         </span>
       </div>
 
@@ -225,8 +231,8 @@ export function PointAndStarBoostSection({
                   2. Cày Sao Tích Lũy (Cao Thủ Trở Lên)
                 </span>
               </div>
-              <span className="text-[10px] text-amber-300/90 font-bold px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20 self-start sm:self-auto">
-                Tích lũy 0★ ➔ 100★+ (Tự tính lũy tiến)
+              <span className="text-[10px] text-amber-300/90 font-bold px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20 self-start sm:self-auto flex items-center gap-0.5">
+                {renderWithStarIcon('Tích lũy 0★ ➔ 100★+ (Tự tính lũy tiến)', 11)}
               </span>
             </div>
             <p className="text-[11px] text-zinc-400">
@@ -277,7 +283,7 @@ export function PointAndStarBoostSection({
                   Bậc & Đoàn Hiện Tại Bạn Đang Chọn:
                 </span>
                 <div className="text-sm sm:text-base font-black text-white flex items-center gap-2 flex-wrap">
-                  <span>{aovOddStartStep.label}</span>
+                  <span>{renderWithStarIcon(aovOddStartStep.label, 13)}</span>
                   <span className="text-xs font-extrabold px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/40 font-mono flex items-center gap-1">
                     <span>{aovOddCurrentStarsInDiv} / {aovOddStartStep.starsPerDivision || 5}</span>
                     <StarIcon size={12} />
@@ -289,7 +295,7 @@ export function PointAndStarBoostSection({
             <div className="hidden sm:flex flex-col items-end shrink-0">
               <span className="text-[10px] text-zinc-400 font-medium">Phân khúc:</span>
               <span className="text-xs font-black text-cyan-300">
-                {selectedPointTierObj.label}
+                {renderWithStarIcon(selectedPointTierObj.label, 12)}
               </span>
             </div>
           </div>
@@ -585,7 +591,10 @@ export function PointAndStarBoostSection({
               </span>
               <p className="text-[11px] sm:text-xs text-zinc-400 mt-0.5">
                 {isAov
-                  ? 'Nhập số sao hiện tại và mục tiêu (0★ → 100★+). Nếu vượt ngưỡng Đại Cao Thủ (20★) hoặc Chiến Tướng (50★), hệ thống tự tính đúng đơn giá từng mốc.'
+                  ? renderWithStarIcon(
+                      'Nhập số sao hiện tại và mục tiêu (0★ → 100★+). Nếu vượt ngưỡng Đại Cao Thủ (20★) hoặc Chiến Tướng (50★), hệ thống tự tính đúng đơn giá từng mốc.',
+                      12
+                    )
                   : 'Nhập số điểm thực tế hiện tại và mốc điểm bạn muốn đạt. Hệ thống sẽ tính số điểm chênh lệch cần cày.'}
               </p>
             </div>

@@ -9,6 +9,7 @@ import UserBadge from '@/components/UserBadge';
 import { GameDefinition } from '@/lib/games';
 import { BoosterItem, ICON_MAP } from './types';
 import { getBoosterWorkingScheduleText } from '@/lib/booster-helpers';
+import { renderWithStarIcon } from '@/app/services/[game]/[service]/components/StarIcon';
 
 interface BoosterHireModalProps {
   game: GameDefinition;
@@ -102,14 +103,14 @@ export function BoosterHireModal({
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 mb-1 flex-wrap">
                         <h4 className="font-bold text-white text-sm group-hover:text-blue-400 transition-colors">
-                          {svc.name}
+                          {renderWithStarIcon(svc.name, 14)}
                         </h4>
                         <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
                           Cọc {svc.depositPercent}%
                         </span>
                       </div>
                       <p className="text-xs text-zinc-400 line-clamp-2">
-                        {svc.desc}
+                        {renderWithStarIcon(svc.desc, 12)}
                       </p>
                     </div>
                   </div>

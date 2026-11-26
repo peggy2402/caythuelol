@@ -72,16 +72,7 @@ import {
   resolveAovStarRate,
 } from '@/lib/aov';
 
-function StarIcon({ size = 14, className = '' }: { size?: number; className?: string }) {
-  return (
-    <img
-      src="/images/icons/star.png"
-      alt="★"
-      style={{ width: size, height: size }}
-      className={`inline-block object-contain shrink-0 align-middle ${className}`}
-    />
-  );
-}
+import { StarIcon, renderWithStarIcon } from './components/StarIcon';
 import { getMobaLanes, getLaneMeta, isMobaGame, LaneMeta } from '@/lib/lanes';
 import { ProviderLogo } from './components/ProviderLogo';
 import {
@@ -1797,7 +1788,7 @@ function ServiceBookingContent() {
               {game.name}
             </Link>
             <ChevronRight size={13} className="text-zinc-600 shrink-0" />
-            <span className="text-white font-bold truncate shrink-0">{serviceDef.name}</span>
+            <span className="text-white font-bold truncate shrink-0">{renderWithStarIcon(serviceDef.name)}</span>
           </nav>
         </div>
 
@@ -1805,7 +1796,7 @@ function ServiceBookingContent() {
         <div className="mb-8">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-bold uppercase tracking-wider mb-2">
             <Trophy size={14} />
-            <span>{game.shortName} · {serviceDef.name}</span>
+            <span>{game.shortName} · {renderWithStarIcon(serviceDef.name)}</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-white">
             Bảng Tính Giá & Đặt Dịch Vụ Cày Rank

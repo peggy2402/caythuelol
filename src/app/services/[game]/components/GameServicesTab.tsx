@@ -7,6 +7,7 @@ import { Swords, Gamepad2, Users, ArrowRight, Lock, Loader2, Trophy } from 'luci
 import { toast } from 'sonner';
 import { GameDefinition } from '@/lib/games';
 import { GroupedService, ICON_MAP, AVATAR_BG_COLORS } from './types';
+import { renderWithStarIcon } from '@/app/services/[game]/[service]/components/StarIcon';
 
 interface GameServicesTabProps {
   game: GameDefinition;
@@ -126,14 +127,14 @@ export function GameServicesTab({
                           : 'text-zinc-400'
                       }`}
                     >
-                      {group.name}
+                      {renderWithStarIcon(group.name, 15)}
                     </h3>
                     <p
                       className={`text-xs line-clamp-2 leading-relaxed min-h-[34px] ${
                         hasBoosters ? 'text-zinc-400' : 'text-zinc-500'
                       }`}
                     >
-                      {group.desc}
+                      {renderWithStarIcon(group.desc, 12)}
                     </p>
                   </div>
                 </div>

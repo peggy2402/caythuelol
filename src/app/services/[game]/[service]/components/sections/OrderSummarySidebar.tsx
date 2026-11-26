@@ -18,7 +18,7 @@ import { getLaneMeta } from '@/lib/lanes';
 import { getAovHighRankByStars } from '@/lib/aov';
 import { LolServer, TIER_CONFIG } from '../../constants/bookingConfig';
 import { ProviderLogo } from '../ProviderLogo';
-import { StarIcon } from '../StarIcon';
+import { StarIcon, renderWithStarIcon } from '../StarIcon';
 
 interface OrderSummarySidebarProps {
   isPromotion: boolean;
@@ -358,8 +358,11 @@ export function OrderSummarySidebar({
                   <div className="pt-1.5 mt-1 border-t border-zinc-800/80 space-y-1">
                     {aovStarCalc.breakdown.map((seg: any) => (
                       <div key={seg.tierId} className="flex justify-between text-[11px] text-zinc-400 gap-2">
-                        <span className="truncate">
-                          {seg.fromStar}★→{seg.toStar}★ ({seg.stars}★ × {seg.ratePerStar.toLocaleString('vi-VN')}đ)
+                        <span className="truncate flex items-center gap-0.5">
+                          {renderWithStarIcon(
+                            `${seg.fromStar}★→${seg.toStar}★ (${seg.stars}★ × ${seg.ratePerStar.toLocaleString('vi-VN')}đ)`,
+                            11
+                          )}
                         </span>
                         <span className="font-mono text-cyan-400 font-bold shrink-0">
                           {seg.subtotal.toLocaleString('vi-VN')}đ

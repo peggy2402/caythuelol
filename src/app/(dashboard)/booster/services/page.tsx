@@ -71,6 +71,7 @@ import {
   getAovTierPackageCurrentTotal,
   resolveAovStarRate,
 } from '@/lib/aov';
+import { StarIcon, renderWithStarIcon } from '@/app/services/[game]/[service]/components/StarIcon';
 
 const ICON_MAP: Record<string, LucideIcon> = {
   Swords,
@@ -1502,7 +1503,9 @@ export default function BoosterServicesStudio() {
                     {/* Header: Title + Badges + Edit/Trash/Switch */}
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-2 min-w-0 pr-2">
-                        <span className="font-extrabold text-white text-sm" title={displayName}>{displayName}</span>
+                        <span className="font-extrabold text-white text-sm flex items-center gap-1" title={displayName}>
+                          {renderWithStarIcon(displayName, 13)}
+                        </span>
                         <span
                           className={`text-[10px] font-bold px-2 py-0.5 rounded-md border shrink-0 ${isRankBoost
                             ? 'bg-blue-500/10 border-blue-500/30 text-blue-400'
@@ -3110,9 +3113,14 @@ export default function BoosterServicesStudio() {
                             </div>
                             <div className="min-w-0">
                               <span className="font-extrabold text-white text-xs sm:text-sm block truncate">
-                                {tier.label}{tier.shortLabel && tier.shortLabel !== tier.label ? ` (${tier.shortLabel})` : ''}
+                                {renderWithStarIcon(
+                                  tier.label + (tier.shortLabel && tier.shortLabel !== tier.label ? ` (${tier.shortLabel})` : ''),
+                                  13
+                                )}
                               </span>
-                              <span className="text-[11px] text-zinc-400 block truncate mt-0.5">{tier.desc}</span>
+                              <span className="text-[11px] text-zinc-400 block truncate mt-0.5">
+                                {renderWithStarIcon(tier.desc, 11)}
+                              </span>
                             </div>
                           </div>
                           <div className="flex items-center gap-2 shrink-0">
@@ -3182,8 +3190,8 @@ export default function BoosterServicesStudio() {
                                       2. Phân Khúc Cày Sao Tích Lũy (Cao Thủ Trở Lên)
                                     </span>
                                   </div>
-                                  <span className="text-[10px] text-amber-300 font-bold px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20">
-                                    Áp dụng khách cày 0★ ➔ 100★+
+                                  <span className="text-[10px] text-amber-300 font-bold px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center gap-0.5">
+                                    {renderWithStarIcon('Áp dụng khách cày 0★ ➔ 100★+', 11)}
                                   </span>
                                 </div>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
