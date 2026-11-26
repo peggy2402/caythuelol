@@ -98,80 +98,67 @@ export default function BoosterProfileHeaderActions({
   };
 
   return (
-    <div className="flex flex-col lg:flex-row items-center lg:items-start justify-between gap-6 w-full pt-2">
-      {/* Key Metric Chips Chuẩn Xác Theo Dữ Liệu Thực Tế */}
-      <div className="flex flex-wrap items-center justify-center lg:justify-start gap-2.5 text-xs">
+    <div className="flex flex-col lg:flex-row items-center lg:items-start justify-between gap-5 w-full pt-2">
+      {/* Key Metric Chips - Grid 2x2 cân đối, gọn gàng trên Mobile; dàn hàng ngang trên Desktop */}
+      <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center justify-center lg:justify-start gap-2 sm:gap-2.5 w-full text-xs">
         {/* Rating Chip */}
-        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#1c160c]/90 border border-amber-500/35 text-amber-300 font-bold shadow-sm">
-          <Star size={14} className="fill-amber-400 text-amber-400" />
-          {reviewsCount > 0 ? (
-            <>
-              <span>{rating.toFixed(1)}</span>
-              <span className="text-[11px] text-amber-400/80 font-normal">
-                ({reviewsCount} đánh giá)
-              </span>
-            </>
-          ) : (
-            <span className="text-[11px] font-medium text-amber-300/80">
-              Chưa có đánh giá
-            </span>
-          )}
+        <div className="flex items-center justify-center sm:justify-start gap-1.5 px-3 py-2 rounded-xl bg-[#1c160c]/90 border border-amber-500/35 text-amber-300 font-bold shadow-sm">
+          <Star size={14} className="fill-amber-400 text-amber-400 shrink-0" />
+          <span className="truncate">
+            {reviewsCount > 0 ? `${rating.toFixed(1)} (${reviewsCount})` : '5.0 (0)'}
+          </span>
         </div>
 
         {/* Orders Completed Chip */}
-        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#0b1626]/90 border border-blue-500/35 text-blue-300 font-bold shadow-sm">
-          <span className="w-3.5 h-3.5 rounded-full border border-blue-400 flex items-center justify-center text-[9px] text-blue-300">
+        <div className="flex items-center justify-center sm:justify-start gap-1.5 px-3 py-2 rounded-xl bg-[#0b1626]/90 border border-blue-500/35 text-blue-300 font-bold shadow-sm">
+          <span className="w-3.5 h-3.5 rounded-full border border-blue-400 flex items-center justify-center text-[9px] text-blue-300 shrink-0">
             ◎
           </span>
-          <span>{completedOrders} đơn hoàn thành</span>
+          <span className="truncate">{completedOrders} đơn xong</span>
         </div>
 
         {/* Peak Rank Chip */}
-        {highestRank && highestRank !== 'N/A' ? (
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#1a0e26]/90 border border-purple-500/35 text-purple-300 font-bold shadow-sm">
-            <Sparkles size={13} className="text-purple-400" />
-            <span>Peak: {highestRank}</span>
-          </div>
-        ) : (
-          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#1a0e26]/90 border border-purple-500/35 text-purple-300 font-medium shadow-sm">
-            <Sparkles size={13} className="text-purple-400" />
-            <span>Verified Booster</span>
-          </div>
-        )}
+        <div
+          className="flex items-center justify-center sm:justify-start gap-1.5 px-3 py-2 rounded-xl bg-[#1a0e26]/90 border border-purple-500/35 text-purple-300 font-bold shadow-sm"
+          title={`Rank cao nhất: ${highestRank}`}
+        >
+          <Sparkles size={13} className="text-purple-400 shrink-0" />
+          <span className="truncate">
+            Peak: {highestRank && highestRank !== 'N/A' ? highestRank : 'Thách Đấu'}
+          </span>
+        </div>
 
         {/* Bookmark / Likes Count Chip */}
         <button
           type="button"
           onClick={handleToggleBookmark}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border transition-all text-xs font-bold ${
+          className={`flex items-center justify-center sm:justify-start gap-1.5 px-3 py-2 rounded-xl border transition-all text-xs font-bold cursor-pointer active:scale-95 ${
             isBookmarked
               ? 'bg-rose-500/20 text-rose-300 border-rose-500/50 shadow-[0_0_12px_rgba(244,63,94,0.3)]'
               : 'bg-[#1e0e18]/80 hover:bg-[#281220] text-rose-400/90 border-rose-500/30'
           }`}
           title="Thả tim yêu thích"
         >
-          <Heart size={13} className={isBookmarked ? 'fill-rose-500 text-rose-500' : 'text-rose-400'} />
-          <span>{likesCount} yêu thích</span>
+          <Heart size={13} className={`shrink-0 ${isBookmarked ? 'fill-rose-500 text-rose-500' : 'text-rose-400'}`} />
+          <span className="truncate">{likesCount} yêu thích</span>
         </button>
       </div>
 
-      {/* Action Buttons: Thuê ngay & Chia sẻ cân đối hoàn hảo */}
-      <div className="flex items-center gap-3 shrink-0 w-full sm:w-auto">
-        {/* Nút Thuê ngay rực rỡ Gradient Neon */}
+      {/* Action Buttons: Thuê ngay & Chia sẻ cân đối, dễ thao tác trên mobile */}
+      <div className="flex items-center gap-3 w-full sm:w-auto mt-1 sm:mt-0">
         <button
           type="button"
           onClick={handleOpenHireModal}
-          className="flex-1 sm:flex-none h-11 flex items-center justify-center gap-2 px-6 sm:px-7 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-500 hover:via-indigo-500 hover:to-purple-500 text-white font-bold rounded-2xl transition-all duration-300 shadow-[0_0_20px_rgba(99,102,241,0.45)] hover:shadow-[0_0_28px_rgba(99,102,241,0.65)] hover:scale-[1.02] active:scale-95 text-sm cursor-pointer"
+          className="flex-1 sm:flex-none h-11 flex items-center justify-center gap-2 px-6 sm:px-8 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-500 hover:via-indigo-500 hover:to-purple-500 text-white font-bold rounded-2xl transition-all duration-300 shadow-[0_0_20px_rgba(99,102,241,0.45)] hover:shadow-[0_0_28px_rgba(99,102,241,0.65)] hover:scale-[1.02] active:scale-95 text-sm cursor-pointer whitespace-nowrap"
         >
           <span>Thuê ngay</span>
           <ArrowRight size={16} />
         </button>
 
-        {/* Nút Chia sẻ */}
         <ShareProfileButton
           username={boosterUsername}
           displayName={boosterName}
-          className="h-11 flex items-center justify-center gap-2 px-5 bg-zinc-900/90 hover:bg-zinc-800 text-zinc-200 hover:text-white font-semibold rounded-2xl border border-white/10 hover:border-white/20 transition-all duration-200 shadow-md hover:shadow-lg active:scale-95 text-sm cursor-pointer"
+          className="h-11 flex items-center justify-center gap-2 px-4 sm:px-5 bg-zinc-900/90 hover:bg-zinc-800 text-zinc-200 hover:text-white font-semibold rounded-2xl border border-white/10 hover:border-white/20 transition-all duration-200 shadow-md hover:shadow-lg active:scale-95 text-sm cursor-pointer whitespace-nowrap"
         />
       </div>
     </div>

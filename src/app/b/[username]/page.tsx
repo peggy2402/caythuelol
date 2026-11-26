@@ -422,17 +422,27 @@ export default async function ShortProfilePage({ params }: Props) {
                   </h1>
                   <UserBadge role="BOOSTER" size="lg" />
                 </div>
-                <div className="flex items-center justify-center sm:justify-start gap-2">
+                <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
                   <p className="text-zinc-400 text-xs sm:text-sm font-medium font-mono">@{boosterUsername}</p>
                   <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-semibold">
                     <CheckCircle2 size={12} className="text-emerald-400" />
-                    Verified
-                  </span>
-                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-xs font-medium">
-                    <Clock size={12} className="text-cyan-400" />
-                    <span>{getBoosterWorkingScheduleText(boosterData || user)}</span>
+                    Đã xác thực
                   </span>
                 </div>
+
+                {/* Khung Lịch làm việc - Thiết kế thoáng đãng, tự co giãn, không bị ép thành hình tròn trên mobile */}
+                {(() => {
+                  const scheduleText = getBoosterWorkingScheduleText(boosterData || user);
+                  if (!scheduleText || scheduleText === 'Chưa cập nhật' || scheduleText === 'N/A') return null;
+                  return (
+                    <div className="flex items-center justify-center sm:justify-start">
+                      <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-cyan-950/40 border border-cyan-500/30 text-cyan-300 text-xs font-medium max-w-full shadow-sm">
+                        <Clock size={13} className="text-cyan-400 shrink-0" />
+                        <span className="leading-snug">{scheduleText}</span>
+                      </div>
+                    </div>
+                  );
+                })()}
 
                 {/* Header Interactive: Metric Chips + Nút Thuê ngay + Nút Tim + Nút Share */}
                 <BoosterProfileHeaderActions
