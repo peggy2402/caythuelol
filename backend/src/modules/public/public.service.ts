@@ -55,6 +55,7 @@ export class PublicService {
       'SMTP_PASS',
       'MAIL_PASS',
       'SEPAY_API_KEY',
+      'SEPAY_WEBHOOK_SECRET',
       'SEPAY_API_SECRET',
       'NEXT_PUBLIC_SITE_URL',
       'JWT_SECRET',

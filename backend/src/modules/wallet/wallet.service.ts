@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
+import * as crypto from 'crypto';
 
 import { IUser } from '../../database/schemas/User';
 import {
@@ -123,13 +124,20 @@ export class WalletService {
     }).sort({ createdAt: -1 });
 
     const cleanUser = user.username.toUpperCase().replace(/[^A-Z0-9]/g, '');
+    const randomSuffix = crypto.randomBytes(3).toString('hex').toUpperCase();
+    const depositCode = `ZT${randomSuffix}`;
 
     if (existingPending) {
+      if (!existingPending.depositCode) {
+        existingPending.depositCode = depositCode;
+        await existingPending.save();
+      }
       return {
         success: true,
         transaction: existingPending,
         isExisting: true,
         transferContent: `ZT${cleanUser}`,
+        depositCode: existingPending.depositCode,
       };
     }
 
@@ -140,6 +148,7 @@ export class WalletService {
       status: TransactionStatus.PENDING,
       balanceAfter: user.wallet_balance,
       description: `Nạp tiền vào tài khoản (${amount.toLocaleString('vi-VN')} đ)`,
+      depositCode,
       metadata: { gateway: 'BANK_TRANSFER' },
     });
 
@@ -148,6 +157,7 @@ export class WalletService {
     return {
       success: true,
       transaction,
+      depositCode,
       transferContent: `ZT${cleanUser}`,
     };
   }

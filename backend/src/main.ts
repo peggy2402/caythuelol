@@ -21,8 +21,15 @@ async function bootstrap() {
   const logger = new Logger('Bootstrap');
   const app = await NestFactory.create(AppModule, { bodyParser: false });
 
-  // Increase payload size limits for JSON and URL-encoded bodies (avoid 413 Payload Too Large)
-  app.use(json({ limit: '50mb' }));
+  // Increase payload size limits for JSON and URL-encoded bodies and preserve rawBody for HMAC verification
+  app.use(
+    json({
+      limit: '50mb',
+      verify: (req: any, _res, buf) => {
+        req.rawBody = buf;
+      },
+    }),
+  );
   app.use(urlencoded({ extended: true, limit: '50mb' }));
 
   // Trust proxy for accurate client IP detection behind Cloudflare/Nginx

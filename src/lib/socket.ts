@@ -6,6 +6,15 @@ const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || process.env.NEXT_PUBLIC
 export const socket = io(SOCKET_URL, {
   autoConnect: false, // Gọi socket.connect() khi User đã login
   reconnection: true,
+  reconnectionAttempts: 10,
+  reconnectionDelay: 1000,
   withCredentials: true,
   transports: ['websocket', 'polling'],
+  auth: (cb) => {
+    let token = '';
+    if (typeof window !== 'undefined') {
+      token = localStorage.getItem('token') || localStorage.getItem('jwt') || '';
+    }
+    cb({ token });
+  },
 });

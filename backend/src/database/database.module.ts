@@ -23,6 +23,8 @@ import Voucher from './schemas/Voucher';
 import PointTransaction from './schemas/PointTransaction';
 import RankingConfig from './schemas/RankingConfig';
 import BoosterRankingHistory from './schemas/BoosterRankingHistory';
+import WebhookLog from './schemas/WebhookLog';
+import UnmatchedDeposit from './schemas/UnmatchedDeposit';
 
 const models = [
   { name: 'User', schema: User.schema },
@@ -47,6 +49,8 @@ const models = [
   { name: 'PointTransaction', schema: PointTransaction.schema },
   { name: 'RankingConfig', schema: RankingConfig.schema },
   { name: 'BoosterRankingHistory', schema: BoosterRankingHistory.schema },
+  { name: 'WebhookLog', schema: WebhookLog.schema },
+  { name: 'UnmatchedDeposit', schema: UnmatchedDeposit.schema },
 ];
 
 @Global()

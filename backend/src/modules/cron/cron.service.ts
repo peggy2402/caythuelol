@@ -2,6 +2,8 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
+import axios from 'axios';
+import { WebhooksService, SePayWebhookData } from '../webhooks/webhooks.service';
 
 import { IUser } from '../../database/schemas/User';
 import { IOrder, OrderStatus } from '../../database/schemas/Order';
@@ -21,6 +23,7 @@ export class CronService {
     @InjectModel('Order') private orderModel: Model<IOrder>,
     @InjectModel('Transaction') private transactionModel: Model<ITransaction>,
     @InjectModel('SystemSetting') private settingModel: Model<ISystemSetting>,
+    private readonly webhooksService: WebhooksService,
   ) {}
 
   // 1. Quét nợ và tự động khóa tài khoản mỗi ngày lúc nửa đêm
@@ -150,6 +153,55 @@ export class CronService {
       }
     } catch (err: any) {
       this.logger.error('❌ [Cron] Lỗi khi xử lý chuyển giao đơn quá hạn:', err.message);
+    }
+  }
+
+  // 5. Job đối soát SePay dự phòng (chạy mỗi 2 phút): kéo các giao dịch bị sót hoặc trễ webhook
+  @Cron('*/2 * * * *')
+  async handleSepayReconciliation() {
+    const accessToken = process.env.SEPAY_ACCESS_TOKEN?.trim();
+    if (!accessToken) {
+      return;
+    }
+
+    try {
+      this.logger.log('🔄 [Cron Reconcile] Checking recent SePay transactions...');
+      const response = await axios.get('https://my.sepay.vn/userapi/transactions/list?limit=20', {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+        timeout: 10000,
+      });
+
+      const transactions = response.data?.messages || response.data?.transactions || [];
+      if (!Array.isArray(transactions) || transactions.length === 0) return;
+
+      for (const item of transactions) {
+        const transferType = item.transfer_type === 'in' || item.amount_in > 0 ? 'in' : 'out';
+        const transferAmount = Number(item.amount_in || item.transfer_amount || item.transferAmount || 0);
+
+        if (transferType === 'in' && transferAmount > 0) {
+          const normalizedData: SePayWebhookData = {
+            id: Number(item.id),
+            gateway: item.gateway || 'Bank',
+            transactionDate: item.transaction_date || item.transactionDate || new Date().toISOString(),
+            accountNumber: item.account_number || item.accountNumber || '',
+            subAccount: item.sub_account || item.subAccount || null,
+            code: item.code || null,
+            transferType: 'in',
+            transferAmount,
+            content: item.transaction_content || item.content || item.transferContent || '',
+            referenceCode: item.reference_number || item.referenceCode || '',
+            description: item.description || '',
+          };
+
+          await this.webhooksService.processDepositTransaction(normalizedData, {
+            ip: '127.0.0.1 (Cron Reconcile)',
+          });
+        }
+      }
+    } catch (err: any) {
+      this.logger.warn(`⚠️ [Cron Reconcile] Failed to reconcile with SePay API: ${err.message}`);
     }
   }
 }

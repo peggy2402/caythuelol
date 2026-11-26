@@ -9,10 +9,27 @@ import {
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { Logger } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
+
+const allowedOrigins = (process.env.CORS_ORIGINS || 'https://leorank.site,http://localhost:3000')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
 
 @WebSocketGateway({
   cors: {
-    origin: '*',
+    origin: (origin: string, callback: (err: Error | null, allow?: boolean) => void) => {
+      // Cho phép requests không có origin (mobile, internal)
+      if (!origin) return callback(null, true);
+      if (
+        allowedOrigins.includes(origin) ||
+        origin.endsWith('.leorank.site') ||
+        process.env.NODE_ENV !== 'production'
+      ) {
+        return callback(null, true);
+      }
+      return callback(new Error(`WebSocket CORS blocked origin: ${origin}`), false);
+    },
     credentials: true,
   },
 })
@@ -24,8 +41,50 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   private readonly onlineUsers = new Map<string, Set<string>>();
   private readonly socketToUser = new Map<string, string>();
 
+  constructor(private readonly jwtService: JwtService) {}
+
   handleConnection(client: Socket) {
     this.logger.log(`Client connected: ${client.id}`);
+    
+    // Tự động xác thực JWT từ handshake (auth.token hoặc cookie hoặc header)
+    try {
+      const token = this.extractTokenFromSocket(client);
+      if (token) {
+        const payload = this.jwtService.verify(token);
+        const userId = payload.userId || payload._id || payload.sub;
+        if (userId) {
+          client.data.userId = userId.toString();
+          client.data.role = payload.role;
+          this.registerUserOnline(client, client.data.userId);
+          this.logger.log(`🔐 Socket ${client.id} authenticated as user_${client.data.userId}`);
+        }
+      }
+    } catch (err: any) {
+      // Token không hợp lệ hoặc hết hạn, client vẫn kết nối dạng ẩn danh
+    }
+  }
+
+  private extractTokenFromSocket(client: Socket): string | null {
+    // 1. Handshake auth { token: "..." }
+    const authToken = client.handshake.auth?.token;
+    if (authToken && typeof authToken === 'string') {
+      return authToken.replace(/^Bearer\s+/i, '');
+    }
+
+    // 2. Handshake authorization header
+    const authHeader = client.handshake.headers?.authorization;
+    if (authHeader && typeof authHeader === 'string') {
+      return authHeader.replace(/^Bearer\s+/i, '');
+    }
+
+    // 3. Cookie token
+    const cookieHeader = client.handshake.headers?.cookie;
+    if (cookieHeader && typeof cookieHeader === 'string') {
+      const match = cookieHeader.match(/(?:^|;\s*)token=([^;]+)/);
+      if (match) return decodeURIComponent(match[1]);
+    }
+
+    return null;
   }
 
   handleDisconnect(client: Socket) {
@@ -97,9 +156,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @ConnectedSocket() client: Socket,
     @MessageBody() userId: string,
   ) {
-    this.registerUserOnline(client, userId);
-    this.logger.log(`Socket ${client.id} joined user channel: user_${userId}`);
-    return { status: 'joined', userId };
+    return this.handleJoinUserRoom(client, userId);
   }
 
   @SubscribeMessage('join_user_room')
@@ -107,9 +164,22 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @ConnectedSocket() client: Socket,
     @MessageBody() userId: string,
   ) {
-    this.registerUserOnline(client, userId);
-    this.logger.log(`Socket ${client.id} joined user channel: user_${userId}`);
-    return { status: 'joined', userId };
+    const authenticatedUserId = client.data?.userId;
+    const role = client.data?.role;
+    const isStaffOrAdmin = role === 'ADMIN' || role === 'STAFF';
+
+    // Kiểm tra bảo mật: Nếu đã xác thực JWT, không cho phép join room của user khác (trừ Admin/Staff)
+    if (authenticatedUserId && userId && authenticatedUserId !== userId && !isStaffOrAdmin) {
+      this.logger.warn(`🚫 Unauthorized join_user_room attempt: Socket ${client.id} (${authenticatedUserId}) tried to join user_${userId}`);
+      return { status: 'forbidden', message: 'Cannot join another user room' };
+    }
+
+    const targetUserId = authenticatedUserId || userId;
+    if (targetUserId) {
+      this.registerUserOnline(client, targetUserId);
+      this.logger.log(`Socket ${client.id} joined user channel: user_${targetUserId}`);
+    }
+    return { status: 'joined', userId: targetUserId };
   }
 
   @SubscribeMessage('check_online')

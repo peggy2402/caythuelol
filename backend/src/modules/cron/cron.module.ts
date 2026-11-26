@@ -1,8 +1,10 @@
 import { Module } from '@nestjs/common';
 import { CronService } from './cron.service';
 import { CronController } from './cron.controller';
+import { WebhooksModule } from '../webhooks/webhooks.module';
 
 @Module({
+  imports: [WebhooksModule],
   controllers: [CronController],
   providers: [CronService],
   exports: [CronService],
