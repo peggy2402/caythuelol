@@ -60,10 +60,31 @@ export class PublicController {
   }
 
   @Public()
+  @Get('champions/version')
+  @ApiOperation({ summary: 'Get latest League of Legends Data Dragon patch version' })
+  async getVersionChampions() {
+    const version = await this.publicService.getLatestDDragonVersion();
+    return { success: true, version };
+  }
+
+  @Public()
+  @Get('champions/versions')
+  @ApiOperation({ summary: 'Get list of League of Legends Data Dragon patch versions' })
+  async getDDragonVersions() {
+    const versions = await this.publicService.getDDragonVersions();
+    return { success: true, versions, latest: versions[0] || '16.23.1' };
+  }
+
+  @Public()
   @Get('champions')
-  @ApiOperation({ summary: 'Get League of Legends champions list' })
-  async getChampions() {
-    return this.publicService.getChampions();
+  @ApiOperation({ summary: 'Get League of Legends champions list with dynamic version and language' })
+  @ApiQuery({ name: 'lang', required: false, description: 'Language code (e.g. vi_VN, en_US). Defaults to vi_VN' })
+  @ApiQuery({ name: 'version', required: false, description: 'Riot patch version (e.g. 16.23.1). Defaults to latest' })
+  async getChampions(
+    @Query('lang') lang?: string,
+    @Query('version') version?: string,
+  ) {
+    return this.publicService.getChampions(lang, version);
   }
 
   @Public()
