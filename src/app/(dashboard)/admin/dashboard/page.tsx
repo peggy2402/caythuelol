@@ -1,4 +1,5 @@
 'use client';
+import BarLoader from '@/components/ui/BarLoader';
 
 import { useState, useEffect } from 'react';
 import {
@@ -73,11 +74,7 @@ export default function AdminDashboard() {
   };
 
   if (loading) {
-    return (
-      <div className="flex justify-center items-center h-[50vh]">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
-      </div>
-    );
+    return <BarLoader className="h-[50vh]" />;
   }
 
   if (!stats) return null;

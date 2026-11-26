@@ -1,4 +1,5 @@
 'use client';
+import BarLoader from '@/components/ui/BarLoader';
 
 import React, { useState, useEffect, useMemo } from 'react';
 import Image from 'next/image';
@@ -364,12 +365,7 @@ export default function AdminVipManagementPage() {
   }, [members, searchTerm, statusFilter]);
 
   if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3 text-white">
-        <Loader2 className="w-8 h-8 animate-spin text-amber-500" />
-        <p className="text-zinc-400 text-sm">Đang tải dữ liệu Hội Viên VIP...</p>
-      </div>
-    );
+    return <BarLoader className="min-h-[60vh]" label="Đang tải dữ liệu Hội Viên VIP..." />;
   }
 
   return (

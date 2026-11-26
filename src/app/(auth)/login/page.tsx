@@ -1,4 +1,5 @@
 'use client';
+import BarLoader from '@/components/ui/BarLoader';
 
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -364,11 +365,7 @@ function LoginForm() {
 export default function LoginPage() {
   return (
     <Suspense
-      fallback={
-        <div className="min-h-screen flex items-center justify-center bg-zinc-950 text-white">
-          <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
-        </div>
-      }
+      fallback={<BarLoader fullScreen />}
     >
       <LoginForm />
     </Suspense>

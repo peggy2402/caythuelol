@@ -1,4 +1,5 @@
 'use client';
+import BarLoader from '@/components/ui/BarLoader';
 
 import React, { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
@@ -176,11 +177,7 @@ export default function CustomerLoyaltyPage() {
   const activeVoucherCount = myVouchers.filter((v) => v.status === 'ACTIVE').length;
 
   if (loading) {
-    return (
-      <div className="min-h-[60vh] flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
-      </div>
-    );
+    return <BarLoader className="min-h-[60vh]" />;
   }
 
   return (

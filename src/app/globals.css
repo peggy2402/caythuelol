@@ -234,3 +234,42 @@
   transform: translateY(-1px) scale(1.04) !important;
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45) !important;
 }
+
+/*
+ * From Uiverse.io by satyamchaudharydev - https://uiverse.io/satyamchaudharydev/red-cow-21
+ * MIT License, Copyright (c) satyamchaudharydev (satyam)
+ */
+.uiverse-bar-loader {
+  display: block;
+  --height-of-loader: 4px;
+  --loader-color: #0071e2;
+  width: 130px;
+  height: var(--height-of-loader);
+  border-radius: 30px;
+  background-color: rgba(255, 255, 255, 0.14);
+  position: relative;
+}
+
+.uiverse-bar-loader::before {
+  content: "";
+  position: absolute;
+  background: var(--loader-color);
+  top: 0;
+  left: 0;
+  width: 0%;
+  height: 100%;
+  border-radius: 30px;
+  animation: uiverse-bar-moving 1s ease-in-out infinite;
+}
+
+@keyframes uiverse-bar-moving {
+  50% {
+    width: 100%;
+  }
+
+  100% {
+    width: 0;
+    right: 0;
+    left: unset;
+  }
+}

@@ -1,5 +1,6 @@
 // src/app/vip/page.tsx
 'use client';
+import BarLoader from '@/components/ui/BarLoader';
 
 import React, { useState, useEffect, useMemo, Suspense } from 'react';
 import Link from 'next/link';
@@ -721,11 +722,7 @@ function VipPageContent() {
 export default function VipPage() {
   return (
     <Suspense
-      fallback={
-        <div className="min-h-screen bg-[#070709] flex items-center justify-center text-zinc-400">
-          <Loader2 className="w-8 h-8 animate-spin text-emerald-500" />
-        </div>
-      }
+      fallback={<BarLoader fullScreen className="bg-[#070709]" />}
     >
       <VipPageContent />
     </Suspense>

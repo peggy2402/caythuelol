@@ -1,4 +1,5 @@
 'use client';
+import BarLoader from '@/components/ui/BarLoader';
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -92,10 +93,10 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="flex h-96 flex-col items-center justify-center gap-4 text-cyan-400">
-        <Loader2 className="w-10 h-10 animate-spin" />
-        <span className="text-sm font-semibold tracking-wider text-zinc-400 uppercase">Đang tải Player Command Center...</span>
-      </div>
+      <BarLoader
+        className="h-96"
+        label="Đang tải Player Command Center..."
+      />
     );
   }
 

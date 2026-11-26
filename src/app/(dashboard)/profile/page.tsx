@@ -1,4 +1,5 @@
 'use client';
+import BarLoader from '@/components/ui/BarLoader';
 
 import { useState, useEffect, ReactNode } from 'react';
 import { useLanguage } from '@/lib/i18n';
@@ -829,13 +830,7 @@ export default function ProfilePage() {
   };
 
   if (loading) {
-    return (
-      <div className="space-y-8 animate-pulse p-4">
-        <div className="h-28 bg-zinc-900 rounded-2xl"></div>
-        <div className="h-64 bg-zinc-900 rounded-2xl"></div>
-        <div className="h-72 bg-zinc-900 rounded-2xl"></div>
-      </div>
-    );
+    return <BarLoader className="min-h-[50vh]" />;
   }
 
   if (!user) {

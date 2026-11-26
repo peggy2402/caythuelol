@@ -1,4 +1,5 @@
 'use client';
+import BarLoader from '@/components/ui/BarLoader';
 
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
@@ -687,7 +688,7 @@ function CreateOrderContent() {
 
 export default function CreateOrderPage() {
     return (
-        <Suspense fallback={<div className="flex justify-center py-20"><Loader2 className="animate-spin text-blue-500" /></div>}>
+        <Suspense fallback={<BarLoader className="py-24" />}>
             <CreateOrderContent />
         </Suspense>
     );

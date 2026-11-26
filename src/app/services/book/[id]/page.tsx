@@ -1,4 +1,5 @@
 'use client';
+import BarLoader from '@/components/ui/BarLoader';
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
@@ -247,10 +248,7 @@ export default function BookCustomServicePage() {
     return (
       <div className="min-h-screen bg-[#070709] text-white">
         <Navbar />
-        <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3">
-          <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
-          <p className="text-zinc-400 text-sm">Đang tải thông tin dịch vụ...</p>
-        </div>
+        <BarLoader className="min-h-[60vh]" label="Đang tải thông tin dịch vụ..." />
       </div>
     );
   }

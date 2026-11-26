@@ -1,4 +1,5 @@
 'use client';
+import BarLoader from '@/components/ui/BarLoader';
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
@@ -179,7 +180,7 @@ function ApplicationsTab() {
     }
   };
 
-  if (loading) return <div className="flex justify-center p-10"><Loader2 className="animate-spin text-blue-500" /></div>;
+  if (loading) return <BarLoader className="py-20" />;
 
   return (
     <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4">

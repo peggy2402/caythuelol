@@ -1,4 +1,5 @@
 'use client';
+import BarLoader from '@/components/ui/BarLoader';
 
 import { useState, useEffect } from 'react';
 import { Loader2, Lock, ExternalLink, Search } from 'lucide-react';
@@ -42,7 +43,7 @@ export default function AdminDepositsPage() {
     fetchHeldOrders();
   }, []);
 
-  if (loading) return <div className="flex justify-center p-20"><Loader2 className="animate-spin text-blue-500" /></div>;
+  if (loading) return <BarLoader className="py-24" />;
 
   return (
     <div className="space-y-6">

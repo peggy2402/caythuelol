@@ -1,4 +1,5 @@
 'use client';
+import BarLoader from '@/components/ui/BarLoader';
 
 import { useState, useEffect, useMemo } from 'react';
 import { useLanguage } from '@/lib/i18n';
@@ -270,11 +271,7 @@ export default function OrdersPage() {
   }, [orders]);
 
   if (loading) {
-    return (
-      <div className="flex justify-center p-20">
-        <Loader2 className="animate-spin text-blue-500 w-8 h-8" />
-      </div>
-    );
+    return <BarLoader className="py-24" />;
   }
 
   const filterOptions = [

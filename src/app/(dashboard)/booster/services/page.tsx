@@ -1,5 +1,6 @@
 // src/app/(dashboard)/booster/services/page.tsx
 'use client';
+import BarLoader from '@/components/ui/BarLoader';
 
 import { useState, useEffect, useRef } from 'react';
 import {
@@ -1051,10 +1052,10 @@ export default function BoosterServicesStudio() {
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[450px] gap-3 text-zinc-400">
-        <Loader2 className="w-8 h-8 animate-spin text-cyan-400" />
-        <span className="text-sm font-semibold">Đang tải cấu hình dịch vụ của bạn...</span>
-      </div>
+      <BarLoader
+        className="min-h-[450px]"
+        label="Đang tải cấu hình dịch vụ của bạn..."
+      />
     );
   }
 

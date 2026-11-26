@@ -1,5 +1,6 @@
 // src/app/(dashboard)/booster/jobs/page.tsx
 'use client';
+import BarLoader from '@/components/ui/BarLoader';
 
 import { useState, useEffect } from 'react';
 import { useLanguage } from '@/lib/i18n';
@@ -585,9 +586,7 @@ export default function JobMarketPage() {
       </div>
 
       {loading ? (
-        <div className="flex justify-center py-20">
-          <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
-        </div>
+        <BarLoader className="py-20" />
       ) : (
         <div className="space-y-8">
             {/* Direct Requests Section */}

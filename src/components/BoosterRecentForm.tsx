@@ -1,4 +1,5 @@
 'use client';
+import BarLoader from '@/components/ui/BarLoader';
 
 import React, { useEffect, useState, useCallback } from 'react';
 import {
@@ -202,10 +203,7 @@ export default function BoosterRecentForm({
       </div>
 
       {loading ? (
-        <div className="py-12 flex flex-col items-center justify-center gap-3 text-zinc-400">
-          <Loader2 className="w-7 h-7 animate-spin text-cyan-400" />
-          <span className="text-xs font-medium">Đang tổng hợp số liệu {days} ngày...</span>
-        </div>
+        <BarLoader className="py-12" label={`Đang tổng hợp số liệu ${days} ngày...`} />
       ) : error ? (
         <div className="p-6 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm flex items-center gap-2">
           <AlertCircle className="w-5 h-5 shrink-0" />

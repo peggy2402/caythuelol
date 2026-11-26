@@ -1,5 +1,6 @@
 // src/app/(dashboard)/orders/[id]/page.tsx
 'use client';
+import BarLoader from '@/components/ui/BarLoader';
 
 import { useState, useEffect, use, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
@@ -1434,7 +1435,7 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
     );
   };
 
-  if (loading) return <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-blue-500" /></div>;
+  if (loading) return <BarLoader className="py-24" />;
   if (!order) {
     return (
       <div className="py-20 px-4 flex flex-col items-center justify-center gap-4 text-center">

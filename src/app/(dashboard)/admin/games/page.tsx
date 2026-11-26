@@ -1,4 +1,5 @@
 'use client';
+import BarLoader from '@/components/ui/BarLoader';
 
 import React, { useState, useEffect, useMemo } from 'react';
 import Image from 'next/image';
@@ -436,12 +437,7 @@ export default function AdminGamesManagementPage() {
   }, [games, searchTerm, statusFilter, badgeFilter]);
 
   if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-3 text-white">
-        <Loader2 className="w-8 h-8 animate-spin text-cyan-500" />
-        <p className="text-zinc-400 text-sm">Đang tải cấu hình game...</p>
-      </div>
-    );
+    return <BarLoader className="min-h-[60vh]" label="Đang tải cấu hình game..." />;
   }
 
   return (

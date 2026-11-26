@@ -1,4 +1,5 @@
 'use client';
+import BarLoader from '@/components/ui/BarLoader';
 
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
@@ -201,7 +202,7 @@ export default function AdminSettingsPage() {
 
   const selectedBank = banks.find(b => b.shortName === adminBankInfo.bankName);
 
-  if (loading) return <div className="flex justify-center p-10"><Loader2 className="animate-spin text-blue-500 w-8 h-8" /></div>;
+  if (loading) return <BarLoader className="py-20" />;
 
   return (
     <div className="space-y-8 pb-24 animate-in fade-in duration-500 max-w-7xl mx-auto">

@@ -1,4 +1,5 @@
 'use client';
+import BarLoader from '@/components/ui/BarLoader';
 
 import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
@@ -32,7 +33,7 @@ export default function TransactionDetailPage({ params }: { params: Promise<{ id
     fetchTransaction();
   }, [id, router]);
 
-  if (loading) return <div className="flex justify-center items-center min-h-screen"><Loader2 className="w-8 h-8 animate-spin text-blue-500" /></div>;
+  if (loading) return <BarLoader className="min-h-[60vh]" />;
   if (!transaction) return null;
 
   const formatCurrency = (amount: number) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);

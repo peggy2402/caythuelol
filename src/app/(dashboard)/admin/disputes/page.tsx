@@ -1,4 +1,5 @@
 'use client';
+import BarLoader from '@/components/ui/BarLoader';
 
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
@@ -94,7 +95,7 @@ export default function AdminDisputesPage() {
     } catch (e) { toast.error('Lỗi kết nối'); }
   };
 
-  if (loading) return <div className="flex justify-center p-20"><Loader2 className="animate-spin text-blue-500" /></div>;
+  if (loading) return <BarLoader className="py-24" />;
 
   return (
     <div className="space-y-6">

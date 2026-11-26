@@ -1,5 +1,6 @@
 // src/app/services/[game]/[service]/page.tsx
 'use client';
+import BarLoader from '@/components/ui/BarLoader';
 
 import React, { useState, useEffect, useMemo, useCallback, Suspense } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
@@ -2190,11 +2191,7 @@ function ServiceBookingContent() {
 export default function ServiceBookingPage() {
   return (
     <Suspense
-      fallback={
-        <div className="min-h-screen bg-[#070709] flex items-center justify-center text-white">
-          <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
-        </div>
-      }
+      fallback={<BarLoader fullScreen className="bg-[#070709]" />}
     >
       <ServiceBookingContent />
     </Suspense>
