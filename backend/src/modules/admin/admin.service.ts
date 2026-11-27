@@ -903,7 +903,19 @@ export class AdminService {
         if (!wasBoosterPaid && order.boosterId) {
           const booster = await this.userModel.findById(order.boosterId).session(session);
           if (booster) {
-            const amount = order.pricing.booster_earnings || order.pricing.deposit_amount;
+            // Sàn chỉ có thể chi trả tối đa trên số tiền thực tế khách đã đóng
+            const totalCustomerPaid = order.pricing?.deposit_amount || 0;
+            const platformFee = order.pricing?.platform_fee || Math.round(totalCustomerPaid * 0.02);
+            const safeDepositEarnings = Math.max(0, totalCustomerPaid - platformFee);
+
+            // Nếu đơn đã thanh toán toàn bộ: trả đúng booster_earnings
+            // Nếu đơn mới cọc và khách bỏ đơn (mất cọc): trả tiền cọc sau khi trừ phí sàn an toàn
+            const amount = order.payment?.final_paid
+              ? (order.pricing.booster_earnings || safeDepositEarnings)
+              : (order.pricing.booster_earnings && order.pricing.booster_earnings <= safeDepositEarnings
+                  ? order.pricing.booster_earnings
+                  : safeDepositEarnings);
+
             booster.wallet_balance += amount;
             await booster.save({ session });
 
@@ -916,7 +928,7 @@ export class AdminService {
                   amount,
                   balanceAfter: booster.wallet_balance,
                   status: TransactionStatus.SUCCESS,
-                  description: `Thanh toán khiếu nại đơn #${order.orderCode || order._id.toString().slice(-6)}`,
+                  description: `Giải ngân khiếu nại (Khách mất cọc) đơn #${order.orderCode || order._id.toString().slice(-6)}: +${amount.toLocaleString('vi-VN')} đ (Phí sàn: ${platformFee.toLocaleString('vi-VN')} đ)`,
                 },
               ],
               { session },
@@ -941,7 +953,25 @@ export class AdminService {
         }
       } else if (decision === 'RESUME') {
         order.status = OrderStatus.IN_PROGRESS;
+        order.dispute = {
+          ...(order.dispute || { reason: '' }),
+          status: 'RESOLVED',
+          adminNote: (order.dispute?.adminNote ? order.dispute.adminNote + ' | ' : '') + 'Admin phân xử: Tiếp tục cày',
+        };
       }
+
+      if (!order.timeline) order.timeline = [];
+      order.timeline.push({
+        status: order.status,
+        timestamp: new Date(),
+        note: `Admin phân xử khiếu nại [${decision}]: ${
+          decision === 'REFUND_CUSTOMER'
+            ? `Hoàn ${order.pricing.deposit_amount.toLocaleString('vi-VN')} đ cọc về ví khách.`
+            : decision === 'PAY_BOOSTER'
+            ? 'Khách hàng mất cọc. Giải ngân tiền cọc hợp lệ cho Booster.'
+            : 'Admin phê duyệt tiếp tục cày.'
+        }`,
+      });
 
       await order.save({ session });
       await session.commitTransaction();
@@ -1412,8 +1442,17 @@ export class AdminService {
     if (!status || status === 'PENDING') {
       filter.status = OrderStatus.DISPUTED;
     } else if (status === 'RESOLVED') {
-      filter.status = { $in: [OrderStatus.REFUNDED, OrderStatus.COMPLETED] };
-      filter['dispute_info'] = { $exists: true };
+      filter.status = { $in: [OrderStatus.REFUNDED, OrderStatus.COMPLETED, OrderStatus.IN_PROGRESS] };
+      filter.$or = [
+        { 'dispute.status': { $in: ['RESOLVED', 'REJECTED'] } },
+        { 'dispute.reason': { $exists: true } },
+      ];
+    } else if (status === 'ALL') {
+      filter.$or = [
+        { status: OrderStatus.DISPUTED },
+        { 'dispute.status': { $exists: true } },
+        { 'dispute.reason': { $exists: true } },
+      ];
     }
 
     const disputes = await this.orderModel
@@ -1431,6 +1470,9 @@ export class AdminService {
     if (!order) throw new NotFoundException('Không tìm thấy đơn hàng');
 
     order.admin_note = note;
+    if (order.dispute) {
+      order.dispute.adminNote = note;
+    }
     await order.save();
 
     return { success: true, message: 'Đã cập nhật ghi chú nội bộ' };
