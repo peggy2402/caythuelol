@@ -654,7 +654,7 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
   };
 
   const handleDispute = async () => {
-    if (order.rating) {
+    if (order.rating?.stars) {
       toast.error('Đơn hàng đã được nghiệm thu và đánh giá. Cổng khiếu nại đã đóng.');
       setIsDisputeModalOpen(false);
       return;
@@ -1755,7 +1755,7 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
     disputeRemainingMs <= 0;
 
   const isRatingExpired = order.status === 'COMPLETED' && (new Date().getTime() - new Date(order.updatedAt).getTime() > SEVEN_DAYS_MS);
-  const canRate = isCustomer && order.status === 'COMPLETED' && !order.rating && !isRatingExpired;
+  const canRate = isCustomer && order.status === 'COMPLETED' && !order.rating?.stars && !isRatingExpired;
 
   const simpleOptions = activeOptions.filter(([k, v]) => {
     if (k === 'schedule' && Array.isArray(v)) return false; // Nếu là mảng lịch -> ẩn khỏi list đơn giản

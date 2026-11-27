@@ -879,12 +879,18 @@ export class AdminService {
         if (wasBoosterPaid && order.boosterId && order.pricing.booster_earnings > 0) {
           const booster = await this.userModel.findById(order.boosterId).session(session);
           if (booster) {
-            booster.wallet_balance -= order.pricing.booster_earnings;
-            if (booster.wallet_balance < 0) {
-              booster.debt_info = booster.debt_info || { is_in_debt: false, reminder_count: 0 };
-              booster.debt_info.is_in_debt = true;
-              booster.debt_info.reminder_count = 0;
-              booster.debt_info.ban_deadline = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+            if (order.dispute?.fundsDeducted) {
+              // Tiền đã bị hold vào pending_balance lúc tạo khiếu nại, giờ chỉ cần hủy bỏ khỏi pending_balance
+              booster.pending_balance = Math.max(0, (booster.pending_balance || 0) - order.pricing.booster_earnings);
+            } else {
+              // Chưa bị hold trước đó: trừ wallet_balance
+              booster.wallet_balance -= order.pricing.booster_earnings;
+              if (booster.wallet_balance < 0) {
+                booster.debt_info = booster.debt_info || { is_in_debt: false, reminder_count: 0 };
+                booster.debt_info.is_in_debt = true;
+                booster.debt_info.reminder_count = 0;
+                booster.debt_info.ban_deadline = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+              }
             }
             await booster.save({ session });
 
@@ -897,7 +903,7 @@ export class AdminService {
                   amount: -order.pricing.booster_earnings,
                   balanceAfter: booster.wallet_balance,
                   status: TransactionStatus.SUCCESS,
-                  description: `Truy thu tiền khiếu nại đơn #${order.orderCode || order._id.toString().slice(-6)}`,
+                  description: `Thu hồi tiền công do khiếu nại thành công đơn #${order.orderCode || order._id.toString().slice(-6)}`,
                 },
               ],
               { session },
@@ -905,7 +911,30 @@ export class AdminService {
           }
         }
       } else if (decision === 'PAY_BOOSTER') {
-        if (!wasBoosterPaid && order.boosterId) {
+        if (order.dispute?.fundsDeducted && order.boosterId && order.pricing.booster_earnings > 0) {
+          // Tiền công đang bị hold ở pending_balance: giải phóng trở lại wallet_balance cho Booster
+          const booster = await this.userModel.findById(order.boosterId).session(session);
+          if (booster) {
+            booster.pending_balance = Math.max(0, (booster.pending_balance || 0) - order.pricing.booster_earnings);
+            booster.wallet_balance += order.pricing.booster_earnings;
+            await booster.save({ session });
+
+            await this.transactionModel.create(
+              [
+                {
+                  userId: booster._id,
+                  orderId: order._id,
+                  type: TransactionType.PAYMENT_RELEASE,
+                  amount: order.pricing.booster_earnings,
+                  balanceAfter: booster.wallet_balance,
+                  status: TransactionStatus.SUCCESS,
+                  description: `Giải tỏa tiền tạm giữ đơn hàng #${order.orderCode || order._id.toString().slice(-6)} sau khi khiếu nại được giải quyết`,
+                },
+              ],
+              { session },
+            );
+          }
+        } else if (!wasBoosterPaid && order.boosterId) {
           const booster = await this.userModel.findById(order.boosterId).session(session);
           if (booster) {
             // Sàn chỉ có thể chi trả tối đa trên số tiền thực tế khách đã đóng

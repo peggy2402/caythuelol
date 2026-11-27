@@ -1080,8 +1080,9 @@ export class OrdersService {
     }
 
     // Cơ chế 24h & Nghiệm thu: Customer không được khiếu nại nếu đã đánh giá nghiệm thu hoặc quá 24 giờ
-    if (order.status === OrderStatus.COMPLETED && userRole !== UserRole.ADMIN && userRole !== UserRole.STAFF) {
-      if ((order as any).rating) {
+    const isCompletedBeforeDispute = order.status === OrderStatus.COMPLETED;
+    if (isCompletedBeforeDispute && userRole !== UserRole.ADMIN && userRole !== UserRole.STAFF) {
+      if (typeof (order as any).rating?.stars === 'number' && (order as any).rating.stars > 0) {
         throw new BadRequestException(
           'Đơn hàng đã được nghiệm thu và đánh giá hoàn tất. Cổng khiếu nại đã chính thức đóng.',
         );
@@ -1100,22 +1101,76 @@ export class OrdersService {
       }
     }
 
+    // TỰ ĐỘNG TẠM GIỮ (HOLD) TIỀN CÔNG BOOSTER KHI CÓ KHIẾU NẠI ĐỐI VỚI ĐƠN ĐÃ COMPLETED
+    let fundsHeld = false;
+    if (isCompletedBeforeDispute && order.boosterId) {
+      const boosterEarnings = order.pricing?.booster_earnings || 0;
+      if (boosterEarnings > 0 && order.payment?.booster_received_pending) {
+        const booster = await this.userModel.findById(order.boosterId);
+        if (booster) {
+          booster.wallet_balance -= boosterEarnings;
+          booster.pending_balance = (booster.pending_balance || 0) + boosterEarnings;
+          if (booster.wallet_balance < 0) {
+            booster.debt_info = booster.debt_info || { is_in_debt: false, reminder_count: 0 };
+            booster.debt_info.is_in_debt = true;
+            booster.debt_info.reminder_count = 0;
+            booster.debt_info.ban_deadline = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+          }
+          await booster.save();
+
+          await this.transactionModel.create({
+            userId: booster._id,
+            orderId: order._id,
+            type: TransactionType.PAYMENT_HOLD,
+            amount: -boosterEarnings,
+            balanceAfter: booster.wallet_balance,
+            status: TransactionStatus.SUCCESS,
+            description: `Tạm giữ tiền công cày thuê đơn #${order.orderCode || order._id.toString().slice(-6)} do phát sinh khiếu nại từ khách hàng`,
+            metadata: {
+              boosterEarnings,
+              orderCode: order.orderCode,
+            },
+          });
+
+          fundsHeld = true;
+
+          // Thông báo cho Booster biết tiền công đang được tạm giữ an toàn trong lúc Admin đối soát
+          const orderCodeDisplay = order.orderCode || order._id.toString().slice(-6).toUpperCase();
+          this.notificationsService
+            .notifyUser({
+              userId: order.boosterId,
+              title: `⚠️ Tạm giữ tiền công - Đơn #${orderCodeDisplay}`,
+              message: `Khách hàng vừa gửi khiếu nại: "${reason}". Tiền công (${boosterEarnings.toLocaleString('vi-VN')} đ) được tạm giữ vào số dư chờ (Pending) trong thời gian Admin phân xử.`,
+              type: 'ORDER_UPDATE',
+              variant: 'warning',
+              link: `/orders/${order._id}`,
+            })
+            .catch(() => {});
+        }
+      }
+    }
+
     order.status = OrderStatus.DISPUTED;
     order.dispute = {
       reason,
       status: 'PENDING',
-      fundsDeducted: false,
+      fundsDeducted: fundsHeld,
     };
     if (!order.timeline) order.timeline = [];
     order.timeline.push({
       status: OrderStatus.DISPUTED,
       timestamp: new Date(),
       actor: new Types.ObjectId(userId),
-      note: `Báo cáo khiếu nại: ${reason}`,
+      note: `Báo cáo khiếu nại: ${reason}${fundsHeld ? ' (Đã tạm giữ tiền công Booster vào quỹ chờ)' : ''}`,
     });
 
     await order.save();
-    return { success: true, message: 'Đã gửi khiếu nại đến Admin. Admin sẽ can thiệp xử lý.' };
+    return {
+      success: true,
+      message: fundsHeld
+        ? 'Đã gửi khiếu nại thành công! Tiền công của Booster đã được tạm giữ an toàn trong lúc Admin phân xử.'
+        : 'Đã gửi khiếu nại đến Admin. Admin sẽ can thiệp xử lý.',
+    };
   }
 
   async withdrawDispute(orderId: string, userId: string) {
@@ -1138,9 +1193,40 @@ export class OrdersService {
       throw new BadRequestException('Đơn hàng không ở trạng thái khiếu nại');
     }
 
+    // Nếu trước đó tiền công Booster bị hold vào pending_balance do khiếu nại lúc COMPLETED:
+    if (order.dispute?.fundsDeducted && order.boosterId) {
+      const boosterEarnings = order.pricing?.booster_earnings || 0;
+      if (boosterEarnings > 0) {
+        const booster = await this.userModel.findById(order.boosterId);
+        if (booster) {
+          booster.pending_balance = Math.max(0, (booster.pending_balance || 0) - boosterEarnings);
+          booster.wallet_balance += boosterEarnings;
+          await booster.save();
+
+          await this.transactionModel.create({
+            userId: booster._id,
+            orderId: order._id,
+            type: TransactionType.PAYMENT_RELEASE,
+            amount: boosterEarnings,
+            balanceAfter: booster.wallet_balance,
+            status: TransactionStatus.SUCCESS,
+            description: `Hoàn trả tiền công tạm giữ đơn #${order.orderCode || order._id.toString().slice(-6)} do khách hàng rút khiếu nại`,
+            metadata: {
+              boosterEarnings,
+              orderCode: order.orderCode,
+            },
+          });
+        }
+      }
+    }
+
     // Nếu đơn có thông tin mismatch_info, quay về RANK_MISMATCH để khách tiếp tục xử lý
+    // Nếu đơn trước đó hoàn thành (có timeline COMPLETED và không có mismatch_info), quay về COMPLETED
+    const hadCompleted = Array.isArray(order.timeline) && order.timeline.some((t: any) => t.status === OrderStatus.COMPLETED);
     if (order.mismatch_info) {
       order.status = OrderStatus.RANK_MISMATCH;
+    } else if (hadCompleted) {
+      order.status = OrderStatus.COMPLETED;
     } else {
       order.status = OrderStatus.IN_PROGRESS;
     }
@@ -1155,7 +1241,7 @@ export class OrdersService {
       status: order.status,
       timestamp: new Date(),
       actor: new Types.ObjectId(userId),
-      note: 'Khách hàng đã tự nguyện rút khiếu nại để tiếp tục xử lý đơn hàng.',
+      note: 'Khách hàng đã tự nguyện rút khiếu nại để tiếp tục đơn hàng.',
     });
 
     await order.save();

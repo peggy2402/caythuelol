@@ -49,7 +49,9 @@ export default function OrderDisputeBanner({
   onOpenRankMismatchModal,
   onUpdateStatus,
 }: OrderDisputeBannerProps) {
-  const hasRated = Boolean(order?.rating);
+  const hasRated = Boolean(
+    order?.rating?.stars && typeof order.rating.stars === 'number' && order.rating.stars > 0
+  );
 
   return (
     <>
@@ -207,7 +209,7 @@ export default function OrderDisputeBanner({
         )}
 
         {/* Thông báo quá hạn đánh giá */}
-        {isCustomer && order.status === 'COMPLETED' && !order.rating && isRatingExpired && (
+        {isCustomer && order.status === 'COMPLETED' && !order.rating?.stars && isRatingExpired && (
           <div className="w-full py-3 bg-zinc-900/50 text-zinc-500 font-medium rounded-xl flex items-center justify-center gap-2 border border-zinc-800">
             <Clock className="w-4 h-4" /> Đã hết hạn đánh giá (Quá 7 ngày)
           </div>
