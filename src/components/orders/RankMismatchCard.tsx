@@ -32,12 +32,13 @@ export default function RankMismatchCard({
   const handleConfirmRequote = async () => {
     setLoadingAction('CONFIRM');
     try {
-      const token = localStorage.getItem('access_token');
+      const token = localStorage.getItem('token');
       const res = await fetch(`${API_BASE_URL}/api/orders/${order._id}/confirm-requote`, {
         method: 'POST',
         headers: {
-          Authorization: `Bearer ${token}`,
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
+        credentials: 'include',
       });
 
       const data = await res.json();
@@ -59,13 +60,14 @@ export default function RankMismatchCard({
 
     setLoadingAction('CANCEL');
     try {
-      const token = localStorage.getItem('access_token');
+      const token = localStorage.getItem('token');
       const res = await fetch(`${API_BASE_URL}/api/orders/${order._id}/cancel-mismatch`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
+        credentials: 'include',
         body: JSON.stringify({
           reason: 'Khách hàng từ chối mức báo giá lại do sai lệch rank',
         }),

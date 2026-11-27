@@ -43,8 +43,13 @@ export default function ReportRankMismatchModal({
     try {
       const formData = new FormData();
       formData.append('file', file);
+      const token = localStorage.getItem('token');
       const res = await fetch(`${API_BASE_URL}/api/upload`, {
         method: 'POST',
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        credentials: 'include',
         body: formData,
       });
       const data = await res.json();
@@ -74,13 +79,14 @@ export default function ReportRankMismatchModal({
 
     setSubmitting(true);
     try {
-      const token = localStorage.getItem('access_token');
+      const token = localStorage.getItem('token');
       const res = await fetch(`${API_BASE_URL}/api/orders/${orderId}/verify-rank`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
+        credentials: 'include',
         body: JSON.stringify({
           verifiedRank: verifiedRank.trim(),
           proofImage: proofImage.trim(),
