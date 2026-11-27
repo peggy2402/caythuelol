@@ -22,6 +22,7 @@ import { PricingModule } from './modules/pricing/pricing.module';
 import { VipModule } from './modules/vip/vip.module';
 import { LoyaltyModule } from './modules/loyalty/loyalty.module';
 import { RankingModule } from './modules/ranking/ranking.module';
+import { ActivityModule } from './modules/activity/activity.module';
 
 @Module({
   imports: [
@@ -57,6 +58,7 @@ import { RankingModule } from './modules/ranking/ranking.module';
     VipModule,
     LoyaltyModule,
     RankingModule,
+    ActivityModule,
   ],
   controllers: [AppController],
   providers: [],

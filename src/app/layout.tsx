@@ -3,6 +3,7 @@ import { Be_Vietnam_Pro } from "next/font/google";
 import "./globals.css";
 import LanguageProvider from "@/components/LanguageProvider";
 import CookieConsent from "@/components/CookieConsent";
+import LiveActivityToast from "@/components/LiveActivityToast";
 import { ChatProvider } from "@/contexts/ChatContext"; // Import ChatProvider
 import ApiInterceptor from "@/components/ApiInterceptor";
 import { Toaster } from "sonner";
@@ -168,6 +169,7 @@ export default function RootLayout({
         <LanguageProvider>
           <ChatProvider>
             {children}
+            <LiveActivityToast />
             <CookieConsent />
             <Toaster
               position="top-center"
