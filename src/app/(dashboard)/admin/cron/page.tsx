@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Play, Clock, AlertTriangle, CheckCircle2, Loader2, Terminal, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
+import SystemOptimizationBanner from '@/components/admin/SystemOptimizationBanner';
 
 interface CronJob {
   id: string;
@@ -13,6 +14,13 @@ interface CronJob {
 }
 
 const CRON_JOBS: CronJob[] = [
+  {
+    id: 'system_optimize',
+    name: 'Tối Ưu Hóa Hệ Thống & Dọn Dẹp Cache',
+    description: 'Tự động giải phóng bộ nhớ đệm, xóa mã xác thực OTP đã hết hạn, nhật ký phiên và logs cũ định kỳ vào 23:59 Chủ Nhật hàng tuần.',
+    endpoint: '/api/cron/system/optimize',
+    method: 'GET'
+  },
   {
     id: 'coaching_reminder',
     name: 'Gửi Email Nhắc Nhở Coaching',
@@ -85,6 +93,9 @@ export default function AdminCronPage() {
           Quản lý Cron Jobs
         </h1>
       </div>
+
+      {/* Banner Chu kỳ tối ưu hóa hệ thống & dọn dẹp Cache */}
+      <SystemOptimizationBanner />
       
       {/* Controls */}
       <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 flex items-center gap-4">

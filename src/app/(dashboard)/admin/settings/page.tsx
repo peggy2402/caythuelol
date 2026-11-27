@@ -4,6 +4,7 @@ import BarLoader from '@/components/ui/BarLoader';
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { Save, Settings, DollarSign, Loader2, AlertTriangle, Image as ImageIcon, Power, Key, RefreshCw, Landmark, Check, ChevronsUpDown, Search, FileText, ArrowRightLeft, Clock } from 'lucide-react';
+import SystemOptimizationBanner from '@/components/admin/SystemOptimizationBanner';
 
 interface SystemSetting {
   _id: string;
@@ -220,6 +221,9 @@ export default function AdminSettingsPage() {
           <span>Làm mới</span>
         </button>
       </div>
+
+      {/* Banner Chu kỳ tối ưu hóa hệ thống & dọn dẹp Cache */}
+      <SystemOptimizationBanner />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
         {/* Left Column: Financial & Booster Policies */}

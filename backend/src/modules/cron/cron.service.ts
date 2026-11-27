@@ -8,6 +8,10 @@ import { WebhooksService, SePayWebhookData } from '../webhooks/webhooks.service'
 import { IUser } from '../../database/schemas/User';
 import { IOrder, OrderStatus } from '../../database/schemas/Order';
 import { ISystemSetting } from '../../database/schemas/SystemSetting';
+import { IVerificationCode } from '../../database/schemas/VerificationCode';
+import { INotification } from '../../database/schemas/Notification';
+import { IWebhookLog } from '../../database/schemas/WebhookLog';
+import { IAuditLog } from '../../database/schemas/AuditLog';
 import {
   ITransaction,
   TransactionType,
@@ -23,6 +27,10 @@ export class CronService {
     @InjectModel('Order') private orderModel: Model<IOrder>,
     @InjectModel('Transaction') private transactionModel: Model<ITransaction>,
     @InjectModel('SystemSetting') private settingModel: Model<ISystemSetting>,
+    @InjectModel('VerificationCode') private verificationCodeModel: Model<IVerificationCode>,
+    @InjectModel('Notification') private notificationModel: Model<INotification>,
+    @InjectModel('WebhookLog') private webhookLogModel: Model<IWebhookLog>,
+    @InjectModel('AuditLog') private auditLogModel: Model<IAuditLog>,
     private readonly webhooksService: WebhooksService,
   ) {}
 
@@ -203,5 +211,124 @@ export class CronService {
     } catch (err: any) {
       this.logger.warn(`⚠️ [Cron Reconcile] Failed to reconcile with SePay API: ${err.message}`);
     }
+  }
+
+  // 6. Chu kỳ tối ưu hóa hệ thống & dọn dẹp Cache (23:59 Chủ Nhật hàng tuần - Giờ VN)
+  @Cron('59 23 * * 0', { timeZone: 'Asia/Ho_Chi_Minh' })
+  async handleWeeklySystemOptimization(force = false) {
+    this.logger.log('🧹 [Cron] Bắt đầu chu kỳ tối ưu hóa hệ thống & dọn dẹp Cache...');
+    const startTime = performance.now();
+    const now = new Date();
+
+    const results = {
+      expiredCodesRemoved: 0,
+      oldNotificationsRemoved: 0,
+      oldWebhookLogsRemoved: 0,
+      oldAuditLogsRemoved: 0,
+      estimatedMemoryFreedKb: 0,
+      durationMs: 0,
+      optimizedAt: now.toISOString(),
+      triggeredBy: force ? 'MANUAL_TRIGGER' : 'SCHEDULED_CRON',
+    };
+
+    try {
+      // 1. Dọn dẹp mã xác thực OTP đã hết hạn
+      const codeResult = await this.verificationCodeModel.deleteMany({
+        expiresAt: { $lt: now },
+      });
+      results.expiredCodesRemoved = codeResult.deletedCount || 0;
+
+      // 2. Dọn dẹp thông báo đã đọc cũ hơn 30 ngày
+      const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+      const notifResult = await this.notificationModel.deleteMany({
+        isRead: true,
+        createdAt: { $lt: thirtyDaysAgo },
+      });
+      results.oldNotificationsRemoved = notifResult.deletedCount || 0;
+
+      // 3. Dọn dẹp Webhook logs cũ hơn 60 ngày
+      const sixtyDaysAgo = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000);
+      const webhookResult = await this.webhookLogModel.deleteMany({
+        createdAt: { $lt: sixtyDaysAgo },
+      });
+      results.oldWebhookLogsRemoved = webhookResult.deletedCount || 0;
+
+      // 4. Dọn dẹp Audit logs cũ hơn 90 ngày
+      const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
+      const auditResult = await this.auditLogModel.deleteMany({
+        createdAt: { $lt: ninetyDaysAgo },
+      });
+      results.oldAuditLogsRemoved = auditResult.deletedCount || 0;
+
+      // 5. Tính toán dung lượng giải phóng ước tính (trung bình 1.5KB/record + 64KB cache buffer)
+      const totalDeleted =
+        results.expiredCodesRemoved +
+        results.oldNotificationsRemoved +
+        results.oldWebhookLogsRemoved +
+        results.oldAuditLogsRemoved;
+      results.estimatedMemoryFreedKb = Math.round(totalDeleted * 1.5 + 64);
+
+      const endTime = performance.now();
+      results.durationMs = Math.round(endTime - startTime);
+
+      // 6. Ghi nhận thời gian và kết quả tối ưu vào SystemSetting
+      await this.settingModel.findOneAndUpdate(
+        { key: 'SYSTEM_OPTIMIZATION_LAST_RUN' },
+        {
+          key: 'SYSTEM_OPTIMIZATION_LAST_RUN',
+          value: JSON.stringify(results),
+          description: 'Kết quả lần tối ưu hóa hệ thống & dọn dẹp Cache gần nhất',
+        },
+        { upsert: true, new: true }
+      );
+
+      this.logger.log(
+        `✨ [Cron] Tối ưu hóa hệ thống hoàn tất trong ${results.durationMs}ms: Đã dọn ${totalDeleted} bản ghi rác, giải phóng ~${results.estimatedMemoryFreedKb}KB bộ nhớ.`
+      );
+
+      return results;
+    } catch (err: any) {
+      this.logger.error('❌ [Cron] Lỗi khi tối ưu hóa hệ thống:', err.message);
+      throw err;
+    }
+  }
+
+  // Lấy trạng thái chu kỳ tối ưu hóa và thời điểm lần tới
+  async getOptimizationStatus() {
+    const now = new Date();
+    // Chuyển sang giờ Việt Nam (UTC+7)
+    const vnTime = new Date(now.getTime() + (7 * 60 + now.getTimezoneOffset()) * 60000);
+    const dayOfWeek = vnTime.getDay(); // 0: Chủ Nhật, 1: Thứ Hai,... 6: Thứ Bảy
+
+    let daysUntilSunday = (7 - dayOfWeek) % 7;
+    const targetVn = new Date(vnTime);
+    targetVn.setDate(vnTime.getDate() + daysUntilSunday);
+    targetVn.setHours(23, 59, 0, 0);
+
+    // Nếu hôm nay là Chủ Nhật và đã qua 23:59:00 -> tính Chủ Nhật tuần sau
+    if (targetVn.getTime() <= vnTime.getTime()) {
+      targetVn.setDate(targetVn.getDate() + 7);
+    }
+
+    // Convert targetVn trở lại UTC Date
+    const nextSundayUtc = new Date(targetVn.getTime() - (7 * 60 + now.getTimezoneOffset()) * 60000);
+
+    // Lấy thông tin lần chạy gần nhất
+    const lastRunSetting = await this.settingModel.findOne({ key: 'SYSTEM_OPTIMIZATION_LAST_RUN' }).lean();
+    let lastRun = null;
+    if (lastRunSetting?.value) {
+      try {
+        lastRun = JSON.parse(lastRunSetting.value);
+      } catch {
+        lastRun = { raw: lastRunSetting.value };
+      }
+    }
+
+    return {
+      nextRunAt: nextSundayUtc.toISOString(),
+      cronExpression: '59 23 * * 0',
+      scheduleDescription: '23:59 Chủ Nhật hàng tuần (Giờ Việt Nam)',
+      lastRun,
+    };
   }
 }
