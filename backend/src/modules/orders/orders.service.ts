@@ -1916,10 +1916,16 @@ export class OrdersService {
       '';
 
     let recalculatedPrice = 0;
+    let newServiceAmount = 0;
+    let platformFee = 0;
+    let newOrderTotal = 0;
+    let newClimbingStars: number | undefined = undefined;
 
     // 1. Nếu Booster/Admin truyền proposedPrice hợp lệ (> 0)
     if (payload.proposedPrice && payload.proposedPrice > 0) {
-      recalculatedPrice = Math.round(payload.proposedPrice);
+      newOrderTotal = Math.round(payload.proposedPrice);
+      platformFee = Math.round(newOrderTotal * (0.02 / 1.02));
+      newServiceAmount = newOrderTotal - platformFee;
     } else {
       // 2. Tự động tính nếu là Liên Quân (AOV)
       const game = (order.details?.game || order.snapshot?.gameCode || '').toUpperCase();
@@ -1944,10 +1950,11 @@ export class OrdersService {
             payload.verifiedRank,
             targetRank,
           );
-          if (starDiff.totalPrice > 0) {
-            const optionFees = order.pricing?.option_fees || 0;
-            recalculatedPrice = starDiff.totalPrice + optionFees;
-          }
+          newClimbingStars = starDiff.totalStars;
+          newServiceAmount = starDiff.totalPrice;
+          platformFee = Math.round(newServiceAmount * 0.02);
+          const optionFees = order.pricing?.option_fees || 0;
+          newOrderTotal = newServiceAmount + platformFee + optionFees;
         } else {
           // AOV Rank Boost: Tính theo thang bậc đoàn AOV_RANK_LADDER
           const fromIdx = matchAovLadderIndex(payload.verifiedRank);
@@ -1958,31 +1965,50 @@ export class OrdersService {
             for (let i = fromIdx; i < toIdx; i++) {
               ladderTotal += AOV_RANK_LADDER[i].stepPrice;
             }
+            newServiceAmount = ladderTotal;
+            platformFee = Math.round(newServiceAmount * 0.02);
             const optionFees = order.pricing?.option_fees || 0;
-            recalculatedPrice = ladderTotal + optionFees;
+            newOrderTotal = newServiceAmount + platformFee + optionFees;
           }
         }
       }
 
       // Fallback: nếu không map được nấc tự động
-      if (!recalculatedPrice || recalculatedPrice <= 0) {
-        recalculatedPrice = Math.round((order.pricing?.total_amount || 0) * 1.3);
+      if (!newOrderTotal || newOrderTotal <= 0) {
+        newOrderTotal = Math.round((order.pricing?.total_amount || 0) * 1.3);
+        platformFee = Math.round(newOrderTotal * (0.02 / 1.02));
+        newServiceAmount = newOrderTotal - platformFee;
       }
     }
 
-    const currentTotal = order.pricing?.total_amount || 0;
-    const extraAmountNeeded = Math.max(0, recalculatedPrice - currentTotal);
+    recalculatedPrice = newOrderTotal;
+    const depositPercentage = (order.pricing?.deposit_percent || 40) / 100;
+    const requiredDeposit = Math.round(newOrderTotal * depositPercentage);
+    const totalPaidAmount = order.pricing?.deposit_amount || 0;
+    const additionalPayment = Math.max(0, requiredDeposit - totalPaidAmount);
+    const remainingPayment = newOrderTotal - requiredDeposit;
 
     order.status = OrderStatus.RANK_MISMATCH;
     order.mismatch_info = {
       declaredRank,
       verifiedRank: payload.verifiedRank,
+      targetRank,
+      newClimbingStars,
+      newServiceAmount,
+      platformFee,
+      newOrderTotal,
+      recalculatedPrice: newOrderTotal,
+      depositPercent: Math.round(depositPercentage * 100),
+      requiredDeposit,
+      alreadyPaid: totalPaidAmount,
+      additionalDepositNeeded: additionalPayment,
+      extraAmountNeeded: additionalPayment,
+      remainingPayment,
       proofImage: payload.proofImage,
       note: payload.note,
-      recalculatedPrice,
-      extraAmountNeeded,
       reportedBy: new Types.ObjectId(boosterId),
       reportedAt: new Date(),
+      status: 'WAITING_CUSTOMER_CONFIRMATION',
     };
 
     if (!order.timeline) order.timeline = [];
@@ -1990,7 +2016,9 @@ export class OrdersService {
       status: OrderStatus.RANK_MISMATCH,
       timestamp: new Date(),
       actor: new Types.ObjectId(boosterId),
-      note: `Booster phát hiện Rank thực tế (${payload.verifiedRank}) khác với Rank khai (${declaredRank}). Báo giá mới: ${recalculatedPrice.toLocaleString('vi-VN')} đ (cần bù thêm ${extraAmountNeeded.toLocaleString('vi-VN')} đ).`,
+      note: `Booster phát hiện Rank thực tế (${payload.verifiedRank}) khác với Rank khai (${declaredRank}).${
+        newClimbingStars !== undefined ? ` Số sao mới: ${newClimbingStars} sao.` : ''
+      } Tổng đơn mới: ${newOrderTotal.toLocaleString('vi-VN')} đ (Cọc 40%: ${requiredDeposit.toLocaleString('vi-VN')} đ, cần bù cọc: ${additionalPayment.toLocaleString('vi-VN')} đ).`,
     });
 
     await order.save();
@@ -2001,7 +2029,7 @@ export class OrdersService {
       .notifyUser({
         userId: order.customerId,
         title: `⚠️ Phát hiện sai lệch Rank - Đơn #${orderCodeDisplay}`,
-        message: `Tài khoản của bạn có Rank thực tế là "${payload.verifiedRank}" (khác với "${declaredRank}" đã khai). Vui lòng xác nhận bù ${extraAmountNeeded.toLocaleString('vi-VN')} đ hoặc yêu cầu hủy đơn.`,
+        message: `Tài khoản của bạn có Rank thực tế là "${payload.verifiedRank}" (khác với "${declaredRank}" đã khai). Vui lòng xác nhận bù tiền cọc ${additionalPayment.toLocaleString('vi-VN')} đ hoặc yêu cầu hủy đơn.`,
         type: 'ORDER_UPDATE',
         variant: 'warning',
         link: `/orders/${order._id}`,
@@ -2047,7 +2075,8 @@ export class OrdersService {
       throw new BadRequestException('Đơn hàng không ở trạng thái sai lệch rank (RANK_MISMATCH)');
     }
 
-    const extraAmount = order.mismatch_info?.extraAmountNeeded || 0;
+    const mismatch = order.mismatch_info;
+    const extraAmount = mismatch?.additionalDepositNeeded ?? (mismatch?.extraAmountNeeded || 0);
     const customer = await this.userModel.findById(customerId);
     if (!customer) {
       throw new NotFoundException('Khách hàng không tồn tại');
@@ -2056,7 +2085,7 @@ export class OrdersService {
     if (extraAmount > 0) {
       if (customer.wallet_balance < extraAmount) {
         throw new BadRequestException(
-          `Số dư ví (${customer.wallet_balance.toLocaleString('vi-VN')} đ) không đủ để thanh toán phần chênh lệch (${extraAmount.toLocaleString('vi-VN')} đ). Vui lòng nạp thêm tiền vào ví.`,
+          `Số dư ví (${customer.wallet_balance.toLocaleString('vi-VN')} đ) không đủ để thanh toán phần cọc bổ sung (${extraAmount.toLocaleString('vi-VN')} đ). Vui lòng nạp thêm tiền vào ví.`,
         );
       }
 
@@ -2072,23 +2101,32 @@ export class OrdersService {
         amount: extraAmount,
         balanceAfter: customer.wallet_balance,
         status: TransactionStatus.SUCCESS,
-        description: `Thanh toán chênh lệch sai lệch Rank cho đơn hàng #${order.orderCode || order._id.toString().slice(-6)}`,
+        description: `Thanh toán cọc bổ sung do sai lệch Rank cho đơn hàng #${order.orderCode || order._id.toString().slice(-6)}`,
       });
 
       this.chatGateway.broadcastBalanceUpdate(
         customer._id.toString(),
         customer.wallet_balance,
-        `Trừ ${extraAmount.toLocaleString('vi-VN')} đ bù sai lệch rank đơn #${order.orderCode || order._id.toString().slice(-6)}`,
+        `Trừ ${extraAmount.toLocaleString('vi-VN')} đ cọc bổ sung sai lệch rank đơn #${order.orderCode || order._id.toString().slice(-6)}`,
       );
     }
 
-    // Cập nhật giá mới cho đơn hàng
-    order.pricing.total_amount = (order.pricing.total_amount || 0) + extraAmount;
-    order.pricing.deposit_amount = (order.pricing.deposit_amount || 0) + extraAmount;
-    order.pricing.base_price = (order.pricing.base_price || 0) + extraAmount;
-    // Tăng thù lao Booster theo tỷ lệ sàn 85%
-    order.pricing.booster_earnings =
-      (order.pricing.booster_earnings || 0) + Math.round(extraAmount * 0.85);
+    // Cập nhật giá mới cho đơn hàng chuẩn hóa tài chính
+    if (mismatch?.newOrderTotal) {
+      order.pricing.service_amount = mismatch.newServiceAmount;
+      order.pricing.platform_fee = mismatch.platformFee;
+      order.pricing.total_amount = mismatch.newOrderTotal;
+      order.pricing.deposit_amount = mismatch.requiredDeposit;
+      order.pricing.remaining_amount = mismatch.remainingPayment;
+      order.pricing.booster_earnings = mismatch.newServiceAmount;
+      order.pricing.base_price = mismatch.newServiceAmount;
+    } else {
+      order.pricing.total_amount = (order.pricing.total_amount || 0) + extraAmount;
+      order.pricing.deposit_amount = (order.pricing.deposit_amount || 0) + extraAmount;
+      order.pricing.base_price = (order.pricing.base_price || 0) + extraAmount;
+      order.pricing.booster_earnings =
+        (order.pricing.booster_earnings || 0) + Math.round(extraAmount * 0.85);
+    }
 
     // Cập nhật Rank thực tế & thông tin tài khoản game (nếu khách gửi lại) vào order.details
     if (!order.details) order.details = {};

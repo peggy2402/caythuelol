@@ -174,10 +174,16 @@ export default function RankMismatchCard({
   const mismatch = order?.mismatch_info;
   if (!mismatch || order.status !== 'RANK_MISMATCH') return null;
 
-  const extraAmount = mismatch.extraAmountNeeded || 0;
-  const recalculatedPrice = mismatch.recalculatedPrice || 0;
+  const extraAmount = mismatch.additionalDepositNeeded ?? (mismatch.extraAmountNeeded || 0);
+  const recalculatedPrice = mismatch.newOrderTotal || mismatch.recalculatedPrice || 0;
+  const originalTotal = mismatch.originalTotalAmount || order.pricing?.total_amount || 0;
   // Số tiền cọc thực tế khách hàng đã thanh toán
-  const originalDepositPaid = Number(order.pricing?.deposit_amount ?? order.pricing?.total_amount ?? 0);
+  const originalDepositPaid = mismatch.alreadyPaid ?? Number(order.pricing?.deposit_amount ?? order.pricing?.total_amount ?? 0);
+  const requiredDeposit = mismatch.requiredDeposit || Math.round(recalculatedPrice * 0.4);
+  const remainingPayment = mismatch.remainingPayment || (recalculatedPrice - requiredDeposit);
+  const newClimbingStars = mismatch.newClimbingStars;
+  const newServiceAmount = mismatch.newServiceAmount;
+  const platformFee = mismatch.platformFee;
 
   const declaredRank = mismatch.declaredRank || order.details?.current_rank || 'Chưa rõ';
   const verifiedRank = mismatch.verifiedRank || 'Chưa rõ';
@@ -417,32 +423,61 @@ export default function RankMismatchCard({
 
         {/* Bảng báo giá lại (Re-quote pricing breakdown) */}
         <div className="mt-4 rounded-xl border border-zinc-800 bg-zinc-950/80 p-4">
-          <div className="text-xs font-bold text-zinc-300 mb-2.5">Bảng điều chỉnh chi phí đơn hàng:</div>
+          <div className="flex items-center justify-between mb-3 border-b border-zinc-800/80 pb-2">
+            <span className="text-xs font-bold text-zinc-300">Bảng điều chỉnh chi phí đơn hàng:</span>
+            {newClimbingStars !== undefined && (
+              <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-semibold">
+                Khoảng cách mới: {newClimbingStars} sao
+              </span>
+            )}
+          </div>
           <div className="space-y-2 text-xs">
+            {newServiceAmount !== undefined && (
+              <div className="flex justify-between gap-2 text-zinc-400">
+                <span>Giá trị dịch vụ mới:</span>
+                <span className="font-mono text-zinc-200 font-semibold whitespace-nowrap">
+                  {newServiceAmount.toLocaleString('vi-VN')} đ
+                  {platformFee ? ` (Phí sàn 2%: ${platformFee.toLocaleString('vi-VN')} đ)` : ''}
+                </span>
+              </div>
+            )}
             <div className="flex justify-between gap-2 text-zinc-400">
-              <span>Số tiền cọc bạn đã thanh toán (bảo lưu 100%):</span>
+              <span>Tổng giá trị đơn hàng mới:</span>
+              <span className="font-mono text-white font-bold whitespace-nowrap">
+                {recalculatedPrice.toLocaleString('vi-VN')} đ
+                {originalTotal > 0 && (
+                  <span className="text-zinc-500 font-normal text-[11px] ml-1.5">
+                    (Ban đầu: {originalTotal.toLocaleString('vi-VN')} đ)
+                  </span>
+                )}
+              </span>
+            </div>
+            <div className="flex justify-between gap-2 text-zinc-400">
+              <span>Tiền cọc yêu cầu ({mismatch.depositPercent || 40}%):</span>
+              <span className="font-mono text-zinc-200 font-semibold whitespace-nowrap">
+                {requiredDeposit.toLocaleString('vi-VN')} đ
+              </span>
+            </div>
+            <div className="flex justify-between gap-2 text-zinc-400">
+              <span>Tiền cọc đã thanh toán (bảo lưu 100%):</span>
               <span className="font-mono text-emerald-400 font-bold whitespace-nowrap">
                 {originalDepositPaid.toLocaleString('vi-VN')} đ
               </span>
             </div>
-            <div className="flex justify-between gap-2 text-zinc-400">
-              <span>
-                {(order?.serviceType || '').toLowerCase().includes('net') ||
-                (order?.serviceType || '').toLowerCase().includes('sao') ||
-                (order?.serviceType || '').toLowerCase().includes('thắng')
-                  ? `Báo giá điều chỉnh theo số sao (${mismatch.verifiedRank} ➔ ${originalTarget}):`
-                  : `Báo giá chuẩn thực tế (${mismatch.verifiedRank} ➔ ${originalTarget}):`}
-              </span>
-              <span className="font-mono text-white font-semibold whitespace-nowrap">
-                {recalculatedPrice.toLocaleString('vi-VN')} đ
-              </span>
-            </div>
             <div className="pt-2.5 border-t border-zinc-800 flex justify-between items-center gap-2 text-sm">
-              <span className="font-bold text-amber-400">Số tiền cần thanh toán bổ sung:</span>
+              <span className="font-bold text-amber-400">Tiền cọc cần thanh toán bổ sung:</span>
               <span className="font-mono text-base font-extrabold text-amber-300 whitespace-nowrap">
-                {extraAmount > 0 ? `+${extraAmount.toLocaleString('vi-VN')} đ` : '0 đ (Đã đủ chi phí)'}
+                {extraAmount > 0 ? `+${extraAmount.toLocaleString('vi-VN')} đ` : '0 đ (Đã đủ tiền cọc)'}
               </span>
             </div>
+            {remainingPayment > 0 && (
+              <div className="flex justify-between gap-2 text-[11px] text-zinc-500 pt-1">
+                <span>Còn lại sau khi hoàn thành:</span>
+                <span className="font-mono text-zinc-400 font-medium">
+                  {remainingPayment.toLocaleString('vi-VN')} đ
+                </span>
+              </div>
+            )}
           </div>
         </div>
 

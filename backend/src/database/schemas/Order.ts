@@ -82,6 +82,7 @@ export interface IOrder {
   pricing: {
     total_amount: number;
     deposit_amount: number; // Số tiền cọc
+    deposit_percent?: number; // % đặt cọc (VD: 40)
     remaining_amount?: number; // Số tiền còn lại sau cọc
     service_amount?: number; // Giá trị thuần dịch vụ
     final_amount?: number; // Số tiền thực tế sau khi hoàn thành
@@ -133,10 +134,21 @@ export interface IOrder {
   mismatch_info?: {
     declaredRank?: string;
     verifiedRank?: string;
+    targetRank?: string;
     proofImage?: string;
     note?: string;
     recalculatedPrice?: number;
     extraAmountNeeded?: number;
+    newClimbingStars?: number;
+    newServiceAmount?: number;
+    platformFee?: number;
+    newOrderTotal?: number;
+    depositPercent?: number;
+    requiredDeposit?: number;
+    alreadyPaid?: number;
+    additionalDepositNeeded?: number;
+    remainingPayment?: number;
+    status?: string;
     reportedBy?: mongoose.Types.ObjectId;
     reportedAt?: Date;
     resolvedAt?: Date;
@@ -224,16 +236,8 @@ const OrderSchema = new Schema<IOrder>(
       fundsDeducted: { type: Boolean, default: false } // Đánh dấu đã trừ tiền Booster chưa
     },
     mismatch_info: {
-      declaredRank: String,
-      verifiedRank: String,
-      proofImage: String,
-      note: String,
-      recalculatedPrice: Number,
-      extraAmountNeeded: Number,
-      reportedBy: { type: Schema.Types.ObjectId, ref: 'User' },
-      reportedAt: { type: Date, default: Date.now },
-      resolvedAt: Date,
-      resolutionAction: { type: String, enum: ['CONFIRMED', 'CANCELLED'] },
+      type: mongoose.Schema.Types.Mixed,
+      default: null,
     },
     rating: {
       stars: Number,

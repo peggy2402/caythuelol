@@ -628,52 +628,50 @@ export default function ReportRankMismatchModal({
                       )}
                     </div>
 
-                    {autoCalcInfo && autoCalcInfo.totalStars > 0 && (
-                      <div className="text-[11px] text-zinc-400">
-                        <span>Gợi ý chuẩn theo số sao: </span>
-                        <span className="font-bold text-amber-300">
-                          {autoCalcInfo.totalPrice.toLocaleString('vi-VN')} đ
-                        </span>
-                        {targetRank && (
-                          <span className="text-zinc-500"> (Từ {verifiedRank} ➔ {targetRank})</span>
-                        )}
-                      </div>
-                    )}
+                    {/* Chi tiết tài chính tính toán tự động theo nghiệp vụ */}
+                    {autoCalcInfo && autoCalcInfo.totalStars > 0 && (() => {
+                      const serviceVal = autoCalcInfo.totalPrice;
+                      const fee = Math.round(serviceVal * 0.02);
+                      const totalVal = serviceVal + fee;
+                      const reqDep = Math.round(totalVal * 0.4);
+                      const paidDep = depositAmount || Math.round((orderTotal || 12240) * 0.4);
+                      const addDep = Math.max(0, reqDep - paidDep);
+                      const remBal = totalVal - reqDep;
 
-                    <div>
-                      <label className="block text-[11px] font-medium text-zinc-300 mb-1">
-                        Báo giá thực tế đề xuất (VNĐ) <span className="text-zinc-500">(Booster có thể chỉnh sửa tự do)</span>:
-                      </label>
-                      <div className="relative">
-                        <input
-                          type="number"
-                          value={proposedPrice}
-                          onChange={(e) => setProposedPrice(e.target.value)}
-                          placeholder={autoCalcInfo?.totalPrice ? autoCalcInfo.totalPrice.toString() : 'VD: 165000'}
-                          className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-3.5 py-2 text-xs text-amber-300 font-bold placeholder-zinc-600 focus:border-amber-500 focus:outline-none transition-colors"
-                        />
-                        <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs text-zinc-500">
-                          VNĐ
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Tạm tính chênh lệch khách cần thanh toán bù */}
-                    {(() => {
-                      const finalPrice = proposedPrice ? Number(proposedPrice) : (autoCalcInfo?.totalPrice || 0);
-                      const origTotal = orderTotal || 0;
-                      const extraNeeded = Math.max(0, finalPrice - origTotal);
-                      if (finalPrice > 0 && origTotal > 0) {
-                        return (
-                          <div className="flex items-center justify-between pt-1 border-t border-amber-500/20 text-[11px]">
-                            <span className="text-zinc-400">Khách cần thanh toán bù thêm:</span>
-                            <span className="font-extrabold text-amber-400">
-                              {extraNeeded > 0 ? `+ ${extraNeeded.toLocaleString('vi-VN')} đ` : '0 đ (Không phát sinh bù)'}
+                      return (
+                        <div className="rounded-xl border border-zinc-800 bg-zinc-950/80 p-3 text-xs space-y-1.5">
+                          <div className="flex justify-between text-zinc-400">
+                            <span>Khoảng cách leo rank mới:</span>
+                            <span className="font-bold text-amber-300">{autoCalcInfo.totalStars} sao</span>
+                          </div>
+                          <div className="flex justify-between text-zinc-400">
+                            <span>Giá trị dịch vụ mới:</span>
+                            <span className="font-mono text-zinc-200">
+                              {serviceVal.toLocaleString('vi-VN')} đ (Phí 2%: {fee.toLocaleString('vi-VN')} đ)
                             </span>
                           </div>
-                        );
-                      }
-                      return null;
+                          <div className="flex justify-between text-zinc-400">
+                            <span>Tổng giá trị đơn hàng mới:</span>
+                            <span className="font-mono font-bold text-white">{totalVal.toLocaleString('vi-VN')} đ</span>
+                          </div>
+                          <div className="flex justify-between text-zinc-400">
+                            <span>Tiền cọc yêu cầu (40%):</span>
+                            <span className="font-mono text-zinc-300">{reqDep.toLocaleString('vi-VN')} đ</span>
+                          </div>
+                          <div className="flex justify-between text-zinc-400">
+                            <span>Khách đã đặt cọc:</span>
+                            <span className="font-mono text-emerald-400">{paidDep.toLocaleString('vi-VN')} đ</span>
+                          </div>
+                          <div className="flex justify-between text-amber-400 font-bold pt-1.5 border-t border-zinc-800">
+                            <span>Khách cần bù cọc:</span>
+                            <span className="font-mono text-amber-300 text-sm">+{addDep.toLocaleString('vi-VN')} đ</span>
+                          </div>
+                          <div className="flex justify-between text-[11px] text-zinc-500">
+                            <span>Còn lại sau khi hoàn thành:</span>
+                            <span className="font-mono text-zinc-400">{remBal.toLocaleString('vi-VN')} đ</span>
+                          </div>
+                        </div>
+                      );
                     })()}
                   </div>
 
