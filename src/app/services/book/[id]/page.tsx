@@ -153,7 +153,7 @@ export default function BookCustomServicePage() {
 
     if (booster?.coupon && booster.coupon.isActive && booster.coupon.code.toUpperCase() === code) {
       setAppliedDiscount(booster.coupon.discountPercent);
-      toast.success(`Đã áp dụng mã giảm giá ${booster.coupon.discountPercent}% của tuyển thủ!`);
+      toast.success(`Đã áp dụng mã giảm giá ${booster.coupon.discountPercent}% của Booster!`);
     } else {
       setAppliedDiscount(0);
       setCouponError('Mã giảm giá không hợp lệ hoặc đã hết hạn');
@@ -383,7 +383,7 @@ export default function BookCustomServicePage() {
                           {booster.displayName || booster.username}
                         </span>
                         <span className="text-[10px] font-semibold text-blue-400 bg-blue-500/10 px-1.5 py-0.5 rounded border border-blue-500/20">
-                          Tuyển thủ
+                          Booster
                         </span>
                       </div>
                       <div className="flex items-center gap-2 text-xs text-zinc-400 mt-0.5">
@@ -416,7 +416,7 @@ export default function BookCustomServicePage() {
                   </div>
                   <div>
                     <div className="text-sm font-bold text-white">
-                      Ưu đãi từ tuyển thủ: Giảm {booster.coupon.discountPercent}%
+                      Ưu đãi từ Booster: Giảm {booster.coupon.discountPercent}%
                     </div>
                     <div className="text-xs text-zinc-400">
                       Mã: <span className="font-mono font-bold text-blue-400">{booster.coupon.code}</span>
@@ -641,7 +641,7 @@ export default function BookCustomServicePage() {
                     </span>
                   </div>
                   <p className="text-[11px] text-zinc-400">
-                    Tiền cọc được hệ thống tạm giữ an toàn và chỉ thanh toán cho tuyển thủ sau khi bạn xác nhận hoàn thành đơn.
+                    Tiền cọc được hệ thống tạm giữ an toàn và chỉ thanh toán cho Booster sau khi bạn xác nhận hoàn thành đơn.
                   </p>
                 </div>
               </div>

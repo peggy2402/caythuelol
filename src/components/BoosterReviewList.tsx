@@ -57,7 +57,7 @@ export default function BoosterReviewList({ reviews = [] }: { reviews: any[] }) 
             </div>
             <p className="text-sm font-semibold text-zinc-300">Chưa có đánh giá nào</p>
             <p className="text-xs text-zinc-500 max-w-xs mt-1">
-              Tuyển thủ luôn đảm bảo uy tín và bảo mật. Hãy là người đầu tiên trải nghiệm và để lại nhận xét!
+              Booster luôn đảm bảo uy tín và bảo mật. Hãy là người đầu tiên trải nghiệm và để lại nhận xét!
             </p>
           </div>
         ) : (

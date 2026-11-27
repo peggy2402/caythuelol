@@ -162,9 +162,9 @@ export function ScheduleConfigPanel({
                 <Clock size={13} />
               </div>
               <span className="text-zinc-300 font-medium">
-                Khung giờ làm việc của Tuyển thủ:{' '}
+                Khung giờ làm việc của Booster:{' '}
                 <strong className="text-white font-extrabold text-xs sm:text-sm">
-                  {assignedBooster.user?.name || assignedBooster.user?.username?.split('@')[0] || 'Tuyển thủ'}
+                  {assignedBooster.user?.name || assignedBooster.user?.username?.split('@')[0] || 'Booster'}
                 </strong>
                 {assignedBooster.user?.username && (
                   <span className="text-cyan-300 font-mono text-[11px] ml-1 opacity-90">
@@ -204,7 +204,7 @@ export function ScheduleConfigPanel({
         <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/40 text-amber-200 text-xs space-y-2 animate-in fade-in zoom-in-95">
           <div className="flex items-center gap-2 font-bold text-amber-400">
             <AlertTriangle size={15} className="shrink-0 text-amber-400 animate-pulse" />
-            <span>Cảnh báo: Khung giờ đã chọn không khớp với lịch làm việc của Tuyển thủ!</span>
+            <span>Cảnh báo: Khung giờ đã chọn không khớp với lịch làm việc của Booster!</span>
           </div>
 
           <p className="text-[11px] text-zinc-300 leading-relaxed">
@@ -227,7 +227,7 @@ export function ScheduleConfigPanel({
                 className="px-2.5 py-1 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 font-bold transition-all cursor-pointer flex items-center gap-1 active:scale-95"
               >
                 <Shuffle size={12} />
-                <span>Ghép tuyển thủ khác</span>
+                <span>Ghép Booster khác</span>
               </button>
             )}
           </div>
@@ -303,7 +303,7 @@ export function ScheduleConfigPanel({
           <div className="text-[11px] text-amber-400 flex items-center gap-1.5 pt-0.5">
             <AlertTriangle size={12} className="shrink-0" />
             <span>
-              Tuyển thủ không làm việc vào <strong>{selectedDayName}</strong>. Vui lòng chọn ngày khác hoặc đổi tuyển thủ.
+              Booster không làm việc vào <strong>{selectedDayName}</strong>. Vui lòng chọn ngày khác hoặc đổi Booster.
             </span>
           </div>
         )}
@@ -366,7 +366,7 @@ export function ScheduleConfigPanel({
                   </div>
                   {isShiftOutside ? (
                     <span
-                      title="Khung giờ này nằm ngoài giờ làm việc của Tuyển thủ"
+                      title="Khung giờ này nằm ngoài giờ làm việc của Booster"
                       className="text-[9px] font-bold text-amber-300 bg-amber-400/20 border border-amber-400/40 px-1.5 py-0.5 rounded-full shrink-0 whitespace-nowrap"
                     >
                       Lệch giờ
@@ -455,7 +455,7 @@ export function ScheduleConfigPanel({
           <div className="text-[11px] text-amber-400 flex items-center gap-1.5 pt-0.5">
             <AlertTriangle size={12} className="shrink-0" />
             <span>
-              Khung giờ này nằm ngoài giờ làm việc của Tuyển thủ. Booster có thể từ chối nhận nếu không sắp xếp được.
+              Khung giờ này nằm ngoài giờ làm việc của Booster. Booster có thể từ chối nhận nếu không sắp xếp được.
             </span>
           </div>
         )}
@@ -482,7 +482,7 @@ export function ScheduleConfigPanel({
           <span>Chính sách SLA & Cam kết lịch cày:</span>
         </div>
         <p className="leading-relaxed">
-          • <strong className="text-white">Booster cam kết:</strong> Đăng nhập và hoàn thành tiến độ đúng khung giờ đã thống nhất. Nếu trễ quá 30 phút mà không thông báo, khách có quyền yêu cầu hủy đơn hoặc đổi tuyển thủ.
+          • <strong className="text-white">Booster cam kết:</strong> Đăng nhập và hoàn thành tiến độ đúng khung giờ đã thống nhất. Nếu trễ quá 30 phút mà không thông báo, khách có quyền yêu cầu hủy đơn hoặc đổi Booster.
         </p>
         <p className="leading-relaxed text-amber-300/90 flex items-start gap-1">
           <AlertTriangle size={13} className="text-amber-400 shrink-0 mt-0.5" />

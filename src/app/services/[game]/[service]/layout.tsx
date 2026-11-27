@@ -23,7 +23,7 @@ export async function generateMetadata({
   const serviceName = SERVICE_TITLES[service.toLowerCase()] || service.replace(/-/g, ' ').toUpperCase();
 
   const title = `${serviceName} ${gameName} Uy Tín, Giá Rẻ - Kéo Rank Thần Tốc`;
-  const description = `Dịch vụ ${serviceName} tựa game ${gameName} chuyên nghiệp số 1 Việt Nam. Đội ngũ tuyển thủ Thách Đấu leo rank siêu tốc, bảo mật tài khoản 100%, bảo hành uy tín tại LeoRank.`;
+  const description = `Dịch vụ ${serviceName} tựa game ${gameName} chuyên nghiệp số 1 Việt Nam. Đội ngũ Booster Thách Đấu leo rank siêu tốc, bảo mật tài khoản 100%, bảo hành uy tín tại LeoRank.`;
 
   return {
     title,

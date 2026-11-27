@@ -507,11 +507,11 @@ function ServiceBookingContent() {
   // Đổi ngẫu nhiên booster khác trong chế độ Ghép Nhanh Tự Động
   const handleRandomRerollBooster = () => {
     if (boosterList.length === 0) {
-      toast.info('Hiện chưa có tuyển thủ nào sẵn sàng cho dịch vụ này.');
+      toast.info('Hiện chưa có Booster nào sẵn sàng cho dịch vụ này.');
       return;
     }
     if (boosterList.length === 1) {
-      toast.info('Hiện tại chỉ có 1 tuyển thủ sẵn sàng cho dịch vụ này.');
+      toast.info('Hiện tại chỉ có 1 Booster sẵn sàng cho dịch vụ này.');
       return;
     }
 
@@ -550,11 +550,11 @@ function ServiceBookingContent() {
     if (boosterCoupon?.isActive && boosterCoupon?.code) {
       setAppliedCoupon(boosterCoupon);
       setCouponCode(boosterCoupon.code);
-      toast.success(`Đã chọn tuyển thủ @${booster.username} & áp dụng mã giảm ${boosterCoupon.discountPercent}%!`);
+      toast.success(`Đã chọn Booster @${booster.username} & áp dụng mã giảm ${boosterCoupon.discountPercent}%!`);
     } else {
       setAppliedCoupon(null);
       setCouponCode('');
-      toast.success(`Đã chọn tuyển thủ @${booster.username}!`);
+      toast.success(`Đã chọn Booster @${booster.username}!`);
     }
     setIsBoosterModalOpen(false);
   };
@@ -1482,11 +1482,11 @@ function ServiceBookingContent() {
         return;
       }
 
-      // 2. Nếu là coupon riêng của tuyển thủ được chỉ định
+      // 2. Nếu là coupon riêng của Booster được chỉ định
       const boosterCoupon = assignedBooster?.boosterData?.service_settings?.coupon;
       if (boosterCoupon && boosterCoupon.isActive && boosterCoupon.code.toUpperCase() === cleanCode) {
         setAppliedCoupon(boosterCoupon);
-        toast.success(`Đã áp dụng mã giảm giá ${boosterCoupon.discountPercent}% của tuyển thủ!`);
+        toast.success(`Đã áp dụng mã giảm giá ${boosterCoupon.discountPercent}% của Booster!`);
         return;
       }
 
@@ -1636,7 +1636,7 @@ function ServiceBookingContent() {
         const scheduleVal = validateScheduleWithBooster(addons.scheduleDetails, assignedBooster);
         if (scheduleVal.hasConflict) {
           toast.error(
-            `Xung đột lịch với Tuyển thủ: ${scheduleVal.message || 'Lịch đã chọn nằm ngoài thời gian làm việc của Booster.'} Vui lòng căn chỉnh lại hoặc đổi tuyển thủ!`,
+            `Xung đột lịch với Booster: ${scheduleVal.message || 'Lịch đã chọn nằm ngoài thời gian làm việc của Booster.'} Vui lòng căn chỉnh lại hoặc đổi Booster!`,
             { duration: 6000 }
           );
           return;
@@ -1907,7 +1907,7 @@ function ServiceBookingContent() {
             Bảng Tính Giá & Đặt Dịch Vụ Cày Rank
           </h1>
           <p className="text-xs sm:text-sm text-zinc-400 mt-1 max-w-2xl leading-relaxed">
-            Hệ thống tự động cộng dồn chi phí theo từng bậc rank. Chọn tuyển thủ yêu thích hoặc để hệ thống tự động ghép tuyển thủ uy tín nhất.
+            Hệ thống tự động cộng dồn chi phí theo từng bậc rank. Chọn Booster yêu thích hoặc để hệ thống tự động ghép Booster uy tín nhất.
           </p>
         </div>
 
@@ -1921,7 +1921,7 @@ function ServiceBookingContent() {
               Cấu hình chi tiết gói dịch vụ
             </h2>
             <p className="text-xs text-zinc-400">
-              Tùy chỉnh thông số cày rank, chọn tuyển thủ và tính toán chi phí theo thời gian thực
+              Tùy chỉnh thông số cày rank, chọn Booster và tính toán chi phí theo thời gian thực
             </p>
           </div>
         </div>
@@ -2179,7 +2179,7 @@ function ServiceBookingContent() {
         </div>
 
         {/* ========================================================================= */}
-        {/* MODALS: CHỌN RANK, SERVER, LOẠI TÀI KHOẢN, TUYỂN THỦ                     */}
+        {/* MODALS: CHỌN RANK, SERVER, LOẠI TÀI KHOẢN, BOOSTER                     */}
         {/* ========================================================================= */}
         <RankSelectModal
           isOpen={isRankModalOpen}

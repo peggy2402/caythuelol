@@ -665,7 +665,7 @@ export default function JobMarketPage() {
               Từ Chối & Chuyển Giao Đơn Hàng
             </DialogTitle>
             <DialogDescription className="text-xs text-zinc-400 text-center leading-relaxed">
-              Đơn hàng này sẽ <strong className="text-emerald-400">KHÔNG BỊ HỦY</strong>. Hệ thống sẽ tự động chuyển giao đơn lên <strong className="text-blue-400">Sàn việc làm công khai</strong> để các tuyển thủ khác cùng tựa game tiếp nhận ngay lập tức.
+              Đơn hàng này sẽ <strong className="text-emerald-400">KHÔNG BỊ HỦY</strong>. Hệ thống sẽ tự động chuyển giao đơn lên <strong className="text-blue-400">Sàn việc làm công khai</strong> để các Booster khác cùng tựa game tiếp nhận ngay lập tức.
             </DialogDescription>
           </DialogHeader>
 
@@ -765,7 +765,7 @@ export default function JobMarketPage() {
               {acceptModal.mode === 'APPROVE' ? 'Xác Nhận Nhận Đơn Chỉ Định' : 'Xác Nhận Nhận Đơn Hàng'}
             </DialogTitle>
             <DialogDescription className="text-xs text-zinc-400 text-center leading-relaxed">
-              Sau khi nhận, đơn hàng sẽ chuyển sang trạng thái <strong className="text-emerald-400">"Đã nhận"</strong>. Bạn cần bắt đầu cày sớm nhất có thể để đảm bảo tiến độ và uy tín tuyển thủ.
+              Sau khi nhận, đơn hàng sẽ chuyển sang trạng thái <strong className="text-emerald-400">"Đã nhận"</strong>. Bạn cần bắt đầu cày sớm nhất có thể để đảm bảo tiến độ và uy tín Booster.
             </DialogDescription>
           </DialogHeader>
 

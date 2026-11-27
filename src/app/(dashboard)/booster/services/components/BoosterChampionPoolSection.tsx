@@ -110,7 +110,7 @@ export const BoosterChampionPoolSection: React.FC<BoosterChampionPoolSectionProp
             Bạn chưa cấu hình Tướng tủ nào
           </span>
           <span className="text-xs text-zinc-400 max-w-md">
-            Bấm vào đây để chọn các vị tướng bạn có kỹ năng cao nhất. Tướng tủ sẽ được hiển thị với huy hiệu nổi bật trên hồ sơ tuyển thủ và được gợi ý cho khách hàng.
+            Bấm vào đây để chọn các vị tướng bạn có kỹ năng cao nhất. Tướng tủ sẽ được hiển thị với huy hiệu nổi bật trên hồ sơ Booster và được gợi ý cho khách hàng.
           </span>
         </div>
       )}

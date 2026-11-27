@@ -32,7 +32,7 @@ export const GameSelectorSection: React.FC<GameSelectorSectionProps> = ({
             <span>1. Tựa game bạn có thể cày</span>
           </h2>
           <p className="text-xs text-zinc-400 mt-0.5">
-            Bật các game bạn nhận đơn. Khách hàng sẽ thấy bạn trong danh sách tuyển thủ của tựa game đó.
+            Bật các game bạn nhận đơn. Khách hàng sẽ thấy bạn trong danh sách Booster của tựa game đó.
           </p>
         </div>
         <div className="flex items-center gap-2 self-start sm:self-auto">

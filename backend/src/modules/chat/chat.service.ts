@@ -43,12 +43,12 @@ const BOOSTER_STATUS_CATALOG: Record<
   PLAYING: {
     label: 'Đang vào game / Đang cày',
     description:
-      'Tuyển thủ đang thi đấu trên tài khoản. Vui lòng không đăng nhập để tránh văng trận.',
+      'Booster đang thi đấu trên tài khoản. Vui lòng không đăng nhập để tránh văng trận.',
   },
   BREAK: {
     label: 'Tạm nghỉ ngắn',
     description:
-      'Tuyển thủ đang nghỉ ngơi một chút và sẽ quay lại tiếp tục đơn hàng sớm.',
+      'Booster đang nghỉ ngơi một chút và sẽ quay lại tiếp tục đơn hàng sớm.',
   },
   ALMOST_DONE: {
     label: 'Sắp hoàn thành mục tiêu',
@@ -58,7 +58,7 @@ const BOOSTER_STATUS_CATALOG: Record<
   NEED_LOGIN: {
     label: 'Cần hỗ trợ đăng nhập / OTP',
     description:
-      'Tuyển thủ cần bạn cung cấp mã xác thực hoặc hỗ trợ đăng nhập tài khoản.',
+      'Booster cần bạn cung cấp mã xác thực hoặc hỗ trợ đăng nhập tài khoản.',
   },
 };
 
@@ -169,7 +169,7 @@ export class ChatService {
   /**
    * Xác thực quyền tham gia phòng chat và phân tách rõ vai trò trên đơn hàng:
    * - CUSTOMER: chủ đơn (order.customerId)
-   * - BOOSTER: tuyển thủ nhận đơn (order.boosterId)
+   * - BOOSTER: Booster nhận đơn (order.boosterId)
    * - ADMIN: quản trị viên / nhân viên hỗ trợ
    */
   private async resolveOrderAndParticipant(
@@ -443,7 +443,7 @@ export class ChatService {
 
     if (!order.boosterId) {
       throw new BadRequestException(
-        'Kênh chat sẽ tự động mở khi có Tuyển thủ nhận đơn của bạn.',
+        'Kênh chat sẽ tự động mở khi có Booster nhận đơn của bạn.',
       );
     }
 
@@ -469,7 +469,7 @@ export class ChatService {
 
     if (!order.boosterId) {
       throw new BadRequestException(
-        'Kênh chat sẽ tự động mở khi có Tuyển thủ nhận đơn của bạn.',
+        'Kênh chat sẽ tự động mở khi có Booster nhận đơn của bạn.',
       );
     }
 
@@ -732,14 +732,14 @@ export class ChatService {
 
     if (!isCustomer) {
       throw new ForbiddenException(
-        'Chỉ khách hàng đặt đơn mới có thể gửi tiền Tip cho Tuyển thủ',
+        'Chỉ khách hàng đặt đơn mới có thể gửi tiền Tip cho Booster',
       );
     }
 
     const boosterId = this.extractId(order.boosterId);
     if (!boosterId) {
       throw new BadRequestException(
-        'Đơn hàng chưa có Tuyển thủ nhận nên chưa thể gửi Tip',
+        'Đơn hàng chưa có Booster nhận nên chưa thể gửi Tip',
       );
     }
 
@@ -799,7 +799,7 @@ export class ChatService {
       );
 
       if (!updatedBooster) {
-        throw new NotFoundException('Không tìm thấy tài khoản Tuyển thủ nhận Tip');
+        throw new NotFoundException('Không tìm thấy tài khoản Booster nhận Tip');
       }
 
       updatedCustomerBalance = updatedCustomer.wallet_balance;
@@ -932,7 +932,7 @@ export class ChatService {
   }
 
   // ===========================================================================
-  // 3. BOOSTER-ONLY FEATURES (Chỉ tuyển thủ phụ trách đơn)
+  // 3. BOOSTER-ONLY FEATURES (Chỉ Booster phụ trách đơn)
   // ===========================================================================
 
   async sendBoosterStatus(
@@ -950,7 +950,7 @@ export class ChatService {
 
     if (!isBooster) {
       throw new ForbiddenException(
-        'Chỉ Tuyển thủ phụ trách đơn hàng mới có thể cập nhật trạng thái cày',
+        'Chỉ Booster phụ trách đơn hàng mới có thể cập nhật trạng thái cày',
       );
     }
 
@@ -1020,7 +1020,7 @@ export class ChatService {
 
     if (!isBooster) {
       throw new ForbiddenException(
-        'Chỉ Tuyển thủ phụ trách đơn hàng mới có thể gửi báo cáo tiến độ',
+        'Chỉ Booster phụ trách đơn hàng mới có thể gửi báo cáo tiến độ',
       );
     }
 

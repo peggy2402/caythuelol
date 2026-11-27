@@ -313,7 +313,7 @@ export default function ChatInput({
 
   const roleHeaderLabel =
     participantRole === 'BOOSTER'
-      ? 'Công cụ Tuyển thủ'
+      ? 'Công cụ Booster'
       : participantRole === 'CUSTOMER'
         ? 'Công cụ Khách hàng'
         : 'Tiện ích phòng chat';
@@ -600,7 +600,7 @@ export default function ChatInput({
               />
 
               <p className="text-[10px] text-zinc-500">
-                Tiền Tip sẽ được trừ trực tiếp từ số dư ví của bạn và chuyển 100% cho Tuyển thủ.
+                Tiền Tip sẽ được trừ trực tiếp từ số dư ví của bạn và chuyển 100% cho Booster.
               </p>
 
               <button

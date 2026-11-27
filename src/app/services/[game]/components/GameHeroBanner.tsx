@@ -41,7 +41,7 @@ export function GameHeroBanner({ game, servicesCount, boostersCount }: GameHeroB
             Sàn Dịch Vụ {game.name}
           </h1>
           <p className="text-zinc-300/90 text-xs sm:text-sm leading-relaxed max-w-xl">
-            Khám phá các gói dịch vụ cày thuê do tuyển thủ tự niêm yết giá hoặc lựa chọn tuyển thủ hàng đầu để thuê trực tiếp.
+            Khám phá các gói dịch vụ cày thuê do Booster tự niêm yết giá hoặc lựa chọn Booster hàng đầu để thuê trực tiếp.
           </p>
         </div>
 
@@ -62,7 +62,7 @@ export function GameHeroBanner({ game, servicesCount, boostersCount }: GameHeroB
               <span>{boostersCount}</span>
             </div>
             <div className="text-[11px] font-semibold text-zinc-400 mt-1.5 whitespace-nowrap">
-              Tuyển Thủ
+              Booster
             </div>
           </div>
         </div>

@@ -129,7 +129,7 @@ export default function ChampionCard({
 
         {/* Booster Favorite Badge */}
         {isBoosterFavorite && (
-          <div className="absolute top-1 right-1 px-1.5 py-0.5 rounded-md bg-amber-500/90 text-black text-[9px] font-extrabold flex items-center gap-0.5 shadow-md border border-amber-300/40 z-10" title="Tướng tủ của tuyển thủ">
+          <div className="absolute top-1 right-1 px-1.5 py-0.5 rounded-md bg-amber-500/90 text-black text-[9px] font-extrabold flex items-center gap-0.5 shadow-md border border-amber-300/40 z-10" title="Tướng tủ của Booster">
             <span>⭐ Tủ</span>
           </div>
         )}

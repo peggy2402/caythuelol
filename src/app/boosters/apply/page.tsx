@@ -298,8 +298,8 @@ export default function BoosterApplyPage() {
     { id: 'security', title: 'Bảo mật tài khoản khách hàng', desc: 'Bảo mật thông tin đăng nhập, không tự ý đổi mật khẩu, không tiêu xài Tinh Hoa Lam hay RP/VP của khách.' },
     { id: 'private', title: 'Giữ kín thông tin & Ẩn danh tuyệt đối', desc: 'Không chat trong trận, không kết bạn, không trả lời tin nhắn bạn bè của khách, luôn bật chế độ Offline.' },
     { id: 'stream', title: 'Quy tắc Livestream (nếu có)', desc: 'Chỉ livestream khi khách hàng có đăng ký gói add-on xem trực tiếp và tuân thủ che tên tài khoản ingame.' },
-    { id: 'penalty', title: 'Cam kết bồi thường vi phạm', desc: 'Chịu trách nhiệm bồi thường 100% nếu gây ra sự cố khóa tài khoản do lỗi chủ quan của tuyển thủ booster.' },
-    { id: 'deposit', title: 'Quy chế hoạt động tuyển thủ', desc: 'Cam kết tuân thủ nghiêm ngặt mọi quy chuẩn tác phong thi đấu, bảo mật thông tin khách hàng và quy chế hợp tác của hệ thống.' },
+    { id: 'penalty', title: 'Cam kết bồi thường vi phạm', desc: 'Chịu trách nhiệm bồi thường 100% nếu gây ra sự cố khóa tài khoản do lỗi chủ quan của Booster.' },
+    { id: 'deposit', title: 'Quy chế hoạt động Booster', desc: 'Cam kết tuân thủ nghiêm ngặt mọi quy chuẩn tác phong thi đấu, bảo mật thông tin khách hàng và quy chế hợp tác của hệ thống.' },
   ];
 
   // Stepper handlers
@@ -320,8 +320,8 @@ export default function BoosterApplyPage() {
           }));
           toast.warning("Cấu hình hệ thống đã cập nhật", {
             description: serverDepositConfig.depositRequired 
-              ? "Hệ thống vừa bật yêu cầu thanh toán phí kích hoạt quyền tuyển thủ. Vui lòng chuyển khoản để tiếp tục."
-              : "Hệ thống vừa áp dụng miễn phí đăng ký tuyển thủ. Bạn không cần thanh toán nữa."
+              ? "Hệ thống vừa bật yêu cầu thanh toán phí kích hoạt quyền Booster. Vui lòng chuyển khoản để tiếp tục."
+              : "Hệ thống vừa áp dụng miễn phí đăng ký Booster. Bạn không cần thanh toán nữa."
           });
           return;
         }
@@ -331,7 +331,7 @@ export default function BoosterApplyPage() {
 
       if (adminSettings.depositConfig.depositRequired && !billImageUrl && !billImageFile) {
         toast.error("Thiếu ảnh Bill chuyển khoản", {
-          description: "Vui lòng tải lên ảnh Bill chuyển khoản phí kích hoạt quyền tuyển thủ để tiếp tục."
+          description: "Vui lòng tải lên ảnh Bill chuyển khoản phí kích hoạt quyền Booster để tiếp tục."
         });
         return;
       }
@@ -623,7 +623,7 @@ export default function BoosterApplyPage() {
             <span className="inline-block px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[11px] font-black uppercase tracking-wider mb-2">
               VERIFIED PRO BOOSTER
             </span>
-            <h2 className="text-2xl font-black text-white">Bạn Đang Là Tuyển Thủ</h2>
+            <h2 className="text-2xl font-black text-white">Bạn Đang Là Booster</h2>
             <p className="text-zinc-400 text-xs sm:text-sm mt-2 leading-relaxed">
               Tài khoản của bạn đã được phê duyệt tư cách Booster chính thức trên sàn LeoRank. Bạn có thể nhận đơn và kiếm thu nhập ngay.
             </p>
@@ -657,7 +657,7 @@ export default function BoosterApplyPage() {
           <DialogContent className="bg-zinc-900 border-red-500/30 text-white sm:max-w-[425px] rounded-3xl">
             <DialogHeader>
               <DialogTitle className="text-xl text-red-400 flex items-center gap-2">
-                <AlertTriangle className="w-5 h-5" /> Hủy Quyền Tuyển Thủ
+                <AlertTriangle className="w-5 h-5" /> Hủy Quyền Booster
               </DialogTitle>
               <DialogDescription className="text-zinc-300 pt-3 text-sm">
                 Bạn có chắc chắn muốn ngừng hoạt động với tư cách Booster trên hệ thống?
@@ -705,7 +705,7 @@ export default function BoosterApplyPage() {
           >
             <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-cyan-950/40 border border-cyan-500/30 text-cyan-300 text-xs font-bold uppercase tracking-wider mb-4 backdrop-blur-md shadow-[0_0_20px_rgba(6,182,212,0.2)]">
               <Flame className="w-3.5 h-3.5 text-amber-400" />
-              <span>Gia Nhập Đội Ngũ Tuyển Thủ LeoRank Pro</span>
+              <span>Gia Nhập Đội Ngũ Booster LeoRank Pro</span>
             </div>
 
             <h1 className="text-3xl sm:text-5xl font-black tracking-tight text-white mb-3 uppercase">
@@ -836,7 +836,7 @@ export default function BoosterApplyPage() {
                         Bước 1 / 3
                       </div>
                       <h3 className="text-xl font-black text-white">
-                        Thông Tin Định Danh Tuyển Thủ
+                        Thông Tin Định Danh Booster
                       </h3>
                       <p className="text-xs text-zinc-400 mt-0.5">
                         Dữ liệu được mã hóa bảo mật 256-bit và chỉ dùng để đối soát giải ngân thu nhập của bạn.
@@ -1067,9 +1067,9 @@ export default function BoosterApplyPage() {
                         <div className="flex items-start gap-3">
                           <ShieldAlert className="text-amber-400 shrink-0 mt-0.5 w-5 h-5" />
                           <div className="w-full">
-                            <h4 className="font-black text-amber-300 text-sm">Phí Kích Hoạt Quyền Tuyển Thủ (Booster Registration Fee)</h4>
+                            <h4 className="font-black text-amber-300 text-sm">Phí Kích Hoạt Quyền Booster (Booster Registration Fee)</h4>
                             <p className="text-xs text-zinc-300 mt-1 mb-4 leading-relaxed">
-                              Để hoàn tất thủ tục xét duyệt và nâng cấp tài khoản từ Khách hàng lên Tuyển thủ (Booster), hệ thống yêu cầu thanh toán khoản phí kích hoạt là <span className="text-white font-bold">{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(adminSettings.depositConfig.depositAmount)}</span>. Sau khi chuyển khoản, vui lòng tải ảnh bill bên dưới để Admin duyệt hồ sơ.
+                              Để hoàn tất thủ tục xét duyệt và nâng cấp tài khoản từ Khách hàng lên Booster, hệ thống yêu cầu thanh toán khoản phí kích hoạt là <span className="text-white font-bold">{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(adminSettings.depositConfig.depositAmount)}</span>. Sau khi chuyển khoản, vui lòng tải ảnh bill bên dưới để Admin duyệt hồ sơ.
                             </p>
                             
                             <div className="flex flex-col md:flex-row gap-5 items-center bg-black/40 p-4 rounded-2xl border border-white/5">
@@ -1165,9 +1165,9 @@ export default function BoosterApplyPage() {
                       <div className="bg-emerald-950/20 border border-emerald-500/30 rounded-2xl p-4 sm:p-5 flex items-start gap-3">
                         <CheckCircle2 className="text-emerald-400 shrink-0 mt-0.5 w-5 h-5" />
                         <div>
-                          <h4 className="font-black text-emerald-300 text-sm">Đặc Quyền: Miễn Phí Đăng Ký Tuyển Thủ</h4>
+                          <h4 className="font-black text-emerald-300 text-sm">Đặc Quyền: Miễn Phí Đăng Ký Booster</h4>
                           <p className="text-xs text-zinc-400 mt-1">
-                            Hệ thống hiện đang áp dụng chính sách <b className="text-emerald-300">miễn phí kích hoạt quyền tuyển thủ</b> cho các ứng viên đăng ký trong đợt này. Bạn không cần thanh toán bất kỳ khoản phí nào để gia nhập đội ngũ Booster!
+                            Hệ thống hiện đang áp dụng chính sách <b className="text-emerald-300">miễn phí kích hoạt quyền Booster</b> cho các ứng viên đăng ký trong đợt này. Bạn không cần thanh toán bất kỳ khoản phí nào để gia nhập đội ngũ Booster!
                           </p>
                         </div>
                       </div>
@@ -1472,7 +1472,7 @@ export default function BoosterApplyPage() {
           </div>
 
           <div style={{ marginBottom: '20px' }}>
-            <h3 style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '6px', margin: 0 }}>BÊN B: {fullName?.toUpperCase()} (Bên Tuyển thủ Booster)</h3>
+            <h3 style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '6px', margin: 0 }}>BÊN B: {fullName?.toUpperCase()} (Bên Booster)</h3>
             <p style={{ margin: 0 }}>Tựa game thi đấu chính: {displayGameName}</p>
             <p style={{ margin: 0 }}>Số điện thoại: {watch('phoneNumber')}</p>
             <p style={{ margin: 0 }}>Discord: {watch('discordTag')}</p>
@@ -1521,7 +1521,7 @@ export default function BoosterApplyPage() {
           <DialogHeader>
             <DialogTitle className="text-xl font-black text-white flex items-center gap-2">
               <ShieldCheck className="w-5 h-5 text-cyan-400" />
-              Xem Lại &amp; Nộp Hồ Sơ Tuyển Thủ
+              Xem Lại &amp; Nộp Hồ Sơ Booster
             </DialogTitle>
             <DialogDescription className="text-zinc-400 text-xs pt-1.5 leading-relaxed">
               Vui lòng kiểm tra lại thông tin hồ sơ của bạn trước khi nộp chính thức lên ban quản trị LeoRank.

@@ -826,7 +826,7 @@ export default function ProfilePage() {
 
   const copyShortLink = () => {
     navigator.clipboard.writeText(`${origin}/b/${username}`);
-    toast.success('Đã sao chép link hồ sơ tuyển thủ!');
+    toast.success('Đã sao chép link hồ sơ Booster!');
   };
 
   if (loading) {
@@ -943,7 +943,7 @@ export default function ProfilePage() {
                 {user.role === 'BOOSTER' && (
                   <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-black tracking-wider uppercase bg-gradient-to-r from-blue-600/30 to-indigo-600/30 text-blue-400 border border-blue-500/40 shadow-sm">
                     <Sparkles className="w-3.5 h-3.5 text-blue-400" />
-                    Tuyển Thủ Pro
+                    Booster Pro
                   </span>
                 )}
                 {user.role === 'CUSTOMER' && (
@@ -1039,7 +1039,7 @@ export default function ProfilePage() {
                 className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs transition-all shadow-lg shadow-blue-600/20 flex items-center gap-2"
               >
                 <ShoppingBag className="w-4 h-4" />
-                Thuê Tuyển Thủ
+                Thuê Booster
               </Link>
             </div>
           )}
@@ -1132,10 +1132,10 @@ export default function ProfilePage() {
                   <div>
                     <h3 className="text-sm font-bold text-white flex items-center gap-2">
                       <Award className="w-4 h-4 text-amber-400" />
-                      Bậc Rank Đại Diện Toàn Sàn Của Tuyển Thủ
+                      Bậc Rank Đại Diện Toàn Sàn Của Booster
                     </h3>
                     <p className="text-xs text-zinc-400 mt-0.5">
-                      Hiển thị trực tiếp trên danh thiếp tuyển thủ, kết quả tìm kiếm và trang hồ sơ.
+                      Hiển thị trực tiếp trên danh thiếp Booster, kết quả tìm kiếm và trang hồ sơ.
                     </p>
                   </div>
                   <span className="text-[10px] uppercase font-bold px-2.5 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30">
@@ -1356,7 +1356,7 @@ export default function ProfilePage() {
           {activeTab === 'score' && (
             <div className="space-y-6">
               <SettingsCard
-                title="Hệ Thống Đánh Giá Năng Lực & Phân Cấp Tuyển Thủ"
+                title="Hệ Thống Đánh Giá Năng Lực & Phân Cấp Booster"
                 description="Điểm Performance Score (thang 100) được tính toán tự động qua 5 nhóm tiêu chí độc lập, quyết định cấp bậc Tier và thứ hạng của bạn."
               >
                 <div className="space-y-6">
@@ -1577,7 +1577,7 @@ export default function ProfilePage() {
                     </div>
                     <div className="md:col-span-2">
                       <label className="block text-sm font-medium text-zinc-400 mb-2">
-                        Lời giới thiệu bản thân (Bio hiển thị ngoài trang tuyển thủ)
+                        Lời giới thiệu bản thân (Bio hiển thị ngoài trang Booster)
                       </label>
                       <textarea
                         value={bio}
@@ -1895,7 +1895,7 @@ export default function ProfilePage() {
                   className="rounded-2xl border border-white/5 bg-zinc-950/60 p-4 hover:border-blue-500/30 transition-all group"
                 >
                   <User className="w-6 h-6 text-blue-400 mb-2 group-hover:scale-110 transition-transform" />
-                  <div className="text-sm font-bold text-white">Quản Lý Tuyển Thủ</div>
+                  <div className="text-sm font-bold text-white">Quản Lý Booster</div>
                   <div className="text-xs text-zinc-500">Kiểm duyệt hồ sơ ứng tuyển</div>
                 </Link>
               </div>
@@ -1911,7 +1911,7 @@ export default function ProfilePage() {
         <div className="space-y-6">
           <SettingsCard
             title="Trung Tâm Điều Hành Quản Trị Viên Tối Cao (Super Admin)"
-            description="Bạn có toàn quyền kiểm soát hệ thống, cấu hình trọng số đánh giá tuyển thủ, quản lý tài chính và tài khoản."
+            description="Bạn có toàn quyền kiểm soát hệ thống, cấu hình trọng số đánh giá Booster, quản lý tài chính và tài khoản."
           >
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
               <Link

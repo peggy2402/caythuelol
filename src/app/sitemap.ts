@@ -61,7 +61,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.85,
   }));
 
-  // Fetch danh sách tuyển thủ để index hồ sơ booster công khai
+  // Fetch danh sách Booster để index hồ sơ booster công khai
   let boosterRoutes: MetadataRoute.Sitemap = [];
   try {
     const apiBase = process.env.NEXT_PUBLIC_API_URL || 'https://apil-lr.leorank.site';

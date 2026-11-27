@@ -277,7 +277,7 @@ export default function HireBoosterModal({
                 </span>
               </div>
               <p className="text-xs text-zinc-400 mt-0.5 line-clamp-1">
-                Chọn tựa game và gói dịch vụ để đặt cày trực tiếp với tuyển thủ này.
+                Chọn tựa game và gói dịch vụ để đặt cày trực tiếp với Booster này.
               </p>
             </div>
           </div>
@@ -407,7 +407,7 @@ export default function HireBoosterModal({
                   Chưa có dịch vụ nào cho {currentGame?.name}
                 </h4>
                 <p className="text-xs text-zinc-400 max-w-md mt-1.5 leading-relaxed">
-                  Tuyển thủ <strong className="text-zinc-200">{boosterName}</strong> chưa bật gói dịch vụ nào cho tựa game này. Bạn có thể chuyển sang tựa game khác hoặc liên hệ trực tiếp.
+                  Booster <strong className="text-zinc-200">{boosterName}</strong> chưa bật gói dịch vụ nào cho tựa game này. Bạn có thể chuyển sang tựa game khác hoặc liên hệ trực tiếp.
                 </p>
               </div>
             ) : (

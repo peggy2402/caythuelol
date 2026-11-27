@@ -70,7 +70,7 @@ export default function VipMembershipBanner() {
                 {vipName}
               </h3>
               <p className="text-zinc-400 text-sm max-w-sm mb-6">
-                Tối ưu chi phí leo rank dài hạn với mức giảm giá {discountPercent}% trọn đời và đặc quyền ghép nhanh tuyển thủ Pro.
+                Tối ưu chi phí leo rank dài hạn với mức giảm giá {discountPercent}% trọn đời và đặc quyền ghép nhanh Booster Pro.
               </p>
 
               <div className="flex items-baseline gap-2 mb-6">

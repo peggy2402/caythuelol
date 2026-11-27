@@ -106,7 +106,7 @@ const STANDARD_ADDONS = [
   {
     slug: 'duo',
     name: 'Chơi cùng Booster (Duo)',
-    desc: 'Đánh cùng tuyển thủ, không giao tài khoản mật khẩu',
+    desc: 'Đánh cùng Booster, không giao tài khoản mật khẩu',
     pricingType: AddonPricingType.PERCENTAGE,
     defaultPrice: 50,
     calculationBase: CalculationBase.BASE_PRICE,
@@ -201,7 +201,7 @@ const TEMPLATES = [
     gameCode: 'LOL',
     slug: 'coaching',
     name: 'Huấn Luyện & Duo 1-1',
-    desc: 'Phân tích replay, hướng dẫn tư duy macro/micro và leo rank duo cùng tuyển thủ.',
+    desc: 'Phân tích replay, hướng dẫn tư duy macro/micro và leo rank duo cùng Booster.',
     iconName: 'Users',
     pricingModel: PricingModel.UNIT_BASED,
     unitName: 'Giờ học',

@@ -39,7 +39,7 @@ export default function QuickServicesHub() {
             <Flame className="w-4 h-4 sm:w-5 sm:h-5 text-amber-400" />
             Đặt Dịch Vụ Cày Nhanh
           </h3>
-          <p className="text-[11px] sm:text-xs text-zinc-400">Ước tính giá và ghép tuyển thủ Thách Đấu trong 3 phút.</p>
+          <p className="text-[11px] sm:text-xs text-zinc-400">Ước tính giá và ghép Booster Thách Đấu trong 3 phút.</p>
         </div>
         <Link href="/services/lol" className="text-xs font-bold text-cyan-400 hover:text-cyan-300 flex items-center gap-1 shrink-0">
           Xem tất cả <ChevronRight className="w-3.5 h-3.5" />

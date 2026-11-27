@@ -89,7 +89,7 @@ export function AddonsAndRolesSection({
                 +{Math.round(scheduleCfg.percent)}%
               </span>
             ) : (
-              <span className="text-zinc-500 text-[11px] font-semibold">(Tuyển thủ không nhận)</span>
+              <span className="text-zinc-500 text-[11px] font-semibold">(Booster không nhận)</span>
             )}
             <Info size={13} className="text-blue-400" />
           </div>
@@ -157,7 +157,7 @@ export function AddonsAndRolesSection({
                 +{Math.round(specificRoleCfg.percent)}%
               </span>
             ) : (
-              <span className="text-zinc-500 text-[11px] font-semibold">(Tuyển thủ không nhận)</span>
+              <span className="text-zinc-500 text-[11px] font-semibold">(Booster không nhận)</span>
             )}
             <Info size={13} className="text-blue-400" />
           </div>
@@ -236,7 +236,7 @@ export function AddonsAndRolesSection({
             <div className="pt-2 border-t border-white/5 flex items-center justify-between text-[11px]">
               {hasRandom && (addons.selectedRoles || []).includes('random') ? (
                 <span className="text-purple-300 font-medium">
-                  ✓ Đã chọn <strong>Đường Bất Kỳ</strong> (Tuyển thủ sẽ chọn vị trí tối ưu).
+                  ✓ Đã chọn <strong>Đường Bất Kỳ</strong> (Booster sẽ chọn vị trí tối ưu).
                 </span>
               ) : (addons.selectedRoles || []).length === 2 ? (
                 <span className="text-emerald-400 font-medium">
@@ -282,7 +282,7 @@ export function AddonsAndRolesSection({
                 +{Math.round(specificChampsCfg.percent)}%
               </span>
             ) : (
-              <span className="text-zinc-500 text-[11px] font-semibold">(Tuyển thủ không nhận)</span>
+              <span className="text-zinc-500 text-[11px] font-semibold">(Booster không nhận)</span>
             )}
             <Info size={13} className="text-blue-400" />
           </div>
@@ -294,7 +294,7 @@ export function AddonsAndRolesSection({
             <div className="flex items-center justify-between gap-2 flex-wrap">
               <span className="text-xs font-bold text-white flex items-center gap-2">
                 <Sparkles size={15} className="text-cyan-400" />
-                <span>Chỉ định tướng muốn tuyển thủ đánh (1 – 3 tướng)</span>
+                <span>Chỉ định tướng muốn Booster đánh (1 – 3 tướng)</span>
               </span>
 
               <button
@@ -383,13 +383,13 @@ export function AddonsAndRolesSection({
               </button>
             )}
 
-            {/* Gợi ý tướng tủ của Tuyển thủ nếu có */}
+            {/* Gợi ý tướng tủ của Booster nếu có */}
             {boosterChampions && boosterChampions.length > 0 && (
               <div className="pt-2.5 border-t border-zinc-800/80 flex items-center gap-2 text-xs text-zinc-400 flex-wrap">
                 <span className="text-amber-400 font-bold flex items-center gap-1 shrink-0">
                   <Star size={12} className="fill-amber-400" />
                   <span>
-                    Tướng tủ {assignedBooster?.displayName || assignedBooster?.username || 'Tuyển thủ'}:
+                    Tướng tủ {assignedBooster?.displayName || assignedBooster?.username || 'Booster'}:
                   </span>
                 </span>
                 <div className="flex items-center gap-1.5 flex-wrap">
@@ -455,7 +455,7 @@ export function AddonsAndRolesSection({
                 +{livestreamCfg.fee.toLocaleString('vi-VN')}đ
               </span>
             ) : (
-              <span className="text-zinc-500 text-[11px] font-semibold">(Tuyển thủ không nhận)</span>
+              <span className="text-zinc-500 text-[11px] font-semibold">(Booster không nhận)</span>
             )}
             <Info size={13} className="text-blue-400" />
           </div>
@@ -482,7 +482,7 @@ export function AddonsAndRolesSection({
                 +{Math.round(flashCfg.percent)}%
               </span>
             ) : (
-              <span className="text-zinc-500 text-[11px] font-semibold">(Tuyển thủ không nhận)</span>
+              <span className="text-zinc-500 text-[11px] font-semibold">(Booster không nhận)</span>
             )}
             <Info size={13} className="text-blue-400" />
           </div>
@@ -509,7 +509,7 @@ export function AddonsAndRolesSection({
                 +{Math.round(duoCfg.percent)}%
               </span>
             ) : (
-              <span className="text-zinc-500 text-[11px] font-semibold">(Tuyển thủ không nhận)</span>
+              <span className="text-zinc-500 text-[11px] font-semibold">(Booster không nhận)</span>
             )}
             <Info size={13} className="text-blue-400" />
           </div>

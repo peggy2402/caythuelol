@@ -144,7 +144,7 @@ export class CronService {
             timeline: {
               status: OrderStatus.PAID,
               timestamp: new Date(),
-              note: `Hết thời gian chờ (${timeoutMinutes} phút). Hệ thống tự động chuyển giao đơn hàng về Sàn việc làm công khai để các Tuyển thủ khác tiếp nhận.`,
+              note: `Hết thời gian chờ (${timeoutMinutes} phút). Hệ thống tự động chuyển giao đơn hàng về Sàn việc làm công khai để các Booster khác tiếp nhận.`,
             },
           },
         });

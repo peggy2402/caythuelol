@@ -41,7 +41,7 @@ const ALL_STAFF_PERMISSIONS = [
   },
   {
     key: 'boosters',
-    label: 'Quản lý Tuyển thủ',
+    label: 'Quản lý Booster',
     desc: 'Duyệt đơn đăng ký, xem và quản lý hồ sơ booster',
     icon: ShieldAlert,
     color: 'text-emerald-400',

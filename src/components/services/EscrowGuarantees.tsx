@@ -16,7 +16,7 @@ export default function EscrowGuarantees() {
       iconColor: 'text-amber-400',
       iconBg: 'bg-amber-500/10 border-amber-500/30',
       title: 'Booster Thách Đấu Định Danh',
-      description: 'Toàn bộ tuyển thủ đều được xác thực danh tính KYC, ký hợp đồng cam kết trách nhiệm và đóng quỹ bảo chứng uy tín.'
+      description: 'Toàn bộ Booster đều được xác thực danh tính KYC, ký hợp đồng cam kết trách nhiệm và đóng quỹ bảo chứng uy tín.'
     },
     {
       icon: ShieldCheck,

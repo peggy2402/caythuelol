@@ -52,7 +52,7 @@ async function createBooster() {
       },
     },
     booster_info: {
-      bio: 'Tuyển thủ cày thuê chuyên nghiệp nhiều tựa game (LMHT, Valorant, ĐTCL). Tỉ lệ thắng 85%+, hoàn thành đúng tiến độ, bảo mật tài khoản tuyệt đối.',
+      bio: 'Booster cày thuê chuyên nghiệp nhiều tựa game (LMHT, Valorant, ĐTCL). Tỉ lệ thắng 85%+, hoàn thành đúng tiến độ, bảo mật tài khoản tuyệt đối.',
       ingame_name: 'BoosterPro#VN2',
       currentRank: 'Cao Thủ',
       highestRank: 'Thách Đấu',
@@ -99,7 +99,7 @@ async function createBooster() {
     userId: new mongoose.Types.ObjectId(userId.toString()),
     displayName: 'Booster Pro',
     avatar: '/default-avatar.png',
-    bio: 'Tuyển thủ cày thuê chuyên nghiệp nhiều tựa game (LMHT, Valorant, ĐTCL). Tỉ lệ thắng 85%+, hoàn thành đúng tiến độ, bảo mật tài khoản tuyệt đối.',
+    bio: 'Booster cày thuê chuyên nghiệp nhiều tựa game (LMHT, Valorant, ĐTCL). Tỉ lệ thắng 85%+, hoàn thành đúng tiến độ, bảo mật tài khoản tuyệt đối.',
     games: [
       {
         gameCode: 'LOL',

@@ -66,7 +66,7 @@ export default function OrderDisputeBanner({
               </span>
             </div>
             <p className="text-xs text-zinc-300 leading-relaxed">
-              Bạn đã hoàn tất nghiệm thu và đánh giá tuyển thủ. Tiền công đã được quyết toán hoàn toàn vào ví của Tuyển thủ và thời hạn khiếu nại đã chính thức đóng.
+              Bạn đã hoàn tất nghiệm thu và đánh giá Booster. Tiền công đã được quyết toán hoàn toàn vào ví của Booster và thời hạn khiếu nại đã chính thức đóng.
             </p>
           </div>
         ) : disputeDeadline ? (
@@ -115,13 +115,13 @@ export default function OrderDisputeBanner({
 
       {/* Actions */}
       <div className="mt-6 space-y-3">
-        {/* Khi đơn đang chờ tuyển thủ nhận (PAID hoặc PENDING_PAYMENT) và người xem là Customer */}
+        {/* Khi đơn đang chờ Booster nhận (PAID hoặc PENDING_PAYMENT) và người xem là Customer */}
         {isCustomer && ['PENDING_PAYMENT', 'PAID'].includes(order.status) && (
           <div className="space-y-3">
             <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs sm:text-sm flex items-start gap-3">
               <Clock className="w-5 h-5 text-amber-400 shrink-0 mt-0.5 animate-pulse" />
               <div>
-                <p className="font-bold text-amber-200">Đơn hàng đang chờ Tuyển thủ nhận việc trên Sàn</p>
+                <p className="font-bold text-amber-200">Đơn hàng đang chờ Booster nhận việc trên Sàn</p>
                 <p className="text-xs text-amber-300/80 mt-0.5">
                   Bạn có thể chỉnh sửa thông tin tài khoản hoặc hủy đơn để nhận lại 100% tiền cọc về ví bất kỳ lúc nào.
                 </p>
@@ -162,7 +162,7 @@ export default function OrderDisputeBanner({
           </button>
         )}
 
-        {/* Nút báo lỗi chung CHỈ hiển thị khi đơn đã có tuyển thủ nhận việc hoặc hoàn thành (Customer trong vòng 24h và CHƯA nghiệm thu/đánh giá) */}
+        {/* Nút báo lỗi chung CHỈ hiển thị khi đơn đã có Booster nhận việc hoặc hoàn thành (Customer trong vòng 24h và CHƯA nghiệm thu/đánh giá) */}
         {(isCustomer || isBooster) && ['APPROVED', 'IN_PROGRESS', 'COMPLETED'].includes(order.status) && (
           hasRated ? (
             <div className="w-full py-3 px-4 bg-emerald-950/20 text-emerald-400 text-xs font-semibold rounded-xl flex items-center justify-center gap-2 border border-emerald-500/25 text-center">

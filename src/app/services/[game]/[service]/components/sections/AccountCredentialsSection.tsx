@@ -95,7 +95,7 @@ export function AccountCredentialsSection({
 
       <div className="mt-3">
         <label className="text-xs font-semibold text-zinc-400 block mb-1">
-          Ghi chú thêm cho tuyển thủ (tuỳ chọn)
+          Ghi chú thêm cho Booster (tuỳ chọn)
         </label>
         <textarea
           rows={2}

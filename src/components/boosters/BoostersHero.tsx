@@ -25,7 +25,7 @@ export default function BoostersHero({
   totalBoosters,
   gameCounts = {},
 }: BoostersHeroProps) {
-  // Lọc chỉ hiển thị các nhánh tựa game đang THỰC SỰ CÓ tuyển thủ (hoặc tab Tất cả)
+  // Lọc chỉ hiển thị các nhánh tựa game đang THỰC SỰ CÓ Booster (hoặc tab Tất cả)
   const displayBranches = ALL_SUPPORTED_GAMES.filter((game) => {
     if (game.id === 'ALL') return true;
     const count = gameCounts[game.id] || 0;
@@ -40,7 +40,7 @@ export default function BoostersHero({
         <div className="max-w-2xl">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-950/40 border border-cyan-500/30 text-cyan-300 text-xs font-bold uppercase tracking-wider mb-3 backdrop-blur-md">
             <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
-            <span>Đội Ngũ Tuyển Thủ Xác Thực</span>
+            <span>Đội Ngũ Booster Xác Thực</span>
           </div>
 
           <h1 className="text-2xl sm:text-4xl md:text-5xl font-black text-white tracking-tight uppercase mb-3">
@@ -48,7 +48,7 @@ export default function BoostersHero({
           </h1>
 
           <p className="text-zinc-400 text-xs sm:text-sm leading-relaxed max-w-xl">
-            Giao diện thẻ tuyển thủ thế hệ mới: Trực quan hóa bậc xếp hạng, tỷ lệ thắng và khung giờ hoạt động ngay trong tầm mắt.
+            Giao diện thẻ Booster thế hệ mới: Trực quan hóa bậc xếp hạng, tỷ lệ thắng và khung giờ hoạt động ngay trong tầm mắt.
           </p>
         </div>
 

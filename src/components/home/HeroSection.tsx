@@ -43,7 +43,7 @@ export default function HeroSection() {
   const typewriterWords = [
     "Dịch vụ Cày Thuê LoL & Đa Game Uy Tín #1",
     "Bảo chứng tài chính 100% qua LeoRank Escrow",
-    "Tuyển thủ Thách Đấu 1000+ LP định danh KYC",
+    "Booster Thách Đấu 1000+ LP định danh KYC",
     "Chế độ VPN riêng & Offline ẩn danh tuyệt đối"
   ];
 
@@ -108,7 +108,7 @@ export default function HeroSection() {
             transition={{ duration: 0.7, delay: 0.3 }}
             className="text-base sm:text-lg text-zinc-400 mb-10 max-w-2xl leading-relaxed"
           >
-            Sàn giao dịch cày thuê esports đầu tiên bảo chứng giao dịch 100% bằng cơ chế ký quỹ <span className="text-white font-semibold">Escrow Protection</span>. Tuyển thủ Thách Đấu thi đấu ẩn danh, theo dõi trực tiếp từng trận qua Dashboard.
+            Sàn giao dịch cày thuê esports đầu tiên bảo chứng giao dịch 100% bằng cơ chế ký quỹ <span className="text-white font-semibold">Escrow Protection</span>. Booster Thách Đấu thi đấu ẩn danh, theo dõi trực tiếp từng trận qua Dashboard.
           </motion.p>
 
           {/* Action Buttons */}

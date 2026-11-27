@@ -49,7 +49,7 @@ export const MOBA_LANES_AOV: LaneMeta[] = [
     name: 'Đường Bất Kỳ',
     shortName: 'Bất Kỳ',
     image: '/images/lane-aov/random-lane.png',
-    description: 'Tuyển thủ tự chọn vị trí tối ưu theo từng trận',
+    description: 'Booster tự chọn vị trí tối ưu theo từng trận',
   },
 ];
 

@@ -124,12 +124,12 @@ export class ChatController {
   }
 
   // ===========================================================================
-  // CHỨC NĂNG CHỈ DÀNH CHO BOOSTER (Tuyển thủ nhận đơn)
+  // CHỨC NĂNG CHỈ DÀNH CHO BOOSTER (Booster nhận đơn)
   // ===========================================================================
 
   @Post('booster-status')
   @ApiOperation({
-    summary: '[Booster only] Tuyển thủ gửi thẻ cập nhật trạng thái cày cho khách hàng',
+    summary: '[Booster only] Booster gửi thẻ cập nhật trạng thái cày cho khách hàng',
   })
   async sendBoosterStatus(
     @Param('id') orderId: string,
@@ -148,7 +148,7 @@ export class ChatController {
 
   @Post('progress')
   @ApiOperation({
-    summary: '[Booster only] Tuyển thủ gửi thẻ báo cáo tiến độ trận đấu của đơn hàng',
+    summary: '[Booster only] Booster gửi thẻ báo cáo tiến độ trận đấu của đơn hàng',
   })
   async sendProgressReport(
     @Param('id') orderId: string,

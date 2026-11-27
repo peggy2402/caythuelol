@@ -516,7 +516,7 @@ export default function NetWinsOrderView({ order, isBooster, isCustomer, onPayRe
                             <div className="pt-2 border-t border-red-500/20 text-xs text-zinc-400 flex items-start gap-1.5">
                                 <Info className="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5" />
                                 <span>
-                                    Khoản thanh toán thêm sẽ được mở sau khi Tuyển thủ cày xong và bấm <b>"Báo cáo hoàn thành"</b>.
+                                    Khoản thanh toán thêm sẽ được mở sau khi Booster cày xong và bấm <b>"Báo cáo hoàn thành"</b>.
                                 </span>
                             </div>
                         )}
@@ -525,7 +525,7 @@ export default function NetWinsOrderView({ order, isBooster, isCustomer, onPayRe
                             <div className="pt-2 border-t border-red-500/20 text-xs text-amber-300 flex items-start gap-1.5">
                                 <AlertCircle className="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5" />
                                 <span>
-                                    Tuyển thủ đã báo cáo hoàn thành đơn hàng. Vui lòng thanh toán số tiền còn lại để hoàn tất nghiệm thu.
+                                    Booster đã báo cáo hoàn thành đơn hàng. Vui lòng thanh toán số tiền còn lại để hoàn tất nghiệm thu.
                                 </span>
                             </div>
                         )}

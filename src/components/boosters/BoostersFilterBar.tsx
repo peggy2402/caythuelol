@@ -75,7 +75,7 @@ export default function BoostersFilterBar({
         const items: SearchSuggestionItem[] = list.map((b) => ({
           label: b.displayName || b.username,
           subLabel: `@${b.username} • ⭐ ${(b.rating ?? 5).toFixed(1)} (${b.completedOrders ?? 0} đơn)`,
-          category: 'Tuyển thủ',
+          category: 'Booster',
           avatar: b.avatar,
         }));
         setFetchedSuggestions(items);
@@ -96,7 +96,7 @@ export default function BoostersFilterBar({
       map.set(name.toLowerCase(), {
         label: name,
         subLabel: `@${b.username} • ⭐ ${(b.rating ?? 5).toFixed(1)} (${b.completedOrders ?? 0} đơn)`,
-        category: 'Tuyển thủ',
+        category: 'Booster',
         avatar: b.avatar,
       });
     });
@@ -132,12 +132,12 @@ export default function BoostersFilterBar({
       {/* Thanh Console Lọc & Tìm Kiếm Tối Giản, Đẹp Mắt */}
       <div className="bg-zinc-900/80 border border-white/10 rounded-2xl p-2.5 sm:p-3 shadow-xl backdrop-blur-xl flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2.5">
         
-        {/* 1. Ô Tìm Kiếm Tuyển Thủ (Live Suggestions + History) */}
+        {/* 1. Ô Tìm Kiếm Booster (Live Suggestions + History) */}
         <div ref={containerRef} className="relative flex-1 z-30">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400 pointer-events-none" />
           <input
             type="text"
-            placeholder="Tìm kiếm tuyển thủ theo tên hoặc nickname..."
+            placeholder="Tìm kiếm Booster theo tên hoặc nickname..."
             value={searchTerm}
             onFocus={() => setIsDropdownOpen(true)}
             onChange={(e) => {
@@ -156,7 +156,7 @@ export default function BoostersFilterBar({
             </button>
           )}
 
-          {/* Dropdown Lịch Sử & Gợi Ý Tuyển Thủ Trực Tuyến */}
+          {/* Dropdown Lịch Sử & Gợi Ý Booster Trực Tuyến */}
           <SearchHistoryDropdown
             isOpen={isDropdownOpen}
             onClose={() => setIsDropdownOpen(false)}
@@ -166,7 +166,7 @@ export default function BoostersFilterBar({
             onRemove={removeSearch}
             onClearAll={clearHistory}
             liveSuggestions={liveSuggestions}
-            title="Tuyển thủ tìm gần đây"
+            title="Booster tìm gần đây"
           />
         </div>
 

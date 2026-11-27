@@ -43,10 +43,10 @@ function GameServicesContent() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedServer, setSelectedServer] = useState('');
 
-  // Modal Thuê Tuyển Thủ: State tuyển thủ đang được chọn để mở danh sách dịch vụ
+  // Modal Thuê Booster: State Booster đang được chọn để mở danh sách dịch vụ
   const [selectedBoosterForHire, setSelectedBoosterForHire] = useState<BoosterItem | null>(null);
 
-  // Lắng nghe phím ESC & Khóa cuộn trang khi mở Modal chọn dịch vụ tuyển thủ
+  // Lắng nghe phím ESC & Khóa cuộn trang khi mở Modal chọn dịch vụ Booster
   useEffect(() => {
     if (!selectedBoosterForHire) return;
     const originalOverflow = document.body.style.overflow;
@@ -113,7 +113,7 @@ function GameServicesContent() {
           setBoosters([]);
         }
       } catch (err) {
-        console.error('Lỗi tải danh sách tuyển thủ:', err);
+        console.error('Lỗi tải danh sách Booster:', err);
         setBoosters([]);
       } finally {
         setLoadingBoosters(false);
@@ -270,7 +270,7 @@ function GameServicesContent() {
         return {
           slug: s.serviceType || s.slug || 'rank-boost',
           name: meta?.name || s.name || 'Dịch vụ cày thuê',
-          desc: meta?.desc || s.desc || 'Dịch vụ được cung cấp bởi tuyển thủ.',
+          desc: meta?.desc || s.desc || 'Dịch vụ được cung cấp bởi Booster.',
           pricingType: meta?.pricingType || s.pricingType,
           depositPercent: s.depositPercent ?? meta?.depositPercent ?? 100,
           price: s.price,
@@ -298,7 +298,7 @@ function GameServicesContent() {
         return {
           slug: s.serviceType || s.slug || 'rank-boost',
           name: meta?.name || s.name || 'Dịch vụ cày thuê',
-          desc: meta?.desc || s.desc || 'Dịch vụ được cung cấp bởi tuyển thủ.',
+          desc: meta?.desc || s.desc || 'Dịch vụ được cung cấp bởi Booster.',
           pricingType: meta?.pricingType || s.pricingType,
           depositPercent: s.depositPercent ?? meta?.depositPercent ?? 100,
           price: s.price,
@@ -383,7 +383,7 @@ function GameServicesContent() {
           />
         )}
 
-        {/* 4. Tab Danh Sách Tuyển Thủ */}
+        {/* 4. Tab Danh Sách Booster */}
         {activeTab === 'BOOSTERS' && (
           <GameBoostersTab
             game={game}

@@ -615,11 +615,11 @@ function ActiveBoostersTab() {
         {loading ? (
           <div className="p-16 flex flex-col items-center justify-center gap-3">
             <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
-            <p className="text-sm text-zinc-400">Đang tải danh sách Tuyển thủ Booster...</p>
+            <p className="text-sm text-zinc-400">Đang tải danh sách Booster...</p>
           </div>
         ) : boosters.length === 0 ? (
           <div className="p-16 text-center text-zinc-500">
-            Không tìm thấy Tuyển thủ Booster nào phù hợp.
+            Không tìm thấy Booster nào phù hợp.
           </div>
         ) : (
           <>
@@ -628,7 +628,7 @@ function ActiveBoostersTab() {
               <table className="w-full text-sm text-left">
                 <thead className="bg-zinc-900 text-zinc-400 uppercase text-xs font-bold border-b border-zinc-800">
                   <tr>
-                    <th className="px-6 py-4">Tuyển thủ / Hồ sơ</th>
+                    <th className="px-6 py-4">Booster / Hồ sơ</th>
                     <th className="px-6 py-4">Chuyên môn & Ranks</th>
                     <th className="px-6 py-4">Đánh giá & Hiệu suất</th>
                     <th className="px-6 py-4">Số dư ví</th>
@@ -719,7 +719,7 @@ function ActiveBoostersTab() {
                             </button>
                             <button
                               onClick={() => {
-                                setDemotingBooster(booster);
+                                setDemotingBooster;
                                 setDemoteReason('');
                               }}
                               className="p-2 rounded-lg bg-zinc-800 hover:bg-red-500/20 text-zinc-300 hover:text-red-400 border border-zinc-700 transition-colors"
@@ -770,7 +770,7 @@ function ActiveBoostersTab() {
                         </button>
                         <button
                           onClick={() => {
-                            setDemotingBooster(booster);
+                            setDemotingBooster;
                             setDemoteReason('');
                           }}
                           className="p-2 bg-zinc-800 text-red-400 rounded-lg border border-zinc-700"
@@ -840,7 +840,7 @@ function ActiveBoostersTab() {
           <div className="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-lg p-6 space-y-5 shadow-2xl">
             <div className="flex justify-between items-center border-b border-zinc-800 pb-4">
               <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                <UserPlus className="text-blue-500 w-5 h-5" /> Thêm Tuyển Thủ Booster
+                <UserPlus className="text-blue-500 w-5 h-5" /> Thêm Booster
               </h3>
               <button
                 onClick={() => setShowCreateModal(false)}
@@ -1145,7 +1145,7 @@ function ActiveBoostersTab() {
               <h3 className="text-lg font-bold text-white">Hủy tư cách Booster</h3>
             </div>
             <p className="text-sm text-zinc-300">
-              Bạn có chắc chắn muốn hủy tư cách Tuyển thủ của tài khoản{' '}
+              Bạn có chắc chắn muốn hủy tư cách Booster của tài khoản{' '}
               <strong className="text-white">{demotingBooster.username}</strong>?
             </p>
             <p className="text-xs text-zinc-400">

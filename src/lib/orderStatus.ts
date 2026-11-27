@@ -41,7 +41,7 @@ export function getOrderStatusInfo(status?: string, hasBooster?: boolean): Order
       };
     case 'PAID':
       return {
-        label: hasBooster ? 'Đang chờ Booster' : 'Đang chờ tuyển thủ',
+        label: hasBooster ? 'Đang chờ Booster' : 'Đang chờ Booster',
         style: 'bg-amber-500/10 text-amber-400 border border-amber-500/30 shadow-[0_0_15px_rgba(245,158,11,0.15)]',
         badgeBg: 'bg-amber-500/15',
         textColor: 'text-amber-400',

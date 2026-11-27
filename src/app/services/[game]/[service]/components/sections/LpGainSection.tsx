@@ -88,7 +88,7 @@ export function LpGainSection({
               <div className="space-y-1.5 text-[11px] pt-1 border-t border-zinc-800/80">
                 <div className="flex items-start gap-1.5">
                   <span className="font-bold text-emerald-400 shrink-0">≥ 25 điểm (-10%):</span>
-                  <span className="text-zinc-400">MMR ẩn rất cao, tuyển thủ leo cực nhanh nên bạn được chiết khấu giá.</span>
+                  <span className="text-zinc-400">MMR ẩn rất cao, Booster leo cực nhanh nên bạn được chiết khấu giá.</span>
                 </div>
                 <div className="flex items-start gap-1.5">
                   <span className="font-bold text-blue-400 shrink-0">20-24 điểm (0%):</span>
@@ -100,7 +100,7 @@ export function LpGainSection({
                 </div>
                 <div className="flex items-start gap-1.5">
                   <span className="font-bold text-rose-400 shrink-0">&lt; 15 điểm (+15%):</span>
-                  <span className="text-zinc-400">Tài khoản bị kẹt điểm (Hell Elo), tuyển thủ phải gánh thêm nhiều trận đấu hơn.</span>
+                  <span className="text-zinc-400">Tài khoản bị kẹt điểm (Hell Elo), Booster phải gánh thêm nhiều trận đấu hơn.</span>
                 </div>
               </div>
             </div>

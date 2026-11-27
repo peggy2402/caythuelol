@@ -73,9 +73,9 @@ export function BoosterSelectModal({
                   <Crown size={18} />
                 </div>
                 <div>
-                  <h3 className="text-base font-extrabold text-white">Chọn Tuyển Thủ Cày Thuê</h3>
+                  <h3 className="text-base font-extrabold text-white">Chọn Booster Cày Thuê</h3>
                   <p className="text-xs text-zinc-400">
-                    Chọn tuyển thủ uy tín để đảm bảo tiến độ và tỷ lệ thắng
+                    Chọn Booster uy tín để đảm bảo tiến độ và tỷ lệ thắng
                   </p>
                 </div>
               </div>
@@ -206,14 +206,14 @@ export function BoosterSelectModal({
               ) : (
                 <div className="py-12 text-center text-zinc-500 space-y-2">
                   <Search className="w-8 h-8 mx-auto text-zinc-600" />
-                  <p className="text-xs">Không tìm thấy tuyển thủ nào khớp với &quot;{boosterSearchTerm}&quot;</p>
+                  <p className="text-xs">Không tìm thấy Booster nào khớp với &quot;{boosterSearchTerm}&quot;</p>
                 </div>
               )}
             </div>
 
             {/* Modal Footer */}
             <div className="pt-3 border-t border-zinc-800/80 flex items-center justify-between text-[11px] text-zinc-400 shrink-0">
-              <span>Có {filteredBoosters.length} tuyển thủ sẵn sàng</span>
+              <span>Có {filteredBoosters.length} Booster sẵn sàng</span>
               <button
                 type="button"
                 onClick={handleClose}

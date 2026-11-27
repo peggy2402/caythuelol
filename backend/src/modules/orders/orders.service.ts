@@ -307,7 +307,7 @@ export class OrdersService {
             await this.notificationsService.notifyUser({
               userId: user._id,
               title: 'Đặt đơn cày thuê thành công!',
-              message: `Đơn hàng #${orderCodeDisplay} - ${gameDisplay}${routeText} đã được gửi tới Tuyển thủ @${booster?.username || 'Booster'} và đang chờ xác nhận nhận đơn.`,
+              message: `Đơn hàng #${orderCodeDisplay} - ${gameDisplay}${routeText} đã được gửi tới Booster @${booster?.username || 'Booster'} và đang chờ xác nhận nhận đơn.`,
               type: 'ORDER_UPDATE',
               variant: 'success',
               link: `/orders/${newOrder._id}`,
@@ -320,7 +320,7 @@ export class OrdersService {
           .notifyUser({
             userId: user._id,
             title: 'Đặt đơn cày thuê thành công!',
-            message: `Đơn hàng #${orderCodeDisplay} - ${gameDisplay}${routeText} đã được đưa lên Sàn Việc Làm. Hệ thống sẽ báo ngay khi có Tuyển thủ nhận đơn!`,
+            message: `Đơn hàng #${orderCodeDisplay} - ${gameDisplay}${routeText} đã được đưa lên Sàn Việc Làm. Hệ thống sẽ báo ngay khi có Booster nhận đơn!`,
             type: 'ORDER_UPDATE',
             variant: 'success',
             link: `/orders/${newOrder._id}`,
@@ -430,7 +430,7 @@ export class OrdersService {
         }
       } else {
         throw new ForbiddenException(
-          'Bạn không có quyền truy cập đơn hàng này. Đơn hàng này thuộc về Khách hàng và Tuyển thủ khác!'
+          'Bạn không có quyền truy cập đơn hàng này. Đơn hàng này thuộc về Khách hàng và Booster khác!'
         );
       }
     }
@@ -470,7 +470,7 @@ export class OrdersService {
     }
 
     if (!['PENDING_PAYMENT', 'PAID'].includes(order.status)) {
-      throw new BadRequestException('Chỉ có thể hủy đơn hàng khi chưa có Tuyển thủ nhận việc');
+      throw new BadRequestException('Chỉ có thể hủy đơn hàng khi chưa có Booster nhận việc');
     }
 
     const user = await this.userModel.findById(userId);
@@ -535,7 +535,7 @@ export class OrdersService {
     }
 
     if (!['PENDING_PAYMENT', 'PAID'].includes(order.status)) {
-      throw new BadRequestException('Không thể cập nhật thông tin tài khoản khi đơn hàng đã có Tuyển thủ xử lý');
+      throw new BadRequestException('Không thể cập nhật thông tin tài khoản khi đơn hàng đã có Booster xử lý');
     }
 
     order.details = order.details || {};
@@ -635,7 +635,7 @@ export class OrdersService {
         await this.notificationsService.notifyUser({
           userId: order.customerId,
           title: 'Đơn hàng của bạn đã được nhận!',
-          message: `Tuyển thủ @${booster?.username || 'Booster'} đã xác nhận nhận đơn hàng #${orderCodeDisplay} của bạn và sẽ sớm tiến hành cày.`,
+          message: `Booster @${booster?.username || 'Booster'} đã xác nhận nhận đơn hàng #${orderCodeDisplay} của bạn và sẽ sớm tiến hành cày.`,
           type: 'ORDER_UPDATE',
           variant: 'success',
           link: `/orders/${order._id}`,
@@ -664,14 +664,14 @@ export class OrdersService {
               status: OrderStatus.PAID,
               timestamp: new Date(),
               actor: new Types.ObjectId(boosterId),
-              note: `Booster từ chối nhận đơn (Lý do: ${reason || 'Bận việc cá nhân'}). Đơn được tự động chuyển giao về Sàn việc làm công khai để các Tuyển thủ khác tiếp nhận.`,
+              note: `Booster từ chối nhận đơn (Lý do: ${reason || 'Bận việc cá nhân'}). Đơn được tự động chuyển giao về Sàn việc làm công khai để các Booster khác tiếp nhận.`,
             },
           },
         });
       }
       return { 
         success: true, 
-        message: 'Đã từ chối đơn hàng thành công. Đơn đã được tự động chuyển giao lên Sàn việc làm công khai cho các Tuyển thủ khác tiếp nhận!' 
+        message: 'Đã từ chối đơn hàng thành công. Đơn đã được tự động chuyển giao lên Sàn việc làm công khai cho các Booster khác tiếp nhận!' 
       };
     }
 
@@ -691,20 +691,20 @@ export class OrdersService {
 
     // Chuyển giao đơn: gỡ boosterId hiện tại, đưa đơn trở lại Sàn việc làm với ghi chú tiến độ
     order.boosterId = undefined;
-    order.status = OrderStatus.PAID; // Chuyển về trạng thái chờ tuyển thủ mới
+    order.status = OrderStatus.PAID; // Chuyển về trạng thái chờ Booster mới
     if (!order.timeline) order.timeline = [];
     order.timeline.push({
       status: OrderStatus.PAID,
       timestamp: new Date(),
       actor: new Types.ObjectId(boosterId),
-      note: `Tuyển thủ yêu cầu bàn giao lại đơn (Lý do: ${reason}). Tiến độ hiện tại: ${currentProgress || 'Giữ nguyên'}. Đơn đã được chuyển giao lên Sàn để tuyển thủ khác cày tiếp.`,
+      note: `Booster yêu cầu bàn giao lại đơn (Lý do: ${reason}). Tiến độ hiện tại: ${currentProgress || 'Giữ nguyên'}. Đơn đã được chuyển giao lên Sàn để Booster khác cày tiếp.`,
     });
 
     await order.save();
 
     return {
       success: true,
-      message: 'Đã bàn giao đơn hàng thành công! Đơn đã được đưa trở lại Sàn việc làm cho tuyển thủ khác nhận tiếp.',
+      message: 'Đã bàn giao đơn hàng thành công! Đơn đã được đưa trở lại Sàn việc làm cho Booster khác nhận tiếp.',
       order,
     };
   }
@@ -723,7 +723,7 @@ export class OrdersService {
     const assignedBoosterId = order.boosterId?._id?.toString() || order.boosterId?.toString();
     const isAdmin = userRole === UserRole.ADMIN || userRole === UserRole.STAFF;
     if (!isAdmin && (!assignedBoosterId || assignedBoosterId !== boosterId.toString())) {
-      throw new ForbiddenException('Bạn không phải là Tuyển thủ phụ trách đơn hàng này');
+      throw new ForbiddenException('Bạn không phải là Booster phụ trách đơn hàng này');
     }
 
     order.status = status;
@@ -757,7 +757,7 @@ export class OrdersService {
       const assignedBoosterId = order.boosterId?._id?.toString() || order.boosterId?.toString();
       const isAdmin = userRole === UserRole.ADMIN || userRole === UserRole.STAFF;
       if (!isAdmin && (!assignedBoosterId || assignedBoosterId !== boosterId.toString())) {
-        throw new ForbiddenException('Bạn không phải là Tuyển thủ phụ trách đơn hàng này');
+        throw new ForbiddenException('Bạn không phải là Booster phụ trách đơn hàng này');
       }
 
       if (order.status !== OrderStatus.IN_PROGRESS && order.status !== OrderStatus.APPROVED) {
@@ -891,7 +891,7 @@ export class OrdersService {
         status: OrderStatus.COMPLETED,
         timestamp: new Date(),
         actor: new Types.ObjectId(boosterId),
-        note: `Tuyển thủ báo cáo hoàn thành đơn hàng. Đã quyết toán: ${actualTotal.toLocaleString('vi-VN')} đ`,
+        note: `Booster báo cáo hoàn thành đơn hàng. Đã quyết toán: ${actualTotal.toLocaleString('vi-VN')} đ`,
       });
 
       await order.save({ session });
@@ -913,7 +913,7 @@ export class OrdersService {
         .notifyUser({
           userId: order.customerId,
           title: 'Đơn hàng của bạn đã hoàn thành!',
-          message: `Tuyển thủ đã báo cáo hoàn thành đơn hàng #${completedCode}. Vui lòng kiểm tra kết quả và đánh giá Tuyển thủ!`,
+          message: `Booster đã báo cáo hoàn thành đơn hàng #${completedCode}. Vui lòng kiểm tra kết quả và đánh giá Booster!`,
           type: 'ORDER_UPDATE',
           variant: 'success',
           link: `/orders/${order._id}`,
@@ -1140,7 +1140,7 @@ export class OrdersService {
     const isBooster = order.boosterId && String(order.boosterId) === String(userId);
     const isAdmin = userRole === UserRole.ADMIN || userRole === UserRole.STAFF;
     if (!isBooster && !isAdmin) {
-      throw new ForbiddenException('Chỉ Tuyển thủ phụ trách hoặc Quản trị viên mới được thêm trận đấu');
+      throw new ForbiddenException('Chỉ Booster phụ trách hoặc Quản trị viên mới được thêm trận đấu');
     }
 
     const orderQueue = (order.details?.queue_type || order.details?.queueType || 'SOLO_DUO').toUpperCase();
@@ -1235,7 +1235,7 @@ export class OrdersService {
     const isBooster = order.boosterId && String(order.boosterId) === String(userId);
     const isAdmin = userRole === UserRole.ADMIN || userRole === UserRole.STAFF;
     if (!isBooster && !isAdmin) {
-      throw new ForbiddenException('Chỉ Tuyển thủ phụ trách hoặc Quản trị viên mới được thêm trận đấu');
+      throw new ForbiddenException('Chỉ Booster phụ trách hoặc Quản trị viên mới được thêm trận đấu');
     }
 
     const orderQueue = (order.details?.queue_type || order.details?.queueType || 'SOLO_DUO').toUpperCase();
@@ -1377,7 +1377,7 @@ export class OrdersService {
     const isBooster = order.boosterId && String(order.boosterId) === String(userId);
     const isAdmin = userRole === UserRole.ADMIN || userRole === UserRole.STAFF;
     if (!isBooster && !isAdmin) {
-      throw new ForbiddenException('Chỉ Tuyển thủ phụ trách hoặc Quản trị viên mới được sửa trận đấu');
+      throw new ForbiddenException('Chỉ Booster phụ trách hoặc Quản trị viên mới được sửa trận đấu');
     }
 
     if (Array.isArray(order.match_history)) {
@@ -1420,7 +1420,7 @@ export class OrdersService {
     const isBooster = order.boosterId && String(order.boosterId) === String(userId);
     const isAdmin = userRole === UserRole.ADMIN || userRole === UserRole.STAFF;
     if (!isBooster && !isAdmin) {
-      throw new ForbiddenException('Chỉ Tuyển thủ phụ trách hoặc Quản trị viên mới được xóa trận đấu');
+      throw new ForbiddenException('Chỉ Booster phụ trách hoặc Quản trị viên mới được xóa trận đấu');
     }
 
     if (Array.isArray(order.match_history)) {

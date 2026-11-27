@@ -57,7 +57,7 @@ export default function OrderBoosterCard({
   return (
     <div>
       <h3 className="text-sm font-bold text-zinc-400 uppercase mb-3 flex items-center gap-2">
-        <Award className="w-4 h-4 text-blue-400" /> Thông tin Tuyển thủ (Booster)
+        <Award className="w-4 h-4 text-blue-400" /> Thông tin Booster
       </h3>
       {order.boosterId ? (
         <div className="bg-zinc-950 p-5 rounded-xl border border-zinc-800 space-y-4">
@@ -327,7 +327,7 @@ export default function OrderBoosterCard({
         <div className="bg-zinc-950 p-4 rounded-xl border border-amber-500/20 text-xs text-amber-300 flex items-center gap-2.5">
           <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping shrink-0" />
           <span className="font-medium">
-            Tuyển thủ: <strong className="text-amber-200">Đang tìm kiếm...</strong> (Đơn hàng đang chờ tuyển
+            Booster: <strong className="text-amber-200">Đang tìm kiếm...</strong> (Đơn hàng đang chờ tuyển
             thủ tiếp nhận trên sàn)
           </span>
         </div>

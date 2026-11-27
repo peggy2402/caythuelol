@@ -126,7 +126,7 @@ export default function BoosterRankShowcase({
 
   const gameDisplayName = matchedCatalogGame?.name || activeCode;
 
-  // Lấy rank của game đang chọn trực tiếp từ cấu hình của tuyển thủ
+  // Lấy rank của game đang chọn trực tiếp từ cấu hình của Booster
   const ranksList = currentGameItem?.ranks || [];
 
   // Rank cao nhất (ưu tiên ranksList[0], không bị ghi đè thành Thách Đấu nếu có rank tùy chỉnh như TEST)
@@ -147,25 +147,25 @@ export default function BoosterRankShowcase({
 
   return (
     <div className="bg-[#0d1017]/90 border border-white/10 rounded-2xl p-4 sm:p-5 shadow-lg backdrop-blur-md space-y-4">
-      {/* 1. Header: Tiêu đề + Cấp Bậc Tier Tuyển Thủ & Performance Score */}
+      {/* 1. Header: Tiêu đề + Cấp Bậc Tier Booster & Performance Score */}
       <div className="flex items-center justify-between flex-wrap gap-2 pb-3 border-b border-white/5">
         <h3 className="text-sm font-bold text-zinc-200 flex items-center gap-2">
           <Trophy size={16} className="text-amber-400 shrink-0" />
-          <span>Trình độ & Cấp bậc Tuyển thủ</span>
+          <span>Trình độ & Cấp bậc Booster</span>
         </h3>
 
         {/* Tier Badge & Performance Score - Rõ nghĩa tiếng Việt */}
         <div className="flex items-center gap-2">
           <span
             className={`inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-xl text-xs font-bold border ${tierMeta.bg} ${tierMeta.border} ${tierMeta.color} shadow-sm`}
-            title={`Cấp bậc đánh giá năng lực tuyển thủ: ${vietnameseTierName}`}
+            title={`Cấp bậc đánh giá năng lực Booster: ${vietnameseTierName}`}
           >
             <Award size={13} className="shrink-0" />
             <span>Hạng: {vietnameseTierName}</span>
           </span>
           <span
             className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-blue-500/10 border border-blue-500/30 text-blue-400 text-xs font-mono font-bold"
-            title="Điểm hiệu suất tuyển thủ"
+            title="Điểm hiệu suất Booster"
           >
             <Zap size={12} className="text-amber-400 shrink-0" />
             <span>{performanceScore}/100</span>
@@ -173,7 +173,7 @@ export default function BoosterRankShowcase({
         </div>
       </div>
 
-      {/* 2. Tabs Chuyển Đổi Nhanh Giữa Các Game Tuyển Thủ Cày (Chỉ hiển thị các game ĐÃ CẤU HÌNH) */}
+      {/* 2. Tabs Chuyển Đổi Nhanh Giữa Các Game Booster Cày (Chỉ hiển thị các game ĐÃ CẤU HÌNH) */}
       {gamesList.length > 1 && (
         <div>
           <div className="text-[11px] text-zinc-400 mb-1.5 font-medium flex items-center justify-between">
@@ -273,7 +273,7 @@ export default function BoosterRankShowcase({
       <div className="text-[11px] text-zinc-400 flex items-center gap-1.5 pt-0.5">
         <Sparkles size={12} className="text-amber-400 shrink-0" />
         <span className="truncate">
-          Trình độ tuyển thủ xác thực cho tựa game <strong>{gameDisplayName}</strong>
+          Trình độ Booster xác thực cho tựa game <strong>{gameDisplayName}</strong>
         </span>
       </div>
     </div>

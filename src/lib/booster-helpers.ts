@@ -100,7 +100,7 @@ export interface ExtractedBoosterSchedule {
 }
 
 /**
- * Trích xuất cấu hình lịch làm việc của Tuyển thủ từ mọi biến thể dữ liệu (user, boosterProfile, boosterData, service_settings)
+ * Trích xuất cấu hình lịch làm việc của Booster từ mọi biến thể dữ liệu (user, boosterProfile, boosterData, service_settings)
  */
 export function extractBoosterSchedule(booster: any): ExtractedBoosterSchedule {
   if (!booster) {
@@ -188,7 +188,7 @@ export function getBoosterWorkingScheduleText(booster: any): string {
 }
 
 /**
- * Trả về định dạng rút gọn tinh gọn cho thẻ Tuyển thủ (ví dụ: T2 – T7 • 08:00 – 17:30 (trừ CN))
+ * Trả về định dạng rút gọn tinh gọn cho thẻ Booster (ví dụ: T2 – T7 • 08:00 – 17:30 (trừ CN))
  */
 export function getBoosterConciseScheduleText(booster: any): string {
   if (!booster) return 'Hàng ngày • 08:00 – 17:30';
@@ -373,9 +373,9 @@ export function validateScheduleWithBooster(
   let message: string | undefined;
 
   if (dayConflict && timeConflict) {
-    message = `Tuyển thủ không làm việc vào ${custDayName} và khung giờ ${custStart} – ${custEnd} nằm ngoài ca trực (Lịch Booster: ${boosterScheduleText}).`;
+    message = `Booster không làm việc vào ${custDayName} và khung giờ ${custStart} – ${custEnd} nằm ngoài ca trực (Lịch Booster: ${boosterScheduleText}).`;
   } else if (dayConflict) {
-    message = `Tuyển thủ không nhận cày vào ${custDayName} (Lịch Booster: ${boosterScheduleText}).`;
+    message = `Booster không nhận cày vào ${custDayName} (Lịch Booster: ${boosterScheduleText}).`;
   } else if (timeConflict) {
     message = `Khung giờ bạn chọn (${custStart} – ${custEnd}) nằm ngoài thời gian làm việc của Booster (${fromTime || '08:00'} – ${toTime || '17:30'}).`;
   }

@@ -270,7 +270,7 @@ export default function BoosterGameSelectorModal({
       {visibleGames.length === 0 ? (
         <div className="py-8 px-4 rounded-2xl bg-zinc-950/50 border border-dashed border-white/10 text-center flex flex-col items-center justify-center gap-2.5">
           <p className="text-xs text-zinc-400">
-            Tuyển thủ <strong className="text-zinc-200">{boosterName}</strong> chưa đăng ký tựa game nào thuộc thể loại này.
+            Booster <strong className="text-zinc-200">{boosterName}</strong> chưa đăng ký tựa game nào thuộc thể loại này.
           </p>
           <button
             type="button"
@@ -373,7 +373,7 @@ export default function BoosterGameSelectorModal({
                 <p className="text-xs text-zinc-300 leading-relaxed line-clamp-2">
                   {servicesCount > 0
                     ? (gameServices[0]?.desc || game.desc)
-                    : 'Tuyển thủ chưa thiết lập bảng giá dịch vụ cho tựa game này.'}
+                    : 'Booster chưa thiết lập bảng giá dịch vụ cho tựa game này.'}
                 </p>
 
                 {/* Badge Trình độ: Chỉ hiển thị khi có thông tin rank xác thực hoặc đã mở gói dịch vụ */}
@@ -417,7 +417,7 @@ export default function BoosterGameSelectorModal({
         </div>
       )}
 
-      {/* THANH CHIP PHỤ TINH TẾ: CÁC GAME KHÁC TUYỂN THỦ CŨNG NHẬN CÀY */}
+      {/* THANH CHIP PHỤ TINH TẾ: CÁC GAME KHÁC BOOSTER CŨNG NHẬN CÀY */}
       {otherGames.length > 0 && filterCategory === 'SERVICES' && (
         <div className="pt-2 border-t border-white/5">
           <div className="flex flex-wrap items-center gap-1.5 text-xs">

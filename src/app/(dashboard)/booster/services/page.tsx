@@ -1279,7 +1279,7 @@ export default function BoosterServicesStudio() {
             stepOverrides,
             selectedGames,
             workingSchedule,
-            { showToast: true, successMessage: `Đã lưu ${names.length} tướng tủ vào hồ sơ tuyển thủ!` },
+            { showToast: true, successMessage: `Đã lưu ${names.length} tướng tủ vào hồ sơ Booster!` },
             names
           );
         }}

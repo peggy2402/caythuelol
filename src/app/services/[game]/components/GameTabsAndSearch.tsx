@@ -43,7 +43,7 @@ export function GameTabsAndSearch({
       return boostersList.map((b) => ({
         label: b.displayName || b.username,
         subLabel: `@${b.username} • ⭐ ${(b.rating ?? 5).toFixed(1)} (${b.completedOrders ?? 0} đơn)`,
-        category: 'Tuyển thủ',
+        category: 'Booster',
         avatar: b.avatar,
       }));
     }
@@ -100,7 +100,7 @@ export function GameTabsAndSearch({
           }`}
         >
           <Users size={15} className="shrink-0" />
-          <span className="truncate">Tuyển Thủ ({boostersCount})</span>
+          <span className="truncate">Booster ({boostersCount})</span>
         </button>
       </div>
 
@@ -111,8 +111,8 @@ export function GameTabsAndSearch({
           type="text"
           placeholder={
             activeTab === 'SERVICES'
-              ? 'Tìm gói dịch vụ hoặc tuyển thủ...'
-              : 'Tìm tuyển thủ theo tên...'
+              ? 'Tìm gói dịch vụ hoặc Booster...'
+              : 'Tìm Booster theo tên...'
           }
           value={searchTerm}
           onFocus={() => setIsDropdownOpen(true)}
@@ -144,7 +144,7 @@ export function GameTabsAndSearch({
           onRemove={removeSearch}
           onClearAll={clearHistory}
           liveSuggestions={liveSuggestions}
-          title={activeTab === 'SERVICES' ? 'Gói dịch vụ tìm gần đây' : 'Tuyển thủ tìm gần đây'}
+          title={activeTab === 'SERVICES' ? 'Gói dịch vụ tìm gần đây' : 'Booster tìm gần đây'}
         />
       </div>
     </div>

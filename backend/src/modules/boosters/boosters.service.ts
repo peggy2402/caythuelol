@@ -152,7 +152,7 @@ export class BoostersService {
         {
           serviceType: 'coaching',
           name: 'Huấn Luyện Coaching',
-          desc: 'Dạy kèm 1-1, phân tích replay, duo cùng tuyển thủ.',
+          desc: 'Dạy kèm 1-1, phân tích replay, duo cùng Booster.',
           pricingType: 'PER_UNIT',
           defaultPrice: 100000,
           unitName: 'Giờ học',
@@ -218,7 +218,7 @@ export class BoostersService {
         {
           serviceType: 'coaching',
           name: 'Huấn Luyện Coaching 1-1 (Aim & Lineup)',
-          desc: 'Hướng dẫn kê tâm, setup góc bắn, lineup kỹ năng và đọc map cùng tuyển thủ Radiant.',
+          desc: 'Hướng dẫn kê tâm, setup góc bắn, lineup kỹ năng và đọc map cùng Booster Radiant.',
           pricingType: 'PER_UNIT',
           defaultPrice: 120000,
           unitName: 'Giờ học',
@@ -321,7 +321,7 @@ export class BoostersService {
         {
           serviceType: 'rank-boost',
           name: 'Cày Điểm MMR Dota 2',
-          desc: 'Leo điểm MMR từ Herald đến Immortal cùng tuyển thủ top bảng xếp hạng.',
+          desc: 'Leo điểm MMR từ Herald đến Immortal cùng Booster top bảng xếp hạng.',
           pricingType: 'PER_UNIT',
           defaultPrice: 30000,
           unitName: '100 MMR',
@@ -434,7 +434,7 @@ export class BoostersService {
         {
           serviceType: 'coaching',
           name: 'Huấn Luyện Coaching 1-1 Liên Quân',
-          desc: 'Dạy kèm kỹ năng macro, di chuyển, chọn tướng & chiến thuật leo rank cùng tuyển thủ Chiến Tướng / Thách Đấu.',
+          desc: 'Dạy kèm kỹ năng macro, di chuyển, chọn tướng & chiến thuật leo rank cùng Booster Chiến Tướng / Thách Đấu.',
           pricingType: 'PER_UNIT',
           defaultPrice: 100000,
           unitName: 'Giờ học',
@@ -475,7 +475,7 @@ export class BoostersService {
         {
           serviceType: 'coaching',
           name: 'Huấn Luyện Coaching 1-1',
-          desc: 'Dạy kèm 1-1, phân tích replay, hướng dẫn kỹ năng nâng cao cùng tuyển thủ.',
+          desc: 'Dạy kèm 1-1, phân tích replay, hướng dẫn kỹ năng nâng cao cùng Booster.',
           pricingType: 'PER_UNIT',
           defaultPrice: 100000,
           unitName: 'Giờ học',
@@ -1304,7 +1304,7 @@ export class BoostersService {
         await this.notificationsService.notifyUser({
           userId: order.customerId,
           title: 'Đơn hàng của bạn đã được nhận!',
-          message: `Tuyển thủ @${booster?.username || 'Booster'} đã nhận đơn hàng #${orderCodeDisplay} của bạn từ Sàn Việc Làm và sẽ sớm tiến hành cày.`,
+          message: `Booster @${booster?.username || 'Booster'} đã nhận đơn hàng #${orderCodeDisplay} của bạn từ Sàn Việc Làm và sẽ sớm tiến hành cày.`,
           type: 'ORDER_UPDATE',
           variant: 'success',
           link: `/orders/${order._id}`,
@@ -1573,7 +1573,7 @@ export class BoostersService {
     if (user.role === UserRole.BOOSTER) {
       return {
         success: true,
-        message: 'Bạn đã là Tuyển thủ (Booster) của LeoRank!',
+        message: 'Bạn đã là Booster của LeoRank!',
         role: user.role,
       };
     }
@@ -1581,7 +1581,7 @@ export class BoostersService {
     // Nâng cấp role lên BOOSTER
     user.role = UserRole.BOOSTER;
     user.booster_info = {
-      bio: body.bio || user.booster_info?.bio || 'Tuyển thủ cày thuê uy tín',
+      bio: body.bio || user.booster_info?.bio || 'Booster cày thuê uy tín',
       ingame_name: body.ingameName || user.username,
       main_games: body.mainGames && body.mainGames.length > 0 ? body.mainGames : ['lol'],
       rating: 0,
@@ -1598,7 +1598,7 @@ export class BoostersService {
         $set: {
           userId: user._id,
           fullName: body.fullName || user.username,
-          bio: body.bio || 'Tuyển thủ cày thuê uy tín',
+          bio: body.bio || 'Booster cày thuê uy tín',
           isReady: true,
         },
       },
@@ -1616,7 +1616,7 @@ export class BoostersService {
 
     return {
       success: true,
-      message: 'Chúc mừng bạn đã trở thành Tuyển thủ (Booster) của LeoRank!',
+      message: 'Chúc mừng bạn đã trở thành Booster của LeoRank!',
       token,
       user: {
         _id: user._id,

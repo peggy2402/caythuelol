@@ -476,7 +476,7 @@ export class AdminService {
       { userId: targetUser._id },
       {
         displayName: body.displayName || targetUser.profile?.full_name || targetUser.username,
-        bio: body.bio || 'Tuyển thủ LeoRank chuyên nghiệp',
+        bio: body.bio || 'Booster LeoRank chuyên nghiệp',
         rating: body.rating ?? 5.0,
         completedOrders: body.completedOrders ?? 0,
         games: [defaultGame],
@@ -783,7 +783,7 @@ export class AdminService {
       await this.boosterProfileModel.create({
         userId: app.userId,
         displayName: app.fullName,
-        bio: `Tuyển thủ ${app.fullName} - Rank cao nhất: ${app.highestRank}. Tỉ lệ thắng cao, phục vụ chuyên nghiệp.`,
+        bio: `Booster ${app.fullName} - Rank cao nhất: ${app.highestRank}. Tỉ lệ thắng cao, phục vụ chuyên nghiệp.`,
         games: [gameLOLProfile],
         services: ['rank-boost'],
         rating: 5.0,

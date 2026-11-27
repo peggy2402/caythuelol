@@ -59,7 +59,7 @@ export const VIP_BENEFITS = [
   },
   {
     id: 'priority',
-    title: 'Ưu Tiên Ghép Tuyển Thủ 3 Phút',
+    title: 'Ưu Tiên Ghép Booster 3 Phút',
     desc: 'Đơn hàng VIP được ưu tiên đẩy lên đầu sàn việc làm, tự động chỉ định Booster Thách Đấu có tỷ lệ thắng trên 85%.',
   },
   {
@@ -70,12 +70,12 @@ export const VIP_BENEFITS = [
   {
     id: 'support',
     title: 'Chuyên Viên Chăm Sóc 1-1 Riêng Biệt',
-    desc: 'Hỗ trợ VIP 24/7 qua Telegram/Zalo, giải quyết mọi yêu cầu phát sinh và điều phối tuyển thủ trong 5 phút.',
+    desc: 'Hỗ trợ VIP 24/7 qua Telegram/Zalo, giải quyết mọi yêu cầu phát sinh và điều phối Booster trong 5 phút.',
   },
   {
     id: 'insurance',
     title: 'Bảo Hiểm Tài Khoản 100% LeoRank Escrow',
-    desc: 'Cam kết bồi thường 100% giá trị tài khoản và hoàn tiền nếu có sự cố kỷ luật do tuyển thủ gây ra.',
+    desc: 'Cam kết bồi thường 100% giá trị tài khoản và hoàn tiền nếu có sự cố kỷ luật do Booster gây ra.',
   },
   {
     id: 'leopoint',

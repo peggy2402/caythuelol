@@ -31,7 +31,7 @@ export function GameServicesTab({
             <span>Chọn loại dịch vụ bạn cần</span>
           </h2>
           <p className="text-xs text-zinc-400 mt-0.5">
-            Nhấn vào dịch vụ để xem danh sách tuyển thủ và bảng giá chi tiết của từng tuyển thủ.
+            Nhấn vào dịch vụ để xem danh sách Booster và bảng giá chi tiết của từng Booster.
           </p>
         </div>
       </div>
@@ -39,10 +39,10 @@ export function GameServicesTab({
       {loadingServices ? (
         <div className="flex flex-col items-center justify-center py-24 gap-3">
           <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
-          <p className="text-zinc-400 text-sm">Đang tải danh mục dịch vụ từ tuyển thủ...</p>
+          <p className="text-zinc-400 text-sm">Đang tải danh mục dịch vụ từ Booster...</p>
         </div>
       ) : groupedServices.length === 0 ? (
-        /* EMPTY STATE: Chưa có tuyển thủ nào niêm yết dịch vụ */
+        /* EMPTY STATE: Chưa có Booster nào niêm yết dịch vụ */
         <div className="p-8 sm:p-14 rounded-3xl border-2 border-dashed border-zinc-800 bg-zinc-900/30 text-center flex flex-col items-center justify-center gap-4">
           <div className="w-16 h-16 rounded-3xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 shadow-inner">
             <Gamepad2 size={32} />
@@ -52,7 +52,7 @@ export function GameServicesTab({
               Hiện chưa có gói dịch vụ nào cho {game.name}
             </h3>
             <p className="text-xs text-zinc-400 leading-relaxed">
-              Các tuyển thủ hiện đang cập nhật bảng giá dịch vụ cho tựa game này. Bạn có thể xem danh sách tuyển thủ đang online để thuê trực tiếp hoặc gửi yêu cầu cày thuê!
+              Các Booster hiện đang cập nhật bảng giá dịch vụ cho tựa game này. Bạn có thể xem danh sách Booster đang online để thuê trực tiếp hoặc gửi yêu cầu cày thuê!
             </p>
           </div>
           <button
@@ -61,7 +61,7 @@ export function GameServicesTab({
             className="mt-2 flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-extrabold text-xs shadow-lg shadow-blue-600/30 transition-all active:scale-95 cursor-pointer"
           >
             <Users size={16} />
-            <span>Xem Danh Sách Tuyển Thủ Đang Online</span>
+            <span>Xem Danh Sách Booster Đang Online</span>
           </button>
         </div>
       ) : (
@@ -84,7 +84,7 @@ export function GameServicesTab({
                 onClick={() => {
                   if (!hasBoosters) {
                     toast.error(
-                      `Dịch vụ "${group.name}" hiện chưa có tuyển thủ nào niêm yết giá. Vui lòng chọn dịch vụ khác hoặc quay lại sau nhé!`
+                      `Dịch vụ "${group.name}" hiện chưa có Booster nào niêm yết giá. Vui lòng chọn dịch vụ khác hoặc quay lại sau nhé!`
                     );
                   }
                 }}
@@ -113,7 +113,7 @@ export function GameServicesTab({
                       </span>
                     ) : (
                       <span className="text-[10px] sm:text-[11px] font-bold px-2.5 py-1 rounded-full border bg-zinc-800/80 text-zinc-400 border-zinc-700/60 flex items-center gap-1 shadow-inner">
-                        Chưa có tuyển thủ
+                        Chưa có Booster
                       </span>
                     )}
                   </div>
@@ -152,7 +152,7 @@ export function GameServicesTab({
                             return (
                               <div
                                 key={b._id || idx}
-                                title={b.displayName || b.username || `Tuyển thủ #${idx + 1}`}
+                                title={b.displayName || b.username || `Booster #${idx + 1}`}
                                 className="relative inline-block w-8 h-8 rounded-full ring-2 ring-[#0c101d] overflow-hidden shrink-0 shadow-md"
                               >
                                 {b.avatar ? (
@@ -187,7 +187,7 @@ export function GameServicesTab({
                     ) : (
                       <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-zinc-500">
                         <span className="w-1.5 h-1.5 rounded-full bg-zinc-600" />
-                        <span className="truncate">Tạm thời chưa có tuyển thủ</span>
+                        <span className="truncate">Tạm thời chưa có Booster</span>
                       </span>
                     )}
                   </div>

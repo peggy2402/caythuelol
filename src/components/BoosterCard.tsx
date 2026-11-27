@@ -75,7 +75,7 @@ export function formatBoosterCardServiceBadge(raw: string): string {
   return map[s] || raw.replace(/_/g, ' ');
 }
 
-// Trích xuất tất cả tựa game có dịch vụ của tuyển thủ
+// Trích xuất tất cả tựa game có dịch vụ của Booster
 export const getBoosterActiveGames = (booster: any): string[] => {
   const customServices = 
     booster.booster_info?.service_settings?.customServices ||
@@ -107,7 +107,7 @@ export const getBoosterActiveGames = (booster: any): string[] => {
   return ['LMHT'];
 };
 
-// Trích xuất tựa game chính của tuyển thủ
+// Trích xuất tựa game chính của Booster
 export const getPrimaryGame = (booster: any): string => {
   const customServices = 
     booster.booster_info?.service_settings?.customServices ||
@@ -298,13 +298,13 @@ export default function BoosterCard({ booster, isBookmarked, onToggleBookmark }:
               onToggleBookmark(booster._id, e);
             }}
             className="p-2 rounded-full bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 text-zinc-400 hover:text-rose-400 transition-all hover:scale-110 active:scale-95"
-            title={isBookmarked ? 'Bỏ lưu tuyển thủ' : 'Lưu tuyển thủ'}
+            title={isBookmarked ? 'Bỏ lưu Booster' : 'Lưu Booster'}
           >
             <Heart className={`w-3.5 h-3.5 sm:w-4 sm:h-4 transition-colors ${isBookmarked ? 'fill-rose-500 text-rose-500' : 'text-zinc-400'}`} />
           </button>
         </div>
 
-        {/* 3. Avatar Tuyển thủ với Badge Game gắn liền chân Avatar */}
+        {/* 3. Avatar Booster với Badge Game gắn liền chân Avatar */}
         <div className="relative z-10 flex justify-center mt-2 mb-3">
           <div className="relative">
             <div className="w-20 h-20 sm:w-22 sm:h-22 rounded-2xl p-0.5 bg-gradient-to-br from-cyan-400 via-blue-500 to-indigo-600 shadow-[0_0_25px_rgba(6,182,212,0.25)] group-hover:scale-105 transition-transform duration-300">

@@ -327,7 +327,7 @@ export default function AdminSettingsPage() {
                             placeholder="0"
                         />
                         <p className="text-[10px] text-zinc-500 mt-2">
-                            Số tiền này sẽ hiển thị ở bước thanh toán kích hoạt khi tuyển thủ đăng ký.
+                            Số tiền này sẽ hiển thị ở bước thanh toán kích hoạt khi Booster đăng ký.
                         </p>
                     </div>
                 )}
@@ -368,10 +368,10 @@ export default function AdminSettingsPage() {
                             <span>Cơ chế vận hành tự động:</span>
                         </p>
                         <p className="text-zinc-400 leading-relaxed text-[11px]">
-                            Nếu Booster được khách hàng chỉ định không bấm <strong>&quot;Nhận đơn&quot;</strong> trong vòng <strong className="text-white">{handoverTimeoutMinutes} phút</strong>, hệ thống sẽ tự động gỡ tuyển thủ chỉ định và chuyển giao đơn lên <strong className="text-blue-400">Sàn việc làm công khai</strong> để các tuyển thủ khác cùng tựa game tiếp nhận ngay lập tức.
+                            Nếu Booster được khách hàng chỉ định không bấm <strong>&quot;Nhận đơn&quot;</strong> trong vòng <strong className="text-white">{handoverTimeoutMinutes} phút</strong>, hệ thống sẽ tự động gỡ Booster chỉ định và chuyển giao đơn lên <strong className="text-blue-400">Sàn việc làm công khai</strong> để các Booster khác cùng tựa game tiếp nhận ngay lập tức.
                         </p>
                         <p className="text-zinc-500 text-[11px]">
-                            Trạng thái trên thẻ đơn hàng của khách sẽ tự động cập nhật: <span className="text-amber-300 font-medium">&quot;Tuyển thủ: Đang tìm kiếm...&quot;</span>.
+                            Trạng thái trên thẻ đơn hàng của khách sẽ tự động cập nhật: <span className="text-amber-300 font-medium">&quot;Booster: Đang tìm kiếm...&quot;</span>.
                         </p>
                     </div>
                 </div>

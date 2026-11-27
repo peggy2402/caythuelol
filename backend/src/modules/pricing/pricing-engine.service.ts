@@ -252,7 +252,7 @@ export class PricingEngineService {
       // 8.4: Cày tụt điểm (Delta LP <= 0)
       if (deltaLP <= 0) {
         actualBaseAmount = 0;
-        explanation = `Tuyển thủ cày tụt điểm (${initialLP} LP -> ${actualLP} LP). Hoàn lại 100% tiền cọc cho khách hàng.`;
+        explanation = `Booster cày tụt điểm (${initialLP} LP -> ${actualLP} LP). Hoàn lại 100% tiền cọc cho khách hàng.`;
         return {
           actualAmount: 0,
           depositAmount,

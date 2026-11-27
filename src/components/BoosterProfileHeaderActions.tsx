@@ -57,7 +57,7 @@ export default function BoosterProfileHeaderActions({
   const handleToggleBookmark = async () => {
     const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
     if (!token) {
-      toast.error('Vui lòng đăng nhập để lưu tuyển thủ vào danh sách yêu thích');
+      toast.error('Vui lòng đăng nhập để lưu Booster vào danh sách yêu thích');
       return;
     }
 

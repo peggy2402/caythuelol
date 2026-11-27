@@ -7,7 +7,7 @@ import { HelpCircle, ChevronDown } from 'lucide-react';
 const FAQS = [
   {
     q: "Tài khoản của tôi có bị khóa khi cày thuê không?",
-    a: "LeoRank áp dụng 100% công nghệ ảo hóa VPN định tuyến theo vị trí máy chủ của bạn và bật chế độ Offline trong game. Tuyển thủ không chat, không troll game, đảm bảo an toàn tài khoản tối đa."
+    a: "LeoRank áp dụng 100% công nghệ ảo hóa VPN định tuyến theo vị trí máy chủ của bạn và bật chế độ Offline trong game. Booster không chat, không troll game, đảm bảo an toàn tài khoản tối đa."
   },
   {
     q: "Cơ chế ký quỹ Escrow bảo vệ tôi như thế nào?",

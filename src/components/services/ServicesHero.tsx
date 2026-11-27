@@ -88,7 +88,7 @@ export default function ServicesHero({
       </h1>
 
       <p className="text-zinc-400 text-sm sm:text-base leading-relaxed max-w-2xl mx-auto mb-8">
-        Chọn tựa game của bạn để khám phá danh sách gói dịch vụ chi tiết, bảng giá niêm yết minh bạch và bảng xếp hạng tuyển thủ Thách Đấu sẵn sàng nhận đơn.
+        Chọn tựa game của bạn để khám phá danh sách gói dịch vụ chi tiết, bảng giá niêm yết minh bạch và bảng xếp hạng Booster Thách Đấu sẵn sàng nhận đơn.
       </p>
 
       {/* Search Bar */}

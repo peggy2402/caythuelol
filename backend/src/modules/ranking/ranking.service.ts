@@ -280,7 +280,7 @@ export class RankingService {
   }
 
   /**
-   * Bảng xếp hạng tuyển thủ (Leaderboard) hỗ trợ lọc theo Game và Thời gian
+   * Bảng xếp hạng Booster (Leaderboard) hỗ trợ lọc theo Game và Thời gian
    */
   async getLeaderboard(filters: { gameCode?: string; timeframe?: string; page?: number; limit?: number }) {
     const page = Math.max(1, Number(filters.page) || 1);

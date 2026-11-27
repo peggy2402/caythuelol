@@ -37,7 +37,7 @@ export default function BoostersPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [bookmarks, setBookmarks] = useState<string[]>([]);
 
-  // Tính toán số lượng tuyển thủ thực tế cho từng nhánh tựa game
+  // Tính toán số lượng Booster thực tế cho từng nhánh tựa game
   useEffect(() => {
     const fetchDistribution = async () => {
       try {
@@ -153,7 +153,7 @@ export default function BoostersPage() {
         else toast.error('Lỗi khi lưu Booster');
         setBookmarks(bookmarks);
       } else {
-        toast.success(isBookmarked ? 'Đã bỏ lưu tuyển thủ' : 'Đã lưu tuyển thủ vào mục yêu thích');
+        toast.success(isBookmarked ? 'Đã bỏ lưu Booster' : 'Đã lưu Booster vào mục yêu thích');
       }
     } catch {
       setBookmarks(bookmarks);
@@ -196,7 +196,7 @@ export default function BoostersPage() {
         {loading ? (
           <div className="flex flex-col justify-center items-center h-80 gap-4 text-cyan-400">
             <Loader2 className="w-10 h-10 animate-spin" />
-            <span className="text-xs uppercase tracking-wider font-bold text-zinc-500">Đang tải danh sách tuyển thủ...</span>
+            <span className="text-xs uppercase tracking-wider font-bold text-zinc-500">Đang tải danh sách Booster...</span>
           </div>
         ) : (
           <>
@@ -213,7 +213,7 @@ export default function BoostersPage() {
               ) : (
                 <div className="col-span-full text-center py-20 text-zinc-500 border border-dashed border-zinc-800 rounded-3xl bg-zinc-900/40">
                   <UserIcon className="w-12 h-12 text-zinc-700 mx-auto mb-3" />
-                  <h3 className="text-base font-bold text-white mb-1">Không tìm thấy tuyển thủ nào</h3>
+                  <h3 className="text-base font-bold text-white mb-1">Không tìm thấy Booster nào</h3>
                   <p className="text-xs text-zinc-500 mb-6">Thử thay đổi từ khóa tìm kiếm hoặc đặt lại bộ lọc.</p>
                   <button
                     onClick={() => {

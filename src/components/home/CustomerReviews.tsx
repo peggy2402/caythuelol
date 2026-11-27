@@ -19,7 +19,7 @@ const REVIEWS = [
     game: "Valorant",
     rankProgression: "Ascendant 2 → Immortal 1",
     winrate: "88% Winrate",
-    comment: "Mình chọn gói Chơi Cùng Booster (Duo) vì không muốn share pass. Bạn tuyển thủ call team nhiệt tình, chỉ bảo mẹo kê góc rất hay. Đáng đồng tiền bát gạo.",
+    comment: "Mình chọn gói Chơi Cùng Booster (Duo) vì không muốn share pass. Bạn Booster call team nhiệt tình, chỉ bảo mẹo kê góc rất hay. Đáng đồng tiền bát gạo.",
     avatar: "T",
     boosterTag: "Booster #05 (Radiant Top 50)",
     verified: true

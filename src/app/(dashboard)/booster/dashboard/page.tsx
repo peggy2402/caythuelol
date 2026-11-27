@@ -187,7 +187,7 @@ export default function BoosterDashboardPage() {
                 </h1>
                 <UserBadge role="BOOSTER" size="md" />
                 <span className="px-2.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold border bg-amber-950/50 border-amber-500/40 text-amber-300 shrink-0">
-                  Tuyển Thủ Thách Đấu
+                  Booster Thách Đấu
                 </span>
               </div>
 
@@ -379,7 +379,7 @@ export default function BoosterDashboardPage() {
               </div>
               <h3 className="text-base font-bold text-white mb-1">Hiện bạn chưa nhận đơn cày nào</h3>
               <p className="text-xs text-zinc-500 max-w-sm mb-6">
-                Hàng chục đơn hàng mới đang chờ tuyển thủ nhận tại Sàn việc làm.
+                Hàng chục đơn hàng mới đang chờ Booster nhận tại Sàn việc làm.
               </p>
               <Link
                 href="/booster/jobs"

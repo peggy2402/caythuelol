@@ -363,7 +363,7 @@ export default function LiveRankCalculator() {
                 },
                 {
                   icon: Trophy,
-                  title: 'Tuyển Thủ Thách Đấu KYC Định Danh',
+                  title: 'Booster Thách Đấu KYC Định Danh',
                   desc: '100% booster trải qua quy trình kiểm tra trình độ gắt gao (tối thiểu Cao Thủ 500LP+), có hợp đồng cam kết trách nhiệm.',
                   color: 'text-amber-400',
                   bg: 'bg-amber-500/10'

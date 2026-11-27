@@ -44,7 +44,7 @@ export default function FavoritesPage() {
 
     // Optimistic update
     setBoosters((prev) => prev.filter((b) => b._id !== boosterId));
-    toast.success('Đã bỏ lưu tuyển thủ khỏi danh sách yêu thích');
+    toast.success('Đã bỏ lưu Booster khỏi danh sách yêu thích');
 
     try {
       const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
@@ -77,14 +77,14 @@ export default function FavoritesPage() {
           <span>Booster Yêu Thích</span>
         </h1>
         <p className="text-zinc-400 text-sm">
-          Danh sách các tuyển thủ cày thuê bạn đã đánh dấu quan tâm và muốn theo dõi.
+          Danh sách các Booster cày thuê bạn đã đánh dấu quan tâm và muốn theo dõi.
         </p>
       </div>
 
       {loading ? (
         <div className="flex flex-col items-center justify-center py-28 gap-3">
           <Loader2 className="w-9 h-9 animate-spin text-blue-500" />
-          <p className="text-zinc-400 text-sm">Đang tải danh sách tuyển thủ yêu thích...</p>
+          <p className="text-zinc-400 text-sm">Đang tải danh sách Booster yêu thích...</p>
         </div>
       ) : boosters.length === 0 ? (
         /* Empty State đẹp mắt, hiện đại */
@@ -92,20 +92,20 @@ export default function FavoritesPage() {
           <div className="w-16 h-16 rounded-3xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400 mx-auto mb-4 shadow-inner">
             <Heart className="w-8 h-8" />
           </div>
-          <h3 className="text-lg font-bold text-white mb-1.5">Chưa có Tuyển thủ yêu thích nào</h3>
+          <h3 className="text-lg font-bold text-white mb-1.5">Chưa có Booster yêu thích nào</h3>
           <p className="text-zinc-400 text-xs sm:text-sm mb-6 leading-relaxed">
-            Bạn chưa lưu tuyển thủ nào. Hãy dạo quanh danh sách cao thủ và bấm vào biểu tượng trái tim để lưu lại nhé!
+            Bạn chưa lưu Booster nào. Hãy dạo quanh danh sách cao thủ và bấm vào biểu tượng trái tim để lưu lại nhé!
           </p>
           <Link
             href="/boosters"
             className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-blue-600/30 transition-all hover:scale-105 active:scale-95"
           >
-            <span>Khám phá danh sách Tuyển thủ</span>
+            <span>Khám phá danh sách Booster</span>
             <ArrowRight className="w-4 h-4" />
           </Link>
         </div>
       ) : (
-        /* Lưới Card Tuyển thủ đồng bộ phong cách với /boosters */
+        /* Lưới Card Booster đồng bộ phong cách với /boosters */
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {boosters.map((booster) => (
             <BoosterCard

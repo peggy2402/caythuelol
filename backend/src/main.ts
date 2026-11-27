@@ -81,7 +81,7 @@ async function bootstrap() {
     .setVersion('1.0')
     .addTag('Riot Games', 'Tra cứu Rank người chơi & Lịch sử trận đấu trực tiếp từ Riot Games API')
     .addTag('Orders', 'Quản lý đơn hàng & chi tiết đơn cày thuê')
-    .addTag('Boosters', 'Tuyển thủ & Sàn việc làm')
+    .addTag('Boosters', 'Booster & Sàn việc làm')
     .addTag('Authentication', 'Xác thực & phân quyền người dùng')
     .addTag('Public & Utilities', 'Cấu hình công khai & Tiện ích')
     .addBearerAuth()

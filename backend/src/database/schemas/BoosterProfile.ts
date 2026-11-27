@@ -20,7 +20,7 @@ export interface IBoosterGameProfile {
 export interface IBoosterProfile extends Document {
   userId: mongoose.Types.ObjectId;
   displayName?: string; // Tên hiển thị (nếu muốn khác username)
-  avatar?: string; // Avatar tuyển thủ
+  avatar?: string; // Avatar Booster
   bio: string;
   currentRank?: string;
   highestRank?: string;

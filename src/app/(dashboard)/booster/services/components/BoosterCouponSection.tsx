@@ -29,7 +29,7 @@ export const BoosterCouponSection: React.FC<BoosterCouponSectionProps> = ({
             <span>6. Mã Giảm Giá Riêng Của Bạn</span>
           </h3>
           <p className="text-xs text-zinc-400 mt-0.5">
-            Tạo mã ưu đãi độc quyền dành riêng cho khách hàng quen khi chỉ định bạn làm tuyển thủ cày chính.
+            Tạo mã ưu đãi độc quyền dành riêng cho khách hàng quen khi chỉ định bạn làm Booster cày chính.
           </p>
         </div>
         <button
@@ -107,7 +107,7 @@ export const BoosterCouponSection: React.FC<BoosterCouponSectionProps> = ({
       </div>
 
       <div className="p-3 bg-cyan-950/20 border border-cyan-500/20 rounded-2xl text-[11px] text-zinc-400">
-        💡 Mã giảm giá này sẽ được tự động gợi ý và áp dụng cho khách hàng khi họ chọn bạn làm tuyển thủ cày trong bước đặt đơn.
+        💡 Mã giảm giá này sẽ được tự động gợi ý và áp dụng cho khách hàng khi họ chọn bạn làm Booster cày trong bước đặt đơn.
       </div>
     </div>
   );

@@ -76,7 +76,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     },
     openGraph: {
       title: `Thuê Booster ${user.username} ${statsText} | LeoRank`,
-      description: boosterData?.bio || `Xem hồ sơ, bảng giá và đánh giá của ${user.username}. Đội ngũ tuyển thủ rank Thách Đấu uy tín số 1 Việt Nam.`,
+      description: boosterData?.bio || `Xem hồ sơ, bảng giá và đánh giá của ${user.username}. Đội ngũ Booster rank Thách Đấu uy tín số 1 Việt Nam.`,
       images: [
         {
           url: ogImage,
@@ -90,7 +90,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     twitter: {
       card: 'summary_large_image',
       title: `Thuê Booster ${user.username} ${statsText} | LeoRank`,
-      description: boosterData?.bio || `Xem hồ sơ và bảng giá của tuyển thủ ${user.username} trên LeoRank.`,
+      description: boosterData?.bio || `Xem hồ sơ và bảng giá của Booster ${user.username} trên LeoRank.`,
       images: [ogImage],
     },
   };
@@ -570,7 +570,7 @@ export default async function ShortProfilePage({ params }: Props) {
                     </span>
                   </div>
                   <p className="text-xs text-zinc-400 mt-1.5 leading-relaxed">
-                    Chưa phát sinh trận đấu nào trong 30 ngày qua (0 Thắng - 0 Thua). Tuyển thủ sẵn sàng nhận đơn mới và cam kết tỉ lệ thắng cao nhất!
+                    Chưa phát sinh trận đấu nào trong 30 ngày qua (0 Thắng - 0 Thua). Booster sẵn sàng nhận đơn mới và cam kết tỉ lệ thắng cao nhất!
                   </p>
                 </div>
               )}

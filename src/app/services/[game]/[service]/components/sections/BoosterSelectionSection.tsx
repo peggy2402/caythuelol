@@ -61,7 +61,7 @@ function BoosterRadarScanner() {
       <div className="text-center relative z-10 space-y-1">
         <div className="text-xs sm:text-sm font-extrabold text-white flex items-center justify-center gap-2">
           <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
-          <span>Đang quét radar tuyển thủ trực tuyến...</span>
+          <span>Đang quét radar Booster trực tuyến...</span>
         </div>
         <p className="text-[11px] text-zinc-400 font-mono">
           Phân tích SLA • Tỷ lệ thắng • Lịch làm việc phù hợp
@@ -107,7 +107,7 @@ export function BoosterSelectionSection({
     assignedBooster?.booster?.displayName ||
     assignedBooster?.user?.displayName ||
     assignedBooster?.user?.username ||
-    'Tuyển thủ';
+    'Booster';
 
   const username =
     assignedBooster?.user?.username ||
@@ -136,10 +136,10 @@ export function BoosterSelectionSection({
         <div>
           <h3 className="text-sm sm:text-base font-extrabold text-white flex items-center gap-2">
             <Users className="text-blue-400 w-4 h-4" />
-            <span>Lựa Chọn Tuyển Thủ (Booster)</span>
+            <span>Lựa Chọn Booster</span>
           </h3>
           <p className="text-xs text-zinc-400 mt-0.5">
-            Chọn ghép nhanh tự động hoặc chỉ định tuyển thủ bạn tin tưởng
+            Chọn ghép nhanh tự động hoặc chỉ định Booster bạn tin tưởng
           </p>
         </div>
         {assignedBooster && (
@@ -180,7 +180,7 @@ export function BoosterSelectionSection({
                 setAppliedCoupon(null);
                 setCouponCode('');
               }
-              toast.info(`Hệ thống ghép tự động tuyển thủ: @${picked.username}`);
+              toast.info(`Hệ thống ghép tự động Booster: @${picked.username}`);
             }
           }}
           className={`p-3.5 rounded-2xl border text-left transition-all relative ${
@@ -199,7 +199,7 @@ export function BoosterSelectionSection({
           </div>
           <div className="font-bold text-white text-xs sm:text-sm">Ghép Nhanh Tự Động</div>
           <div className="text-[11px] text-zinc-400 mt-1 leading-relaxed">
-            Hệ thống tự động ghép ngẫu nhiên tuyển thủ đủ điều kiện với mức giá minh bạch.
+            Hệ thống tự động ghép ngẫu nhiên Booster đủ điều kiện với mức giá minh bạch.
           </div>
         </button>
 
@@ -230,14 +230,14 @@ export function BoosterSelectionSection({
               Theo yêu cầu
             </span>
           </div>
-          <div className="font-bold text-white text-xs sm:text-sm">Chỉ Định Tuyển Thủ</div>
+          <div className="font-bold text-white text-xs sm:text-sm">Chỉ Định Booster</div>
           <div className="text-[11px] text-zinc-400 mt-1 leading-relaxed">
-            Tùy chọn tuyển thủ cụ thể bạn yêu thích, xem đánh giá và áp dụng ưu đãi riêng.
+            Tùy chọn Booster cụ thể bạn yêu thích, xem đánh giá và áp dụng ưu đãi riêng.
           </div>
         </button>
       </div>
 
-      {/* Card Tuyển Thủ Đang Chọn / Được Ghép (Model Ảnh 2) */}
+      {/* Card Booster Đang Chọn / Được Ghép (Model Ảnh 2) */}
       {assignedBooster ? (
         isRadarScanning ? (
           <BoosterRadarScanner />
@@ -316,7 +316,7 @@ export function BoosterSelectionSection({
                   onClick={handleRerollWithRadar}
                   disabled={isRadarScanning}
                   className="px-3.5 py-2 rounded-xl bg-zinc-900/90 hover:bg-zinc-800 text-zinc-200 border border-zinc-700/70 text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-sm active:scale-95 cursor-pointer disabled:opacity-50"
-                  title="Tìm và ghép tuyển thủ khác"
+                  title="Tìm và ghép Booster khác"
                 >
                   <Shuffle size={13} className={isRadarScanning ? 'animate-spin text-cyan-400' : ''} />
                   <span>Đổi người khác</span>
@@ -330,8 +330,8 @@ export function BoosterSelectionSection({
                 <Sparkles size={13} className="text-amber-400 shrink-0" />
                 <span>
                   {isManualSelectBooster
-                    ? 'Tuyển thủ được chỉ định và giữ theo yêu cầu của bạn'
-                    : 'Hệ thống đã tự động ghép tuyển thủ phù hợp nhất'}
+                    ? 'Booster được chỉ định và giữ theo yêu cầu của bạn'
+                    : 'Hệ thống đã tự động ghép Booster phù hợp nhất'}
                 </span>
               </div>
               <div className="flex items-center gap-1.5 text-cyan-300 font-mono text-[11px] sm:text-xs">
@@ -345,7 +345,7 @@ export function BoosterSelectionSection({
         <div className="p-3.5 sm:p-4 rounded-2xl bg-zinc-950/60 border border-zinc-800 flex items-center gap-3 text-xs text-zinc-400">
           <Users size={18} className="text-zinc-500 shrink-0" />
           <span>
-            Chưa có tuyển thủ online cho dịch vụ này. Hệ thống sẽ áp dụng bảng giá tiêu chuẩn của sàn và đưa đơn lên bảng tin tuyển dụng.
+            Chưa có Booster online cho dịch vụ này. Hệ thống sẽ áp dụng bảng giá tiêu chuẩn của sàn và đưa đơn lên bảng tin tuyển dụng.
           </span>
         </div>
       )}

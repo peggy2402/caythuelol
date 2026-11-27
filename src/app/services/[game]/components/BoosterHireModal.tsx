@@ -70,7 +70,7 @@ export function BoosterHireModal({
                 </span>
               </div>
               <p className="text-xs text-zinc-400">
-                Chọn dịch vụ <span className="text-blue-400 font-semibold">{game.name}</span> bạn muốn tuyển thủ này thực hiện:
+                Chọn dịch vụ <span className="text-blue-400 font-semibold">{game.name}</span> bạn muốn Booster này thực hiện:
               </p>
             </div>
           </div>
@@ -132,10 +132,10 @@ export function BoosterHireModal({
             <div className="py-10 px-4 text-center border border-dashed border-white/10 rounded-2xl bg-zinc-950/40">
               <AlertCircle className="w-8 h-8 text-amber-400 mx-auto mb-2" />
               <h4 className="text-white font-bold text-sm mb-1">
-                Tuyển thủ hiện chưa mở dịch vụ nào
+                Booster hiện chưa mở dịch vụ nào
               </h4>
               <p className="text-xs text-zinc-400 max-w-sm mx-auto">
-                Tuyển thủ này chưa kích hoạt hoặc đã tạm tắt toàn bộ gói dịch vụ cho tựa game {game.name}. Vui lòng quay lại sau hoặc chọn tuyển thủ khác!
+                Booster này chưa kích hoạt hoặc đã tạm tắt toàn bộ gói dịch vụ cho tựa game {game.name}. Vui lòng quay lại sau hoặc chọn Booster khác!
               </p>
             </div>
           )}

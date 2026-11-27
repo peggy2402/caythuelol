@@ -50,7 +50,7 @@ export default function EditAccountModal({
             </div>
             <div>
               <h3 className="text-lg font-bold text-white">Chỉnh sửa tài khoản Game</h3>
-              <p className="text-xs text-zinc-400">Cập nhật ID, mật khẩu hoặc ghi chú cho Tuyển thủ</p>
+              <p className="text-xs text-zinc-400">Cập nhật ID, mật khẩu hoặc ghi chú cho Booster</p>
             </div>
           </div>
           <button onClick={onClose} className="text-zinc-500 hover:text-white p-1 rounded-lg cursor-pointer">
@@ -137,7 +137,7 @@ export default function EditAccountModal({
           </div>
 
           <div>
-            <label className="text-xs font-semibold text-zinc-400 block mb-1.5">Ghi chú thêm cho Tuyển thủ:</label>
+            <label className="text-xs font-semibold text-zinc-400 block mb-1.5">Ghi chú thêm cho Booster:</label>
             <textarea
               className="w-full bg-zinc-950 border border-zinc-700 rounded-xl p-3 text-sm text-white focus:border-blue-500 outline-none h-20"
               value={form.note}

@@ -195,7 +195,7 @@ export class UsersService {
 
     return {
       success: true,
-      message: 'Cập nhật thông tin tuyển thủ thành công',
+      message: 'Cập nhật thông tin Booster thành công',
       booster_info: user.booster_info,
       booster_profile: boosterProfile,
     };

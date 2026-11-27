@@ -40,7 +40,7 @@ const optionLabels: Record<string, string> = {
   streaming: 'Phát trực tiếp (Livestream)',
   flash: 'Vị trí Tốc Biến (Flash)',
   flashPosition: 'Vị trí Tốc Biến (Flash)',
-  duo: 'Duo cùng Tuyển thủ',
+  duo: 'Duo cùng Booster',
   express: 'Cày siêu tốc (Ưu tiên)',
   priority: 'Cày ưu tiên hoàn thành',
   coaching: 'Kèm riêng 1-1',
@@ -309,7 +309,7 @@ export default function OrderServiceCard({
                     </span>
                   ))
                 ) : (
-                  <span className="text-xs text-zinc-400">Tuyển thủ tự chọn</span>
+                  <span className="text-xs text-zinc-400">Booster tự chọn</span>
                 )}
               </div>
             </div>
@@ -385,7 +385,7 @@ export default function OrderServiceCard({
             <div className="pt-2.5 border-t border-zinc-800">
               <div className="bg-red-500/5 rounded-xl p-3 border border-red-500/15">
                 <span className="text-red-400 text-xs mb-2 flex items-center gap-1.5 font-bold">
-                  <Clock size={12} /> Khung giờ nghỉ (Cấm tuyển thủ chơi):
+                  <Clock size={12} /> Khung giờ nghỉ (Cấm Booster chơi):
                 </span>
                 <div className="flex flex-wrap gap-2">
                   {scheduleOption[1].map((w: any, idx: number) => (

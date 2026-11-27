@@ -66,14 +66,14 @@ function getStatusBadge(status: string, hasBooster?: boolean) {
       };
     case 'APPROVED':
       return {
-        label: 'Tuyển thủ đã nhận',
+        label: 'Booster đã nhận',
         className: 'bg-purple-500/10 text-purple-400 border border-purple-500/20',
         icon: CheckCircle2,
         isSpinning: false,
       };
     case 'PAID':
       return {
-        label: hasBooster ? 'Đang chờ Booster' : 'Đang chờ tuyển thủ',
+        label: hasBooster ? 'Đang chờ Booster' : 'Đang chờ Booster',
         className: 'bg-amber-500/10 text-amber-400 border border-amber-500/30',
         icon: Loader2,
         isSpinning: true,
@@ -626,11 +626,11 @@ export default function OrdersPage() {
 
                       {/* Booster Info Snippet */}
                       <div className="pt-1 flex items-center gap-2 text-xs">
-                        <span className="text-zinc-500">Tuyển thủ:</span>
+                        <span className="text-zinc-500">Booster:</span>
                         {order.boosterId ? (
                           <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-purple-500/10 border border-purple-500/30 text-purple-300 font-medium">
                             <User className="w-3 h-3" />
-                            <span>@{order.boosterId.username || 'Tuyển thủ'}</span>
+                            <span>@{order.boosterId.username || 'Booster'}</span>
                           </div>
                         ) : (
                           <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-300 font-medium">

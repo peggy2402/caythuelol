@@ -108,7 +108,7 @@ const DEFAULT_BENEFITS: VipBenefit[] = [
   },
   {
     id: 'priority',
-    title: 'Ưu Tiên Ghép Tuyển Thủ 3 Phút',
+    title: 'Ưu Tiên Ghép Booster 3 Phút',
     desc: 'Đơn hàng VIP được ưu tiên đẩy lên đầu sàn việc làm, tự động chỉ định Booster Thách Đấu có tỷ lệ thắng trên 85%.',
   },
   {
@@ -119,12 +119,12 @@ const DEFAULT_BENEFITS: VipBenefit[] = [
   {
     id: 'support',
     title: 'Chuyên Viên Chăm Sóc 1-1 Riêng Biệt',
-    desc: 'Hỗ trợ VIP 24/7 qua Telegram/Zalo, giải quyết mọi yêu cầu phát sinh và điều phối tuyển thủ trong 5 phút.',
+    desc: 'Hỗ trợ VIP 24/7 qua Telegram/Zalo, giải quyết mọi yêu cầu phát sinh và điều phối Booster trong 5 phút.',
   },
   {
     id: 'insurance',
     title: 'Bảo Hiểm Tài Khoản 100% LeoRank Escrow',
-    desc: 'Cam kết bồi thường 100% giá trị tài khoản và hoàn tiền nếu có sự cố kỷ luật do tuyển thủ gây ra.',
+    desc: 'Cam kết bồi thường 100% giá trị tài khoản và hoàn tiền nếu có sự cố kỷ luật do Booster gây ra.',
   },
   {
     id: 'leopoint',
@@ -135,8 +135,8 @@ const DEFAULT_BENEFITS: VipBenefit[] = [
 
 const COMPARISON_ROWS = [
   { feature: 'Chiết khấu giảm giá dịch vụ', normal: 'Không có (0%)', vip: 'Giảm 10% - 15% trọn đời' },
-  { feature: 'Tốc độ ghép tuyển thủ nhận cày', normal: 'Hàng đợi tiêu chuẩn (15 - 30p)', vip: 'Ưu tiên VIP (< 3 phút)' },
-  { feature: 'Cấp bậc tuyển thủ phụ trách', normal: 'Bất kỳ tuyển thủ online', vip: 'Top 10 Thách Đấu / Pro tỉ lệ thắng 88%+' },
+  { feature: 'Tốc độ ghép Booster nhận cày', normal: 'Hàng đợi tiêu chuẩn (15 - 30p)', vip: 'Ưu tiên VIP (< 3 phút)' },
+  { feature: 'Cấp bậc Booster phụ trách', normal: 'Bất kỳ Booster online', vip: 'Top 10 Thách Đấu / Pro tỉ lệ thắng 88%+' },
   { feature: 'Phụ phí chọn Tướng / Đường thi đấu', normal: 'Tính thêm 20% - 30%', vip: 'Miễn phí 100%' },
   { feature: 'Kênh hỗ trợ & xử lý sự cố', normal: 'Ticket hệ thống', vip: 'CSKH 1-1 qua Telegram / Zalo riêng' },
   { feature: 'Tích lũy điểm thưởng LeoPoint', normal: 'x1 điểm thường', vip: 'x2 điểm thưởng' },
@@ -287,7 +287,7 @@ function VipPageContent() {
                 </span>
               </h1>
               <p className="text-zinc-300 text-sm sm:text-base leading-relaxed max-w-xl mb-6">
-                Tối ưu chi phí leo rank dài hạn với mức giảm giá 10% - 15% trọn đời, miễn phí chọn tướng và quyền ưu tiên ghép những tuyển thủ Thách Đấu hàng đầu Việt Nam.
+                Tối ưu chi phí leo rank dài hạn với mức giảm giá 10% - 15% trọn đời, miễn phí chọn tướng và quyền ưu tiên ghép những Booster Thách Đấu hàng đầu Việt Nam.
               </p>
 
               {/* Status Badge */}
@@ -410,7 +410,7 @@ function VipPageContent() {
                         <div className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
                           <Check size={13} className="stroke-[3]" />
                         </div>
-                        <span>Ưu tiên ghép Tuyển thủ Top 10 Thách Đấu</span>
+                        <span>Ưu tiên ghép Booster Top 10 Thách Đấu</span>
                       </div>
                       <div className="flex items-center gap-2.5 text-xs text-zinc-200">
                         <div className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">

@@ -32,7 +32,7 @@ export const BoosterScheduleSection: React.FC<BoosterScheduleSectionProps> = ({
           </p>
         </div>
         <span className="text-[11px] text-cyan-400 font-bold bg-cyan-500/10 px-3 py-1 rounded-full border border-cyan-500/20 w-fit">
-          Hiển thị trên Thẻ tuyển thủ & Hồ sơ
+          Hiển thị trên Thẻ Booster & Hồ sơ
         </span>
       </div>
 

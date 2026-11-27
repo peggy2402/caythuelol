@@ -102,7 +102,7 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
     }));
   };
 
-  // Tổng hợp danh sách Game và Dịch vụ cung cấp tương ứng của Tuyển thủ
+  // Tổng hợp danh sách Game và Dịch vụ cung cấp tương ứng của Booster
   const boosterGamesWithServices = useMemo(() => {
     if (!order?.boosterId && !boosterProfile) return [];
 
@@ -517,7 +517,7 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
       const res = await fetch(`/api/orders/${order.orderCode || order._id}/cancel`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reason: cancelReason || 'Khách hàng tự hủy trước khi tuyển thủ nhận đơn' }),
+        body: JSON.stringify({ reason: cancelReason || 'Khách hàng tự hủy trước khi Booster nhận đơn' }),
       });
       const data = await res.json();
       if (res.ok) {
@@ -1529,7 +1529,7 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
 
         {/* Explanation */}
         <p className="text-xs sm:text-sm text-zinc-400 mt-4 leading-relaxed max-w-sm mx-auto">
-          Bạn không có quyền truy cập hoặc thao tác trên đơn hàng này. Để bảo vệ an toàn tài khoản game và quyền riêng tư, hệ thống chỉ mở quyền cho <strong className="text-zinc-200">Khách tạo đơn</strong> và <strong className="text-zinc-200">Tuyển thủ phụ trách</strong>.
+          Bạn không có quyền truy cập hoặc thao tác trên đơn hàng này. Để bảo vệ an toàn tài khoản game và quyền riêng tư, hệ thống chỉ mở quyền cho <strong className="text-zinc-200">Khách tạo đơn</strong> và <strong className="text-zinc-200">Booster phụ trách</strong>.
         </p>
 
         {/* Action Buttons - Thoáng đãng, không bao giờ bị bó hay gãy dòng */}
@@ -1646,7 +1646,7 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
   const isAssignedBooster = Boolean(currentUserId && orderBoosterId && currentUserId === orderBoosterId);
   const isOrderCustomer = Boolean(currentUserId && orderCustomerId && currentUserId === orderCustomerId);
 
-  // Người có quyền tham gia đơn hàng: Khách tạo đơn, Tuyển thủ được giao, hoặc Admin/Staff
+  // Người có quyền tham gia đơn hàng: Khách tạo đơn, Booster được giao, hoặc Admin/Staff
   const isParticipant = isAssignedBooster || isOrderCustomer || isAdmin;
 
   // Nếu người dùng KHÔNG thuộc đơn hàng này: Chặn ngay lập tức toàn màn hình
@@ -1730,7 +1730,7 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
     streaming: 'Phát trực tiếp (Livestream)',
     flash: 'Vị trí Tốc Biến (Flash)',
     flashPosition: 'Vị trí Tốc Biến (Flash)',
-    duo: 'Duo cùng Tuyển thủ',
+    duo: 'Duo cùng Booster',
     express: 'Cày siêu tốc (Ưu tiên)',
     priority: 'Cày ưu tiên hoàn thành',
     coaching: 'Kèm riêng 1-1',
