@@ -22,7 +22,8 @@ export interface ActivityFeedItem {
 @Injectable()
 export class ActivityService {
   private readonly logger = new Logger(ActivityService.name);
-  private cachedFeed: { data: ActivityFeedItem[]; expiresAt: number } | null = null;
+  private cachedFeed: { data: ActivityFeedItem[]; meta: any; expiresAt: number } | null = null;
+  private cachedPureRealFeed: { data: ActivityFeedItem[]; meta: any; expiresAt: number } | null = null;
   private readonly CACHE_TTL_MS = 15_000; // Cache 15 giây
 
   constructor(
@@ -59,15 +60,34 @@ export class ActivityService {
   }
 
   /**
-   * Lấy danh sách activity feed trực tiếp từ Database kết hợp fallback dữ liệu sinh động
+   * Lấy danh sách activity feed:
+   * - Hỗ trợ cờ pureReal (chỉ lấy 100% dữ liệu thật từ DB)
+   * - Mô hình Hybrid thông minh (ưu tiên dữ liệu thật + bù đắp giả lập khi vắng khách)
    */
-  async getActivityFeed(): Promise<ActivityFeedItem[]> {
+  async getActivityFeed(
+    pureReal = false,
+  ): Promise<{ data: ActivityFeedItem[]; meta: { pureReal: boolean; realCount: number; simulatedCount: number } }> {
     const now = Date.now();
-    if (this.cachedFeed && this.cachedFeed.expiresAt > now) {
-      return this.cachedFeed.data;
+    const envDisableSim =
+      process.env.ENABLE_ACTIVITY_SIMULATION === 'false' ||
+      process.env.DISABLE_ACTIVITY_SIMULATION === 'true';
+    const shouldBePureReal = pureReal || envDisableSim;
+
+    // Kiểm tra cache tương ứng
+    if (shouldBePureReal && this.cachedPureRealFeed && this.cachedPureRealFeed.expiresAt > now) {
+      return {
+        data: this.cachedPureRealFeed.data,
+        meta: this.cachedPureRealFeed.meta,
+      };
+    }
+    if (!shouldBePureReal && this.cachedFeed && this.cachedFeed.expiresAt > now) {
+      return {
+        data: this.cachedFeed.data,
+        meta: this.cachedFeed.meta,
+      };
     }
 
-    const items: ActivityFeedItem[] = [];
+    const realItems: ActivityFeedItem[] = [];
 
     try {
       // 1. Lấy giao dịch nạp tiền thành công gần nhất
@@ -77,7 +97,7 @@ export class ActivityService {
           status: TransactionStatus.SUCCESS,
         })
         .sort({ createdAt: -1 })
-        .limit(10)
+        .limit(12)
         .populate('userId', 'username')
         .lean();
 
@@ -89,7 +109,7 @@ export class ActivityService {
           tx.gatewayTransactionId?.length ||
           tx.depositCode;
 
-        items.push({
+        realItems.push({
           id: `tx_${tx._id}`,
           type: 'DEPOSIT',
           badge: isQr ? 'NẠP QR' : 'NẠP VÍ',
@@ -115,7 +135,7 @@ export class ActivityService {
           },
         })
         .sort({ createdAt: -1 })
-        .limit(10)
+        .limit(12)
         .populate('customerId', 'username')
         .lean();
 
@@ -152,7 +172,7 @@ export class ActivityService {
           highlight = `Dịch vụ cày ${gameLabel}`;
         }
 
-        items.push({
+        realItems.push({
           id: `ord_${order._id}`,
           type: 'ORDER',
           badge: 'ĐẶT ĐƠN',
@@ -164,9 +184,9 @@ export class ActivityService {
           createdAt: new Date(order.createdAt).toISOString(),
         });
 
-        // 3. Nếu đơn có đánh giá rating
+        // 3. Nếu đơn có đánh giá rating >= 4 sao
         if (order.rating?.stars && order.rating.stars >= 4) {
-          items.push({
+          realItems.push({
             id: `rev_${order._id}`,
             type: 'REVIEW',
             badge: 'ĐÁNH GIÁ',
@@ -197,7 +217,7 @@ export class ActivityService {
         const username = this.maskUsername(u?.username);
         const blogTitle = b?.title ? `"${b.title.slice(0, 40)}..."` : 'bài viết tin tức';
 
-        items.push({
+        realItems.push({
           id: `cmt_${c._id}`,
           type: 'COMMENT',
           badge: 'BÌNH LUẬN',
@@ -226,7 +246,7 @@ export class ActivityService {
         const username = this.maskUsername(u?.username);
         const planName = vp.metadata?.planName || 'Gói Hội Viên VIP';
 
-        items.push({
+        realItems.push({
           id: `vip_${vp._id}`,
           type: 'VIP_UPGRADE',
           badge: 'HỘI VIÊN VIP',
@@ -254,7 +274,7 @@ export class ActivityService {
         const username = this.maskUsername(u?.username || app.fullName);
         const game = (app.primaryGame || 'Liên Quân / LMHT').toUpperCase();
 
-        items.push({
+        realItems.push({
           id: `app_${app._id}`,
           type: 'BOOSTER_JOIN',
           badge: 'GIA NHẬP',
@@ -276,7 +296,7 @@ export class ActivityService {
         .lean();
 
       for (const b of blogs) {
-        items.push({
+        realItems.push({
           id: `blog_${b._id}`,
           type: 'BLOG_PUBLISH',
           badge: 'BÀI VIẾT MỚI',
@@ -292,22 +312,58 @@ export class ActivityService {
       this.logger.warn(`Lỗi khi truy vấn real activity feed: ${err?.message}`);
     }
 
-    // 8. Bổ sung dữ liệu sinh động (Fallback / Simulation) nếu số lượng thực tế dưới 25
-    const realisticFallbacks = this.getRealisticFallbacks();
-    const combined = [...items, ...realisticFallbacks];
+    // Sắp xếp dữ liệu thật theo thời gian mới nhất
+    realItems.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
-    // Sắp xếp theo thời gian mới nhất
+    // Nếu chọn chế độ 100% dữ liệu thật:
+    if (shouldBePureReal) {
+      const pureMeta = {
+        pureReal: true,
+        realCount: realItems.length,
+        simulatedCount: 0,
+      };
+      this.cachedPureRealFeed = {
+        data: realItems,
+        meta: pureMeta,
+        expiresAt: now + this.CACHE_TTL_MS,
+      };
+      return {
+        data: realItems,
+        meta: pureMeta,
+      };
+    }
+
+    // Mô hình Hybrid: Lọc bỏ những dữ liệu thật quá cũ (> 24 giờ) để ticker luôn giữ tính năng động
+    const filteredRealItems = realItems.filter((item) => {
+      const ageHours = (now - new Date(item.createdAt).getTime()) / (1000 * 3600);
+      return ageHours <= 24;
+    });
+
+    // Bổ sung dữ liệu sinh động giả lập (Fallback / Simulation)
+    const realisticFallbacks = this.getRealisticFallbacks();
+    const combined = [...filteredRealItems, ...realisticFallbacks];
+
+    // Sắp xếp tổng thể theo thời gian mới nhất
     combined.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
     // Giới hạn 30 items phong phú nhất
     const finalFeed = combined.slice(0, 30);
+    const hybridMeta = {
+      pureReal: false,
+      realCount: filteredRealItems.length,
+      simulatedCount: finalFeed.filter((x) => x.id.startsWith('sim_')).length,
+    };
 
     this.cachedFeed = {
       data: finalFeed,
+      meta: hybridMeta,
       expiresAt: now + this.CACHE_TTL_MS,
     };
 
-    return finalFeed;
+    return {
+      data: finalFeed,
+      meta: hybridMeta,
+    };
   }
 
   /**
