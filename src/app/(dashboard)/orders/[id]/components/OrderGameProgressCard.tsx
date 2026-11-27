@@ -28,7 +28,10 @@ export const OrderGameProgressCard: React.FC<OrderGameProgressCardProps> = ({
   availableLeagues,
   applySelectedLeague,
 }) => {
-  const gameCode = order.snapshot?.gameCode || order.details?.game || 'LOL';
+  const gameCode = (order.snapshot?.gameCode || order.details?.game || 'LOL').toUpperCase();
+  const isRiotGame = ['LOL', 'LEAGUE_OF_LEGENDS', 'VALORANT', 'VAL', 'TFT'].some((code) =>
+    gameCode.includes(code)
+  );
   const gameMeta = getGameMeta(gameCode);
   const serviceName = formatServiceName(order.serviceType || order.snapshot?.serviceSlug);
 
@@ -38,7 +41,7 @@ export const OrderGameProgressCard: React.FC<OrderGameProgressCardProps> = ({
         <div className="flex items-center gap-2">
           <Trophy className="w-4 h-4 text-yellow-500" />
           <h3 className="text-sm font-bold text-zinc-300 uppercase">
-            Hồ sơ Game & Lộ trình Cày Rank
+            Hồ sơ Game &amp; Lộ trình Cày Rank
           </h3>
           <span
             className="px-2 py-0.5 rounded text-[11px] font-bold uppercase border"
@@ -52,7 +55,7 @@ export const OrderGameProgressCard: React.FC<OrderGameProgressCardProps> = ({
           </span>
         </div>
 
-        {order.details?.ingame_name && (
+        {order.details?.ingame_name && isRiotGame && (
           <button
             onClick={handleCheckAndSaveRank}
             disabled={isCheckingRank}
@@ -148,26 +151,57 @@ export const OrderGameProgressCard: React.FC<OrderGameProgressCardProps> = ({
       {/* Booster Input Area */}
       {isBooster && ['IN_PROGRESS', 'APPROVED'].includes(order.status) && (
         <div className="pt-3 border-t border-zinc-800">
-          <label className="text-xs font-bold text-zinc-500 uppercase mb-2 block">Cập nhật Ingame & Check Rank</label>
-          <div className="flex flex-col sm:flex-row gap-2">
-            <input
-              type="text"
-              value={ingameName}
-              onChange={(e) => setIngameName(e.target.value)}
-              className="flex-1 bg-zinc-950 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white focus:border-blue-500 outline-none"
-              placeholder="Tên Ingame#Tag..."
-            />
-            <button
-              onClick={handleCheckAndSaveRank}
-              disabled={isCheckingRank}
-              className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-50 whitespace-nowrap w-full sm:w-auto"
-            >
-              {isCheckingRank ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Kiểm tra'}
-            </button>
-          </div>
-          <p className="text-[10px] text-zinc-500 mt-2">
-            * Nhập tên ingame chính xác để hệ thống tự động lấy Rank và {(order.snapshot?.gameCode || order.details?.game || order.details?.gameCode || '').toUpperCase().includes('VAL') ? 'RR' : 'LP'} từ {(order.snapshot?.gameCode || order.details?.game || order.details?.gameCode || '').toUpperCase().includes('VAL') ? 'Valorant' : 'Riot Games'}.
-          </p>
+          {isRiotGame ? (
+            <>
+              <label className="text-xs font-bold text-zinc-500 uppercase mb-2 block">
+                Cập nhật Ingame &amp; Check Rank (Riot API)
+              </label>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <input
+                  type="text"
+                  value={ingameName}
+                  onChange={(e) => setIngameName(e.target.value)}
+                  className="flex-1 bg-zinc-950 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white focus:border-blue-500 outline-none"
+                  placeholder="Tên Ingame#Tag..."
+                />
+                <button
+                  onClick={handleCheckAndSaveRank}
+                  disabled={isCheckingRank}
+                  className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-50 whitespace-nowrap w-full sm:w-auto"
+                >
+                  {isCheckingRank ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Kiểm tra'}
+                </button>
+              </div>
+              <p className="text-[10px] text-zinc-500 mt-2">
+                * Nhập tên ingame chính xác để hệ thống tự động lấy Rank và {gameCode.includes('VAL') ? 'RR' : 'LP'} từ {gameCode.includes('VAL') ? 'Valorant' : 'Riot Games'}.
+              </p>
+            </>
+          ) : (
+            <>
+              <label className="text-xs font-bold text-zinc-500 uppercase mb-2 block">
+                Tên nhân vật / Ingame trong tài khoản ({gameCode || 'Game'})
+              </label>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <input
+                  type="text"
+                  value={ingameName}
+                  onChange={(e) => setIngameName(e.target.value)}
+                  className="flex-1 bg-zinc-950 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white focus:border-amber-500 outline-none"
+                  placeholder="Nhập tên nhân vật trong game..."
+                />
+                <button
+                  onClick={handleCheckAndSaveRank}
+                  disabled={isCheckingRank}
+                  className="bg-zinc-800 hover:bg-zinc-700 text-zinc-200 hover:text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-50 whitespace-nowrap w-full sm:w-auto border border-zinc-700"
+                >
+                  {isCheckingRank ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Lưu Tên Ingame'}
+                </button>
+              </div>
+              <p className="text-[10px] text-zinc-500 mt-2">
+                * Tựa game này không có Riot API tự động. Booster đăng nhập tài khoản khách hàng để cày và cập nhật tiến độ theo số Sao / Trận thắng.
+              </p>
+            </>
+          )}
 
           {/* Danh sách các bậc xếp hạng tìm thấy */}
           {availableLeagues.length > 0 && (

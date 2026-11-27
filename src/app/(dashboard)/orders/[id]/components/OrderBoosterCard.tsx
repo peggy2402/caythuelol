@@ -10,6 +10,8 @@ import {
   Phone,
   Gamepad2,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   Copy,
   Check,
 } from 'lucide-react';
@@ -45,6 +47,7 @@ export default function OrderBoosterCard({
   if (isBooster) return null;
 
   const [copiedField, setCopiedField] = useState<string | null>(null);
+  const [activeGameIndex, setActiveGameIndex] = useState(0);
 
   const handleCopy = (text: string, label: string, fieldId: string) => {
     if (!text) return;
@@ -52,6 +55,17 @@ export default function OrderBoosterCard({
     setCopiedField(fieldId);
     toast.success(`Đã sao chép ${label}: ${text}`);
     setTimeout(() => setCopiedField(null), 2000);
+  };
+
+  const totalGames = boosterGamesWithServices.length;
+  const currentGame = boosterGamesWithServices[activeGameIndex] || boosterGamesWithServices[0];
+
+  const handlePrevGame = () => {
+    setActiveGameIndex((prev) => (prev > 0 ? prev - 1 : totalGames - 1));
+  };
+
+  const handleNextGame = () => {
+    setActiveGameIndex((prev) => (prev < totalGames - 1 ? prev + 1 : 0));
   };
 
   return (
@@ -221,104 +235,136 @@ export default function OrderBoosterCard({
               })()}
           </div>
 
-          {/* 🎮 Hồ sơ Game & Dịch vụ cung cấp */}
-          {boosterGamesWithServices.length > 0 && (
+          {/* 🎮 Hồ sơ Game & Dịch vụ cung cấp (Carousel Slider) */}
+          {boosterGamesWithServices.length > 0 && currentGame && (
             <div className="pt-3 border-t border-zinc-800/80 space-y-3">
               <div className="flex items-center justify-between">
                 <div className="text-xs text-zinc-400 font-bold flex items-center gap-1.5 uppercase tracking-wide">
-                  <Gamepad2 className="w-4 h-4 text-blue-400" /> Hồ sơ Game & Dịch vụ cung cấp
+                  <Gamepad2 className="w-4 h-4 text-blue-400" /> Hồ sơ Game &amp; Dịch vụ cung cấp
                 </div>
                 <span className="text-[11px] text-zinc-500 font-medium">
-                  {boosterGamesWithServices.length} tựa game nhận cày
+                  {activeGameIndex + 1} / {totalGames} tựa game
                 </span>
               </div>
 
-              <div className="grid grid-cols-1 gap-2.5">
-                {boosterGamesWithServices.map((g) => {
-                  const isCollapsed = Boolean(collapsedGames[g.gameCode]);
-                  return (
-                    <div
-                      key={g.gameCode}
-                      className="rounded-xl bg-zinc-900/60 border border-zinc-800/80 hover:border-zinc-700/80 transition-all overflow-hidden"
-                    >
-                      <button
-                        type="button"
-                        onClick={() => toggleGameCollapse(g.gameCode)}
-                        className="w-full p-3 sm:px-4 sm:py-3 flex items-center justify-between gap-3 text-left hover:bg-white/[0.02] transition-colors cursor-pointer"
+              {/* CAROUSEL SLIDER: < [ Game Card ] > */}
+              <div className="relative flex items-center gap-2 sm:gap-3">
+                {/* Nút Prev < */}
+                <button
+                  type="button"
+                  onClick={handlePrevGame}
+                  className="p-2.5 sm:p-3 rounded-2xl bg-zinc-900/90 border border-zinc-800 hover:border-blue-500/50 hover:bg-zinc-800 text-zinc-300 hover:text-white transition-all shrink-0 active:scale-95 shadow-lg group cursor-pointer"
+                  title="Tựa game trước đó"
+                >
+                  <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6 group-hover:-translate-x-0.5 transition-transform" />
+                </button>
+
+                {/* Card Game Trung Tâm [ Game Card ] */}
+                <div className="flex-1 min-w-0 rounded-2xl bg-gradient-to-b from-zinc-900/90 via-zinc-900/60 to-zinc-950 border border-zinc-800 p-4 sm:p-5 shadow-xl transition-all">
+                  {/* Top Bar của Game */}
+                  <div className="flex items-center justify-between gap-3 flex-wrap pb-3 border-b border-zinc-800/80">
+                    <div className="flex items-center gap-2.5 flex-wrap">
+                      <span
+                        className={`px-3 py-1 rounded-xl text-xs font-black tracking-wide border shadow-sm ${getBoosterGameBadgeStyle(
+                          currentGame.gameCode
+                        )}`}
                       >
-                        <div className="flex items-center gap-2.5 flex-wrap min-w-0">
-                          <span
-                            className={`px-2.5 py-0.5 rounded-lg text-xs font-black tracking-wide border ${getBoosterGameBadgeStyle(
-                              g.gameCode
-                            )}`}
-                          >
-                            {g.gameCode}
-                          </span>
-                          <span className="text-xs text-zinc-400 font-mono flex items-center gap-1.5">
-                            <span className="text-zinc-500">Server:</span>
-                            <strong className="text-zinc-200 font-semibold bg-zinc-950 px-2 py-0.5 rounded border border-zinc-800">
-                              {g.servers.join(', ')}
-                            </strong>
-                          </span>
+                        {currentGame.gameCode}
+                      </span>
 
-                          {Array.isArray(g.ranks) && g.ranks.length > 0 && (
-                            <span className="text-[11px] text-zinc-400 hidden sm:inline-flex items-center gap-1">
-                              • Rank: <strong className="text-blue-400 font-medium">{g.ranks.join(', ')}</strong>
-                            </span>
-                          )}
-                        </div>
+                      <span className="text-xs text-zinc-400 font-mono flex items-center gap-1.5">
+                        <span className="text-zinc-500 font-medium">Server:</span>
+                        <strong className="text-zinc-200 font-semibold bg-zinc-950 px-2 py-0.5 rounded-lg border border-zinc-800">
+                          {currentGame.servers.join(', ')}
+                        </strong>
+                      </span>
+                    </div>
 
-                        <div className="flex items-center gap-2 shrink-0">
-                          <span className="text-[11px] text-zinc-500 font-medium hidden sm:inline">
-                            {g.services.length} dịch vụ
-                          </span>
-                          <ChevronDown
-                            className={`w-4 h-4 text-zinc-400 transition-transform duration-200 ${
-                              isCollapsed ? '-rotate-90' : 'rotate-0'
-                            }`}
-                          />
-                        </div>
-                      </button>
+                    <span className="text-xs font-semibold text-blue-400 bg-blue-500/10 px-2.5 py-0.5 rounded-lg border border-blue-500/20">
+                      {currentGame.services.length} dịch vụ nhận cày
+                    </span>
+                  </div>
 
-                      {!isCollapsed && (
-                        <div className="px-3 pb-3 sm:px-4 sm:pb-3.5 pt-1 border-t border-white/[0.04] space-y-2.5">
-                          <div className="flex flex-wrap gap-2">
-                            {g.services.map((svc) => (
-                              <span
-                                key={svc.slug}
-                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zinc-950/90 border border-zinc-800 text-zinc-200 hover:text-white hover:border-zinc-700 text-xs font-semibold shadow-sm transition-all"
-                              >
-                                <span className="w-1.5 h-1.5 rounded-full bg-blue-400 shrink-0" />
-                                {svc.name}
-                              </span>
-                            ))}
-                          </div>
+                  {/* Rank nhận cày nếu có */}
+                  {Array.isArray(currentGame.ranks) && currentGame.ranks.length > 0 && (
+                    <div className="mt-2.5 text-xs text-zinc-400 flex items-center gap-1.5 flex-wrap">
+                      <span className="text-zinc-500 font-medium">Mức Rank nhận cày:</span>
+                      <strong className="text-zinc-200 font-medium bg-zinc-950/80 px-2 py-0.5 rounded border border-zinc-850">
+                        {currentGame.ranks.join(', ')}
+                      </strong>
+                    </div>
+                  )}
 
-                          {Boolean(
-                            (g.roles && g.roles.length > 0) || (g.champions && g.champions.length > 0)
-                          )}
-                          {Boolean(
-                            (g.roles && g.roles.length > 0) || (g.champions && g.champions.length > 0)
-                          ) && (
-                            <div className="pt-2 border-t border-white/[0.03] text-[11px] text-zinc-400 flex flex-wrap gap-x-4 gap-y-1">
-                              {g.roles && g.roles.length > 0 && (
-                                <span>
-                                  Vị trí: <strong className="text-zinc-200">{g.roles.join(', ')}</strong>
-                                </span>
-                              )}
-                              {g.champions && g.champions.length > 0 && (
-                                <span>
-                                  Tướng tủ:{' '}
-                                  <strong className="text-zinc-200">{g.champions.slice(0, 6).join(', ')}</strong>
-                                </span>
-                              )}
-                            </div>
-                          )}
-                        </div>
+                  {/* Danh sách dịch vụ cụ thể của game */}
+                  <div className="mt-3 space-y-2">
+                    <span className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500 block">
+                      Các dịch vụ cung cấp:
+                    </span>
+                    <div className="flex flex-wrap gap-2">
+                      {currentGame.services.map((svc) => (
+                        <span
+                          key={svc.slug}
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-zinc-950/90 border border-zinc-800 text-zinc-200 hover:text-white hover:border-zinc-700 text-xs font-semibold shadow-sm transition-all"
+                        >
+                          <span className="w-1.5 h-1.5 rounded-full bg-blue-400 shrink-0" />
+                          {svc.name}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Vị trí / Tướng tủ nếu có */}
+                  {Boolean(
+                    (currentGame.roles && currentGame.roles.length > 0) ||
+                      (currentGame.champions && currentGame.champions.length > 0)
+                  ) && (
+                    <div className="mt-3 pt-2.5 border-t border-zinc-800/60 text-xs text-zinc-400 flex flex-wrap gap-x-4 gap-y-1">
+                      {currentGame.roles && currentGame.roles.length > 0 && (
+                        <span>
+                          Vị trí:{' '}
+                          <strong className="text-zinc-200 font-medium">
+                            {currentGame.roles.join(', ')}
+                          </strong>
+                        </span>
+                      )}
+                      {currentGame.champions && currentGame.champions.length > 0 && (
+                        <span>
+                          Tướng tủ:{' '}
+                          <strong className="text-zinc-200 font-medium">
+                            {currentGame.champions.slice(0, 6).join(', ')}
+                          </strong>
+                        </span>
                       )}
                     </div>
-                  );
-                })}
+                  )}
+                </div>
+
+                {/* Nút Next > */}
+                <button
+                  type="button"
+                  onClick={handleNextGame}
+                  className="p-2.5 sm:p-3 rounded-2xl bg-zinc-900/90 border border-zinc-800 hover:border-blue-500/50 hover:bg-zinc-800 text-zinc-300 hover:text-white transition-all shrink-0 active:scale-95 shadow-lg group cursor-pointer"
+                  title="Tựa game kế tiếp"
+                >
+                  <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6 group-hover:translate-x-0.5 transition-transform" />
+                </button>
+              </div>
+
+              {/* Pagination Dots & Game Chips Bar */}
+              <div className="flex items-center justify-center gap-1.5 pt-1 flex-wrap">
+                {boosterGamesWithServices.map((g, idx) => (
+                  <button
+                    key={g.gameCode}
+                    type="button"
+                    onClick={() => setActiveGameIndex(idx)}
+                    className={`transition-all rounded-full ${
+                      idx === activeGameIndex
+                        ? 'w-6 h-2 bg-blue-500 shadow-sm shadow-blue-500/50'
+                        : 'w-2 h-2 bg-zinc-700 hover:bg-zinc-500'
+                    }`}
+                    title={`Chuyển sang ${g.gameCode}`}
+                  />
+                ))}
               </div>
             </div>
           )}

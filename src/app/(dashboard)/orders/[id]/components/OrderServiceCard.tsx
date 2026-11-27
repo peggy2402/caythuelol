@@ -139,6 +139,33 @@ export default function OrderServiceCard({
     return true;
   });
 
+  const renderWithStarIcons = (content: string) => {
+    if (!content) return content;
+    const parts = content.split(/(\b(?:sao|Sao)\b)/);
+    if (parts.length === 1) return content;
+
+    return (
+      <>
+        {parts.map((part, index) => {
+          if (part.toLowerCase() === 'sao') {
+            return (
+              <span key={index} className="inline-flex items-center align-middle mx-0.5">
+                <Image
+                  src="/images/icons/star.png"
+                  alt="⭐"
+                  width={14}
+                  height={14}
+                  className="w-3.5 h-3.5 object-contain inline-block -mt-0.5"
+                />
+              </span>
+            );
+          }
+          return <React.Fragment key={index}>{part}</React.Fragment>;
+        })}
+      </>
+    );
+  };
+
   const canEditOptions =
     isCustomer &&
     ['PAID', 'ACCEPTED'].includes(order.status) &&
@@ -172,88 +199,90 @@ export default function OrderServiceCard({
           <div className="flex justify-between items-center">
             <span className="text-zinc-500">Mục tiêu:</span>
             <span className="text-blue-400 font-bold text-right">
-              {(() => {
-                if (order.serviceType === 'MATCHES' || order.details?.is_matches) {
-                  const queue = order.details?.queue_type === 'FLEX' ? 'Linh hoạt' : 'Đơn / Đôi';
-                  const count =
-                    order.details?.match_count ||
-                    order.details?.matches ||
-                    order.details?.steps_count ||
-                    order.details?.num_games ||
-                    1;
-                  return `Cày ${count} trận (${queue})`;
-                }
-                if (order.serviceType === 'PLACEMENTS' || order.details?.is_placements) {
-                  const queue = order.details?.queue_type === 'FLEX' ? 'Linh hoạt' : 'Đơn / Đôi';
-                  const count =
-                    order.details?.placement_matches ||
-                    order.details?.matches ||
-                    order.details?.steps_count ||
-                    order.details?.num_games ||
-                    5;
-                  const prevRank =
-                    order.details?.previous_rank_label ||
-                    formatRankDisplayVi(order.details?.previous_season_rank || order.details?.prev_rank) ||
-                    'Chưa có';
-                  return `Cày ${count} trận (${queue} • Mùa trước: ${prevRank})`;
-                }
-                if (order.serviceType === 'NET_WINS') {
-                  const isPointBoost = Boolean(
-                    order.details?.is_point_boost ||
-                      order.details?.calc_mode === 'BY_LP' ||
-                      order.details?.segment
-                  );
-                  const unit = order.details?.unit || 'LP';
-                  const segmentLabel =
-                    order.details?.segment_label ||
-                    (order.details?.segment ? formatRankDisplayVi(order.details.segment) : null);
-                  const rankLabel =
-                    segmentLabel ||
-                    formatRankDisplayVi(order.details?.current_rank || order.details?.rank) ||
-                    'Khởi điểm';
-
-                  if (order.details?.is_odd_star && order.details?.current_rank && order.details?.desired_rank) {
-                    return `${order.details.current_rank} ➜ ${order.details.desired_rank} (+${order.details.gained_points || 0} Sao)`;
+              {renderWithStarIcons(
+                (() => {
+                  if (order.serviceType === 'MATCHES' || order.details?.is_matches) {
+                    const queue = order.details?.queue_type === 'FLEX' ? 'Linh hoạt' : 'Đơn / Đôi';
+                    const count =
+                      order.details?.match_count ||
+                      order.details?.matches ||
+                      order.details?.steps_count ||
+                      order.details?.num_games ||
+                      1;
+                    return `Cày ${count} trận (${queue})`;
                   }
-
-                  if (isPointBoost) {
-                    const start =
-                      order.details?.start_lp ??
-                      order.details?.current_points ??
-                      order.details?.current_lp ??
-                      0;
-                    const target =
-                      order.details?.target_lp ??
-                      order.details?.desired_points ??
-                      order.details?.target_points ??
-                      start + (order.details?.gained_points || 0);
-                    return `${start} ${unit} ➜ ${target} ${unit} (${rankLabel})`;
+                  if (order.serviceType === 'PLACEMENTS' || order.details?.is_placements) {
+                    const queue = order.details?.queue_type === 'FLEX' ? 'Linh hoạt' : 'Đơn / Đôi';
+                    const count =
+                      order.details?.placement_matches ||
+                      order.details?.matches ||
+                      order.details?.steps_count ||
+                      order.details?.num_games ||
+                      5;
+                    const prevRank =
+                      order.details?.previous_rank_label ||
+                      formatRankDisplayVi(order.details?.previous_season_rank || order.details?.prev_rank) ||
+                      'Chưa có';
+                    return `Cày ${count} trận (${queue} • Mùa trước: ${prevRank})`;
                   }
+                  if (order.serviceType === 'NET_WINS') {
+                    const isPointBoost = Boolean(
+                      order.details?.is_point_boost ||
+                        order.details?.calc_mode === 'BY_LP' ||
+                        order.details?.segment
+                    );
+                    const unit = order.details?.unit || 'LP';
+                    const segmentLabel =
+                      order.details?.segment_label ||
+                      (order.details?.segment ? formatRankDisplayVi(order.details.segment) : null);
+                    const rankLabel =
+                      segmentLabel ||
+                      formatRankDisplayVi(order.details?.current_rank || order.details?.rank) ||
+                      'Khởi điểm';
 
-                  return order.details?.calc_mode === 'BY_GAMES' || order.details?.num_games
-                    ? `+${order.details?.num_games || 0} Trận thắng (${rankLabel})`
-                    : `${order.details?.start_lp ?? order.details?.current_lp ?? 0} LP ➜ ${
-                        order.details?.target_lp ?? 0
-                      } LP (${rankLabel})`;
-                }
-                if (order.serviceType === 'MASTERY') {
-                  return `${order.details.champion} (Lv.${order.details.current_mastery} ➜ Lv.${order.details.desired_mastery})`;
-                }
-                if (order.serviceType === 'ONBET') {
-                  return `${order.details.game_count} Trận (${order.details.rank_label})`;
-                }
-                if (order.serviceType === 'COACHING') {
-                  return `${order.details.coaching_type} (${order.details.hours} Giờ)`;
-                }
-                // Default (Rank Boost, Leveling, Promotion)
-                const curr = order.details.current_rank
-                  ? formatRankDisplayVi(order.details.current_rank)
-                  : order.details.current_level;
-                const des = order.details.desired_rank
-                  ? formatRankDisplayVi(order.details.desired_rank)
-                  : order.details.desired_level;
-                return `${curr} ➜ ${des}`;
-              })()}
+                    if (order.details?.is_odd_star && order.details?.current_rank && order.details?.desired_rank) {
+                      return `${order.details.current_rank} ➜ ${order.details.desired_rank} (+${order.details.gained_points || 0} Sao)`;
+                    }
+
+                    if (isPointBoost) {
+                      const start =
+                        order.details?.start_lp ??
+                        order.details?.current_points ??
+                        order.details?.current_lp ??
+                        0;
+                      const target =
+                        order.details?.target_lp ??
+                        order.details?.desired_points ??
+                        order.details?.target_points ??
+                        start + (order.details?.gained_points || 0);
+                      return `${start} ${unit} ➜ ${target} ${unit} (${rankLabel})`;
+                    }
+
+                    return order.details?.calc_mode === 'BY_GAMES' || order.details?.num_games
+                      ? `+${order.details?.num_games || 0} Trận thắng (${rankLabel})`
+                      : `${order.details?.start_lp ?? order.details?.current_lp ?? 0} LP ➜ ${
+                          order.details?.target_lp ?? 0
+                        } LP (${rankLabel})`;
+                  }
+                  if (order.serviceType === 'MASTERY') {
+                    return `${order.details.champion} (Lv.${order.details.current_mastery} ➜ Lv.${order.details.desired_mastery})`;
+                  }
+                  if (order.serviceType === 'ONBET') {
+                    return `${order.details.game_count} Trận (${order.details.rank_label})`;
+                  }
+                  if (order.serviceType === 'COACHING') {
+                    return `${order.details.coaching_type} (${order.details.hours} Giờ)`;
+                  }
+                  // Default (Rank Boost, Leveling, Promotion)
+                  const curr = order.details.current_rank
+                    ? formatRankDisplayVi(order.details.current_rank)
+                    : order.details.current_level;
+                  const des = order.details.desired_rank
+                    ? formatRankDisplayVi(order.details.desired_rank)
+                    : order.details.desired_level;
+                  return `${curr} ➜ ${des}`;
+                })()
+              )}
             </span>
           </div>
 

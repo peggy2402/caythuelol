@@ -16,11 +16,11 @@ interface ReportRankMismatchModalProps {
   onSuccess: () => void;
 }
 
-const COMMON_RANKS = [
-  'Đồng', 'Bạc', 'Vàng', 'Bạch Kim', 'Kim Cương',
-  'Tinh Anh V', 'Tinh Anh IV', 'Tinh Anh III', 'Tinh Anh II', 'Tinh Anh I',
-  'Cao Thủ', 'Đại Cao Thủ', 'Chiến Tướng', 'Chiến Thần',
+const RANK_TIERS = [
+  'Đồng', 'Bạc', 'Vàng', 'Bạch Kim', 'Kim Cương', 'Tinh Anh', 'Cao Thủ', 'Chiến Tướng'
 ];
+const DIVISIONS = ['V', 'IV', 'III', 'II', 'I'];
+const STARS = [1, 2, 3, 4, 5];
 
 export default function ReportRankMismatchModal({
   orderId,
@@ -30,6 +30,10 @@ export default function ReportRankMismatchModal({
   onSuccess,
 }: ReportRankMismatchModalProps) {
   const [mounted, setMounted] = useState(false);
+  const [selectedTier, setSelectedTier] = useState<string>('Tinh Anh');
+  const [selectedDivision, setSelectedDivision] = useState<string>('III');
+  const [selectedStars, setSelectedStars] = useState<number>(4);
+  const [isManualInput, setIsManualInput] = useState<boolean>(false);
   const [verifiedRank, setVerifiedRank] = useState('');
   const [proofImage, setProofImage] = useState('');
   const [note, setNote] = useState('');
@@ -37,6 +41,29 @@ export default function ReportRankMismatchModal({
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
+
+  // Cập nhật chuỗi verifiedRank khi thay đổi lựa chọn
+  const buildRankString = (tier: string, div: string, stars: number) => {
+    if (tier === 'Cao Thủ' || tier === 'Chiến Tướng') {
+      return `${tier} (${stars} sao)`;
+    }
+    return `${tier} ${div} (${stars} sao)`;
+  };
+
+  const handleSelectTier = (tier: string) => {
+    setSelectedTier(tier);
+    setVerifiedRank(buildRankString(tier, selectedDivision, selectedStars));
+  };
+
+  const handleSelectDivision = (div: string) => {
+    setSelectedDivision(div);
+    setVerifiedRank(buildRankString(selectedTier, div, selectedStars));
+  };
+
+  const handleSelectStars = (stars: number) => {
+    setSelectedStars(stars);
+    setVerifiedRank(buildRankString(selectedTier, selectedDivision, stars));
+  };
 
   useEffect(() => {
     setMounted(true);
@@ -193,35 +220,114 @@ export default function ReportRankMismatchModal({
                   </div>
 
                   {/* Chọn hoặc nhập Rank thực tế */}
-                  <div>
-                    <label className="block text-xs font-semibold text-zinc-300 mb-1.5">
-                      Rank thực tế trong tài khoản game <span className="text-rose-400">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={verifiedRank}
-                      onChange={(e) => setVerifiedRank(e.target.value)}
-                      placeholder="Ví dụ: Tinh Anh V, Kim Cương I..."
-                      className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-3.5 py-2.5 text-sm text-white placeholder-zinc-500 focus:border-amber-500 focus:outline-none transition-colors"
-                    />
-                    {/* Quick Chips */}
-                    <div className="flex flex-wrap gap-1.5 mt-2">
-                      {COMMON_RANKS.slice(4, 11).map((r) => (
-                        <button
-                          type="button"
-                          key={r}
-                          onClick={() => setVerifiedRank(r)}
-                          className={`text-[11px] px-2.5 py-1 rounded-md border transition-all cursor-pointer ${
-                            verifiedRank === r
-                              ? 'bg-amber-500/20 border-amber-500/50 text-amber-300 font-bold'
-                              : 'bg-zinc-800/60 border-zinc-700/50 text-zinc-400 hover:text-zinc-200'
-                          }`}
-                        >
-                          {r}
-                        </button>
-                      ))}
+                  <div className="space-y-2.5 rounded-xl bg-zinc-950/60 border border-zinc-800 p-3.5">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-bold text-zinc-300 uppercase tracking-wide">
+                        Rank thực tế trong tài khoản game <span className="text-rose-400">*</span>
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => setIsManualInput(!isManualInput)}
+                        className="text-[11px] text-amber-400 hover:text-amber-300 underline font-semibold transition-colors"
+                      >
+                        {isManualInput ? 'Chọn theo nấc chuẩn' : 'Nhập tay tự do'}
+                      </button>
                     </div>
+
+                    {isManualInput ? (
+                      <input
+                        type="text"
+                        required
+                        value={verifiedRank}
+                        onChange={(e) => setVerifiedRank(e.target.value)}
+                        placeholder="Ví dụ: Tinh Anh III (4 sao), Cao Thủ (1 sao)..."
+                        className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-3.5 py-2.5 text-sm text-white placeholder-zinc-500 focus:border-amber-500 focus:outline-none transition-colors"
+                      />
+                    ) : (
+                      <div className="space-y-2.5">
+                        {/* 1. Bậc xếp hạng */}
+                        <div>
+                          <span className="text-[11px] text-zinc-400 block mb-1">1. Bậc xếp hạng:</span>
+                          <div className="flex flex-wrap gap-1.5">
+                            {RANK_TIERS.map((tier) => (
+                              <button
+                                type="button"
+                                key={tier}
+                                onClick={() => handleSelectTier(tier)}
+                                className={`text-[11px] px-2.5 py-1 rounded-md border font-semibold transition-all cursor-pointer ${
+                                  selectedTier === tier
+                                    ? 'bg-amber-500 text-black border-amber-400 font-bold shadow-sm'
+                                    : 'bg-zinc-900 border-zinc-800 text-zinc-300 hover:text-white'
+                                }`}
+                              >
+                                {tier}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* 2. Nhánh phân bậc nếu không phải Cao Thủ / Chiến Tướng */}
+                        {!['Cao Thủ', 'Chiến Tướng'].includes(selectedTier) && (
+                          <div>
+                            <span className="text-[11px] text-zinc-400 block mb-1">2. Nhánh phân bậc:</span>
+                            <div className="flex flex-wrap gap-1.5">
+                              {DIVISIONS.map((div) => (
+                                <button
+                                  type="button"
+                                  key={div}
+                                  onClick={() => handleSelectDivision(div)}
+                                  className={`text-[11px] px-2.5 py-1 rounded-md border font-semibold transition-all cursor-pointer ${
+                                    selectedDivision === div
+                                      ? 'bg-amber-500/20 border-amber-500 text-amber-300 font-bold'
+                                      : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-zinc-200'
+                                  }`}
+                                >
+                                  {selectedTier} {div}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* 3. Số sao */}
+                        <div>
+                          <span className="text-[11px] text-zinc-400 block mb-1">3. Số sao thực tế:</span>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            {STARS.map((s) => (
+                              <button
+                                type="button"
+                                key={s}
+                                onClick={() => handleSelectStars(s)}
+                                className={`text-[11px] px-2.5 py-1 rounded-md border font-bold transition-all cursor-pointer ${
+                                  selectedStars === s
+                                    ? 'bg-amber-500/20 border-amber-500 text-amber-300'
+                                    : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-zinc-200'
+                                }`}
+                              >
+                                {s} ⭐
+                              </button>
+                            ))}
+                            {selectedTier === 'Cao Thủ' && (
+                              <input
+                                type="number"
+                                min={0}
+                                max={999}
+                                value={selectedStars}
+                                onChange={(e) => handleSelectStars(Number(e.target.value) || 0)}
+                                className="w-16 bg-zinc-950 border border-zinc-700 rounded-md px-2 py-1 text-xs text-white text-center font-bold focus:border-amber-500 outline-none"
+                                placeholder="Số sao"
+                              />
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Preview */}
+                        <div className="pt-2 border-t border-zinc-800 flex items-center justify-between text-xs">
+                          <span className="text-zinc-400">Rank thực tế đã chọn:</span>
+                          <span className="text-amber-300 font-extrabold">{verifiedRank || 'Chưa chọn'}</span>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   {/* Ảnh chụp màn hình game chứng minh */}
