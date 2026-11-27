@@ -426,7 +426,7 @@ export default function RankMismatchCard({
               </span>
             </div>
             <div className="flex justify-between gap-2 text-zinc-400">
-              <span>Báo giá chuẩn thực tế ({mismatch.verifiedRank} ➔ Mục tiêu):</span>
+              <span>Báo giá chuẩn thực tế ({mismatch.verifiedRank} ➔ {originalTarget}):</span>
               <span className="font-mono text-white font-semibold whitespace-nowrap">
                 {recalculatedPrice.toLocaleString('vi-VN')} đ
               </span>
