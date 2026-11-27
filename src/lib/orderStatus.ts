@@ -31,6 +31,14 @@ export function getOrderStatusInfo(status?: string, hasBooster?: boolean): Order
         textColor: 'text-rose-400',
         borderColor: 'border-rose-500/30',
       };
+    case 'RANK_MISMATCH':
+      return {
+        label: 'Sai lệch Rank',
+        style: 'bg-orange-500/10 text-orange-400 border border-orange-500/30 shadow-[0_0_15px_rgba(249,115,22,0.2)]',
+        badgeBg: 'bg-orange-500/15',
+        textColor: 'text-orange-400',
+        borderColor: 'border-orange-500/40',
+      };
     case 'APPROVED':
       return {
         label: 'Đã nhận đơn',

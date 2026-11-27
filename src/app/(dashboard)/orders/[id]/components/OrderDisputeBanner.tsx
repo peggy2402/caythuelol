@@ -28,6 +28,7 @@ interface OrderDisputeBannerProps {
   onOpenCancelModal: () => void;
   onOpenDisputeModal: () => void;
   onOpenRatingModal: () => void;
+  onOpenRankMismatchModal?: () => void;
   onUpdateStatus: (targetStatus: string) => void;
 }
 
@@ -45,6 +46,7 @@ export default function OrderDisputeBanner({
   onOpenCancelModal,
   onOpenDisputeModal,
   onOpenRatingModal,
+  onOpenRankMismatchModal,
   onUpdateStatus,
 }: OrderDisputeBannerProps) {
   const hasRated = Boolean(order?.rating);
@@ -159,6 +161,16 @@ export default function OrderDisputeBanner({
             className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl flex items-center justify-center gap-2 transition-colors shadow-lg shadow-emerald-600/20 cursor-pointer"
           >
             <CheckSquare className="w-4 h-4" /> Báo cáo hoàn thành
+          </button>
+        )}
+
+        {/* Nút báo cáo sai lệch Rank cho Booster */}
+        {isBooster && ['APPROVED', 'IN_PROGRESS', 'PAID'].includes(order.status) && onOpenRankMismatchModal && (
+          <button
+            onClick={onOpenRankMismatchModal}
+            className="w-full py-2.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 font-bold rounded-xl flex items-center justify-center gap-2 transition-colors border border-amber-500/30 text-xs sm:text-sm cursor-pointer"
+          >
+            <AlertTriangle className="w-4 h-4 text-amber-400" /> Báo cáo sai lệch Rank (Khai khống)
           </button>
         )}
 

@@ -47,6 +47,8 @@ import OrderServiceCard from './components/OrderServiceCard';
 import OrderPaymentCard from './components/OrderPaymentCard';
 import OrderMatchHistoryList from './components/OrderMatchHistoryList';
 import { OrderGameProgressCard } from './components/OrderGameProgressCard';
+import RankMismatchCard from '@/components/orders/RankMismatchCard';
+import ReportRankMismatchModal from '@/components/orders/ReportRankMismatchModal';
 
 export default function OrderDetailsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -280,6 +282,7 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
   const [isProcessingSettlement, setIsProcessingSettlement] = useState(false);
   const [isRatingModalOpen, setIsRatingModalOpen] = useState(false);
   const [isServerModalOpen, setIsServerModalOpen] = useState(false);
+  const [isRankMismatchModalOpen, setIsRankMismatchModalOpen] = useState(false);
 
   // Status Change Confirmation Modal State
   const [statusModal, setStatusModal] = useState<{
@@ -446,67 +449,67 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
   }, []);
 
   // Fetch Order & Messages
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const orderRes = await fetch(`/api/orders/${id}`);
-        if (!orderRes.ok) {
-          if (orderRes.status === 403) {
-            setAccessDenied(true);
-            setLoading(false);
-            return;
-          }
-          throw new Error('Failed to load order');
+  const fetchOrder = async () => {
+    try {
+      const orderRes = await fetch(`/api/orders/${id}`);
+      if (!orderRes.ok) {
+        if (orderRes.status === 403) {
+          setAccessDenied(true);
+          setLoading(false);
+          return;
         }
-
-        const orderData = await orderRes.json();
-        if (orderData.success === false) {
-          if (orderData.statusCode === 403 || orderData.message?.includes('quyền')) {
-            setAccessDenied(true);
-            setLoading(false);
-            return;
-          }
-        }
-
-        setOrder(orderData.order);
-        setBoosterProfile(orderData.boosterProfile || null);
-
-        // Tự động cập nhật URL theo mã đơn orderCode
-        if (orderData.order?.orderCode && id !== orderData.order.orderCode) {
-          window.history.replaceState(null, '', `/orders/${orderData.order.orderCode}`);
-        }
-
-        // Điền form sửa tài khoản
-        setEditAccountForm({
-          username: orderData.order?.details?.account_info?.username || orderData.order?.details?.account_username || orderData.order?.account_credentials?.username || '',
-          password: orderData.order?.details?.account_info?.password || orderData.order?.details?.account_password || orderData.order?.account_credentials?.password || '',
-          platform: orderData.order?.details?.account_info?.platform || orderData.order?.details?.account_type || 'Riot',
-          server: orderData.order?.details?.server || 'VN',
-          note: orderData.order?.details?.note || '',
-        });
-
-        if (orderData.order?.details?.ingame_name) {
-          setIngameName(orderData.order.details.ingame_name);
-        }
-        if (orderData.order?.details?.vod_link) {
-          setVodLink(orderData.order.details.vod_link);
-        }
-
-        const txnRes = await fetch(`/api/transactions?orderId=${orderData.order._id}`);
-        if (txnRes.ok) {
-          const txnData = await txnRes.json();
-          setTransactions(txnData.transactions || []);
-        }
-
-      } catch (error) {
-        console.error(error);
-        toast.error('Lỗi tải thông tin đơn hàng');
-      } finally {
-        setLoading(false);
+        throw new Error('Failed to load order');
       }
-    };
 
-    fetchData();
+      const orderData = await orderRes.json();
+      if (orderData.success === false) {
+        if (orderData.statusCode === 403 || orderData.message?.includes('quyền')) {
+          setAccessDenied(true);
+          setLoading(false);
+          return;
+        }
+      }
+
+      setOrder(orderData.order);
+      setBoosterProfile(orderData.boosterProfile || null);
+
+      // Tự động cập nhật URL theo mã đơn orderCode
+      if (orderData.order?.orderCode && id !== orderData.order.orderCode) {
+        window.history.replaceState(null, '', `/orders/${orderData.order.orderCode}`);
+      }
+
+      // Điền form sửa tài khoản
+      setEditAccountForm({
+        username: orderData.order?.details?.account_info?.username || orderData.order?.details?.account_username || orderData.order?.account_credentials?.username || '',
+        password: orderData.order?.details?.account_info?.password || orderData.order?.details?.account_password || orderData.order?.account_credentials?.password || '',
+        platform: orderData.order?.details?.account_info?.platform || orderData.order?.details?.account_type || 'Riot',
+        server: orderData.order?.details?.server || 'VN',
+        note: orderData.order?.details?.note || '',
+      });
+
+      if (orderData.order?.details?.ingame_name) {
+        setIngameName(orderData.order.details.ingame_name);
+      }
+      if (orderData.order?.details?.vod_link) {
+        setVodLink(orderData.order.details.vod_link);
+      }
+
+      const txnRes = await fetch(`/api/transactions?orderId=${orderData.order._id}`);
+      if (txnRes.ok) {
+        const txnData = await txnRes.json();
+        setTransactions(txnData.transactions || []);
+      }
+
+    } catch (error) {
+      console.error(error);
+      toast.error('Lỗi tải thông tin đơn hàng');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchOrder();
   }, [id]);
 
   // Handler Hủy đơn hàng và hoàn 100% tiền vào ví
@@ -1807,6 +1810,16 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
               );
             })()}
 
+            {/* Rank Mismatch Card */}
+            {order.status === 'RANK_MISMATCH' && (
+              <RankMismatchCard
+                order={order}
+                isCustomer={isCustomer}
+                isBooster={isBooster}
+                onRefresh={fetchOrder}
+              />
+            )}
+
             <OrderDisputeBanner
               order={order}
               isCustomer={isCustomer}
@@ -1821,6 +1834,7 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
               onOpenCancelModal={() => setIsCancelModalOpen(true)}
               onOpenDisputeModal={() => setIsDisputeModalOpen(true)}
               onOpenRatingModal={() => setIsRatingModalOpen(true)}
+              onOpenRankMismatchModal={() => setIsRankMismatchModalOpen(true)}
               onUpdateStatus={handleUpdateStatus}
             />
           </div>
@@ -2068,6 +2082,20 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
         onClose={() => setSelectedMatchDetail(null)}
         order={order}
         dDragonVersion={dDragonVersion}
+      />
+
+      {/* Report Rank Mismatch Modal */}
+      <ReportRankMismatchModal
+        orderId={order._id}
+        declaredRank={
+          order.details?.current_rank ||
+          order.details?.currentRank ||
+          order.snapshot?.initialState?.rankId ||
+          order.details?.rank_start
+        }
+        isOpen={isRankMismatchModalOpen}
+        onClose={() => setIsRankMismatchModalOpen(false)}
+        onSuccess={fetchOrder}
       />
     </div>
   );

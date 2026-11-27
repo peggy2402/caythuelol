@@ -126,6 +126,41 @@ export class OrdersController {
     return this.ordersService.completeOrder(id, user.userId, body);
   }
 
+  @Post(':id/verify-rank')
+  @ApiOperation({ summary: 'Booster reports rank mismatch upon account inspection' })
+  async verifyRankMismatch(
+    @Param('id') id: string,
+    @ReqUser() user: any,
+    @Body()
+    body: {
+      verifiedRank: string;
+      proofImage: string;
+      note?: string;
+      proposedPrice?: number;
+    },
+  ) {
+    return this.ordersService.verifyRankMismatch(id, user.userId, body);
+  }
+
+  @Post(':id/confirm-requote')
+  @ApiOperation({ summary: 'Customer confirms re-quoted price and pays the difference' })
+  async confirmRequote(
+    @Param('id') id: string,
+    @ReqUser() user: any,
+  ) {
+    return this.ordersService.confirmRequote(id, user.userId);
+  }
+
+  @Post(':id/cancel-mismatch')
+  @ApiOperation({ summary: 'Customer or Admin cancels order due to rank mismatch' })
+  async cancelMismatchOrder(
+    @Param('id') id: string,
+    @ReqUser() user: any,
+    @Body('reason') reason?: string,
+  ) {
+    return this.ordersService.cancelMismatchOrder(id, user.userId, reason);
+  }
+
   @Post(':id/rate')
   @ApiOperation({ summary: 'Customer rates booster' })
   async rateBooster(

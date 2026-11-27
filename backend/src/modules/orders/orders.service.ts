@@ -20,6 +20,7 @@ import { LoyaltyService } from '../loyalty/loyalty.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { ChatGateway } from '../chat/chat.gateway';
 import { IBoosterProfile } from '../../database/schemas/BoosterProfile';
+import { AOV_RANK_LADDER } from '../../common/aov.config';
 
 @Injectable()
 export class OrdersService {
@@ -1606,5 +1607,332 @@ export class OrdersService {
     } catch {
       return detail;
     }
+  }
+
+  /**
+   * Booster kiểm tra tài khoản thực tế và báo cáo sai lệch Rank (Khai khống rank)
+   */
+  async verifyRankMismatch(
+    orderId: string,
+    boosterId: string,
+    payload: {
+      verifiedRank: string;
+      proofImage: string;
+      note?: string;
+      proposedPrice?: number;
+    },
+  ) {
+    const order = await this.orderModel.findById(orderId);
+    if (!order) {
+      throw new NotFoundException('Đơn hàng không tồn tại');
+    }
+
+    // Kiểm tra quyền: Booster được gán hoặc Admin
+    if (order.boosterId?.toString() !== boosterId) {
+      const user = await this.userModel.findById(boosterId).select('role').lean();
+      if (user?.role !== UserRole.ADMIN) {
+        throw new ForbiddenException('Bạn không có quyền báo sai lệch rank cho đơn hàng này');
+      }
+    }
+
+    if (order.status !== OrderStatus.PAID && order.status !== OrderStatus.IN_PROGRESS) {
+      throw new BadRequestException('Chỉ có thể báo sai lệch rank khi đơn đang ở trạng thái PAID hoặc IN_PROGRESS');
+    }
+
+    const declaredRank =
+      order.details?.current_rank ||
+      order.details?.currentRank ||
+      order.snapshot?.initialState?.rankId ||
+      order.details?.rank_start ||
+      'Không rõ';
+
+    const targetRank =
+      order.details?.desired_rank ||
+      order.details?.desiredRank ||
+      order.snapshot?.targetState?.rankId ||
+      order.details?.rank_target ||
+      '';
+
+    let recalculatedPrice = 0;
+
+    // 1. Nếu Booster/Admin truyền proposedPrice hợp lệ (> 0)
+    if (payload.proposedPrice && payload.proposedPrice > 0) {
+      recalculatedPrice = Math.round(payload.proposedPrice);
+    } else {
+      // 2. Tự động tính theo AOV_RANK_LADDER nếu là Liên Quân
+      const game = (order.details?.game || '').toUpperCase();
+      const isAov =
+        game === 'AOV' ||
+        game === 'LIENQUAN' ||
+        game.includes('LIÊN QUÂN') ||
+        (order.serviceType || '').toLowerCase().includes('lienquan');
+
+      if (isAov) {
+        const fromIdx = AOV_RANK_LADDER.findIndex(
+          (s) =>
+            s.id.toLowerCase() === payload.verifiedRank.toLowerCase() ||
+            s.label.toLowerCase() === payload.verifiedRank.toLowerCase() ||
+            s.tier.toLowerCase() === payload.verifiedRank.toLowerCase(),
+        );
+        const toIdx = AOV_RANK_LADDER.findIndex(
+          (s) =>
+            s.id.toLowerCase() === targetRank.toLowerCase() ||
+            s.label.toLowerCase() === targetRank.toLowerCase() ||
+            s.tier.toLowerCase() === targetRank.toLowerCase(),
+        );
+
+        if (fromIdx !== -1 && toIdx !== -1 && toIdx > fromIdx) {
+          let ladderTotal = 0;
+          for (let i = fromIdx; i < toIdx; i++) {
+            ladderTotal += AOV_RANK_LADDER[i].stepPrice;
+          }
+          const optionFees = order.pricing?.option_fees || 0;
+          recalculatedPrice = ladderTotal + optionFees;
+        }
+      }
+
+      // Fallback: nếu không map được nấc tự động
+      if (!recalculatedPrice || recalculatedPrice <= 0) {
+        recalculatedPrice = Math.round((order.pricing?.total_amount || 0) * 1.3);
+      }
+    }
+
+    const currentTotal = order.pricing?.total_amount || 0;
+    const extraAmountNeeded = Math.max(0, recalculatedPrice - currentTotal);
+
+    order.status = OrderStatus.RANK_MISMATCH;
+    order.mismatch_info = {
+      declaredRank,
+      verifiedRank: payload.verifiedRank,
+      proofImage: payload.proofImage,
+      note: payload.note,
+      recalculatedPrice,
+      extraAmountNeeded,
+      reportedBy: new Types.ObjectId(boosterId),
+      reportedAt: new Date(),
+    };
+
+    if (!order.timeline) order.timeline = [];
+    order.timeline.push({
+      status: OrderStatus.RANK_MISMATCH,
+      timestamp: new Date(),
+      actor: new Types.ObjectId(boosterId),
+      note: `Booster phát hiện Rank thực tế (${payload.verifiedRank}) khác với Rank khai (${declaredRank}). Báo giá mới: ${recalculatedPrice.toLocaleString('vi-VN')} đ (cần bù thêm ${extraAmountNeeded.toLocaleString('vi-VN')} đ).`,
+    });
+
+    await order.save();
+
+    // Bắn thông báo đến khách hàng
+    const orderCodeDisplay = order.orderCode || order._id.toString().slice(-6).toUpperCase();
+    this.notificationsService
+      .notifyUser({
+        userId: order.customerId,
+        title: `⚠️ Phát hiện sai lệch Rank - Đơn #${orderCodeDisplay}`,
+        message: `Tài khoản của bạn có Rank thực tế là "${payload.verifiedRank}" (khác với "${declaredRank}" đã khai). Vui lòng xác nhận bù ${extraAmountNeeded.toLocaleString('vi-VN')} đ hoặc yêu cầu hủy đơn.`,
+        type: 'ORDER_UPDATE',
+        variant: 'warning',
+        link: `/orders/${order._id}`,
+      })
+      .catch(() => {});
+
+    this.chatGateway.broadcastBoosterJobsUpdated();
+
+    return {
+      success: true,
+      message: 'Đã báo cáo sai lệch Rank và gửi báo giá mới cho khách hàng',
+      order,
+    };
+  }
+
+  /**
+   * Khách hàng chấp nhận báo giá mới do sai lệch rank và thanh toán phần tiền chênh lệch
+   */
+  async confirmRequote(orderId: string, customerId: string) {
+    const order = await this.orderModel.findById(orderId);
+    if (!order) {
+      throw new NotFoundException('Đơn hàng không tồn tại');
+    }
+
+    if (order.customerId?.toString() !== customerId) {
+      throw new ForbiddenException('Bạn không phải là chủ sở hữu đơn hàng này');
+    }
+
+    if (order.status !== OrderStatus.RANK_MISMATCH) {
+      throw new BadRequestException('Đơn hàng không ở trạng thái sai lệch rank (RANK_MISMATCH)');
+    }
+
+    const extraAmount = order.mismatch_info?.extraAmountNeeded || 0;
+    const customer = await this.userModel.findById(customerId);
+    if (!customer) {
+      throw new NotFoundException('Khách hàng không tồn tại');
+    }
+
+    if (extraAmount > 0) {
+      if (customer.wallet_balance < extraAmount) {
+        throw new BadRequestException(
+          `Số dư ví (${customer.wallet_balance.toLocaleString('vi-VN')} đ) không đủ để thanh toán phần chênh lệch (${extraAmount.toLocaleString('vi-VN')} đ). Vui lòng nạp thêm tiền vào ví.`,
+        );
+      }
+
+      // Trừ tiền ví khách
+      customer.wallet_balance -= extraAmount;
+      await customer.save();
+
+      // Ghi nhận transaction trừ tiền
+      await this.transactionModel.create({
+        userId: customer._id,
+        orderId: order._id,
+        type: TransactionType.PAYMENT_HOLD,
+        amount: extraAmount,
+        balanceAfter: customer.wallet_balance,
+        status: TransactionStatus.SUCCESS,
+        description: `Thanh toán chênh lệch sai lệch Rank cho đơn hàng #${order.orderCode || order._id.toString().slice(-6)}`,
+      });
+
+      this.chatGateway.broadcastBalanceUpdate(
+        customer._id.toString(),
+        customer.wallet_balance,
+        `Trừ ${extraAmount.toLocaleString('vi-VN')} đ bù sai lệch rank đơn #${order.orderCode || order._id.toString().slice(-6)}`,
+      );
+    }
+
+    // Cập nhật giá mới cho đơn hàng
+    order.pricing.total_amount = (order.pricing.total_amount || 0) + extraAmount;
+    order.pricing.deposit_amount = (order.pricing.deposit_amount || 0) + extraAmount;
+    order.pricing.base_price = (order.pricing.base_price || 0) + extraAmount;
+    // Tăng thù lao Booster theo tỷ lệ sàn 85%
+    order.pricing.booster_earnings =
+      (order.pricing.booster_earnings || 0) + Math.round(extraAmount * 0.85);
+
+    // Cập nhật Rank thực tế vào order details
+    if (order.mismatch_info?.verifiedRank) {
+      if (!order.details) order.details = {};
+      order.details.current_rank = order.mismatch_info.verifiedRank;
+      order.details.currentRank = order.mismatch_info.verifiedRank;
+    }
+
+    order.status = OrderStatus.IN_PROGRESS;
+    if (order.mismatch_info) {
+      order.mismatch_info.resolvedAt = new Date();
+      order.mismatch_info.resolutionAction = 'CONFIRMED';
+    }
+
+    if (!order.timeline) order.timeline = [];
+    order.timeline.push({
+      status: OrderStatus.IN_PROGRESS,
+      timestamp: new Date(),
+      actor: new Types.ObjectId(customerId),
+      note: `Khách hàng đã chấp thuận báo giá mới và thanh toán phần chênh lệch ${extraAmount.toLocaleString('vi-VN')} đ. Đơn hàng tiếp tục cày.`,
+    });
+
+    await order.save();
+
+    // Thông báo cho Booster
+    if (order.boosterId) {
+      const orderCodeDisplay = order.orderCode || order._id.toString().slice(-6).toUpperCase();
+      this.notificationsService
+        .notifyUser({
+          userId: order.boosterId,
+          title: '🎉 Khách hàng đã thanh toán chênh lệch Rank!',
+          message: `Khách hàng đơn #${orderCodeDisplay} đã bù ${extraAmount.toLocaleString('vi-VN')} đ cho Rank thực tế. Bạn có thể tiếp tục tiến hành cày ngay!`,
+          type: 'ORDER_UPDATE',
+          variant: 'success',
+          link: `/orders/${order._id}`,
+        })
+        .catch(() => {});
+    }
+
+    this.chatGateway.broadcastBoosterJobsUpdated();
+
+    return {
+      success: true,
+      message: 'Đã xác nhận báo giá mới và thanh toán phần chênh lệch thành công!',
+      order,
+    };
+  }
+
+  /**
+   * Khách hàng hoặc Admin hủy đơn do sai lệch rank
+   */
+  async cancelMismatchOrder(orderId: string, userId: string, reason?: string) {
+    const order = await this.orderModel.findById(orderId);
+    if (!order) {
+      throw new NotFoundException('Đơn hàng không tồn tại');
+    }
+
+    const user = await this.userModel.findById(userId).select('role').lean();
+    const isCustomer = order.customerId?.toString() === userId;
+    const isAdmin = user?.role === UserRole.ADMIN;
+
+    if (!isCustomer && !isAdmin) {
+      throw new ForbiddenException('Chỉ khách hàng hoặc Quản trị viên mới có thể hủy đơn sai lệch rank');
+    }
+
+    if (order.status !== OrderStatus.RANK_MISMATCH) {
+      throw new BadRequestException('Đơn hàng không ở trạng thái sai lệch rank');
+    }
+
+    // Hoàn tiền cọc về ví cho khách
+    const refundAmount = order.pricing?.deposit_amount || order.pricing?.total_amount || 0;
+    if (refundAmount > 0) {
+      const customer = await this.userModel.findById(order.customerId);
+      if (customer) {
+        customer.wallet_balance += refundAmount;
+        await customer.save();
+
+        await this.transactionModel.create({
+          userId: customer._id,
+          orderId: order._id,
+          type: TransactionType.REFUND,
+          amount: refundAmount,
+          balanceAfter: customer.wallet_balance,
+          status: TransactionStatus.SUCCESS,
+          description: `Hoàn tiền cọc hủy đơn do sai lệch rank #${order.orderCode || order._id.toString().slice(-6)}: ${reason || 'Khách từ chối giá mới'}`,
+        });
+      }
+    }
+
+    order.status = OrderStatus.CANCELLED;
+    if (order.mismatch_info) {
+      order.mismatch_info.resolvedAt = new Date();
+      order.mismatch_info.resolutionAction = 'CANCELLED';
+      if (reason) {
+        order.mismatch_info.note =
+          (order.mismatch_info.note ? order.mismatch_info.note + ' | ' : '') + `Lý do hủy: ${reason}`;
+      }
+    }
+
+    if (!order.timeline) order.timeline = [];
+    order.timeline.push({
+      status: OrderStatus.CANCELLED,
+      timestamp: new Date(),
+      actor: new Types.ObjectId(userId),
+      note: `Hủy đơn do sai lệch rank: ${reason || 'Khách hàng không đồng ý báo giá mới'}. Đã hoàn ${refundAmount.toLocaleString('vi-VN')} đ về ví khách.`,
+    });
+
+    await order.save();
+
+    // Thông báo cho Booster
+    if (order.boosterId) {
+      const orderCodeDisplay = order.orderCode || order._id.toString().slice(-6).toUpperCase();
+      this.notificationsService
+        .notifyUser({
+          userId: order.boosterId,
+          title: 'Đơn hàng đã bị hủy do sai lệch rank',
+          message: `Đơn hàng #${orderCodeDisplay} đã được hủy và hoàn tiền lại cho khách hàng.`,
+          type: 'ORDER_UPDATE',
+          variant: 'info',
+          link: `/orders/${order._id}`,
+        })
+        .catch(() => {});
+    }
+
+    this.chatGateway.broadcastBoosterJobsUpdated();
+
+    return {
+      success: true,
+      message: 'Đã hủy đơn hàng và hoàn lại tiền cọc về ví',
+      order,
+    };
   }
 }

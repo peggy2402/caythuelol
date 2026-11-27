@@ -9,6 +9,7 @@ export enum OrderStatus {
   REJECTED = 'REJECTED',
   REFUNDED = 'REFUNDED',
   DISPUTED = 'DISPUTED',
+  RANK_MISMATCH = 'RANK_MISMATCH',
   CANCELLED = 'CANCELLED',
 }
 
@@ -127,6 +128,18 @@ export interface IOrder {
     adminNote?: string;
     fundsDeducted?: boolean;
   };
+  mismatch_info?: {
+    declaredRank?: string;
+    verifiedRank?: string;
+    proofImage?: string;
+    note?: string;
+    recalculatedPrice?: number;
+    extraAmountNeeded?: number;
+    reportedBy?: mongoose.Types.ObjectId;
+    reportedAt?: Date;
+    resolvedAt?: Date;
+    resolutionAction?: 'CONFIRMED' | 'CANCELLED';
+  };
   rating?: {
     stars: number;
     comment?: string;
@@ -205,6 +218,18 @@ const OrderSchema = new Schema<IOrder>(
       status: { type: String, enum: ['PENDING', 'RESOLVED', 'REJECTED'], default: 'PENDING' },
       adminNote: String,
       fundsDeducted: { type: Boolean, default: false } // Đánh dấu đã trừ tiền Booster chưa
+    },
+    mismatch_info: {
+      declaredRank: String,
+      verifiedRank: String,
+      proofImage: String,
+      note: String,
+      recalculatedPrice: Number,
+      extraAmountNeeded: Number,
+      reportedBy: { type: Schema.Types.ObjectId, ref: 'User' },
+      reportedAt: { type: Date, default: Date.now },
+      resolvedAt: Date,
+      resolutionAction: { type: String, enum: ['CONFIRMED', 'CANCELLED'] },
     },
     rating: {
       stars: Number,
