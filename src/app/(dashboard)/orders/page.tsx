@@ -6,7 +6,7 @@ import { useLanguage } from '@/lib/i18n';
 import Link from 'next/link';
 import {
   FileText, Loader2, Plus, Clock, CheckCircle2,
-  AlertCircle, PlayCircle, XCircle, Filter,
+  AlertCircle, AlertTriangle, PlayCircle, XCircle, Filter,
   Gamepad2, User, ChevronRight, Search, Calendar, X, RotateCcw
 } from 'lucide-react';
 import { GAMES_CATALOG, GameDefinition } from '@/lib/games';
@@ -101,6 +101,12 @@ function getStatusBadge(status: string, hasBooster?: boolean) {
         label: 'Đang khiếu nại',
         className: 'bg-rose-500/10 text-rose-400 border border-rose-500/20',
         icon: AlertCircle,
+      };
+    case 'RANK_MISMATCH':
+      return {
+        label: 'Sai lệch Rank',
+        className: 'bg-amber-500/10 text-amber-400 border border-amber-500/30 shadow-[0_0_15px_rgba(245,158,11,0.2)]',
+        icon: AlertTriangle,
       };
     case 'REJECTED':
       return {

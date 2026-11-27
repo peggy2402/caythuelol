@@ -23,6 +23,7 @@ import {
   Sparkles,
   Trophy,
   Loader2,
+  AlertTriangle,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getBoosterEarnings } from '@/lib/orderPricing';
@@ -355,6 +356,7 @@ export default function BoosterOrdersPage() {
         <div className="space-y-3.5">
           {filteredOrders.map((order) => {
             const rawStatus = order.status || '';
+            const isMismatch = rawStatus === 'RANK_MISMATCH';
             const isApproved = ['APPROVED', 'PAID'].includes(rawStatus);
             const isInProgress = rawStatus === 'IN_PROGRESS';
             const isCompleted = ['COMPLETED', 'SETTLED'].includes(rawStatus);
@@ -363,7 +365,21 @@ export default function BoosterOrdersPage() {
             );
 
             // Theme màu sắc theo trạng thái
-            const theme = isInProgress
+            const theme = isMismatch
+              ? {
+                  cardBorder:
+                    'border-amber-500/35 hover:border-amber-400/60 shadow-[0_0_20px_rgba(245,158,11,0.08)]',
+                  cardBg: 'bg-gradient-to-br from-amber-950/25 via-zinc-950/95 to-zinc-950',
+                  iconBox: 'bg-amber-500/15 border-amber-500/30 text-amber-400 shadow-inner shadow-amber-500/10',
+                  badge: 'bg-amber-500/15 text-amber-300 border-amber-500/30',
+                  badgeDot: 'bg-amber-400 animate-pulse',
+                  label: 'SAI LỆCH RANK',
+                  actionBtn:
+                    'bg-amber-500 hover:bg-amber-400 text-black font-extrabold shadow-md shadow-amber-500/20',
+                  actionText: 'Xem chi tiết',
+                  Icon: AlertTriangle,
+                }
+              : isInProgress
               ? {
                   cardBorder:
                     'border-blue-500/30 hover:border-blue-400/60 shadow-[0_0_20px_rgba(59,130,246,0.06)] hover:shadow-[0_0_25px_rgba(59,130,246,0.12)]',
