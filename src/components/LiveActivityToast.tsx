@@ -3,15 +3,15 @@
 import { useState, useEffect, useRef } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
-  Coins,
+  DollarSign,
   Gamepad2,
   Star,
   MessageSquare,
   X,
-  Sparkles,
   Crown,
   Zap,
   Newspaper,
+  Sparkles,
 } from 'lucide-react';
 import { API_BASE_URL } from '@/lib/api';
 
@@ -76,8 +76,8 @@ export default function LiveActivityToast() {
             setVisible(false);
             setCurrentIndex((prev) => (prev + 1) % feed.length);
 
-            // Thời gian chờ ngẫu nhiên giữa 2 lần xuất hiện (6s - 12s)
-            const nextDelay = Math.floor(Math.random() * 6000) + 6000;
+            // Thời gian chờ ngẫu nhiên giữa 2 lần xuất hiện (6s - 11s)
+            const nextDelay = Math.floor(Math.random() * 5000) + 6000;
             scheduleNext(nextDelay);
           }, 5000);
         } else {
@@ -86,8 +86,8 @@ export default function LiveActivityToast() {
       }, delayMs);
     };
 
-    // Lần xuất hiện đầu tiên sau 3.5 giây khi vào trang
-    scheduleNext(3500);
+    // Lần xuất hiện đầu tiên sau 3 giây khi vào trang
+    scheduleNext(3000);
 
     return () => {
       clearTimeout(showTimeout);
@@ -108,102 +108,84 @@ export default function LiveActivityToast() {
   const renderIcon = () => {
     switch (currentItem.type) {
       case 'DEPOSIT':
-        return <Coins className="w-5 h-5 text-white" />;
+        return <DollarSign className="w-5 h-5 text-emerald-400 stroke-[2.5]" />;
       case 'ORDER':
-        return <Gamepad2 className="w-5 h-5 text-white" />;
+        return <Gamepad2 className="w-5 h-5 text-amber-400" />;
       case 'REVIEW':
-        return <Star className="w-5 h-5 text-white fill-white" />;
+        return <Star className="w-5 h-5 text-yellow-400 fill-yellow-400" />;
       case 'COMMENT':
-        return <MessageSquare className="w-5 h-5 text-white" />;
+        return <MessageSquare className="w-5 h-5 text-blue-400" />;
       case 'VIP_UPGRADE':
-        return <Crown className="w-5 h-5 text-white" />;
+        return <Crown className="w-5 h-5 text-amber-300 fill-amber-300" />;
       case 'BOOSTER_JOIN':
-        return <Zap className="w-5 h-5 text-white fill-white" />;
+        return <Zap className="w-5 h-5 text-purple-400 fill-purple-400" />;
       case 'BLOG_PUBLISH':
-        return <Newspaper className="w-5 h-5 text-white" />;
+        return <Newspaper className="w-5 h-5 text-cyan-400" />;
       default:
-        return <Sparkles className="w-5 h-5 text-white" />;
+        return <Sparkles className="w-5 h-5 text-emerald-400" />;
     }
   };
 
-  // Màu sắc icon gradient
-  const getGradientByBadge = () => {
+  // Khối icon box bo góc chuẩn dark mode
+  const getIconBoxStyle = () => {
     switch (currentItem.type) {
       case 'ORDER':
-        return 'from-amber-400 via-orange-500 to-amber-600 shadow-amber-500/25';
+        return 'bg-[#241a0d] border-[#4a3416]';
       case 'REVIEW':
-        return 'from-yellow-400 via-amber-500 to-yellow-600 shadow-yellow-500/25';
+        return 'bg-[#231e0d] border-[#483c16]';
       case 'COMMENT':
-        return 'from-blue-400 via-indigo-500 to-blue-600 shadow-blue-500/25';
+        return 'bg-[#0d1b2a] border-[#1b3a5b]';
       case 'VIP_UPGRADE':
-        return 'from-amber-400 via-yellow-500 to-amber-600 shadow-amber-500/30';
+        return 'bg-[#281c0d] border-[#5a3e18]';
       case 'BOOSTER_JOIN':
-        return 'from-purple-500 via-violet-600 to-indigo-700 shadow-purple-500/25';
+        return 'bg-[#1c0f2b] border-[#421d66]';
       case 'BLOG_PUBLISH':
-        return 'from-cyan-400 via-sky-500 to-blue-600 shadow-cyan-500/25';
+        return 'bg-[#0c222b] border-[#194c5e]';
       case 'DEPOSIT':
       default:
-        return 'from-emerald-400 via-teal-500 to-emerald-600 shadow-emerald-500/25';
+        return 'bg-[#0e211b] border-[#18483b]';
     }
   };
 
+  // Badge màu sắc trên hàng 2
   const getBadgeStyle = () => {
     switch (currentItem.type) {
       case 'ORDER':
-        return 'bg-amber-50 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300 border-amber-500/30';
+        return 'bg-[#251809] text-amber-400 border-[#4a3416]';
       case 'REVIEW':
-        return 'bg-yellow-50 text-yellow-700 dark:bg-yellow-500/15 dark:text-yellow-300 border-yellow-500/30';
+        return 'bg-[#241d08] text-yellow-400 border-[#483c16]';
       case 'COMMENT':
-        return 'bg-blue-50 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300 border-blue-500/30';
+        return 'bg-[#0b1a29] text-blue-400 border-[#1a3857]';
       case 'VIP_UPGRADE':
-        return 'bg-amber-50 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300 border-amber-500/30';
+        return 'bg-[#281b0a] text-amber-300 border-[#5a3e18]';
       case 'BOOSTER_JOIN':
-        return 'bg-purple-50 text-purple-700 dark:bg-purple-500/15 dark:text-purple-300 border-purple-500/30';
+        return 'bg-[#1d0d2e] text-purple-400 border-[#421d66]';
       case 'BLOG_PUBLISH':
-        return 'bg-cyan-50 text-cyan-700 dark:bg-cyan-500/15 dark:text-cyan-300 border-cyan-500/30';
+        return 'bg-[#0a2029] text-cyan-400 border-[#18495a]';
       case 'DEPOSIT':
       default:
-        return 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300 border-emerald-500/30';
+        return 'bg-[#0c2920] text-emerald-400 border-[#154d3e]';
     }
   };
 
-  const getLeftBarStyle = () => {
-    switch (currentItem.type) {
-      case 'VIP_UPGRADE':
-        return 'from-amber-400 to-yellow-500';
-      case 'BOOSTER_JOIN':
-        return 'from-purple-500 to-indigo-600';
-      case 'BLOG_PUBLISH':
-        return 'from-cyan-400 to-blue-500';
-      case 'ORDER':
-        return 'from-amber-400 to-orange-500';
-      case 'REVIEW':
-        return 'from-yellow-400 to-amber-500';
-      case 'COMMENT':
-        return 'from-blue-400 to-indigo-500';
-      case 'DEPOSIT':
-      default:
-        return 'from-emerald-400 to-teal-500';
-    }
-  };
-
+  // Màu chữ giá trị nổi bật
   const getHighlightColor = () => {
     switch (currentItem.type) {
-      case 'VIP_UPGRADE':
-        return 'text-amber-600 dark:text-amber-400';
-      case 'BOOSTER_JOIN':
-        return 'text-purple-600 dark:text-purple-300';
-      case 'BLOG_PUBLISH':
-        return 'text-cyan-600 dark:text-cyan-400';
       case 'ORDER':
-        return 'text-amber-600 dark:text-amber-400';
+        return 'text-amber-400';
       case 'REVIEW':
-        return 'text-yellow-600 dark:text-yellow-400';
+        return 'text-yellow-400';
       case 'COMMENT':
-        return 'text-blue-600 dark:text-blue-400';
+        return 'text-blue-400';
+      case 'VIP_UPGRADE':
+        return 'text-amber-300';
+      case 'BOOSTER_JOIN':
+        return 'text-purple-300';
+      case 'BLOG_PUBLISH':
+        return 'text-cyan-400';
       case 'DEPOSIT':
       default:
-        return 'text-emerald-600 dark:text-emerald-400';
+        return 'text-emerald-400';
     }
   };
 
@@ -213,62 +195,57 @@ export default function LiveActivityToast() {
         {visible && currentItem && (
           <motion.div
             key={currentItem.id}
-            initial={{ opacity: 0, y: 35, scale: 0.95 }}
+            initial={{ opacity: 0, y: 30, scale: 0.96 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 20, scale: 0.95 }}
-            transition={{ type: 'spring', stiffness: 350, damping: 26 }}
+            exit={{ opacity: 0, y: 18, scale: 0.96 }}
+            transition={{ type: 'spring', stiffness: 380, damping: 28 }}
             onMouseEnter={() => setIsPaused(true)}
             onMouseLeave={() => setIsPaused(false)}
-            className="pointer-events-auto relative flex items-center gap-3 pl-3 pr-8 py-2.5 max-w-[340px] sm:max-w-[400px] rounded-2xl bg-white dark:bg-zinc-900/95 border border-emerald-500/25 dark:border-zinc-800 shadow-[0_12px_38px_-4px_rgba(0,0,0,0.18)] dark:shadow-[0_18px_48px_-8px_rgba(0,0,0,0.7)] backdrop-blur-md overflow-hidden group"
+            className="pointer-events-auto relative flex items-center gap-3.5 pl-3.5 pr-8 py-3 max-w-[340px] sm:max-w-[410px] rounded-2xl bg-[#0e1318]/95 border border-zinc-800/90 shadow-[0_16px_45px_rgba(0,0,0,0.75)] backdrop-blur-md overflow-hidden"
           >
-            {/* Dải màu nhấn viền trái giống hình ảnh mẫu */}
+            {/* Khối icon bên trái */}
             <div
-              className={`absolute left-0 top-0 bottom-0 w-1.5 bg-gradient-to-b ${getLeftBarStyle()} rounded-l-2xl`}
-            />
-
-            {/* Icon đại diện dạng Squircle gradient bo tròn */}
-            <div
-              className={`w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-gradient-to-br ${getGradientByBadge()} flex items-center justify-center shrink-0 shadow-md`}
+              className={`w-11 h-11 rounded-xl border flex items-center justify-center shrink-0 ${getIconBoxStyle()}`}
             >
               {renderIcon()}
             </div>
 
-            {/* Nội dung thông báo */}
-            <div className="flex-1 min-w-0 pr-1">
-              {/* Dòng 1: Badge + Tên người dùng + Hành động */}
-              <div className="flex items-center gap-1.5 flex-wrap leading-tight">
-                <span
-                  className={`inline-block px-1.5 py-0.5 rounded-[5px] text-[10px] font-black tracking-wider uppercase border shrink-0 ${getBadgeStyle()}`}
-                >
-                  {currentItem.badge}
-                </span>
-                <span className="font-extrabold text-zinc-900 dark:text-white text-xs sm:text-[13px] tracking-tight">
+            {/* Nội dung thông báo theo đúng cấu trúc ảnh mẫu */}
+            <div className="flex-1 min-w-0">
+              {/* Dòng 1: Username đậm màu trắng + Hành động màu xám nhẹ */}
+              <div className="flex items-center gap-1.5 leading-tight">
+                <span className="font-bold text-white text-[13.5px] tracking-tight shrink-0">
                   {currentItem.username}
                 </span>
-                <span className="text-zinc-600 dark:text-zinc-300 text-xs sm:text-[12.5px] truncate max-w-[150px] sm:max-w-[190px]">
+                <span className="text-zinc-400 text-[13px] truncate">
                   {currentItem.actionText}
                 </span>
               </div>
 
-              {/* Dòng 2: Giá trị nổi bật (Số tiền/Gói rank/Bài viết) + Thời gian tương đối */}
-              <div className="flex items-center gap-1.5 mt-0.5 leading-tight">
+              {/* Dòng 2: Badge nằm ở dòng 2 + Giá trị nổi bật + Thời gian */}
+              <div className="flex items-center gap-2 mt-1 leading-tight flex-wrap">
                 <span
-                  className={`font-extrabold text-xs sm:text-[13px] tracking-tight truncate max-w-[190px] sm:max-w-[230px] ${getHighlightColor()}`}
+                  className={`inline-block px-1.5 py-0.5 rounded-[4px] text-[10.5px] font-bold tracking-wide uppercase border shrink-0 ${getBadgeStyle()}`}
+                >
+                  {currentItem.badge}
+                </span>
+                <span
+                  className={`font-bold text-[13px] tracking-tight truncate max-w-[170px] sm:max-w-[210px] ${getHighlightColor()}`}
                 >
                   {currentItem.highlight}
                 </span>
-                <span className="text-zinc-400 dark:text-zinc-500 text-[11px] font-medium shrink-0">
+                <span className="text-zinc-500 text-[11.5px] font-normal shrink-0">
                   · {currentItem.timeAgo}
                 </span>
               </div>
             </div>
 
-            {/* Nút đóng thông báo nhỏ ở góc phải */}
+            {/* Nút đóng thông báo nhỏ gọn ở góc phải */}
             <button
               type="button"
               onClick={handleDismiss}
               title="Đóng thông báo"
-              className="absolute top-2.5 right-2.5 text-zinc-400 hover:text-zinc-700 dark:hover:text-white p-0.5 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+              className="absolute top-3 right-3 text-zinc-500 hover:text-zinc-300 p-0.5 rounded transition-colors cursor-pointer"
             >
               <X className="w-3.5 h-3.5" />
             </button>
