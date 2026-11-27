@@ -1635,8 +1635,15 @@ export class OrdersService {
       }
     }
 
-    if (order.status !== OrderStatus.PAID && order.status !== OrderStatus.IN_PROGRESS) {
-      throw new BadRequestException('Chỉ có thể báo sai lệch rank khi đơn đang ở trạng thái PAID hoặc IN_PROGRESS');
+    const allowedMismatchStatuses = [
+      OrderStatus.PAID,
+      OrderStatus.APPROVED,
+      OrderStatus.IN_PROGRESS,
+    ];
+    if (!allowedMismatchStatuses.includes(order.status)) {
+      throw new BadRequestException(
+        'Chỉ có thể báo sai lệch rank khi đơn đang ở trạng thái PAID, APPROVED hoặc IN_PROGRESS',
+      );
     }
 
     const declaredRank =
