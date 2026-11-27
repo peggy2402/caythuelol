@@ -73,3 +73,14 @@ export const getLolQueueName = (queueId?: number | string): string => {
   return LOL_QUEUE_NAMES[id] || `Queue ID: ${id}`;
 };
 
+export const LOL_RANKS_ORDER = [
+  'IRON_IV', 'IRON_III', 'IRON_II', 'IRON_I',
+  'BRONZE_IV', 'BRONZE_III', 'BRONZE_II', 'BRONZE_I',
+  'SILVER_IV', 'SILVER_III', 'SILVER_II', 'SILVER_I',
+  'GOLD_IV', 'GOLD_III', 'GOLD_II', 'GOLD_I',
+  'PLATINUM_IV', 'PLATINUM_III', 'PLATINUM_II', 'PLATINUM_I',
+  'EMERALD_IV', 'EMERALD_III', 'EMERALD_II', 'EMERALD_I',
+  'DIAMOND_IV', 'DIAMOND_III', 'DIAMOND_II', 'DIAMOND_I',
+  'MASTER_NA', 'GRANDMASTER_NA', 'CHALLENGER_NA',
+];
+

@@ -11,7 +11,7 @@ import {
   Map, Video, Users, ChevronRight, Flame, Clock, Search, Star
 } from 'lucide-react';
 import ChampionModal from '@/components/champion/ChampionModal';
-import { LOL_RANKS_ORDER } from '@/lib/pricing';
+import { LOL_RANKS_ORDER } from '@/lib/riotRanks';
 import Link from 'next/link';
 
 // --- CONSTANTS & DATA ---
