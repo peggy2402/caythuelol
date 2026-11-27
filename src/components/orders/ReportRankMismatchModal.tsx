@@ -7,7 +7,7 @@ import { AlertTriangle, Upload, X, Loader2, ShieldAlert, ZoomIn, Calculator } fr
 import { toast } from 'sonner';
 import { API_BASE_URL } from '@/lib/api';
 import ImageLightbox from '@/components/ui/ImageLightbox';
-import { calculateAovStarDifferencePricing } from '@/lib/aov';
+import { calculateAovStarDifferencePricing, isAovRankExceeded } from '@/lib/aov';
 
 interface ReportRankMismatchModalProps {
   orderId: string;
@@ -159,9 +159,19 @@ export default function ReportRankMismatchModal({
     (serviceType || '').toLowerCase().includes('thắng') ||
     (serviceType || '').toLowerCase().includes('sao');
 
+  const isTargetExceeded =
+    isAov && Boolean(targetRank) && Boolean(verifiedRank)
+      ? isAovRankExceeded(verifiedRank, targetRank as string)
+      : false;
+
   // Tự động tính giá theo số sao Liên Quân nếu là AOV & Net Wins
   useEffect(() => {
     if (isAov && isNetWins && targetRank && verifiedRank) {
+      if (isTargetExceeded) {
+        setAutoCalcInfo(null);
+        setProposedPrice('');
+        return;
+      }
       const calc = calculateAovStarDifferencePricing(verifiedRank, targetRank);
       if (calc.totalPrice > 0) {
         setAutoCalcInfo(calc);
@@ -170,7 +180,7 @@ export default function ReportRankMismatchModal({
         setAutoCalcInfo(null);
       }
     }
-  }, [isAov, isNetWins, targetRank, verifiedRank]);
+  }, [isAov, isNetWins, targetRank, verifiedRank, isTargetExceeded]);
 
   // Cập nhật chuỗi verifiedRank khi thay đổi lựa chọn
   const buildRankString = (tier: string, div: string, stars: number) => {
@@ -621,15 +631,31 @@ export default function ReportRankMismatchModal({
                         <Calculator className="w-4 h-4" />
                         <span>Báo giá điều chỉnh cho khách hàng</span>
                       </div>
-                      {autoCalcInfo && autoCalcInfo.totalStars > 0 && (
+                      {isTargetExceeded ? (
+                        <span className="text-[11px] px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 font-medium">
+                          Rank đã vượt mục tiêu
+                        </span>
+                      ) : autoCalcInfo && autoCalcInfo.totalStars > 0 ? (
                         <span className="text-[11px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-medium">
                           Cần cày {autoCalcInfo.totalStars} sao
                         </span>
-                      )}
+                      ) : null}
                     </div>
 
+                    {/* Trường hợp Rank thực tế đã đạt/vượt mốc mục tiêu */}
+                    {isTargetExceeded && (
+                      <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs space-y-1.5 text-amber-300">
+                        <div className="font-bold text-amber-200 flex items-center gap-1.5">
+                          <span>⚡</span> Rank thực tế đã đạt hoặc vượt mốc mục tiêu ({targetRank})
+                        </div>
+                        <p className="text-zinc-300 text-[11.5px] leading-relaxed">
+                          Tài khoản không cần cày tiếp lên mốc cũ. Khách hàng sẽ nhận được thông báo để chọn: <strong>Hủy đơn hoàn cọc 100%</strong> hoặc <strong>Gửi lại tài khoản khác đúng rank ban đầu</strong>.
+                        </p>
+                      </div>
+                    )}
+
                     {/* Chi tiết tài chính tính toán tự động theo nghiệp vụ */}
-                    {autoCalcInfo && autoCalcInfo.totalStars > 0 && (() => {
+                    {!isTargetExceeded && autoCalcInfo && autoCalcInfo.totalStars > 0 && (() => {
                       const serviceVal = autoCalcInfo.totalPrice;
                       const fee = Math.round(serviceVal * 0.02);
                       const totalVal = serviceVal + fee;
@@ -695,7 +721,9 @@ export default function ReportRankMismatchModal({
                       ) : (
                         <AlertTriangle className="w-4 h-4" />
                       )}
-                      <span>Gửi báo cáo & Yêu cầu bù phí</span>
+                      <span>
+                        {isTargetExceeded ? 'Gửi báo cáo sai lệch Rank' : 'Gửi báo cáo & Yêu cầu bù phí'}
+                      </span>
                     </button>
                   </div>
                 </form>

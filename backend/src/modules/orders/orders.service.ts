@@ -24,6 +24,7 @@ import {
   AOV_RANK_LADDER,
   matchAovLadderIndex,
   calculateAovStarDifferencePricing,
+  isAovRankExceeded,
 } from '../../common/aov.config';
 
 @Injectable()
@@ -1915,6 +1916,7 @@ export class OrdersService {
       order.details?.rank_target ||
       '';
 
+    let isTargetExceeded = false;
     let recalculatedPrice = 0;
     let newServiceAmount = 0;
     let platformFee = 0;
@@ -1936,45 +1938,54 @@ export class OrdersService {
         (order.serviceType || '').toLowerCase().includes('lienquan');
 
       if (isAov) {
-        const isNetWins =
-          order.serviceType === 'NET_WINS' ||
-          order.serviceType === 'net-wins' ||
-          (order.serviceType || '').toLowerCase().includes('net') ||
-          (order.serviceType || '').toLowerCase().includes('thắng') ||
-          (order.serviceType || '').toLowerCase().includes('sao') ||
-          order.snapshot?.pricingModel === 'UNIT_BASED';
-
-        if (isNetWins) {
-          // AOV Net Wins / Cày theo sao: Tính chuẩn xác theo số sao lũy tiến
-          const starDiff = calculateAovStarDifferencePricing(
-            payload.verifiedRank,
-            targetRank,
-          );
-          newClimbingStars = starDiff.totalStars;
-          newServiceAmount = starDiff.totalPrice;
-          platformFee = Math.round(newServiceAmount * 0.02);
-          const optionFees = order.pricing?.option_fees || 0;
-          newOrderTotal = newServiceAmount + platformFee + optionFees;
+        // Kiểm tra xem Rank thực tế đã đạt hoặc vượt mốc mục tiêu ban đầu hay chưa (Trường hợp 3 & 4)
+        if (isAovRankExceeded(payload.verifiedRank, targetRank)) {
+          isTargetExceeded = true;
+          newClimbingStars = 0;
+          newServiceAmount = 0;
+          platformFee = 0;
+          newOrderTotal = order.pricing?.total_amount || 0;
         } else {
-          // AOV Rank Boost: Tính theo thang bậc đoàn AOV_RANK_LADDER
-          const fromIdx = matchAovLadderIndex(payload.verifiedRank);
-          const toIdx = matchAovLadderIndex(targetRank);
+          const isNetWins =
+            order.serviceType === 'NET_WINS' ||
+            order.serviceType === 'net-wins' ||
+            (order.serviceType || '').toLowerCase().includes('net') ||
+            (order.serviceType || '').toLowerCase().includes('thắng') ||
+            (order.serviceType || '').toLowerCase().includes('sao') ||
+            order.snapshot?.pricingModel === 'UNIT_BASED';
 
-          if (fromIdx !== -1 && toIdx !== -1 && toIdx > fromIdx) {
-            let ladderTotal = 0;
-            for (let i = fromIdx; i < toIdx; i++) {
-              ladderTotal += AOV_RANK_LADDER[i].stepPrice;
-            }
-            newServiceAmount = ladderTotal;
+          if (isNetWins) {
+            // AOV Net Wins / Cày theo sao: Tính chuẩn xác theo số sao lũy tiến
+            const starDiff = calculateAovStarDifferencePricing(
+              payload.verifiedRank,
+              targetRank,
+            );
+            newClimbingStars = starDiff.totalStars;
+            newServiceAmount = starDiff.totalPrice;
             platformFee = Math.round(newServiceAmount * 0.02);
             const optionFees = order.pricing?.option_fees || 0;
             newOrderTotal = newServiceAmount + platformFee + optionFees;
+          } else {
+            // AOV Rank Boost: Tính theo thang bậc đoàn AOV_RANK_LADDER
+            const fromIdx = matchAovLadderIndex(payload.verifiedRank);
+            const toIdx = matchAovLadderIndex(targetRank);
+
+            if (fromIdx !== -1 && toIdx !== -1 && toIdx > fromIdx) {
+              let ladderTotal = 0;
+              for (let i = fromIdx; i < toIdx; i++) {
+                ladderTotal += AOV_RANK_LADDER[i].stepPrice;
+              }
+              newServiceAmount = ladderTotal;
+              platformFee = Math.round(newServiceAmount * 0.02);
+              const optionFees = order.pricing?.option_fees || 0;
+              newOrderTotal = newServiceAmount + platformFee + optionFees;
+            }
           }
         }
       }
 
-      // Fallback: nếu không map được nấc tự động
-      if (!newOrderTotal || newOrderTotal <= 0) {
+      // Fallback: chỉ chạy khi KHÔNG phải là trường hợp vượt mục tiêu và không tính được giá
+      if (!isTargetExceeded && (!newOrderTotal || newOrderTotal <= 0)) {
         newOrderTotal = Math.round((order.pricing?.total_amount || 0) * 1.3);
         platformFee = Math.round(newOrderTotal * (0.02 / 1.02));
         newServiceAmount = newOrderTotal - platformFee;
@@ -1983,16 +1994,22 @@ export class OrdersService {
 
     recalculatedPrice = newOrderTotal;
     const depositPercentage = (order.pricing?.deposit_percent || 40) / 100;
-    const requiredDeposit = Math.round(newOrderTotal * depositPercentage);
     const totalPaidAmount = order.pricing?.deposit_amount || 0;
-    const additionalPayment = Math.max(0, requiredDeposit - totalPaidAmount);
-    const remainingPayment = newOrderTotal - requiredDeposit;
+
+    // Khi rank đã vượt mục tiêu (Trường hợp 3 & 4):
+    // Tiền cọc yêu cầu giữ đúng số tiền đã trả, khoản bù thêm = 0, còn lại = 0
+    const requiredDeposit = isTargetExceeded
+      ? totalPaidAmount
+      : Math.round(newOrderTotal * depositPercentage);
+    const additionalPayment = isTargetExceeded ? 0 : Math.max(0, requiredDeposit - totalPaidAmount);
+    const remainingPayment = isTargetExceeded ? 0 : Math.max(0, newOrderTotal - requiredDeposit);
 
     order.status = OrderStatus.RANK_MISMATCH;
     order.mismatch_info = {
       declaredRank,
       verifiedRank: payload.verifiedRank,
       targetRank,
+      isTargetExceeded,
       newClimbingStars,
       newServiceAmount,
       platformFee,
@@ -2016,20 +2033,26 @@ export class OrdersService {
       status: OrderStatus.RANK_MISMATCH,
       timestamp: new Date(),
       actor: new Types.ObjectId(boosterId),
-      note: `Booster phát hiện Rank thực tế (${payload.verifiedRank}) khác với Rank khai (${declaredRank}).${
-        newClimbingStars !== undefined ? ` Số sao mới: ${newClimbingStars} sao.` : ''
-      } Tổng đơn mới: ${newOrderTotal.toLocaleString('vi-VN')} đ (Cọc 40%: ${requiredDeposit.toLocaleString('vi-VN')} đ, cần bù cọc: ${additionalPayment.toLocaleString('vi-VN')} đ).`,
+      note: isTargetExceeded
+        ? `Booster phát hiện Rank thực tế (${payload.verifiedRank}) đã đạt/vượt mốc Rank mục tiêu cũ (${targetRank}). Đơn hàng tạm dừng: Khách có thể hủy đơn nhận lại 100% tiền cọc (${totalPaidAmount.toLocaleString('vi-VN')} đ) hoặc gửi tài khoản game khác đúng rank ban đầu.`
+        : `Booster phát hiện Rank thực tế (${payload.verifiedRank}) khác với Rank khai (${declaredRank}).${
+            newClimbingStars !== undefined ? ` Số sao mới: ${newClimbingStars} sao.` : ''
+          } Tổng đơn mới: ${newOrderTotal.toLocaleString('vi-VN')} đ (Cọc 40%: ${requiredDeposit.toLocaleString('vi-VN')} đ, cần bù cọc: ${additionalPayment.toLocaleString('vi-VN')} đ).`,
     });
 
     await order.save();
 
     // Bắn thông báo đến khách hàng
     const orderCodeDisplay = order.orderCode || order._id.toString().slice(-6).toUpperCase();
+    const notifMessage = isTargetExceeded
+      ? `Tài khoản của bạn có Rank thực tế là "${payload.verifiedRank}", đã đạt/vượt mục tiêu (${targetRank}). Bạn có thể hủy đơn để nhận lại 100% tiền cọc (${totalPaidAmount.toLocaleString('vi-VN')} đ) hoặc gửi lại tài khoản khác đúng rank.`
+      : `Tài khoản của bạn có Rank thực tế là "${payload.verifiedRank}" (khác với "${declaredRank}" đã khai). Vui lòng xác nhận bù tiền cọc ${additionalPayment.toLocaleString('vi-VN')} đ hoặc yêu cầu hủy đơn.`;
+
     this.notificationsService
       .notifyUser({
         userId: order.customerId,
         title: `⚠️ Phát hiện sai lệch Rank - Đơn #${orderCodeDisplay}`,
-        message: `Tài khoản của bạn có Rank thực tế là "${payload.verifiedRank}" (khác với "${declaredRank}" đã khai). Vui lòng xác nhận bù tiền cọc ${additionalPayment.toLocaleString('vi-VN')} đ hoặc yêu cầu hủy đơn.`,
+        message: notifMessage,
         type: 'ORDER_UPDATE',
         variant: 'warning',
         link: `/orders/${order._id}`,
@@ -2112,7 +2135,10 @@ export class OrdersService {
     }
 
     // Cập nhật giá mới cho đơn hàng chuẩn hóa tài chính
-    if (mismatch?.newOrderTotal) {
+    if (mismatch?.isTargetExceeded) {
+      // Trường hợp 3 & 4 (vượt mục tiêu và khách gửi tài khoản khác đúng rank khai):
+      // Giữ nguyên giá trị đơn gốc, không thay đổi pricing
+    } else if (mismatch?.newOrderTotal) {
       order.pricing.service_amount = mismatch.newServiceAmount;
       order.pricing.platform_fee = mismatch.platformFee;
       order.pricing.total_amount = mismatch.newOrderTotal;
@@ -2130,7 +2156,7 @@ export class OrdersService {
 
     // Cập nhật Rank thực tế & thông tin tài khoản game (nếu khách gửi lại) vào order.details
     if (!order.details) order.details = {};
-    if (order.mismatch_info?.verifiedRank) {
+    if (!mismatch?.isTargetExceeded && order.mismatch_info?.verifiedRank) {
       order.details.current_rank = order.mismatch_info.verifiedRank;
       order.details.currentRank = order.mismatch_info.verifiedRank;
     }

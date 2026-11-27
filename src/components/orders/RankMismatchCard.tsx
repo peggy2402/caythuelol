@@ -26,6 +26,7 @@ import { GAME_SERVERS, getServerByCode } from '@/lib/servers';
 import ServerFlag from '@/components/ServerFlag';
 import ImageLightbox from '@/components/ui/ImageLightbox';
 import { ProviderLogo } from '@/app/services/[game]/[service]/components/ProviderLogo';
+import { isAovRankExceeded } from '@/lib/aov';
 
 const AOV_PLATFORM_OPTIONS = [
   { id: 'Garena', label: 'Garena' },
@@ -174,27 +175,34 @@ export default function RankMismatchCard({
   const mismatch = order?.mismatch_info;
   if (!mismatch || order.status !== 'RANK_MISMATCH') return null;
 
-  const extraAmount = mismatch.additionalDepositNeeded ?? (mismatch.extraAmountNeeded || 0);
   const recalculatedPrice = mismatch.newOrderTotal || mismatch.recalculatedPrice || 0;
   const originalTotal = mismatch.originalTotalAmount || order.pricing?.total_amount || 0;
-  // Số tiền cọc thực tế khách hàng đã thanh toán
-  const originalDepositPaid = mismatch.alreadyPaid ?? Number(order.pricing?.deposit_amount ?? order.pricing?.total_amount ?? 0);
-  const requiredDeposit = mismatch.requiredDeposit || Math.round(recalculatedPrice * 0.4);
-  const remainingPayment = mismatch.remainingPayment || (recalculatedPrice - requiredDeposit);
-  const newClimbingStars = mismatch.newClimbingStars;
-  const newServiceAmount = mismatch.newServiceAmount;
-  const platformFee = mismatch.platformFee;
-
   const declaredRank = mismatch.declaredRank || order.details?.current_rank || 'Chưa rõ';
   const verifiedRank = mismatch.verifiedRank || 'Chưa rõ';
   const originalTarget = order.details?.desired_rank || order.details?.targetRank || 'Mục tiêu ban đầu';
 
-  // Kiểm tra nếu rank thực tế đã vượt quá mục tiêu ban đầu
+  // Kiểm tra nếu rank thực tế đã vượt quá mục tiêu ban đầu (Trường hợp 3 & 4)
   const isTargetExceeded =
-    verifiedRank.toLowerCase().includes('cao thủ') &&
-    (originalTarget.toLowerCase().includes('tinh anh') ||
-      originalTarget.toLowerCase().includes('kim cương') ||
-      originalTarget.toLowerCase().includes('bạch kim'));
+    Boolean(mismatch.isTargetExceeded) ||
+    (isAov
+      ? isAovRankExceeded(verifiedRank, originalTarget)
+      : verifiedRank.toLowerCase().includes('cao thủ') &&
+        (originalTarget.toLowerCase().includes('tinh anh') ||
+          originalTarget.toLowerCase().includes('kim cương') ||
+          originalTarget.toLowerCase().includes('bạch kim')));
+
+  // Tiền cần thanh toán bổ sung: Nếu vượt mốc mục tiêu thì luôn bằng 0 đ
+  const extraAmount = isTargetExceeded
+    ? 0
+    : Number(mismatch.additionalDepositNeeded ?? (mismatch.extraAmountNeeded || 0));
+
+  // Số tiền cọc thực tế khách hàng đã thanh toán
+  const originalDepositPaid = mismatch.alreadyPaid ?? Number(order.pricing?.deposit_amount ?? order.pricing?.total_amount ?? 0);
+  const requiredDeposit = isTargetExceeded ? originalDepositPaid : (mismatch.requiredDeposit || Math.round(recalculatedPrice * 0.4));
+  const remainingPayment = isTargetExceeded ? 0 : (mismatch.remainingPayment || (recalculatedPrice - requiredDeposit));
+  const newClimbingStars = isTargetExceeded ? 0 : mismatch.newClimbingStars;
+  const newServiceAmount = isTargetExceeded ? 0 : mismatch.newServiceAmount;
+  const platformFee = isTargetExceeded ? 0 : mismatch.platformFee;
 
   const [showDisputeModal, setShowDisputeModal] = useState(false);
   const [disputeReason, setDisputeReason] = useState('');
@@ -410,76 +418,111 @@ export default function RankMismatchCard({
 
         {/* CẢNH BÁO NẾU RANK THỰC TẾ ĐÃ VƯỢT QUÁ RANK MỤC TIÊU */}
         {isTargetExceeded && (
-          <div className="mt-3.5 p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-xs text-amber-300 space-y-1.5">
-            <div className="font-bold text-amber-200 flex items-center gap-1.5">
-              <span>⚡</span> Rank thực tế đã đạt hoặc vượt mốc mục tiêu ban đầu!
+          <div className="mt-3.5 p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-xs text-amber-300 space-y-2">
+            <div className="font-bold text-amber-200 flex items-center gap-2 text-sm">
+              <span className="p-1 rounded-md bg-amber-500/20 text-amber-400">⚡</span>
+              Rank thực tế đã đạt hoặc vượt mốc mục tiêu ban đầu!
             </div>
-            <p className="text-zinc-300">
-              Tài khoản hiện tại ở mức <strong>{verifiedRank}</strong>, đã vượt qua mục tiêu cũ (
-              <strong>{originalTarget}</strong>). Bạn có thể bấm xác nhận để gửi lại tài khoản game khác đúng mức Rank đã khai, hoặc thỏa thuận với Booster đổi mục tiêu mới cao hơn.
+            <p className="text-zinc-300 leading-relaxed">
+              Tài khoản game hiện tại đang ở mức <strong className="text-white">{verifiedRank}</strong>, đã vượt qua mốc mục tiêu cũ (<strong className="text-amber-300">{originalTarget}</strong>). Hệ thống không thu thêm bất kỳ chi phí nào.
             </p>
+            <div className="p-3 rounded-lg bg-black/40 border border-amber-500/20 space-y-1.5 text-zinc-400">
+              <div>• <strong className="text-rose-300">Lựa chọn 1 - Hủy đơn nhận lại cọc:</strong> Bấm nút <span className="text-rose-400 font-bold">"Hủy đơn & Nhận lại tiền cọc"</span> để hoàn ngay <span className="text-emerald-400 font-bold font-mono">{originalDepositPaid.toLocaleString('vi-VN')} đ</span> vào ví tài khoản.</div>
+              <div>• <strong className="text-amber-300">Lựa chọn 2 - Gửi lại tài khoản đúng rank:</strong> Nếu bạn gửi nhầm tài khoản, hãy cập nhật thông tin nick đúng mốc Rank ban đầu (<span className="text-zinc-200 font-bold">{declaredRank}</span>) để Booster tiếp tục cày mà không mất thêm phí (0 đ).</div>
+            </div>
           </div>
         )}
 
         {/* Bảng báo giá lại (Re-quote pricing breakdown) */}
-        <div className="mt-4 rounded-xl border border-zinc-800 bg-zinc-950/80 p-4">
-          <div className="flex items-center justify-between mb-3 border-b border-zinc-800/80 pb-2">
-            <span className="text-xs font-bold text-zinc-300">Bảng điều chỉnh chi phí đơn hàng:</span>
-            {newClimbingStars !== undefined && (
-              <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-semibold">
-                Khoảng cách mới: {newClimbingStars} sao
-              </span>
-            )}
-          </div>
-          <div className="space-y-2 text-xs">
-            {newServiceAmount !== undefined && (
-              <div className="flex justify-between gap-2 text-zinc-400">
-                <span>Giá trị dịch vụ mới:</span>
-                <span className="font-mono text-zinc-200 font-semibold whitespace-nowrap">
-                  {newServiceAmount.toLocaleString('vi-VN')} đ
-                  {platformFee ? ` (Phí sàn 2%: ${platformFee.toLocaleString('vi-VN')} đ)` : ''}
+        {!isTargetExceeded ? (
+          <div className="mt-4 rounded-xl border border-zinc-800 bg-zinc-950/80 p-4">
+            <div className="flex items-center justify-between mb-3 border-b border-zinc-800/80 pb-2">
+              <span className="text-xs font-bold text-zinc-300">Bảng điều chỉnh chi phí đơn hàng:</span>
+              {newClimbingStars !== undefined && (
+                <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-semibold">
+                  Khoảng cách mới: {newClimbingStars} sao
                 </span>
-              </div>
-            )}
-            <div className="flex justify-between gap-2 text-zinc-400">
-              <span>Tổng giá trị đơn hàng mới:</span>
-              <span className="font-mono text-white font-bold whitespace-nowrap">
-                {recalculatedPrice.toLocaleString('vi-VN')} đ
-                {originalTotal > 0 && (
-                  <span className="text-zinc-500 font-normal text-[11px] ml-1.5">
-                    (Ban đầu: {originalTotal.toLocaleString('vi-VN')} đ)
+              )}
+            </div>
+            <div className="space-y-2 text-xs">
+              {newServiceAmount !== undefined && (
+                <div className="flex justify-between gap-2 text-zinc-400">
+                  <span>Giá trị dịch vụ mới:</span>
+                  <span className="font-mono text-zinc-200 font-semibold whitespace-nowrap">
+                    {newServiceAmount.toLocaleString('vi-VN')} đ
+                    {platformFee ? ` (Phí sàn 2%: ${platformFee.toLocaleString('vi-VN')} đ)` : ''}
                   </span>
-                )}
-              </span>
-            </div>
-            <div className="flex justify-between gap-2 text-zinc-400">
-              <span>Tiền cọc yêu cầu ({mismatch.depositPercent || 40}%):</span>
-              <span className="font-mono text-zinc-200 font-semibold whitespace-nowrap">
-                {requiredDeposit.toLocaleString('vi-VN')} đ
-              </span>
-            </div>
-            <div className="flex justify-between gap-2 text-zinc-400">
-              <span>Tiền cọc đã thanh toán (bảo lưu 100%):</span>
-              <span className="font-mono text-emerald-400 font-bold whitespace-nowrap">
-                {originalDepositPaid.toLocaleString('vi-VN')} đ
-              </span>
-            </div>
-            <div className="pt-2.5 border-t border-zinc-800 flex justify-between items-center gap-2 text-sm">
-              <span className="font-bold text-amber-400">Tiền cọc cần thanh toán bổ sung:</span>
-              <span className="font-mono text-base font-extrabold text-amber-300 whitespace-nowrap">
-                {extraAmount > 0 ? `+${extraAmount.toLocaleString('vi-VN')} đ` : '0 đ (Đã đủ tiền cọc)'}
-              </span>
-            </div>
-            {remainingPayment > 0 && (
-              <div className="flex justify-between gap-2 text-[11px] text-zinc-500 pt-1">
-                <span>Còn lại sau khi hoàn thành:</span>
-                <span className="font-mono text-zinc-400 font-medium">
-                  {remainingPayment.toLocaleString('vi-VN')} đ
+                </div>
+              )}
+              <div className="flex justify-between gap-2 text-zinc-400">
+                <span>Tổng giá trị đơn hàng mới:</span>
+                <span className="font-mono text-white font-bold whitespace-nowrap">
+                  {recalculatedPrice.toLocaleString('vi-VN')} đ
+                  {originalTotal > 0 && (
+                    <span className="text-zinc-500 font-normal text-[11px] ml-1.5">
+                      (Ban đầu: {originalTotal.toLocaleString('vi-VN')} đ)
+                    </span>
+                  )}
                 </span>
               </div>
-            )}
+              <div className="flex justify-between gap-2 text-zinc-400">
+                <span>Tiền cọc yêu cầu ({mismatch.depositPercent || 40}%):</span>
+                <span className="font-mono text-zinc-200 font-semibold whitespace-nowrap">
+                  {requiredDeposit.toLocaleString('vi-VN')} đ
+                </span>
+              </div>
+              <div className="flex justify-between gap-2 text-zinc-400">
+                <span>Tiền cọc đã thanh toán (bảo lưu 100%):</span>
+                <span className="font-mono text-emerald-400 font-bold whitespace-nowrap">
+                  {originalDepositPaid.toLocaleString('vi-VN')} đ
+                </span>
+              </div>
+              <div className="pt-2.5 border-t border-zinc-800 flex justify-between items-center gap-2 text-sm">
+                <span className="font-bold text-amber-400">Tiền cọc cần thanh toán bổ sung:</span>
+                <span className="font-mono text-base font-extrabold text-amber-300 whitespace-nowrap">
+                  {extraAmount > 0 ? `+${extraAmount.toLocaleString('vi-VN')} đ` : '0 đ (Đã đủ tiền cọc)'}
+                </span>
+              </div>
+              {remainingPayment > 0 && (
+                <div className="flex justify-between gap-2 text-[11px] text-zinc-500 pt-1">
+                  <span>Còn lại sau khi hoàn thành:</span>
+                  <span className="font-mono text-zinc-400 font-medium">
+                    {remainingPayment.toLocaleString('vi-VN')} đ
+                  </span>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="mt-4 rounded-xl border border-amber-500/25 bg-zinc-950/80 p-4">
+            <div className="flex items-center justify-between mb-3 border-b border-zinc-800/80 pb-2">
+              <span className="text-xs font-bold text-zinc-300">Tình trạng tài chính đơn hàng:</span>
+              <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-semibold">
+                Không phát sinh phí
+              </span>
+            </div>
+            <div className="space-y-2 text-xs">
+              <div className="flex justify-between gap-2 text-zinc-400">
+                <span>Khoảng cách cần cày tiếp:</span>
+                <span className="font-mono text-zinc-200 font-bold whitespace-nowrap">
+                  0 sao (Nick đã đạt/vượt mục tiêu)
+                </span>
+              </div>
+              <div className="flex justify-between gap-2 text-zinc-400">
+                <span>Tiền cọc bạn đã thanh toán (bảo lưu 100%):</span>
+                <span className="font-mono text-emerald-400 font-bold whitespace-nowrap">
+                  {originalDepositPaid.toLocaleString('vi-VN')} đ
+                </span>
+              </div>
+              <div className="pt-2.5 border-t border-zinc-800 flex justify-between items-center gap-2 text-sm">
+                <span className="font-bold text-zinc-300">Số tiền cọc cần bù thêm:</span>
+                <span className="font-mono text-base font-extrabold text-emerald-400 whitespace-nowrap">
+                  0 đ (Không phát sinh chi phí)
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Các nút hành động (Chỉ hiển thị cho Customer) */}
         {isCustomer && (
@@ -498,14 +541,22 @@ export default function RankMismatchCard({
                 type="button"
                 onClick={handleCancelMismatch}
                 disabled={loadingAction !== null}
-                className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl border border-zinc-700 bg-zinc-800/80 hover:bg-zinc-800 text-zinc-300 hover:text-white text-xs font-semibold transition-all disabled:opacity-50 cursor-pointer"
+                className={`w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl border text-xs font-semibold transition-all disabled:opacity-50 cursor-pointer ${
+                  isTargetExceeded
+                    ? 'border-rose-500/40 bg-rose-950/40 hover:bg-rose-900/50 text-rose-200 hover:text-white shadow-lg shadow-rose-950/20'
+                    : 'border-zinc-700 bg-zinc-800/80 hover:bg-zinc-800 text-zinc-300 hover:text-white'
+                }`}
               >
                 {loadingAction === 'CANCEL' ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
                 ) : (
-                  <XCircle className="w-4 h-4 text-zinc-400" />
+                  <XCircle className={`w-4 h-4 ${isTargetExceeded ? 'text-rose-400' : 'text-zinc-400'}`} />
                 )}
-                <span>Từ chối &amp; Hủy đơn (Hoàn tiền vào ví)</span>
+                <span>
+                  {isTargetExceeded
+                    ? `Hủy đơn & Nhận lại ${originalDepositPaid.toLocaleString('vi-VN')} đ cọc`
+                    : 'Từ chối & Hủy đơn (Hoàn tiền vào ví)'}
+                </span>
               </button>
 
               <button
@@ -515,7 +566,11 @@ export default function RankMismatchCard({
                 className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black font-extrabold text-xs transition-all shadow-lg shadow-amber-500/20 active:scale-95 disabled:opacity-50 cursor-pointer"
               >
                 <CheckCircle2 className="w-4 h-4 text-black" />
-                <span>Xác nhận bù {extraAmount.toLocaleString('vi-VN')} đ &amp; Gửi lại tài khoản</span>
+                <span>
+                  {isTargetExceeded
+                    ? `Gửi lại tài khoản đúng Rank (${declaredRank})`
+                    : `Xác nhận bù ${extraAmount.toLocaleString('vi-VN')} đ & Gửi lại tài khoản`}
+                </span>
               </button>
             </div>
           </div>
@@ -554,10 +609,14 @@ export default function RankMismatchCard({
                       </div>
                       <div className="min-w-0">
                         <h3 className="font-bold text-white text-base">
-                          Thanh Toán Bù & Xác Nhận Tài Khoản
+                          {isTargetExceeded
+                            ? 'Gửi Lại Tài Khoản Đúng Mức Rank'
+                            : 'Thanh Toán Bù & Xác Nhận Tài Khoản'}
                         </h3>
                         <p className="text-xs text-zinc-400">
-                          Gửi đúng tài khoản ứng với mức Rank để Booster đăng nhập cày
+                          {isTargetExceeded
+                            ? `Cung cấp tài khoản game đúng mức Rank ban đầu (${declaredRank}) để Booster cày`
+                            : 'Gửi đúng tài khoản ứng với mức Rank để Booster đăng nhập cày'}
                         </p>
                       </div>
                     </div>
@@ -577,16 +636,16 @@ export default function RankMismatchCard({
                     <div className="flex items-center justify-between gap-2">
                       <span className="text-amber-200/80">Mức Rank thực tế áp dụng:</span>
                       <span className="font-extrabold text-amber-300 whitespace-nowrap">
-                        {mismatch.verifiedRank}
+                        {isTargetExceeded ? `${declaredRank} (Tài khoản mới)` : mismatch.verifiedRank}
                       </span>
                     </div>
                     <div className="flex items-center justify-between gap-2 pt-1.5 border-t border-amber-500/20">
                       <span className="text-amber-200/80 flex items-center gap-1.5">
                         <Wallet className="w-3.5 h-3.5 text-amber-400" />
-                        Số tiền trừ thêm từ ví:
+                        {isTargetExceeded ? 'Chi phí bù thêm:' : 'Số tiền trừ thêm từ ví:'}
                       </span>
                       <span className="font-mono text-sm font-black text-amber-300 whitespace-nowrap">
-                        +{extraAmount.toLocaleString('vi-VN')} đ
+                        {isTargetExceeded ? '0 đ (Miễn phí)' : `+${extraAmount.toLocaleString('vi-VN')} đ`}
                       </span>
                     </div>
                   </div>
@@ -595,9 +654,9 @@ export default function RankMismatchCard({
                   <div className="mt-3 p-3 rounded-xl bg-blue-500/10 border border-blue-500/25 text-xs text-blue-200/90 flex items-start gap-2.5 leading-relaxed">
                     <ShieldCheck className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
                     <span>
-                      Vui lòng kiểm tra hoặc nhập lại thông tin tài khoản game{' '}
-                      <strong className="text-white">đúng với mức Rank {mismatch.verifiedRank}</strong>{' '}
-                      để Booster đăng nhập và tiếp tục cày chính xác.
+                      {isTargetExceeded
+                        ? `Vui lòng nhập thông tin tài khoản game đúng với mức Rank ban đầu (${declaredRank}) để Booster tiếp tục cày theo thỏa thuận gốc.`
+                        : `Vui lòng kiểm tra hoặc nhập lại thông tin tài khoản game đúng với mức Rank ${mismatch.verifiedRank} để Booster đăng nhập và tiếp tục cày chính xác.`}
                     </span>
                   </div>
 
@@ -882,7 +941,9 @@ export default function RankMismatchCard({
                           <CheckCircle2 className="w-4 h-4 text-black" />
                         )}
                         <span>
-                          Thanh toán bù {extraAmount.toLocaleString('vi-VN')} đ & Gửi cho Booster
+                          {isTargetExceeded
+                            ? 'Xác nhận gửi tài khoản cho Booster'
+                            : `Thanh toán bù ${extraAmount.toLocaleString('vi-VN')} đ & Gửi cho Booster`}
                         </span>
                       </button>
                     </div>

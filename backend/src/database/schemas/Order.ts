@@ -137,6 +137,7 @@ export interface IOrder {
     targetRank?: string;
     proofImage?: string;
     note?: string;
+    isTargetExceeded?: boolean;
     recalculatedPrice?: number;
     extraAmountNeeded?: number;
     newClimbingStars?: number;

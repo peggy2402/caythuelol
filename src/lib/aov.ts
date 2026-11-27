@@ -979,6 +979,19 @@ export function extractAovStars(str: string, defaultStars = 1): number {
   return defaultStars;
 }
 
+export function isAovRankExceeded(verifiedRankStr: string, targetRankStr: string): boolean {
+  const fromIdx = matchAovLadderIndex(verifiedRankStr);
+  const toIdx = matchAovLadderIndex(targetRankStr);
+  if (fromIdx === -1 || toIdx === -1) return false;
+  if (fromIdx > toIdx) return true;
+  if (fromIdx === toIdx) {
+    const fromStars = extractAovStars(verifiedRankStr, 0);
+    const toStars = extractAovStars(targetRankStr, 5);
+    return fromStars >= toStars;
+  }
+  return false;
+}
+
 export function calculateAovStarDifferencePricing(
   fromRankStr: string,
   toRankStr: string,
