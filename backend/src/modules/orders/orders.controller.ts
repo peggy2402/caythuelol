@@ -156,6 +156,8 @@ export class OrdersController {
       };
       server?: string;
       note?: string;
+      newTargetRank?: string;
+      extraAmount?: number;
     },
   ) {
     return this.ordersService.confirmRequote(id, user.userId, body);
