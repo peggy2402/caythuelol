@@ -25,6 +25,7 @@ import { API_BASE_URL } from '@/lib/api';
 import { GAME_SERVERS, getServerByCode } from '@/lib/servers';
 import ServerFlag from '@/components/ServerFlag';
 import ImageLightbox from '@/components/ui/ImageLightbox';
+import { ProviderLogo } from '@/app/services/[game]/[service]/components/ProviderLogo';
 
 const AOV_PLATFORM_OPTIONS = [
   { id: 'Garena', label: 'Garena' },
@@ -125,34 +126,33 @@ export default function RankMismatchCard({
 
   const defaultPlatform = isAov ? 'Garena' : 'Riot';
 
-  useEffect(() => {
-    if (showConfirmModal) {
-      const existingPlatform = order?.details?.account_info?.platform || defaultPlatform;
-      const validPlatform = platformOptions.some(
-        (p) => p.id.toLowerCase() === existingPlatform.toLowerCase()
-      )
-        ? existingPlatform
-        : defaultPlatform;
+  const handleOpenConfirmModal = () => {
+    const existingPlatform = order?.details?.account_info?.platform || defaultPlatform;
+    const validPlatform = platformOptions.some(
+      (p) => p.id.toLowerCase() === existingPlatform.toLowerCase()
+    )
+      ? existingPlatform
+      : defaultPlatform;
 
-      const existingServer = order?.details?.server || 'VN';
-      const validServer = availableServers.some(
-        (s) => s.code.toUpperCase() === existingServer.toUpperCase()
-      )
-        ? existingServer
-        : availableServers[0]?.code || 'VN';
+    const existingServer = order?.details?.server || 'VN';
+    const validServer = availableServers.some(
+      (s) => s.code.toUpperCase() === existingServer.toUpperCase()
+    )
+      ? existingServer
+      : availableServers[0]?.code || 'VN';
 
-      setAccountForm({
-        username: order?.details?.account_info?.username || '',
-        password: order?.details?.account_info?.password || '',
-        platform: validPlatform,
-        server: validServer,
-        note: order?.details?.note || '',
-      });
-      setShowPassword(false);
-      setOpenDropdown(null);
-      setServerSearch('');
-    }
-  }, [showConfirmModal, order, defaultPlatform]);
+    setAccountForm({
+      username: order?.details?.account_info?.username || '',
+      password: order?.details?.account_info?.password || '',
+      platform: validPlatform,
+      server: validServer,
+      note: order?.details?.note || '',
+    });
+    setShowPassword(false);
+    setOpenDropdown(null);
+    setServerSearch('');
+    setShowConfirmModal(true);
+  };
 
   useEffect(() => {
     if (!showConfirmModal) return;
@@ -394,7 +394,7 @@ export default function RankMismatchCard({
 
             <button
               type="button"
-              onClick={() => setShowConfirmModal(true)}
+              onClick={handleOpenConfirmModal}
               disabled={loadingAction !== null}
               className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black font-extrabold text-xs transition-all shadow-lg shadow-amber-500/20 active:scale-95 disabled:opacity-50 cursor-pointer"
             >
@@ -419,7 +419,7 @@ export default function RankMismatchCard({
                 onClick={() => {
                   if (loadingAction === null) setShowConfirmModal(false);
                 }}
-                className="fixed inset-0 z-[9990] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+                className="fixed inset-0 z-[9990] flex items-center justify-center p-4 sm:p-6 bg-black/80 backdrop-blur-sm overflow-y-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-zinc-700/70 [&::-webkit-scrollbar-thumb]:rounded-full"
               >
                 <motion.div
                   initial={{ opacity: 0, scale: 0.94, y: 14 }}
@@ -427,7 +427,7 @@ export default function RankMismatchCard({
                   exit={{ opacity: 0, scale: 0.94, y: 14 }}
                   transition={{ type: 'spring', stiffness: 360, damping: 28 }}
                   onClick={(e) => e.stopPropagation()}
-                  className="relative w-full max-w-lg max-h-[92vh] overflow-y-auto rounded-2xl bg-zinc-900 border border-amber-500/35 p-5 shadow-2xl [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-zinc-700/70 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-zinc-600"
+                  className="relative w-full max-w-[600px] my-auto overflow-visible rounded-2xl bg-zinc-900 border border-amber-500/35 p-5 sm:p-6 shadow-2xl"
                 >
                   {/* Header */}
                   <div className="flex items-center justify-between gap-3 pb-4 border-b border-zinc-800">
@@ -485,7 +485,7 @@ export default function RankMismatchCard({
                   </div>
 
                   {/* Form gửi lại thông tin tài khoản game */}
-                  <form onSubmit={handleConfirmRequote} className="mt-4 space-y-3.5">
+                  <form onSubmit={handleConfirmRequote} autoComplete="off" className="mt-4 space-y-3.5">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                       <div>
                         <label className="block text-xs font-semibold text-zinc-300 mb-1.5">
@@ -493,6 +493,13 @@ export default function RankMismatchCard({
                         </label>
                         <input
                           type="text"
+                          name="game_account_id_field"
+                          autoComplete="off"
+                          autoCorrect="off"
+                          autoCapitalize="off"
+                          spellCheck={false}
+                          data-lpignore="true"
+                          data-1p-ignore="true"
                           required
                           value={accountForm.username}
                           onChange={(e) =>
@@ -509,11 +516,23 @@ export default function RankMismatchCard({
                         </label>
                         <div className="relative">
                           <input
-                            type={showPassword ? 'text' : 'password'}
+                            type="text"
+                            name="game_account_secret_field"
+                            autoComplete="off"
+                            autoCorrect="off"
+                            autoCapitalize="off"
+                            spellCheck={false}
+                            data-lpignore="true"
+                            data-1p-ignore="true"
                             required
                             value={accountForm.password}
                             onChange={(e) =>
                               setAccountForm((prev) => ({ ...prev, password: e.target.value }))
+                            }
+                            style={
+                              showPassword
+                                ? undefined
+                                : ({ WebkitTextSecurity: 'disc' } as React.CSSProperties)
                             }
                             placeholder="Nhập mật khẩu..."
                             className="w-full rounded-xl border border-zinc-700/80 bg-zinc-950 pl-3.5 pr-10 py-2.5 text-sm font-mono text-white placeholder-zinc-500 focus:border-amber-500 focus:outline-none transition-colors"
@@ -547,24 +566,29 @@ export default function RankMismatchCard({
                               : 'border-zinc-700/80 hover:border-zinc-500'
                           }`}
                         >
-                          <span className="font-semibold truncate">
-                            {platformOptions.find(
-                              (p) => p.id.toLowerCase() === accountForm.platform.toLowerCase()
-                            )?.label ||
-                              accountForm.platform ||
-                              'Chọn nền tảng'}
-                          </span>
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <div className="w-5 h-5 rounded-md bg-white/5 flex items-center justify-center shrink-0 overflow-hidden">
+                              <ProviderLogo provider={accountForm.platform} className="w-4 h-4" />
+                            </div>
+                            <span className="font-semibold truncate">
+                              {platformOptions.find(
+                                (p) => p.id.toLowerCase() === accountForm.platform.toLowerCase()
+                              )?.label ||
+                                accountForm.platform ||
+                                'Chọn nền tảng'}
+                            </span>
+                          </div>
                           <ChevronsUpDown className="w-4 h-4 text-zinc-400 shrink-0" />
                         </button>
 
                         <AnimatePresence>
                           {openDropdown === 'platform' && (
                             <motion.div
-                              initial={{ opacity: 0, y: 6, scale: 0.97 }}
+                              initial={{ opacity: 0, y: -6, scale: 0.97 }}
                               animate={{ opacity: 1, y: 0, scale: 1 }}
-                              exit={{ opacity: 0, y: 6, scale: 0.97 }}
+                              exit={{ opacity: 0, y: -6, scale: 0.97 }}
                               transition={{ duration: 0.14 }}
-                              className="absolute left-0 right-0 bottom-full mb-2 z-40 rounded-xl border border-zinc-700/90 bg-zinc-900/98 backdrop-blur-xl shadow-[0_-12px_40px_rgba(0,0,0,0.65)] p-1.5 grid grid-cols-2 gap-1"
+                              className="absolute left-0 right-0 top-full mt-2 z-50 rounded-xl border border-zinc-700/90 bg-zinc-900/98 backdrop-blur-xl shadow-[0_16px_48px_rgba(0,0,0,0.75)] p-1.5 space-y-1"
                             >
                               {platformOptions.map((opt) => {
                                 const isSelected =
@@ -577,14 +601,19 @@ export default function RankMismatchCard({
                                       setAccountForm((prev) => ({ ...prev, platform: opt.id }));
                                       setOpenDropdown(null);
                                     }}
-                                    className={`px-2.5 py-2 rounded-lg text-left text-xs flex items-center justify-between gap-1.5 transition-colors cursor-pointer ${
+                                    className={`w-full px-3 py-2 rounded-lg text-left text-xs sm:text-sm flex items-center justify-between gap-2 transition-colors cursor-pointer ${
                                       isSelected
                                         ? 'bg-amber-500/20 text-amber-300 font-bold border border-amber-500/35'
                                         : 'text-zinc-200 hover:bg-zinc-800 border border-transparent'
                                     }`}
                                   >
-                                    <span className="truncate">{opt.label}</span>
-                                    {isSelected && <Check className="w-3.5 h-3.5 text-amber-400 shrink-0" />}
+                                    <div className="flex items-center gap-2.5 min-w-0">
+                                      <div className="w-5 h-5 rounded-md bg-white/5 flex items-center justify-center shrink-0 overflow-hidden">
+                                        <ProviderLogo provider={opt.id} className="w-4 h-4" />
+                                      </div>
+                                      <span className="truncate">{opt.label}</span>
+                                    </div>
+                                    {isSelected && <Check className="w-4 h-4 text-amber-400 shrink-0" />}
                                   </button>
                                 );
                               })}
@@ -641,11 +670,11 @@ export default function RankMismatchCard({
                         <AnimatePresence>
                           {openDropdown === 'server' && (
                             <motion.div
-                              initial={{ opacity: 0, y: 6, scale: 0.97 }}
+                              initial={{ opacity: 0, y: -6, scale: 0.97 }}
                               animate={{ opacity: 1, y: 0, scale: 1 }}
-                              exit={{ opacity: 0, y: 6, scale: 0.97 }}
+                              exit={{ opacity: 0, y: -6, scale: 0.97 }}
                               transition={{ duration: 0.14 }}
-                              className="absolute left-0 right-0 bottom-full mb-2 z-40 rounded-xl border border-zinc-700/90 bg-zinc-900/98 backdrop-blur-xl shadow-[0_-12px_40px_rgba(0,0,0,0.65)] overflow-hidden"
+                              className="absolute left-0 right-0 top-full mt-2 z-50 rounded-xl border border-zinc-700/90 bg-zinc-900/98 backdrop-blur-xl shadow-[0_16px_48px_rgba(0,0,0,0.75)] overflow-hidden"
                             >
                               {availableServers.length > 5 && (
                                 <div className="p-2 border-b border-zinc-800">
