@@ -1118,6 +1118,50 @@ export class OrdersService {
     return { success: true, message: 'Đã gửi khiếu nại đến Admin. Admin sẽ can thiệp xử lý.' };
   }
 
+  async withdrawDispute(orderId: string, userId: string) {
+    let filter: any;
+    if (Types.ObjectId.isValid(orderId)) {
+      filter = { $or: [{ _id: new Types.ObjectId(orderId) }, { orderCode: orderId }] };
+    } else {
+      filter = { orderCode: orderId.trim().toUpperCase() };
+    }
+
+    const order = await this.orderModel.findOne(filter);
+    if (!order) throw new NotFoundException('Không tìm thấy đơn hàng');
+
+    const customerIdStr = (order.customerId as any)?._id?.toString() || order.customerId?.toString();
+    if (customerIdStr !== userId?.toString()) {
+      throw new ForbiddenException('Chỉ khách hàng tạo đơn mới có quyền rút khiếu nại');
+    }
+
+    if (order.status !== OrderStatus.DISPUTED) {
+      throw new BadRequestException('Đơn hàng không ở trạng thái khiếu nại');
+    }
+
+    // Nếu đơn có thông tin mismatch_info, quay về RANK_MISMATCH để khách tiếp tục xử lý
+    if (order.mismatch_info) {
+      order.status = OrderStatus.RANK_MISMATCH;
+    } else {
+      order.status = OrderStatus.IN_PROGRESS;
+    }
+
+    if (order.dispute) {
+      order.dispute.status = 'RESOLVED';
+      order.dispute.adminNote = (order.dispute.adminNote ? order.dispute.adminNote + ' | ' : '') + 'Khách hàng tự nguyện rút khiếu nại';
+    }
+
+    if (!order.timeline) order.timeline = [];
+    order.timeline.push({
+      status: order.status,
+      timestamp: new Date(),
+      actor: new Types.ObjectId(userId),
+      note: 'Khách hàng đã tự nguyện rút khiếu nại để tiếp tục xử lý đơn hàng.',
+    });
+
+    await order.save();
+    return { success: true, message: 'Đã rút khiếu nại thành công. Bạn có thể tiếp tục xử lý đơn hàng.' };
+  }
+
   async updateOrderDetails(
     orderId: string,
     userId: string,

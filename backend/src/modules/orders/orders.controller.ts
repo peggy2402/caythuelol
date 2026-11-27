@@ -193,6 +193,15 @@ export class OrdersController {
     return this.ordersService.createDispute(id, user.userId, reason, user.role);
   }
 
+  @Post(':id/withdraw-dispute')
+  @ApiOperation({ summary: 'Customer voluntarily withdraws dispute to continue order processing' })
+  async withdrawDispute(
+    @Param('id') id: string,
+    @ReqUser() user: any,
+  ) {
+    return this.ordersService.withdrawDispute(id, user.userId);
+  }
+
   @Patch(':id/details')
   @ApiOperation({ summary: 'Update order details (ingame name, rank, LP, vod, etc.)' })
   async updateOrderDetails(

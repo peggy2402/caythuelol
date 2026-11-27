@@ -505,8 +505,7 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
       }
 
     } catch (error) {
-      console.error(error);
-      toast.error('Lỗi tải thông tin đơn hàng');
+      console.error('Không tìm thấy hoặc không có quyền truy cập đơn hàng:', error);
     } finally {
       setLoading(false);
     }
@@ -1851,8 +1850,8 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
               );
             })()}
 
-            {/* Rank Mismatch Card */}
-            {order.status === 'RANK_MISMATCH' && (
+            {/* Rank Mismatch Card (Hiển thị khi RANK_MISMATCH hoặc khi DISPUTED do khiếu nại sai lệch rank) */}
+            {(order.status === 'RANK_MISMATCH' || (order.status === 'DISPUTED' && Boolean(order.mismatch_info))) && (
               <RankMismatchCard
                 order={order}
                 isCustomer={isCustomer}

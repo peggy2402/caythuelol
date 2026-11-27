@@ -265,7 +265,7 @@ export class AdminController {
   @ApiOperation({ summary: 'Resolve an order dispute' })
   async resolveDispute(
     @Body('orderId') orderId: string,
-    @Body('decision') decision: 'REFUND_CUSTOMER' | 'PAY_BOOSTER' | 'RESUME',
+    @Body('decision') decision: 'REFUND_CUSTOMER' | 'PAY_BOOSTER' | 'RESUME' | 'REJECT_DISPUTE_REQUIRE_ACTION',
     @ReqUser() admin?: any,
     @Req() req?: any,
   ) {

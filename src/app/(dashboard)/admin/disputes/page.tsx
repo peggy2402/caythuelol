@@ -119,7 +119,7 @@ export default function AdminDisputesPage() {
   const [resolveModal, setResolveModal] = useState<{
     isOpen: boolean;
     dispute: Dispute | null;
-    decision: 'REFUND_CUSTOMER' | 'PAY_BOOSTER' | 'RESUME';
+    decision: 'REFUND_CUSTOMER' | 'PAY_BOOSTER' | 'RESUME' | 'REJECT_DISPUTE_REQUIRE_ACTION';
     submitting: boolean;
   }>({
     isOpen: false,
@@ -210,7 +210,7 @@ export default function AdminDisputesPage() {
   // Mở modal xác nhận phán quyết
   const handleOpenResolveModal = (
     dispute: Dispute,
-    decision: 'REFUND_CUSTOMER' | 'PAY_BOOSTER' | 'RESUME'
+    decision: 'REFUND_CUSTOMER' | 'PAY_BOOSTER' | 'RESUME' | 'REJECT_DISPUTE_REQUIRE_ACTION'
   ) => {
     setResolveModal({
       isOpen: true,
@@ -487,6 +487,16 @@ export default function AdminDisputesPage() {
                         {/* Các nút phân xử nếu đơn còn PENDING */}
                         {d.dispute?.status === 'PENDING' && (
                           <div className="flex items-center justify-end gap-1.5 pt-1.5 flex-wrap">
+                            {isRankDispute && (
+                              <button
+                                type="button"
+                                onClick={() => handleOpenResolveModal(d, 'REJECT_DISPUTE_REQUIRE_ACTION')}
+                                title="Bác khiếu nại của khách, xác nhận Booster đúng và chuyển về để khách xử lý tiếp"
+                                className="px-2.5 py-1 rounded-lg border border-amber-500/35 bg-amber-500/15 text-amber-300 hover:bg-amber-500/25 text-[11px] font-bold transition-all cursor-pointer"
+                              >
+                                Bác khiếu nại (Khách xử lý)
+                              </button>
+                            )}
                             <button
                               type="button"
                               onClick={() => handleOpenResolveModal(d, 'RESUME')}
@@ -762,6 +772,15 @@ export default function AdminDisputesPage() {
               </button>
 
               <div className="flex items-center gap-2 w-full sm:w-auto justify-end flex-wrap">
+                {Boolean(selectedDispute.mismatch_info?.verifiedRank || selectedDispute.mismatch_info?.proofImage) && (
+                  <button
+                    type="button"
+                    onClick={() => handleOpenResolveModal(selectedDispute, 'REJECT_DISPUTE_REQUIRE_ACTION')}
+                    className="px-4 py-2 rounded-xl border border-amber-500/40 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 font-bold text-xs transition-all cursor-pointer shadow-lg shadow-amber-950/30"
+                  >
+                    Bác khiếu nại (Khách xử lý tiếp)
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={() => handleOpenResolveModal(selectedDispute, 'RESUME')}
@@ -905,6 +924,24 @@ export default function AdminDisputesPage() {
                       </strong>{' '}
                       vào ví của Booster. Đơn hàng chuyển sang <code>COMPLETED</code>.
                     </p>
+                  </div>
+                );
+              }
+
+              if (resolveModal.decision === 'REJECT_DISPUTE_REQUIRE_ACTION') {
+                return (
+                  <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-xs space-y-2 text-amber-200">
+                    <div className="font-bold text-amber-300 text-sm flex items-center gap-2">
+                      <ShieldCheck className="w-4 h-4 text-amber-400" />
+                      Quyết định: Bác bỏ khiếu nại (Xác nhận Booster đúng)
+                    </div>
+                    <p className="text-zinc-300 leading-relaxed">
+                      Admin xác nhận bằng chứng sảnh chờ từ Booster là chính xác, khiếu nại của khách không có cơ sở. Đơn hàng sẽ chuyển về lại trạng thái <code className="text-amber-300 font-bold">RANK_MISMATCH</code> để Khách hàng tiếp tục xử lý (bù thêm cọc hoặc cung cấp lại tài khoản đúng rank).
+                    </p>
+                    <div className="p-2.5 rounded-lg bg-black/40 border border-amber-500/20 text-[11px] text-zinc-400 space-y-1">
+                      <div>• Tiền cọc <strong className="text-emerald-400 font-mono">+{depositPaid.toLocaleString('vi-VN')} đ</strong> vẫn được bảo lưu an toàn trong quỹ Escrow.</div>
+                      <div>• Hệ thống sẽ gửi thông báo đến Khách hàng kèm kết luận của Admin.</div>
+                    </div>
                   </div>
                 );
               }

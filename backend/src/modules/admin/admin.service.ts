@@ -18,6 +18,7 @@ import { IBoosterProfile } from '../../database/schemas/BoosterProfile';
 import { getClientIp } from '../../common/utils/ip.util';
 import { encryptSecret, decryptSecret } from '../../common/utils/crypto.util';
 import { LoyaltyService } from '../loyalty/loyalty.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import * as bcrypt from 'bcryptjs';
 
 @Injectable()
@@ -34,6 +35,7 @@ export class AdminService {
     @InjectModel('AuditLog') private auditLogModel: Model<IAuditLog>,
     @InjectConnection() private readonly connection: Connection,
     private loyaltyService: LoyaltyService,
+    private notificationsService: NotificationsService,
   ) {}
 
   async getStats(startDate?: string, endDate?: string): Promise<any> {
@@ -819,7 +821,10 @@ export class AdminService {
     return { success: true, disputes };
   }
 
-  async resolveDispute(orderId: string, decision: 'REFUND_CUSTOMER' | 'PAY_BOOSTER' | 'RESUME') {
+  async resolveDispute(
+    orderId: string,
+    decision: 'REFUND_CUSTOMER' | 'PAY_BOOSTER' | 'RESUME' | 'REJECT_DISPUTE_REQUIRE_ACTION',
+  ) {
     const session = await this.connection.startSession();
     session.startTransaction();
 
@@ -958,6 +963,18 @@ export class AdminService {
           status: 'RESOLVED',
           adminNote: (order.dispute?.adminNote ? order.dispute.adminNote + ' | ' : '') + 'Admin phân xử: Tiếp tục cày',
         };
+      } else if (decision === 'REJECT_DISPUTE_REQUIRE_ACTION') {
+        // Bác khiếu nại của khách, yêu cầu khách tiếp tục xử lý sai lệch rank
+        if (order.mismatch_info) {
+          order.status = OrderStatus.RANK_MISMATCH;
+        } else {
+          order.status = OrderStatus.IN_PROGRESS;
+        }
+        order.dispute = {
+          ...(order.dispute || { reason: '' }),
+          status: 'REJECTED',
+          adminNote: (order.dispute?.adminNote ? order.dispute.adminNote + ' | ' : '') + 'Admin đối soát xác nhận Booster đúng. Bác khiếu nại, chuyển về để Khách xử lý tiếp.',
+        };
       }
 
       if (!order.timeline) order.timeline = [];
@@ -969,12 +986,29 @@ export class AdminService {
             ? `Hoàn ${order.pricing.deposit_amount.toLocaleString('vi-VN')} đ cọc về ví khách.`
             : decision === 'PAY_BOOSTER'
             ? 'Khách hàng mất cọc. Giải ngân tiền cọc hợp lệ cho Booster.'
+            : decision === 'REJECT_DISPUTE_REQUIRE_ACTION'
+            ? 'Admin bác bỏ khiếu nại của khách. Giữ nguyên báo cáo lệch rank của Booster, chuyển về cho Khách xử lý tiếp.'
             : 'Admin phê duyệt tiếp tục cày.'
         }`,
       });
 
       await order.save({ session });
       await session.commitTransaction();
+
+      // Thông báo cho khách hàng nếu Admin bác khiếu nại
+      if (decision === 'REJECT_DISPUTE_REQUIRE_ACTION') {
+        const orderCodeDisplay = order.orderCode || order._id.toString().slice(-6).toUpperCase();
+        this.notificationsService
+          .notifyUser({
+            userId: order.customerId,
+            title: `⚖️ Phán quyết khiếu nại - Đơn #${orderCodeDisplay}`,
+            message: `Admin đã đối soát bằng chứng từ Booster và xác nhận báo cáo sai lệch Rank là chính xác. Khiếu nại đã đóng. Vui lòng vào đơn hàng để gửi lại tài khoản hoặc xác nhận bù cọc.`,
+            type: 'ORDER_UPDATE',
+            variant: 'warning',
+            link: `/orders/${order._id}`,
+          })
+          .catch(() => {});
+      }
 
       return { success: true, message: `Phân xử khiếu nại thành công [${decision}]` };
     } catch (error) {

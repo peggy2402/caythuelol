@@ -11,6 +11,7 @@ import {
   Image as ImageIcon,
   ZoomIn,
   ShieldCheck,
+  ShieldAlert,
   Eye,
   EyeOff,
   X,
@@ -65,7 +66,7 @@ export default function RankMismatchCard({
   onRefresh,
 }: RankMismatchCardProps) {
   const [mounted, setMounted] = useState(false);
-  const [loadingAction, setLoadingAction] = useState<'CONFIRM' | 'CANCEL' | null>(null);
+  const [loadingAction, setLoadingAction] = useState<'CONFIRM' | 'CANCEL' | 'WITHDRAW' | null>(null);
   const [showProofModal, setShowProofModal] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -173,7 +174,10 @@ export default function RankMismatchCard({
   }, [showConfirmModal, loadingAction]);
 
   const mismatch = order?.mismatch_info;
-  if (!mismatch || order.status !== 'RANK_MISMATCH') return null;
+  if (!mismatch || (order.status !== 'RANK_MISMATCH' && order.status !== 'DISPUTED')) return null;
+
+  const isDisputed = order.status === 'DISPUTED';
+  const isAdminRejectedDispute = order.dispute?.status === 'REJECTED';
 
   const recalculatedPrice = mismatch.newOrderTotal || mismatch.recalculatedPrice || 0;
   const originalTotal = mismatch.originalTotalAmount || order.pricing?.total_amount || 0;
@@ -239,6 +243,35 @@ export default function RankMismatchCard({
       }
     } catch {
       toast.error('Lỗi kết nối khi gửi khiếu nại');
+    } finally {
+      setLoadingAction(null);
+    }
+  };
+
+  const handleWithdrawDispute = async () => {
+    if (!confirm('Bạn có chắc chắn muốn rút khiếu nại để quay lại xử lý đơn hàng (bù cọc hoặc gửi lại tài khoản)?')) return;
+
+    setLoadingAction('WITHDRAW');
+    try {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+      const res = await fetch(`${API_BASE_URL}/api/orders/${order.orderCode || order._id}/withdraw-dispute`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        credentials: 'include',
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        toast.success(data.message || 'Đã rút khiếu nại thành công! Bạn có thể tiếp tục xử lý đơn.');
+        onRefresh();
+      } else {
+        toast.error(data.message || 'Rút khiếu nại thất bại');
+      }
+    } catch {
+      toast.error('Lỗi kết nối khi rút khiếu nại');
     } finally {
       setLoadingAction(null);
     }
@@ -332,26 +365,102 @@ export default function RankMismatchCard({
         {/* Header Alert */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-amber-500/20">
           <div className="flex items-start sm:items-center gap-3">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-amber-500/40 bg-amber-500/10 text-amber-400 shadow-inner">
-              <AlertTriangle className="h-6 w-6 animate-pulse" />
+            <div
+              className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border shadow-inner ${
+                isDisputed
+                  ? 'border-rose-500/40 bg-rose-500/10 text-rose-400'
+                  : 'border-amber-500/40 bg-amber-500/10 text-amber-400'
+              }`}
+            >
+              {isDisputed ? (
+                <ShieldAlert className="h-6 w-6 animate-pulse" />
+              ) : (
+                <AlertTriangle className="h-6 w-6 animate-pulse" />
+              )}
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
                 <h3 className="text-base sm:text-lg font-bold text-white">
-                  Phát hiện sai lệch Rank (Tạm dừng đơn hàng)
+                  {isDisputed
+                    ? 'Tranh chấp sai lệch Rank (Đang khiếu nại Admin)'
+                    : 'Phát hiện sai lệch Rank (Tạm dừng đơn hàng)'}
                 </h3>
-                <span className="rounded-md bg-amber-500/20 px-2 py-0.5 text-[10px] font-bold uppercase text-amber-300 border border-amber-500/30 shrink-0 whitespace-nowrap">
-                  RANK_MISMATCH
+                <span
+                  className={`rounded-md px-2 py-0.5 text-[10px] font-bold uppercase border shrink-0 whitespace-nowrap ${
+                    isDisputed
+                      ? 'bg-rose-500/20 text-rose-300 border-rose-500/40'
+                      : 'bg-amber-500/20 text-amber-300 border-amber-500/30'
+                  }`}
+                >
+                  {isDisputed ? 'DISPUTED' : 'RANK_MISMATCH'}
                 </span>
               </div>
               <p className="text-xs text-zinc-400 mt-0.5 leading-relaxed">
-                {isCustomer
+                {isDisputed
+                  ? 'Đơn hàng đang trong tiến trình khiếu nại. Admin đang tiếp nhận đối soát bằng chứng giữa hai bên.'
+                  : isCustomer
                   ? 'Booster đã vào tài khoản và phát hiện Rank thực tế khác với Rank bạn đã chọn khi đặt đơn.'
                   : 'Báo cáo sai lệch Rank của bạn đã được ghi nhận. Đơn hàng đang tạm dừng chờ khách xác nhận.'}
               </p>
             </div>
           </div>
         </div>
+
+        {/* BANNER THÔNG BÁO KHIẾU NẠI ĐANG CHỜ ADMIN */}
+        {isDisputed && (
+          <div className="mt-4 p-4 rounded-xl bg-rose-500/10 border border-rose-500/30 text-xs text-rose-300 space-y-2.5">
+            <div className="font-bold text-rose-200 flex items-center justify-between flex-wrap gap-2 text-sm">
+              <div className="flex items-center gap-2">
+                <ShieldAlert className="w-5 h-5 text-rose-400 animate-pulse" />
+                <span>Đang trong tiến trình Khiếu nại Admin</span>
+              </div>
+              <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-rose-500/20 text-rose-300 font-mono">
+                Chờ Admin phân xử
+              </span>
+            </div>
+            <p className="text-zinc-300 leading-relaxed">
+              Lý do khiếu nại của bạn:{' '}
+              <strong className="text-rose-200 font-medium">"{order.dispute?.reason || 'Chờ đối soát bằng chứng'}"</strong>
+            </p>
+            <p className="text-zinc-400 leading-relaxed">
+              Admin sẽ kiểm tra lịch sử đấu &amp; hình ảnh sảnh chờ. Nếu bạn muốn hủy khiếu nại để tự thỏa thuận với Booster, cập nhật thông tin tài khoản đúng rank hoặc bù phí để tiếp tục đơn ngay lập tức, hãy bấm nút rút khiếu nại dưới đây.
+            </p>
+            <div className="pt-1 flex items-center justify-end">
+              <button
+                type="button"
+                onClick={handleWithdrawDispute}
+                disabled={loadingAction !== null}
+                className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black font-extrabold text-xs transition-all shadow-md active:scale-95 disabled:opacity-50 cursor-pointer flex items-center gap-1.5"
+              >
+                {loadingAction === 'WITHDRAW' ? (
+                  <Loader2 className="w-4 h-4 animate-spin text-black" />
+                ) : (
+                  <CheckCircle2 className="w-4 h-4 text-black" />
+                )}
+                <span>Rút khiếu nại &amp; Tiếp tục xử lý đơn</span>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* THÔNG BÁO NẾU ADMIN ĐÃ BÁC KHIẾU NẠI VÀ YÊU CẦU KHÁCH XỬ LÝ TIẾP */}
+        {isAdminRejectedDispute && !isDisputed && (
+          <div className="mt-4 p-4 rounded-xl bg-yellow-500/10 border border-yellow-500/30 text-xs text-yellow-300 space-y-1.5">
+            <div className="font-bold text-yellow-200 flex items-center gap-2 text-sm">
+              <ShieldCheck className="w-5 h-5 text-yellow-400" />
+              <span>Kết luận của Admin: Bác bỏ khiếu nại</span>
+            </div>
+            <p className="text-zinc-300 leading-relaxed">
+              Admin đã kiểm tra bằng chứng sảnh chờ và xác nhận báo cáo Rank của Booster là chính xác. Khiếu nại đã đóng. Bạn có thể chọn gửi lại tài khoản đúng rank ban đầu hoặc bù chênh lệch để tiếp tục đơn hàng.
+            </p>
+            {order.dispute?.adminNote && (
+              <div className="p-2.5 rounded-lg bg-black/40 border border-yellow-500/20 text-[11px] text-zinc-400">
+                <strong className="text-yellow-200">Ghi chú Admin: </strong>
+                {order.dispute.adminNote}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* So sánh Rank khai báo vs Rank thực tế */}
         <div className="mt-5 grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -527,52 +636,93 @@ export default function RankMismatchCard({
         {/* Các nút hành động (Chỉ hiển thị cho Customer) */}
         {isCustomer && (
           <div className="mt-5 flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-zinc-800">
-            {/* Nút khiếu nại nếu Booster vu khống */}
-            <button
-              type="button"
-              onClick={() => setShowDisputeModal(true)}
-              className="text-xs text-zinc-400 hover:text-rose-400 underline font-medium transition-colors cursor-pointer"
-            >
-              🛡️ Booster báo sai sự thật? Khiếu nại Admin
-            </button>
+            {isDisputed ? (
+              <>
+                <div className="flex items-center gap-2 text-rose-400 text-xs font-semibold">
+                  <ShieldAlert className="w-4 h-4 animate-pulse shrink-0" />
+                  <span>Tranh chấp đang được BQT xem xét đối soát</span>
+                </div>
 
-            <div className="flex flex-col sm:flex-row items-center gap-2.5 w-full sm:w-auto">
-              <button
-                type="button"
-                onClick={handleCancelMismatch}
-                disabled={loadingAction !== null}
-                className={`w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl border text-xs font-semibold transition-all disabled:opacity-50 cursor-pointer ${
-                  isTargetExceeded
-                    ? 'border-rose-500/40 bg-rose-950/40 hover:bg-rose-900/50 text-rose-200 hover:text-white shadow-lg shadow-rose-950/20'
-                    : 'border-zinc-700 bg-zinc-800/80 hover:bg-zinc-800 text-zinc-300 hover:text-white'
-                }`}
-              >
-                {loadingAction === 'CANCEL' ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <XCircle className={`w-4 h-4 ${isTargetExceeded ? 'text-rose-400' : 'text-zinc-400'}`} />
-                )}
-                <span>
-                  {isTargetExceeded
-                    ? `Hủy đơn & Nhận lại ${originalDepositPaid.toLocaleString('vi-VN')} đ cọc`
-                    : 'Từ chối & Hủy đơn (Hoàn tiền vào ví)'}
-                </span>
-              </button>
+                <div className="flex flex-col sm:flex-row items-center gap-2.5 w-full sm:w-auto">
+                  <button
+                    type="button"
+                    onClick={handleCancelMismatch}
+                    disabled={loadingAction !== null}
+                    className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl border border-rose-500/40 bg-rose-950/40 hover:bg-rose-900/50 text-rose-200 hover:text-white text-xs font-semibold transition-all disabled:opacity-50 cursor-pointer shadow-lg shadow-rose-950/20"
+                  >
+                    {loadingAction === 'CANCEL' ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <XCircle className="w-4 h-4 text-rose-400" />
+                    )}
+                    <span>Hủy đơn &amp; Nhận lại cọc</span>
+                  </button>
 
-              <button
-                type="button"
-                onClick={handleOpenConfirmModal}
-                disabled={loadingAction !== null}
-                className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black font-extrabold text-xs transition-all shadow-lg shadow-amber-500/20 active:scale-95 disabled:opacity-50 cursor-pointer"
-              >
-                <CheckCircle2 className="w-4 h-4 text-black" />
-                <span>
-                  {isTargetExceeded
-                    ? `Gửi lại tài khoản đúng Rank (${declaredRank})`
-                    : `Xác nhận bù ${extraAmount.toLocaleString('vi-VN')} đ & Gửi lại tài khoản`}
-                </span>
-              </button>
-            </div>
+                  <button
+                    type="button"
+                    onClick={handleWithdrawDispute}
+                    disabled={loadingAction !== null}
+                    className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black font-extrabold text-xs transition-all shadow-lg shadow-amber-500/20 active:scale-95 disabled:opacity-50 cursor-pointer"
+                  >
+                    {loadingAction === 'WITHDRAW' ? (
+                      <Loader2 className="w-4 h-4 animate-spin text-black" />
+                    ) : (
+                      <CheckCircle2 className="w-4 h-4 text-black" />
+                    )}
+                    <span>Rút khiếu nại &amp; Tiếp tục xử lý</span>
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                {/* Nút khiếu nại nếu Booster vu khống */}
+                <button
+                  type="button"
+                  onClick={() => setShowDisputeModal(true)}
+                  className="text-xs text-zinc-400 hover:text-rose-400 underline font-medium transition-colors cursor-pointer"
+                >
+                  🛡️ Booster báo sai sự thật? Khiếu nại Admin
+                </button>
+
+                <div className="flex flex-col sm:flex-row items-center gap-2.5 w-full sm:w-auto">
+                  <button
+                    type="button"
+                    onClick={handleCancelMismatch}
+                    disabled={loadingAction !== null}
+                    className={`w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl border text-xs font-semibold transition-all disabled:opacity-50 cursor-pointer ${
+                      isTargetExceeded
+                        ? 'border-rose-500/40 bg-rose-950/40 hover:bg-rose-900/50 text-rose-200 hover:text-white shadow-lg shadow-rose-950/20'
+                        : 'border-zinc-700 bg-zinc-800/80 hover:bg-zinc-800 text-zinc-300 hover:text-white'
+                    }`}
+                  >
+                    {loadingAction === 'CANCEL' ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <XCircle className={`w-4 h-4 ${isTargetExceeded ? 'text-rose-400' : 'text-zinc-400'}`} />
+                    )}
+                    <span>
+                      {isTargetExceeded
+                        ? `Hủy đơn & Nhận lại ${originalDepositPaid.toLocaleString('vi-VN')} đ cọc`
+                        : 'Từ chối & Hủy đơn (Hoàn tiền vào ví)'}
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleOpenConfirmModal}
+                    disabled={loadingAction !== null}
+                    className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black font-extrabold text-xs transition-all shadow-lg shadow-amber-500/20 active:scale-95 disabled:opacity-50 cursor-pointer"
+                  >
+                    <CheckCircle2 className="w-4 h-4 text-black" />
+                    <span>
+                      {isTargetExceeded
+                        ? `Gửi lại tài khoản đúng Rank (${declaredRank})`
+                        : `Xác nhận bù ${extraAmount.toLocaleString('vi-VN')} đ & Gửi lại tài khoản`}
+                    </span>
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         )}
       </div>
