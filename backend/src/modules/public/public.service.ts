@@ -7,6 +7,7 @@ import axios from 'axios';
 import { ISystemSetting } from '../../database/schemas/SystemSetting';
 import { IBoosterProfile } from '../../database/schemas/BoosterProfile';
 import { decryptSecret } from '../../common/utils/crypto.util';
+import aovHeroesData from '../../common/data/aov_heroes.json';
 import {
   RiotPlayerLookupDto,
   RiotMatchLookupDto,
@@ -306,6 +307,10 @@ export class PublicService {
       if (stale) return stale.data;
       return [];
     }
+  }
+
+  getAovHeroes() {
+    return Array.isArray(aovHeroesData) ? aovHeroesData : [];
   }
 
   async getWithdrawFee() {

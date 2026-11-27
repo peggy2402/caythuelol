@@ -143,10 +143,10 @@ export default function ChampionModal({
         if (!isFav) return false;
       }
 
-      if (filters.roles.length > 0 && !filters.roles.some(r => champ.tags.includes(r))) return false;
+      if (filters.roles.length > 0 && !filters.roles.some(r => (champ.tags || []).includes(r))) return false;
       
       if (filters.difficulty.length > 0) {
-        const diff = champ.info.difficulty;
+        const diff = champ.info?.difficulty ?? 5;
         const isEasy = filters.difficulty.includes('Easy') && diff <= 3;
         const isMedium = filters.difficulty.includes('Medium') && diff >= 4 && diff <= 6;
         const isHard = filters.difficulty.includes('Hard') && diff >= 7;
@@ -154,9 +154,11 @@ export default function ChampionModal({
       }
 
       if (filters.attackType.length > 0) {
-        const isAD = filters.attackType.includes('AD') && champ.info.attack >= 6;
-        const isAP = filters.attackType.includes('AP') && champ.info.magic >= 6;
-        const isHybrid = filters.attackType.includes('Hybrid') && champ.info.attack >= 4 && champ.info.magic >= 4;
+        const attack = champ.info?.attack ?? 5;
+        const magic = champ.info?.magic ?? 5;
+        const isAD = filters.attackType.includes('AD') && attack >= 6;
+        const isAP = filters.attackType.includes('AP') && magic >= 6;
+        const isHybrid = filters.attackType.includes('Hybrid') && attack >= 4 && magic >= 4;
         if (!isAD && !isAP && !isHybrid) return false;
       }
 

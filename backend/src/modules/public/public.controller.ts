@@ -77,14 +77,20 @@ export class PublicController {
 
   @Public()
   @Get('champions')
-  @ApiOperation({ summary: 'Get League of Legends champions list with dynamic version and language' })
+  @ApiOperation({ summary: 'Get champions list by game (LOL, AOV/Liên Quân)' })
+  @ApiQuery({ name: 'game', required: false, description: 'Game code: LOL, AOV, LIENQUAN' })
   @ApiQuery({ name: 'lang', required: false, description: 'Language code (e.g. vi_VN, en_US). Defaults to auto-detect by client IP' })
   @ApiQuery({ name: 'version', required: false, description: 'Riot patch version (e.g. 16.23.1). Defaults to latest' })
   async getChampions(
     @Req() req: any,
+    @Query('game') game?: string,
     @Query('lang') lang?: string,
     @Query('version') version?: string,
   ) {
+    const gameCode = (game || '').toUpperCase().trim();
+    if (gameCode === 'AOV' || gameCode === 'LIENQUAN' || gameCode === 'LQ') {
+      return this.publicService.getAovHeroes();
+    }
     let targetLang = lang;
     if (!targetLang) {
       // Tự động nhận diện ngôn ngữ theo IP: Việt Nam -> vi_VN, quốc tế -> en_US

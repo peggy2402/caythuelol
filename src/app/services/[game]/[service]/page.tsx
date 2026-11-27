@@ -100,6 +100,7 @@ import {
 import { RankSelectModal } from './components/modals/RankSelectModal';
 import { ServerSelectModal } from './components/modals/ServerSelectModal';
 import ChampionModal from '@/components/champion/ChampionModal';
+import aovHeroesFallback from '@/lib/aov_heroes.json';
 import { AccountTypeModal } from './components/modals/AccountTypeModal';
 import { BoosterSelectModal } from './components/modals/BoosterSelectModal';
 import { BoosterSelectionSection } from './components/sections/BoosterSelectionSection';
@@ -333,13 +334,17 @@ function ServiceBookingContent() {
   const [isChampionModalOpen, setIsChampionModalOpen] = useState(false);
 
   useEffect(() => {
-    fetch('/api/champions')
+    const gameCode = isAov ? 'AOV' : (game.id || '').toUpperCase();
+    if (isAov && Array.isArray(aovHeroesFallback) && aovHeroesFallback.length > 0) {
+      setChampionsList(aovHeroesFallback);
+    }
+    fetch(`/api/champions?game=${gameCode}`)
       .then((res) => res.json())
       .then((data) => {
-        if (Array.isArray(data)) setChampionsList(data);
+        if (Array.isArray(data) && data.length > 0) setChampionsList(data);
       })
       .catch((err) => console.error('Failed to load champions:', err));
-  }, []);
+  }, [isAov, game.id]);
 
   const boosterChampions: string[] = useMemo(() => {
     if (!assignedBooster) return [];
@@ -2236,7 +2241,7 @@ function ServiceBookingContent() {
           maxSelect={3}
           selectedIds={addons.selectedChampions || []}
           boosterChampions={boosterChampions}
-          title="Chỉ định tướng bạn muốn cày"
+          title={isAov ? "Chỉ định tướng Liên Quân Mobile (1 – 3 tướng)" : "Chỉ định tướng Liên Minh Huyền Thoại (1 – 3 tướng)"}
           onSelectMultiple={(selectedChamps) => {
             const names = selectedChamps.map((c) => c.name || c.id);
             setAddons((prev) => ({
