@@ -143,12 +143,22 @@ export class OrdersController {
   }
 
   @Post(':id/confirm-requote')
-  @ApiOperation({ summary: 'Customer confirms re-quoted price and pays the difference' })
+  @ApiOperation({ summary: 'Customer confirms re-quoted price, pays the difference, and updates/confirms game account' })
   async confirmRequote(
     @Param('id') id: string,
     @ReqUser() user: any,
+    @Body()
+    body?: {
+      account_info?: {
+        username?: string;
+        password?: string;
+        platform?: string;
+      };
+      server?: string;
+      note?: string;
+    },
   ) {
-    return this.ordersService.confirmRequote(id, user.userId);
+    return this.ordersService.confirmRequote(id, user.userId, body);
   }
 
   @Post(':id/cancel-mismatch')

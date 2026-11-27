@@ -1752,9 +1752,22 @@ export class OrdersService {
   }
 
   /**
-   * Khách hàng chấp nhận báo giá mới do sai lệch rank và thanh toán phần tiền chênh lệch
+   * Khách hàng chấp nhận báo giá mới do sai lệch rank, thanh toán phần tiền chênh lệch
+   * và xác nhận / gửi lại thông tin tài khoản game đúng mức rank cho Booster
    */
-  async confirmRequote(orderId: string, customerId: string) {
+  async confirmRequote(
+    orderId: string,
+    customerId: string,
+    payload?: {
+      account_info?: {
+        username?: string;
+        password?: string;
+        platform?: string;
+      };
+      server?: string;
+      note?: string;
+    },
+  ) {
     const order = await this.orderModel.findById(orderId);
     if (!order) {
       throw new NotFoundException('Đơn hàng không tồn tại');
@@ -1811,12 +1824,53 @@ export class OrdersService {
     order.pricing.booster_earnings =
       (order.pricing.booster_earnings || 0) + Math.round(extraAmount * 0.85);
 
-    // Cập nhật Rank thực tế vào order details
+    // Cập nhật Rank thực tế & thông tin tài khoản game (nếu khách gửi lại) vào order.details
+    if (!order.details) order.details = {};
     if (order.mismatch_info?.verifiedRank) {
-      if (!order.details) order.details = {};
       order.details.current_rank = order.mismatch_info.verifiedRank;
       order.details.currentRank = order.mismatch_info.verifiedRank;
     }
+
+    let accountUpdated = false;
+    if (payload?.account_info) {
+      const prevAcc = order.details.account_info || {};
+      const nextUsername =
+        payload.account_info.username !== undefined
+          ? payload.account_info.username.trim()
+          : prevAcc.username;
+      const nextPassword =
+        payload.account_info.password !== undefined
+          ? payload.account_info.password.trim()
+          : prevAcc.password;
+      const nextPlatform =
+        payload.account_info.platform !== undefined && payload.account_info.platform.trim()
+          ? payload.account_info.platform.trim()
+          : prevAcc.platform || 'Riot';
+
+      if (
+        nextUsername !== prevAcc.username ||
+        nextPassword !== prevAcc.password ||
+        nextPlatform !== prevAcc.platform
+      ) {
+        accountUpdated = true;
+      }
+
+      order.details.account_info = {
+        ...prevAcc,
+        platform: nextPlatform,
+        username: nextUsername,
+        password: nextPassword,
+      };
+    }
+
+    if (payload?.server !== undefined && payload.server.trim()) {
+      order.details.server = payload.server.trim();
+    }
+    if (payload?.note !== undefined && payload.note.trim()) {
+      order.details.note = payload.note.trim();
+    }
+
+    order.markModified('details');
 
     order.status = OrderStatus.IN_PROGRESS;
     if (order.mismatch_info) {
@@ -1829,7 +1883,9 @@ export class OrdersService {
       status: OrderStatus.IN_PROGRESS,
       timestamp: new Date(),
       actor: new Types.ObjectId(customerId),
-      note: `Khách hàng đã chấp thuận báo giá mới và thanh toán phần chênh lệch ${extraAmount.toLocaleString('vi-VN')} đ. Đơn hàng tiếp tục cày.`,
+      note: `Khách hàng đã chấp thuận báo giá mới, thanh toán phần chênh lệch ${extraAmount.toLocaleString('vi-VN')} đ${
+        accountUpdated ? ' và gửi lại thông tin tài khoản game đúng mức Rank' : ''
+      }. Đơn hàng tiếp tục cày.`,
     });
 
     await order.save();
@@ -1840,8 +1896,12 @@ export class OrdersService {
       this.notificationsService
         .notifyUser({
           userId: order.boosterId,
-          title: '🎉 Khách hàng đã thanh toán chênh lệch Rank!',
-          message: `Khách hàng đơn #${orderCodeDisplay} đã bù ${extraAmount.toLocaleString('vi-VN')} đ cho Rank thực tế. Bạn có thể tiếp tục tiến hành cày ngay!`,
+          title: accountUpdated
+            ? '🎉 Khách đã bù phí & gửi lại tài khoản game!'
+            : '🎉 Khách hàng đã thanh toán chênh lệch Rank!',
+          message: accountUpdated
+            ? `Khách hàng đơn #${orderCodeDisplay} đã bù ${extraAmount.toLocaleString('vi-VN')} đ và cập nhật lại thông tin đăng nhập tài khoản đúng Rank. Vui lòng kiểm tra thông tin mới và tiến hành cày ngay!`
+            : `Khách hàng đơn #${orderCodeDisplay} đã bù ${extraAmount.toLocaleString('vi-VN')} đ cho Rank thực tế. Bạn có thể tiếp tục tiến hành cày ngay!`,
           type: 'ORDER_UPDATE',
           variant: 'success',
           link: `/orders/${order._id}`,
@@ -1853,7 +1913,9 @@ export class OrdersService {
 
     return {
       success: true,
-      message: 'Đã xác nhận báo giá mới và thanh toán phần chênh lệch thành công!',
+      message: accountUpdated
+        ? 'Đã thanh toán chênh lệch và cập nhật lại tài khoản game cho Booster!'
+        : 'Đã xác nhận báo giá mới và thanh toán phần chênh lệch thành công!',
       order,
     };
   }

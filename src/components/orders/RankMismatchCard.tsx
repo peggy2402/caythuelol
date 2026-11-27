@@ -1,6 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
+import { AnimatePresence, motion } from 'framer-motion';
 import {
   AlertTriangle,
   CheckCircle2,
@@ -8,6 +10,12 @@ import {
   Loader2,
   Image as ImageIcon,
   ZoomIn,
+  ShieldCheck,
+  Eye,
+  EyeOff,
+  X,
+  KeyRound,
+  Wallet,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { API_BASE_URL } from '@/lib/api';
@@ -26,8 +34,53 @@ export default function RankMismatchCard({
   isCustomer = false,
   onRefresh,
 }: RankMismatchCardProps) {
+  const [mounted, setMounted] = useState(false);
   const [loadingAction, setLoadingAction] = useState<'CONFIRM' | 'CANCEL' | null>(null);
   const [showProofModal, setShowProofModal] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+
+  const [accountForm, setAccountForm] = useState({
+    username: '',
+    password: '',
+    platform: '',
+    server: '',
+    note: '',
+  });
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (showConfirmModal) {
+      setAccountForm({
+        username: order?.details?.account_info?.username || '',
+        password: order?.details?.account_info?.password || '',
+        platform: order?.details?.account_info?.platform || 'Garena',
+        server: order?.details?.server || 'VN',
+        note: order?.details?.note || '',
+      });
+      setShowPassword(false);
+    }
+  }, [showConfirmModal, order]);
+
+  useEffect(() => {
+    if (!showConfirmModal) return;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && loadingAction === null) {
+        setShowConfirmModal(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [showConfirmModal, loadingAction]);
 
   const mismatch = order?.mismatch_info;
   if (!mismatch || order.status !== 'RANK_MISMATCH') return null;
@@ -36,21 +89,42 @@ export default function RankMismatchCard({
   const recalculatedPrice = mismatch.recalculatedPrice || 0;
   const originalPaid = Math.max(0, (order.pricing?.total_amount || 0) - extraAmount);
 
-  const handleConfirmRequote = async () => {
+  const handleConfirmRequote = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!accountForm.username.trim() || !accountForm.password.trim()) {
+      toast.error('Vui lòng nhập đầy đủ Tên đăng nhập và Mật khẩu tài khoản game đúng mức Rank');
+      return;
+    }
+
     setLoadingAction('CONFIRM');
     try {
       const token = localStorage.getItem('token');
       const res = await fetch(`${API_BASE_URL}/api/orders/${order._id}/confirm-requote`, {
         method: 'POST',
         headers: {
+          'Content-Type': 'application/json',
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         credentials: 'include',
+        body: JSON.stringify({
+          account_info: {
+            username: accountForm.username.trim(),
+            password: accountForm.password.trim(),
+            platform: accountForm.platform.trim() || order?.details?.account_info?.platform || 'Garena',
+          },
+          server: accountForm.server.trim() || order?.details?.server,
+          note: accountForm.note.trim(),
+        }),
       });
 
       const data = await res.json();
       if (res.ok && data.success) {
-        toast.success('Đã xác nhận thanh toán phần chênh lệch và mở lại đơn hàng thành công!');
+        toast.success(
+          data.message ||
+            'Đã thanh toán chênh lệch và gửi lại thông tin tài khoản cho Booster thành công!'
+        );
+        setShowConfirmModal(false);
         onRefresh();
       } else {
         toast.error(data.message || 'Xác nhận thất bại');
@@ -231,20 +305,220 @@ export default function RankMismatchCard({
 
             <button
               type="button"
-              onClick={handleConfirmRequote}
+              onClick={() => setShowConfirmModal(true)}
               disabled={loadingAction !== null}
               className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black font-extrabold text-xs transition-all shadow-lg shadow-amber-500/20 active:scale-95 disabled:opacity-50 cursor-pointer"
             >
-              {loadingAction === 'CONFIRM' ? (
-                <Loader2 className="w-4 h-4 animate-spin text-black" />
-              ) : (
-                <CheckCircle2 className="w-4 h-4 text-black" />
-              )}
-              <span>Xác nhận bù {extraAmount.toLocaleString('vi-VN')} đ & Tiếp tục cày</span>
+              <CheckCircle2 className="w-4 h-4 text-black" />
+              <span>Xác nhận bù {extraAmount.toLocaleString('vi-VN')} đ & Gửi lại tài khoản</span>
             </button>
           </div>
         )}
       </div>
+
+      {/* Modal xác nhận thanh toán bù & gửi lại đúng tài khoản game cho Booster */}
+      {mounted &&
+        createPortal(
+          <AnimatePresence>
+            {showConfirmModal && (
+              <motion.div
+                key="confirm-requote-account-modal"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.18 }}
+                onClick={() => {
+                  if (loadingAction === null) setShowConfirmModal(false);
+                }}
+                className="fixed inset-0 z-[9990] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+              >
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.94, y: 14 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.94, y: 14 }}
+                  transition={{ type: 'spring', stiffness: 360, damping: 28 }}
+                  onClick={(e) => e.stopPropagation()}
+                  className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl bg-zinc-900 border border-amber-500/35 p-5 sm:p-6 shadow-2xl"
+                >
+                  {/* Header */}
+                  <div className="flex items-center justify-between gap-3 pb-4 border-b border-zinc-800">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="p-2 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-400 shrink-0">
+                        <KeyRound className="w-5 h-5" />
+                      </div>
+                      <div className="min-w-0">
+                        <h3 className="font-bold text-white text-base">
+                          Thanh Toán Bù & Xác Nhận Tài Khoản
+                        </h3>
+                        <p className="text-xs text-zinc-400">
+                          Gửi đúng tài khoản ứng với mức Rank để Booster đăng nhập cày
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      disabled={loadingAction !== null}
+                      onClick={() => setShowConfirmModal(false)}
+                      aria-label="Đóng"
+                      className="w-8 h-8 rounded-full bg-zinc-800/80 hover:bg-zinc-700 text-zinc-300 hover:text-white flex items-center justify-center shrink-0 transition-colors cursor-pointer disabled:opacity-50"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  {/* Tóm tắt khoản bù & Rank mới */}
+                  <div className="mt-4 p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/25 space-y-2 text-xs">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-amber-200/80">Mức Rank thực tế áp dụng:</span>
+                      <span className="font-extrabold text-amber-300 whitespace-nowrap">
+                        {mismatch.verifiedRank}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between gap-2 pt-1.5 border-t border-amber-500/20">
+                      <span className="text-amber-200/80 flex items-center gap-1.5">
+                        <Wallet className="w-3.5 h-3.5 text-amber-400" />
+                        Số tiền trừ thêm từ ví:
+                      </span>
+                      <span className="font-mono text-sm font-black text-amber-300 whitespace-nowrap">
+                        +{extraAmount.toLocaleString('vi-VN')} đ
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Nhắc kiểm tra đúng tài khoản */}
+                  <div className="mt-3 p-3 rounded-xl bg-blue-500/10 border border-blue-500/25 text-xs text-blue-200/90 flex items-start gap-2.5 leading-relaxed">
+                    <ShieldCheck className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
+                    <span>
+                      Vui lòng kiểm tra hoặc nhập lại thông tin tài khoản game{' '}
+                      <strong className="text-white">đúng với mức Rank {mismatch.verifiedRank}</strong>{' '}
+                      để Booster đăng nhập và tiếp tục cày chính xác.
+                    </span>
+                  </div>
+
+                  {/* Form gửi lại thông tin tài khoản game */}
+                  <form onSubmit={handleConfirmRequote} className="mt-4 space-y-3.5">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                      <div>
+                        <label className="block text-xs font-semibold text-zinc-300 mb-1.5">
+                          Tên đăng nhập / ID game <span className="text-rose-400">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          value={accountForm.username}
+                          onChange={(e) =>
+                            setAccountForm((prev) => ({ ...prev, username: e.target.value }))
+                          }
+                          placeholder="Nhập tên đăng nhập..."
+                          className="w-full rounded-xl border border-zinc-700/80 bg-zinc-950 px-3.5 py-2.5 text-sm font-mono text-white placeholder-zinc-500 focus:border-amber-500 focus:outline-none transition-colors"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-semibold text-zinc-300 mb-1.5">
+                          Mật khẩu game <span className="text-rose-400">*</span>
+                        </label>
+                        <div className="relative">
+                          <input
+                            type={showPassword ? 'text' : 'password'}
+                            required
+                            value={accountForm.password}
+                            onChange={(e) =>
+                              setAccountForm((prev) => ({ ...prev, password: e.target.value }))
+                            }
+                            placeholder="Nhập mật khẩu..."
+                            className="w-full rounded-xl border border-zinc-700/80 bg-zinc-950 pl-3.5 pr-10 py-2.5 text-sm font-mono text-white placeholder-zinc-500 focus:border-amber-500 focus:outline-none transition-colors"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword((v) => !v)}
+                            aria-label={showPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'}
+                            className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-zinc-400 hover:text-white transition-colors cursor-pointer"
+                          >
+                            {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                      <div>
+                        <label className="block text-xs font-semibold text-zinc-300 mb-1.5">
+                          Nền tảng đăng nhập
+                        </label>
+                        <input
+                          type="text"
+                          value={accountForm.platform}
+                          onChange={(e) =>
+                            setAccountForm((prev) => ({ ...prev, platform: e.target.value }))
+                          }
+                          placeholder="Garena / Facebook / Riot..."
+                          className="w-full rounded-xl border border-zinc-700/80 bg-zinc-950 px-3.5 py-2.5 text-sm text-white placeholder-zinc-500 focus:border-amber-500 focus:outline-none transition-colors"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-semibold text-zinc-300 mb-1.5">
+                          Máy chủ (Server)
+                        </label>
+                        <input
+                          type="text"
+                          value={accountForm.server}
+                          onChange={(e) =>
+                            setAccountForm((prev) => ({ ...prev, server: e.target.value }))
+                          }
+                          placeholder="VN / SEA / KR..."
+                          className="w-full rounded-xl border border-zinc-700/80 bg-zinc-950 px-3.5 py-2.5 text-sm uppercase text-white placeholder-zinc-500 focus:border-amber-500 focus:outline-none transition-colors"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-zinc-300 mb-1.5">
+                        Ghi chú cho Booster (tuỳ chọn)
+                      </label>
+                      <textarea
+                        rows={2}
+                        value={accountForm.note}
+                        onChange={(e) =>
+                          setAccountForm((prev) => ({ ...prev, note: e.target.value }))
+                        }
+                        placeholder="VD: Đã gửi lại đúng tài khoản rank thực tế, vào cày giúp mình nhé..."
+                        className="w-full rounded-xl border border-zinc-700/80 bg-zinc-950 px-3.5 py-2 text-xs text-white placeholder-zinc-500 focus:border-amber-500 focus:outline-none transition-colors resize-none"
+                      />
+                    </div>
+
+                    <div className="flex flex-col-reverse sm:flex-row items-center justify-end gap-2.5 pt-3 border-t border-zinc-800">
+                      <button
+                        type="button"
+                        disabled={loadingAction !== null}
+                        onClick={() => setShowConfirmModal(false)}
+                        className="w-full sm:w-auto px-4 py-2.5 rounded-xl text-xs font-semibold text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors cursor-pointer disabled:opacity-50"
+                      >
+                        Hủy bỏ
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={loadingAction !== null}
+                        className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black font-extrabold text-xs transition-all shadow-lg shadow-amber-500/20 disabled:opacity-50 cursor-pointer"
+                      >
+                        {loadingAction === 'CONFIRM' ? (
+                          <Loader2 className="w-4 h-4 animate-spin text-black" />
+                        ) : (
+                          <CheckCircle2 className="w-4 h-4 text-black" />
+                        )}
+                        <span>
+                          Thanh toán bù {extraAmount.toLocaleString('vi-VN')} đ & Gửi cho Booster
+                        </span>
+                      </button>
+                    </div>
+                  </form>
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>,
+          document.body
+        )}
 
       {/* Messenger-style Fullscreen Proof Image Viewer */}
       <ImageLightbox
