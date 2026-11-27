@@ -16,11 +16,86 @@ interface ReportRankMismatchModalProps {
   onSuccess: () => void;
 }
 
-const RANK_TIERS = [
-  'Đồng', 'Bạc', 'Vàng', 'Bạch Kim', 'Kim Cương', 'Tinh Anh', 'Cao Thủ', 'Chiến Tướng'
-];
-const DIVISIONS = ['V', 'IV', 'III', 'II', 'I'];
-const STARS = [1, 2, 3, 4, 5];
+interface TierConfig {
+  divisions?: string[];
+  maxStars?: number;
+  type: 'division' | 'star';
+  unit: string;
+  defaultStars: number;
+  quickStars?: number[];
+}
+
+const AOV_TIER_CONFIGS: Record<string, TierConfig> = {
+  'Đồng': {
+    divisions: ['III', 'II', 'I'],
+    maxStars: 3,
+    type: 'division',
+    unit: 'sao',
+    defaultStars: 1,
+  },
+  'Bạc': {
+    divisions: ['III', 'II', 'I'],
+    maxStars: 3,
+    type: 'division',
+    unit: 'sao',
+    defaultStars: 1,
+  },
+  'Vàng': {
+    divisions: ['IV', 'III', 'II', 'I'],
+    maxStars: 4,
+    type: 'division',
+    unit: 'sao',
+    defaultStars: 1,
+  },
+  'Bạch Kim': {
+    divisions: ['V', 'IV', 'III', 'II', 'I'],
+    maxStars: 5,
+    type: 'division',
+    unit: 'sao',
+    defaultStars: 1,
+  },
+  'Kim Cương': {
+    divisions: ['V', 'IV', 'III', 'II', 'I'],
+    maxStars: 5,
+    type: 'division',
+    unit: 'sao',
+    defaultStars: 1,
+  },
+  'Tinh Anh': {
+    divisions: ['V', 'IV', 'III', 'II', 'I'],
+    maxStars: 5,
+    type: 'division',
+    unit: 'sao',
+    defaultStars: 4,
+  },
+  'Cao Thủ': {
+    type: 'star',
+    unit: 'sao',
+    defaultStars: 1,
+    quickStars: [1, 5, 10, 15, 20, 30],
+  },
+  'Đại Cao Thủ': {
+    divisions: ['IV', 'III', 'II', 'I'],
+    maxStars: 5,
+    type: 'division',
+    unit: 'sao',
+    defaultStars: 1,
+  },
+  'Chiến Tướng': {
+    type: 'star',
+    unit: 'điểm/sao',
+    defaultStars: 50,
+    quickStars: [50, 60, 70, 80, 99],
+  },
+  'Chiến Thần': {
+    type: 'star',
+    unit: 'điểm/sao',
+    defaultStars: 100,
+    quickStars: [100, 120, 150, 200],
+  },
+};
+
+const RANK_TIERS = Object.keys(AOV_TIER_CONFIGS);
 
 export default function ReportRankMismatchModal({
   orderId,
@@ -34,7 +109,7 @@ export default function ReportRankMismatchModal({
   const [selectedDivision, setSelectedDivision] = useState<string>('III');
   const [selectedStars, setSelectedStars] = useState<number>(4);
   const [isManualInput, setIsManualInput] = useState<boolean>(false);
-  const [verifiedRank, setVerifiedRank] = useState('');
+  const [verifiedRank, setVerifiedRank] = useState('Tinh Anh III (4 sao)');
   const [proofImage, setProofImage] = useState('');
   const [note, setNote] = useState('');
   const [proposedPrice] = useState<string>('');
@@ -44,15 +119,34 @@ export default function ReportRankMismatchModal({
 
   // Cập nhật chuỗi verifiedRank khi thay đổi lựa chọn
   const buildRankString = (tier: string, div: string, stars: number) => {
-    if (tier === 'Cao Thủ' || tier === 'Chiến Tướng') {
-      return `${tier} (${stars} sao)`;
+    const config = AOV_TIER_CONFIGS[tier] || AOV_TIER_CONFIGS['Tinh Anh'];
+    if (config.type === 'star') {
+      return `${tier} (${stars} ${config.unit})`;
     }
     return `${tier} ${div} (${stars} sao)`;
   };
 
   const handleSelectTier = (tier: string) => {
     setSelectedTier(tier);
-    setVerifiedRank(buildRankString(tier, selectedDivision, selectedStars));
+    const config = AOV_TIER_CONFIGS[tier];
+    let newDiv = selectedDivision;
+    let newStars = selectedStars;
+
+    if (config?.divisions) {
+      if (!config.divisions.includes(newDiv)) {
+        newDiv = config.divisions[0];
+        setSelectedDivision(newDiv);
+      }
+      if (config.maxStars && newStars > config.maxStars) {
+        newStars = config.maxStars;
+        setSelectedStars(newStars);
+      }
+    } else if (config?.type === 'star') {
+      newStars = config.defaultStars;
+      setSelectedStars(newStars);
+    }
+
+    setVerifiedRank(buildRankString(tier, newDiv, newStars));
   };
 
   const handleSelectDivision = (div: string) => {
@@ -244,89 +338,120 @@ export default function ReportRankMismatchModal({
                         className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-3.5 py-2.5 text-sm text-white placeholder-zinc-500 focus:border-amber-500 focus:outline-none transition-colors"
                       />
                     ) : (
-                      <div className="space-y-2.5">
-                        {/* 1. Bậc xếp hạng */}
-                        <div>
-                          <span className="text-[11px] text-zinc-400 block mb-1">1. Bậc xếp hạng:</span>
-                          <div className="flex flex-wrap gap-1.5">
-                            {RANK_TIERS.map((tier) => (
-                              <button
-                                type="button"
-                                key={tier}
-                                onClick={() => handleSelectTier(tier)}
-                                className={`text-[11px] px-2.5 py-1 rounded-md border font-semibold transition-all cursor-pointer ${
-                                  selectedTier === tier
-                                    ? 'bg-amber-500 text-black border-amber-400 font-bold shadow-sm'
-                                    : 'bg-zinc-900 border-zinc-800 text-zinc-300 hover:text-white'
-                                }`}
-                              >
-                                {tier}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
+                      (() => {
+                        const currentConfig = AOV_TIER_CONFIGS[selectedTier] || AOV_TIER_CONFIGS['Tinh Anh'];
+                        const starList = currentConfig.maxStars
+                          ? Array.from({ length: currentConfig.maxStars }, (_, i) => i + 1)
+                          : [];
 
-                        {/* 2. Nhánh phân bậc nếu không phải Cao Thủ / Chiến Tướng */}
-                        {!['Cao Thủ', 'Chiến Tướng'].includes(selectedTier) && (
-                          <div>
-                            <span className="text-[11px] text-zinc-400 block mb-1">2. Nhánh phân bậc:</span>
-                            <div className="flex flex-wrap gap-1.5">
-                              {DIVISIONS.map((div) => (
-                                <button
-                                  type="button"
-                                  key={div}
-                                  onClick={() => handleSelectDivision(div)}
-                                  className={`text-[11px] px-2.5 py-1 rounded-md border font-semibold transition-all cursor-pointer ${
-                                    selectedDivision === div
-                                      ? 'bg-amber-500/20 border-amber-500 text-amber-300 font-bold'
-                                      : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-zinc-200'
-                                  }`}
-                                >
-                                  {selectedTier} {div}
-                                </button>
-                              ))}
+                        return (
+                          <div className="space-y-3">
+                            {/* 1. Bậc xếp hạng */}
+                            <div>
+                              <span className="text-[11px] text-zinc-400 block mb-1.5 font-medium">1. Bậc xếp hạng:</span>
+                              <div className="flex flex-wrap gap-1.5">
+                                {RANK_TIERS.map((tier) => (
+                                  <button
+                                    type="button"
+                                    key={tier}
+                                    onClick={() => handleSelectTier(tier)}
+                                    className={`text-[11px] px-2.5 py-1.5 rounded-lg border font-semibold transition-all cursor-pointer ${
+                                      selectedTier === tier
+                                        ? 'bg-amber-500 text-black border-amber-400 font-bold shadow-md shadow-amber-500/20'
+                                        : 'bg-zinc-900 border-zinc-800 text-zinc-300 hover:text-white hover:border-zinc-700'
+                                    }`}
+                                  >
+                                    {tier}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+
+                            {/* 2. Nhánh phân bậc (Chỉ hiện với các bậc có phân nhánh) */}
+                            {currentConfig.divisions && currentConfig.divisions.length > 0 && (
+                              <div>
+                                <span className="text-[11px] text-zinc-400 block mb-1.5 font-medium">2. Nhánh phân bậc:</span>
+                                <div className="flex flex-wrap gap-1.5">
+                                  {currentConfig.divisions.map((div) => (
+                                    <button
+                                      type="button"
+                                      key={div}
+                                      onClick={() => handleSelectDivision(div)}
+                                      className={`text-[11px] px-3 py-1.5 rounded-lg border font-bold transition-all cursor-pointer ${
+                                        selectedDivision === div
+                                          ? 'bg-amber-500/20 border-amber-500 text-amber-300 font-bold ring-1 ring-amber-500/40 shadow-sm'
+                                          : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-zinc-200 hover:border-zinc-700'
+                                      }`}
+                                    >
+                                      {selectedTier} {div}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* 3. Số sao / Điểm thực tế */}
+                            <div>
+                              <span className="text-[11px] text-zinc-400 block mb-1.5 font-medium">
+                                3. {currentConfig.type === 'star' ? `Số ${currentConfig.unit} thực tế:` : 'Số sao thực tế:'}
+                              </span>
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                {currentConfig.type === 'division' && starList.map((s) => (
+                                  <button
+                                    type="button"
+                                    key={s}
+                                    onClick={() => handleSelectStars(s)}
+                                    className={`text-[11px] px-3 py-1.5 rounded-lg border font-bold transition-all cursor-pointer ${
+                                      selectedStars === s
+                                        ? 'bg-amber-500/20 border-amber-500 text-amber-300 ring-1 ring-amber-500/40 shadow-sm'
+                                        : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-zinc-200 hover:border-zinc-700'
+                                    }`}
+                                  >
+                                    {s} ⭐
+                                  </button>
+                                ))}
+
+                                {currentConfig.type === 'star' && (
+                                  <>
+                                    {currentConfig.quickStars?.map((s) => (
+                                      <button
+                                        type="button"
+                                        key={s}
+                                        onClick={() => handleSelectStars(s)}
+                                        className={`text-[11px] px-2.5 py-1.5 rounded-lg border font-bold transition-all cursor-pointer ${
+                                          selectedStars === s
+                                            ? 'bg-amber-500/20 border-amber-500 text-amber-300 ring-1 ring-amber-500/40'
+                                            : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-zinc-200'
+                                        }`}
+                                      >
+                                        {s} {currentConfig.unit}
+                                      </button>
+                                    ))}
+                                    <div className="flex items-center gap-1.5 ml-1">
+                                      <span className="text-[10px] text-zinc-500">hoặc nhập:</span>
+                                      <input
+                                        type="number"
+                                        min={0}
+                                        max={999}
+                                        value={selectedStars}
+                                        onChange={(e) => handleSelectStars(Number(e.target.value) || 0)}
+                                        className="w-20 bg-zinc-950 border border-zinc-700 rounded-lg px-2.5 py-1 text-xs text-white text-center font-bold focus:border-amber-500 outline-none"
+                                        placeholder={`Số ${currentConfig.unit}`}
+                                      />
+                                    </div>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Preview kết quả đã chọn */}
+                            <div className="pt-2.5 border-t border-zinc-800 flex items-center justify-between text-xs">
+                              <span className="text-zinc-400">Rank thực tế đã chọn:</span>
+                              <span className="text-amber-300 font-extrabold text-sm">{verifiedRank || 'Chưa chọn'}</span>
                             </div>
                           </div>
-                        )}
-
-                        {/* 3. Số sao */}
-                        <div>
-                          <span className="text-[11px] text-zinc-400 block mb-1">3. Số sao thực tế:</span>
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            {STARS.map((s) => (
-                              <button
-                                type="button"
-                                key={s}
-                                onClick={() => handleSelectStars(s)}
-                                className={`text-[11px] px-2.5 py-1 rounded-md border font-bold transition-all cursor-pointer ${
-                                  selectedStars === s
-                                    ? 'bg-amber-500/20 border-amber-500 text-amber-300'
-                                    : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-zinc-200'
-                                }`}
-                              >
-                                {s} ⭐
-                              </button>
-                            ))}
-                            {selectedTier === 'Cao Thủ' && (
-                              <input
-                                type="number"
-                                min={0}
-                                max={999}
-                                value={selectedStars}
-                                onChange={(e) => handleSelectStars(Number(e.target.value) || 0)}
-                                className="w-16 bg-zinc-950 border border-zinc-700 rounded-md px-2 py-1 text-xs text-white text-center font-bold focus:border-amber-500 outline-none"
-                                placeholder="Số sao"
-                              />
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Preview */}
-                        <div className="pt-2 border-t border-zinc-800 flex items-center justify-between text-xs">
-                          <span className="text-zinc-400">Rank thực tế đã chọn:</span>
-                          <span className="text-amber-300 font-extrabold">{verifiedRank || 'Chưa chọn'}</span>
-                        </div>
-                      </div>
+                        );
+                      })()
                     )}
                   </div>
 
