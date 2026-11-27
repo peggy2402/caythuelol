@@ -5,12 +5,13 @@ import { ITransaction, TransactionType, TransactionStatus } from '../../database
 import { IOrder, OrderStatus } from '../../database/schemas/Order';
 import { IComment } from '../../database/schemas/Comment';
 import { IBlog } from '../../database/schemas/Blog';
+import { IBoosterApplication } from '../../database/schemas/BoosterApplication';
 
 export interface ActivityFeedItem {
   id: string;
-  type: 'DEPOSIT' | 'ORDER' | 'REVIEW' | 'COMMENT';
+  type: 'DEPOSIT' | 'ORDER' | 'REVIEW' | 'COMMENT' | 'BOOSTER_JOIN' | 'VIP_UPGRADE' | 'BLOG_PUBLISH';
   badge: string;
-  badgeColor: 'emerald' | 'amber' | 'yellow' | 'blue';
+  badgeColor: 'emerald' | 'amber' | 'yellow' | 'blue' | 'purple' | 'cyan';
   username: string;
   actionText: string;
   highlight: string;
@@ -29,6 +30,7 @@ export class ActivityService {
     @InjectModel('Order') private orderModel: Model<IOrder>,
     @InjectModel('Comment') private commentModel: Model<IComment>,
     @InjectModel('Blog') private blogModel: Model<IBlog>,
+    @InjectModel('BoosterApplication') private boosterAppModel: Model<IBoosterApplication>,
   ) {}
 
   /**
@@ -207,19 +209,98 @@ export class ActivityService {
           createdAt: new Date(c.createdAt).toISOString(),
         });
       }
+
+      // 5. Lấy giao dịch mua gói Hội viên VIP gần nhất
+      const vipPurchases = await this.transactionModel
+        .find({
+          type: TransactionType.VIP_PURCHASE,
+          status: TransactionStatus.SUCCESS,
+        })
+        .sort({ createdAt: -1 })
+        .limit(6)
+        .populate('userId', 'username')
+        .lean();
+
+      for (const vp of vipPurchases) {
+        const u = vp.userId as any;
+        const username = this.maskUsername(u?.username);
+        const planName = vp.metadata?.planName || 'Gói Hội Viên VIP';
+
+        items.push({
+          id: `vip_${vp._id}`,
+          type: 'VIP_UPGRADE',
+          badge: 'HỘI VIÊN VIP',
+          badgeColor: 'amber',
+          username,
+          actionText: 'vừa nâng cấp Hội viên VIP',
+          highlight: `${planName} · Ưu đãi giảm giá độc quyền`,
+          timeAgo: this.getTimeAgo(new Date(vp.createdAt)),
+          createdAt: new Date(vp.createdAt).toISOString(),
+        });
+      }
+
+      // 6. Lấy đăng ký trở thành Booster mới nhất
+      const boosterApps = await this.boosterAppModel
+        .find({
+          status: { $in: ['approved', 'pending', 'testing'] },
+        })
+        .sort({ createdAt: -1 })
+        .limit(6)
+        .populate('userId', 'username')
+        .lean();
+
+      for (const app of boosterApps) {
+        const u = app.userId as any;
+        const username = this.maskUsername(u?.username || app.fullName);
+        const game = (app.primaryGame || 'Liên Quân / LMHT').toUpperCase();
+
+        items.push({
+          id: `app_${app._id}`,
+          type: 'BOOSTER_JOIN',
+          badge: 'GIA NHẬP',
+          badgeColor: 'purple',
+          username,
+          actionText: 'vừa đăng ký trở thành Booster',
+          highlight: `Bộ môn ${game} · Tuyển chọn thành công`,
+          timeAgo: this.getTimeAgo(new Date(app.createdAt)),
+          createdAt: new Date(app.createdAt).toISOString(),
+        });
+      }
+
+      // 7. Lấy bài viết Admin mới đăng
+      const blogs = await this.blogModel
+        .find({ isPublished: true })
+        .sort({ createdAt: -1 })
+        .limit(4)
+        .populate('author', 'username')
+        .lean();
+
+      for (const b of blogs) {
+        items.push({
+          id: `blog_${b._id}`,
+          type: 'BLOG_PUBLISH',
+          badge: 'BÀI VIẾT MỚI',
+          badgeColor: 'cyan',
+          username: 'BQT LEORANK',
+          actionText: 'vừa xuất bản bài viết mới',
+          highlight: `"${b.title.slice(0, 42)}${b.title.length > 42 ? '...' : ''}"`,
+          timeAgo: this.getTimeAgo(new Date(b.createdAt)),
+          createdAt: new Date(b.createdAt).toISOString(),
+        });
+      }
     } catch (err: any) {
       this.logger.warn(`Lỗi khi truy vấn real activity feed: ${err?.message}`);
     }
 
-    // 5. Bổ sung dữ liệu sinh động (Fallback / Simulation) nếu số lượng thực tế dưới 20
+    // 8. Bổ sung dữ liệu sinh động (Fallback / Simulation) nếu số lượng thực tế dưới 25
     const realisticFallbacks = this.getRealisticFallbacks();
     const combined = [...items, ...realisticFallbacks];
 
     // Sắp xếp theo thời gian mới nhất
     combined.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
-    // Giới hạn 25 items phong phú nhất
-    const finalFeed = combined.slice(0, 25);
+    // Giới hạn 30 items phong phú nhất
+    const finalFeed = combined.slice(0, 30);
 
     this.cachedFeed = {
       data: finalFeed,
@@ -262,13 +343,31 @@ export class ActivityService {
         minuteOffset: 3,
       },
       {
+        type: 'VIP_UPGRADE',
+        badge: 'HỘI VIÊN VIP',
+        badgeColor: 'amber',
+        username: 'ho***92',
+        actionText: 'vừa đăng ký gói Hội viên VIP',
+        highlight: 'Gói VIP Kim Cương · Giảm 15% trọn đời',
+        minuteOffset: 5,
+      },
+      {
         type: 'REVIEW',
         badge: 'ĐÁNH GIÁ',
         badgeColor: 'yellow',
         username: 'ng***28',
         actionText: 'vừa đánh giá 5★ cho Booster',
         highlight: '⭐⭐⭐⭐⭐ Booster đánh quá đỉnh, 2 tiếng xong đơn!',
-        minuteOffset: 6,
+        minuteOffset: 7,
+      },
+      {
+        type: 'BOOSTER_JOIN',
+        badge: 'GIA NHẬP',
+        badgeColor: 'purple',
+        username: 'qu***78',
+        actionText: 'vừa đăng ký trở thành Booster',
+        highlight: 'Bộ môn Liên Quân Mobile · Rank Thách Đấu',
+        minuteOffset: 10,
       },
       {
         type: 'DEPOSIT',
@@ -277,7 +376,16 @@ export class ActivityService {
         username: 'tr***96',
         actionText: 'vừa nạp ví qua QR',
         highlight: '+200.000 đ',
-        minuteOffset: 9,
+        minuteOffset: 12,
+      },
+      {
+        type: 'BLOG_PUBLISH',
+        badge: 'BÀI VIẾT MỚI',
+        badgeColor: 'cyan',
+        username: 'BQT LEORANK',
+        actionText: 'vừa xuất bản bài viết mới',
+        highlight: 'Giáo trình leo Chiến Tướng Liên Quân mùa 2026',
+        minuteOffset: 14,
       },
       {
         type: 'ORDER',
@@ -286,7 +394,16 @@ export class ActivityService {
         username: 'le***05',
         actionText: 'vừa đặt đơn cày rank LMHT',
         highlight: 'Vàng I ➔ Bạch Kim IV',
-        minuteOffset: 12,
+        minuteOffset: 17,
+      },
+      {
+        type: 'VIP_UPGRADE',
+        badge: 'HỘI VIÊN VIP',
+        badgeColor: 'amber',
+        username: 'th***16',
+        actionText: 'vừa nâng cấp Hội viên VIP',
+        highlight: 'Gói VIP Vàng · Nhận quà độc quyền',
+        minuteOffset: 20,
       },
       {
         type: 'COMMENT',
@@ -294,8 +411,17 @@ export class ActivityService {
         badgeColor: 'blue',
         username: 'tu***77',
         actionText: 'vừa bình luận bài viết',
-        highlight: 'Giáo trình leo Chiến Tướng Liên Quân mùa 2026',
-        minuteOffset: 15,
+        highlight: 'Bí quyết chọn tướng gánh team mùa mới',
+        minuteOffset: 23,
+      },
+      {
+        type: 'BOOSTER_JOIN',
+        badge: 'GIA NHẬP',
+        badgeColor: 'purple',
+        username: 'vi***29',
+        actionText: 'vừa đăng ký trở thành Booster',
+        highlight: 'Bộ môn LMHT · Rank Cao Thủ 300 LP',
+        minuteOffset: 26,
       },
       {
         type: 'DEPOSIT',
@@ -304,7 +430,7 @@ export class ActivityService {
         username: 'du***88',
         actionText: 'vừa nạp ví qua QR',
         highlight: '+500.000 đ',
-        minuteOffset: 19,
+        minuteOffset: 30,
       },
       {
         type: 'ORDER',
@@ -313,7 +439,16 @@ export class ActivityService {
         username: 'mi***33',
         actionText: 'vừa đặt đơn Net Wins Liên Quân',
         highlight: '3 trận thắng Tinh Anh',
-        minuteOffset: 24,
+        minuteOffset: 34,
+      },
+      {
+        type: 'BLOG_PUBLISH',
+        badge: 'BÀI VIẾT MỚI',
+        badgeColor: 'cyan',
+        username: 'BQT LEORANK',
+        actionText: 'vừa xuất bản bài viết mới',
+        highlight: 'Cập nhật bảng giá cày rank & chính sách bảo vệ khách hàng',
+        minuteOffset: 39,
       },
       {
         type: 'REVIEW',
@@ -322,7 +457,7 @@ export class ActivityService {
         username: 'ph***62',
         actionText: 'vừa đánh giá 5★ cho Booster',
         highlight: '⭐⭐⭐⭐⭐ 10/10 uy tín, bảo mật acc an toàn tuyệt đối',
-        minuteOffset: 28,
+        minuteOffset: 44,
       },
       {
         type: 'DEPOSIT',
@@ -331,7 +466,7 @@ export class ActivityService {
         username: 'ki***91',
         actionText: 'vừa nạp ví qua QR',
         highlight: '+150.000 đ',
-        minuteOffset: 33,
+        minuteOffset: 50,
       },
       {
         type: 'ORDER',
@@ -340,16 +475,16 @@ export class ActivityService {
         username: 'qu***14',
         actionText: 'vừa đặt đơn cày rank Valorant',
         highlight: 'Silver 3 ➔ Gold 2',
-        minuteOffset: 38,
+        minuteOffset: 58,
       },
       {
-        type: 'COMMENT',
-        badge: 'BÌNH LUẬN',
-        badgeColor: 'blue',
-        username: 'an***52',
-        actionText: 'vừa bình luận bài viết',
-        highlight: 'Bảng ngọc và lối lên đồ tướng mới cập nhật',
-        minuteOffset: 45,
+        type: 'BOOSTER_JOIN',
+        badge: 'GIA NHẬP',
+        badgeColor: 'purple',
+        username: 'du***45',
+        actionText: 'vừa đăng ký trở thành Booster',
+        highlight: 'Bộ môn Valorant · Rank Ascendant 3',
+        minuteOffset: 65,
       },
       {
         type: 'DEPOSIT',
@@ -358,16 +493,7 @@ export class ActivityService {
         username: 'va***67',
         actionText: 'vừa nạp ví qua QR',
         highlight: '+300.000 đ',
-        minuteOffset: 52,
-      },
-      {
-        type: 'ORDER',
-        badge: 'ĐẶT ĐƠN',
-        badgeColor: 'amber',
-        username: 'ti***22',
-        actionText: 'vừa đặt đơn cày ĐTCL (TFT)',
-        highlight: 'Bạch Kim ➔ Kim Cương IV',
-        minuteOffset: 65,
+        minuteOffset: 72,
       },
       {
         type: 'REVIEW',
@@ -376,7 +502,7 @@ export class ActivityService {
         username: 'ha***09',
         actionText: 'vừa đánh giá 5★ cho Booster',
         highlight: '⭐⭐⭐⭐⭐ Kéo duo win thông 6 trận, quá mượt!',
-        minuteOffset: 80,
+        minuteOffset: 85,
       },
     ];
 

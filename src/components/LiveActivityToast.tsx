@@ -9,14 +9,17 @@ import {
   MessageSquare,
   X,
   Sparkles,
+  Crown,
+  Zap,
+  Newspaper,
 } from 'lucide-react';
 import { API_BASE_URL } from '@/lib/api';
 
 export interface ActivityFeedItem {
   id: string;
-  type: 'DEPOSIT' | 'ORDER' | 'REVIEW' | 'COMMENT';
+  type: 'DEPOSIT' | 'ORDER' | 'REVIEW' | 'COMMENT' | 'BOOSTER_JOIN' | 'VIP_UPGRADE' | 'BLOG_PUBLISH';
   badge: string;
-  badgeColor: 'emerald' | 'amber' | 'yellow' | 'blue';
+  badgeColor: 'emerald' | 'amber' | 'yellow' | 'blue' | 'purple' | 'cyan';
   username: string;
   actionText: string;
   highlight: string;
@@ -112,6 +115,12 @@ export default function LiveActivityToast() {
         return <Star className="w-5 h-5 text-white fill-white" />;
       case 'COMMENT':
         return <MessageSquare className="w-5 h-5 text-white" />;
+      case 'VIP_UPGRADE':
+        return <Crown className="w-5 h-5 text-white" />;
+      case 'BOOSTER_JOIN':
+        return <Zap className="w-5 h-5 text-white fill-white" />;
+      case 'BLOG_PUBLISH':
+        return <Newspaper className="w-5 h-5 text-white" />;
       default:
         return <Sparkles className="w-5 h-5 text-white" />;
     }
@@ -126,6 +135,12 @@ export default function LiveActivityToast() {
         return 'from-yellow-400 via-amber-500 to-yellow-600 shadow-yellow-500/25';
       case 'COMMENT':
         return 'from-blue-400 via-indigo-500 to-blue-600 shadow-blue-500/25';
+      case 'VIP_UPGRADE':
+        return 'from-amber-400 via-yellow-500 to-amber-600 shadow-amber-500/30';
+      case 'BOOSTER_JOIN':
+        return 'from-purple-500 via-violet-600 to-indigo-700 shadow-purple-500/25';
+      case 'BLOG_PUBLISH':
+        return 'from-cyan-400 via-sky-500 to-blue-600 shadow-cyan-500/25';
       case 'DEPOSIT':
       default:
         return 'from-emerald-400 via-teal-500 to-emerald-600 shadow-emerald-500/25';
@@ -140,9 +155,55 @@ export default function LiveActivityToast() {
         return 'bg-yellow-50 text-yellow-700 dark:bg-yellow-500/15 dark:text-yellow-300 border-yellow-500/30';
       case 'COMMENT':
         return 'bg-blue-50 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300 border-blue-500/30';
+      case 'VIP_UPGRADE':
+        return 'bg-amber-50 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300 border-amber-500/30';
+      case 'BOOSTER_JOIN':
+        return 'bg-purple-50 text-purple-700 dark:bg-purple-500/15 dark:text-purple-300 border-purple-500/30';
+      case 'BLOG_PUBLISH':
+        return 'bg-cyan-50 text-cyan-700 dark:bg-cyan-500/15 dark:text-cyan-300 border-cyan-500/30';
       case 'DEPOSIT':
       default:
         return 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300 border-emerald-500/30';
+    }
+  };
+
+  const getLeftBarStyle = () => {
+    switch (currentItem.type) {
+      case 'VIP_UPGRADE':
+        return 'from-amber-400 to-yellow-500';
+      case 'BOOSTER_JOIN':
+        return 'from-purple-500 to-indigo-600';
+      case 'BLOG_PUBLISH':
+        return 'from-cyan-400 to-blue-500';
+      case 'ORDER':
+        return 'from-amber-400 to-orange-500';
+      case 'REVIEW':
+        return 'from-yellow-400 to-amber-500';
+      case 'COMMENT':
+        return 'from-blue-400 to-indigo-500';
+      case 'DEPOSIT':
+      default:
+        return 'from-emerald-400 to-teal-500';
+    }
+  };
+
+  const getHighlightColor = () => {
+    switch (currentItem.type) {
+      case 'VIP_UPGRADE':
+        return 'text-amber-600 dark:text-amber-400';
+      case 'BOOSTER_JOIN':
+        return 'text-purple-600 dark:text-purple-300';
+      case 'BLOG_PUBLISH':
+        return 'text-cyan-600 dark:text-cyan-400';
+      case 'ORDER':
+        return 'text-amber-600 dark:text-amber-400';
+      case 'REVIEW':
+        return 'text-yellow-600 dark:text-yellow-400';
+      case 'COMMENT':
+        return 'text-blue-600 dark:text-blue-400';
+      case 'DEPOSIT':
+      default:
+        return 'text-emerald-600 dark:text-emerald-400';
     }
   };
 
@@ -161,7 +222,9 @@ export default function LiveActivityToast() {
             className="pointer-events-auto relative flex items-center gap-3 pl-3 pr-8 py-2.5 max-w-[340px] sm:max-w-[400px] rounded-2xl bg-white dark:bg-zinc-900/95 border border-emerald-500/25 dark:border-zinc-800 shadow-[0_12px_38px_-4px_rgba(0,0,0,0.18)] dark:shadow-[0_18px_48px_-8px_rgba(0,0,0,0.7)] backdrop-blur-md overflow-hidden group"
           >
             {/* Dải màu nhấn viền trái giống hình ảnh mẫu */}
-            <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-gradient-to-b from-emerald-400 to-teal-500 rounded-l-2xl" />
+            <div
+              className={`absolute left-0 top-0 bottom-0 w-1.5 bg-gradient-to-b ${getLeftBarStyle()} rounded-l-2xl`}
+            />
 
             {/* Icon đại diện dạng Squircle gradient bo tròn */}
             <div
@@ -187,9 +250,11 @@ export default function LiveActivityToast() {
                 </span>
               </div>
 
-              {/* Dòng 2: Giá trị nổi bật (Số tiền/Gói rank) + Thời gian tương đối */}
+              {/* Dòng 2: Giá trị nổi bật (Số tiền/Gói rank/Bài viết) + Thời gian tương đối */}
               <div className="flex items-center gap-1.5 mt-0.5 leading-tight">
-                <span className="font-extrabold text-emerald-600 dark:text-emerald-400 text-xs sm:text-[13px] tracking-tight truncate max-w-[190px] sm:max-w-[230px]">
+                <span
+                  className={`font-extrabold text-xs sm:text-[13px] tracking-tight truncate max-w-[190px] sm:max-w-[230px] ${getHighlightColor()}`}
+                >
                   {currentItem.highlight}
                 </span>
                 <span className="text-zinc-400 dark:text-zinc-500 text-[11px] font-medium shrink-0">
