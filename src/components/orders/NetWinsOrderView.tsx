@@ -380,7 +380,7 @@ export default function NetWinsOrderView({ order, isBooster, isCustomer, onPayRe
                     <span className="text-zinc-400">
                         {isBooster ? 'Doanh thu đơn gốc (Dự kiến):' : 'Giá trị đơn gốc (Dự kiến):'}
                     </span>
-                    <span className="text-zinc-500 line-through decoration-zinc-600 font-mono">
+                    <span className={`font-mono ${hasMatches && ((isBooster && settlement.boosterActualTotal !== settlement.originalBoosterBase) || (!isBooster && settlement.customerActualTotal !== settlement.originalCustomerTotal)) ? 'text-zinc-500 line-through decoration-zinc-600' : 'text-zinc-200 font-bold'}`}>
                         {(isBooster ? settlement.originalBoosterBase : settlement.originalCustomerTotal).toLocaleString()} đ
                     </span>
                 </div>
@@ -448,31 +448,32 @@ export default function NetWinsOrderView({ order, isBooster, isCustomer, onPayRe
                     </div>
                 )}
 
-                {/* 4. Đã thanh toán trước / Đã nhận cọc tạm ứng */}
-                <div className="flex flex-col justify-between items-center p-3 bg-zinc-950/50 rounded-xl border border-zinc-800">
-                    <span className="text-zinc-400">
+                {/* 4. Tiền cọc ký quỹ Escrow */}
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-1 sm:gap-0 p-3 bg-zinc-950/50 rounded-xl border border-zinc-800">
+                    <span className="text-zinc-400 flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-amber-400"></span>
                         {isBooster
-                            ? `Đã nhận cọc tạm ứng (${settlement.depositPercent}%):`
-                            : `Đã thanh toán trước (${settlement.depositPercent}%):`}
+                            ? `Khách đã đặt cọc (Escrow giữ ${settlement.depositPercent}%):`
+                            : `Tiền cọc ký quỹ (${settlement.depositPercent}% - Escrow giữ):`}
                     </span>
-                    <span className="text-yellow-500 font-bold font-mono">
-                        - {(isBooster ? settlement.boosterPaidDeposit : settlement.customerPaidDeposit).toLocaleString()} đ
+                    <span className="text-amber-400 font-bold font-mono">
+                        {(isBooster ? settlement.boosterPaidDeposit : settlement.customerPaidDeposit).toLocaleString()} đ
                     </span>
                 </div>
 
                 <div className="border-t border-zinc-800 my-2"></div>
 
-                {/* 5. Kết quả quyết toán: CẦN TRẢ THÊM (OWE) */}
-                {hasMatches && settlement.status === 'OWE' && (
-                    <div className="p-3.5 sm:p-4 bg-red-900/10 rounded-xl border border-red-500/30 space-y-2.5">
+                {/* 5. Kết quả quyết toán: CẦN TRẢ THÊM (OWE) HOẶC DỰ KIẾN KHI CHƯA ĐÁNH */}
+                {settlement.status === 'OWE' && (
+                    <div className="p-3.5 sm:p-4 bg-amber-900/10 rounded-xl border border-amber-500/20 space-y-2.5">
                         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                             <div className="flex items-center gap-2 min-w-0">
-                                <AlertCircle className="w-5 h-5 text-red-500 shrink-0" />
-                                <span className="text-red-200 font-bold text-sm sm:text-base truncate">
+                                <AlertCircle className="w-5 h-5 text-amber-500 shrink-0" />
+                                <span className="text-zinc-200 font-bold text-sm sm:text-base truncate">
                                     {isCustomer 
-                                        ? (isCompleted ? 'Cần thanh toán thêm:' : 'Dự kiến cần thanh toán thêm:') 
+                                        ? (isCompleted ? 'Cần thanh toán thêm:' : 'Còn phải thanh toán (Dự kiến):') 
                                         : (isBooster 
-                                            ? (isCompleted ? 'Số tiền về ví còn lại:' : 'Dự kiến thu nhập còn lại:') 
+                                            ? (isCompleted ? 'Số tiền về ví còn lại:' : 'Thu nhập còn lại khi hoàn thành:') 
                                             : 'Khách cần thanh toán thêm:')}
                                 </span>
                             </div>
@@ -481,7 +482,7 @@ export default function NetWinsOrderView({ order, isBooster, isCustomer, onPayRe
                                 isCompleted ? (
                                     <button 
                                         onClick={handlePayRemaining}
-                                        className="w-full sm:w-auto py-2.5 px-4 bg-red-600 hover:bg-red-500 text-white font-bold rounded-lg flex items-center justify-center gap-2 transition-all shadow-lg shadow-red-900/20 active:scale-[0.98] cursor-pointer"
+                                        className="w-full sm:w-auto py-2.5 px-4 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-lg flex items-center justify-center gap-2 transition-all shadow-lg shadow-amber-500/20 active:scale-[0.98] cursor-pointer"
                                         title="Thanh toán ngay"
                                     >
                                         <Wallet className="w-4 h-4 shrink-0" />
@@ -489,22 +490,22 @@ export default function NetWinsOrderView({ order, isBooster, isCustomer, onPayRe
                                     </button>
                                 ) : (
                                     <div className="flex items-center gap-2">
-                                        <span className="text-red-400 font-black text-lg sm:text-xl whitespace-nowrap font-mono">
+                                        <span className="text-amber-400 font-black text-lg sm:text-xl whitespace-nowrap font-mono">
                                             {settlement.customerRemaining.toLocaleString()} đ
                                         </span>
                                         <span className="text-[11px] px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20 font-medium whitespace-nowrap">
-                                            Chờ chốt đơn
+                                            {hasMatches ? 'Tạm tính theo tiến độ' : 'Dự kiến'}
                                         </span>
                                     </div>
                                 )
                             ) : (
                                 <div className="flex items-center gap-2">
-                                    <span className={`font-black text-lg sm:text-xl whitespace-nowrap font-mono ${isBooster ? 'text-emerald-400' : 'text-red-400'}`}>
-                                        {isBooster ? `+${settlement.boosterRemaining.toLocaleString()}` : `${settlement.customerRemaining.toLocaleString()}`} đ
+                                    <span className="font-black text-lg sm:text-xl whitespace-nowrap font-mono text-emerald-400">
+                                        +{settlement.boosterRemaining.toLocaleString()} đ
                                     </span>
                                     {!isCompleted && (
                                         <span className="text-[11px] px-2 py-0.5 rounded bg-zinc-800 text-zinc-400 border border-zinc-700 font-medium whitespace-nowrap">
-                                            Tạm tính
+                                            {hasMatches ? 'Tạm tính' : 'Dự kiến'}
                                         </span>
                                     )}
                                 </div>
