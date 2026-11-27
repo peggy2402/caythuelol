@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
@@ -16,10 +16,38 @@ import {
   X,
   KeyRound,
   Wallet,
+  ChevronsUpDown,
+  Check,
+  Globe,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { API_BASE_URL } from '@/lib/api';
+import { GAME_SERVERS, getServerByCode } from '@/lib/servers';
+import ServerFlag from '@/components/ServerFlag';
 import ImageLightbox from '@/components/ui/ImageLightbox';
+
+const AOV_PLATFORM_OPTIONS = [
+  { id: 'Garena', label: 'Garena' },
+  { id: 'Facebook', label: 'Facebook' },
+  { id: 'Apple', label: 'Apple ID' },
+  { id: 'Google', label: 'Google' },
+];
+
+const RIOT_PLATFORM_OPTIONS = [
+  { id: 'Riot', label: 'Riot Games' },
+  { id: 'Facebook', label: 'Facebook' },
+  { id: 'Google', label: 'Google' },
+  { id: 'Apple', label: 'Apple ID' },
+];
+
+const VALORANT_PLATFORM_OPTIONS = [
+  ...RIOT_PLATFORM_OPTIONS,
+  { id: 'Xbox', label: 'Xbox' },
+  { id: 'PlayStation', label: 'PlayStation' },
+];
+
+const AOV_SERVER_CODES = ['VN', 'TW', 'SEA'];
+const VALORANT_SERVER_CODES = ['VN', 'SEA', 'KR', 'JP', 'NA', 'EUW', 'OCE', 'BR', 'LAN', 'LAS', 'TR', 'ME'];
 
 interface RankMismatchCardProps {
   order: any;
@@ -39,6 +67,9 @@ export default function RankMismatchCard({
   const [showProofModal, setShowProofModal] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [openDropdown, setOpenDropdown] = useState<'platform' | 'server' | null>(null);
+  const [serverSearch, setServerSearch] = useState('');
+  const dropdownContainerRef = useRef<HTMLDivElement>(null);
 
   const [accountForm, setAccountForm] = useState({
     username: '',
@@ -53,17 +84,75 @@ export default function RankMismatchCard({
   }, []);
 
   useEffect(() => {
+    if (!openDropdown) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        dropdownContainerRef.current &&
+        !dropdownContainerRef.current.contains(e.target as Node)
+      ) {
+        setOpenDropdown(null);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [openDropdown]);
+
+  const gameRaw = (
+    order?.details?.game ||
+    order?.snapshot?.gameCode ||
+    order?.serviceType ||
+    ''
+  ).toUpperCase();
+  const isAov =
+    gameRaw === 'AOV' ||
+    gameRaw === 'LIENQUAN' ||
+    gameRaw.includes('LIÊN QUÂN') ||
+    gameRaw.includes('LIENQUAN') ||
+    gameRaw.includes('AOV');
+  const isValorant = gameRaw.includes('VALORANT') || gameRaw === 'VAL';
+
+  const platformOptions = isAov
+    ? AOV_PLATFORM_OPTIONS
+    : isValorant
+    ? VALORANT_PLATFORM_OPTIONS
+    : RIOT_PLATFORM_OPTIONS;
+
+  const availableServers = isAov
+    ? GAME_SERVERS.filter((s) => AOV_SERVER_CODES.includes(s.code))
+    : isValorant
+    ? GAME_SERVERS.filter((s) => VALORANT_SERVER_CODES.includes(s.code))
+    : GAME_SERVERS;
+
+  const defaultPlatform = isAov ? 'Garena' : 'Riot';
+
+  useEffect(() => {
     if (showConfirmModal) {
+      const existingPlatform = order?.details?.account_info?.platform || defaultPlatform;
+      const validPlatform = platformOptions.some(
+        (p) => p.id.toLowerCase() === existingPlatform.toLowerCase()
+      )
+        ? existingPlatform
+        : defaultPlatform;
+
+      const existingServer = order?.details?.server || 'VN';
+      const validServer = availableServers.some(
+        (s) => s.code.toUpperCase() === existingServer.toUpperCase()
+      )
+        ? existingServer
+        : availableServers[0]?.code || 'VN';
+
       setAccountForm({
         username: order?.details?.account_info?.username || '',
         password: order?.details?.account_info?.password || '',
-        platform: order?.details?.account_info?.platform || 'Garena',
-        server: order?.details?.server || 'VN',
+        platform: validPlatform,
+        server: validServer,
         note: order?.details?.note || '',
       });
       setShowPassword(false);
+      setOpenDropdown(null);
+      setServerSearch('');
     }
-  }, [showConfirmModal, order]);
+  }, [showConfirmModal, order, defaultPlatform]);
 
   useEffect(() => {
     if (!showConfirmModal) return;
@@ -111,7 +200,7 @@ export default function RankMismatchCard({
           account_info: {
             username: accountForm.username.trim(),
             password: accountForm.password.trim(),
-            platform: accountForm.platform.trim() || order?.details?.account_info?.platform || 'Garena',
+            platform: accountForm.platform.trim() || order?.details?.account_info?.platform || defaultPlatform,
           },
           server: accountForm.server.trim() || order?.details?.server,
           note: accountForm.note.trim(),
@@ -338,7 +427,7 @@ export default function RankMismatchCard({
                   exit={{ opacity: 0, scale: 0.94, y: 14 }}
                   transition={{ type: 'spring', stiffness: 360, damping: 28 }}
                   onClick={(e) => e.stopPropagation()}
-                  className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl bg-zinc-900 border border-amber-500/35 p-5 sm:p-6 shadow-2xl"
+                  className="relative w-full max-w-lg max-h-[92vh] overflow-y-auto rounded-2xl bg-zinc-900 border border-amber-500/35 p-5 shadow-2xl [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-zinc-700/70 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-zinc-600"
                 >
                   {/* Header */}
                   <div className="flex items-center justify-between gap-3 pb-4 border-b border-zinc-800">
@@ -441,35 +530,174 @@ export default function RankMismatchCard({
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                      <div>
+                    <div ref={dropdownContainerRef} className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                      {/* Nền tảng đăng nhập (Dropdown chọn) */}
+                      <div className="relative">
                         <label className="block text-xs font-semibold text-zinc-300 mb-1.5">
                           Nền tảng đăng nhập
                         </label>
-                        <input
-                          type="text"
-                          value={accountForm.platform}
-                          onChange={(e) =>
-                            setAccountForm((prev) => ({ ...prev, platform: e.target.value }))
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setOpenDropdown((prev) => (prev === 'platform' ? null : 'platform'))
                           }
-                          placeholder="Garena / Facebook / Riot..."
-                          className="w-full rounded-xl border border-zinc-700/80 bg-zinc-950 px-3.5 py-2.5 text-sm text-white placeholder-zinc-500 focus:border-amber-500 focus:outline-none transition-colors"
-                        />
+                          className={`w-full rounded-xl border bg-zinc-950 px-3.5 py-2.5 text-sm text-white flex items-center justify-between gap-2 transition-colors cursor-pointer ${
+                            openDropdown === 'platform'
+                              ? 'border-amber-500 ring-1 ring-amber-500/30'
+                              : 'border-zinc-700/80 hover:border-zinc-500'
+                          }`}
+                        >
+                          <span className="font-semibold truncate">
+                            {platformOptions.find(
+                              (p) => p.id.toLowerCase() === accountForm.platform.toLowerCase()
+                            )?.label ||
+                              accountForm.platform ||
+                              'Chọn nền tảng'}
+                          </span>
+                          <ChevronsUpDown className="w-4 h-4 text-zinc-400 shrink-0" />
+                        </button>
+
+                        <AnimatePresence>
+                          {openDropdown === 'platform' && (
+                            <motion.div
+                              initial={{ opacity: 0, y: 6, scale: 0.97 }}
+                              animate={{ opacity: 1, y: 0, scale: 1 }}
+                              exit={{ opacity: 0, y: 6, scale: 0.97 }}
+                              transition={{ duration: 0.14 }}
+                              className="absolute left-0 right-0 bottom-full mb-2 z-40 rounded-xl border border-zinc-700/90 bg-zinc-900/98 backdrop-blur-xl shadow-[0_-12px_40px_rgba(0,0,0,0.65)] p-1.5 grid grid-cols-2 gap-1"
+                            >
+                              {platformOptions.map((opt) => {
+                                const isSelected =
+                                  accountForm.platform.toLowerCase() === opt.id.toLowerCase();
+                                return (
+                                  <button
+                                    key={opt.id}
+                                    type="button"
+                                    onClick={() => {
+                                      setAccountForm((prev) => ({ ...prev, platform: opt.id }));
+                                      setOpenDropdown(null);
+                                    }}
+                                    className={`px-2.5 py-2 rounded-lg text-left text-xs flex items-center justify-between gap-1.5 transition-colors cursor-pointer ${
+                                      isSelected
+                                        ? 'bg-amber-500/20 text-amber-300 font-bold border border-amber-500/35'
+                                        : 'text-zinc-200 hover:bg-zinc-800 border border-transparent'
+                                    }`}
+                                  >
+                                    <span className="truncate">{opt.label}</span>
+                                    {isSelected && <Check className="w-3.5 h-3.5 text-amber-400 shrink-0" />}
+                                  </button>
+                                );
+                              })}
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
                       </div>
 
-                      <div>
+                      {/* Máy chủ (Server) (Dropdown chọn kèm cờ) */}
+                      <div className="relative">
                         <label className="block text-xs font-semibold text-zinc-300 mb-1.5">
                           Máy chủ (Server)
                         </label>
-                        <input
-                          type="text"
-                          value={accountForm.server}
-                          onChange={(e) =>
-                            setAccountForm((prev) => ({ ...prev, server: e.target.value }))
-                          }
-                          placeholder="VN / SEA / KR..."
-                          className="w-full rounded-xl border border-zinc-700/80 bg-zinc-950 px-3.5 py-2.5 text-sm uppercase text-white placeholder-zinc-500 focus:border-amber-500 focus:outline-none transition-colors"
-                        />
+                        {(() => {
+                          const currentServer = getServerByCode(accountForm.server);
+                          return (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setServerSearch('');
+                                setOpenDropdown((prev) => (prev === 'server' ? null : 'server'));
+                              }}
+                              className={`w-full rounded-xl border bg-zinc-950 px-3.5 py-2.5 text-sm text-white flex items-center justify-between gap-2 transition-colors cursor-pointer ${
+                                openDropdown === 'server'
+                                  ? 'border-amber-500 ring-1 ring-amber-500/30'
+                                  : 'border-zinc-700/80 hover:border-zinc-500'
+                              }`}
+                            >
+                              <div className="flex items-center gap-2 min-w-0">
+                                {currentServer ? (
+                                  <>
+                                    <ServerFlag code={currentServer.code} size="sm" />
+                                    <span className="font-semibold truncate">
+                                      {currentServer.name}
+                                    </span>
+                                    <span className="text-[10px] font-mono text-zinc-400 bg-zinc-800 px-1.5 py-0.5 rounded border border-white/5 shrink-0">
+                                      {currentServer.code}
+                                    </span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Globe className="w-4 h-4 text-zinc-400 shrink-0" />
+                                    <span className="font-semibold truncate">
+                                      {accountForm.server || 'Chọn máy chủ'}
+                                    </span>
+                                  </>
+                                )}
+                              </div>
+                              <ChevronsUpDown className="w-4 h-4 text-zinc-400 shrink-0" />
+                            </button>
+                          );
+                        })()}
+
+                        <AnimatePresence>
+                          {openDropdown === 'server' && (
+                            <motion.div
+                              initial={{ opacity: 0, y: 6, scale: 0.97 }}
+                              animate={{ opacity: 1, y: 0, scale: 1 }}
+                              exit={{ opacity: 0, y: 6, scale: 0.97 }}
+                              transition={{ duration: 0.14 }}
+                              className="absolute left-0 right-0 bottom-full mb-2 z-40 rounded-xl border border-zinc-700/90 bg-zinc-900/98 backdrop-blur-xl shadow-[0_-12px_40px_rgba(0,0,0,0.65)] overflow-hidden"
+                            >
+                              {availableServers.length > 5 && (
+                                <div className="p-2 border-b border-zinc-800">
+                                  <input
+                                    type="text"
+                                    value={serverSearch}
+                                    onChange={(e) => setServerSearch(e.target.value)}
+                                    placeholder="Tìm máy chủ (VN, SEA, KR...)..."
+                                    className="w-full rounded-lg border border-zinc-700/80 bg-zinc-950 px-2.5 py-1.5 text-xs text-white placeholder-zinc-500 focus:border-amber-500 focus:outline-none"
+                                  />
+                                </div>
+                              )}
+                              <div className="p-1 max-h-48 overflow-y-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-zinc-700/80 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-zinc-600">
+                                {availableServers.filter((srv) => {
+                                  const q = serverSearch.trim().toLowerCase();
+                                  if (!q) return true;
+                                  return (
+                                    srv.name.toLowerCase().includes(q) ||
+                                    srv.code.toLowerCase().includes(q)
+                                  );
+                                }).map((srv) => {
+                                  const isSelected =
+                                    accountForm.server.toUpperCase() === srv.code.toUpperCase();
+                                  return (
+                                    <button
+                                      key={srv.code}
+                                      type="button"
+                                      onClick={() => {
+                                        setAccountForm((prev) => ({ ...prev, server: srv.code }));
+                                        setOpenDropdown(null);
+                                      }}
+                                      className={`w-full px-2.5 py-2 rounded-lg text-left text-xs flex items-center justify-between gap-2 transition-colors cursor-pointer ${
+                                        isSelected
+                                          ? 'bg-amber-500/20 text-amber-300 font-bold'
+                                          : 'text-zinc-200 hover:bg-zinc-800'
+                                      }`}
+                                    >
+                                      <div className="flex items-center gap-2 min-w-0">
+                                        <ServerFlag code={srv.code} size="sm" />
+                                        <span className="truncate">{srv.name}</span>
+                                        <span className="text-[10px] font-mono text-zinc-500 shrink-0">
+                                          {srv.code}
+                                        </span>
+                                      </div>
+                                      {isSelected && <Check className="w-3.5 h-3.5 text-amber-400 shrink-0" />}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
                       </div>
                     </div>
 

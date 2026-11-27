@@ -156,7 +156,7 @@ export default function ReportRankMismatchModal({
                 exit={{ opacity: 0, scale: 0.94, y: 14 }}
                 transition={{ type: 'spring', stiffness: 360, damping: 28 }}
                 onClick={(e) => e.stopPropagation()}
-                className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl bg-zinc-900 border border-amber-500/30 p-5 sm:p-6 shadow-2xl"
+                className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl bg-zinc-900 border border-amber-500/30 p-5 sm:p-6 shadow-2xl [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-zinc-700/70 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-zinc-600"
               >
                 {/* Header */}
                 <div className="flex items-center justify-between gap-3 pb-4 border-b border-zinc-800">
