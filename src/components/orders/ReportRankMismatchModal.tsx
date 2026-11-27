@@ -3,14 +3,20 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { AlertTriangle, Upload, X, Loader2, ShieldAlert, ZoomIn } from 'lucide-react';
+import { AlertTriangle, Upload, X, Loader2, ShieldAlert, ZoomIn, Calculator } from 'lucide-react';
 import { toast } from 'sonner';
 import { API_BASE_URL } from '@/lib/api';
 import ImageLightbox from '@/components/ui/ImageLightbox';
+import { calculateAovStarDifferencePricing } from '@/lib/aov';
 
 interface ReportRankMismatchModalProps {
   orderId: string;
   declaredRank?: string;
+  targetRank?: string;
+  serviceType?: string;
+  game?: string;
+  orderTotal?: number;
+  depositAmount?: number;
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
@@ -114,6 +120,11 @@ const RANK_TIERS = Object.keys(AOV_TIER_CONFIGS);
 export default function ReportRankMismatchModal({
   orderId,
   declaredRank,
+  targetRank,
+  serviceType,
+  game,
+  orderTotal = 0,
+  depositAmount = 0,
   isOpen,
   onClose,
   onSuccess,
@@ -126,10 +137,40 @@ export default function ReportRankMismatchModal({
   const [verifiedRank, setVerifiedRank] = useState('Tinh Anh III (4 sao)');
   const [proofImage, setProofImage] = useState('');
   const [note, setNote] = useState('');
-  const [proposedPrice] = useState<string>('');
+  const [proposedPrice, setProposedPrice] = useState<string>('');
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [autoCalcInfo, setAutoCalcInfo] = useState<{
+    totalStars: number;
+    totalPrice: number;
+    breakdown: Array<{ label: string; stars: number; rate: number; subtotal: number }>;
+  } | null>(null);
+
+  const isAov =
+    (game || '').toUpperCase().includes('AOV') ||
+    (game || '').toUpperCase().includes('LIENQUAN') ||
+    (game || '').toUpperCase().includes('LIÊN QUÂN') ||
+    (serviceType || '').toLowerCase().includes('lienquan');
+
+  const isNetWins =
+    (serviceType || '').toUpperCase().includes('NET_WINS') ||
+    (serviceType || '').toLowerCase().includes('net-wins') ||
+    (serviceType || '').toLowerCase().includes('thắng') ||
+    (serviceType || '').toLowerCase().includes('sao');
+
+  // Tự động tính giá theo số sao Liên Quân nếu là AOV & Net Wins
+  useEffect(() => {
+    if (isAov && isNetWins && targetRank && verifiedRank) {
+      const calc = calculateAovStarDifferencePricing(verifiedRank, targetRank);
+      if (calc.totalPrice > 0) {
+        setAutoCalcInfo(calc);
+        setProposedPrice(calc.totalPrice.toString());
+      } else {
+        setAutoCalcInfo(null);
+      }
+    }
+  }, [isAov, isNetWins, targetRank, verifiedRank]);
 
   // Cập nhật chuỗi verifiedRank khi thay đổi lựa chọn
   const buildRankString = (tier: string, div: string, stars: number) => {
@@ -571,6 +612,69 @@ export default function ReportRankMismatchModal({
                       placeholder="VD: Tài khoản vào sảnh đã ở Tinh Anh 4 sao, cần bù thêm phí theo bảng giá..."
                       className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-3.5 py-2 text-xs text-white placeholder-zinc-500 focus:border-amber-500 focus:outline-none transition-colors resize-none"
                     />
+                  </div>
+
+                  {/* Báo giá điều chỉnh cho khách hàng (Tự động tính theo sao Liên Quân + Cho phép Booster tùy chỉnh) */}
+                  <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-3.5 space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5 text-xs font-bold text-amber-400">
+                        <Calculator className="w-4 h-4" />
+                        <span>Báo giá điều chỉnh cho khách hàng</span>
+                      </div>
+                      {autoCalcInfo && autoCalcInfo.totalStars > 0 && (
+                        <span className="text-[11px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-medium">
+                          Cần cày {autoCalcInfo.totalStars} sao
+                        </span>
+                      )}
+                    </div>
+
+                    {autoCalcInfo && autoCalcInfo.totalStars > 0 && (
+                      <div className="text-[11px] text-zinc-400">
+                        <span>Gợi ý chuẩn theo số sao: </span>
+                        <span className="font-bold text-amber-300">
+                          {autoCalcInfo.totalPrice.toLocaleString('vi-VN')} đ
+                        </span>
+                        {targetRank && (
+                          <span className="text-zinc-500"> (Từ {verifiedRank} ➔ {targetRank})</span>
+                        )}
+                      </div>
+                    )}
+
+                    <div>
+                      <label className="block text-[11px] font-medium text-zinc-300 mb-1">
+                        Báo giá thực tế đề xuất (VNĐ) <span className="text-zinc-500">(Booster có thể chỉnh sửa tự do)</span>:
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="number"
+                          value={proposedPrice}
+                          onChange={(e) => setProposedPrice(e.target.value)}
+                          placeholder={autoCalcInfo?.totalPrice ? autoCalcInfo.totalPrice.toString() : 'VD: 165000'}
+                          className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-3.5 py-2 text-xs text-amber-300 font-bold placeholder-zinc-600 focus:border-amber-500 focus:outline-none transition-colors"
+                        />
+                        <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-xs text-zinc-500">
+                          VNĐ
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Tạm tính chênh lệch khách cần thanh toán bù */}
+                    {(() => {
+                      const finalPrice = proposedPrice ? Number(proposedPrice) : (autoCalcInfo?.totalPrice || 0);
+                      const origTotal = orderTotal || 0;
+                      const extraNeeded = Math.max(0, finalPrice - origTotal);
+                      if (finalPrice > 0 && origTotal > 0) {
+                        return (
+                          <div className="flex items-center justify-between pt-1 border-t border-amber-500/20 text-[11px]">
+                            <span className="text-zinc-400">Khách cần thanh toán bù thêm:</span>
+                            <span className="font-extrabold text-amber-400">
+                              {extraNeeded > 0 ? `+ ${extraNeeded.toLocaleString('vi-VN')} đ` : '0 đ (Không phát sinh bù)'}
+                            </span>
+                          </div>
+                        );
+                      }
+                      return null;
+                    })()}
                   </div>
 
                   {/* Buttons */}

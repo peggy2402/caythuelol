@@ -2160,6 +2160,16 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
           order.snapshot?.initialState?.rankId ||
           order.details?.rank_start
         }
+        targetRank={
+          order.details?.desired_rank ||
+          order.details?.desiredRank ||
+          order.snapshot?.targetState?.rankId ||
+          order.details?.rank_target
+        }
+        serviceType={order.serviceType}
+        game={order.details?.game || order.snapshot?.gameCode}
+        orderTotal={order.pricing?.total_amount}
+        depositAmount={order.pricing?.deposit_amount}
         isOpen={isRankMismatchModalOpen}
         onClose={() => setIsRankMismatchModalOpen(false)}
         onSuccess={fetchOrder}

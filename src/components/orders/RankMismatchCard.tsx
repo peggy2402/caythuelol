@@ -426,7 +426,13 @@ export default function RankMismatchCard({
               </span>
             </div>
             <div className="flex justify-between gap-2 text-zinc-400">
-              <span>Báo giá chuẩn thực tế ({mismatch.verifiedRank} ➔ {originalTarget}):</span>
+              <span>
+                {(order?.serviceType || '').toLowerCase().includes('net') ||
+                (order?.serviceType || '').toLowerCase().includes('sao') ||
+                (order?.serviceType || '').toLowerCase().includes('thắng')
+                  ? `Báo giá điều chỉnh theo số sao (${mismatch.verifiedRank} ➔ ${originalTarget}):`
+                  : `Báo giá chuẩn thực tế (${mismatch.verifiedRank} ➔ ${originalTarget}):`}
+              </span>
               <span className="font-mono text-white font-semibold whitespace-nowrap">
                 {recalculatedPrice.toLocaleString('vi-VN')} đ
               </span>
@@ -434,7 +440,7 @@ export default function RankMismatchCard({
             <div className="pt-2.5 border-t border-zinc-800 flex justify-between items-center gap-2 text-sm">
               <span className="font-bold text-amber-400">Số tiền cần thanh toán bổ sung:</span>
               <span className="font-mono text-base font-extrabold text-amber-300 whitespace-nowrap">
-                +{extraAmount.toLocaleString('vi-VN')} đ
+                {extraAmount > 0 ? `+${extraAmount.toLocaleString('vi-VN')} đ` : '0 đ (Đã đủ chi phí)'}
               </span>
             </div>
           </div>

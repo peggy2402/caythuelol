@@ -915,3 +915,172 @@ export function calculateAovOddStarBoost({
     breakdown,
   };
 }
+
+export function matchAovLadderIndex(str: string): number {
+  if (!str) return -1;
+  const s = str.toLowerCase().trim();
+  const idx = AOV_RANK_LADDER.findIndex(
+    (step) =>
+      step.id.toLowerCase() === s ||
+      step.label.toLowerCase() === s ||
+      step.tier.toLowerCase() === s,
+  );
+  if (idx !== -1) return idx;
+
+  if (s.includes('chiến thần') || s.includes('legend')) return AOV_RANK_LADDER.findIndex((x) => x.id === 'LEGEND');
+  if (s.includes('chiến tướng') || s.includes('conqueror')) return AOV_RANK_LADDER.findIndex((x) => x.id === 'CONQUEROR');
+  if (s.includes('đại cao thủ') || s.includes('grandmaster')) return AOV_RANK_LADDER.findIndex((x) => x.id === 'GRANDMASTER');
+  if (s.includes('cao thủ') || s.includes('master')) return AOV_RANK_LADDER.findIndex((x) => x.id === 'MASTER');
+
+  const tiers = [
+    { key: 'tinh anh', code: 'VETERAN' },
+    { key: 'kim cương', code: 'DIAMOND' },
+    { key: 'bạch kim', code: 'PLATINUM' },
+    { key: 'vàng', code: 'GOLD' },
+    { key: 'bạc', code: 'SILVER' },
+    { key: 'đồng', code: 'BRONZE' },
+  ];
+  for (const t of tiers) {
+    if (s.includes(t.key)) {
+      if (s.includes(' v ') || s.includes(' v(') || s.endsWith(' v') || s.includes(' 5')) {
+        const found = AOV_RANK_LADDER.findIndex((x) => x.tier === t.code && (x.division === 'V' || x.id.endsWith('_5')));
+        if (found !== -1) return found;
+      }
+      if (s.includes(' iv ') || s.includes(' iv(') || s.endsWith(' iv') || s.includes(' 4')) {
+        const found = AOV_RANK_LADDER.findIndex((x) => x.tier === t.code && (x.division === 'IV' || x.id.endsWith('_4')));
+        if (found !== -1) return found;
+      }
+      if (s.includes(' iii ') || s.includes(' iii(') || s.endsWith(' iii') || s.includes(' 3')) {
+        const found = AOV_RANK_LADDER.findIndex((x) => x.tier === t.code && (x.division === 'III' || x.id.endsWith('_3')));
+        if (found !== -1) return found;
+      }
+      if (s.includes(' ii ') || s.includes(' ii(') || s.endsWith(' ii') || s.includes(' 2')) {
+        const found = AOV_RANK_LADDER.findIndex((x) => x.tier === t.code && (x.division === 'II' || x.id.endsWith('_2')));
+        if (found !== -1) return found;
+      }
+      if (s.includes(' i ') || s.includes(' i(') || s.endsWith(' i') || s.includes(' 1')) {
+        const found = AOV_RANK_LADDER.findIndex((x) => x.tier === t.code && (x.division === 'I' || x.id.endsWith('_1')));
+        if (found !== -1) return found;
+      }
+      const found = AOV_RANK_LADDER.findIndex((x) => x.tier === t.code);
+      if (found !== -1) return found;
+    }
+  }
+  return -1;
+}
+
+export function extractAovStars(str: string, defaultStars = 1): number {
+  if (!str) return defaultStars;
+  const match = str.match(/(\d+)\s*(sao|star|★)/i) || str.match(/\((\d+)/);
+  if (match) {
+    const val = parseInt(match[1], 10);
+    if (!isNaN(val)) return val;
+  }
+  return defaultStars;
+}
+
+export function calculateAovStarDifferencePricing(
+  fromRankStr: string,
+  toRankStr: string,
+  tierRates?: Record<string, number>,
+): {
+  totalStars: number;
+  totalPrice: number;
+  breakdown: Array<{ label: string; stars: number; rate: number; subtotal: number }>;
+} {
+  const fromIdx = matchAovLadderIndex(fromRankStr);
+  const toIdx = matchAovLadderIndex(toRankStr);
+  const fromStars = extractAovStars(fromRankStr, 1);
+  const toStars = extractAovStars(toRankStr, 5);
+
+  if (fromIdx === -1 || toIdx === -1 || toIdx < fromIdx) {
+    return { totalStars: 0, totalPrice: 0, breakdown: [] };
+  }
+
+  const getTierRate = (tier: string) => {
+    if (['BRONZE', 'SILVER', 'GOLD', 'PLATINUM'].includes(tier)) {
+      return resolveAovStarRate('bronze_diamond', tierRates);
+    }
+    if (tier === 'DIAMOND') {
+      return resolveAovStarRate('diamond_veteran', tierRates);
+    }
+    if (tier === 'VETERAN') {
+      return resolveAovStarRate('veteran_master', tierRates);
+    }
+    if (tier === 'MASTER') {
+      return resolveAovStarRate('master_0_19', tierRates);
+    }
+    if (tier === 'GRANDMASTER') {
+      return resolveAovStarRate('gm_20_49', tierRates);
+    }
+    if (tier === 'CONQUEROR') {
+      return resolveAovStarRate('conqueror_50_99', tierRates);
+    }
+    if (tier === 'LEGEND') {
+      return resolveAovStarRate('legend_100_plus', tierRates);
+    }
+    return 6000;
+  };
+
+  const breakdown: Array<{ label: string; stars: number; rate: number; subtotal: number }> = [];
+  let totalStars = 0;
+  let totalPrice = 0;
+
+  // Case 1: Same division
+  if (fromIdx === toIdx) {
+    const stars = Math.max(0, toStars - fromStars);
+    if (stars > 0) {
+      const step = AOV_RANK_LADDER[fromIdx];
+      const rate = getTierRate(step.tier);
+      const subtotal = stars * rate;
+      totalStars = stars;
+      totalPrice = subtotal;
+      breakdown.push({ label: step.label, stars, rate, subtotal });
+    }
+    return { totalStars, totalPrice, breakdown };
+  }
+
+  // Case 2: fromIdx < toIdx
+  // 1. Bậc/đoàn xuất phát
+  const startStep = AOV_RANK_LADDER[fromIdx];
+  const startCap = startStep.starsPerDivision || 5;
+  const startRemaining = Math.max(0, startCap - fromStars);
+  if (startRemaining > 0) {
+    const rate = getTierRate(startStep.tier);
+    const subtotal = startRemaining * rate;
+    totalStars += startRemaining;
+    totalPrice += subtotal;
+    breakdown.push({
+      label: `${startStep.label} (${fromStars}★ ➔ ${startCap}★)`,
+      stars: startRemaining,
+      rate,
+      subtotal,
+    });
+  }
+
+  // 2. Các bậc/đoàn trung gian
+  for (let i = fromIdx + 1; i < toIdx; i++) {
+    const step = AOV_RANK_LADDER[i];
+    const cap = step.starsPerDivision || 5;
+    const rate = getTierRate(step.tier);
+    const subtotal = cap * rate;
+    totalStars += cap;
+    totalPrice += subtotal;
+    breakdown.push({ label: `${step.label} (${cap}★)`, stars: cap, rate, subtotal });
+  }
+
+  // 3. Bậc/đoàn đích đến
+  const endStep = AOV_RANK_LADDER[toIdx];
+  const endCap = endStep.starsPerDivision || 5;
+  const targetStars = Math.min(endCap, Math.max(1, toStars));
+  if (targetStars > 0) {
+    const rate = getTierRate(endStep.tier);
+    const subtotal = targetStars * rate;
+    totalStars += targetStars;
+    totalPrice += subtotal;
+    breakdown.push({ label: `${endStep.label} (đến ${targetStars}★)`, stars: targetStars, rate, subtotal });
+  }
+
+  return { totalStars, totalPrice, breakdown };
+}
+

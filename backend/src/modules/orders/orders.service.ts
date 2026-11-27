@@ -20,7 +20,11 @@ import { LoyaltyService } from '../loyalty/loyalty.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { ChatGateway } from '../chat/chat.gateway';
 import { IBoosterProfile } from '../../database/schemas/BoosterProfile';
-import { AOV_RANK_LADDER } from '../../common/aov.config';
+import {
+  AOV_RANK_LADDER,
+  matchAovLadderIndex,
+  calculateAovStarDifferencePricing,
+} from '../../common/aov.config';
 
 @Injectable()
 export class OrdersService {
@@ -1917,8 +1921,8 @@ export class OrdersService {
     if (payload.proposedPrice && payload.proposedPrice > 0) {
       recalculatedPrice = Math.round(payload.proposedPrice);
     } else {
-      // 2. Tự động tính theo AOV_RANK_LADDER nếu là Liên Quân
-      const game = (order.details?.game || '').toUpperCase();
+      // 2. Tự động tính nếu là Liên Quân (AOV)
+      const game = (order.details?.game || order.snapshot?.gameCode || '').toUpperCase();
       const isAov =
         game === 'AOV' ||
         game === 'LIENQUAN' ||
@@ -1926,69 +1930,37 @@ export class OrdersService {
         (order.serviceType || '').toLowerCase().includes('lienquan');
 
       if (isAov) {
-        const matchLadderIndex = (str: string) => {
-          if (!str) return -1;
-          const s = str.toLowerCase().trim();
-          let idx = AOV_RANK_LADDER.findIndex(
-            (step) =>
-              step.id.toLowerCase() === s ||
-              step.label.toLowerCase() === s ||
-              step.tier.toLowerCase() === s,
+        const isNetWins =
+          order.serviceType === 'NET_WINS' ||
+          order.serviceType === 'net-wins' ||
+          (order.serviceType || '').toLowerCase().includes('net') ||
+          (order.serviceType || '').toLowerCase().includes('thắng') ||
+          (order.serviceType || '').toLowerCase().includes('sao') ||
+          order.snapshot?.pricingModel === 'UNIT_BASED';
+
+        if (isNetWins) {
+          // AOV Net Wins / Cày theo sao: Tính chuẩn xác theo số sao lũy tiến
+          const starDiff = calculateAovStarDifferencePricing(
+            payload.verifiedRank,
+            targetRank,
           );
-          if (idx !== -1) return idx;
+          if (starDiff.totalPrice > 0) {
+            const optionFees = order.pricing?.option_fees || 0;
+            recalculatedPrice = starDiff.totalPrice + optionFees;
+          }
+        } else {
+          // AOV Rank Boost: Tính theo thang bậc đoàn AOV_RANK_LADDER
+          const fromIdx = matchAovLadderIndex(payload.verifiedRank);
+          const toIdx = matchAovLadderIndex(targetRank);
 
-          if (s.includes('chiến thần') || s.includes('legend')) return AOV_RANK_LADDER.findIndex((x) => x.id === 'LEGEND');
-          if (s.includes('chiến tướng') || s.includes('conqueror')) return AOV_RANK_LADDER.findIndex((x) => x.id === 'CONQUEROR');
-          if (s.includes('đại cao thủ') || s.includes('grandmaster')) return AOV_RANK_LADDER.findIndex((x) => x.id === 'GRANDMASTER');
-          if (s.includes('cao thủ') || s.includes('master')) return AOV_RANK_LADDER.findIndex((x) => x.id === 'MASTER');
-
-          const tiers = [
-            { key: 'tinh anh', code: 'VETERAN' },
-            { key: 'kim cương', code: 'DIAMOND' },
-            { key: 'bạch kim', code: 'PLATINUM' },
-            { key: 'vàng', code: 'GOLD' },
-            { key: 'bạc', code: 'SILVER' },
-            { key: 'đồng', code: 'BRONZE' },
-          ];
-          for (const t of tiers) {
-            if (s.includes(t.key)) {
-              if (s.includes(' v ') || s.includes(' v(') || s.endsWith(' v') || s.includes(' 5')) {
-                const found = AOV_RANK_LADDER.findIndex((x) => x.tier === t.code && (x.division === 'V' || x.id.endsWith('_5')));
-                if (found !== -1) return found;
-              }
-              if (s.includes(' iv ') || s.includes(' iv(') || s.endsWith(' iv') || s.includes(' 4')) {
-                const found = AOV_RANK_LADDER.findIndex((x) => x.tier === t.code && (x.division === 'IV' || x.id.endsWith('_4')));
-                if (found !== -1) return found;
-              }
-              if (s.includes(' iii ') || s.includes(' iii(') || s.endsWith(' iii') || s.includes(' 3')) {
-                const found = AOV_RANK_LADDER.findIndex((x) => x.tier === t.code && (x.division === 'III' || x.id.endsWith('_3')));
-                if (found !== -1) return found;
-              }
-              if (s.includes(' ii ') || s.includes(' ii(') || s.endsWith(' ii') || s.includes(' 2')) {
-                const found = AOV_RANK_LADDER.findIndex((x) => x.tier === t.code && (x.division === 'II' || x.id.endsWith('_2')));
-                if (found !== -1) return found;
-              }
-              if (s.includes(' i ') || s.includes(' i(') || s.endsWith(' i') || s.includes(' 1')) {
-                const found = AOV_RANK_LADDER.findIndex((x) => x.tier === t.code && (x.division === 'I' || x.id.endsWith('_1')));
-                if (found !== -1) return found;
-              }
-              const found = AOV_RANK_LADDER.findIndex((x) => x.tier === t.code);
-              if (found !== -1) return found;
+          if (fromIdx !== -1 && toIdx !== -1 && toIdx > fromIdx) {
+            let ladderTotal = 0;
+            for (let i = fromIdx; i < toIdx; i++) {
+              ladderTotal += AOV_RANK_LADDER[i].stepPrice;
             }
+            const optionFees = order.pricing?.option_fees || 0;
+            recalculatedPrice = ladderTotal + optionFees;
           }
-          return -1;
-        };
-
-        const fromIdx = matchLadderIndex(payload.verifiedRank);
-        const toIdx = matchLadderIndex(targetRank);
-
-        if (fromIdx !== -1 && toIdx !== -1 && toIdx > fromIdx) {
-          let ladderTotal = 0;
-          for (let i = fromIdx; i < toIdx; i++) {
-            ladderTotal += AOV_RANK_LADDER[i].stepPrice;
-          }
-          const optionFees = order.pricing?.option_fees || 0;
-          recalculatedPrice = ladderTotal + optionFees;
         }
       }
 
