@@ -19,10 +19,12 @@ interface ReportRankMismatchModalProps {
 interface TierConfig {
   divisions?: string[];
   maxStars?: number;
-  type: 'division' | 'star';
+  minStars?: number;
+  type: 'division' | 'star' | 'division_star';
   unit: string;
   defaultStars: number;
   quickStars?: number[];
+  note?: string;
 }
 
 const AOV_TIER_CONFIGS: Record<string, TierConfig> = {
@@ -70,28 +72,40 @@ const AOV_TIER_CONFIGS: Record<string, TierConfig> = {
   },
   'Cao Thủ': {
     type: 'star',
+    minStars: 0,
+    maxStars: 19,
     unit: 'sao',
-    defaultStars: 1,
-    quickStars: [1, 5, 10, 15, 20, 30],
+    defaultStars: 0,
+    quickStars: [0, 5, 10, 15, 19],
+    note: 'Mốc 0 – 19 sao (Cao Thủ ➔ ĐCT IV)',
   },
   'Đại Cao Thủ': {
     divisions: ['IV', 'III', 'II', 'I'],
-    maxStars: 5,
-    type: 'division',
+    type: 'division_star',
+    minStars: 10,
+    maxStars: 49,
     unit: 'sao',
-    defaultStars: 1,
+    defaultStars: 25,
+    quickStars: [20, 25, 30, 35, 40, 45, 49],
+    note: 'Mốc 20 – 49 sao (ĐCT III – I cày theo sao, không tính 5★/đoàn)',
   },
   'Chiến Tướng': {
     type: 'star',
-    unit: 'điểm/sao',
+    minStars: 50,
+    maxStars: 74,
+    unit: 'sao',
     defaultStars: 50,
-    quickStars: [50, 60, 70, 80, 99],
+    quickStars: [50, 55, 60, 65, 70, 74],
+    note: 'Mốc 50 – 74 sao',
   },
   'Chiến Thần': {
     type: 'star',
-    unit: 'điểm/sao',
-    defaultStars: 100,
-    quickStars: [100, 120, 150, 200],
+    minStars: 75,
+    maxStars: 999,
+    unit: 'sao',
+    defaultStars: 75,
+    quickStars: [75, 80, 85, 90, 95, 99],
+    note: 'Mốc 75 – 99 sao (hoặc 100★+)',
   },
 };
 
@@ -123,6 +137,9 @@ export default function ReportRankMismatchModal({
     if (config.type === 'star') {
       return `${tier} (${stars} ${config.unit})`;
     }
+    if (config.type === 'division_star') {
+      return `${tier} ${div} (${stars} ${config.unit})`;
+    }
     return `${tier} ${div} (${stars} sao)`;
   };
 
@@ -135,28 +152,50 @@ export default function ReportRankMismatchModal({
     if (config?.divisions) {
       if (!config.divisions.includes(newDiv)) {
         newDiv = config.divisions[0];
-        setSelectedDivision(newDiv);
       }
-      if (config.maxStars && newStars > config.maxStars) {
-        newStars = config.maxStars;
-        setSelectedStars(newStars);
-      }
-    } else if (config?.type === 'star') {
-      newStars = config.defaultStars;
-      setSelectedStars(newStars);
     }
 
+    if (config?.type === 'division') {
+      if (config.maxStars && newStars > config.maxStars) {
+        newStars = config.maxStars;
+      }
+      if (newStars < 1) newStars = 1;
+    } else {
+      newStars = config.defaultStars ?? 0;
+      if (tier === 'Đại Cao Thủ') {
+        newDiv = 'III';
+      }
+    }
+
+    setSelectedDivision(newDiv);
+    setSelectedStars(newStars);
     setVerifiedRank(buildRankString(tier, newDiv, newStars));
   };
 
   const handleSelectDivision = (div: string) => {
     setSelectedDivision(div);
-    setVerifiedRank(buildRankString(selectedTier, div, selectedStars));
+    let stars = selectedStars;
+    if (selectedTier === 'Đại Cao Thủ') {
+      if (div === 'IV' && (stars < 10 || stars > 20)) stars = 19;
+      else if (div === 'III' && (stars < 20 || stars > 29)) stars = 25;
+      else if (div === 'II' && (stars < 30 || stars > 39)) stars = 35;
+      else if (div === 'I' && (stars < 40 || stars > 49)) stars = 45;
+      setSelectedStars(stars);
+    }
+    setVerifiedRank(buildRankString(selectedTier, div, stars));
   };
 
   const handleSelectStars = (stars: number) => {
     setSelectedStars(stars);
-    setVerifiedRank(buildRankString(selectedTier, selectedDivision, stars));
+    let div = selectedDivision;
+    if (selectedTier === 'Đại Cao Thủ') {
+      if (stars >= 40) div = 'I';
+      else if (stars >= 30) div = 'II';
+      else if (stars >= 20) div = 'III';
+      else div = 'IV';
+      setSelectedDivision(div);
+    }
+    setVerifiedRank(buildRankString(selectedTier, div, stars));
   };
 
   useEffect(() => {
@@ -392,9 +431,19 @@ export default function ReportRankMismatchModal({
 
                             {/* 3. Số sao / Điểm thực tế */}
                             <div>
-                              <span className="text-[11px] text-zinc-400 block mb-1.5 font-medium">
-                                3. {currentConfig.type === 'star' ? `Số ${currentConfig.unit} thực tế:` : 'Số sao thực tế:'}
-                              </span>
+                              <div className="flex items-center justify-between mb-1.5 flex-wrap gap-1">
+                                <span className="text-[11px] text-zinc-400 font-medium">
+                                  3.{' '}
+                                  {currentConfig.type === 'division'
+                                    ? `Số sao thực tế (1 – ${currentConfig.maxStars} sao):`
+                                    : 'Số sao tích lũy thực tế (cày theo sao):'}
+                                </span>
+                                {currentConfig.note && (
+                                  <span className="text-[10px] text-amber-400/90 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full font-medium">
+                                    {currentConfig.note}
+                                  </span>
+                                )}
+                              </div>
                               <div className="flex items-center gap-1.5 flex-wrap">
                                 {currentConfig.type === 'division' && starList.map((s) => (
                                   <button
@@ -411,7 +460,7 @@ export default function ReportRankMismatchModal({
                                   </button>
                                 ))}
 
-                                {currentConfig.type === 'star' && (
+                                {(currentConfig.type === 'star' || currentConfig.type === 'division_star') && (
                                   <>
                                     {currentConfig.quickStars?.map((s) => (
                                       <button
@@ -420,8 +469,8 @@ export default function ReportRankMismatchModal({
                                         onClick={() => handleSelectStars(s)}
                                         className={`text-[11px] px-2.5 py-1.5 rounded-lg border font-bold transition-all cursor-pointer ${
                                           selectedStars === s
-                                            ? 'bg-amber-500/20 border-amber-500 text-amber-300 ring-1 ring-amber-500/40'
-                                            : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-zinc-200'
+                                            ? 'bg-amber-500/20 border-amber-500 text-amber-300 ring-1 ring-amber-500/40 shadow-sm'
+                                            : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-zinc-200 hover:border-zinc-700'
                                         }`}
                                       >
                                         {s} {currentConfig.unit}
@@ -431,13 +480,14 @@ export default function ReportRankMismatchModal({
                                       <span className="text-[10px] text-zinc-500">hoặc nhập:</span>
                                       <input
                                         type="number"
-                                        min={0}
-                                        max={999}
+                                        min={currentConfig.minStars ?? 0}
+                                        max={currentConfig.maxStars ?? 999}
                                         value={selectedStars}
                                         onChange={(e) => handleSelectStars(Number(e.target.value) || 0)}
                                         className="w-20 bg-zinc-950 border border-zinc-700 rounded-lg px-2.5 py-1 text-xs text-white text-center font-bold focus:border-amber-500 outline-none"
                                         placeholder={`Số ${currentConfig.unit}`}
                                       />
+                                      <span className="text-xs text-zinc-400 font-medium">sao</span>
                                     </div>
                                   </>
                                 )}

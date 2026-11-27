@@ -1675,18 +1675,61 @@ export class OrdersService {
         (order.serviceType || '').toLowerCase().includes('lienquan');
 
       if (isAov) {
-        const fromIdx = AOV_RANK_LADDER.findIndex(
-          (s) =>
-            s.id.toLowerCase() === payload.verifiedRank.toLowerCase() ||
-            s.label.toLowerCase() === payload.verifiedRank.toLowerCase() ||
-            s.tier.toLowerCase() === payload.verifiedRank.toLowerCase(),
-        );
-        const toIdx = AOV_RANK_LADDER.findIndex(
-          (s) =>
-            s.id.toLowerCase() === targetRank.toLowerCase() ||
-            s.label.toLowerCase() === targetRank.toLowerCase() ||
-            s.tier.toLowerCase() === targetRank.toLowerCase(),
-        );
+        const matchLadderIndex = (str: string) => {
+          if (!str) return -1;
+          const s = str.toLowerCase().trim();
+          let idx = AOV_RANK_LADDER.findIndex(
+            (step) =>
+              step.id.toLowerCase() === s ||
+              step.label.toLowerCase() === s ||
+              step.tier.toLowerCase() === s,
+          );
+          if (idx !== -1) return idx;
+
+          if (s.includes('chiến thần') || s.includes('legend')) return AOV_RANK_LADDER.findIndex((x) => x.id === 'LEGEND');
+          if (s.includes('chiến tướng') || s.includes('conqueror')) return AOV_RANK_LADDER.findIndex((x) => x.id === 'CONQUEROR');
+          if (s.includes('đại cao thủ') || s.includes('grandmaster')) return AOV_RANK_LADDER.findIndex((x) => x.id === 'GRANDMASTER');
+          if (s.includes('cao thủ') || s.includes('master')) return AOV_RANK_LADDER.findIndex((x) => x.id === 'MASTER');
+
+          const tiers = [
+            { key: 'tinh anh', code: 'VETERAN' },
+            { key: 'kim cương', code: 'DIAMOND' },
+            { key: 'bạch kim', code: 'PLATINUM' },
+            { key: 'vàng', code: 'GOLD' },
+            { key: 'bạc', code: 'SILVER' },
+            { key: 'đồng', code: 'BRONZE' },
+          ];
+          for (const t of tiers) {
+            if (s.includes(t.key)) {
+              if (s.includes(' v ') || s.includes(' v(') || s.endsWith(' v') || s.includes(' 5')) {
+                const found = AOV_RANK_LADDER.findIndex((x) => x.tier === t.code && (x.division === 'V' || x.id.endsWith('_5')));
+                if (found !== -1) return found;
+              }
+              if (s.includes(' iv ') || s.includes(' iv(') || s.endsWith(' iv') || s.includes(' 4')) {
+                const found = AOV_RANK_LADDER.findIndex((x) => x.tier === t.code && (x.division === 'IV' || x.id.endsWith('_4')));
+                if (found !== -1) return found;
+              }
+              if (s.includes(' iii ') || s.includes(' iii(') || s.endsWith(' iii') || s.includes(' 3')) {
+                const found = AOV_RANK_LADDER.findIndex((x) => x.tier === t.code && (x.division === 'III' || x.id.endsWith('_3')));
+                if (found !== -1) return found;
+              }
+              if (s.includes(' ii ') || s.includes(' ii(') || s.endsWith(' ii') || s.includes(' 2')) {
+                const found = AOV_RANK_LADDER.findIndex((x) => x.tier === t.code && (x.division === 'II' || x.id.endsWith('_2')));
+                if (found !== -1) return found;
+              }
+              if (s.includes(' i ') || s.includes(' i(') || s.endsWith(' i') || s.includes(' 1')) {
+                const found = AOV_RANK_LADDER.findIndex((x) => x.tier === t.code && (x.division === 'I' || x.id.endsWith('_1')));
+                if (found !== -1) return found;
+              }
+              const found = AOV_RANK_LADDER.findIndex((x) => x.tier === t.code);
+              if (found !== -1) return found;
+            }
+          }
+          return -1;
+        };
+
+        const fromIdx = matchLadderIndex(payload.verifiedRank);
+        const toIdx = matchLadderIndex(targetRank);
 
         if (fromIdx !== -1 && toIdx !== -1 && toIdx > fromIdx) {
           let ladderTotal = 0;
