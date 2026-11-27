@@ -198,22 +198,26 @@ export class OrdersService {
           base_price: basePrice,
           option_fees: optionFees,
           addons_cost: optionFees,
+          service_amount: basePrice + optionFees,
           service_fee: serviceFee,
+          platform_fee: serviceFee,
           platform_fee_percent: pricing.platform_fee_percent || (serviceFee > 0 ? 2 : 0),
           original_price: listedPrice,
           listed_price: listedPrice,
+          deposit_amount: amountToDeduct,
+          remaining_amount: Math.max(0, totalAmount - amountToDeduct),
           discount_amount: discountAmount,
           funding_source: fundingSource,
           platform_subsidy: platformSubsidy,
           booster_discount: boosterDiscount,
           booster_order_value: boosterOrderValue,
           booster_earnings: boosterEarnings,
-          settlement_status: SettlementStatus.DEPOSIT_HELD,
+          settlement_status: amountToDeduct >= totalAmount ? SettlementStatus.SETTLED : SettlementStatus.DEPOSIT_HELD,
         },
         payment: {
           is_locked: true,
           deposit_paid: true,
-          final_paid: false,
+          final_paid: amountToDeduct >= totalAmount,
           booster_received_pending: false,
         },
         snapshot: orderSnapshot,
@@ -252,7 +256,15 @@ export class OrdersService {
             amount: -amountToDeduct,
             balanceAfter: user.wallet_balance,
             status: TransactionStatus.SUCCESS,
-            description: `Tạm giữ tiền cọc đơn hàng #${newOrder.orderCode || newOrder._id.toString().slice(-6)}`,
+            description: amountToDeduct >= totalAmount
+              ? `Thanh toán trọn gói đơn hàng #${newOrder.orderCode || newOrder._id.toString().slice(-6)} (100% Escrow)`
+              : `Đặt cọc đơn hàng #${newOrder.orderCode || newOrder._id.toString().slice(-6)} (${orderSnapshot.depositPercent}% Escrow)`,
+            metadata: {
+              depositPercent: orderSnapshot.depositPercent,
+              depositAmount: amountToDeduct,
+              remainingAmount: Math.max(0, totalAmount - amountToDeduct),
+              totalAmount,
+            },
           },
         ],
         { session },
@@ -860,51 +872,96 @@ export class OrdersService {
         }
       }
 
-      // Giải phóng tiền công cho Booster an toàn (Idempotency check: chỉ 1 lần duy nhất)
-      if (!order.payment.booster_received_pending && boosterEarnings > 0) {
-        order.payment.booster_received_pending = true;
+      // Kiểm tra thanh toán trọn gói 100% hay mới cọc một phần
+      const isFullyPaid = Boolean(order.payment?.final_paid || order.pricing.deposit_amount >= order.pricing.total_amount);
 
-        const booster = await this.userModel.findByIdAndUpdate(
-          order.boosterId,
-          { $inc: { wallet_balance: boosterEarnings } },
-          { new: true, session },
-        );
+      if (isFullyPaid) {
+        // TRƯỜNG HỢP 1: Đã thanh toán 100% -> Giải phóng tiền công cho Booster an toàn (Idempotency check)
+        if (!order.payment.booster_received_pending && boosterEarnings > 0) {
+          order.payment.booster_received_pending = true;
 
-        await this.transactionModel.create(
-          [
-            {
-              userId: order.boosterId,
-              orderId: order._id,
-              type: TransactionType.PAYMENT_RELEASE,
-              amount: boosterEarnings,
-              balanceAfter: booster!.wallet_balance,
-              status: TransactionStatus.SUCCESS,
-              description: `Nhận tiền công cày thuê đơn #${order.orderCode || order._id.toString().slice(-6)}`,
-            },
-          ],
-          { session },
+          const booster = await this.userModel.findByIdAndUpdate(
+            order.boosterId,
+            { $inc: { wallet_balance: boosterEarnings } },
+            { new: true, session },
+          );
+
+          await this.transactionModel.create(
+            [
+              {
+                userId: order.boosterId,
+                orderId: order._id,
+                type: TransactionType.PAYMENT_RELEASE,
+                amount: boosterEarnings,
+                balanceAfter: booster!.wallet_balance,
+                status: TransactionStatus.SUCCESS,
+                description: `Nhận tiền công cày thuê đơn #${order.orderCode || order._id.toString().slice(-6)}`,
+                metadata: {
+                  boosterEarnings,
+                  orderCode: order.orderCode,
+                },
+              },
+            ],
+            { session },
+          );
+        }
+
+        order.status = OrderStatus.COMPLETED;
+        order.pricing.settlement_status = SettlementStatus.SETTLED;
+        order.timeline = order.timeline || [];
+        order.timeline.push({
+          status: OrderStatus.COMPLETED,
+          timestamp: new Date(),
+          actor: new Types.ObjectId(boosterId),
+          note: `Booster báo cáo hoàn thành đơn hàng. Đã quyết toán: ${actualTotal.toLocaleString('vi-VN')} đ`,
+        });
+
+        await order.save({ session });
+
+        // Cộng điểm tích lũy cho Customer khi đơn hàng hoàn thành (1.000đ = 1 điểm)
+        await this.loyaltyService.awardOrderPoints(
+          order.customerId.toString(),
+          order._id as Types.ObjectId,
+          order.orderCode || order._id.toString().slice(-6),
+          actualTotal,
+          session,
         );
+      } else {
+        // TRƯỜNG HỢP 2: Khách mới đặt cọc (ví dụ 40%), còn thiếu phần còn lại (60%)
+        // Ký quỹ Escrow giữ an toàn, KHÔNG giải ngân trước từ tiền túi sàn!
+        const remainingAmount = Math.max(0, order.pricing.total_amount - order.pricing.deposit_amount);
+        order.pricing.remaining_amount = remainingAmount;
+        order.pricing.settlement_status = SettlementStatus.CUSTOMER_OWES;
+        order.payment.is_locked = true;
+
+        if (!order.details) order.details = {};
+        order.details.booster_completion_reported = true;
+        order.details.booster_completion_at = new Date();
+        order.markModified('details');
+
+        order.timeline = order.timeline || [];
+        order.timeline.push({
+          status: OrderStatus.IN_PROGRESS,
+          timestamp: new Date(),
+          actor: new Types.ObjectId(boosterId),
+          note: `Booster đã báo cáo hoàn thành đơn hàng. Đang chờ khách hàng thanh toán số tiền còn lại (${remainingAmount.toLocaleString('vi-VN')} đ) để quyết toán hoàn tất.`,
+        });
+
+        await order.save({ session });
+
+        // Gửi thông báo cho Customer yêu cầu thanh toán phần còn lại
+        const orderCodeDisplay = order.orderCode || order._id.toString().slice(-6).toUpperCase();
+        this.notificationsService
+          .notifyUser({
+            userId: order.customerId,
+            title: `🎯 Booster đã hoàn thành đơn #${orderCodeDisplay}!`,
+            message: `Booster đã hoàn thành mục tiêu cày thuê. Vui lòng thanh toán số tiền còn lại (${remainingAmount.toLocaleString('vi-VN')} đ) để hoàn tất đơn hàng và nhận tài khoản!`,
+            type: 'ORDER_UPDATE',
+            variant: 'info',
+            link: `/orders/${order._id}`,
+          })
+          .catch(() => {});
       }
-
-      order.status = OrderStatus.COMPLETED;
-      order.timeline = order.timeline || [];
-      order.timeline.push({
-        status: OrderStatus.COMPLETED,
-        timestamp: new Date(),
-        actor: new Types.ObjectId(boosterId),
-        note: `Booster báo cáo hoàn thành đơn hàng. Đã quyết toán: ${actualTotal.toLocaleString('vi-VN')} đ`,
-      });
-
-      await order.save({ session });
-
-      // Cộng điểm tích lũy cho Customer khi đơn hàng hoàn thành (1.000đ = 1 điểm)
-      await this.loyaltyService.awardOrderPoints(
-        order.customerId.toString(),
-        order._id as Types.ObjectId,
-        order.orderCode || order._id.toString().slice(-6),
-        actualTotal,
-        session,
-      );
 
       await session.commitTransaction();
 
@@ -1468,6 +1525,171 @@ export class OrdersService {
     };
   }
 
+  async payRemaining(orderId: string, customerId: string) {
+    const session = await this.connection.startSession();
+    session.startTransaction();
+
+    try {
+      let filter: any;
+      if (Types.ObjectId.isValid(orderId)) {
+        filter = { $or: [{ _id: new Types.ObjectId(orderId) }, { orderCode: orderId }] };
+      } else {
+        filter = { orderCode: orderId.trim().toUpperCase() };
+      }
+
+      const order = await this.orderModel.findOne(filter).session(session);
+      if (!order) throw new NotFoundException('Không tìm thấy đơn hàng');
+
+      if (order.customerId.toString() !== customerId.toString()) {
+        throw new ForbiddenException('Bạn không phải là chủ sở hữu đơn hàng này');
+      }
+
+      const totalAmount = Number(order.pricing?.total_amount || 0);
+      const depositAmount = Number(order.pricing?.deposit_amount || 0);
+      const remainingAmount = Math.max(0, totalAmount - depositAmount);
+
+      if (order.payment?.final_paid && remainingAmount <= 0) {
+        throw new BadRequestException('Đơn hàng này đã được thanh toán 100% trước đó');
+      }
+
+      const customer = await this.userModel.findById(customerId).session(session);
+      if (!customer) throw new NotFoundException('Không tìm thấy tài khoản khách hàng');
+
+      if (customer.wallet_balance < remainingAmount) {
+        throw new BadRequestException({
+          statusCode: 400,
+          message: `Số dư ví không đủ để thanh toán số tiền còn lại (${remainingAmount.toLocaleString('vi-VN')} đ). Vui lòng nạp thêm!`,
+          insufficientBalance: true,
+          requiredAmount: remainingAmount,
+          currentBalance: customer.wallet_balance,
+          missingAmount: remainingAmount - customer.wallet_balance,
+        });
+      }
+
+      // 1. Trừ tiền ví Customer
+      customer.wallet_balance -= remainingAmount;
+      await customer.save({ session });
+
+      // 2. Lưu Transaction giữ tiền còn lại
+      await this.transactionModel.create(
+        [
+          {
+            userId: customer._id,
+            orderId: order._id,
+            type: TransactionType.PAYMENT_HOLD,
+            amount: -remainingAmount,
+            balanceAfter: customer.wallet_balance,
+            status: TransactionStatus.SUCCESS,
+            description: `Thanh toán phần còn lại đơn hàng #${order.orderCode || order._id.toString().slice(-6)}`,
+            metadata: {
+              remainingAmount,
+              depositAmount,
+              totalAmount,
+            },
+          },
+        ],
+        { session },
+      );
+
+      // Cập nhật payment & pricing của order
+      order.pricing.deposit_amount = totalAmount;
+      order.pricing.remaining_amount = 0;
+      order.payment.deposit_paid = true;
+      order.payment.final_paid = true;
+      order.payment.is_locked = false;
+
+      // 3. Giải ngân thu nhập cho Booster (Idempotency check: chỉ 1 lần duy nhất)
+      const baseBoosterValue = Number(order.pricing.booster_order_value)
+        || Number(order.pricing.booster_earnings)
+        || (order.pricing.service_fee > 0 ? Math.max(0, order.pricing.total_amount - order.pricing.service_fee) : 0)
+        || totalAmount;
+
+      const boosterEarnings = baseBoosterValue;
+
+      if (order.boosterId && !order.payment.booster_received_pending && boosterEarnings > 0) {
+        order.payment.booster_received_pending = true;
+
+        const booster = await this.userModel.findByIdAndUpdate(
+          order.boosterId,
+          { $inc: { wallet_balance: boosterEarnings } },
+          { new: true, session },
+        );
+
+        await this.transactionModel.create(
+          [
+            {
+              userId: order.boosterId,
+              orderId: order._id,
+              type: TransactionType.PAYMENT_RELEASE,
+              amount: boosterEarnings,
+              balanceAfter: booster!.wallet_balance,
+              status: TransactionStatus.SUCCESS,
+              description: `Nhận tiền công quyết toán đơn hàng #${order.orderCode || order._id.toString().slice(-6)}`,
+              metadata: {
+                boosterEarnings,
+                orderCode: order.orderCode,
+              },
+            },
+          ],
+          { session },
+        );
+      }
+
+      order.status = OrderStatus.COMPLETED;
+      order.pricing.settlement_status = SettlementStatus.SETTLED;
+      if (!order.timeline) order.timeline = [];
+      order.timeline.push({
+        status: OrderStatus.COMPLETED,
+        timestamp: new Date(),
+        actor: new Types.ObjectId(customerId),
+        note: `Khách hàng thanh toán phần còn lại (${remainingAmount.toLocaleString('vi-VN')} đ) và quyết toán đơn hàng thành công.`,
+      });
+
+      order.markModified('pricing');
+      order.markModified('payment');
+      await order.save({ session });
+
+      // Cộng điểm loyalty
+      await this.loyaltyService.awardOrderPoints(
+        customerId,
+        order._id as Types.ObjectId,
+        order.orderCode || order._id.toString().slice(-6),
+        totalAmount,
+        session,
+      );
+
+      await session.commitTransaction();
+
+      // Bắn thông báo Realtime
+      const orderCodeDisplay = order.orderCode || order._id.toString().slice(-6).toUpperCase();
+      if (order.boosterId) {
+        this.notificationsService
+          .notifyUser({
+            userId: order.boosterId,
+            title: `💰 Đơn hàng #${orderCodeDisplay} đã được quyết toán!`,
+            message: `Khách hàng đã thanh toán nốt phần còn lại. Thu nhập ${boosterEarnings.toLocaleString('vi-VN')} đ đã được cộng vào ví của bạn.`,
+            type: 'ORDER_UPDATE',
+            variant: 'success',
+            link: `/orders/${order._id}`,
+          })
+          .catch(() => {});
+      }
+
+      this.chatGateway.broadcastBoosterJobsUpdated();
+
+      return {
+        success: true,
+        message: 'Thanh toán phần còn lại và quyết toán đơn hàng thành công!',
+        order,
+      };
+    } catch (err) {
+      await session.abortTransaction();
+      throw err;
+    } finally {
+      session.endSession();
+    }
+  }
+
   async settleOrder(orderId: string, userId: string, body?: any, userRole?: string) {
     let filter: any;
     if (Types.ObjectId.isValid(orderId)) {
@@ -1515,6 +1737,35 @@ export class OrdersService {
 
       if (!order.pricing) order.pricing = {} as any;
       order.pricing.deposit_amount = (Number(order.pricing.deposit_amount) || 0) + amount;
+      order.pricing.remaining_amount = 0;
+    }
+
+    // Nếu Booster chưa nhận tiền và đơn đã được settle 100% -> giải ngân cho Booster
+    const totalAmount = Number(order.pricing?.total_amount || 0);
+    const baseBoosterValue = Number(order.pricing?.booster_order_value)
+      || Number(order.pricing?.booster_earnings)
+      || (order.pricing?.service_fee > 0 ? Math.max(0, totalAmount - order.pricing.service_fee) : 0)
+      || totalAmount;
+
+    if (order.boosterId && !order.payment?.booster_received_pending && baseBoosterValue > 0) {
+      if (!order.payment) order.payment = {} as any;
+      order.payment.booster_received_pending = true;
+
+      const booster = await this.userModel.findByIdAndUpdate(
+        order.boosterId,
+        { $inc: { wallet_balance: baseBoosterValue } },
+        { new: true },
+      );
+
+      await this.transactionModel.create({
+        userId: order.boosterId,
+        orderId: order._id,
+        type: TransactionType.PAYMENT_RELEASE,
+        amount: baseBoosterValue,
+        balanceAfter: booster ? booster.wallet_balance : 0,
+        status: TransactionStatus.SUCCESS,
+        description: `Nhận tiền công quyết toán đơn hàng #${order.orderCode || order._id.toString().slice(-6)}`,
+      });
     }
 
     order.pricing.settlement_status = SettlementStatus.SETTLED;

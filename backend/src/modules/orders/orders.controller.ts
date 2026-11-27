@@ -253,6 +253,15 @@ export class OrdersController {
     return this.ordersService.updateOrderSchedule(id, user.userId, schedule, user.role);
   }
 
+  @Post(':id/pay-remaining')
+  @ApiOperation({ summary: 'Customer pays the remaining balance (e.g. 60%) to complete settlement and release escrow funds' })
+  async payRemaining(
+    @Param('id') id: string,
+    @ReqUser() user: any,
+  ) {
+    return this.ordersService.payRemaining(id, user.userId);
+  }
+
   @Post(':id/settle')
   @ApiOperation({ summary: 'Settle order' })
   async settleOrder(

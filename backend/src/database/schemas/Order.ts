@@ -82,6 +82,8 @@ export interface IOrder {
   pricing: {
     total_amount: number;
     deposit_amount: number; // Số tiền cọc
+    remaining_amount?: number; // Số tiền còn lại sau cọc
+    service_amount?: number; // Giá trị thuần dịch vụ
     final_amount?: number; // Số tiền thực tế sau khi hoàn thành
     base_price: number;
     option_fees: number;
@@ -170,6 +172,8 @@ const OrderSchema = new Schema<IOrder>(
     pricing: {
       total_amount: { type: Number, required: true },
       deposit_amount: { type: Number, required: true },
+      remaining_amount: { type: Number, default: 0 },
+      service_amount: { type: Number, default: 0 },
       final_amount: Number,
       base_price: Number,
       option_fees: Number,

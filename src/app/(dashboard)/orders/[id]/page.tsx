@@ -49,6 +49,8 @@ import OrderMatchHistoryList from './components/OrderMatchHistoryList';
 import { OrderGameProgressCard } from './components/OrderGameProgressCard';
 import RankMismatchCard from '@/components/orders/RankMismatchCard';
 import ReportRankMismatchModal from '@/components/orders/ReportRankMismatchModal';
+import OrderSettlementBanner from './components/OrderSettlementBanner';
+import DepositModal from '@/components/dashboard/DepositModal';
 
 export default function OrderDetailsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -60,6 +62,8 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
   const [dDragonVersion, setDDragonVersion] = useState('16.5.1'); // Phiên bản dự phòng
+  const [isDepositModalOpen, setIsDepositModalOpen] = useState(false);
+  const [depositMissingAmount, setDepositMissingAmount] = useState<number>(0);
 
   // Countdown Timer cho thời hạn Khiếu nại 24h
   const [currentTime, setCurrentTime] = useState<number>(Date.now());
@@ -1857,6 +1861,19 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
               />
             )}
 
+            {/* Order Settlement & Escrow Banner (Quyết toán nốt tiền khi Booster báo hoàn thành) */}
+            <OrderSettlementBanner
+              order={order}
+              isCustomer={isCustomer}
+              isBooster={isBooster}
+              walletBalance={user?.wallet_balance || 0}
+              onRefresh={fetchOrder}
+              onOpenDepositModal={(missing) => {
+                setDepositMissingAmount(missing);
+                setIsDepositModalOpen(true);
+              }}
+            />
+
             <OrderDisputeBanner
               order={order}
               isCustomer={isCustomer}
@@ -2052,6 +2069,19 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
         onClose={() => setIsRatingModalOpen(false)}
         orderId={order._id}
         onSuccess={() => window.location.reload()}
+      />
+
+      {/* Deposit Modal nạp thêm ví khi thanh toán quyết toán thiếu số dư */}
+      <DepositModal
+        isOpen={isDepositModalOpen}
+        onClose={() => setIsDepositModalOpen(false)}
+        initialAmount={depositMissingAmount}
+        user={user}
+        onSuccess={(newBalance) => {
+          setUser((prev: any) => ({ ...prev, wallet_balance: newBalance }));
+          setIsDepositModalOpen(false);
+          fetchOrder();
+        }}
       />
 
       {/* Status Confirm Modal */}
