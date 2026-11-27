@@ -592,7 +592,7 @@ export function PointAndStarBoostSection({
               <p className="text-[11px] sm:text-xs text-zinc-400 mt-0.5">
                 {isAov
                   ? renderWithStarIcon(
-                      'Nhập số sao hiện tại và mục tiêu (0★ → 100★+). Nếu vượt ngưỡng Đại Cao Thủ (20★) hoặc Chiến Tướng (50★), hệ thống tự tính đúng đơn giá từng mốc.',
+                      'Nhập số sao hiện tại và mục tiêu (0★ → 99★+). Nếu vượt ngưỡng Đại Cao Thủ (20★), Chiến Tướng (50★) hoặc Chiến Thần (75★), hệ thống tự tính đúng đơn giá từng mốc.',
                       12
                     )
                   : 'Nhập số điểm thực tế hiện tại và mốc điểm bạn muốn đạt. Hệ thống sẽ tính số điểm chênh lệch cần cày.'}

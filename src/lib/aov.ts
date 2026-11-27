@@ -126,8 +126,8 @@ export const AOV_RANK_LADDER: AovRankStep[] = [
   // TỪ CAO THỦ TRỞ LÊN (Booster có thể tùy chỉnh cấu hình giá từng mốc)
   { id: 'MASTER', tier: 'MASTER', label: 'Cao Thủ (0★)', stepPrice: 260000, image: AOV_RANK_IMAGES.MASTER, isHighRank: true },
   { id: 'GRANDMASTER', tier: 'GRANDMASTER', label: 'Đại Cao Thủ (20★)', stepPrice: 600000, image: AOV_RANK_IMAGES.GRANDMASTER_I, isHighRank: true },
-  { id: 'CONQUEROR', tier: 'CONQUEROR', label: 'Chiến Tướng (50★)', stepPrice: 1500000, image: AOV_RANK_IMAGES.CONQUEROR, isHighRank: true },
-  { id: 'LEGEND', tier: 'LEGEND', label: 'Huyền Thoại (100★)', stepPrice: 0, image: AOV_RANK_IMAGES.LEGEND, isHighRank: true },
+  { id: 'CONQUEROR', tier: 'CONQUEROR', label: 'Chiến Tướng (50★)', stepPrice: 750000, image: AOV_RANK_IMAGES.CONQUEROR, isHighRank: true },
+  { id: 'LEGEND', tier: 'LEGEND', label: 'Chiến Thần (75★)', stepPrice: 0, image: AOV_RANK_IMAGES.LEGEND, isHighRank: true },
 ];
 
 /**
@@ -236,14 +236,14 @@ export const AOV_TIER_PACKAGES: AovTierPackage[] = [
     id: 'conqueror_to_legend',
     fromTier: 'CONQUEROR',
     toTier: 'LEGEND',
-    label: 'Chiến Tướng (50★) ➔ Huyền Thoại (100★)',
-    shortLabel: 'Chiến Tướng → Huyền Thoại',
+    label: 'Chiến Tướng (50★) ➔ Chiến Thần (75★)',
+    shortLabel: 'Chiến Tướng → Chiến Thần',
     fromImage: AOV_RANK_IMAGES.CONQUEROR,
     toImage: AOV_RANK_IMAGES.LEGEND,
     stepIds: ['CONQUEROR'],
-    defaultTotalPrice: 1500000,
+    defaultTotalPrice: 750000,
     isHighRank: true,
-    desc: 'Tùy chỉnh từ Cao Thủ trở lên (mặc định 50★ × 30k/sao)',
+    desc: 'Tùy chỉnh từ Cao Thủ trở lên (mặc định 25★ × 30k/sao)',
   },
 ];
 
@@ -325,29 +325,29 @@ export const AOV_STAR_TIERS: AovStarTier[] = [
   {
     id: 'conqueror_50_99',
     label: 'Chiến Tướng',
-    shortLabel: '50 – 99',
+    shortLabel: '50 – 74',
     defaultPrice: 30000,
     unit: 'Sao',
-    desc: 'Mốc 50 – 99 sao Chiến Tướng',
+    desc: 'Mốc 50 – 74 sao Chiến Tướng',
     image: AOV_RANK_IMAGES.CONQUEROR,
     badgeColor: 'text-fuchsia-400 bg-fuchsia-500/10 border-fuchsia-500/30',
     isHighEloRange: true,
     minStar: 50,
-    maxStar: 99,
+    maxStar: 74,
     category: 'HIGH_ELO',
   },
   {
     id: 'legend_100_plus',
     label: 'Chiến Thần',
-    shortLabel: '100+',
+    shortLabel: '75 – 99',
     defaultPrice: 45000,
     unit: 'Sao',
-    desc: 'Từ 100 sao trở lên (Top Server)',
+    desc: 'Mốc 75 – 99 sao Chiến Thần',
     image: AOV_RANK_IMAGES.LEGEND,
     badgeColor: 'text-yellow-300 bg-yellow-500/10 border-yellow-500/30',
     isHighEloRange: true,
-    minStar: 100,
-    maxStar: null,
+    minStar: 75,
+    maxStar: 99,
     category: 'HIGH_ELO',
   },
 ];
@@ -446,7 +446,7 @@ export function getAovHighRankByStars(stars: number): {
   tierId: string;
 } {
   const s = Math.max(0, Math.floor(stars));
-  if (s >= 100) {
+  if (s >= 75) {
     return {
       label: `Chiến Thần (${s} sao)`,
       tierKey: 'LEGEND',
@@ -712,8 +712,8 @@ export function calculateAovStarBoost({
   // Đếm chính xác số sao trong từng mốc:
   // - master_0_19: các sao đưa acc lên 1..19 (sao thứ 1 đến 19)
   // - gm_20_49: các sao đưa acc lên 20..49 (sao thứ 20 đến 49)
-  // - conqueror_50_99: các sao đưa acc lên 50..99 (sao thứ 50 đến 99)
-  // - legend_100_plus: các sao đưa acc lên 100+ (sao thứ 100 trở lên)
+  // - conqueror_50_99: các sao đưa acc lên 50..74 (Chiến Tướng 50–74 sao, 30k/sao)
+  // - legend_100_plus: các sao đưa acc lên 75..99+ (Chiến Thần 75–99 sao, 45k/sao)
   let countMaster = 0;
   let countGm = 0;
   let countConqueror = 0;
@@ -725,7 +725,7 @@ export function calculateAovStarBoost({
       countMaster += 1;
     } else if (targetStar <= 49) {
       countGm += 1;
-    } else if (targetStar <= 99) {
+    } else if (targetStar <= 74) {
       countConqueror += 1;
     } else {
       countLegend += 1;
@@ -779,7 +779,7 @@ export function calculateAovStarBoost({
       ratePerStar: rate,
       subtotal: sub,
       fromStar: Math.max(49, start),
-      toStar: Math.min(99, end),
+      toStar: Math.min(74, end),
     });
   }
 
@@ -794,7 +794,7 @@ export function calculateAovStarBoost({
       stars: countLegend,
       ratePerStar: rate,
       subtotal: sub,
-      fromStar: Math.max(99, start),
+      fromStar: Math.max(74, start),
       toStar: end,
     });
   }
@@ -865,7 +865,7 @@ export function calculateAovOddStarBoost({
         tierId = 'master_0_19';
       } else if (curStars <= 49) {
         tierId = 'gm_20_49';
-      } else if (curStars <= 99) {
+      } else if (curStars <= 74) {
         tierId = 'conqueror_50_99';
       } else {
         tierId = 'legend_100_plus';
