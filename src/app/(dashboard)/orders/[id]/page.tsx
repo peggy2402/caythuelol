@@ -1233,12 +1233,49 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
   // Hàm check Rank và Lưu (Dùng chung cho cả nút Check & Lưu của Booster và nút Refresh)
   const handleCheckAndSaveRank = async () => {
     // Ưu tiên lấy từ input state (nếu booster đang nhập), nếu không thì lấy từ order details
-    const nameToCheck = (ingameName && ingameName.trim()) || order.details.ingame_name || order.details.account_username;
+    const nameToCheck = (ingameName && ingameName.trim()) || order.details?.ingame_name || order.details?.account_username;
 
     if (!nameToCheck) return toast.error('Vui lòng nhập tên Ingame');
 
     const orderGame = (order?.snapshot?.gameCode || order?.details?.game || order?.details?.gameCode || 'LOL').toUpperCase();
     const isValorant = orderGame.includes('VAL');
+    const isRiot = ['LOL', 'LEAGUE_OF_LEGENDS', 'VALORANT', 'VAL', 'TFT'].some((code) =>
+      orderGame.includes(code)
+    );
+
+    // ĐỐI VỚI GAME NON-RIOT (NHƯ LIÊN QUÂN AOV, CS2, PUBG, TRUY KÍCH...):
+    // Không có Riot API, chỉ lưu tên nhân vật/ingame trực tiếp vào đơn hàng
+    if (!isRiot) {
+      setIsCheckingRank(true);
+      try {
+        const updateBody = { ingame_name: nameToCheck.trim() };
+        const patchRes = await fetch(`/api/orders/${order._id}/details`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updateBody),
+        });
+        if (!patchRes.ok) {
+          const patchErr = await patchRes.json().catch(() => ({}));
+          throw new Error(patchErr.message || 'Lỗi khi lưu thông tin Ingame vào đơn hàng');
+        }
+
+        setOrder((prev: any) => ({
+          ...prev,
+          details: { ...prev.details, ...updateBody },
+        }));
+        setIngameName(nameToCheck.trim());
+        toast.success(`Đã lưu tên nhân vật (${orderGame}): ${nameToCheck.trim()}`);
+        socket.emit('update_order', {
+          room: order._id,
+          data: { details: { ...order.details, ...updateBody } },
+        });
+      } catch (e: any) {
+        toast.error(e.message || 'Lỗi lưu thông tin Ingame');
+      } finally {
+        setIsCheckingRank(false);
+      }
+      return;
+    }
 
     const rawQueue = String(order.details?.queueType || order.details?.queue_type || order.serviceType || '').toUpperCase();
     const isFlexOrder = rawQueue.includes('FLEX') || rawQueue.includes('LINH');
