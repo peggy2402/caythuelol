@@ -252,8 +252,8 @@ export function PointAndStarBoostSection({
       {/* TRƯỜNG HỢP A: CÀY SAO LẺ DƯỚI CAO THỦ CHO LIÊN QUÂN MOBILE */}
       {isAov && !isSelectedAovHighStar ? (
         <div className="p-4 sm:p-5 rounded-2xl bg-zinc-950/80 border border-cyan-500/30 shadow-xl space-y-5 animate-in fade-in duration-200">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-zinc-800">
-            <div>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-zinc-800">
+            <div className="min-w-0">
               <span className="text-xs sm:text-sm font-bold text-white flex items-center gap-2">
                 <Sparkles size={16} className="text-cyan-400 shrink-0" />
                 <span>Thiết Lập Rank Hiện Tại & Số Sao Cần Cày Thêm</span>
@@ -264,9 +264,9 @@ export function PointAndStarBoostSection({
               </p>
             </div>
 
-            <div className="flex items-center gap-2 self-start sm:self-auto px-3 py-1.5 rounded-xl bg-cyan-500/10 border border-cyan-500/30">
-              <span className="text-xs text-cyan-300 font-medium">Cần cày:</span>
-              <span className="text-base sm:text-lg font-black font-mono text-cyan-400 leading-none">
+            <div className="flex items-center gap-1.5 self-start sm:self-auto px-3.5 py-2 rounded-xl bg-cyan-500/10 border border-cyan-500/30 shrink-0 whitespace-nowrap">
+              <span className="text-xs text-cyan-300 font-medium whitespace-nowrap">Cần cày:</span>
+              <span className="text-base sm:text-lg font-black font-mono text-cyan-400 leading-none whitespace-nowrap">
                 +{aovOddStarsToAdd} Sao
               </span>
             </div>
@@ -578,8 +578,8 @@ export function PointAndStarBoostSection({
       ) : (
         /* TRƯỜNG HỢP B: CAO THỦ+ LIÊN QUÂN HOẶC CÁC TỰA GAME KHÁC (DUAL INPUTS) */
         <div className="p-4 sm:p-5 rounded-2xl bg-zinc-950/80 border border-zinc-800/90 shadow-xl space-y-4 animate-in fade-in duration-200">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-1">
-            <div>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-1">
+            <div className="min-w-0">
               <span className="text-xs sm:text-sm font-bold text-white flex items-center gap-2">
                 <Target size={16} className="text-amber-400 shrink-0" />
                 <span>
@@ -599,11 +599,11 @@ export function PointAndStarBoostSection({
               </p>
             </div>
 
-            <div className="flex items-center gap-2 self-start sm:self-auto px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/30">
-              <span className="text-xs text-amber-300/80 font-medium">Cần cày:</span>
-              <span className="text-base sm:text-lg font-black font-mono text-amber-400 leading-none flex items-center gap-1">
+            <div className="flex items-center gap-1.5 self-start sm:self-auto px-3.5 py-2 rounded-xl bg-amber-500/10 border border-amber-500/30 shrink-0 whitespace-nowrap">
+              <span className="text-xs text-amber-300/80 font-medium whitespace-nowrap">Cần cày:</span>
+              <span className="text-base sm:text-lg font-black font-mono text-amber-400 leading-none flex items-center gap-1 whitespace-nowrap">
                 <span>+{gainedPoints}</span>
-                {isAov ? <StarIcon size={15} /> : <span>{pointUnit}</span>}
+                {isAov ? <StarIcon size={15} className="shrink-0" /> : <span>{pointUnit}</span>}
               </span>
             </div>
           </div>
