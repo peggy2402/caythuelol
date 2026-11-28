@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { 
   Check, X, Eye, Loader2, ShieldAlert, Calendar, User as UserIcon, 
   Search, Filter, ChevronLeft, ChevronRight, Star, Trophy, MoreHorizontal, FileText, Receipt, ExternalLink, Copy, Download, RefreshCw, Trash2,
-  Plus, Edit, ShieldCheck, Ban, CheckCircle2, UserPlus
+  Plus, Edit, ShieldCheck, Ban, CheckCircle2, UserPlus, DollarSign, Clock
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
@@ -34,6 +34,7 @@ interface Application {
   billImageUrl?: string;
   contractUrl?: string;
   depositStatus: 'unpaid' | 'paid' | 'refunded';
+  depositAmount?: number;
   bankName: string;
   bankAccountName: string;
   bankAccountNumber: string;
@@ -72,14 +73,33 @@ interface Booster {
 export default function AdminBoostersPage() {
   const [activeTab, setActiveTab] = useState<'applications' | 'list' | 'recent-form'>('applications');
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [appsCount, setAppsCount] = useState<number>(0);
+  const [boostersCount, setBoostersCount] = useState<number>(0);
   const router = useRouter();
+
+  // Fetch summary counts for tab badges
+  useEffect(() => {
+    fetch('/api/admin/boosters?tab=applications')
+      .then(res => res.json())
+      .then(data => {
+        if (data.applications) setAppsCount(data.applications.filter((a: any) => a.status === 'pending').length);
+        if (data.activeBoostersCount !== undefined) setBoostersCount(data.activeBoostersCount);
+      })
+      .catch(() => {});
+
+    fetch('/api/admin/boosters?page=1&limit=1')
+      .then(res => res.json())
+      .then(data => {
+        if (data.total !== undefined && boostersCount === 0) setBoostersCount(data.total);
+      })
+      .catch(() => {});
+  }, []);
 
   const handleRefresh = () => {
     if (isRefreshing) return;
     setIsRefreshing(true);
     toast.info("Đang làm mới dữ liệu...");
     router.refresh();
-    // Reset a bit later to allow loading states in children to appear
     setTimeout(() => setIsRefreshing(false), 1500);
   };
 
@@ -96,19 +116,29 @@ export default function AdminBoostersPage() {
           <div className="flex bg-zinc-900 p-1 rounded-xl border border-zinc-800 overflow-x-auto scrollbar-none flex-1 sm:flex-initial">
             <button
               onClick={() => setActiveTab('applications')}
-              className={`px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0 ${
+              className={`px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0 flex items-center gap-1.5 ${
                 activeTab === 'applications' ? 'bg-zinc-800 text-white shadow-sm' : 'text-zinc-400 hover:text-white'
               }`}
             >
-              Đơn đăng ký
+              <span>Đơn đăng ký</span>
+              {appsCount > 0 && (
+                <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-amber-500 text-black font-black">
+                  {appsCount}
+                </span>
+              )}
             </button>
             <button
               onClick={() => setActiveTab('list')}
-              className={`px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0 ${
+              className={`px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0 flex items-center gap-1.5 ${
                 activeTab === 'list' ? 'bg-zinc-800 text-white shadow-sm' : 'text-zinc-400 hover:text-white'
               }`}
             >
-              Danh sách hoạt động
+              <span>Danh sách hoạt động</span>
+              {boostersCount > 0 && (
+                <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-cyan-500/20 text-cyan-300 font-bold border border-cyan-500/30">
+                  {boostersCount}
+                </span>
+              )}
             </button>
             <button
               onClick={() => setActiveTab('recent-form')}
@@ -145,6 +175,7 @@ function ApplicationsTab() {
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [totalRegistrationRevenue, setTotalRegistrationRevenue] = useState<number>(0);
   const [selectedApp, setSelectedApp] = useState<Application | null>(null); // State cho Modal chi tiết
   const [adminNote, setAdminNote] = useState(''); // State cho ghi chú nội bộ
   const [viewContract, setViewContract] = useState<string | null>(null); // State cho Modal xem hợp đồng
@@ -181,7 +212,18 @@ function ApplicationsTab() {
     setLoading(true);
     fetch(`/api/admin/boosters?tab=applications`)
       .then(res => res.json())
-      .then(data => setApps(data.applications || []))
+      .then(data => {
+        const applications = data.applications || [];
+        setApps(applications);
+        if (data.totalRegistrationRevenue !== undefined) {
+          setTotalRegistrationRevenue(data.totalRegistrationRevenue);
+        } else {
+          const rev = applications
+            .filter((a: any) => a.depositStatus === 'paid')
+            .reduce((sum: number, a: any) => sum + (Number(a.depositAmount) || 50000), 0);
+          setTotalRegistrationRevenue(rev);
+        }
+      })
       .catch(() => toast.error("Lỗi tải danh sách đơn ứng tuyển"))
       .finally(() => setLoading(false));
   }, []);
@@ -230,6 +272,57 @@ function ApplicationsTab() {
 
   return (
     <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4">
+      {/* 3 Metric Cards: Doanh Thu Đăng Ký Boosters, Đã Nộp Phí, Chờ Thẩm Định */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+        <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-950/60 via-zinc-900/80 to-zinc-900/60 border border-emerald-500/30 flex items-center justify-between shadow-sm">
+          <div>
+            <div className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider flex items-center gap-1.5">
+              <DollarSign className="w-3.5 h-3.5 text-emerald-400" />
+              Doanh Thu Đăng Ký Boosters
+            </div>
+            <div className="text-xl sm:text-2xl font-black text-emerald-400 mt-1">
+              {totalRegistrationRevenue.toLocaleString('vi-VN')} đ
+            </div>
+            <div className="text-[10px] text-zinc-500 mt-0.5">Phí kích hoạt từ các đơn đã thanh toán</div>
+          </div>
+          <div className="p-3 rounded-2xl bg-emerald-500/10 text-emerald-400 shrink-0">
+            <ShieldCheck className="w-6 h-6" />
+          </div>
+        </div>
+
+        <div className="p-4 rounded-2xl bg-zinc-900/70 border border-zinc-800 flex items-center justify-between shadow-sm">
+          <div>
+            <div className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider flex items-center gap-1.5">
+              <CheckCircle2 className="w-3.5 h-3.5 text-cyan-400" />
+              Đã Nộp Phí Kích Hoạt
+            </div>
+            <div className="text-xl sm:text-2xl font-black text-white mt-1">
+              {apps.filter(a => a.depositStatus === 'paid').length} <span className="text-xs text-zinc-500 font-normal">/ {apps.length} hồ sơ</span>
+            </div>
+            <div className="text-[10px] text-zinc-500 mt-0.5">Đủ điều kiện kích hoạt</div>
+          </div>
+          <div className="p-3 rounded-2xl bg-cyan-500/10 text-cyan-400 shrink-0">
+            <Receipt className="w-6 h-6" />
+          </div>
+        </div>
+
+        <div className="p-4 rounded-2xl bg-zinc-900/70 border border-zinc-800 flex items-center justify-between shadow-sm">
+          <div>
+            <div className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider flex items-center gap-1.5">
+              <Clock className="w-3.5 h-3.5 text-amber-400" />
+              Hồ Sơ Chờ Phê Duyệt
+            </div>
+            <div className="text-xl sm:text-2xl font-black text-amber-400 mt-1">
+              {apps.filter(a => a.status === 'pending').length} <span className="text-xs text-zinc-500 font-normal">đơn</span>
+            </div>
+            <div className="text-[10px] text-zinc-500 mt-0.5">Cần đối soát thông tin</div>
+          </div>
+          <div className="p-3 rounded-2xl bg-amber-500/10 text-amber-400 shrink-0">
+            <ShieldAlert className="w-6 h-6" />
+          </div>
+        </div>
+      </div>
+
       {/* Search & Filter Bar */}
       <div className="flex flex-col sm:flex-row gap-3 justify-between items-stretch sm:items-center mb-4">
         {/* Status Filters */}
@@ -308,10 +401,18 @@ function ApplicationsTab() {
                 <Calendar size={12} /> {app.createdAt ? format(new Date(app.createdAt), 'dd/MM/yyyy') : 'N/A'}
               </span>
 
-              {/* Bill Status */}
-              {app.billImageUrl && (
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-950/50 border border-emerald-500/30 text-emerald-400">
-                  Có Bill Phí CK
+              {/* Registration Fee Status */}
+              {app.depositStatus === 'paid' ? (
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-emerald-950/70 border border-emerald-500/40 text-emerald-400">
+                  ✓ Đã nộp phí: {(app.depositAmount || 50000).toLocaleString('vi-VN')} đ
+                </span>
+              ) : app.billImageUrl ? (
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-950/50 border border-amber-500/30 text-amber-300">
+                  Có Bill Phí (Chờ Duyệt)
+                </span>
+              ) : (
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-zinc-800 text-zinc-400 border border-zinc-700">
+                  Chưa nộp phí kích hoạt
                 </span>
               )}
             </div>
@@ -494,8 +595,8 @@ function ApplicationsTab() {
 
               {/* 3. Bank Info */}
               <div>
-                <h3 className="text-xs font-black text-emerald-400 uppercase tracking-wider mb-3 flex items-center gap-2">
-                  <Receipt className="w-4 h-4 text-emerald-400" /> 3. Ngân Hàng Nhận Thu Nhập
+                <h3 className="text-xs font-black text-cyan-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                  <Receipt className="w-4 h-4 text-cyan-400" /> 3. Ngân Hàng Nhận Thu Nhập
                 </h3>
                 <div className="bg-zinc-950 p-4 rounded-2xl border border-zinc-800/80 grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div>
@@ -513,10 +614,37 @@ function ApplicationsTab() {
                 </div>
               </div>
 
-              {/* 4. Proofs & Contract */}
+              {/* 4. Booster Registration Fee (Doanh Thu Đăng Ký Booster) */}
+              <div>
+                <h3 className="text-xs font-black text-emerald-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                  <DollarSign className="w-4 h-4 text-emerald-400" /> 4. Phí Kích Hoạt Quyền Booster (Booster Registration Fee)
+                </h3>
+                <div className="bg-zinc-950 p-4 rounded-2xl border border-zinc-800/80 grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div>
+                    <span className="block text-xs text-zinc-500 mb-0.5">Số tiền đăng ký</span>
+                    <span className="font-bold text-emerald-400 text-sm">
+                      {(selectedApp.depositAmount || 50000).toLocaleString('vi-VN')} đ
+                    </span>
+                  </div>
+                  <div>
+                    <span className="block text-xs text-zinc-500 mb-0.5">Trạng thái thanh toán</span>
+                    <span className={`inline-flex items-center gap-1 font-bold text-sm ${selectedApp.depositStatus === 'paid' ? 'text-emerald-400' : 'text-amber-400'}`}>
+                      {selectedApp.depositStatus === 'paid' ? '✓ ĐÃ NỘP PHÍ KÍCH HOẠT' : selectedApp.billImageUrl ? 'Có Bill (Chờ Duyệt)' : 'Chưa Thanh Toán'}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="block text-xs text-zinc-500 mb-0.5">Phương thức ghi nhận</span>
+                    <span className="text-zinc-300 text-xs">
+                      {selectedApp.depositStatus === 'paid' ? 'Hệ thống tự động đối soát' : selectedApp.billImageUrl ? 'Tải ảnh bill chuyển khoản' : 'Chưa có giao dịch'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* 5. Proofs & Contract */}
               <div>
                 <h3 className="text-xs font-black text-purple-400 uppercase tracking-wider mb-3 flex items-center gap-2">
-                  <FileText className="w-4 h-4 text-purple-400" /> 4. Bằng Chứng & Hợp Đồng Điện Tử
+                  <FileText className="w-4 h-4 text-purple-400" /> 5. Bằng Chứng & Hợp Đồng Điện Tử
                 </h3>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                   <a href={selectedApp.rankImageUrl} target="_blank" rel="noreferrer" className="block group relative aspect-video bg-zinc-950 rounded-xl overflow-hidden border border-zinc-800 hover:border-cyan-500/50 transition-colors">

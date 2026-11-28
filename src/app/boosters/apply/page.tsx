@@ -201,6 +201,7 @@ export default function BoosterApplyPage() {
   // Existing Booster Application
   const [existingApp, setExistingApp] = useState<any | null>(null);
   const [loadingExistingApp, setLoadingExistingApp] = useState(true);
+  const [currentUsername, setCurrentUsername] = useState('');
 
   const { register, handleSubmit, watch, trigger, setValue, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -297,13 +298,14 @@ export default function BoosterApplyPage() {
     };
     fetchAdminSettings();
 
-    // Check user role
+    // Check user role & username
     const checkUserRole = () => {
       const userStr = localStorage.getItem('user');
       if (userStr) {
         try {
           const user = JSON.parse(userStr);
           if (user.role === 'BOOSTER') setIsAlreadyBooster(true);
+          if (user.username) setCurrentUsername(user.username);
         } catch {}
       }
     };
@@ -411,7 +413,7 @@ export default function BoosterApplyPage() {
   };
 
   // QR Code Generation
-  const transferContent = `BOOSTERAPPLY ${phoneNumber || 'SDT'}`;
+  const transferContent = `BOOSTERAPPLY ${currentUsername || phoneNumber || 'USER'}`.toUpperCase();
   const qrCodeUrl = `https://img.vietqr.io/image/${adminSettings.adminBank.bankName}-${adminSettings.adminBank.accountNumber}-compact2.png?amount=${adminSettings.depositConfig.depositAmount}&addInfo=${encodeURIComponent(transferContent)}&accountName=${encodeURIComponent(adminSettings.adminBank.accountHolder)}`;
 
   // Upload Handlers (Deferred Upload - Tải lên cục bộ 0ms, chỉ upload Cloudinary khi nộp đơn)

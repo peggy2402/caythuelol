@@ -333,10 +333,40 @@ export default function CustomerLoyaltyPage() {
 
       {/* Tab 1: Catalog */}
       {activeTab === 'catalog' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="space-y-4">
+          {/* Smart Strategy & Voucher Policy Banner */}
+          <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-blue-950/40 via-zinc-900 to-amber-950/30 border border-blue-500/30 backdrop-blur-md shadow-lg">
+            <div className="flex items-start gap-3.5">
+              <div className="p-2.5 rounded-xl bg-blue-500/20 text-blue-400 shrink-0 mt-0.5">
+                <Sparkles className="w-5 h-5 text-amber-400" />
+              </div>
+              <div className="space-y-1.5">
+                <div className="text-sm font-black text-white flex flex-wrap items-center gap-2">
+                  <span>Quy Tắc Sử Dụng Voucher & Mẹo Tích Điểm Thông Minh</span>
+                  <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-black uppercase tracking-wider">
+                    Cộng dồn VIP Pass
+                  </span>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5 pt-1 text-xs text-zinc-300">
+                  <div className="p-2.5 rounded-xl bg-zinc-950/60 border border-white/5">
+                    <span className="font-bold text-amber-300">1. Quy tắc 1 Voucher / Đơn:</span> Mỗi đơn hàng áp dụng tối đa 01 voucher sàn để đảm bảo thu nhập cho Booster.
+                  </div>
+                  <div className="p-2.5 rounded-xl bg-zinc-950/60 border border-white/5">
+                    <span className="font-bold text-cyan-300">2. Dồn điểm mốc cao hời hơn:</span> Mốc 1.000 điểm giảm 60.000đ (lời hơn 10.000đ so với đổi 2 voucher 500 điểm = 50.000đ).
+                  </div>
+                  <div className="p-2.5 rounded-xl bg-zinc-950/60 border border-white/5">
+                    <span className="font-bold text-emerald-300">3. Cộng dồn với VIP Pass:</span> Voucher sàn được trừ tiếp sau khi đã giảm 10% - 15% từ gói Hội Viên VIP!
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {catalog.map((reward) => {
             const canRedeem = loyalty.currentPoints >= reward.pointsCost;
             const isRedeeming = redeemingId === reward.id;
+            const is500With1000Available = reward.pointsCost === 500 && loyalty.currentPoints >= 1000;
 
             return (
               <div
@@ -351,6 +381,12 @@ export default function CustomerLoyaltyPage() {
                   <span className="absolute top-3 right-3 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-500/20 border border-amber-400/40 text-amber-300 text-[11px] font-bold">
                     <Sparkles className="w-3 h-3" />
                     TARGET 2.000 ĐIỂM
+                  </span>
+                )}
+
+                {is500With1000Available && (
+                  <span className="absolute top-3 right-3 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-cyan-500/20 border border-cyan-400/30 text-cyan-300 text-[10px] font-bold">
+                    💡 Đổi mốc 1.000 điểm hời hơn
                   </span>
                 )}
 
@@ -396,6 +432,7 @@ export default function CustomerLoyaltyPage() {
               </div>
             );
           })}
+          </div>
         </div>
       )}
 
@@ -460,18 +497,26 @@ export default function CustomerLoyaltyPage() {
                           {v.code}
                         </code>
                         {isActive && (
-                          <button
-                            type="button"
-                            onClick={() => handleCopyCode(v.code)}
-                            className="p-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-white transition-colors"
-                            title="Sao chép mã"
-                          >
-                            {copiedCode === v.code ? (
-                              <Check className="w-3.5 h-3.5 text-emerald-400" />
-                            ) : (
-                              <Copy className="w-3.5 h-3.5" />
-                            )}
-                          </button>
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => handleCopyCode(v.code)}
+                              className="p-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-white transition-colors"
+                              title="Sao chép mã"
+                            >
+                              {copiedCode === v.code ? (
+                                <Check className="w-3.5 h-3.5 text-emerald-400" />
+                              ) : (
+                                <Copy className="w-3.5 h-3.5" />
+                              )}
+                            </button>
+                            <Link
+                              href="/services"
+                              className="px-2.5 py-1 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold transition-colors shrink-0 flex items-center gap-1 shadow-sm"
+                            >
+                              Dùng ngay <ArrowUpRight className="w-3 h-3" />
+                            </Link>
+                          </>
                         )}
                       </div>
                     </div>

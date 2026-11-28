@@ -25,12 +25,13 @@ import {
   CheckCircle2,
   Gamepad2,
   Crown,
+  Zap,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import UserSelectDropdown, { AdminUserItem } from '@/components/admin/UserSelectDropdown';
 
-// 10 Quyền hạn chuẩn của hệ thống Back Office
+// 12 Quyền hạn chuẩn của hệ thống Back Office
 const ALL_STAFF_PERMISSIONS = [
   {
     key: 'users',
@@ -115,6 +116,54 @@ const ALL_STAFF_PERMISSIONS = [
     desc: 'Cấu hình tham số, hotline và phí hoa hồng sàn',
     icon: Settings,
     color: 'text-yellow-400',
+  },
+];
+
+// Phân nhóm quyền hạn theo nghiệp vụ (Permission Groups)
+const PERMISSION_GROUPS = [
+  {
+    id: 'operations',
+    name: 'Khách Hàng & Vận Hành Sàn',
+    keys: ['users', 'boosters', 'orders', 'disputes'],
+  },
+  {
+    id: 'finance',
+    name: 'Tài Chính & Kế Toán',
+    keys: ['withdrawals', 'transactions', 'deposits'],
+  },
+  {
+    id: 'growth',
+    name: 'Marketing & Ưu Đãi',
+    keys: ['vip', 'blogs'],
+  },
+  {
+    id: 'system',
+    name: 'Kỹ Thuật & Cấu Hình Sàn',
+    keys: ['games', 'cron', 'settings'],
+  },
+];
+
+// Bộ vai trò mẫu thao tác 1 chạm (Role Presets)
+const ROLE_PRESETS = [
+  {
+    name: 'CSKH & Hỗ Trợ',
+    keys: ['users', 'orders', 'disputes', 'blogs'],
+    desc: 'Hỗ trợ khách hàng, đơn hàng và xử lý khiếu nại',
+  },
+  {
+    name: 'Kế Toán / Thủ Quỹ',
+    keys: ['withdrawals', 'transactions', 'deposits', 'users'],
+    desc: 'Duyệt rút tiền, kiểm soát dòng tiền và lịch sử giao dịch',
+  },
+  {
+    name: 'Quản Lý Booster',
+    keys: ['boosters', 'orders', 'disputes', 'games'],
+    desc: 'Tuyển dụng booster, giám sát đơn cày và cấu hình game',
+  },
+  {
+    name: 'Vận Hành Toàn Diện',
+    keys: ['users', 'boosters', 'orders', 'disputes', 'withdrawals', 'transactions', 'blogs', 'games', 'vip'],
+    desc: 'Toàn bộ vận hành hàng ngày (trừ Cron & Cài đặt hệ thống)',
   },
 ];
 
@@ -350,108 +399,193 @@ export default function AdminStaffsPage() {
             Không tìm thấy nhân viên nào phù hợp.
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm text-left">
-              <thead className="bg-zinc-900 text-zinc-400 uppercase text-xs font-bold border-b border-zinc-800">
-                <tr>
-                  <th className="px-6 py-4">Tài khoản Nhân viên</th>
-                  <th className="px-6 py-4">Vai trò</th>
-                  <th className="px-6 py-4">Quyền hạn Back Office</th>
-                  <th className="px-6 py-4">Ngày bổ nhiệm</th>
-                  <th className="px-6 py-4 text-right">Thao tác</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-zinc-800/80">
-                {staffs.map((staff) => {
-                  const isAdmin = staff.role === 'ADMIN';
-                  const perms = isAdmin
-                    ? ALL_STAFF_PERMISSIONS.map((p) => p.key)
-                    : staff.staff_permissions || [];
+          <>
+            {/* Mobile Card List (Tránh bị bóp nghẹt trên điện thoại) */}
+            <div className="block md:hidden divide-y divide-zinc-800/80">
+              {staffs.map((staff) => {
+                const isAdmin = staff.role === 'ADMIN';
+                const perms = isAdmin
+                  ? ALL_STAFF_PERMISSIONS.map((p) => p.key)
+                  : staff.staff_permissions || [];
 
-                  return (
-                    <tr key={staff._id} className="hover:bg-zinc-800/30 transition-colors">
-                      <td className="px-6 py-4">
-                        <div>
-                          <div className="font-bold text-white flex items-center gap-2">
-                            {staff.username}
-                            {isAdmin && (
-                              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-yellow-500/10 text-yellow-500 border border-yellow-500/20">
-                                ROOT ADMIN
-                              </span>
-                            )}
-                          </div>
-                          <div className="text-xs text-zinc-400 font-mono">{staff.email}</div>
+                return (
+                  <div key={staff._id} className="p-4 space-y-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <div className="font-bold text-white flex items-center gap-1.5 text-sm">
+                          <span>{staff.username}</span>
+                          {isAdmin && (
+                            <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-yellow-500/10 text-yellow-500 border border-yellow-500/20">
+                              ROOT ADMIN
+                            </span>
+                          )}
                         </div>
-                      </td>
-                      <td className="px-6 py-4">
+                        <div className="text-xs text-zinc-400 font-mono mt-0.5">{staff.email}</div>
+                      </div>
+                      <div>
                         {isAdmin ? (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-yellow-500/10 text-yellow-400 border border-yellow-500/20">
-                            <Shield className="w-3.5 h-3.5" /> Quản Trị Viên
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-yellow-500/10 text-yellow-400 border border-yellow-500/20">
+                            <Shield className="w-3 h-3" /> Quản Trị Viên
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-500/10 text-blue-400 border border-blue-500/20">
-                            <UserCheck className="w-3.5 h-3.5" /> Nhân Viên Vận Hành
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                            <UserCheck className="w-3 h-3" /> Nhân Viên Vận Hành
                           </span>
                         )}
-                      </td>
-                      <td className="px-6 py-4">
-                        {isAdmin ? (
-                          <div className="flex items-center gap-1.5 text-xs text-yellow-400 font-semibold">
-                            <CheckCircle2 className="w-4 h-4 text-yellow-500" /> Toàn quyền hệ thống ({ALL_STAFF_PERMISSIONS.length}/{ALL_STAFF_PERMISSIONS.length} phân hệ)
-                          </div>
-                        ) : (
-                          <div className="space-y-1.5">
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs font-bold text-zinc-300">
-                                {perms.length} / {ALL_STAFF_PERMISSIONS.length} phân hệ
-                              </span>
-                            </div>
-                            <div className="flex flex-wrap gap-1 max-w-md">
-                              {perms.map((pKey) => {
-                                const permMeta = ALL_STAFF_PERMISSIONS.find((x) => x.key === pKey);
-                                return (
-                                  <span
-                                    key={pKey}
-                                    className="px-2 py-0.5 rounded text-[11px] font-medium bg-zinc-800 text-zinc-300 border border-zinc-700"
-                                  >
-                                    {permMeta?.label || pKey}
-                                  </span>
-                                );
-                              })}
-                            </div>
-                          </div>
+                      </div>
+                    </div>
+
+                    <div className="pt-2 border-t border-zinc-800/60">
+                      <div className="text-[11px] text-zinc-400 font-bold uppercase tracking-wider mb-1.5 flex items-center justify-between">
+                        <span>Quyền hạn Back Office</span>
+                        <span className="text-zinc-300 font-mono text-[10px]">{perms.length}/{ALL_STAFF_PERMISSIONS.length} phân hệ</span>
+                      </div>
+                      <div className="flex flex-wrap gap-1">
+                        {perms.slice(0, 5).map((pKey) => {
+                          const permMeta = ALL_STAFF_PERMISSIONS.find((x) => x.key === pKey);
+                          return (
+                            <span key={pKey} className="px-2 py-0.5 rounded text-[10px] font-medium bg-zinc-800 text-zinc-300 border border-zinc-700">
+                              {permMeta?.label || pKey}
+                            </span>
+                          );
+                        })}
+                        {perms.length > 5 && (
+                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-zinc-800 text-cyan-300">
+                            +{perms.length - 5} phân hệ khác
+                          </span>
                         )}
-                      </td>
-                      <td className="px-6 py-4 text-zinc-400 text-xs font-mono">
-                        {staff.createdAt ? format(new Date(staff.createdAt), 'dd/MM/yyyy HH:mm') : 'N/A'}
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        {isAdmin ? (
-                          <span className="text-xs text-zinc-500 italic">Mặc định</span>
-                        ) : (
-                          <div className="flex items-center justify-end gap-2">
-                            <button
-                              onClick={() => handleOpenEdit(staff)}
-                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-blue-600/20 text-zinc-300 hover:text-blue-400 border border-zinc-700 text-xs font-semibold transition-colors"
-                            >
-                              <Edit size={13} /> Phân quyền
-                            </button>
-                            <button
-                              onClick={() => setRevokingStaff(staff)}
-                              className="p-1.5 rounded-lg bg-zinc-800 hover:bg-red-500/20 text-zinc-400 hover:text-red-400 border border-zinc-700 transition-colors"
-                              title="Thu hồi quyền nhân viên"
-                            >
-                              <Trash2 size={14} />
-                            </button>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-2 border-t border-zinc-800/60 text-xs text-zinc-500">
+                      <span className="font-mono text-[11px]">{staff.createdAt ? format(new Date(staff.createdAt), 'dd/MM/yyyy') : 'N/A'}</span>
+                      {!isAdmin && (
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => handleOpenEdit(staff)}
+                            className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-blue-600/20 text-zinc-200 border border-zinc-700 text-xs font-bold transition-colors"
+                          >
+                            <Edit size={13} /> Phân quyền
+                          </button>
+                          <button
+                            onClick={() => setRevokingStaff(staff)}
+                            className="p-1.5 rounded-lg bg-zinc-800 hover:bg-red-500/20 text-zinc-400 hover:text-red-400 border border-zinc-700 transition-colors"
+                            title="Thu hồi quyền"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Desktop Table (hidden md:block) */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-sm text-left">
+                <thead className="bg-zinc-900 text-zinc-400 uppercase text-xs font-bold border-b border-zinc-800">
+                  <tr>
+                    <th className="px-6 py-4">Tài khoản Nhân viên</th>
+                    <th className="px-6 py-4">Vai trò</th>
+                    <th className="px-6 py-4">Quyền hạn Back Office</th>
+                    <th className="px-6 py-4">Ngày bổ nhiệm</th>
+                    <th className="px-6 py-4 text-right">Thao tác</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-zinc-800/80">
+                  {staffs.map((staff) => {
+                    const isAdmin = staff.role === 'ADMIN';
+                    const perms = isAdmin
+                      ? ALL_STAFF_PERMISSIONS.map((p) => p.key)
+                      : staff.staff_permissions || [];
+
+                    return (
+                      <tr key={staff._id} className="hover:bg-zinc-800/30 transition-colors">
+                        <td className="px-6 py-4">
+                          <div>
+                            <div className="font-bold text-white flex items-center gap-2">
+                              {staff.username}
+                              {isAdmin && (
+                                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-yellow-500/10 text-yellow-500 border border-yellow-500/20">
+                                  ROOT ADMIN
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-xs text-zinc-400 font-mono">{staff.email}</div>
                           </div>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          {isAdmin ? (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-yellow-500/10 text-yellow-400 border border-yellow-500/20">
+                              <Shield className="w-3.5 h-3.5" /> Quản Trị Viên
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                              <UserCheck className="w-3.5 h-3.5" /> Nhân Viên Vận Hành
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-6 py-4">
+                          {isAdmin ? (
+                            <div className="flex items-center gap-1.5 text-xs text-yellow-400 font-semibold">
+                              <CheckCircle2 className="w-4 h-4 text-yellow-500" /> Toàn quyền hệ thống ({ALL_STAFF_PERMISSIONS.length}/{ALL_STAFF_PERMISSIONS.length} phân hệ)
+                            </div>
+                          ) : (
+                            <div className="space-y-1.5">
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs font-bold text-zinc-300">
+                                  {perms.length} / {ALL_STAFF_PERMISSIONS.length} phân hệ
+                                </span>
+                              </div>
+                              <div className="flex flex-wrap gap-1 max-w-md">
+                                {perms.map((pKey) => {
+                                  const permMeta = ALL_STAFF_PERMISSIONS.find((x) => x.key === pKey);
+                                  return (
+                                    <span
+                                      key={pKey}
+                                      className="px-2 py-0.5 rounded text-[11px] font-medium bg-zinc-800 text-zinc-300 border border-zinc-700"
+                                    >
+                                      {permMeta?.label || pKey}
+                                    </span>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 text-zinc-400 text-xs font-mono">
+                          {staff.createdAt ? format(new Date(staff.createdAt), 'dd/MM/yyyy HH:mm') : 'N/A'}
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          {isAdmin ? (
+                            <span className="text-xs text-zinc-500 italic">Mặc định</span>
+                          ) : (
+                            <div className="flex items-center justify-end gap-2">
+                              <button
+                                onClick={() => handleOpenEdit(staff)}
+                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-blue-600/20 text-zinc-300 hover:text-blue-400 border border-zinc-700 text-xs font-semibold transition-colors"
+                              >
+                                <Edit size={13} /> Phân quyền
+                              </button>
+                              <button
+                                onClick={() => setRevokingStaff(staff)}
+                                className="p-1.5 rounded-lg bg-zinc-800 hover:bg-red-500/20 text-zinc-400 hover:text-red-400 border border-zinc-700 transition-colors"
+                                title="Thu hồi quyền nhân viên"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </div>
 
@@ -657,8 +791,30 @@ export default function AdminStaffsPage() {
               </button>
             </div>
 
-            {/* Checkbox Matrix 10 Quyền */}
-            <div className="space-y-3">
+            {/* 1. Role Presets (Chọn nhanh vai trò mẫu) */}
+            <div className="space-y-2 bg-zinc-950 p-3.5 rounded-xl border border-zinc-800">
+              <div className="text-[11px] text-zinc-400 font-bold uppercase tracking-wider flex items-center gap-1.5">
+                <Zap className="w-3.5 h-3.5 text-amber-400" />
+                Chọn nhanh theo vai trò mẫu (Role Presets):
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {ROLE_PRESETS.map((preset) => (
+                  <button
+                    key={preset.name}
+                    type="button"
+                    onClick={() => setSelectedPerms(preset.keys)}
+                    className="px-2.5 py-1.5 rounded-lg bg-zinc-900 hover:bg-cyan-500/15 border border-zinc-800 hover:border-cyan-500/40 text-xs font-semibold text-zinc-300 hover:text-cyan-300 transition-all flex items-center gap-1"
+                    title={preset.desc}
+                  >
+                    <span>⚡ {preset.name}</span>
+                    <span className="text-[10px] text-zinc-500 font-mono">({preset.keys.length})</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* 2. Grouped Checkbox Matrix (Phân theo nhóm phân hệ nghiệp vụ) */}
+            <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold text-zinc-300 uppercase tracking-wider">
                   Chức năng được phép truy cập ({selectedPerms.length}/{ALL_STAFF_PERMISSIONS.length})
@@ -682,33 +838,61 @@ export default function AdminStaffsPage() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 bg-zinc-950 p-3 rounded-xl border border-zinc-800">
-                {ALL_STAFF_PERMISSIONS.map((perm) => {
-                  const checked = selectedPerms.includes(perm.key);
-                  const IconComp = perm.icon;
+              <div className="space-y-4">
+                {PERMISSION_GROUPS.map((grp) => {
+                  const groupPerms = ALL_STAFF_PERMISSIONS.filter((p) => grp.keys.includes(p.key));
+                  const hasAll = grp.keys.every((k) => selectedPerms.includes(k));
+
                   return (
-                    <label
-                      key={perm.key}
-                      className={`flex items-start gap-3 p-2.5 rounded-lg border cursor-pointer select-none transition-all ${
-                        checked
-                          ? 'bg-blue-600/10 border-blue-500/40 text-white'
-                          : 'bg-zinc-900/40 border-zinc-800 text-zinc-400 hover:bg-zinc-900 hover:text-zinc-300'
-                      }`}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={checked}
-                        onChange={() => togglePerm(perm.key)}
-                        className="mt-0.5 w-4 h-4 rounded bg-zinc-950 border-zinc-700 text-blue-600 focus:ring-0"
-                      />
-                      <div className="flex-1">
-                        <div className="flex items-center gap-1.5 font-semibold text-xs text-white">
-                          <IconComp className={`w-3.5 h-3.5 ${perm.color}`} />
-                          {perm.label}
-                        </div>
-                        <p className="text-[11px] text-zinc-400 mt-0.5 line-clamp-1">{perm.desc}</p>
+                    <div key={grp.id} className="space-y-2">
+                      <div className="flex items-center justify-between text-xs font-bold text-zinc-400 uppercase tracking-wider">
+                        <span className="text-zinc-300">📁 {grp.name}</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (hasAll) {
+                              setSelectedPerms((prev) => prev.filter((k) => !grp.keys.includes(k)));
+                            } else {
+                              setSelectedPerms((prev) => Array.from(new Set([...prev, ...grp.keys])));
+                            }
+                          }}
+                          className="text-[11px] text-cyan-400 hover:underline lowercase font-medium"
+                        >
+                          {hasAll ? 'bỏ chọn nhóm' : 'chọn cả nhóm'}
+                        </button>
                       </div>
-                    </label>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 bg-zinc-950 p-2.5 rounded-xl border border-zinc-800">
+                        {groupPerms.map((perm) => {
+                          const checked = selectedPerms.includes(perm.key);
+                          const IconComp = perm.icon;
+                          return (
+                            <label
+                              key={perm.key}
+                              className={`flex items-start gap-2.5 p-2 rounded-lg border cursor-pointer select-none transition-all ${
+                                checked
+                                  ? 'bg-blue-600/10 border-blue-500/40 text-white'
+                                  : 'bg-zinc-900/40 border-zinc-800 text-zinc-400 hover:bg-zinc-900 hover:text-zinc-300'
+                              }`}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={checked}
+                                onChange={() => togglePerm(perm.key)}
+                                className="mt-0.5 w-4 h-4 rounded bg-zinc-950 border-zinc-700 text-blue-600 focus:ring-0"
+                              />
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-1.5 font-semibold text-xs text-white">
+                                  <IconComp className={`w-3.5 h-3.5 ${perm.color}`} />
+                                  <span className="truncate">{perm.label}</span>
+                                </div>
+                                <p className="text-[11px] text-zinc-400 mt-0.5 line-clamp-1">{perm.desc}</p>
+                              </div>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    </div>
                   );
                 })}
               </div>

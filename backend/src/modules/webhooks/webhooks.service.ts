@@ -13,6 +13,7 @@ import {
 } from '../../database/schemas/Transaction';
 import { IWebhookLog } from '../../database/schemas/WebhookLog';
 import { IUnmatchedDeposit } from '../../database/schemas/UnmatchedDeposit';
+import { IBoosterApplication } from '../../database/schemas/BoosterApplication';
 
 export interface SePayWebhookData {
   id: number;
@@ -39,6 +40,7 @@ export class WebhooksService {
     @InjectModel('Transaction') private transactionModel: Model<ITransaction>,
     @InjectModel('WebhookLog') private webhookLogModel: Model<IWebhookLog>,
     @InjectModel('UnmatchedDeposit') private unmatchedDepositModel: Model<IUnmatchedDeposit>,
+    @InjectModel('BoosterApplication') private boosterAppModel: Model<IBoosterApplication>,
     private readonly chatGateway: ChatGateway,
     private readonly discordService: DiscordService,
   ) {}
@@ -274,6 +276,20 @@ export class WebhooksService {
       }
 
       const rawContent = data.content || data.transferContent || data.description || '';
+
+      // 3.5. Kiểm tra giao dịch nộp phí kích hoạt quyền Booster: "BOOSTERAPPLY <username>"
+      const boosterMatch = rawContent.match(/BOOSTERAPPLY\s+([A-Za-z0-9_.-]+)/i);
+      if (boosterMatch) {
+        const usernameCandidate = boosterMatch[1].trim();
+        const boosterFeeResult = await this.handleBoosterRegistrationFee(
+          data,
+          usernameCandidate,
+          rawContent,
+          context,
+          startTime,
+        );
+        if (boosterFeeResult) return boosterFeeResult;
+      }
 
       // 4. Tìm kiếm User qua nhiều chiến lược đối soát chính xác
       const matchResult = await this.resolveUserAndPendingTx(data, rawContent);
@@ -659,6 +675,115 @@ export class WebhooksService {
     } catch (e: any) {
       this.logger.warn(`Failed to write WebhookLog: ${e.message}`);
     }
+  }
+
+  /**
+   * Xử lý giao dịch nộp Phí Kích Hoạt Quyền Booster: "BOOSTERAPPLY <username>"
+   * Tuyệt đối KHÔNG cộng vào số dư ví của Booster, mà ghi nhận vào Doanh Thu Đăng Ký Booster
+   */
+  private async handleBoosterRegistrationFee(
+    data: SePayWebhookData,
+    usernameCandidate: string,
+    rawContent: string,
+    context?: { ip?: string; userAgent?: string },
+    startTime: number = Date.now(),
+  ) {
+    this.logger.log(`⚡ [Webhook] Detecting Booster Registration Fee for candidate: "${usernameCandidate}", amount: ${data.transferAmount}`);
+
+    const user = await this.userModel.findOne({
+      username: new RegExp(`^${this.escapeRegex(usernameCandidate)}$`, 'i'),
+    });
+
+    if (!user) {
+      this.logger.warn(`⚠️ [Webhook] User not found for Booster Apply: "${usernameCandidate}"`);
+      return null;
+    }
+
+    let boosterApp = await this.boosterAppModel.findOne({ userId: user._id });
+    if (boosterApp) {
+      boosterApp.depositStatus = 'paid';
+      boosterApp.depositAmount = data.transferAmount;
+      boosterApp.note = (boosterApp.note ? boosterApp.note + '\n' : '') + `[Tự động] Đã thanh toán ${data.transferAmount.toLocaleString('vi-VN')} đ phí kích hoạt qua GD #${data.id}`;
+      await boosterApp.save();
+    } else {
+      await this.boosterAppModel.create({
+        userId: user._id,
+        fullName: (user.profile as any)?.fullName || user.username,
+        phoneNumber: (user.profile as any)?.phoneNumber || '0000000000',
+        facebookUrl: user.profile?.facebook_url || 'https://facebook.com',
+        discordTag: user.profile?.discord_id || user.username,
+        currentRank: 'Pending',
+        highestRank: 'Pending',
+        opggLink: 'Pending',
+        rankImageUrl: '/placeholder.png',
+        bankName: user.profile?.bank_info?.bankName || 'N/A',
+        bankAccountName: user.profile?.bank_info?.accountHolder || user.username,
+        bankAccountNumber: user.profile?.bank_info?.accountNumber || '00000000',
+        depositStatus: 'paid',
+        depositAmount: data.transferAmount,
+        status: 'pending',
+        agreementSigned_name: user.username,
+        agreementSigned_at: new Date(),
+        agreementVersion: 'v2',
+        note: `[Tự động] Đã chuyển khoản phí kích hoạt ${data.transferAmount.toLocaleString('vi-VN')} đ (GD #${data.id}) trước khi nộp đơn.`,
+      });
+    }
+
+    // Ghi nhận bản ghi Transaction loại BOOSTER_REGISTRATION_FEE (Không đổi số dư ví)
+    const tx = await this.transactionModel.create({
+      userId: user._id,
+      type: TransactionType.BOOSTER_REGISTRATION_FEE,
+      amount: data.transferAmount,
+      status: TransactionStatus.SUCCESS,
+      description: `Phí kích hoạt quyền Booster (Doanh thu đăng ký Booster) - GD #${data.id}`,
+      gateway: 'SePay',
+      gatewayTransactionId: String(data.id),
+      balanceAfter: user.wallet_balance || 0,
+      createdAt: new Date(),
+    });
+
+    // Bắn thông báo Discord cho Admin
+    try {
+      await this.discordService.sendEmbed({
+        title: '💰 [DOANH THU ĐĂNG KÝ BOOSTER] PHÍ KÍCH HOẠT QUYỀN BOOSTER',
+        color: 0x10b981,
+        fields: [
+          { name: '👤 Booster ứng tuyển', value: `**${user.username}**`, inline: true },
+          { name: '💵 Phí đăng ký', value: `\`${data.transferAmount.toLocaleString('vi-VN')} đ\``, inline: true },
+          { name: '🔖 Mã GD', value: `\`#${data.id}\``, inline: true },
+          { name: '📌 Phân loại', value: 'Doanh thu Admin (Không cộng ví cá nhân)', inline: false },
+        ],
+      });
+    } catch {}
+
+    // Gửi WebSocket thông báo
+    try {
+      this.chatGateway.broadcastNotification(user._id.toString(), {
+        type: 'BOOSTER_PAYMENT_SUCCESS',
+        title: 'Thanh toán phí Booster thành công',
+        message: `Hệ thống đã tự động đối soát ${data.transferAmount.toLocaleString('vi-VN')} đ phí kích hoạt quyền Booster! Admin sẽ duyệt hồ sơ của bạn sớm nhất.`,
+        amount: data.transferAmount,
+      });
+    } catch {}
+
+    await this.safeRecordWebhookLog({
+      gateway: 'SePay',
+      gatewayTransactionId: String(data.id),
+      ip: context?.ip,
+      headers: { userAgent: context?.userAgent },
+      rawPayload: data,
+      status: 'SUCCESS',
+      matchedUserId: user._id as Types.ObjectId,
+      transactionId: tx._id as Types.ObjectId,
+      processingTimeMs: Date.now() - startTime,
+    });
+
+    return {
+      success: true,
+      message: 'Booster registration fee processed successfully',
+      id: tx._id,
+      boosterPaid: true,
+    };
   }
 
   private escapeRegex(str: string): string {

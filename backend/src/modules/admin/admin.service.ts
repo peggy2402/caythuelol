@@ -852,7 +852,19 @@ export class AdminService {
       .populate('userId', 'username email profile')
       .sort({ createdAt: -1 })
       .lean();
-    return { success: true, applications: apps };
+
+    const activeBoostersCount = await this.userModel.countDocuments({ role: UserRole.BOOSTER });
+
+    const totalRegistrationRevenue = apps
+      .filter((a) => a.depositStatus === 'paid')
+      .reduce((sum, a) => sum + (Number(a.depositAmount) || 50000), 0);
+
+    return { 
+      success: true, 
+      applications: apps,
+      totalRegistrationRevenue,
+      activeBoostersCount,
+    };
   }
 
   async approveBooster(appId: string) {

@@ -12,7 +12,7 @@ import {
   Search, Copy, ExternalLink, Share2, Shield, Trophy, Flame, Star, Award,
   Wallet, ShoppingBag, Gift, ArrowRight, Settings, CheckCircle2, AlertCircle,
   Gamepad2, Plus, Edit3, Activity, Clock, CheckCheck, RefreshCw, Layers,
-  Eye, Landmark
+  Eye, Landmark, Crown
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -1703,6 +1703,69 @@ export default function ProfilePage() {
       ========================================================================= */}
       {user.role === 'CUSTOMER' && (
         <div className="space-y-6">
+          {/* VIP PASS STATUS BANNER FOR CUSTOMER */}
+          {user.vip_info?.is_vip ? (
+            <div className="p-5 rounded-2xl bg-gradient-to-r from-emerald-950/60 via-zinc-900 to-zinc-950 border border-emerald-500/40 shadow-xl shadow-emerald-950/30 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 backdrop-blur-md">
+              <div className="flex items-start gap-3.5">
+                <div className="p-3 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 shrink-0 shadow-lg shadow-emerald-500/10">
+                  <Crown className="w-6 h-6" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-base font-black text-white">{user.vip_info?.package_type || 'LeoRank VIP Pass'}</span>
+                    <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm">
+                      Đang Hoạt Động
+                    </span>
+                  </div>
+                  <p className="text-xs text-zinc-300 mt-1">
+                    Đặc quyền: Giảm 10% - 15% mọi đơn hàng • Miễn phí chọn tướng/vị trí • Ưu tiên ghép Booster &lt; 3 phút • CSKH 1-1
+                  </p>
+                  {user.vip_info?.expires_at && (
+                    <div className="text-[11px] text-emerald-400/90 font-semibold mt-1.5 flex items-center gap-1.5">
+                      <Clock className="w-3.5 h-3.5" />
+                      Hạn sử dụng: đến {new Date(user.vip_info.expires_at).toLocaleDateString('vi-VN')} ({Math.max(0, Math.ceil((new Date(user.vip_info.expires_at).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))} ngày còn lại)
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div className="flex items-center gap-2 shrink-0 w-full md:w-auto">
+                <Link
+                  href="/vip"
+                  className="w-full md:w-auto px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-black font-black text-xs transition-all shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-1.5"
+                >
+                  <Crown className="w-4 h-4" />
+                  Xem Đặc Quyền & Gia Hạn
+                </Link>
+              </div>
+            </div>
+          ) : (
+            <div className="p-4 rounded-2xl bg-gradient-to-r from-zinc-900 via-emerald-950/20 to-zinc-900 border border-emerald-500/25 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-md">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shrink-0">
+                  <Crown className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="text-sm font-bold text-white flex items-center gap-2">
+                    Nâng cấp Hội Viên LeoRank VIP Pass
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                      Ưu đãi độc quyền
+                    </span>
+                  </div>
+                  <p className="text-xs text-zinc-400 mt-0.5">
+                    Giảm ngay 10% - 15% cho toàn bộ các đơn hàng cày thuê + Ghép Booster Thách Đấu trong 3 phút.
+                  </p>
+                </div>
+              </div>
+              <Link
+                href="/vip"
+                className="w-full sm:w-auto px-4 py-2 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/40 text-emerald-300 font-bold text-xs transition-all flex items-center justify-center gap-1.5 shrink-0"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                Khám Phá VIP Pass <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+            </div>
+          )}
+
           {/* Customer Dashboard Quick Actions */}
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
             <div className="rounded-2xl border border-white/10 bg-zinc-900/60 p-5 backdrop-blur-md">

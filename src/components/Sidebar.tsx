@@ -31,6 +31,8 @@ import {
   Crown,
   Gift,
   Globe,
+  ChevronDown,
+  Sparkles,
   X
 } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n';
@@ -49,9 +51,19 @@ export default function Sidebar({ className = '', onLinkClick, onClose }: Sideba
   const [user, setUser] = useState<any>(null);
   const [showResignModal, setShowResignModal] = useState(false);
   const [jobsCount, setJobsCount] = useState<number>(0);
+  const [openFolders, setOpenFolders] = useState<Record<string, boolean>>({
+    ops: true,
+    finance: true,
+    marketing: true,
+    system: false,
+  });
   const pathname = usePathname();
   const { t } = useLanguage();
   const router = useRouter();
+
+  const toggleFolder = (key: string) => {
+    setOpenFolders((prev) => ({ ...prev, [key]: !prev[key] }));
+  };
 
   useEffect(() => {
     const loadUser = () => {
@@ -144,28 +156,77 @@ export default function Sidebar({ className = '', onLinkClick, onClose }: Sideba
 
   if (!user) return null;
 
+  const NavFolder = ({
+    folderKey,
+    title,
+    icon: Icon,
+    badge,
+    children,
+  }: {
+    folderKey: string;
+    title: string;
+    icon?: any;
+    badge?: string | number;
+    children: React.ReactNode;
+  }) => {
+    const isOpen = !!openFolders[folderKey];
+    return (
+      <div className="pt-2 pb-1">
+        <button
+          type="button"
+          onClick={() => toggleFolder(folderKey)}
+          className="flex w-full items-center justify-between px-3 py-2 rounded-xl text-xs font-bold text-zinc-400 hover:text-white hover:bg-white/5 transition-all group select-none"
+        >
+          <div className="flex items-center gap-2.5 min-w-0">
+            {Icon && <Icon className="w-4 h-4 text-zinc-500 group-hover:text-cyan-400 transition-colors shrink-0" />}
+            <span className="uppercase tracking-wider truncate text-[11px] font-black">{title}</span>
+            {badge && (
+              <span className="px-1.5 py-0.5 rounded-full text-[10px] font-black bg-blue-500/20 text-blue-400 border border-blue-500/30 shrink-0">
+                {badge}
+              </span>
+            )}
+          </div>
+          <ChevronDown
+            className={`w-3.5 h-3.5 text-zinc-500 group-hover:text-white transition-transform duration-200 shrink-0 ${
+              isOpen ? 'rotate-0' : '-rotate-90'
+            }`}
+          />
+        </button>
+        {isOpen && (
+          <div className="mt-1 ml-2.5 pl-2.5 border-l border-white/10 space-y-1 transition-all">
+            {children}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   const NavItem = ({ href, icon: Icon, label, badge }: any) => {
     const isActive = pathname === href || pathname.startsWith(href + '/');
     return (
       <Link
         href={href}
         onClick={onLinkClick}
-        className={`flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-200 group ${isActive
+        className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl transition-all duration-200 group ${isActive
           ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20'
           : 'text-zinc-400 hover:bg-white/5 hover:text-white'
           }`}
       >
-        <div className="flex items-center gap-3 min-w-0">
-          <Icon className={`w-5 h-5 shrink-0 ${isActive ? 'text-white' : 'text-zinc-500 group-hover:text-white'}`} />
-          <span className="font-medium truncate">{label}</span>
+        <div className="flex items-center gap-2.5 min-w-0">
+          <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-white' : 'text-zinc-500 group-hover:text-white'}`} />
+          <span className="text-sm font-medium truncate">{label}</span>
         </div>
-        {badge !== undefined && badge !== null && Number(badge) > 0 && (
-          <span className={`px-2 py-0.5 text-[11px] font-black rounded-full transition-all shrink-0 shadow-sm ${
+        {badge !== undefined && badge !== null && (
+          <span className={`px-2 py-0.5 text-[10px] font-black rounded-full transition-all shrink-0 shadow-sm ${
             isActive 
               ? 'bg-white text-blue-600 shadow-white/20' 
-              : 'bg-red-500/20 text-red-400 border border-red-500/40 animate-pulse group-hover:bg-red-500 group-hover:text-white'
+              : typeof badge === 'string'
+              ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30'
+              : Number(badge) > 0
+              ? 'bg-red-500/20 text-red-400 border border-red-500/40 animate-pulse group-hover:bg-red-500 group-hover:text-white'
+              : 'hidden'
           }`}>
-            {Number(badge) > 99 ? '99+' : badge}
+            {typeof badge === 'number' && badge > 99 ? '99+' : badge}
           </span>
         )}
       </Link>
@@ -202,7 +263,7 @@ export default function Sidebar({ className = '', onLinkClick, onClose }: Sideba
         )}
       </div>
 
-      <div className="space-y-1 p-4 flex-1">
+      <div className="space-y-1 p-3.5 flex-1">
         <NavItem href="/" icon={Home} label={t('backToHome')} />
 
         {/* --- CUSTOMER MENU --- */}
@@ -211,6 +272,7 @@ export default function Sidebar({ className = '', onLinkClick, onClose }: Sideba
             <NavItem href="/dashboard" icon={LayoutDashboard} label={t('dashboard')} />
             <NavItem href="/services" icon={Zap} label={t('rentNow')} />
             <NavItem href="/orders" icon={FileText} label={t('orders')} />
+            <NavItem href="/vip" icon={Crown} label="Hội Viên VIP" badge="HOT" />
             <NavItem href="/wallet" icon={Wallet} label={t('wallet')} />
             <NavItem href="/loyalty" icon={Gift} label="Tích điểm đổi quà" />
             <NavItem href="/favorites" icon={Heart} label="Yêu thích" />
@@ -239,55 +301,102 @@ export default function Sidebar({ className = '', onLinkClick, onClose }: Sideba
           </>
         )}
 
-        {/* --- STAFF MENU (HIỂN THỊ THEO PHÂN QUYỀN ĐỘNG) --- */}
+        {/* --- STAFF MENU (PHÂN NHÓM FOLDER THEO QUYỀN ĐỘNG) --- */}
         {user.role === 'STAFF' && (() => {
           const staffPerms: string[] = Array.isArray(user.staff_permissions) && user.staff_permissions.length > 0
             ? user.staff_permissions
             : ['users', 'disputes', 'deposits', 'cron', 'settings', 'blogs'];
 
+          const hasOps = ['orders', 'boosters', 'users', 'disputes'].some((p) => staffPerms.includes(p));
+          const hasFinance = ['transactions', 'withdrawals', 'deposits'].some((p) => staffPerms.includes(p));
+          const hasMarketing = ['vip', 'blogs'].some((p) => staffPerms.includes(p));
+          const hasSystem = ['cron', 'games', 'settings'].some((p) => staffPerms.includes(p));
+
           return (
             <>
-              <div className="px-4 py-2 text-xs font-bold text-zinc-500 uppercase tracking-wider mb-1 text-blue-400">
-                Nhân Viên Vận Hành
+              <div className="px-3 py-1.5 text-xs font-bold uppercase tracking-wider mb-1 text-blue-400 flex items-center gap-1.5">
+                <ShieldAlert className="w-3.5 h-3.5" />
+                <span>Nhân Viên Vận Hành</span>
               </div>
-              {staffPerms.includes('users') && <NavItem href="/admin/users" icon={Users} label={t('manageCustomers')} />}
-              {staffPerms.includes('boosters') && <NavItem href="/admin/boosters" icon={ShieldAlert} label={t('manageBoosters')} />}
-              {staffPerms.includes('orders') && <NavItem href="/admin/orders" icon={ClipboardList} label={t('manageOrders')} />}
-              {staffPerms.includes('disputes') && <NavItem href="/admin/disputes" icon={AlertTriangle} label="Quản lý Tranh chấp" />}
-              {staffPerms.includes('deposits') && <NavItem href="/admin/deposits" icon={DollarSign} label="Quản lý Tiền cọc" />}
-              {staffPerms.includes('withdrawals') && <NavItem href="/admin/withdrawals" icon={Wallet} label="Quản lý Rút tiền" />}
-              {staffPerms.includes('transactions') && <NavItem href="/admin/transactions" icon={CreditCard} label={t('manageTransactions')} />}
-              {staffPerms.includes('blogs') && <NavItem href="/admin/blogs" icon={Newspaper} label={t('manageBlogs')} />}
-              {staffPerms.includes('cron') && <NavItem href="/admin/cron" icon={ListTodo} label="Quản Lý Cron" />}
-              {staffPerms.includes('games') && <NavItem href="/admin/games" icon={Gamepad2} label="Cấu hình Tựa Game" />}
-              {staffPerms.includes('vip') && <NavItem href="/admin/vip" icon={Crown} label="Hội Viên VIP" />}
-              {staffPerms.includes('settings') && <NavItem href="/admin/settings" icon={Settings} label={t('systemSettings')} />}
+
+              {hasOps && (
+                <NavFolder folderKey="ops" title="Vận Hành & Đơn Hàng" icon={ClipboardList}>
+                  {staffPerms.includes('orders') && <NavItem href="/admin/orders" icon={ClipboardList} label={t('manageOrders')} />}
+                  {staffPerms.includes('boosters') && <NavItem href="/admin/boosters" icon={ShieldAlert} label={t('manageBoosters')} />}
+                  {staffPerms.includes('users') && <NavItem href="/admin/users" icon={Users} label={t('manageCustomers')} />}
+                  {staffPerms.includes('disputes') && <NavItem href="/admin/disputes" icon={AlertTriangle} label="Quản lý Tranh chấp" />}
+                </NavFolder>
+              )}
+
+              {hasFinance && (
+                <NavFolder folderKey="finance" title="Tài Chính & Kế Toán" icon={DollarSign}>
+                  {staffPerms.includes('transactions') && <NavItem href="/admin/transactions" icon={CreditCard} label={t('manageTransactions')} />}
+                  {staffPerms.includes('withdrawals') && <NavItem href="/admin/withdrawals" icon={Wallet} label="Quản lý Rút tiền" />}
+                  {staffPerms.includes('deposits') && <NavItem href="/admin/deposits" icon={DollarSign} label="Quản lý Tiền cọc" />}
+                </NavFolder>
+              )}
+
+              {hasMarketing && (
+                <NavFolder folderKey="marketing" title="Marketing & Sự Kiện" icon={Sparkles}>
+                  {staffPerms.includes('vip') && <NavItem href="/admin/vip" icon={Crown} label="Hội Viên VIP" />}
+                  {staffPerms.includes('blogs') && <NavItem href="/admin/blogs" icon={Newspaper} label={t('manageBlogs')} />}
+                </NavFolder>
+              )}
+
+              {hasSystem && (
+                <NavFolder folderKey="system" title="Hệ Thống & Kỹ Thuật" icon={Settings}>
+                  {staffPerms.includes('cron') && <NavItem href="/admin/cron" icon={ListTodo} label="Quản Lý Cron" />}
+                  {staffPerms.includes('games') && <NavItem href="/admin/games" icon={Gamepad2} label="Cấu hình Tựa Game" />}
+                  {staffPerms.includes('settings') && <NavItem href="/admin/settings" icon={Settings} label={t('systemSettings')} />}
+                </NavFolder>
+              )}
             </>
           );
         })()}
 
-        {/* --- ADMIN MENU --- */}
+        {/* --- ADMIN MENU (PHÂN NHÓM FOLDER CHA / FOLDER CON GỌN GÀNG) --- */}
         {user.role === 'ADMIN' && (
           <>
-            <div className="px-4 py-2 text-xs font-bold text-zinc-500 uppercase tracking-wider mb-1 text-yellow-500">
-              {t('admin')}
+            <div className="px-3 py-1.5 text-xs font-bold uppercase tracking-wider mb-1 text-amber-400 flex items-center justify-between">
+              <span className="flex items-center gap-1.5">
+                <Crown className="w-3.5 h-3.5" />
+                <span>Quản Trị Viên (Admin)</span>
+              </span>
             </div>
+
             <NavItem href="/admin/dashboard" icon={LayoutDashboard} label={t('dashboard')} />
-            <NavItem href="/admin/staffs" icon={UserCheck} label="Quản lý Nhân Viên" />
-            <NavItem href="/admin/boosters" icon={ShieldAlert} label={t('manageBoosters')} />
-            <NavItem href="/admin/users" icon={Users} label={t('manageCustomers')} />
-            <NavItem href="/admin/transactions" icon={CreditCard} label={t('manageTransactions')} />
-            <NavItem href="/admin/orders" icon={ClipboardList} label={t('manageOrders')} />
-            <NavItem href="/admin/blogs" icon={Newspaper} label={t('manageBlogs')} />
-            <NavItem href="/admin/withdrawals" icon={Wallet} label="Quản lý Rút tiền" />
-            <NavItem href="/admin/deposits" icon={DollarSign} label="Quản lý Tiền cọc" />
-            <NavItem href="/admin/disputes" icon={AlertTriangle} label="Quản lý Tranh chấp" />
-            <NavItem href="/admin/cron" icon={ListTodo} label="Quản Lý Cron" />
-            <NavItem href="/admin/traffic" icon={Globe} label="Lưu lượng & SEO Traffic" />
-            <NavItem href="/admin/games" icon={Gamepad2} label="Cấu hình Tựa Game" />
-            <NavItem href="/admin/vip" icon={Crown} label="Hội Viên VIP" />
-            <NavItem href="/admin/settings" icon={Settings} label={t('systemSettings')} />
-            <NavItem href="/admin/audit-logs" icon={ListTodo} label={t('auditLogs')} />
+
+            {/* Folder 1: Vận hành & Đơn hàng */}
+            <NavFolder folderKey="ops" title="Vận Hành & Đơn Hàng" icon={ClipboardList}>
+              <NavItem href="/admin/orders" icon={ClipboardList} label={t('manageOrders')} />
+              <NavItem href="/admin/boosters" icon={ShieldAlert} label={t('manageBoosters')} />
+              <NavItem href="/admin/users" icon={Users} label={t('manageCustomers')} />
+              <NavItem href="/admin/disputes" icon={AlertTriangle} label="Quản lý Tranh chấp" />
+            </NavFolder>
+
+            {/* Folder 2: Tài chính & Kế toán */}
+            <NavFolder folderKey="finance" title="Tài Chính & Kế Toán" icon={DollarSign}>
+              <NavItem href="/admin/transactions" icon={CreditCard} label={t('manageTransactions')} />
+              <NavItem href="/admin/withdrawals" icon={Wallet} label="Quản lý Rút tiền" />
+              <NavItem href="/admin/deposits" icon={DollarSign} label="Quản lý Tiền cọc & Nạp" />
+            </NavFolder>
+
+            {/* Folder 3: Marketing & Sự kiện */}
+            <NavFolder folderKey="marketing" title="Marketing & Sự Kiện" icon={Sparkles}>
+              <NavItem href="/admin/vip" icon={Crown} label="Hội Viên VIP" />
+              <NavItem href="/admin/events" icon={Gift} label="Sự Kiện & Ngân Sách" badge="Mới" />
+              <NavItem href="/admin/blogs" icon={Newspaper} label={t('manageBlogs')} />
+            </NavFolder>
+
+            {/* Folder 4: Hệ thống & Kỹ thuật */}
+            <NavFolder folderKey="system" title="Hệ Thống & Kỹ Thuật" icon={Settings}>
+              <NavItem href="/admin/staffs" icon={UserCheck} label="Quản lý Nhân Viên" />
+              <NavItem href="/admin/games" icon={Gamepad2} label="Cấu hình Tựa Game" />
+              <NavItem href="/admin/cron" icon={ListTodo} label="Quản Lý Cron" />
+              <NavItem href="/admin/traffic" icon={Globe} label="Lưu lượng & SEO Traffic" />
+              <NavItem href="/admin/settings" icon={Settings} label={t('systemSettings')} />
+              <NavItem href="/admin/audit-logs" icon={ListTodo} label={t('auditLogs')} />
+            </NavFolder>
           </>
         )}
       </div>
