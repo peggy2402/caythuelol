@@ -215,8 +215,8 @@ export class AdminController {
   // 5. Quản lý Tiền cọc (Escrow Deposits)
   @Get('deposits')
   @ApiOperation({ summary: 'List held deposit orders' })
-  async getDeposits(): Promise<any> {
-    return this.adminService.getDeposits();
+  async getDeposits(@Query('tab') tab?: string): Promise<any> {
+    return this.adminService.getDeposits(tab);
   }
 
   // 6. Quản lý Giao dịch (Transactions)

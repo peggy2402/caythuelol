@@ -2,7 +2,15 @@
 
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
-import { CheckCircle2, XCircle, Loader2, Settings, ChevronLeft, ChevronRight, Eye, Wallet, History, AlertTriangle, TrendingUp, ArrowDownLeft } from 'lucide-react';
+import { CheckCircle2, XCircle, Loader2, Settings, ChevronLeft, ChevronRight, Eye, Wallet, History, AlertTriangle, TrendingUp, ArrowDownLeft, X, FileText, Ban } from 'lucide-react';
+
+const REJECT_REASON_PRESETS = [
+  'Thông tin tài khoản ngân hàng không chính xác hoặc không trùng khớp tên chủ thẻ',
+  'Tài khoản có dấu hiệu bất thường, tạm hoãn để đối soát bảo mật',
+  'Cần xác minh danh tính chủ tài khoản trước khi giải ngân (KYC)',
+  'Người dùng yêu cầu hủy lệnh rút tiền để tiếp tục sử dụng số dư ví',
+  'Tài khoản đang có tranh chấp khiếu nại đơn hàng chưa giải quyết xong',
+];
 
 interface Withdrawal {
   _id: string;
@@ -39,6 +47,17 @@ export default function AdminWithdrawalsPage() {
   const [userTransactions, setUserTransactions] = useState<any[]>([]);
   const [userStats, setUserStats] = useState<any>(null); // Thêm state cho thống kê user
   const [loadingStats, setLoadingStats] = useState(false);
+  const [rejectModal, setRejectModal] = useState<{
+    isOpen: boolean;
+    withdrawal: Withdrawal | null;
+    reason: string;
+    submitting: boolean;
+  }>({
+    isOpen: false,
+    withdrawal: null,
+    reason: '',
+    submitting: false,
+  });
 
   const fetchWithdrawals = async (page = 1, currentLimit = limit) => {
     setLoading(true);
@@ -93,24 +112,29 @@ export default function AdminWithdrawalsPage() {
     }
   };
 
-  const handleAction = async (id: string, action: 'APPROVE' | 'REJECT') => {
-    let reason = '';
+  const handleAction = async (id: string, action: 'APPROVE' | 'REJECT', reasonText?: string) => {
     if (action === 'REJECT') {
-      reason = prompt('Nhập lý do từ chối:') || '';
-      if (!reason) return;
-    } else {
-      if (!confirm('Xác nhận đã chuyển khoản cho user này?')) return;
+      const targetW = withdrawals.find((w) => w._id === id);
+      setRejectModal({
+        isOpen: true,
+        withdrawal: targetW || null,
+        reason: reasonText || '',
+        submitting: false,
+      });
+      return;
     }
+
+    if (!confirm('Xác nhận đã chuyển khoản thành công cho user này?')) return;
 
     try {
       const res = await fetch('/api/admin/withdrawals/action', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ withdrawalId: id, action, reason }),
+        body: JSON.stringify({ withdrawalId: id, action }),
       });
-      
+
       if (res.ok) {
-        toast.success(action === 'APPROVE' ? 'Đã duyệt thành công' : 'Đã từ chối và hoàn tiền');
+        toast.success('Đã duyệt yêu cầu rút tiền thành công');
         fetchWithdrawals(currentPage, limit);
       } else {
         toast.error('Thao tác thất bại');
@@ -120,8 +144,43 @@ export default function AdminWithdrawalsPage() {
     }
   };
 
-  const formatCurrency = (amount: number) => 
-    new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
+  const handleConfirmReject = async () => {
+    if (!rejectModal.withdrawal) return;
+    const finalReason = rejectModal.reason.trim();
+    if (!finalReason) {
+      toast.error('Vui lòng nhập hoặc chọn lý do từ chối');
+      return;
+    }
+
+    setRejectModal((prev) => ({ ...prev, submitting: true }));
+    try {
+      const res = await fetch('/api/admin/withdrawals/action', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          withdrawalId: rejectModal.withdrawal._id,
+          action: 'REJECT',
+          reason: finalReason,
+        }),
+      });
+
+      if (res.ok) {
+        toast.success('Đã từ chối rút tiền và hoàn tiền về ví cho người dùng');
+        setRejectModal({ isOpen: false, withdrawal: null, reason: '', submitting: false });
+        fetchWithdrawals(currentPage, limit);
+      } else {
+        const data = await res.json().catch(() => ({}));
+        toast.error(data.message || 'Thao tác thất bại');
+        setRejectModal((prev) => ({ ...prev, submitting: false }));
+      }
+    } catch (e) {
+      toast.error('Lỗi kết nối');
+      setRejectModal((prev) => ({ ...prev, submitting: false }));
+    }
+  };
+
+  const formatCurrency = (amount: number | null | undefined) =>
+    new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(Number(amount) || 0);
 
   const handleViewUserStats = async (user: any, withdrawalAmount: number) => {
     setSelectedUser(user);
@@ -386,7 +445,7 @@ export default function AdminWithdrawalsPage() {
                   <div className="text-xs text-zinc-400 mt-2 space-y-1">
                       <p className="flex justify-between">
                         <span>• Nạp tiền:</span> 
-                        <span className="text-white font-mono">{userStats ? formatCurrency(userStats.totalDeposit) : '...'}</span>
+                        <span className="text-white font-mono">{userStats ? formatCurrency(userStats.totalDeposit ?? userStats.totalDeposits) : '...'}</span>
                       </p>
                       <p className="flex justify-between">
                         <span>• Hoàn thành đơn:</span> 
@@ -400,7 +459,7 @@ export default function AdminWithdrawalsPage() {
                   </div>
                   <div className="text-xs text-zinc-400 mt-2 space-y-1">
                       <p className="flex justify-between">
-                        <span>• Rút tiền:</span> <span className="text-white font-mono">{userStats ? formatCurrency(userStats.totalWithdrawal) : '...'}</span>
+                        <span>• Rút tiền:</span> <span className="text-white font-mono">{userStats ? formatCurrency(userStats.totalWithdrawal ?? userStats.totalWithdrawals) : '...'}</span>
                       </p>
                       <p className="flex justify-between"><span>• Thuê Booster:</span> <span className="text-white font-mono">{userStats ? formatCurrency(userStats.totalSpent) : '...'}</span></p>
                   </div>
@@ -447,6 +506,137 @@ export default function AdminWithdrawalsPage() {
                   )}
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* REJECT WITHDRAWAL MODAL */}
+      {rejectModal.isOpen && rejectModal.withdrawal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-zinc-950 border border-zinc-800 rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
+            {/* Header */}
+            <div className="flex items-center justify-between p-5 border-b border-zinc-800 bg-red-950/20">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400">
+                  <Ban className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-white">Từ chối yêu cầu rút tiền</h3>
+                  <p className="text-xs text-zinc-400">Hoàn tiền lại vào ví của người dùng</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setRejectModal({ isOpen: false, withdrawal: null, reason: '', submitting: false })}
+                className="p-1.5 text-zinc-400 hover:text-white rounded-lg hover:bg-zinc-800 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="p-5 space-y-4">
+              {/* Order Info Card */}
+              <div className="p-3.5 bg-zinc-900/80 rounded-xl border border-zinc-800 space-y-2 text-xs">
+                <div className="flex justify-between items-center">
+                  <span className="text-zinc-400">Người yêu cầu:</span>
+                  <span className="text-white font-bold">
+                    {rejectModal.withdrawal.userId?.username}{' '}
+                    <span className="text-zinc-500 font-normal">({rejectModal.withdrawal.userId?.role})</span>
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-zinc-400">Số tiền rút (Gốc):</span>
+                  <span className="text-white font-mono font-bold">
+                    {formatCurrency(rejectModal.withdrawal.amount)}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-zinc-400">Thực nhận sau phí:</span>
+                  <span className="text-emerald-400 font-mono font-bold">
+                    {formatCurrency(rejectModal.withdrawal.netAmount)}
+                  </span>
+                </div>
+                <div className="pt-2 border-t border-zinc-800 flex justify-between items-center text-zinc-400">
+                  <span>Ngân hàng thụ hưởng:</span>
+                  <span className="text-zinc-200 font-mono">
+                    {rejectModal.withdrawal.bankInfo.bankName} - {rejectModal.withdrawal.bankInfo.accountNumber}
+                  </span>
+                </div>
+              </div>
+
+              {/* Quick Preset Chips */}
+              <div>
+                <label className="text-xs font-semibold text-zinc-300 block mb-2 flex items-center gap-1.5">
+                  <FileText className="w-3.5 h-3.5 text-blue-400" /> Chọn nhanh lý do từ chối:
+                </label>
+                <div className="flex flex-wrap gap-1.5">
+                  {REJECT_REASON_PRESETS.map((preset, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => setRejectModal((prev) => ({ ...prev, reason: preset }))}
+                      className={`text-[11px] text-left px-2.5 py-1.5 rounded-lg border transition-all ${
+                        rejectModal.reason === preset
+                          ? 'bg-red-500/15 border-red-500/40 text-red-300 font-medium'
+                          : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-zinc-200 hover:border-zinc-700'
+                      }`}
+                    >
+                      {preset}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Reason Textarea */}
+              <div>
+                <label className="text-xs font-semibold text-zinc-300 block mb-1.5">
+                  Chi tiết lý do từ chối <span className="text-red-400">*</span>:
+                </label>
+                <textarea
+                  rows={3}
+                  value={rejectModal.reason}
+                  onChange={(e) => setRejectModal((prev) => ({ ...prev, reason: e.target.value }))}
+                  placeholder="Nhập lý do chi tiết để người dùng nhận được thông báo rõ ràng..."
+                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl p-3 text-sm text-white placeholder-zinc-500 focus:outline-none focus:border-red-500/50 focus:ring-1 focus:ring-red-500/50 resize-none"
+                />
+              </div>
+
+              {/* Warning Notice */}
+              <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl text-xs text-amber-400 flex items-start gap-2">
+                <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+                <span>
+                  Hành động này sẽ hủy lệnh rút tiền và <strong>tự động hoàn lại {formatCurrency(rejectModal.withdrawal.amount)}</strong> vào số dư ví của {rejectModal.withdrawal.userId?.username}.
+                </span>
+              </div>
+            </div>
+
+            {/* Footer Buttons */}
+            <div className="flex items-center justify-end gap-3 p-4 border-t border-zinc-800 bg-zinc-950">
+              <button
+                type="button"
+                disabled={rejectModal.submitting}
+                onClick={() => setRejectModal({ isOpen: false, withdrawal: null, reason: '', submitting: false })}
+                className="px-4 py-2 rounded-xl text-xs font-semibold text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
+              >
+                Hủy bỏ
+              </button>
+              <button
+                type="button"
+                disabled={rejectModal.submitting || !rejectModal.reason.trim()}
+                onClick={handleConfirmReject}
+                className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-red-600 hover:bg-red-500 disabled:opacity-50 disabled:hover:bg-red-600 transition-colors flex items-center gap-2 shadow-lg shadow-red-600/20"
+              >
+                {rejectModal.submitting ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" /> Đang xử lý...
+                  </>
+                ) : (
+                  <>
+                    <XCircle className="w-3.5 h-3.5" /> Xác nhận từ chối & Hoàn tiền
+                  </>
+                )}
+              </button>
             </div>
           </div>
         </div>

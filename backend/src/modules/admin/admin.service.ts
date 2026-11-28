@@ -63,10 +63,24 @@ export class AdminService {
     const totalUserBalance =
       (users[0]?.totalWallet || 0) + (users[0]?.totalPending || 0);
 
-    // 2. Tổng Tiền Cọc (Liabilities - Escrow)
+    // 2. Tổng Tiền Cọc (Liabilities - Escrow) - CHỈ TÍNH CÁC ĐƠN ĐANG KÝ QUỸ (Active Escrow)
+    const activeEscrowStatuses = [
+      OrderStatus.PAID,
+      OrderStatus.APPROVED,
+      OrderStatus.IN_PROGRESS,
+      OrderStatus.RANK_MISMATCH,
+      OrderStatus.DISPUTED,
+    ];
     const escrow = await this.orderModel.aggregate([
-      { $match: { 'payment.is_locked': true } },
-      { $group: { _id: null, total: { $sum: '$pricing.deposit_amount' } } },
+      { $match: { status: { $in: activeEscrowStatuses } } },
+      {
+        $group: {
+          _id: null,
+          total: {
+            $sum: { $ifNull: ['$pricing.deposit_amount', '$pricing.total_amount'] },
+          },
+        },
+      },
     ]);
     const totalEscrow = escrow[0]?.total || 0;
 
@@ -101,15 +115,36 @@ export class AdminService {
     ]);
     const totalPlatformFees = completedOrders[0]?.totalFee || 0;
 
+    const withdrawalFeesMatch: any = {
+      type: TransactionType.WITHDRAWAL,
+      status: TransactionStatus.SUCCESS,
+    };
+    if (hasDateFilter) {
+      withdrawalFeesMatch.createdAt = dateFilter;
+    }
     const withdrawalFees = await this.transactionModel.aggregate([
-      { $match: { type: TransactionType.WITHDRAWAL, status: TransactionStatus.SUCCESS } },
+      { $match: withdrawalFeesMatch },
       { $group: { _id: null, total: { $sum: '$metadata.fee' } } },
     ]);
     const totalWithdrawalFees = withdrawalFees[0]?.total || 0;
 
-    const adminRevenue = totalPlatformFees + totalWithdrawalFees;
+    // Doanh thu từ Gói Hội viên VIP
+    const vipMatch: any = {
+      type: TransactionType.VIP_PURCHASE,
+      status: TransactionStatus.SUCCESS,
+    };
+    if (hasDateFilter) {
+      vipMatch.createdAt = dateFilter;
+    }
+    const vipRevenueAgg = await this.transactionModel.aggregate([
+      { $match: vipMatch },
+      { $group: { _id: null, total: { $sum: '$amount' } } },
+    ]);
+    const totalVipRevenue = Math.abs(vipRevenueAgg[0]?.total || 0);
 
-    // 5. Doanh thu theo tháng (Monthly Revenue)
+    const adminRevenue = totalPlatformFees + totalWithdrawalFees + totalVipRevenue;
+
+    // 5. Doanh thu theo tháng (Monthly Revenue - Platform Fee + VIP)
     const monthlyRevenueMatch: any = {
       status: { $in: [OrderStatus.COMPLETED, 'SETTLED'] },
     };
@@ -128,16 +163,65 @@ export class AdminService {
       { $sort: { '_id.year': 1, '_id.month': 1 } },
     ]);
 
-    // 6. Thống kê theo loại dịch vụ
+    // 6. Thống kê theo loại dịch vụ & Tựa game
     const ordersByServiceMatch: any = {};
     if (hasDateFilter) {
       ordersByServiceMatch.createdAt = dateFilter;
     }
-    const ordersByService = await this.orderModel.aggregate([
+    const rawOrdersByService = await this.orderModel.aggregate([
       { $match: ordersByServiceMatch },
-      { $group: { _id: '$serviceType', count: { $sum: 1 } } },
+      {
+        $group: {
+          _id: {
+            game: {
+              $toUpper: {
+                $ifNull: ['$snapshot.gameCode', { $ifNull: ['$details.game', 'LOL'] }],
+              },
+            },
+            service: '$serviceType',
+          },
+          count: { $sum: 1 },
+          totalAmount: { $sum: '$pricing.total_amount' },
+        },
+      },
       { $sort: { count: -1 } },
     ]);
+
+    const ordersByService = rawOrdersByService.map((item) => {
+      const rawGame = (item._id?.game || 'LOL').toUpperCase();
+      const rawService = (item._id?.service || 'RANK_BOOST').toUpperCase();
+
+      let gameLabel = 'LMHT';
+      if (rawGame.includes('LIENQUAN') || rawGame.includes('AOV') || rawService.includes('LIENQUAN')) {
+        gameLabel = 'Liên Quân';
+      } else if (rawGame.includes('TOCCHIEN') || rawGame.includes('WR') || rawService.includes('TOCCHIEN')) {
+        gameLabel = 'Tốc Chiến';
+      } else if (rawGame.includes('VALORANT') || rawGame.includes('VAL')) {
+        gameLabel = 'Valorant';
+      }
+
+      let serviceLabel = 'Cày Rank';
+      if (rawService.includes('STAR') || rawService.includes('SAO')) {
+        serviceLabel = 'Cày Sao';
+      } else if (rawService.includes('NET') || rawService.includes('WIN')) {
+        serviceLabel = 'Thắng Trận (Net Wins)';
+      } else if (rawService.includes('PLACE') || rawService.includes('PHAN_HANG')) {
+        serviceLabel = 'Đấu Phân Hạng';
+      } else if (rawService.includes('MASTERY') || rawService.includes('THONG_THAO')) {
+        serviceLabel = 'Cày Thông Thạo';
+      }
+
+      return {
+        _id: `${gameLabel} - ${serviceLabel}`,
+        name: `${gameLabel} - ${serviceLabel}`,
+        game: gameLabel,
+        service: serviceLabel,
+        rawService: item._id?.service,
+        rawGame: item._id?.game,
+        count: item.count,
+        totalAmount: item.totalAmount || 0,
+      };
+    });
 
     // 7. Top Boosters by Earnings
     const topBoostersMatch: any = {
@@ -271,6 +355,7 @@ export class AdminService {
         adminRevenue,
         totalPlatformFees,
         totalWithdrawalFees,
+        totalVipRevenue,
         activeOrders,
         totalUsers,
         totalBoosters,
@@ -1309,28 +1394,57 @@ export class AdminService {
   }
 
   // 4. Quản lý Tiền cọc (Escrow Deposits)
-  async getDeposits(): Promise<any> {
-    const orders = await this.orderModel
-      .find({
-        $or: [
-          { 'payment.is_locked': true },
-          { status: { $in: [OrderStatus.PAID, OrderStatus.APPROVED, OrderStatus.IN_PROGRESS] } },
-        ],
-      })
-      .populate('customerId', 'username email profile')
-      .populate('boosterId', 'username email profile')
-      .sort({ createdAt: -1 })
-      .lean();
+  async getDeposits(tab?: string): Promise<any> {
+    const activeStatuses = [
+      OrderStatus.PAID,
+      OrderStatus.APPROVED,
+      OrderStatus.IN_PROGRESS,
+      OrderStatus.RANK_MISMATCH,
+      OrderStatus.DISPUTED,
+    ];
 
-    const totalHeld = orders.reduce(
-      (sum, o) => sum + (o.pricing?.deposit_amount || o.pricing?.total_amount || 0),
-      0,
-    );
+    let filter: any = {};
+    if (tab === 'DISPUTED') {
+      filter = { status: { $in: [OrderStatus.RANK_MISMATCH, OrderStatus.DISPUTED] } };
+    } else if (tab === 'ALL') {
+      filter = {};
+    } else {
+      // Mặc định hoặc 'ACTIVE': Chỉ lấy các đơn đang thực sự giữ cọc
+      filter = { status: { $in: activeStatuses } };
+    }
+
+    const [orders, activeCount, disputedCount, activeTotalAgg] = await Promise.all([
+      this.orderModel
+        .find(filter)
+        .populate('customerId', 'username email profile')
+        .populate('boosterId', 'username email profile')
+        .sort({ createdAt: -1 })
+        .lean(),
+      this.orderModel.countDocuments({ status: { $in: activeStatuses } }),
+      this.orderModel.countDocuments({
+        status: { $in: [OrderStatus.RANK_MISMATCH, OrderStatus.DISPUTED] },
+      }),
+      this.orderModel.aggregate([
+        { $match: { status: { $in: activeStatuses } } },
+        {
+          $group: {
+            _id: null,
+            totalHeld: {
+              $sum: { $ifNull: ['$pricing.deposit_amount', '$pricing.total_amount'] },
+            },
+          },
+        },
+      ]),
+    ]);
+
+    const totalHeld = activeTotalAgg[0]?.totalHeld || 0;
 
     return {
       success: true,
       orders,
       totalHeld,
+      activeCount,
+      disputedCount,
     };
   }
 
@@ -1536,6 +1650,7 @@ export class AdminService {
     const totalWithdrawals = Math.abs(
       txStats.find((t) => t._id === TransactionType.WITHDRAWAL)?.total || 0,
     );
+    const totalEarned = txStats.find((t) => t._id === TransactionType.PAYMENT_RELEASE)?.total || 0;
 
     return {
       success: true,
@@ -1544,7 +1659,10 @@ export class AdminService {
         completedOrders: orderStats[0]?.completedOrders || 0,
         totalSpent: orderStats[0]?.totalSpent || 0,
         totalDeposits,
+        totalDeposit: totalDeposits,
         totalWithdrawals,
+        totalWithdrawal: totalWithdrawals,
+        totalEarned,
       },
       recentTransactions,
     };
