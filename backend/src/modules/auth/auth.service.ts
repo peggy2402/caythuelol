@@ -142,10 +142,25 @@ export class AuthService {
     }
 
     if (user.isBanned) {
-      throw new ForbiddenException({
-        message: 'Tài khoản của bạn đã bị khóa do vi phạm hoặc nợ cước. Vui lòng liên hệ Admin.',
-        isBanned: true,
-      });
+      // Cơ chế Auto-unban: Nếu đã hết hạn khóa thì tự động mở
+      if (user.banned_until && new Date() > new Date(user.banned_until)) {
+        user.isBanned = false;
+        user.banned_until = null;
+        user.ban_reason = null;
+        user.banned_at = null;
+        await user.save();
+      } else {
+        const timeStr = user.banned_until
+          ? `đến ${new Date(user.banned_until).toLocaleString('vi-VN')}`
+          : 'vĩnh viễn';
+        const reasonStr = user.ban_reason ? ` Lý do: "${user.ban_reason}".` : '';
+        throw new ForbiddenException({
+          message: `Tài khoản của bạn đã bị khóa ${timeStr}.${reasonStr} Vui lòng liên hệ Admin để được hỗ trợ.`,
+          isBanned: true,
+          bannedUntil: user.banned_until,
+          banReason: user.ban_reason,
+        });
+      }
     }
 
     const isMatch = await bcrypt.compare(password, user.password_hash);

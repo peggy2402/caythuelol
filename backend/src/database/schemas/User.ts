@@ -19,6 +19,9 @@ export interface IUser extends Document {
   loyalty_points?: number;
   total_points_earned?: number;
   isBanned?: boolean;
+  banned_until?: Date | null;
+  ban_reason?: string | null;
+  banned_at?: Date | null;
   debt_info?: {
     is_in_debt: boolean;
     reminder_count: number;
@@ -93,6 +96,9 @@ const UserSchema: Schema = new Schema(
     loyalty_points: { type: Number, default: 0 },
     total_points_earned: { type: Number, default: 0 },
     isBanned: { type: Boolean, default: false },
+    banned_until: { type: Date, default: null },
+    ban_reason: { type: String, default: null },
+    banned_at: { type: Date, default: null },
     staff_permissions: {
       type: [String],
       default: ['users', 'disputes', 'deposits', 'cron', 'settings', 'blogs'],

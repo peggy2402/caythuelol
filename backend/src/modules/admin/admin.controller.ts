@@ -62,9 +62,15 @@ export class AdminController {
   }
 
   @Patch('users/:id/ban')
-  @ApiOperation({ summary: 'Ban or unban a user' })
-  async toggleBan(@Param('id') userId: string, @Body('isBanned') isBanned: boolean) {
-    return this.adminService.toggleBanUser(userId, isBanned);
+  @ApiOperation({ summary: 'Ban or unban a user with duration and reason' })
+  async toggleBan(
+    @Param('id') userId: string,
+    @Body('isBanned') isBanned: boolean,
+    @Body('durationHours') durationHours?: number,
+    @Body('bannedUntil') bannedUntil?: string,
+    @Body('reason') reason?: string,
+  ) {
+    return this.adminService.toggleBanUser(userId, isBanned, { durationHours, bannedUntil, reason });
   }
 
   @Roles(UserRole.ADMIN)

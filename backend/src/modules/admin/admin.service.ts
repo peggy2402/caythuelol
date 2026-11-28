@@ -323,8 +323,14 @@ export class AdminService {
           ]),
         ]);
 
+        let isBanned = user.isBanned;
+        if (isBanned && user.banned_until && new Date() > new Date(user.banned_until)) {
+          isBanned = false;
+        }
+
         return {
           ...user,
+          isBanned,
           stats: {
             totalOrders: totalOrders || 0,
             completedOrders: completedOrders || 0,
@@ -652,9 +658,45 @@ export class AdminService {
     return { success: true, message: 'Đã hủy tư cách Booster thành công' };
   }
 
-  async toggleBanUser(userId: string, isBanned: boolean) {
-    const user = await this.userModel.findByIdAndUpdate(userId, { isBanned }, { new: true });
-    return { success: true, isBanned: user?.isBanned };
+  async toggleBanUser(
+    userId: string,
+    isBanned: boolean,
+    options?: { durationHours?: number; bannedUntil?: string; reason?: string },
+  ) {
+    const user = await this.userModel.findById(userId);
+    if (!user) throw new NotFoundException('Không tìm thấy người dùng');
+
+    if (!isBanned) {
+      user.isBanned = false;
+      user.banned_until = null;
+      user.ban_reason = null;
+      user.banned_at = null;
+      await user.save();
+      return { success: true, message: 'Đã mở khóa tài khoản thành công', isBanned: false, user };
+    }
+
+    let banDeadline: Date | null = null;
+    if (options?.bannedUntil) {
+      banDeadline = new Date(options.bannedUntil);
+    } else if (options?.durationHours && options.durationHours > 0) {
+      banDeadline = new Date(Date.now() + options.durationHours * 60 * 60 * 1000);
+    }
+
+    user.isBanned = true;
+    user.banned_until = banDeadline;
+    user.ban_reason = options?.reason?.trim() || 'Vi phạm chính sách cộng đồng LeoRank';
+    user.banned_at = new Date();
+    await user.save();
+
+    return {
+      success: true,
+      message: banDeadline
+        ? `Đã khóa tài khoản đến ${banDeadline.toLocaleString('vi-VN')}`
+        : 'Đã khóa tài khoản vĩnh viễn',
+      isBanned: true,
+      bannedUntil: banDeadline,
+      user,
+    };
   }
 
   async adjustBalance(
