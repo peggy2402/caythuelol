@@ -830,11 +830,11 @@ export default function Navbar() {
                   <X className="h-6 w-6" />
                 </button>
               </div>
-              <nav className="flex-1 flex flex-col overflow-y-auto custom-dark-scrollbar p-6 text-base font-medium" suppressHydrationWarning>
+              <nav className="flex-1 overflow-y-auto custom-dark-scrollbar p-5 sm:p-6 text-base font-medium space-y-6 pb-12" suppressHydrationWarning>
                 {user ? (
-                  <div className="flex flex-col h-full">
+                  <div className="space-y-6">
                     {/* User Info */}
-                    <div className="flex items-center gap-4 border-b border-white/10 pb-6 mb-6">
+                    <div className="flex items-center gap-3.5 border-b border-white/10 pb-5">
                       <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full bg-gradient-to-br from-blue-500 to-purple-600 p-0.5">
                         <div className="h-full w-full rounded-full bg-zinc-900 flex items-center justify-center">
                           {user.profile?.avatar ? (
@@ -844,8 +844,8 @@ export default function Navbar() {
                           )}
                         </div>
                       </div>
-                      <div>
-                        <div className="text-base font-bold text-white leading-tight flex items-center gap-1.5">
+                      <div className="min-w-0">
+                        <div className="text-base font-bold text-white leading-tight flex items-center gap-1.5 truncate">
                           <span>{user.username}</span>
                           <UserBadge
                             role={user.role}
@@ -854,88 +854,88 @@ export default function Navbar() {
                             size="xs"
                           />
                         </div>
-                        <div className="text-sm font-medium text-emerald-400">
+                        <div className="text-sm font-medium text-emerald-400 mt-0.5">
                           {user.wallet_balance?.toLocaleString('vi-VN')} đ
                         </div>
                       </div>
                     </div>
 
                     {/* Navigation Links */}
-                    <div className="flex-grow space-y-2">
+                    <div className="space-y-1.5">
                       {/* Common Links */}
-                      <Link href={dashboardHref} onClick={closeMobileMenu} className="flex items-center gap-4 px-4 py-3 rounded-lg hover:bg-white/5 transition-colors"><LayoutDashboard className="h-5 w-5 text-zinc-400" />{t('dashboard')}</Link>
+                      <Link href={dashboardHref} onClick={closeMobileMenu} className="flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl hover:bg-white/5 transition-colors text-sm font-medium"><LayoutDashboard className="h-4 w-4 text-zinc-400" />{t('dashboard')}</Link>
 
                       {/* Customer Links */}
                       {user.role === 'CUSTOMER' && (
                         <>
-                          <Link href="/orders" onClick={closeMobileMenu} className="flex items-center gap-4 px-4 py-3 rounded-lg hover:bg-white/5 transition-colors"><FileText className="h-5 w-5 text-zinc-400" />{t('orders')}</Link>
-                          <Link href="/wallet" onClick={closeMobileMenu} className="flex items-center gap-4 px-4 py-3 rounded-lg hover:bg-white/5 transition-colors"><Wallet className="h-5 w-5 text-zinc-400" />{t('wallet')}</Link>
-                          <Link href="/vip" onClick={closeMobileMenu} className="flex items-center gap-4 px-4 py-3 rounded-lg hover:bg-white/5 transition-colors text-emerald-400 font-bold"><Crown className="h-5 w-5 text-emerald-400" />Hội Viên VIP</Link>
-                          <Link href="/favorites" onClick={closeMobileMenu} className="flex items-center gap-4 px-4 py-3 rounded-lg hover:bg-white/5 transition-colors"><Heart className="h-5 w-5 text-zinc-400" />Yêu thích</Link>
-                          <Link href="/boosters/apply" onClick={closeMobileMenu} className="flex items-center gap-4 px-4 py-3 rounded-lg hover:bg-white/5 transition-colors text-yellow-500"><Trophy className="h-5 w-5" />{t('becomeBooster')}</Link>
+                          <Link href="/orders" onClick={closeMobileMenu} className="flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl hover:bg-white/5 transition-colors text-sm font-medium"><FileText className="h-4 w-4 text-zinc-400" />{t('orders')}</Link>
+                          <Link href="/wallet" onClick={closeMobileMenu} className="flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl hover:bg-white/5 transition-colors text-sm font-medium"><Wallet className="h-4 w-4 text-zinc-400" />{t('wallet')}</Link>
+                          <Link href="/vip" onClick={closeMobileMenu} className="flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl hover:bg-white/5 transition-colors text-sm font-bold text-emerald-400"><Crown className="h-4 w-4 text-emerald-400" />Hội Viên VIP</Link>
+                          <Link href="/favorites" onClick={closeMobileMenu} className="flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl hover:bg-white/5 transition-colors text-sm font-medium"><Heart className="h-4 w-4 text-zinc-400" />Yêu thích</Link>
+                          <Link href="/boosters/apply" onClick={closeMobileMenu} className="flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl hover:bg-white/5 transition-colors text-sm font-semibold text-yellow-500"><Trophy className="h-4 w-4 text-yellow-500" />{t('becomeBooster')}</Link>
                         </>
                       )}
 
                       {/* Booster Links */}
                       {user.role === 'BOOSTER' && (
                         <>
-                          <Link href="/booster/jobs" onClick={closeMobileMenu} className="flex items-center gap-4 px-4 py-3 rounded-lg hover:bg-white/5 transition-colors"><Briefcase className="h-5 w-5 text-zinc-400" />{t('jobMarket')}</Link>
-                          <Link href="/booster/my-orders" onClick={closeMobileMenu} className="flex items-center gap-4 px-4 py-3 rounded-lg hover:bg-white/5 transition-colors"><ListTodo className="h-5 w-5 text-zinc-400" />{t('myActiveJobs')}</Link>
-                          <Link href="/booster/services" onClick={closeMobileMenu} className="flex items-center gap-4 px-4 py-3 rounded-lg hover:bg-white/5 transition-colors"><Zap className="h-5 w-5 text-zinc-400" />{t('manageServices')}</Link>
-                          <Link href="/wallet" onClick={closeMobileMenu} className="flex items-center gap-4 px-4 py-3 rounded-lg hover:bg-white/5 transition-colors"><Wallet className="h-5 w-5 text-zinc-400" />{t('wallet')}</Link>
+                          <Link href="/booster/jobs" onClick={closeMobileMenu} className="flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl hover:bg-white/5 transition-colors text-sm font-medium"><Briefcase className="h-4 w-4 text-zinc-400" />{t('jobMarket')}</Link>
+                          <Link href="/booster/my-orders" onClick={closeMobileMenu} className="flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl hover:bg-white/5 transition-colors text-sm font-medium"><ListTodo className="h-4 w-4 text-zinc-400" />{t('myActiveJobs')}</Link>
+                          <Link href="/booster/services" onClick={closeMobileMenu} className="flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl hover:bg-white/5 transition-colors text-sm font-medium"><Zap className="h-4 w-4 text-zinc-400" />{t('manageServices')}</Link>
+                          <Link href="/wallet" onClick={closeMobileMenu} className="flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl hover:bg-white/5 transition-colors text-sm font-medium"><Wallet className="h-4 w-4 text-zinc-400" />{t('wallet')}</Link>
                           <button
                             onClick={() => { toggleAvailability(); closeMobileMenu(); }}
-                            className={`flex w-full items-center gap-4 px-4 py-3 rounded-lg hover:bg-white/5 transition-colors ${(user.booster_info?.isReady ?? true) ? 'text-green-400' : 'text-zinc-500'
-                              }`}
+                            className={`flex w-full items-center gap-3.5 px-3.5 py-2.5 rounded-xl hover:bg-white/5 transition-colors text-sm font-medium ${(user.booster_info?.isReady ?? true) ? 'text-green-400' : 'text-zinc-500'}`}
                           >
-                            <Power className="h-5 w-5" />
+                            <Power className="h-4 w-4" />
                             {(user.booster_info?.isReady ?? true) ? 'Đang Sẵn Sàng' : 'Đang Tạm Nghỉ'}
                           </button>
-                          <button onClick={() => { setShowResignModal(true); closeMobileMenu(); }} className="flex w-full items-center gap-4 px-4 py-3 rounded-lg hover:bg-white/5 transition-colors text-red-400"><DoorOpen className="h-5 w-5" /> Gỡ Quyền Booster</button>
+                          <button onClick={() => { setShowResignModal(true); closeMobileMenu(); }} className="flex w-full items-center gap-3.5 px-3.5 py-2.5 rounded-xl hover:bg-white/5 transition-colors text-sm font-medium text-red-400"><DoorOpen className="h-4 w-4" /> Gỡ Quyền Booster</button>
                         </>
                       )}
 
                       {/* Admin Links */}
                       {user.role === 'ADMIN' && (
                         <>
-                          <Link href="/admin/boosters" onClick={closeMobileMenu} className="flex items-center gap-4 px-4 py-3 rounded-lg hover:bg-white/5 transition-colors text-yellow-500"><ShieldAlert className="h-5 w-5" />{t('manageBoosters')}</Link>
-                          <Link href="/admin/users" onClick={closeMobileMenu} className="flex items-center gap-4 px-4 py-3 rounded-lg hover:bg-white/5 transition-colors"><Users className="h-5 w-5 text-zinc-400" />{t('manageCustomers')}</Link>
-                          <Link href="/admin/orders" onClick={closeMobileMenu} className="flex items-center gap-4 px-4 py-3 rounded-lg hover:bg-white/5 transition-colors"><FileText className="h-5 w-5 text-zinc-400" />{t('manageOrders')}</Link>
-                          <Link href="/admin/blogs" onClick={closeMobileMenu} className="flex items-center gap-4 px-4 py-3 rounded-lg hover:bg-white/5 transition-colors"><Newspaper className="h-5 w-5 text-zinc-400" />{t('manageBlogs')}</Link>
-                          <Link href="/admin/settings" onClick={closeMobileMenu} className="flex items-center gap-4 px-4 py-3 rounded-lg hover:bg-white/5 transition-colors"><Settings className="h-5 w-5 text-zinc-400" />{t('systemSettings')}</Link>
+                          <Link href="/admin/boosters" onClick={closeMobileMenu} className="flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl hover:bg-white/5 transition-colors text-sm font-semibold text-yellow-500"><ShieldAlert className="h-4 w-4" />{t('manageBoosters')}</Link>
+                          <Link href="/admin/users" onClick={closeMobileMenu} className="flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl hover:bg-white/5 transition-colors text-sm font-medium"><Users className="h-4 w-4 text-zinc-400" />{t('manageCustomers')}</Link>
+                          <Link href="/admin/orders" onClick={closeMobileMenu} className="flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl hover:bg-white/5 transition-colors text-sm font-medium"><FileText className="h-4 w-4 text-zinc-400" />{t('manageOrders')}</Link>
+                          <Link href="/admin/blogs" onClick={closeMobileMenu} className="flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl hover:bg-white/5 transition-colors text-sm font-medium"><Newspaper className="h-4 w-4 text-zinc-400" />{t('manageBlogs')}</Link>
+                          <Link href="/admin/settings" onClick={closeMobileMenu} className="flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl hover:bg-white/5 transition-colors text-sm font-medium"><Settings className="h-4 w-4 text-zinc-400" />{t('systemSettings')}</Link>
                         </>
                       )}
                     </div>
 
                     {/* Actions */}
-                    <div className="mt-6 pt-6 border-t border-white/10 space-y-3" suppressHydrationWarning>
-                      <Link href="/dashboard" onClick={closeMobileMenu} className="block w-full text-center rounded-lg bg-blue-600 hover:bg-blue-500 transition-colors px-6 py-3 text-white font-semibold">{t('rentNow')}</Link>
-                      <Link href="/wallet" onClick={closeMobileMenu} className="block w-full text-center rounded-lg bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/30 transition-colors px-6 py-3 text-emerald-400 font-semibold">{t('depositNow')}</Link>
-                      <button onClick={() => { logout(); closeMobileMenu(); }} className="flex w-full items-center justify-center gap-3 rounded-lg py-3 text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer">
-                        <LogOut className="h-5 w-5" /> {t('logout')}
+                    <div className="pt-5 border-t border-white/10 space-y-2.5" suppressHydrationWarning>
+                      <Link href="/dashboard" onClick={closeMobileMenu} className="block w-full text-center rounded-xl bg-blue-600 hover:bg-blue-500 transition-colors px-5 py-2.5 text-white font-bold text-sm shadow-md shadow-blue-600/25">{t('rentNow')}</Link>
+                      <Link href="/wallet" onClick={closeMobileMenu} className="block w-full text-center rounded-xl bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/30 transition-colors px-5 py-2.5 text-emerald-400 font-bold text-sm">{t('depositNow')}</Link>
+                      <button onClick={() => { logout(); closeMobileMenu(); }} className="flex w-full items-center justify-center gap-2.5 rounded-xl py-2.5 text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer text-sm font-semibold">
+                        <LogOut className="h-4 w-4" /> {t('logout')}
                       </button>
                     </div>
                   </div>
                 ) : (
-                  <div className="flex flex-col h-full" suppressHydrationWarning>
-                    <div className="flex-grow space-y-2" suppressHydrationWarning>
-                      <Link href="/services" onClick={closeMobileMenu} suppressHydrationWarning className="block px-4 py-3 rounded-lg hover:bg-white/5 transition-colors">{t('services')}</Link>
-                      <Link href="/boosters" onClick={closeMobileMenu} suppressHydrationWarning className="block px-4 py-3 rounded-lg hover:bg-white/5 transition-colors">{t('boosters')}</Link>
-                      <Link href="/vip" onClick={closeMobileMenu} suppressHydrationWarning className="block px-4 py-3 rounded-lg hover:bg-white/5 transition-colors text-emerald-400 font-bold">Hội Viên VIP</Link>
-                      <Link href="/blogs" onClick={closeMobileMenu} suppressHydrationWarning className="block px-4 py-3 rounded-lg hover:bg-white/5 transition-colors">{t('blog')}</Link>
+                  <div className="space-y-6" suppressHydrationWarning>
+                    <div className="space-y-1.5" suppressHydrationWarning>
+                      <Link href="/services" onClick={closeMobileMenu} suppressHydrationWarning className="block px-3.5 py-2.5 rounded-xl hover:bg-white/5 transition-colors text-sm font-medium">{t('services')}</Link>
+                      <Link href="/boosters" onClick={closeMobileMenu} suppressHydrationWarning className="block px-3.5 py-2.5 rounded-xl hover:bg-white/5 transition-colors text-sm font-medium">{t('boosters')}</Link>
+                      <Link href="/vip" onClick={closeMobileMenu} suppressHydrationWarning className="block px-3.5 py-2.5 rounded-xl hover:bg-white/5 transition-colors text-sm font-bold text-emerald-400">Hội Viên VIP</Link>
+                      <Link href="/blogs" onClick={closeMobileMenu} suppressHydrationWarning className="block px-3.5 py-2.5 rounded-xl hover:bg-white/5 transition-colors text-sm font-medium">{t('blog')}</Link>
                     </div>
 
-                    <div className="space-y-3" suppressHydrationWarning>
-                      <div className="flex gap-3" suppressHydrationWarning>
-                        <Link href="/login" onClick={closeMobileMenu} suppressHydrationWarning className="flex-1 text-center rounded-lg border border-zinc-700 bg-zinc-800/50 px-6 py-3 font-semibold transition-colors hover:bg-zinc-700">{t('login')}</Link>
-                        <Link href="/register" onClick={closeMobileMenu} suppressHydrationWarning className="flex-1 text-center rounded-lg border border-zinc-700 bg-zinc-800/50 px-6 py-3 font-semibold transition-colors hover:bg-zinc-700">{t('registerNow')}</Link>
+                    <div className="pt-5 border-t border-white/10 space-y-2.5" suppressHydrationWarning>
+                      <div className="flex gap-2.5" suppressHydrationWarning>
+                        <Link href="/login" onClick={closeMobileMenu} suppressHydrationWarning className="flex-1 text-center rounded-xl border border-zinc-700 bg-zinc-800/50 px-4 py-2.5 text-xs font-semibold transition-colors hover:bg-zinc-700">{t('login')}</Link>
+                        <Link href="/register" onClick={closeMobileMenu} suppressHydrationWarning className="flex-1 text-center rounded-xl border border-zinc-700 bg-zinc-800/50 px-4 py-2.5 text-xs font-semibold transition-colors hover:bg-zinc-700">{t('registerNow')}</Link>
                       </div>
-                      <Link href="/dashboard" onClick={closeMobileMenu} suppressHydrationWarning className="block text-center rounded-lg bg-blue-600 hover:bg-blue-500 transition-colors px-6 py-3 text-white font-semibold">{t('rentNow')}</Link>
+                      <Link href="/dashboard" onClick={closeMobileMenu} suppressHydrationWarning className="block text-center rounded-xl bg-blue-600 hover:bg-blue-500 transition-colors px-5 py-2.5 text-white font-bold text-sm shadow-md shadow-blue-600/25">{t('rentNow')}</Link>
                     </div>
                   </div>
                 )}
 
-                <div className="mt-8 flex flex-col items-center justify-center pt-6 border-t border-white/10 gap-2" suppressHydrationWarning>
+                {/* Khối chọn ngôn ngữ hiển thị (Luôn xếp tự nhiên ở cuối danh sách, có khoảng cách rõ ràng) */}
+                <div className="pt-6 border-t border-white/10 flex flex-col items-center justify-center gap-2" suppressHydrationWarning>
                   <div className="text-[11px] font-bold uppercase tracking-wider text-zinc-500 flex items-center gap-1.5">
                     <LanguageIcon className="w-3.5 h-3.5 text-zinc-400" />
                     <span>Ngôn ngữ hiển thị</span>
