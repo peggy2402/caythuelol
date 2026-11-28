@@ -270,21 +270,23 @@ export function PointAndStarBoostSection({
       {/* TRƯỜNG HỢP A: CÀY SAO LẺ DƯỚI CAO THỦ CHO LIÊN QUÂN MOBILE */}
       {isAov && !isSelectedAovHighStar ? (
         <div className="p-4 sm:p-5 rounded-2xl bg-zinc-950/80 border border-cyan-500/30 shadow-xl space-y-5 animate-in fade-in duration-200">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-zinc-800">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-3 border-b border-zinc-800">
             <div className="min-w-0">
-              <span className="text-xs sm:text-sm font-bold text-white flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <Sparkles size={16} className="text-cyan-400 shrink-0" />
-                <span>Thiết Lập Rank Hiện Tại & Số Sao Cần Cày Thêm</span>
-                <span className="text-red-500">*</span>
-              </span>
-              <p className="text-[11px] sm:text-xs text-zinc-400 mt-0.5">
-                Chọn đoàn hiện tại của bạn trong phân khúc <strong>{selectedPointTierObj.label}</strong> và số sao muốn Booster cày thêm (+1 đến +5 sao lẻ).
+                <h3 className="text-sm sm:text-base font-bold text-white flex items-center gap-1">
+                  <span>Thiết Lập Rank Hiện Tại & Số Sao Cần Cày Thêm</span>
+                  <span className="text-rose-500 font-bold">*</span>
+                </h3>
+              </div>
+              <p className="text-[11px] sm:text-xs text-zinc-400 mt-1">
+                Chọn đoàn hiện tại trong phân khúc <strong className="text-cyan-300 font-semibold">{selectedPointTierObj.label}</strong> và số sao muốn cày thêm (+1 đến +5 sao).
               </p>
             </div>
 
-            <div className="flex items-center gap-1.5 self-start sm:self-auto px-3.5 py-2 rounded-xl bg-cyan-500/10 border border-cyan-500/30 shrink-0 whitespace-nowrap">
-              <span className="text-xs text-cyan-300 font-medium whitespace-nowrap">Cần cày:</span>
-              <span className="text-base sm:text-lg font-black font-mono text-cyan-400 leading-none whitespace-nowrap">
+            <div className="inline-flex items-center gap-1.5 self-start sm:self-auto px-3 py-1.5 rounded-xl bg-cyan-500/10 border border-cyan-500/30 shrink-0 whitespace-nowrap">
+              <span className="text-xs text-cyan-300 font-medium">Cần cày:</span>
+              <span className="text-base sm:text-lg font-black font-mono text-cyan-400 leading-none">
                 +{aovOddStarsToAdd} Sao
               </span>
             </div>
@@ -361,14 +363,14 @@ export function PointAndStarBoostSection({
 
           {/* 1B. Chọn Đoàn (Division: V -> I) - Hiển thị to rõ, không bao giờ bị cắt chữ */}
           <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <label className="text-xs font-bold text-zinc-300 flex items-center gap-1.5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+              <label className="text-xs font-bold text-zinc-300 flex items-center gap-1">
                 <span>{aovOddTiersInSegment.length > 1 ? '1B.' : '1.'} Chọn Đoàn Rank Hiện Tại:</span>
-                <span className="text-red-500">*</span>
+                <span className="text-rose-500 font-bold">*</span>
               </label>
-              <span className="text-[11px] text-zinc-400">
+              <div className="text-[11px] text-zinc-400 self-start sm:self-auto">
                 Đang chọn: <strong className="text-cyan-300 font-bold">{aovOddStartStep.label}</strong>
-              </span>
+              </div>
             </div>
 
             <div
@@ -378,7 +380,7 @@ export function PointAndStarBoostSection({
                   : aovOddDivisionsForCurrentTier.length === 4
                   ? 'grid-cols-4'
                   : 'grid-cols-5'
-              } gap-2 sm:gap-3`}
+              } gap-1.5 sm:gap-3`}
             >
               {aovOddDivisionsForCurrentTier.map((step) => {
                 const isCurrentStep = aovOddStartStep.id === step.id;
@@ -391,14 +393,14 @@ export function PointAndStarBoostSection({
                       const maxS = step.starsPerDivision || 5;
                       if (aovOddCurrentStarsInDiv > maxS) setAovOddCurrentStarsInDiv(maxS);
                     }}
-                    className={`p-2 sm:p-2.5 rounded-2xl border flex flex-col items-center justify-center text-center transition-all cursor-pointer relative ${
+                    className={`p-1.5 sm:p-2.5 rounded-xl sm:rounded-2xl border flex flex-col items-center justify-center text-center transition-all cursor-pointer relative overflow-hidden ${
                       isCurrentStep
                         ? 'bg-gradient-to-b from-cyan-500/25 to-cyan-950/40 border-cyan-400 ring-2 ring-cyan-400/50 shadow-[0_0_20px_rgba(6,182,212,0.25)] scale-[1.02]'
                         : 'bg-zinc-900/90 border-zinc-800 hover:border-zinc-700 hover:bg-zinc-800/80 text-zinc-400 hover:text-white'
                     }`}
                   >
                     {/* Icon Rank */}
-                    <div className="w-8 h-8 sm:w-10 sm:h-10 mb-1 flex items-center justify-center">
+                    <div className="w-7 h-7 sm:w-10 sm:h-10 mb-1 flex items-center justify-center">
                       <img
                         src={step.image}
                         alt={step.label}
@@ -406,23 +408,30 @@ export function PointAndStarBoostSection({
                       />
                     </div>
 
-                    {/* Đoàn La Mã to rõ */}
-                    <span
-                      className={`text-xs sm:text-sm font-black whitespace-nowrap uppercase tracking-tight ${
-                        isCurrentStep ? 'text-white' : 'text-zinc-200'
-                      }`}
-                    >
-                      Đoàn {step.division}
-                    </span>
+                    {/* Tên Đoàn: Trên mobile hiển thị gọn gàng, không bao giờ tràn/chèn chữ */}
+                    <div className="flex flex-col items-center leading-tight">
+                      <span className="text-[9px] text-zinc-400 font-bold uppercase tracking-wider block sm:hidden">
+                        Đoàn
+                      </span>
+                      <span
+                        className={`text-xs sm:text-sm font-black whitespace-nowrap uppercase tracking-tight ${
+                          isCurrentStep ? 'text-white' : 'text-zinc-200'
+                        }`}
+                      >
+                        <span className="hidden sm:inline">Đoàn </span>
+                        {step.division}
+                      </span>
+                    </div>
 
                     {/* Số sao mỗi đoàn */}
-                    <span className="text-[10px] text-zinc-400 whitespace-nowrap mt-0.5">
+                    <span className="text-[9px] sm:text-[10px] text-zinc-500 sm:text-zinc-400 whitespace-nowrap mt-0.5 font-medium">
                       {step.starsPerDivision || 5} sao
                     </span>
 
                     {isCurrentStep && (
-                      <div className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-cyan-400 text-black flex items-center justify-center shadow-md">
-                        <Check size={10} strokeWidth={3} />
+                      <div className="absolute top-1 right-1 w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full bg-cyan-400 text-black flex items-center justify-center shadow-md">
+                        <Check size={9} strokeWidth={3} className="sm:hidden" />
+                        <Check size={10} strokeWidth={3} className="hidden sm:block" />
                       </div>
                     )}
                   </button>
@@ -433,16 +442,17 @@ export function PointAndStarBoostSection({
 
           {/* 2. Số sao hiện đang có trong đoàn */}
           <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <label className="text-xs font-bold text-zinc-300">
-                2. Số sao hiện đang có trong đoàn ({aovOddStartStep.label}):
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+              <label className="text-xs font-bold text-zinc-300 flex items-center gap-1.5 flex-wrap">
+                <span>2. Số sao hiện đang có trong đoàn:</span>
+                <span className="text-cyan-300 font-semibold text-[11px]">({aovOddStartStep.label})</span>
               </label>
-              <span className="text-[11px] text-amber-400 font-bold font-mono flex items-center gap-1">
+              <div className="inline-flex items-center gap-1 text-[11px] text-amber-300 font-bold font-mono px-2 py-0.5 rounded-md bg-amber-500/10 border border-amber-500/30 whitespace-nowrap self-start sm:self-auto">
                 <span>{aovOddCurrentStarsInDiv} / {aovOddStartStep.starsPerDivision || 5}</span>
-                <StarIcon size={12} />
-              </span>
+                <StarIcon size={11} className="text-amber-400" />
+              </div>
             </div>
-            <div className="flex flex-wrap gap-2">
+            <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5 sm:gap-2">
               {Array.from({ length: (aovOddStartStep.starsPerDivision || 5) + 1 }).map((_, starNum) => {
                 const isSelected = aovOddCurrentStarsInDiv === starNum;
                 return (
@@ -450,14 +460,14 @@ export function PointAndStarBoostSection({
                     key={starNum}
                     type="button"
                     onClick={() => setAovOddCurrentStarsInDiv(starNum)}
-                    className={`px-3 py-1.5 rounded-xl border text-xs font-extrabold transition-all cursor-pointer flex items-center gap-1.5 ${
+                    className={`py-2 px-1.5 sm:py-2.5 rounded-xl border text-xs font-extrabold transition-all cursor-pointer flex items-center justify-center gap-1 sm:gap-1.5 ${
                       isSelected
                         ? 'bg-amber-500/20 border-amber-400 text-amber-300 ring-1 ring-amber-400/40 shadow-sm'
                         : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:border-zinc-700 hover:text-white'
                     }`}
                   >
-                    <StarIcon size={13} className={isSelected ? 'opacity-100' : 'opacity-40 grayscale'} />
-                    <span>{starNum} sao</span>
+                    <StarIcon size={12} className={isSelected ? 'text-amber-400' : 'opacity-40 grayscale'} />
+                    <span className="whitespace-nowrap">{starNum} sao</span>
                   </button>
                 );
               })}
@@ -466,16 +476,16 @@ export function PointAndStarBoostSection({
 
           {/* 3. Số lượng sao muốn cày thêm */}
           <div className="space-y-2">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
               <label className="text-xs font-bold text-zinc-300">
                 3. Số lượng sao muốn cày thêm:
               </label>
-              <span className="text-[11px] text-cyan-400 font-mono font-bold">
-                Đơn giá: {segmentRate.toLocaleString('vi-VN')} đ/Sao
-              </span>
+              <div className="text-[11px] text-cyan-300 font-mono font-bold whitespace-nowrap self-start sm:self-auto px-2 py-0.5 rounded-md bg-cyan-500/10 border border-cyan-500/20">
+                Đơn giá: <strong className="text-white">{segmentRate.toLocaleString('vi-VN')}</strong> đ/Sao
+              </div>
             </div>
-            <div className="flex flex-wrap items-center gap-3">
-              <div className="flex items-center gap-2 bg-zinc-900 border border-zinc-800 rounded-xl p-1">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2.5">
+              <div className="flex items-center justify-between sm:justify-start gap-1 bg-zinc-900 border border-zinc-800 rounded-xl p-1 w-full sm:w-auto shrink-0">
                 <button
                   type="button"
                   onClick={() => setAovOddStarsToAdd((s) => Math.max(1, s - 1))}
@@ -483,7 +493,7 @@ export function PointAndStarBoostSection({
                 >
                   -
                 </button>
-                <span className="px-3 text-base font-black font-mono text-cyan-400 min-w-[3rem] text-center">
+                <span className="px-3 text-base font-black font-mono text-cyan-400 min-w-[3.5rem] text-center flex-1 sm:flex-initial">
                   +{aovOddStarsToAdd}
                 </span>
                 <button
@@ -495,19 +505,19 @@ export function PointAndStarBoostSection({
                 </button>
               </div>
 
-              <div className="flex flex-wrap gap-1.5">
+              <div className="grid grid-cols-5 sm:flex sm:flex-wrap gap-1.5 w-full sm:w-auto">
                 {[1, 2, 3, 4, 5].map((num) => (
                   <button
                     key={num}
                     type="button"
                     onClick={() => setAovOddStarsToAdd(num)}
-                    className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition-all cursor-pointer ${
+                    className={`py-2 px-1 sm:px-3 rounded-xl border text-xs font-bold transition-all cursor-pointer text-center whitespace-nowrap ${
                       aovOddStarsToAdd === num
                         ? 'bg-cyan-500/25 border-cyan-400 text-cyan-300 shadow-sm'
                         : 'bg-zinc-900/80 border-zinc-800 text-zinc-400 hover:border-zinc-700 hover:text-white'
                     }`}
                   >
-                    +{num} Sao
+                    +{num} <span className="hidden sm:inline">Sao</span>
                   </button>
                 ))}
               </div>
