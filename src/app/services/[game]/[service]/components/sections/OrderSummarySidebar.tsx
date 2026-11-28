@@ -360,20 +360,33 @@ export function OrderSummarySidebar({
                   </>
                 )}
                 {isAov && aovStarCalc && aovStarCalc.isProgressive ? (
-                  <div className="pt-1.5 mt-1 border-t border-zinc-800/80 space-y-1">
-                    {aovStarCalc.breakdown.map((seg: any) => (
-                      <div key={seg.tierId} className="flex justify-between text-[11px] text-zinc-400 gap-2">
-                        <span className="truncate flex items-center gap-0.5">
-                          {renderWithStarIcon(
-                            `${seg.fromStar}★→${seg.toStar}★ (${seg.stars}★ × ${seg.ratePerStar.toLocaleString('vi-VN')}đ)`,
-                            11
-                          )}
-                        </span>
-                        <span className="font-mono text-cyan-400 font-bold shrink-0">
-                          {seg.subtotal.toLocaleString('vi-VN')}đ
-                        </span>
-                      </div>
-                    ))}
+                  <div className="pt-1.5 mt-1 border-t border-zinc-800/80 space-y-1.5">
+                    {aovStarCalc.breakdown.map((seg: any) => {
+                      const hasRange = typeof seg.fromStar === 'number' && typeof seg.toStar === 'number';
+                      const rangeLabel = hasRange ? ` (${seg.fromStar}★→${seg.toStar}★)` : '';
+                      return (
+                        <div key={seg.tierId} className="flex justify-between items-center text-[11px] text-zinc-400 gap-2">
+                          <span className="truncate flex items-center gap-1.5 min-w-0">
+                            {seg.image && (
+                              <img
+                                src={seg.image}
+                                alt={seg.label}
+                                className="w-3.5 h-3.5 object-contain shrink-0"
+                              />
+                            )}
+                            <span className="text-zinc-200 font-medium truncate">
+                              {seg.label}{rangeLabel}
+                            </span>
+                            <span className="text-zinc-500 shrink-0 font-mono text-[10.5px]">
+                              {renderWithStarIcon(`(${seg.stars}★ × ${seg.ratePerStar.toLocaleString('vi-VN')}đ)`, 10)}
+                            </span>
+                          </span>
+                          <span className="font-mono text-cyan-400 font-bold shrink-0">
+                            {seg.subtotal.toLocaleString('vi-VN')}đ
+                          </span>
+                        </div>
+                      );
+                    })}
                   </div>
                 ) : (
                   <div className="flex justify-between text-zinc-400">
