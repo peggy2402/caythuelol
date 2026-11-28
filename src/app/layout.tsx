@@ -56,8 +56,10 @@ export const metadata: Metadata = {
     images: [
       {
         url: "https://www.leorank.site/og-image.png",
+        secureUrl: "https://www.leorank.site/og-image.png",
         width: 1200,
         height: 630,
+        type: "image/png",
         alt: "LEORANK - Hệ thống cày thuê game & boost rank chuyên nghiệp số 1 Việt Nam",
       },
     ],
@@ -92,6 +94,7 @@ export default function RootLayout({
   return (
     <html lang="vi" className="overflow-x-clip" suppressHydrationWarning>
       <head>
+        <link rel="image_src" href="https://www.leorank.site/og-image.png" />
         {/* Google Tag Manager (GTM) */}
         <Script
           id="google-tag-manager"
