@@ -23,6 +23,8 @@ interface Application {
   phoneNumber: string;
   facebookUrl: string;
   discordTag: string;
+  primaryGame?: string;
+  customGameName?: string;
   currentRank: string;
   highestRank: string;
   status: 'pending' | 'approved' | 'rejected';
@@ -37,6 +39,8 @@ interface Application {
   bankAccountNumber: string;
   userId: { username: string; email: string; };
   note?: string;
+  agreementSigned_name?: string;
+  agreementSigned_at?: string;
 }
 
 interface Booster {
@@ -80,19 +84,19 @@ export default function AdminBoostersPage() {
   };
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
+    <div className="p-3.5 sm:p-6 max-w-7xl mx-auto space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-            <ShieldAlert className="text-yellow-500" /> Quản lý Boosters
+          <h1 className="text-xl sm:text-2xl font-black text-white flex items-center gap-2">
+            <ShieldAlert className="text-yellow-500 w-5 h-5 sm:w-6 sm:h-6" /> Quản lý Boosters
           </h1>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 w-full sm:w-auto">
           {/* Tabs Navigation */}
-          <div className="flex bg-zinc-900 p-1 rounded-lg border border-zinc-800">
+          <div className="flex bg-zinc-900 p-1 rounded-xl border border-zinc-800 overflow-x-auto scrollbar-none flex-1 sm:flex-initial">
             <button
               onClick={() => setActiveTab('applications')}
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
+              className={`px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0 ${
                 activeTab === 'applications' ? 'bg-zinc-800 text-white shadow-sm' : 'text-zinc-400 hover:text-white'
               }`}
             >
@@ -100,7 +104,7 @@ export default function AdminBoostersPage() {
             </button>
             <button
               onClick={() => setActiveTab('list')}
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
+              className={`px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all whitespace-nowrap shrink-0 ${
                 activeTab === 'list' ? 'bg-zinc-800 text-white shadow-sm' : 'text-zinc-400 hover:text-white'
               }`}
             >
@@ -108,7 +112,7 @@ export default function AdminBoostersPage() {
             </button>
             <button
               onClick={() => setActiveTab('recent-form')}
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-all flex items-center gap-1.5 ${
+              className={`px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
                 activeTab === 'recent-form' ? 'bg-zinc-800 text-cyan-400 shadow-sm' : 'text-zinc-400 hover:text-white'
               }`}
             >
@@ -117,7 +121,7 @@ export default function AdminBoostersPage() {
             </button>
           </div>
           {/* Refresh Button */}
-          <button onClick={handleRefresh} disabled={isRefreshing} className="p-2.5 bg-zinc-900 border border-zinc-800 rounded-lg text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+          <button onClick={handleRefresh} disabled={isRefreshing} className="p-2.5 bg-zinc-900 border border-zinc-800 rounded-xl text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shrink-0">
             <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
           </button>
         </div>
@@ -134,34 +138,69 @@ export default function AdminBoostersPage() {
   );
 }
 
-// --- TAB 1: APPLICATIONS (Code cũ đã tối ưu) ---
+// --- TAB 1: APPLICATIONS (Code tối ưu Mobile, Xóa Cọc, Đầy Đủ Thông Tin) ---
 function ApplicationsTab() {
   const [apps, setApps] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState<string | null>(null);
-  const [depositFilter, setDepositFilter] = useState<'all' | 'paid' | 'unpaid'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
+  const [searchQuery, setSearchQuery] = useState('');
   const [selectedApp, setSelectedApp] = useState<Application | null>(null); // State cho Modal chi tiết
   const [adminNote, setAdminNote] = useState(''); // State cho ghi chú nội bộ
   const [viewContract, setViewContract] = useState<string | null>(null); // State cho Modal xem hợp đồng
+  const [confirmModal, setConfirmModal] = useState<{ id: string; status: 'approved' | 'rejected'; name: string } | null>(null);
+
+  const getTrackerLabel = (gameCode?: string) => {
+    switch (gameCode?.toUpperCase()) {
+      case 'LOL': return 'OP.GG / Riot ID';
+      case 'VALORANT': return 'Tracker.gg / Riot ID';
+      case 'AOV': return 'Tên Ingame / OpenID';
+      case 'TFT': return 'Tactics.tools / TFT';
+      case 'CS2': return 'Steam / Faceit Profile';
+      case 'DOTA2': return 'Dotabuff / Steam ID';
+      case 'OVERWATCH2': return 'BattleTag Profile';
+      default: return 'Link / ID Check Rank';
+    }
+  };
+
+  const getGameDisplayName = (gameCode?: string, customName?: string) => {
+    if (gameCode === 'OTHER') return customName || 'Tựa game khác';
+    switch (gameCode?.toUpperCase()) {
+      case 'LOL': return 'Liên Minh Huyền Thoại (LMHT)';
+      case 'VALORANT': return 'VALORANT';
+      case 'AOV': return 'Liên Quân Mobile';
+      case 'TFT': return 'Đấu Trường Chân Lý (TFT)';
+      case 'CS2': return 'Counter-Strike 2';
+      case 'DOTA2': return 'Dota 2';
+      case 'OVERWATCH2': return 'Overwatch 2';
+      default: return gameCode || 'Chưa chọn';
+    }
+  };
 
   useEffect(() => {
     setLoading(true);
-    // Giả sử API hỗ trợ filter, hoặc ta filter client-side tạm thời
     fetch(`/api/admin/boosters?tab=applications`)
       .then(res => res.json())
       .then(data => setApps(data.applications || []))
-      .catch(() => toast.error("Lỗi tải danh sách đơn"))
+      .catch(() => toast.error("Lỗi tải danh sách đơn ứng tuyển"))
       .finally(() => setLoading(false));
   }, []);
 
-  // Filter Client-side logic
+  // Filter logic (Lọc theo trạng thái và tìm kiếm, không còn khái niệm tiền cọc)
   const filteredApps = apps.filter(app => {
-    if (depositFilter === 'all') return true;
-    return app.depositStatus === depositFilter;
+    if (statusFilter !== 'all' && app.status !== statusFilter) return false;
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      const matchName = app.fullName?.toLowerCase().includes(q);
+      const matchUser = app.userId?.username?.toLowerCase().includes(q);
+      const matchPhone = app.phoneNumber?.includes(q);
+      const matchGame = app.primaryGame?.toLowerCase().includes(q);
+      if (!matchName && !matchUser && !matchPhone && !matchGame) return false;
+    }
+    return true;
   });
 
-  const handleStatusUpdate = async (id: string, status: 'approved' | 'rejected', note?: string) => {
-    if (!confirm(`Xác nhận ${status === 'approved' ? 'DUYỆT' : 'TỪ CHỐI'}?`)) return;
+  const executeStatusUpdate = async (id: string, status: 'approved' | 'rejected', note?: string) => {
     setProcessingId(id);
     try {
       const res = await fetch(`/api/admin/boosters/${id}`, {
@@ -170,13 +209,20 @@ function ApplicationsTab() {
         body: JSON.stringify({ status, note }),
       });
       if (res.ok) {
-        toast.success("Cập nhật thành công!");
-        setApps(apps.map(app => app._id === id ? { ...app, status, note } : app));
-      } else throw new Error();
-    } catch {
-      toast.error("Lỗi cập nhật");
+        toast.success(status === 'approved' ? "Đã duyệt đơn và cấp quyền Booster thành công!" : "Đã từ chối đơn ứng tuyển.");
+        setApps(prev => prev.map(app => app._id === id ? { ...app, status, note } : app));
+        if (selectedApp?._id === id) {
+          setSelectedApp(prev => prev ? { ...prev, status, note } : null);
+        }
+      } else {
+        const err = await res.json();
+        throw new Error(err.message || "Lỗi cập nhật trạng thái");
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Lỗi cập nhật");
     } finally {
       setProcessingId(null);
+      setConfirmModal(null);
     }
   };
 
@@ -184,172 +230,326 @@ function ApplicationsTab() {
 
   return (
     <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4">
-      {/* Filter Bar */}
-      <div className="flex gap-2 mb-4">
-        <button 
-          onClick={() => setDepositFilter('all')}
-          className={`px-3 py-1.5 text-xs font-medium rounded-full border ${depositFilter === 'all' ? 'bg-blue-500/20 border-blue-500 text-blue-400' : 'bg-zinc-900 border-zinc-800 text-zinc-400'}`}
-        >
-          Tất cả
-        </button>
-        <button 
-          onClick={() => setDepositFilter('paid')}
-          className={`px-3 py-1.5 text-xs font-medium rounded-full border ${depositFilter === 'paid' ? 'bg-green-500/20 border-green-500 text-green-400' : 'bg-zinc-900 border-zinc-800 text-zinc-400'}`}
-        >
-          Đã đóng cọc
-        </button>
-        <button 
-          onClick={() => setDepositFilter('unpaid')}
-          className={`px-3 py-1.5 text-xs font-medium rounded-full border ${depositFilter === 'unpaid' ? 'bg-red-500/20 border-red-500 text-red-400' : 'bg-zinc-900 border-zinc-800 text-zinc-400'}`}
-        >
-          Chưa cọc
-        </button>
+      {/* Search & Filter Bar */}
+      <div className="flex flex-col sm:flex-row gap-3 justify-between items-stretch sm:items-center mb-4">
+        {/* Status Filters */}
+        <div className="flex gap-1.5 overflow-x-auto scrollbar-none pb-1 sm:pb-0">
+          <button 
+            onClick={() => setStatusFilter('all')}
+            className={`px-3 py-1.5 text-xs font-bold rounded-xl border transition-all whitespace-nowrap shrink-0 ${
+              statusFilter === 'all' ? 'bg-cyan-500/20 border-cyan-500 text-cyan-300 shadow-sm' : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-white'
+            }`}
+          >
+            Tất cả ({apps.length})
+          </button>
+          <button 
+            onClick={() => setStatusFilter('pending')}
+            className={`px-3 py-1.5 text-xs font-bold rounded-xl border transition-all whitespace-nowrap shrink-0 ${
+              statusFilter === 'pending' ? 'bg-amber-500/20 border-amber-500 text-amber-300 shadow-sm' : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-white'
+            }`}
+          >
+            Chờ duyệt ({apps.filter(a => a.status === 'pending').length})
+          </button>
+          <button 
+            onClick={() => setStatusFilter('approved')}
+            className={`px-3 py-1.5 text-xs font-bold rounded-xl border transition-all whitespace-nowrap shrink-0 ${
+              statusFilter === 'approved' ? 'bg-emerald-500/20 border-emerald-500 text-emerald-400 shadow-sm' : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-white'
+            }`}
+          >
+            Đã duyệt ({apps.filter(a => a.status === 'approved').length})
+          </button>
+          <button 
+            onClick={() => setStatusFilter('rejected')}
+            className={`px-3 py-1.5 text-xs font-bold rounded-xl border transition-all whitespace-nowrap shrink-0 ${
+              statusFilter === 'rejected' ? 'bg-rose-500/20 border-rose-500 text-rose-400 shadow-sm' : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-white'
+            }`}
+          >
+            Đã từ chối ({apps.filter(a => a.status === 'rejected').length})
+          </button>
+        </div>
+
+        {/* Search input */}
+        <div className="relative w-full sm:w-64">
+          <Search className="w-3.5 h-3.5 text-zinc-500 absolute left-3 top-1/2 -translate-y-1/2" />
+          <input
+            type="text"
+            placeholder="Tìm tên, username, sđt..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full bg-zinc-900/80 border border-zinc-800 rounded-xl pl-8 pr-3 py-1.5 text-xs text-white placeholder:text-zinc-500 focus:outline-none focus:border-cyan-500/50"
+          />
+        </div>
       </div>
 
-      {filteredApps.length === 0 && <div className="text-center text-zinc-500 py-10">Không tìm thấy đơn đăng ký nào.</div>}
+      {filteredApps.length === 0 && (
+        <div className="text-center text-zinc-500 py-12 bg-zinc-900/30 rounded-2xl border border-zinc-800/60">
+          Không tìm thấy đơn đăng ký nào phù hợp.
+        </div>
+      )}
       
       {filteredApps.map((app) => (
-        <div key={app._id} className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-6 flex flex-col md:flex-row gap-6 items-start md:items-center hover:border-zinc-700 transition-colors">
-          <div className="flex-1 space-y-2">
-            <div className="flex items-center gap-3">
-              <span className={`px-2 py-1 rounded text-xs font-bold uppercase ${
-                app.status === 'pending' ? 'bg-yellow-500/10 text-yellow-500' :
-                app.status === 'approved' ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'
-              }`}>{app.status}</span>
-              <span className="text-zinc-500 text-xs flex items-center gap-1">
+        <div key={app._id} className="bg-zinc-900/60 border border-zinc-800/90 rounded-2xl p-4 sm:p-5 flex flex-col md:flex-row gap-4 sm:gap-6 items-start md:items-center hover:border-zinc-700/80 transition-colors shadow-sm">
+          <div className="flex-1 space-y-2.5 w-full">
+            {/* Top row badges */}
+            <div className="flex flex-wrap items-center gap-2">
+              <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-black uppercase tracking-wider ${
+                app.status === 'pending' ? 'bg-amber-500/15 border border-amber-500/30 text-amber-300' :
+                app.status === 'approved' ? 'bg-emerald-500/15 border border-emerald-500/30 text-emerald-400' : 'bg-rose-500/15 border border-rose-500/30 text-rose-400'
+              }`}>
+                {app.status === 'pending' ? 'Chờ duyệt' : app.status === 'approved' ? 'Đã duyệt' : 'Từ chối'}
+              </span>
+
+              {/* Game Badge */}
+              <span className="px-2.5 py-0.5 rounded-full text-[11px] font-black uppercase bg-cyan-950/70 border border-cyan-500/30 text-cyan-300">
+                {app.primaryGame || 'LMHT'}
+              </span>
+
+              <span className="text-zinc-500 text-xs flex items-center gap-1 font-mono">
                 <Calendar size={12} /> {app.createdAt ? format(new Date(app.createdAt), 'dd/MM/yyyy') : 'N/A'}
               </span>
-              {/* Deposit Badge */}
-              <span className={`px-2 py-1 rounded text-xs font-bold uppercase border ${
-                app.depositStatus === 'paid' ? 'bg-green-900/30 border-green-500/30 text-green-400' : 'bg-zinc-800 border-zinc-700 text-zinc-500'
-              }`}>
-                {app.depositStatus === 'paid' ? 'Đã cọc' : 'Chưa cọc'}
-              </span>
-            </div>
-            <h3 className="text-lg font-bold text-white">{app.fullName} <span className="text-zinc-500 font-normal text-sm">(@{app.userId?.username})</span></h3>
-            <div className="flex flex-wrap gap-4 text-sm text-zinc-400">
-              <span className="text-blue-400">Rank: {app.currentRank}</span>
-              <span className="text-purple-400">Peak: {app.highestRank}</span>
-              <a href={app.opggLink} target="_blank" className="text-blue-500 hover:underline flex items-center gap-1">OP.GG <Eye size={12} /></a>
-              <a href={app.rankImageUrl} target="_blank" className="text-blue-500 hover:underline flex items-center gap-1">Ảnh Rank <Eye size={12} /></a>
-              
-              {/* Hiển thị Bill & Hợp đồng */}
+
+              {/* Bill Status */}
               {app.billImageUrl && (
-                <a href={app.billImageUrl} target="_blank" className="text-green-400 hover:underline flex items-center gap-1 font-medium">
-                  <Receipt size={12} /> Xem Bill
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-950/50 border border-emerald-500/30 text-emerald-400">
+                  Có Bill Phí CK
+                </span>
+              )}
+            </div>
+
+            {/* Applicant Name */}
+            <div>
+              <h3 className="text-base sm:text-lg font-black text-white flex flex-wrap items-center gap-2">
+                <span>{app.fullName}</span>
+                <span className="text-zinc-500 font-normal text-xs sm:text-sm font-mono">(@{app.userId?.username})</span>
+              </h3>
+            </div>
+
+            {/* Game & Rank Info Row */}
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-zinc-400 pt-0.5">
+              <span className="text-cyan-400 font-bold flex items-center gap-1">
+                <Trophy size={13} className="text-cyan-400" /> Rank: {app.currentRank}
+              </span>
+              <span className="text-purple-400 font-bold">Peak: {app.highestRank}</span>
+              
+              {/* Dynamic Tracker Link */}
+              <a 
+                href={app.opggLink?.startsWith('http') ? app.opggLink : undefined} 
+                target="_blank" 
+                rel="noreferrer" 
+                className="text-blue-400 hover:underline flex items-center gap-1 font-mono"
+              >
+                {getTrackerLabel(app.primaryGame)} <ExternalLink size={12} />
+              </a>
+
+              {/* Rank Image */}
+              <a href={app.rankImageUrl} target="_blank" rel="noreferrer" className="text-sky-400 hover:underline flex items-center gap-1 font-medium">
+                <Eye size={12} /> Ảnh Rank
+              </a>
+              
+              {/* Bill & Contract */}
+              {app.billImageUrl && (
+                <a href={app.billImageUrl} target="_blank" rel="noreferrer" className="text-emerald-400 hover:underline flex items-center gap-1 font-medium">
+                  <Receipt size={12} /> Bill CK
                 </a>
               )}
               {app.contractUrl && (
-                <button onClick={() => setViewContract(app.contractUrl!)} className="text-orange-400 hover:underline flex items-center gap-1 font-medium">
-                  <FileText size={12} /> Hợp đồng
+                <button onClick={() => setViewContract(app.contractUrl!)} className="text-amber-400 hover:underline flex items-center gap-1 font-medium">
+                  <FileText size={12} /> Hợp đồng PDF
                 </button>
               )}
             </div>
           </div>
-          {app.status === 'pending' && (
-            <div className="flex gap-3">
-              <button onClick={() => setSelectedApp(app)} className="px-4 py-2 rounded-lg bg-zinc-800 text-zinc-300 hover:bg-zinc-700 transition-colors flex items-center gap-2">
-                <Eye size={16} /> Chi tiết
+
+          {/* Action Buttons: Responsive 3-col on Mobile, Row on Desktop */}
+          <div className="w-full md:w-auto shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-zinc-800/80">
+            <div className="grid grid-cols-3 md:flex gap-2 sm:gap-2.5">
+              <button 
+                onClick={() => setSelectedApp(app)} 
+                className="h-10 px-3.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 transition-colors flex items-center justify-center gap-1.5 text-xs font-bold"
+              >
+                <Eye size={15} /> <span className="truncate">Chi tiết</span>
               </button>
-              <button onClick={() => handleStatusUpdate(app._id, 'rejected')} disabled={!!processingId} className="px-4 py-2 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white transition-colors flex items-center gap-2">
-                <X size={16} /> Từ chối
-              </button>
-              <button onClick={() => handleStatusUpdate(app._id, 'approved')} disabled={!!processingId} className="px-4 py-2 rounded-lg bg-green-500/10 text-green-500 hover:bg-green-500 hover:text-white transition-colors flex items-center gap-2">
-                <Check size={16} /> Duyệt
-              </button>
+
+              {app.status === 'pending' && (
+                <>
+                  <button 
+                    onClick={() => setConfirmModal({ id: app._id, status: 'rejected', name: app.fullName })} 
+                    disabled={!!processingId} 
+                    className="h-10 px-3.5 rounded-xl bg-rose-500/10 text-rose-400 hover:bg-rose-500 hover:text-white transition-colors flex items-center justify-center gap-1.5 text-xs font-bold border border-rose-500/20 disabled:opacity-50"
+                  >
+                    <X size={15} /> <span className="truncate">Từ chối</span>
+                  </button>
+                  <button 
+                    onClick={() => setConfirmModal({ id: app._id, status: 'approved', name: app.fullName })} 
+                    disabled={!!processingId} 
+                    className="h-10 px-3.5 rounded-xl bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500 hover:text-black transition-colors flex items-center justify-center gap-1.5 text-xs font-bold border border-emerald-500/30 disabled:opacity-50"
+                  >
+                    <Check size={15} /> <span className="truncate">Duyệt</span>
+                  </button>
+                </>
+              )}
             </div>
-          )}
+          </div>
         </div>
       ))}
 
-      {/* DETAIL MODAL */}
+      {/* DETAIL MODAL (Đầy đủ tựa game, rank, link tra cứu, hợp đồng, ngân hàng) */}
       {selectedApp && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto shadow-2xl">
-            <div className="sticky top-0 bg-zinc-900 border-b border-zinc-800 p-4 flex justify-between items-center z-10">
-              <h2 className="text-xl font-bold text-white">Hồ sơ: {selectedApp.fullName}</h2>
-              <button onClick={() => { setSelectedApp(null); setAdminNote(''); }} className="p-2 hover:bg-zinc-800 rounded-full"><X size={20} /></button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md animate-in fade-in">
+          <div className="bg-zinc-900 border border-zinc-800 rounded-3xl w-full max-w-3xl max-h-[90vh] overflow-y-auto shadow-2xl">
+            <div className="sticky top-0 bg-zinc-900/95 backdrop-blur-md border-b border-zinc-800 p-4 sm:p-5 flex justify-between items-center z-10">
+              <div>
+                <h2 className="text-lg sm:text-xl font-black text-white">Hồ Sơ: {selectedApp.fullName}</h2>
+                <div className="text-xs text-zinc-400 font-mono">@{selectedApp.userId?.username} • Ngày gửi: {selectedApp.createdAt ? new Date(selectedApp.createdAt).toLocaleDateString('vi-VN') : 'N/A'}</div>
+              </div>
+              <button onClick={() => { setSelectedApp(null); setAdminNote(''); }} className="p-2 hover:bg-zinc-800 rounded-full text-zinc-400 hover:text-white transition-colors">
+                <X size={20} />
+              </button>
             </div>
             
-            <div className="p-6 space-y-8">
-              {/* 1. Personal Info */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-1">
-                  <label className="text-xs text-zinc-500 uppercase">Email</label>
-                  <p className="text-white font-medium">{selectedApp.userId.email}</p>
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs text-zinc-500 uppercase">Số điện thoại</label>
-                  <p className="text-white font-medium">{selectedApp.phoneNumber}</p>
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs text-zinc-500 uppercase">Facebook</label>
-                  <a href={selectedApp.facebookUrl} target="_blank" className="text-blue-400 hover:underline truncate block">{selectedApp.facebookUrl}</a>
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs text-zinc-500 uppercase">Discord</label>
-                  <p className="text-white font-medium">{selectedApp.discordTag}</p>
+            <div className="p-5 sm:p-6 space-y-6">
+              {/* 1. Game & Rank Section (Được bổ sung đầy đủ theo yêu cầu) */}
+              <div>
+                <h3 className="text-xs font-black text-amber-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                  <Trophy className="w-4 h-4 text-amber-400" /> 1. Kỹ Năng & Tựa Game Đăng Ký
+                </h3>
+                <div className="bg-zinc-950 p-4 rounded-2xl border border-zinc-800/80 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                  <div>
+                    <span className="block text-xs text-zinc-500 mb-0.5">Tựa game cày chính</span>
+                    <span className="font-bold text-cyan-300 text-sm">{getGameDisplayName(selectedApp.primaryGame, selectedApp.customGameName)}</span>
+                  </div>
+                  <div>
+                    <span className="block text-xs text-zinc-500 mb-0.5">Rank hiện tại</span>
+                    <span className="font-bold text-white text-sm">{selectedApp.currentRank}</span>
+                  </div>
+                  <div>
+                    <span className="block text-xs text-zinc-500 mb-0.5">Rank cao nhất (Peak)</span>
+                    <span className="font-bold text-purple-400 text-sm">{selectedApp.highestRank}</span>
+                  </div>
+                  <div className="sm:col-span-2 md:col-span-3">
+                    <span className="block text-xs text-zinc-500 mb-1">{getTrackerLabel(selectedApp.primaryGame)}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono text-xs sm:text-sm text-zinc-200 bg-zinc-900 px-3 py-2 rounded-xl border border-zinc-800 truncate flex-1">
+                        {selectedApp.opggLink}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigator.clipboard.writeText(selectedApp.opggLink);
+                          toast.success("Đã sao chép link / ID tra cứu!");
+                        }}
+                        className="p-2 rounded-xl bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 text-zinc-400 hover:text-white"
+                        title="Sao chép"
+                      >
+                        <Copy size={16} />
+                      </button>
+                      {selectedApp.opggLink?.startsWith('http') && (
+                        <a
+                          href={selectedApp.opggLink}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="p-2 rounded-xl bg-blue-600/20 border border-blue-500/30 hover:bg-blue-600/30 text-blue-400"
+                          title="Mở link đối soát"
+                        >
+                          <ExternalLink size={16} />
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                  {selectedApp.agreementSigned_at && (
+                    <div className="sm:col-span-2 md:col-span-3 text-xs text-zinc-500 pt-2 border-t border-zinc-800/60 flex flex-wrap items-center justify-between gap-2">
+                      <span>Ký điện tử bởi: <b className="text-zinc-200">{selectedApp.agreementSigned_name || selectedApp.fullName}</b></span>
+                      <span>Thời điểm ký: {new Date(selectedApp.agreementSigned_at).toLocaleString('vi-VN')}</span>
+                    </div>
+                  )}
                 </div>
               </div>
 
-              <div className="h-px bg-zinc-800" />
-
-              {/* 2. Bank Info */}
+              {/* 2. Personal Info */}
               <div>
-                <h3 className="text-sm font-bold text-zinc-400 uppercase mb-4">Thông tin ngân hàng (Của Booster)</h3>
-                <div className="bg-zinc-950 p-4 rounded-xl border border-zinc-800 grid grid-cols-1 md:grid-cols-3 gap-4">
+                <h3 className="text-xs font-black text-cyan-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                  <UserIcon className="w-4 h-4 text-cyan-400" /> 2. Thông Tin Định Danh
+                </h3>
+                <div className="bg-zinc-950 p-4 rounded-2xl border border-zinc-800/80 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-xs text-zinc-500">Email đăng ký</label>
+                    <p className="text-white font-medium text-sm">{selectedApp.userId?.email || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <label className="text-xs text-zinc-500">Số điện thoại</label>
+                    <p className="text-white font-mono font-medium text-sm">{selectedApp.phoneNumber}</p>
+                  </div>
+                  <div>
+                    <label className="text-xs text-zinc-500">Facebook</label>
+                    <a href={selectedApp.facebookUrl} target="_blank" rel="noreferrer" className="text-blue-400 hover:underline truncate block text-sm">
+                      {selectedApp.facebookUrl}
+                    </a>
+                  </div>
+                  <div>
+                    <label className="text-xs text-zinc-500">Discord Tag</label>
+                    <p className="text-cyan-300 font-mono font-medium text-sm">{selectedApp.discordTag}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* 3. Bank Info */}
+              <div>
+                <h3 className="text-xs font-black text-emerald-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                  <Receipt className="w-4 h-4 text-emerald-400" /> 3. Ngân Hàng Nhận Thu Nhập
+                </h3>
+                <div className="bg-zinc-950 p-4 rounded-2xl border border-zinc-800/80 grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div>
                     <span className="block text-xs text-zinc-500">Ngân hàng</span>
-                    <span className="font-bold text-white">{selectedApp.bankName}</span>
+                    <span className="font-bold text-white text-sm">{selectedApp.bankName}</span>
                   </div>
                   <div>
                     <span className="block text-xs text-zinc-500">Số tài khoản</span>
-                    <span className="font-mono font-bold text-white">{selectedApp.bankAccountNumber}</span>
+                    <span className="font-mono font-bold text-emerald-400 text-sm">{selectedApp.bankAccountNumber}</span>
                   </div>
                   <div>
                     <span className="block text-xs text-zinc-500">Chủ tài khoản</span>
-                    <span className="font-bold text-white uppercase">{selectedApp.bankAccountName}</span>
+                    <span className="font-bold text-white uppercase text-sm">{selectedApp.bankAccountName}</span>
                   </div>
                 </div>
               </div>
 
-              <div className="h-px bg-zinc-800" />
-
-              {/* 3. Proofs */}
+              {/* 4. Proofs & Contract */}
               <div>
-                <h3 className="text-sm font-bold text-zinc-400 uppercase mb-4">Bằng chứng & Tài liệu</h3>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                   <a href={selectedApp.rankImageUrl} target="_blank" className="block group relative aspect-video bg-zinc-950 rounded-lg overflow-hidden border border-zinc-800">
-                      <Image src={selectedApp.rankImageUrl} alt="Rank" fill className="object-cover group-hover:scale-105 transition-transform" />
-                      <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                        <span className="text-white text-xs font-bold flex items-center gap-1"><Eye size={14} /> Ảnh Rank</span>
+                <h3 className="text-xs font-black text-purple-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-purple-400" /> 4. Bằng Chứng & Hợp Đồng Điện Tử
+                </h3>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  <a href={selectedApp.rankImageUrl} target="_blank" rel="noreferrer" className="block group relative aspect-video bg-zinc-950 rounded-xl overflow-hidden border border-zinc-800 hover:border-cyan-500/50 transition-colors">
+                    <Image src={selectedApp.rankImageUrl} alt="Rank" fill className="object-cover group-hover:scale-105 transition-transform" />
+                    <div className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                      <span className="text-white text-xs font-bold flex items-center gap-1"><Eye size={14} /> Ảnh Rank</span>
+                    </div>
+                  </a>
+
+                  {selectedApp.billImageUrl && (
+                    <a href={selectedApp.billImageUrl} target="_blank" rel="noreferrer" className="block group relative aspect-video bg-zinc-950 rounded-xl overflow-hidden border border-zinc-800 hover:border-emerald-500/50 transition-colors">
+                      <Image src={selectedApp.billImageUrl} alt="Bill" fill className="object-cover group-hover:scale-105 transition-transform" />
+                      <div className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                        <span className="text-emerald-400 text-xs font-bold flex items-center gap-1"><Receipt size={14} /> Bill Phí CK</span>
                       </div>
-                   </a>
-                   {selectedApp.billImageUrl && (
-                     <a href={selectedApp.billImageUrl} target="_blank" className="block group relative aspect-video bg-zinc-950 rounded-lg overflow-hidden border border-zinc-800">
-                        <Image src={selectedApp.billImageUrl} alt="Bill" fill className="object-cover group-hover:scale-105 transition-transform" />
-                        <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                          <span className="text-green-400 text-xs font-bold flex items-center gap-1"><Receipt size={14} /> Bill CK</span>
-                        </div>
-                     </a>
-                   )}
-                   {selectedApp.contractUrl && (
-                     <button onClick={() => setViewContract(selectedApp.contractUrl!)} className="block p-4 bg-zinc-950 rounded-lg border border-zinc-800 hover:border-orange-500 transition-colors flex flex-col items-center justify-center gap-2 text-center w-full h-full">
-                        <FileText className="w-8 h-8 text-orange-500" />
-                        <span className="text-xs font-bold text-zinc-300">Hợp đồng PDF</span>
-                     </button>
-                   )}
+                    </a>
+                  )}
+
+                  {selectedApp.contractUrl && (
+                    <button onClick={() => setViewContract(selectedApp.contractUrl!)} className="block p-4 bg-zinc-950 rounded-xl border border-zinc-800 hover:border-amber-500 transition-colors flex flex-col items-center justify-center gap-2 text-center w-full h-full">
+                      <FileText className="w-8 h-8 text-amber-400" />
+                      <span className="text-xs font-bold text-zinc-200">Hợp Đồng PDF Đã Ký</span>
+                    </button>
+                  )}
                 </div>
               </div>
 
-              <div className="h-px bg-zinc-800" />
-
-              {/* 4. Admin Note */}
+              {/* 5. Admin Note */}
               <div>
-                <h3 className="text-sm font-bold text-zinc-400 uppercase mb-2">Ghi chú nội bộ (Admin Note)</h3>
+                <h3 className="text-xs font-black text-zinc-400 uppercase tracking-wider mb-2">Ghi chú nội bộ (Admin Note)</h3>
                 <textarea 
-                  className="w-full bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-sm text-white focus:border-blue-500 outline-none min-h-[80px]"
-                  placeholder="Nhập lý do duyệt/từ chối hoặc ghi chú về ứng viên này..."
+                  className="w-full bg-zinc-950 border border-zinc-800 rounded-xl p-3 text-xs sm:text-sm text-white focus:border-cyan-500 outline-none min-h-[75px]"
+                  placeholder="Ghi chú về ứng viên này (chỉ admin thấy)..."
                   value={adminNote || selectedApp.note || ''}
                   onChange={(e) => setAdminNote(e.target.value)}
                   disabled={selectedApp.status !== 'pending'}
@@ -357,12 +557,24 @@ function ApplicationsTab() {
               </div>
             </div>
 
-            <div className="p-4 border-t border-zinc-800 bg-zinc-900/50 flex justify-end gap-3 rounded-b-2xl">
-              <button onClick={() => { setSelectedApp(null); setAdminNote(''); }} className="px-4 py-2 rounded-lg hover:bg-zinc-800 text-zinc-400">Đóng</button>
+            <div className="p-4 sm:p-5 border-t border-zinc-800 bg-zinc-900/80 flex flex-wrap justify-end gap-2.5 rounded-b-3xl">
+              <button onClick={() => { setSelectedApp(null); setAdminNote(''); }} className="px-4 py-2 rounded-xl hover:bg-zinc-800 text-zinc-400 text-xs font-bold">
+                Đóng
+              </button>
               {selectedApp.status === 'pending' && (
                 <>
-                  <button onClick={() => { handleStatusUpdate(selectedApp._id, 'rejected', adminNote); setSelectedApp(null); setAdminNote(''); }} className="px-4 py-2 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white font-bold">Từ chối</button>
-                  <button onClick={() => { handleStatusUpdate(selectedApp._id, 'approved', adminNote); setSelectedApp(null); setAdminNote(''); }} className="px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-500 font-bold shadow-lg shadow-green-600/20">Duyệt đơn</button>
+                  <button 
+                    onClick={() => setConfirmModal({ id: selectedApp._id, status: 'rejected', name: selectedApp.fullName })} 
+                    className="px-4 py-2 rounded-xl bg-rose-500/15 text-rose-400 hover:bg-rose-500 hover:text-white font-bold text-xs border border-rose-500/30"
+                  >
+                    Từ chối
+                  </button>
+                  <button 
+                    onClick={() => setConfirmModal({ id: selectedApp._id, status: 'approved', name: selectedApp.fullName })} 
+                    className="px-5 py-2 rounded-xl bg-emerald-500 text-black hover:bg-emerald-400 font-black text-xs shadow-lg shadow-emerald-500/20"
+                  >
+                    Duyệt Đơn & Kích Hoạt Booster
+                  </button>
                 </>
               )}
             </div>
@@ -370,30 +582,90 @@ function ApplicationsTab() {
         </div>
       )}
 
-      {/* CONTRACT VIEW MODAL */}
+      {/* CONTRACT VIEW MODAL (Google Docs Viewer + Direct Tab + Download) */}
       {viewContract && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-5xl h-[85vh] flex flex-col shadow-2xl">
-            <div className="flex justify-between items-center p-4 border-b border-zinc-800 bg-zinc-900 rounded-t-2xl">
-              <h3 className="text-lg font-bold text-white flex items-center gap-2"><FileText className="text-orange-500" size={20} /> Xem Hợp đồng</h3>
-              <button onClick={() => setViewContract(null)} className="p-2 hover:bg-zinc-800 rounded-full text-zinc-400 hover:text-white transition-colors"><X size={24} /></button>
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-3 sm:p-4 bg-black/90 backdrop-blur-md animate-in fade-in">
+          <div className="bg-zinc-900 border border-zinc-800 rounded-3xl w-full max-w-5xl h-[88vh] flex flex-col shadow-2xl overflow-hidden">
+            <div className="flex flex-wrap justify-between items-center p-3.5 sm:p-4 border-b border-zinc-800 bg-zinc-900/90 gap-2">
+              <h3 className="text-sm sm:text-base font-bold text-white flex items-center gap-2">
+                <FileText className="text-amber-400" size={18} /> Bản Khai Hợp Đồng Hợp Tác Booster
+              </h3>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => window.open(viewContract, '_blank')}
+                  className="px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-bold flex items-center gap-1.5 transition-colors"
+                >
+                  <ExternalLink size={14} /> Mở Tab Mới
+                </button>
+                <a
+                  href={viewContract}
+                  download
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-3 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold flex items-center gap-1.5 transition-colors"
+                >
+                  <Download size={14} /> Tải PDF
+                </a>
+                <button onClick={() => setViewContract(null)} className="p-1.5 hover:bg-zinc-800 rounded-full text-zinc-400 hover:text-white transition-colors">
+                  <X size={20} />
+                </button>
+              </div>
             </div>
-            <div className="flex-1 bg-zinc-950 relative overflow-hidden">
-               {/* Thêm object-fit và type để browser render tốt hơn */}
-               <iframe src={viewContract} className="w-full h-full border-0" title="Contract PDF">
-                  <div className="flex flex-col items-center justify-center h-full text-zinc-500 gap-4">
-                    <p>Trình duyệt không hỗ trợ xem trước file này.</p>
-                    <a href={viewContract} target="_blank" rel="noreferrer" className="text-blue-500 hover:underline">
-                      Mở trong tab mới
-                    </a>
-                  </div>
-               </iframe>
+            <div className="flex-1 bg-zinc-950 relative overflow-hidden flex flex-col">
+              <iframe
+                src={`https://docs.google.com/viewer?url=${encodeURIComponent(viewContract)}&embedded=true`}
+                className="w-full h-full border-0 flex-1"
+                title="Bản Khai Hợp Đồng PDF"
+              />
             </div>
-            <div className="p-4 border-t border-zinc-800 bg-zinc-900 rounded-b-2xl flex justify-end gap-3">
-              <button onClick={() => setViewContract(null)} className="px-4 py-2 rounded-lg hover:bg-zinc-800 text-zinc-400 font-medium transition-colors">Đóng</button>
-              <a href={viewContract} download target="_blank" rel="noopener noreferrer" className="px-5 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold flex items-center gap-2 shadow-lg shadow-blue-600/20 transition-all hover:scale-105">
-                <Download size={18} /> Tải xuống
-              </a>
+          </div>
+        </div>
+      )}
+
+      {/* CUSTOM CONFIRM MODAL (Thay thế hoàn toàn window.confirm) */}
+      {confirmModal && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in">
+          <div className="bg-zinc-900 border border-zinc-800 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4">
+            <div className="flex items-center gap-3">
+              <div className={`p-3 rounded-2xl ${confirmModal.status === 'approved' ? 'bg-emerald-500/15 text-emerald-400' : 'bg-rose-500/15 text-rose-400'}`}>
+                {confirmModal.status === 'approved' ? <ShieldCheck className="w-6 h-6" /> : <ShieldAlert className="w-6 h-6" />}
+              </div>
+              <div>
+                <h3 className="text-base font-black text-white">
+                  {confirmModal.status === 'approved' ? 'Xác Nhận Duyệt Booster' : 'Xác Nhận Từ Chối'}
+                </h3>
+                <p className="text-xs text-zinc-400">Ứng viên: <b className="text-zinc-200">{confirmModal.name}</b></p>
+              </div>
+            </div>
+
+            <p className="text-xs sm:text-sm text-zinc-300 leading-relaxed">
+              {confirmModal.status === 'approved' 
+                ? 'Tài khoản này sẽ được nâng cấp lên chức danh Booster, được phép truy cập Bàn làm việc Booster và bắt đầu nhận các đơn cày rank trên sàn.' 
+                : 'Đơn đăng ký sẽ bị từ chối. Ứng viên vẫn có thể nộp lại hồ sơ mới nếu có nhu cầu.'}
+            </p>
+
+            <div className="flex justify-end gap-2.5 pt-2">
+              <button
+                type="button"
+                onClick={() => setConfirmModal(null)}
+                className="px-4 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs font-bold transition-colors"
+              >
+                Hủy
+              </button>
+              <button
+                type="button"
+                onClick={() => executeStatusUpdate(confirmModal.id, confirmModal.status, adminNote)}
+                disabled={!!processingId}
+                className={`px-5 py-2 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 ${
+                  confirmModal.status === 'approved'
+                    ? 'bg-emerald-500 hover:bg-emerald-400 text-black shadow-lg shadow-emerald-500/20'
+                    : 'bg-rose-600 hover:bg-rose-500 text-white shadow-lg shadow-rose-600/20'
+                }`}
+              >
+                {processingId ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                {confirmModal.status === 'approved' ? 'Xác Nhận Duyệt' : 'Xác Nhận Từ Chối'}
+              </button>
             </div>
           </div>
         </div>

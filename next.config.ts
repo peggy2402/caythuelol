@@ -127,6 +127,10 @@ const nextConfig: NextConfig = {
           source: '/api/:path*',
           destination: `${apiUrl}/api/:path*`,
         },
+        {
+          source: '/media/:path*',
+          destination: 'https://res.cloudinary.com/dgepbbgpb/:path*',
+        },
       ],
     };
   },

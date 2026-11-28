@@ -148,6 +148,14 @@ export class BoostersController {
 
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
+  @Get('my-application')
+  @ApiOperation({ summary: 'Get current user booster application' })
+  async getMyApplication(@ReqUser() user: any) {
+    return this.boostersService.getMyApplication(user.userId);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
   @Post('apply')
   @ApiOperation({ summary: 'Submit booster application' })
   async apply(@ReqUser() user: any, @Body() body: any) {

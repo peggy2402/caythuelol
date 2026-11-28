@@ -413,6 +413,23 @@ export default function ProfilePage() {
 
   // Short Link State
   const [origin, setOrigin] = useState('');
+  const [pendingBoosterApp, setPendingBoosterApp] = useState<any | null>(null);
+
+  // Fetch pending booster application (nếu có)
+  useEffect(() => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+    if (!token) return;
+    fetch('/api/boosters/my-application', {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data?.success && data?.application?.status === 'pending') {
+          setPendingBoosterApp(data.application);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   // Fetch initial profile
   useEffect(() => {
@@ -947,10 +964,18 @@ export default function ProfilePage() {
                   </span>
                 )}
                 {user.role === 'CUSTOMER' && (
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold tracking-wider uppercase bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                    {user.vip_info?.is_vip ? user.vip_info?.package_type || 'Hội Viên VIP' : 'Khách Hàng Thành Viên'}
-                  </span>
+                  <>
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold tracking-wider uppercase bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                      {user.vip_info?.is_vip ? user.vip_info?.package_type || 'Hội Viên VIP' : 'Khách Hàng Thành Viên'}
+                    </span>
+                    {pendingBoosterApp && (
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-black tracking-wider uppercase bg-amber-500/15 text-amber-300 border border-amber-500/40 shadow-sm animate-pulse">
+                        <Clock className="w-3.5 h-3.5 text-amber-400" />
+                        Ứng Viên Booster (Chờ Duyệt)
+                      </span>
+                    )}
+                  </>
                 )}
                 {user.role === 'STAFF' && (
                   <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold tracking-wider uppercase bg-amber-500/10 text-amber-400 border border-amber-500/30">
@@ -1069,6 +1094,38 @@ export default function ProfilePage() {
           )}
         </div>
       </div>
+
+      {/* =========================================================================
+          BANNER: HỒ SƠ BOOSTER ĐANG CHỜ PHÊ DUYỆT (CHO CUSTOMER)
+      ========================================================================= */}
+      {pendingBoosterApp && user.role !== 'BOOSTER' && (
+        <div className="mb-6 p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-amber-500/15 via-amber-500/5 to-transparent border border-amber-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 backdrop-blur-md shadow-[0_0_30px_rgba(245,158,11,0.08)]">
+          <div className="flex items-start gap-3.5">
+            <div className="p-2.5 rounded-xl bg-amber-500/20 text-amber-400 shrink-0 mt-0.5 sm:mt-0">
+              <Clock className="w-5 h-5 animate-pulse" />
+            </div>
+            <div>
+              <div className="text-sm font-black text-amber-300 flex items-center gap-2">
+                Hồ Sơ Đăng Ký Booster Đang Chờ Phê Duyệt
+                <span className="px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-300 text-[10px] font-black uppercase tracking-wider">
+                  Pending Review
+                </span>
+              </div>
+              <p className="text-xs text-zinc-400 mt-1 leading-relaxed">
+                Đơn đăng ký kèm Hợp đồng điện tử của bạn đã được ghi nhận. Ban Quản Trị LeoRank đang đối soát thông tin và trình độ rank trong vòng 2 - 24 giờ.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 w-full sm:w-auto shrink-0">
+            <Link
+              href="/boosters/apply"
+              className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black text-xs font-black transition-all flex items-center justify-center gap-1.5 shadow-lg shadow-amber-500/25"
+            >
+              <Eye className="w-4 h-4" /> Xem Bản Khai & Hợp Đồng PDF
+            </Link>
+          </div>
+        </div>
+      )}
 
       {/* =========================================================================
           CASE 1: PROFILE VIEW FOR ROLE 'BOOSTER'

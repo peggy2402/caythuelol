@@ -198,6 +198,10 @@ export default function BoosterApplyPage() {
     platformName: 'LeoRank Esports Platform'
   });
 
+  // Existing Booster Application
+  const [existingApp, setExistingApp] = useState<any | null>(null);
+  const [loadingExistingApp, setLoadingExistingApp] = useState(true);
+
   const { register, handleSubmit, watch, trigger, setValue, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(formSchema),
     mode: 'onChange',
@@ -239,6 +243,26 @@ export default function BoosterApplyPage() {
   // Set contract date on client
   useEffect(() => {
     setContractDate(new Date());
+  }, []);
+
+  // Fetch Existing Booster Application (nếu người dùng đã từng nộp)
+  useEffect(() => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+    if (!token) {
+      setLoadingExistingApp(false);
+      return;
+    }
+    fetch('/api/boosters/my-application', {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success && data.application) {
+          setExistingApp(data.application);
+        }
+      })
+      .catch((err) => console.error('Failed to fetch existing booster application', err))
+      .finally(() => setLoadingExistingApp(false));
   }, []);
 
   // Fetch Admin Settings
@@ -295,11 +319,11 @@ export default function BoosterApplyPage() {
 
   const COMMITMENTS = [
     { id: 'tool', title: 'Không sử dụng phần mềm thứ ba', desc: 'Tuyệt đối không sử dụng tool, script, hack, bot hay bất kỳ phần mềm can thiệp gian lận nào trong quá trình thi đấu.' },
-    { id: 'security', title: 'Bảo mật tài khoản khách hàng', desc: 'Bảo mật thông tin đăng nhập, không tự ý đổi mật khẩu, không tiêu xài Tinh Hoa Lam hay RP/VP của khách.' },
-    { id: 'private', title: 'Giữ kín thông tin & Ẩn danh tuyệt đối', desc: 'Không chat trong trận, không kết bạn, không trả lời tin nhắn bạn bè của khách, luôn bật chế độ Offline.' },
-    { id: 'stream', title: 'Quy tắc Livestream (nếu có)', desc: 'Chỉ livestream khi khách hàng có đăng ký gói add-on xem trực tiếp và tuân thủ che tên tài khoản ingame.' },
+    { id: 'security', title: 'Bảo mật tài khoản khách hàng', desc: 'Bảo mật thông tin đăng nhập, không tự ý đổi mật khẩu, không tiêu xài tài nguyên ingame (Tinh Hoa Lam, RP, Quân Huy, VP, Radianite, Vàng, Vé quay...) của khách.' },
+    { id: 'private', title: 'Giữ kín thông tin & Ẩn danh tuyệt đối', desc: 'Không chat trong trận, không kết bạn, không trả lời tin nhắn bạn bè của khách, luôn bật chế độ bảo mật hoặc Offline khi thực hiện đơn hàng.' },
+    { id: 'stream', title: 'Quy tắc Livestream (nếu có)', desc: 'Chỉ livestream khi khách hàng có đăng ký gói add-on xem trực tiếp và tuân thủ che tên tài khoản ingame của khách.' },
     { id: 'penalty', title: 'Cam kết bồi thường vi phạm', desc: 'Chịu trách nhiệm bồi thường 100% nếu gây ra sự cố khóa tài khoản do lỗi chủ quan của Booster.' },
-    { id: 'deposit', title: 'Quy chế hoạt động Booster', desc: 'Cam kết tuân thủ nghiêm ngặt mọi quy chuẩn tác phong thi đấu, bảo mật thông tin khách hàng và quy chế hợp tác của hệ thống.' },
+    { id: 'deposit', title: 'Quy chế Escrow & Không phá đơn', desc: 'Tuyệt đối không lôi kéo khách giao dịch ngoài sàn né phí Escrow; nhận đơn có trách nhiệm, không tự ý bỏ đơn giữa chừng.' },
   ];
 
   // Stepper handlers
@@ -439,8 +463,21 @@ export default function BoosterApplyPage() {
     if (!contractElement) return null;
 
     try {
+      // 1. Đồng bộ chữ ký trực tiếp từ canvas vào DOM trước khi chụp canvas
+      let currentSig = signatureDataUrl;
+      if (sigCanvas.current && !sigCanvas.current.isEmpty()) {
+        currentSig = sigCanvas.current.getCanvas().toDataURL('image/png');
+        setSignatureDataUrl(currentSig);
+      }
+      const sigImg = document.getElementById('contract-b-signature-img') as HTMLImageElement;
+      if (sigImg && currentSig) {
+        sigImg.src = currentSig;
+      }
+
+      await new Promise((r) => setTimeout(r, 60));
+
       const canvas = await html2canvas(contractElement, { 
-        scale: 1.5,
+        scale: 2,
         useCORS: true,
         backgroundColor: '#ffffff',
         onclone: (clonedDoc) => {
@@ -450,13 +487,32 @@ export default function BoosterApplyPage() {
           for (let i = links.length - 1; i >= 0; i--) { 
             if (links[i].rel === 'stylesheet') links[i].remove(); 
           }
+          if (currentSig) {
+            const clonedImg = clonedDoc.getElementById('contract-b-signature-img') as HTMLImageElement;
+            if (clonedImg) clonedImg.src = currentSig;
+          }
         }
       });
-      const imgData = canvas.toDataURL('image/jpeg', 0.85);
+      const imgData = canvas.toDataURL('image/jpeg', 0.92);
       const pdf = new jsPDF('p', 'mm', 'a4');
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-      pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+
+      if (pdfHeight <= 297) {
+        pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+      } else {
+        // Hỗ trợ chia trang nếu tài liệu dài hơn 1 trang A4
+        let position = 0;
+        let heightLeft = pdfHeight;
+        pdf.addImage(imgData, 'JPEG', 0, position, pdfWidth, pdfHeight);
+        heightLeft -= 297;
+        while (heightLeft > 0) {
+          position = heightLeft - pdfHeight;
+          pdf.addPage();
+          pdf.addImage(imgData, 'JPEG', 0, position, pdfWidth, pdfHeight);
+          heightLeft -= 297;
+        }
+      }
       return pdf.output('blob');
     } catch (error) {
       console.error("Lỗi tạo hợp đồng:", error);
@@ -568,10 +624,31 @@ export default function BoosterApplyPage() {
       }
 
       toast.success("Nộp hồ sơ thành công!", {
-        description: "Hồ sơ của bạn đang được xét duyệt. Ban quản trị sẽ liên hệ sớm qua Discord.",
+        description: "Hồ sơ của bạn đang được xét duyệt. Bạn có thể xem lại bản khai và hợp đồng bất cứ lúc nào.",
       });
       
-      router.push('/dashboard');
+      const submittedApp = {
+        fullName: data.fullName,
+        phoneNumber: data.phoneNumber,
+        facebookUrl: normalizedFb,
+        discordTag: data.discordTag,
+        primaryGame: resolvedPrimaryGame,
+        customGameName: data.customGameName,
+        currentRank: data.currentRank,
+        highestRank: data.highestRank,
+        opggLink: data.opggLink,
+        bankName: data.bankName,
+        bankAccountNumber: data.bankAccountNumber,
+        bankAccountName: data.bankAccountName,
+        agreementSigned_name: data.agreementSigned_name,
+        rankImageUrl: finalRankUrl,
+        billImageUrl: finalBillUrl,
+        contractUrl: result.url,
+        status: 'pending',
+        createdAt: new Date().toISOString(),
+      };
+      setExistingApp(submittedApp);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (error: any) {
       toast.error("Lỗi", {
         description: error.message,
@@ -679,6 +756,226 @@ export default function BoosterApplyPage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+      </div>
+    );
+  }
+
+  // State: Đã nộp đơn và đang chờ xét duyệt
+  if (existingApp && existingApp.status === 'pending') {
+    const gameConfig = GAME_OPTIONS.find(g => g.code === existingApp.primaryGame);
+    const gameTitle = existingApp.primaryGame === 'OTHER'
+      ? (existingApp.customGameName || 'Tựa game khác')
+      : (gameConfig ? `${gameConfig.name} (${gameConfig.short})` : existingApp.primaryGame);
+
+    return (
+      <div className="min-h-screen bg-[#050608] text-zinc-100 font-sans selection:bg-cyan-500/30 overflow-x-hidden pt-28 pb-32">
+        <Navbar />
+
+        {/* Dynamic Ambient Background Glows */}
+        <div className="fixed inset-0 z-0 pointer-events-none opacity-[0.03] mix-blend-overlay" style={{ backgroundImage: 'url("/noise.png")' }}></div>
+        <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[1100px] h-[550px] bg-gradient-to-b from-amber-600/15 via-yellow-600/10 to-transparent blur-[140px] pointer-events-none rounded-full" />
+        <div className="fixed bottom-0 right-0 w-[600px] h-[500px] bg-cyan-500/10 blur-[150px] pointer-events-none rounded-full" />
+
+        <div className="relative z-10 container mx-auto px-4 max-w-4xl">
+          {/* Header */}
+          <div className="text-center mb-10">
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-bold uppercase tracking-wider mb-4 backdrop-blur-md shadow-[0_0_20px_rgba(245,158,11,0.2)]">
+              <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
+              <span>Hồ Sơ Đang Chờ Phê Duyệt</span>
+            </div>
+
+            <h1 className="text-3xl sm:text-5xl font-black tracking-tight text-white mb-3 uppercase">
+              Hồ Sơ Ứng Tuyển <br className="hidden sm:block" />
+              <span className="bg-gradient-to-r from-amber-400 via-yellow-300 to-cyan-300 bg-clip-text text-transparent">
+                Đang Được Xét Duyệt
+              </span>
+            </h1>
+
+            <p className="text-zinc-400 max-w-2xl mx-auto text-xs sm:text-sm leading-relaxed">
+              Cảm ơn bạn đã nộp hồ sơ gia nhập đội ngũ Booster LeoRank. Ban Quản Trị đang tiến hành đối soát thông tin tài khoản, bằng chứng rank và hợp đồng điện tử của bạn trong vòng 2 - 24 giờ làm việc.
+            </p>
+          </div>
+
+          {/* Pending Info Card */}
+          <div className="bg-zinc-900/90 border border-zinc-800 rounded-3xl p-6 sm:p-8 backdrop-blur-2xl shadow-2xl space-y-6">
+            {/* Top Status Banner */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-xl bg-amber-500/20 text-amber-400">
+                  <ShieldCheck className="w-6 h-6" />
+                </div>
+                <div>
+                  <div className="text-sm font-black text-white flex items-center gap-2">
+                    Mã Hồ Sơ: <span className="font-mono text-amber-300">#{existingApp._id ? existingApp._id.slice(-8).toUpperCase() : 'PENDING'}</span>
+                    <span className="px-2 py-0.5 rounded-full bg-amber-400/20 border border-amber-400/30 text-amber-300 text-[10px] font-black uppercase">
+                      Đang xử lý
+                    </span>
+                  </div>
+                  <div className="text-xs text-zinc-400 mt-0.5">
+                    Ngày gửi: {existingApp.createdAt ? new Date(existingApp.createdAt).toLocaleString('vi-VN') : 'Vừa xong'}
+                  </div>
+                </div>
+              </div>
+
+              {existingApp.contractUrl && (
+                <a
+                  href={existingApp.contractUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-black text-xs transition-all shadow-lg shadow-amber-500/20"
+                >
+                  <Download className="w-4 h-4" /> Tải Hợp Đồng PDF Đã Ký
+                </a>
+              )}
+            </div>
+
+            {/* Information Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Box 1: Thông tin liên hệ */}
+              <div className="p-4 sm:p-5 rounded-2xl bg-zinc-950/70 border border-zinc-800/80 space-y-3">
+                <div className="text-xs font-black uppercase tracking-wider text-cyan-400 flex items-center gap-2">
+                  <UserCheck className="w-4 h-4" /> 1. Thông Tin Định Danh
+                </div>
+                <div className="space-y-2 text-xs text-zinc-300">
+                  <div className="flex justify-between py-1 border-b border-zinc-800/50">
+                    <span className="text-zinc-500">Họ và tên:</span>
+                    <span className="font-bold text-white">{existingApp.fullName}</span>
+                  </div>
+                  <div className="flex justify-between py-1 border-b border-zinc-800/50">
+                    <span className="text-zinc-500">Số điện thoại:</span>
+                    <span className="font-mono font-medium text-white">{existingApp.phoneNumber}</span>
+                  </div>
+                  <div className="flex justify-between py-1 border-b border-zinc-800/50">
+                    <span className="text-zinc-500">Discord Tag:</span>
+                    <span className="font-mono text-cyan-300">{existingApp.discordTag}</span>
+                  </div>
+                  <div className="flex justify-between py-1 items-center">
+                    <span className="text-zinc-500">Facebook:</span>
+                    <a href={existingApp.facebookUrl} target="_blank" rel="noreferrer" className="text-blue-400 hover:underline max-w-[200px] truncate">
+                      {existingApp.facebookUrl}
+                    </a>
+                  </div>
+                </div>
+              </div>
+
+              {/* Box 2: Trình độ & Game thế mạnh */}
+              <div className="p-4 sm:p-5 rounded-2xl bg-zinc-950/70 border border-zinc-800/80 space-y-3">
+                <div className="text-xs font-black uppercase tracking-wider text-amber-400 flex items-center gap-2">
+                  <Trophy className="w-4 h-4" /> 2. Kỹ Năng & Tựa Game
+                </div>
+                <div className="space-y-2 text-xs text-zinc-300">
+                  <div className="flex justify-between py-1 border-b border-zinc-800/50">
+                    <span className="text-zinc-500">Game thế mạnh:</span>
+                    <span className="font-bold text-white">{gameTitle}</span>
+                  </div>
+                  <div className="flex justify-between py-1 border-b border-zinc-800/50">
+                    <span className="text-zinc-500">Rank hiện tại:</span>
+                    <span className="font-bold text-cyan-400">{existingApp.currentRank}</span>
+                  </div>
+                  <div className="flex justify-between py-1 border-b border-zinc-800/50">
+                    <span className="text-zinc-500">Peak Rank cao nhất:</span>
+                    <span className="font-bold text-purple-400">{existingApp.highestRank}</span>
+                  </div>
+                  <div className="flex justify-between py-1 items-center">
+                    <span className="text-zinc-500">Link tra cứu/Ingame:</span>
+                    <a href={existingApp.opggLink?.startsWith('http') ? existingApp.opggLink : undefined} target="_blank" rel="noreferrer" className="text-blue-400 hover:underline max-w-[190px] truncate font-mono">
+                      {existingApp.opggLink}
+                    </a>
+                  </div>
+                </div>
+              </div>
+
+              {/* Box 3: Tài khoản ngân hàng nhận tiền */}
+              <div className="p-4 sm:p-5 rounded-2xl bg-zinc-950/70 border border-zinc-800/80 space-y-3">
+                <div className="text-xs font-black uppercase tracking-wider text-emerald-400 flex items-center gap-2">
+                  <Landmark className="w-4 h-4" /> 3. Ngân Hàng Thụ Hưởng
+                </div>
+                <div className="space-y-2 text-xs text-zinc-300">
+                  <div className="flex justify-between py-1 border-b border-zinc-800/50">
+                    <span className="text-zinc-500">Ngân hàng:</span>
+                    <span className="font-bold text-white">{existingApp.bankName}</span>
+                  </div>
+                  <div className="flex justify-between py-1 border-b border-zinc-800/50">
+                    <span className="text-zinc-500">Số tài khoản:</span>
+                    <span className="font-mono font-bold text-emerald-400">{existingApp.bankAccountNumber}</span>
+                  </div>
+                  <div className="flex justify-between py-1">
+                    <span className="text-zinc-500">Chủ tài khoản:</span>
+                    <span className="font-bold text-white uppercase">{existingApp.bankAccountName}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Box 4: Bằng chứng & Hồ sơ đính kèm */}
+              <div className="p-4 sm:p-5 rounded-2xl bg-zinc-950/70 border border-zinc-800/80 space-y-3">
+                <div className="text-xs font-black uppercase tracking-wider text-purple-400 flex items-center gap-2">
+                  <FileSignature className="w-4 h-4" /> 4. Tài Liệu Đính Kèm
+                </div>
+                <div className="flex flex-wrap gap-2 text-xs">
+                  {existingApp.rankImageUrl && (
+                    <a
+                      href={existingApp.rankImageUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="px-3 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 flex items-center gap-1.5 transition-colors"
+                    >
+                      <Eye className="w-3.5 h-3.5 text-cyan-400" /> Xem Ảnh Rank
+                    </a>
+                  )}
+                  {existingApp.billImageUrl && (
+                    <a
+                      href={existingApp.billImageUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="px-3 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 flex items-center gap-1.5 transition-colors"
+                    >
+                      <Eye className="w-3.5 h-3.5 text-emerald-400" /> Xem Bill Phí Kích Hoạt
+                    </a>
+                  )}
+                  {existingApp.contractUrl && (
+                    <a
+                      href={existingApp.contractUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="px-3 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 flex items-center gap-1.5 transition-colors"
+                    >
+                      <Download className="w-3.5 h-3.5 text-amber-400" /> Bản Khai Hợp Đồng PDF
+                    </a>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Bottom Actions */}
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-zinc-800/80">
+              <button
+                type="button"
+                onClick={() => setExistingApp(null)}
+                className="text-xs text-zinc-500 hover:text-zinc-300 underline transition-colors"
+              >
+                Muốn chỉnh sửa hoặc nộp lại đơn khác? Bấm vào đây
+              </button>
+
+              <div className="flex items-center gap-3 w-full sm:w-auto">
+                <Button
+                  onClick={() => router.push('/profile')}
+                  variant="outline"
+                  className="flex-1 sm:flex-none border-zinc-700 bg-zinc-800 text-white hover:bg-zinc-700 text-xs font-bold rounded-xl h-11"
+                >
+                  Về Trang Cá Nhân
+                </Button>
+                <a
+                  href="https://discord.gg/leorank"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-5 h-11 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs transition-all shadow-lg shadow-cyan-600/20"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" /> Liên Hệ Admin Qua Discord
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
@@ -1431,6 +1728,12 @@ export default function BoosterApplyPage() {
                         toast.error("Vui lòng ký tên vào khung chữ ký.");
                         return;
                       }
+                      if (sigCanvas.current && !sigCanvas.current.isEmpty()) {
+                        const sig = sigCanvas.current.getCanvas().toDataURL('image/png');
+                        setSignatureDataUrl(sig);
+                        const sigImg = document.getElementById('contract-b-signature-img') as HTMLImageElement;
+                        if (sigImg) sigImg.src = sig;
+                      }
                       setShowConfirmModal(true);
                     }} 
                     disabled={!allAgreementsChecked || !isSignatureValid}
@@ -1454,60 +1757,77 @@ export default function BoosterApplyPage() {
       {/* HIDDEN CONTRACT TEMPLATE FOR PDF GENERATION (DO NOT USE TAILWIND COLORS)   */}
       {/* ========================================================================= */}
       <div className="fixed top-0 left-0 z-[-50] pointer-events-none opacity-0">
-        <div id="contract-template" style={{ width: '210mm', minHeight: '297mm', padding: '20mm', fontFamily: 'Times New Roman, serif', lineHeight: '1.6', position: 'relative', backgroundColor: '#ffffff', color: '#000000', boxSizing: 'border-box' }}>
-          <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-            <h1 style={{ fontSize: '24px', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '8px', margin: 0 }}>CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</h1>
-            <p style={{ fontWeight: 'bold', marginBottom: '24px', textDecoration: 'underline', textDecorationColor: '#000000', margin: 0 }}>Độc lập - Tự do - Hạnh phúc</p>
-            <h2 style={{ fontSize: '26px', fontWeight: 'bold', textTransform: 'uppercase', marginTop: '30px', marginBottom: '8px' }}>HỢP ĐỒNG HỢP TÁC CÀY THUÊ ESPORTS</h2>
-            <p style={{ fontStyle: 'italic', fontSize: '14px', marginTop: '4px' }}>Số: {contractDate ? contractDate.getTime() : '...'}/HĐ-BOOSTER</p>
+        <div id="contract-template" style={{ width: '210mm', minHeight: '297mm', padding: '12mm 16mm', fontFamily: 'Times New Roman, serif', lineHeight: '1.38', position: 'relative', backgroundColor: '#ffffff', color: '#000000', boxSizing: 'border-box' }}>
+          <div style={{ textAlign: 'center', marginBottom: '16px' }}>
+            <h1 style={{ fontSize: '18px', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '4px', margin: 0 }}>CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</h1>
+            <p style={{ fontWeight: 'bold', marginBottom: '12px', textDecoration: 'underline', textDecorationColor: '#000000', margin: 0, fontSize: '13px' }}>Độc lập - Tự do - Hạnh phúc</p>
+            <h2 style={{ fontSize: '20px', fontWeight: 'bold', textTransform: 'uppercase', marginTop: '12px', marginBottom: '4px' }}>HỢP ĐỒNG HỢP TÁC CÀY THUÊ ESPORTS</h2>
+            <p style={{ fontStyle: 'italic', fontSize: '12px', marginTop: '2px', margin: 0 }}>Số: {contractDate ? contractDate.getTime() : '...'}/HĐ-BOOSTER-LEORANK</p>
           </div>
 
-          <div style={{ marginBottom: '20px' }}>
+          <div style={{ marginBottom: '10px', fontSize: '12.5px' }}>
             <p style={{ margin: 0 }}>Hôm nay, ngày {contractDate ? contractDate.getDate() : '...'} tháng {contractDate ? contractDate.getMonth() + 1 : '...'} năm {contractDate ? contractDate.getFullYear() : '...'}, tại hệ thống {adminSettings.platformName}, chúng tôi gồm:</p>
           </div>
 
-          <div style={{ marginBottom: '20px' }}>
-            <h3 style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '6px', margin: 0 }}>BÊN A: {adminSettings.platformName.toUpperCase()} (Bên quản lý hệ thống)</h3>
-            <p style={{ margin: 0 }}>Đại diện bởi ban quản trị nền tảng LeoRank.</p>
+          <div style={{ marginBottom: '10px', fontSize: '12.5px' }}>
+            <h3 style={{ fontSize: '13.5px', fontWeight: 'bold', marginBottom: '3px', margin: 0 }}>BÊN A: {adminSettings.platformName.toUpperCase()} (Bên quản lý hệ thống)</h3>
+            <p style={{ margin: 0 }}>Đại diện: Ban Quản Trị nền tảng trung gian bảo chứng LeoRank (Escrow System).</p>
           </div>
 
-          <div style={{ marginBottom: '20px' }}>
-            <h3 style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '6px', margin: 0 }}>BÊN B: {fullName?.toUpperCase()} (Bên Booster)</h3>
-            <p style={{ margin: 0 }}>Tựa game thi đấu chính: {displayGameName}</p>
-            <p style={{ margin: 0 }}>Số điện thoại: {watch('phoneNumber')}</p>
-            <p style={{ margin: 0 }}>Discord: {watch('discordTag')}</p>
-            <p style={{ margin: 0 }}>Facebook: {watch('facebookUrl')}</p>
-            <p style={{ margin: 0 }}>Ngân hàng thụ hưởng: {watch('bankName')} - {watch('bankAccountNumber')} ({watch('bankAccountName')})</p>
+          <div style={{ marginBottom: '10px', fontSize: '12.5px' }}>
+            <h3 style={{ fontSize: '13.5px', fontWeight: 'bold', marginBottom: '3px', margin: 0 }}>BÊN B: {fullName?.toUpperCase() || '...'} (Bên Booster)</h3>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2px 10px', marginTop: '2px' }}>
+              <p style={{ margin: 0 }}>Tựa game chính: <b>{displayGameName}</b></p>
+              <p style={{ margin: 0 }}>Số điện thoại: <b>{watch('phoneNumber')}</b></p>
+              <p style={{ margin: 0 }}>Discord: <b>{watch('discordTag')}</b></p>
+              <p style={{ margin: 0 }}>Facebook: {watch('facebookUrl')}</p>
+              <p style={{ margin: 0, gridColumn: 'span 2' }}>Ngân hàng nhận thù lao: <b>{watch('bankName')} - {watch('bankAccountNumber')} ({watch('bankAccountName')})</b></p>
+            </div>
           </div>
 
-          <div style={{ marginBottom: '20px' }}>
-            <h3 style={{ fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '6px', margin: 0 }}>ĐIỀU 1: NỘI DUNG HỢP TÁC</h3>
-            <p style={{ textAlign: 'justify', margin: 0 }}>Bên B đồng ý trở thành đối tác cung cấp dịch vụ cày thuê (Boosting) trên nền tảng của Bên A. Bên B cam kết tuân thủ mọi quy định về bảo mật, chất lượng thi đấu và thái độ phục vụ khách hàng.</p>
+          <div style={{ marginBottom: '10px', fontSize: '12.5px' }}>
+            <h3 style={{ fontSize: '13px', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '3px', margin: 0 }}>ĐIỀU 1: NỘI DUNG HỢP TÁC & BẢO CHỨNG ESCROW</h3>
+            <p style={{ textAlign: 'justify', margin: 0 }}>Bên B đồng ý trở thành đối tác cung cấp dịch vụ cày thuê (Boosting) trên nền tảng của Bên A. Bên B cam kết tuân thủ mọi quy chuẩn về bảo mật tài khoản khách hàng, bảo chứng tài chính Escrow, chất lượng thi đấu và tác phong văn minh.</p>
           </div>
 
-          <div style={{ marginBottom: '20px' }}>
-            <h3 style={{ fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '6px', margin: 0 }}>ĐIỀU 2: CÁC CAM KẾT NGHỀ NGHIỆP</h3>
-            <ul style={{ listStyleType: 'disc', paddingLeft: '24px', margin: 0 }}>
+          <div style={{ marginBottom: '12px', fontSize: '12px' }}>
+            <h3 style={{ fontSize: '13px', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '3px', margin: 0 }}>ĐIỀU 2: CÁC CAM KẾT NGHỀ NGHIỆP</h3>
+            <ul style={{ listStyleType: 'disc', paddingLeft: '20px', margin: 0 }}>
               {COMMITMENTS.map((c) => (
-                <li key={c.id} style={{ textAlign: 'justify', marginBottom: '4px' }}>{c.desc}</li>
+                <li key={c.id} style={{ textAlign: 'justify', marginBottom: '3px' }}>
+                  <b>{c.title}:</b> {c.desc}
+                </li>
               ))}
             </ul>
           </div>
 
-          <div style={{ marginTop: '40px', display: 'flex', justifyContent: 'space-between' }}>
-            <div style={{ textAlign: 'center', width: '50%' }}>
-              <p style={{ fontWeight: 'bold', textTransform: 'uppercase', margin: 0 }}>ĐẠI DIỆN BÊN A</p>
-              <p style={{ fontStyle: 'italic', fontSize: '14px', margin: 0 }}>(Đã ký điện tử)</p>
-              <div style={{ marginTop: '50px', fontWeight: 'bold' }}>LEORANK ADMIN</div>
-            </div>
-            <div style={{ textAlign: 'center', width: '50%' }}>
-              <p style={{ fontWeight: 'bold', textTransform: 'uppercase', margin: 0 }}>ĐẠI DIỆN BÊN B</p>
-              <p style={{ fontStyle: 'italic', fontSize: '14px', margin: 0 }}>(Ký tên xác nhận)</p>
-              <div style={{ marginTop: '10px', height: '70px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                {signatureDataUrl ? <img src={signatureDataUrl} alt="Signature" style={{ maxHeight: '70px', maxWidth: '100%' }} /> : <span style={{color: '#ccc'}}>...</span>}
+          <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div style={{ textAlign: 'center', width: '48%' }}>
+              <p style={{ fontWeight: 'bold', textTransform: 'uppercase', margin: 0, fontSize: '13px' }}>ĐẠI DIỆN BÊN A</p>
+              <p style={{ fontStyle: 'italic', fontSize: '11.5px', margin: 0 }}>(Đã ký điện tử bảo chứng)</p>
+              <div style={{ marginTop: '12px', height: '55px', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
+                <div style={{ border: '2px solid #16a34a', color: '#16a34a', padding: '3px 10px', borderRadius: '4px', fontSize: '11px', fontWeight: 'bold', textTransform: 'uppercase' }}>
+                  ✓ ĐÃ KÝ ĐIỆN TỬ
+                </div>
+                <div style={{ fontSize: '10px', color: '#666', marginTop: '3px' }}>LEORANK ESCROW SYSTEM</div>
               </div>
-              <div style={{ marginTop: '10px', fontWeight: 'bold' }}>{fullName}</div>
+              <div style={{ marginTop: '6px', fontWeight: 'bold', fontSize: '13px' }}>LEORANK ADMIN</div>
+              <div style={{ fontSize: '10.5px', color: '#666', fontStyle: 'italic' }}>
+                (Xác thực hệ thống: {contractDate ? contractDate.toLocaleDateString('vi-VN') : ''})
+              </div>
+            </div>
+
+            <div style={{ textAlign: 'center', width: '48%' }}>
+              <p style={{ fontWeight: 'bold', textTransform: 'uppercase', margin: 0, fontSize: '13px' }}>ĐẠI DIỆN BÊN B</p>
+              <p style={{ fontStyle: 'italic', fontSize: '11.5px', margin: 0 }}>(Ký tên xác nhận)</p>
+              <div style={{ marginTop: '8px', height: '55px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img id="contract-b-signature-img" src={signatureDataUrl || ''} alt="Chữ ký Bên B" style={{ maxHeight: '55px', maxWidth: '180px', objectFit: 'contain' }} />
+              </div>
+              <div style={{ marginTop: '6px', fontWeight: 'bold', fontSize: '13px', textTransform: 'uppercase' }}>{fullName || 'CHƯA ĐIỀN HỌ TÊN'}</div>
+              <div style={{ fontSize: '10.5px', color: '#666', fontStyle: 'italic' }}>
+                (Đã ký điện tử: {contractDate ? contractDate.toLocaleString('vi-VN') : ''})
+              </div>
             </div>
           </div>
         </div>

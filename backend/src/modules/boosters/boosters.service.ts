@@ -1631,6 +1631,14 @@ export class BoostersService {
     };
   }
 
+  async getMyApplication(userId: string) {
+    const application = await this.boosterAppModel
+      .findOne({ userId })
+      .sort({ createdAt: -1 })
+      .lean();
+    return { success: true, application };
+  }
+
   async apply(userId: string, body: any) {
     const existing = await this.boosterAppModel.findOne({
       userId,
