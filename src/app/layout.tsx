@@ -52,6 +52,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "LEORANK - Cày Thuê Game & Cày Thuê Liên Quân Giá Rẻ, LMHT, Valorant Uy Tín #1",
     description: "Hệ thống cày thuê game uy tín số 1 Việt Nam. Chuyên cày thuê liên quân giá rẻ, cày thuê liên minh LMHT, Valorant, Tốc Chiến. An toàn 100% với cơ chế Escrow bảo vệ người dùng.",
+    url: "https://www.leorank.site",
     siteName: "LEORANK",
     images: [
       {
@@ -94,6 +95,7 @@ export default function RootLayout({
   return (
     <html lang="vi" className="overflow-x-clip" suppressHydrationWarning>
       <head>
+        <link rel="canonical" href="https://www.leorank.site" />
         <link rel="image_src" href="https://www.leorank.site/og-image.png" />
         {/* Google Tag Manager (GTM) */}
         <Script
