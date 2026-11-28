@@ -110,14 +110,14 @@ export function PointAndStarBoostSection({
       <div
         key={tier.id}
         onClick={() => handleSelectPointSegment(tier)}
-        className={`p-3 sm:p-3.5 rounded-2xl border transition-all cursor-pointer relative overflow-hidden group select-none flex flex-col justify-between h-full ${activeStyle}`}
+        className={`p-2.5 sm:p-3.5 rounded-xl sm:rounded-2xl border transition-all cursor-pointer relative overflow-hidden group select-none flex flex-col justify-between h-full ${activeStyle}`}
       >
         <div className="flex-1">
-          <div className="flex items-center justify-between gap-2 mb-2.5">
-            <div className="flex items-center gap-2 min-w-0">
+          <div className="flex items-center justify-between gap-1.5 mb-2 sm:mb-2.5">
+            <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
               {tier.image && (
                 <div
-                  className={`w-9 h-9 rounded-xl bg-black/60 border p-1 flex items-center justify-center shrink-0 ${
+                  className={`w-7 h-7 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl bg-black/60 border p-0.5 sm:p-1 flex items-center justify-center shrink-0 ${
                     tier.id === 'master_0_19'
                       ? 'border-amber-500/40 shadow-[0_0_10px_rgba(245,158,11,0.2)]'
                       : tier.id === 'gm_20_49'
@@ -136,21 +136,21 @@ export function PointAndStarBoostSection({
                   />
                 </div>
               )}
-              <span className={`text-[10px] font-black px-2 py-0.5 rounded-lg border whitespace-nowrap font-mono tracking-tight flex items-center gap-1 ${tier.badgeColor}`}>
-                {isHighElo && <StarIcon size={11} />}
-                <span>{renderWithStarIcon(tier.shortLabel, 11)}</span>
+              <span className={`text-[9px] sm:text-[10px] font-black px-1.5 sm:px-2 py-0.5 rounded-md sm:rounded-lg border whitespace-nowrap font-mono tracking-tight flex items-center gap-1 ${tier.badgeColor}`}>
+                {isHighElo && <StarIcon size={10} />}
+                <span>{renderWithStarIcon(tier.shortLabel, 10)}</span>
               </span>
             </div>
             {isSelected && (
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1 shrink-0">
                 {isAov && starsInTier > 0 ? (
-                  <span className="px-2 py-0.5 rounded-md bg-gradient-to-r from-cyan-400 to-emerald-400 text-black text-[10px] font-black font-mono shadow-md flex items-center gap-1">
+                  <span className="px-1.5 sm:px-2 py-0.5 rounded-md bg-gradient-to-r from-cyan-400 to-emerald-400 text-black text-[9px] sm:text-[10px] font-black font-mono shadow-md flex items-center gap-0.5">
                     <span>+{starsInTier}</span>
-                    <StarIcon size={10} />
+                    <StarIcon size={9} />
                   </span>
                 ) : (
-                  <div className="w-5 h-5 rounded-full bg-cyan-400 text-black flex items-center justify-center shadow-md shrink-0">
-                    <Check size={12} strokeWidth={3} />
+                  <div className="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-cyan-400 text-black flex items-center justify-center shadow-md shrink-0">
+                    <Check size={11} strokeWidth={3} />
                   </div>
                 )}
               </div>
@@ -158,20 +158,25 @@ export function PointAndStarBoostSection({
           </div>
 
           <div className="text-xs sm:text-sm font-black text-white mb-0.5 leading-snug">
-            {renderWithStarIcon(tier.label, 13)}
+            {renderWithStarIcon(tier.label, 12)}
           </div>
-          <div className="text-[11px] text-zinc-400 mb-2 leading-relaxed">
-            {renderWithStarIcon(tier.desc, 11)}
+          <div className="text-[10px] sm:text-[11px] text-zinc-400 mb-2 leading-relaxed line-clamp-2">
+            {renderWithStarIcon(tier.desc, 10.5)}
           </div>
         </div>
 
-        <div className="pt-2.5 border-t border-zinc-800/80 flex items-baseline justify-between mt-auto">
-          <span className="text-[11px] text-zinc-400">Đơn giá:</span>
-          <div className="text-right">
-            <span className="text-sm sm:text-base font-black font-mono text-cyan-400">
-              {customPrice.toLocaleString('vi-VN')}
+        {/* Khu vực giá: Cấu trúc xếp tầng thông minh chống vỡ chữ 'Đơn giá:' trên mobile */}
+        <div className="pt-2 border-t border-zinc-800/80 mt-auto">
+          <div className="flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-0.5 sm:gap-1">
+            <span className="text-[10px] sm:text-[11px] text-zinc-400 font-medium whitespace-nowrap">
+              Đơn giá:
             </span>
-            <span className="text-[10px] font-sans text-zinc-500 ml-1">đ/{tier.unit}</span>
+            <div className="flex items-baseline gap-1 shrink-0 whitespace-nowrap">
+              <span className="text-xs sm:text-base font-black font-mono text-cyan-400">
+                {customPrice.toLocaleString('vi-VN')}
+              </span>
+              <span className="text-[9.5px] sm:text-[10px] font-sans text-zinc-500">đ/{tier.unit}</span>
+            </div>
           </div>
         </div>
       </div>
@@ -241,7 +246,7 @@ export function PointAndStarBoostSection({
               <div className="flex items-center gap-2 min-w-0">
                 <Crown size={15} className="text-amber-400 shrink-0" />
                 <span className="text-xs sm:text-sm font-extrabold text-amber-300 uppercase tracking-wide">
-                  2. Cày Sao Tích Lũy (Cao Thủ Trở Lên)
+                  2. Cày Sao Tích Lũy (Từ Cao Thủ)
                 </span>
               </div>
               <span className="text-[10.5px] text-amber-300 font-semibold px-2.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/25 self-start sm:self-auto flex items-center gap-1 w-fit shrink-0 whitespace-nowrap">
@@ -251,7 +256,7 @@ export function PointAndStarBoostSection({
             <p className="text-[11px] text-zinc-400">
               Bấm vào phân khúc để chọn nhanh mốc xuất phát, hoặc nhập trực tiếp số sao hiện tại &amp; mục tiêu ở bảng bên dưới.
             </p>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 items-stretch">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-2.5 items-stretch">
               {pointTiers.filter((t) => t.category === 'HIGH_ELO' || t.isHighEloRange).map(renderTierCard)}
             </div>
           </div>
