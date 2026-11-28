@@ -635,12 +635,12 @@ export function OrderSummarySidebar({
             </div>
           </div>
 
-          {/* Nút Đặt đơn (Desktop) */}
+          {/* Nút Đặt đơn (Chỉ hiển thị trên Desktop xl+, trên Mobile/Tablet đã có Sticky Bottom Bar cố định) */}
           <button
             type="button"
             disabled={isOrderDisabled}
             onClick={handlePlaceOrder}
-            className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-600 hover:from-blue-500 hover:to-indigo-500 text-white font-extrabold text-sm shadow-xl shadow-blue-600/30 transition-all hover:scale-[1.01] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed items-center justify-center gap-2 cursor-pointer flex"
+            className="hidden xl:flex w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-600 hover:from-blue-500 hover:to-indigo-500 text-white font-extrabold text-sm shadow-xl shadow-blue-600/30 transition-all hover:scale-[1.01] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed items-center justify-center gap-2 cursor-pointer"
           >
             {isSubmitting ? (
               <Loader2 className="w-5 h-5 animate-spin" />
