@@ -108,21 +108,21 @@ export default function LiveActivityToast() {
   const renderIcon = () => {
     switch (currentItem.type) {
       case 'DEPOSIT':
-        return <DollarSign className="w-5 h-5 text-emerald-400 stroke-[2.5]" />;
+        return <DollarSign className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-400 stroke-[2.5]" />;
       case 'ORDER':
-        return <Gamepad2 className="w-5 h-5 text-amber-400" />;
+        return <Gamepad2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-400" />;
       case 'REVIEW':
-        return <Star className="w-5 h-5 text-yellow-400 fill-yellow-400" />;
+        return <Star className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-yellow-400 fill-yellow-400" />;
       case 'COMMENT':
-        return <MessageSquare className="w-5 h-5 text-blue-400" />;
+        return <MessageSquare className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-400" />;
       case 'VIP_UPGRADE':
-        return <Crown className="w-5 h-5 text-amber-300 fill-amber-300" />;
+        return <Crown className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-300 fill-amber-300" />;
       case 'BOOSTER_JOIN':
-        return <Zap className="w-5 h-5 text-purple-400 fill-purple-400" />;
+        return <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-purple-400 fill-purple-400" />;
       case 'BLOG_PUBLISH':
-        return <Newspaper className="w-5 h-5 text-cyan-400" />;
+        return <Newspaper className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-cyan-400" />;
       default:
-        return <Sparkles className="w-5 h-5 text-emerald-400" />;
+        return <Sparkles className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-400" />;
     }
   };
 
@@ -190,64 +190,64 @@ export default function LiveActivityToast() {
   };
 
   return (
-    <div className="fixed bottom-5 right-5 sm:bottom-6 sm:right-6 z-[9999] pointer-events-none select-none">
+    <div className="fixed top-[68px] left-3 sm:top-auto sm:bottom-5 sm:left-5 z-[9999] pointer-events-none select-none">
       <AnimatePresence>
         {visible && currentItem && (
           <motion.div
             key={currentItem.id}
-            initial={{ opacity: 0, y: 30, scale: 0.96 }}
+            initial={{ opacity: 0, y: -10, scale: 0.96 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 18, scale: 0.96 }}
-            transition={{ type: 'spring', stiffness: 380, damping: 28 }}
+            exit={{ opacity: 0, y: -8, scale: 0.96 }}
+            transition={{ type: 'spring', stiffness: 420, damping: 30 }}
             onMouseEnter={() => setIsPaused(true)}
             onMouseLeave={() => setIsPaused(false)}
-            className="pointer-events-auto relative flex items-center gap-3.5 pl-3.5 pr-8 py-3 max-w-[340px] sm:max-w-[410px] rounded-2xl bg-[#0e1318]/95 border border-zinc-800/90 shadow-[0_16px_45px_rgba(0,0,0,0.75)] backdrop-blur-md overflow-hidden"
+            className="pointer-events-auto relative flex items-center gap-2.5 pl-2.5 pr-7 py-2 max-w-[270px] sm:max-w-[310px] rounded-xl bg-[#0b0f14]/92 border border-zinc-800/80 shadow-[0_10px_30px_rgba(0,0,0,0.65)] backdrop-blur-md overflow-hidden"
           >
-            {/* Khối icon bên trái */}
+            {/* Khối icon bên trái thu gọn */}
             <div
-              className={`w-11 h-11 rounded-xl border flex items-center justify-center shrink-0 ${getIconBoxStyle()}`}
+              className={`w-7 h-7 sm:w-8 sm:h-8 rounded-lg border flex items-center justify-center shrink-0 ${getIconBoxStyle()}`}
             >
               {renderIcon()}
             </div>
 
-            {/* Nội dung thông báo theo đúng cấu trúc ảnh mẫu */}
+            {/* Nội dung thông báo siêu tối giản */}
             <div className="flex-1 min-w-0">
-              {/* Dòng 1: Username đậm màu trắng + Hành động màu xám nhẹ */}
-              <div className="flex items-center gap-1.5 leading-tight">
-                <span className="font-bold text-white text-[13.5px] tracking-tight shrink-0">
+              {/* Dòng 1: Username + Hành động */}
+              <div className="flex items-center gap-1 leading-none">
+                <span className="font-bold text-white text-[11.5px] sm:text-[12px] tracking-tight shrink-0">
                   {currentItem.username}
                 </span>
-                <span className="text-zinc-400 text-[13px] truncate">
+                <span className="text-zinc-400 text-[11px] sm:text-[11.5px] truncate">
                   {currentItem.actionText}
                 </span>
               </div>
 
-              {/* Dòng 2: Badge nằm ở dòng 2 + Giá trị nổi bật + Thời gian */}
-              <div className="flex items-center gap-2 mt-1 leading-tight flex-wrap">
+              {/* Dòng 2: Badge + Highlight + Time */}
+              <div className="flex items-center gap-1.5 mt-1 leading-none">
                 <span
-                  className={`inline-block px-1.5 py-0.5 rounded-[4px] text-[10.5px] font-bold tracking-wide uppercase border shrink-0 ${getBadgeStyle()}`}
+                  className={`inline-block px-1 py-0.5 rounded text-[8.5px] sm:text-[9.5px] font-bold tracking-wider uppercase border shrink-0 ${getBadgeStyle()}`}
                 >
                   {currentItem.badge}
                 </span>
                 <span
-                  className={`font-bold text-[13px] tracking-tight truncate max-w-[170px] sm:max-w-[210px] ${getHighlightColor()}`}
+                  className={`font-bold text-[11px] sm:text-[12px] tracking-tight truncate max-w-[110px] sm:max-w-[140px] ${getHighlightColor()}`}
                 >
                   {currentItem.highlight}
                 </span>
-                <span className="text-zinc-500 text-[11.5px] font-normal shrink-0">
+                <span className="text-zinc-500 text-[10px] sm:text-[10.5px] font-normal shrink-0">
                   · {currentItem.timeAgo}
                 </span>
               </div>
             </div>
 
-            {/* Nút đóng thông báo nhỏ gọn ở góc phải */}
+            {/* Nút đóng thông báo nhỏ gọn */}
             <button
               type="button"
               onClick={handleDismiss}
               title="Đóng thông báo"
-              className="absolute top-3 right-3 text-zinc-500 hover:text-zinc-300 p-0.5 rounded transition-colors cursor-pointer"
+              className="absolute top-1.5 right-1.5 text-zinc-500 hover:text-zinc-300 p-0.5 rounded transition-colors cursor-pointer"
             >
-              <X className="w-3.5 h-3.5" />
+              <X className="w-3 h-3" />
             </button>
           </motion.div>
         )}
