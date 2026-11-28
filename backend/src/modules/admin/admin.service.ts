@@ -1074,15 +1074,15 @@ export class AdminService {
           const booster = await this.userModel.findById(order.boosterId).session(session);
           if (booster) {
             // Sàn chỉ có thể chi trả tối đa trên số tiền thực tế khách đã đóng
-            const totalCustomerPaid = order.pricing?.deposit_amount || 0;
-            const platformFee = order.pricing?.platform_fee || Math.round(totalCustomerPaid * 0.02);
+            const totalCustomerPaid = order.pricing?.deposit_amount || order.pricing?.total_amount || 0;
+            const platformFee = order.pricing?.service_fee || order.pricing?.platform_fee || Math.round((order.pricing?.base_price || totalCustomerPaid) * 0.02);
             const safeDepositEarnings = Math.max(0, totalCustomerPaid - platformFee);
 
             // Nếu đơn đã thanh toán toàn bộ: trả đúng booster_earnings
             // Nếu đơn mới cọc và khách bỏ đơn (mất cọc): trả tiền cọc sau khi trừ phí sàn an toàn
             const amount = order.payment?.final_paid
-              ? (order.pricing.booster_earnings || safeDepositEarnings)
-              : (order.pricing.booster_earnings && order.pricing.booster_earnings <= safeDepositEarnings
+              ? (order.pricing?.booster_earnings || safeDepositEarnings)
+              : (order.pricing?.booster_earnings && order.pricing.booster_earnings <= safeDepositEarnings
                   ? order.pricing.booster_earnings
                   : safeDepositEarnings);
 

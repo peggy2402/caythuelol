@@ -64,8 +64,13 @@ interface Dispute {
     total_amount: number;
     deposit_amount: number;
     deposit_percent?: number;
+    base_price?: number;
+    service_fee?: number;
+    option_fees?: number;
+    addons_cost?: number;
     booster_earnings?: number;
     platform_fee?: number;
+    [key: string]: any;
   };
   payment?: {
     deposit_paid?: boolean;
@@ -79,6 +84,10 @@ interface Dispute {
     desired_level?: number;
     server?: string;
     account_info?: any;
+    is_matches?: boolean;
+    match_count?: number;
+    matches?: number;
+    [key: string]: any;
   };
   admin_note?: string;
   match_history?: any[];
@@ -341,9 +350,12 @@ export default function AdminDisputesPage() {
                     d.dispute?.reason?.toLowerCase().includes('sai lệch') ||
                     hasMismatch;
 
-                  const depositPaid = d.pricing?.deposit_amount || Math.round((d.pricing?.total_amount || 0) * 0.4);
-                  const platformFee = d.pricing?.platform_fee || Math.round(depositPaid * 0.02);
-                  const safeBoosterPayout = Math.max(0, depositPaid - platformFee);
+                  const depositPaid = d.pricing?.deposit_amount || d.pricing?.total_amount || 0;
+                  const platformFee = d.pricing?.service_fee || d.pricing?.platform_fee || Math.round((d.pricing?.base_price || depositPaid) * 0.02);
+                  const safeBoosterPayout = Math.min(
+                    d.pricing?.booster_earnings || (depositPaid - platformFee),
+                    Math.max(0, depositPaid - platformFee)
+                  );
 
                   return (
                     <tr key={d._id} className="hover:bg-zinc-800/40 transition-colors">
@@ -575,11 +587,18 @@ export default function AdminDisputesPage() {
 
                   {/* Rank thực tế Booster báo */}
                   <div className="p-3 rounded-xl bg-black/40 border border-amber-500/20 space-y-1">
-                    <span className="text-[11px] text-zinc-400 block font-medium">Rank thực tế Booster phát hiện:</span>
+                    <span className="text-[11px] text-zinc-400 block font-medium">
+                      {selectedDispute.mismatch_info?.verifiedRank
+                        ? 'Rank thực tế Booster phát hiện:'
+                        : (selectedDispute.serviceType === 'MATCHES' || selectedDispute.details?.is_matches)
+                          ? 'Dịch vụ thi đấu:'
+                          : 'Báo cáo từ Booster:'}
+                    </span>
                     <div className="text-base font-extrabold text-amber-300">
                       {selectedDispute.mismatch_info?.verifiedRank ||
-                        selectedDispute.details?.current_rank ||
-                        'Chưa cập nhật'}
+                        ((selectedDispute.serviceType === 'MATCHES' || selectedDispute.details?.is_matches)
+                          ? `Cày ${selectedDispute.details?.match_count || selectedDispute.details?.matches || 1} Trận (Booster không báo lệch rank)`
+                          : 'Booster không báo cáo lệch rank')}
                     </div>
                   </div>
 
@@ -662,20 +681,35 @@ export default function AdminDisputesPage() {
 
                   {/* Mức rank khách khai ban đầu */}
                   <div className="p-3 rounded-xl bg-black/40 border border-blue-500/20 space-y-1">
-                    <span className="text-[11px] text-zinc-400 block font-medium">Rank ban đầu khách khai:</span>
-                    <div className="flex items-center gap-2 text-sm font-bold text-white">
-                      <span>
-                        {selectedDispute.mismatch_info?.declaredRank ||
-                          selectedDispute.details?.current_rank ||
-                          'Không rõ'}
-                      </span>
-                      <ArrowRight className="w-4 h-4 text-zinc-500" />
-                      <span className="text-blue-400">
-                        {selectedDispute.mismatch_info?.targetRank ||
-                          selectedDispute.details?.desired_rank ||
-                          'Mục tiêu ban đầu'}
-                      </span>
-                    </div>
+                    <span className="text-[11px] text-zinc-400 block font-medium">
+                      {(selectedDispute.serviceType === 'MATCHES' || selectedDispute.details?.is_matches)
+                        ? 'Mục tiêu cày trận khách đặt:'
+                        : 'Lộ trình cày rank khách đặt:'}
+                    </span>
+                    {(selectedDispute.serviceType === 'MATCHES' || selectedDispute.details?.is_matches) ? (
+                      <div className="flex items-center gap-2 text-sm font-bold text-white">
+                        <span>Cày {selectedDispute.details?.match_count || selectedDispute.details?.matches || 1} Trận</span>
+                        <span className="text-xs font-normal text-zinc-400">
+                          (Rank tài khoản: <strong className="text-blue-400">{selectedDispute.details?.current_rank || 'N/A'}</strong>)
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2 text-sm font-bold text-white">
+                        <span>
+                          {selectedDispute.mismatch_info?.declaredRank ||
+                            selectedDispute.details?.current_rank ||
+                            'Không rõ'}
+                        </span>
+                        {(selectedDispute.mismatch_info?.targetRank || selectedDispute.details?.desired_rank) && (
+                          <>
+                            <ArrowRight className="w-4 h-4 text-zinc-500" />
+                            <span className="text-blue-400">
+                              {selectedDispute.mismatch_info?.targetRank || selectedDispute.details?.desired_rank}
+                            </span>
+                          </>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   {/* Nội dung khiếu nại đầy đủ của khách */}
@@ -709,10 +743,16 @@ export default function AdminDisputesPage() {
               {(() => {
                 const depositPaid =
                   selectedDispute.pricing?.deposit_amount ||
-                  Math.round((selectedDispute.pricing?.total_amount || 0) * 0.4);
+                  selectedDispute.pricing?.total_amount ||
+                  0;
                 const platformFee =
-                  selectedDispute.pricing?.platform_fee || Math.round(depositPaid * 0.02);
-                const safeBoosterPayout = Math.max(0, depositPaid - platformFee);
+                  selectedDispute.pricing?.service_fee ||
+                  selectedDispute.pricing?.platform_fee ||
+                  Math.round((selectedDispute.pricing?.base_price || depositPaid) * 0.02);
+                const safeBoosterPayout = Math.min(
+                  selectedDispute.pricing?.booster_earnings || (depositPaid - platformFee),
+                  Math.max(0, depositPaid - platformFee)
+                );
 
                 return (
                   <div className="rounded-2xl border border-zinc-800 bg-zinc-950 p-4 space-y-2">
@@ -886,9 +926,12 @@ export default function AdminDisputesPage() {
             {/* Chi tiết phán quyết */}
             {(() => {
               const d = resolveModal.dispute;
-              const depositPaid = d.pricing?.deposit_amount || Math.round((d.pricing?.total_amount || 0) * 0.4);
-              const platformFee = d.pricing?.platform_fee || Math.round(depositPaid * 0.02);
-              const safeBoosterPayout = Math.max(0, depositPaid - platformFee);
+              const depositPaid = d.pricing?.deposit_amount || d.pricing?.total_amount || 0;
+              const platformFee = d.pricing?.service_fee || d.pricing?.platform_fee || Math.round((d.pricing?.base_price || depositPaid) * 0.02);
+              const safeBoosterPayout = Math.min(
+                d.pricing?.booster_earnings || (depositPaid - platformFee),
+                Math.max(0, depositPaid - platformFee)
+              );
 
               if (resolveModal.decision === 'REFUND_CUSTOMER') {
                 return (
