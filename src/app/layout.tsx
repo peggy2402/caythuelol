@@ -56,8 +56,8 @@ export const metadata: Metadata = {
     siteName: "LEORANK",
     images: [
       {
-        url: "https://www.leorank.site/og-image.png",
-        secureUrl: "https://www.leorank.site/og-image.png",
+        url: "https://www.leorank.site/og-image.png?v=2",
+        secureUrl: "https://www.leorank.site/og-image.png?v=2",
         width: 1200,
         height: 630,
         type: "image/png",
@@ -71,7 +71,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "LEORANK - Cày Thuê Game & Cày Thuê Liên Quân Giá Rẻ, LMHT, Valorant Uy Tín #1",
     description: "Hệ thống cày thuê game uy tín số 1 Việt Nam. Chuyên cày thuê liên quân giá rẻ, cày thuê liên minh LMHT, Valorant. 100% Escrow Hold bảo vệ quyền lợi.",
-    images: ["https://www.leorank.site/og-image.png"],
+    images: ["https://www.leorank.site/og-image.png?v=2"],
     creator: "@leorank",
   },
   robots: {
@@ -96,7 +96,7 @@ export default function RootLayout({
     <html lang="vi" className="overflow-x-clip" suppressHydrationWarning>
       <head>
         <link rel="canonical" href="https://www.leorank.site" />
-        <link rel="image_src" href="https://www.leorank.site/og-image.png" />
+        <link rel="image_src" href="https://www.leorank.site/og-image.png?v=2" />
         {/* Google Tag Manager (GTM) */}
         <Script
           id="google-tag-manager"
