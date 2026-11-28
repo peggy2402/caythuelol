@@ -3,6 +3,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import * as crypto from 'crypto';
 import { ChatGateway } from '../chat/chat.gateway';
+import { DiscordService } from '../../common/discord.service';
 
 import { IUser } from '../../database/schemas/User';
 import {
@@ -39,6 +40,7 @@ export class WebhooksService {
     @InjectModel('WebhookLog') private webhookLogModel: Model<IWebhookLog>,
     @InjectModel('UnmatchedDeposit') private unmatchedDepositModel: Model<IUnmatchedDeposit>,
     private readonly chatGateway: ChatGateway,
+    private readonly discordService: DiscordService,
   ) {}
 
   /**
@@ -397,6 +399,14 @@ export class WebhooksService {
       } catch (socketErr: any) {
         this.logger.warn(`Failed to broadcast balance update: ${socketErr.message}`);
       }
+
+      // 9. Bắn thông báo về kênh Discord Admin
+      this.discordService.notifyDepositSuccess({
+        username: matchedUser.username,
+        amount: data.transferAmount,
+        transactionCode: String(data.id || finalTransaction._id),
+        newBalance: updatedUser.wallet_balance,
+      }).catch((err) => this.logger.warn(`Failed to send Discord deposit alert: ${err.message}`));
 
       return {
         success: true,

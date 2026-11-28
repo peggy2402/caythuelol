@@ -15,6 +15,7 @@ import {
   TransactionStatus,
 } from '../../database/schemas/Transaction';
 import { MailService } from '../../common/mail.service';
+import { DiscordService } from '../../common/discord.service';
 import { PricingEngineService } from '../pricing/pricing-engine.service';
 import { LoyaltyService } from '../loyalty/loyalty.service';
 import { NotificationsService } from '../notifications/notifications.service';
@@ -40,6 +41,7 @@ export class OrdersService {
     private loyaltyService: LoyaltyService,
     private notificationsService: NotificationsService,
     private chatGateway: ChatGateway,
+    private discordService: DiscordService,
   ) {}
 
   async checkout(userId: string, body: any) {
@@ -380,6 +382,16 @@ export class OrdersService {
           })
           .catch(() => {});
       }
+
+      // Bắn thông báo đơn mới về Discord Admin
+      this.discordService.notifyNewOrder({
+        orderCode: orderCodeDisplay,
+        customerName: user.username,
+        game: gameDisplay,
+        serviceName: serviceType + routeText,
+        totalAmount,
+        depositAmount: amountToDeduct,
+      }).catch(() => {});
 
       return {
         success: true,
@@ -1180,6 +1192,22 @@ export class OrdersService {
     });
 
     await order.save();
+
+    // Bắn thông báo khiếu nại về Discord Admin
+    this.userModel
+      .findById(userId)
+      .select('username')
+      .lean()
+      .then((opener) => {
+        this.discordService.notifyDispute({
+          orderCode: order.orderCode || order._id.toString().slice(-6).toUpperCase(),
+          openedBy: opener?.username || 'Người dùng',
+          reason,
+          orderAmount: order.pricing?.total_amount,
+        }).catch(() => {});
+      })
+      .catch(() => {});
+
     return {
       success: true,
       message: fundsHeld
@@ -2201,6 +2229,23 @@ export class OrdersService {
         type: 'ORDER_UPDATE',
         variant: 'warning',
         link: `/orders/${order._id}`,
+      })
+      .catch(() => {});
+
+    // Bắn thông báo về Discord Admin
+    this.userModel
+      .findById(order.customerId)
+      .select('username')
+      .lean()
+      .then((customer) => {
+        this.discordService.notifyRankMismatch({
+          orderCode: orderCodeDisplay,
+          boosterName: 'Booster',
+          customerName: customer?.username || 'Khách hàng',
+          declaredRank,
+          verifiedRank: payload.verifiedRank,
+          depositTopUpNeeded: additionalPayment,
+        }).catch(() => {});
       })
       .catch(() => {});
 

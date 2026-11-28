@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import * as crypto from 'crypto';
+import { DiscordService } from '../../common/discord.service';
 
 import { IUser } from '../../database/schemas/User';
 import {
@@ -19,6 +20,7 @@ export class WalletService {
     @InjectModel('Transaction') private transactionModel: Model<ITransaction>,
     @InjectModel('Withdrawal') private withdrawalModel: Model<IWithdrawal>,
     @InjectModel('SystemSetting') private settingModel: Model<ISystemSetting>,
+    private readonly discordService: DiscordService,
   ) {}
 
   async getWallet(userId: string, page = 1, limit = 10, type?: string, status?: string, search?: string) {
@@ -236,6 +238,15 @@ export class WalletService {
         bankInfo,
       },
     });
+
+    // Bắn thông báo yêu cầu rút tiền về Discord Admin
+    this.discordService.notifyWithdrawalRequest({
+      username: user.username,
+      amount,
+      bankName: bankInfo.bankName,
+      accountNumber: bankInfo.accountNumber,
+      accountHolder: bankInfo.accountHolder || user.username,
+    }).catch(() => {});
 
     return {
       success: true,
