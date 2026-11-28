@@ -166,13 +166,13 @@ export default function MetaNewsSpotlight() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
           
           {/* 1. Featured Big Card (7 Cols) */}
-          <div className="lg:col-span-7">
+          <div className="lg:col-span-7 h-full">
             <Link
               href={`/blogs/${featuredPost.slug}`}
-              className="group relative rounded-3xl bg-zinc-900/90 border border-zinc-800/90 hover:border-cyan-500/50 overflow-hidden h-full flex flex-col justify-between transition-all duration-300 hover:shadow-[0_20px_50px_rgba(6,182,212,0.15)] hover:-translate-y-1"
+              className="group relative rounded-3xl bg-zinc-900/60 border border-zinc-800/80 hover:border-cyan-500/50 backdrop-blur-md overflow-hidden h-full flex flex-col justify-between transition-all duration-300 hover:shadow-[0_20px_50px_rgba(6,182,212,0.15)] hover:-translate-y-1"
             >
               {/* Media Thumbnail Container */}
-              <div className="relative w-full aspect-[16/10] bg-zinc-950 overflow-hidden">
+              <div className="relative w-full aspect-[16/9.5] bg-zinc-950 overflow-hidden">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={featuredPost.thumbnail || '/images/games/lol-card.jpg'}
@@ -181,17 +181,22 @@ export default function MetaNewsSpotlight() {
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 opacity-85 group-hover:opacity-100"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/40 to-transparent" />
-                <span
-                  className={`absolute top-4 left-4 px-3 py-1 rounded-xl text-xs font-black uppercase tracking-wider border shadow-lg ${featuredBadge.style}`}
-                >
-                  {featuredBadge.text}
-                </span>
+                <div className="absolute top-4 left-4 flex items-center gap-2">
+                  <span
+                    className={`px-3 py-1 rounded-xl text-xs font-black uppercase tracking-wider border shadow-lg ${featuredBadge.style}`}
+                  >
+                    {featuredBadge.text}
+                  </span>
+                  <span className="px-2.5 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider bg-rose-500/20 text-rose-300 border border-rose-500/30 flex items-center gap-1 shadow-md">
+                    <Flame className="w-3 h-3 text-rose-400 animate-pulse" /> TIÊU ĐIỂM
+                  </span>
+                </div>
               </div>
 
               {/* Text Info */}
               <div className="p-6 sm:p-7 flex-1 flex flex-col justify-between">
                 <div>
-                  <div className="text-xs text-zinc-500 mb-2.5 flex items-center gap-2">
+                  <div className="text-xs text-zinc-500 mb-2.5 flex items-center gap-2 font-mono">
                     <span>{formatDate(featuredPost.createdAt)}</span>
                     <span>•</span>
                     <span className="flex items-center gap-1">
@@ -207,7 +212,7 @@ export default function MetaNewsSpotlight() {
                   </p>
                 </div>
 
-                <div className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-cyan-400 group-hover:text-cyan-300 pt-3 border-t border-white/5">
+                <div className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-cyan-400 group-hover:text-cyan-300 pt-3 border-t border-zinc-800/80">
                   <span>Đọc bài phân tích chi tiết</span>
                   <ArrowRight className="w-4 h-4 group-hover:translate-x-1.5 transition-transform" />
                 </div>
@@ -215,57 +220,90 @@ export default function MetaNewsSpotlight() {
             </Link>
           </div>
 
-          {/* 2. Sub Articles (5 Cols) with Thumbnail & Rich Layout */}
-          <div className="lg:col-span-5 flex flex-col justify-between gap-3.5">
-            {subPosts.map((art, idx) => {
-              const tag = art.tags?.[0] || 'CẨM NANG';
-              const badge = getCategoryBadge(tag);
-              const readTime = estimateReadingTime(art.content, art.excerpt);
-              const thumb = art.thumbnail || FALLBACK_POSTS[(idx + 1) % FALLBACK_POSTS.length].thumbnail;
+          {/* 2. Sub Articles (5 Cols) - Unified Trending Feed Panel */}
+          <div className="lg:col-span-5 h-full">
+            <div className="rounded-3xl bg-zinc-900/60 border border-zinc-800/80 backdrop-blur-md p-5 sm:p-6 h-full flex flex-col justify-between hover:border-zinc-700/80 transition-colors shadow-xl">
+              {/* Panel Header */}
+              <div className="flex items-center justify-between pb-3.5 border-b border-zinc-800/80">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-cyan-400" />
+                  <span className="text-xs font-black uppercase tracking-wider text-white">
+                    Tiêu Điểm &amp; Xu Hướng Meta
+                  </span>
+                </div>
+                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-cyan-950/60 border border-cyan-800/40 text-cyan-300 font-mono">
+                  Top Reads
+                </span>
+              </div>
 
-              return (
-                <Link
-                  key={art._id || idx}
-                  href={`/blogs/${art.slug}`}
-                  className="p-3.5 sm:p-4 rounded-2xl bg-zinc-900/70 border border-zinc-800/80 hover:border-cyan-500/40 hover:bg-zinc-900 transition-all duration-300 flex items-center gap-4 group hover:-translate-y-0.5 hover:shadow-lg"
-                >
-                  {/* Thumbnail nhỏ trực quan */}
-                  <div className="relative w-20 h-20 sm:w-22 sm:h-22 rounded-xl overflow-hidden bg-zinc-950 shrink-0 border border-white/5">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={thumb}
-                      alt={art.title}
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500 opacity-80 group-hover:opacity-100"
-                    />
-                  </div>
+              {/* Articles Feed */}
+              <div className="flex-1 flex flex-col justify-between divide-y divide-zinc-800/60 my-1">
+                {subPosts.map((art, idx) => {
+                  const tag = art.tags?.[0] || 'CẨM NANG';
+                  const badge = getCategoryBadge(tag);
+                  const readTime = estimateReadingTime(art.content, art.excerpt);
+                  const thumb = art.thumbnail || FALLBACK_POSTS[(idx + 1) % FALLBACK_POSTS.length].thumbnail;
+                  const rankNum = String(idx + 1).padStart(2, '0');
 
-                  {/* Text Details */}
-                  <div className="min-w-0 flex-1 flex flex-col justify-between h-full">
-                    <div>
-                      <div className="flex items-center justify-between text-[10px] mb-1">
-                        <span className={`px-2 py-0.5 rounded-md font-bold uppercase tracking-wider border text-[9px] ${badge.style}`}>
-                          {badge.text}
-                        </span>
-                        <span className="text-zinc-500 text-[10px] flex items-center gap-1">
-                          <Clock size={10} />
-                          {readTime}
-                        </span>
+                  return (
+                    <Link
+                      key={art._id || idx}
+                      href={`/blogs/${art.slug}`}
+                      className="group py-3 first:pt-2 last:pb-1 -mx-2 px-2.5 rounded-xl hover:bg-white/[0.03] transition-all duration-200 flex items-center gap-3.5 cursor-pointer"
+                    >
+                      {/* Thumbnail with Rank Number Overlay */}
+                      <div className="relative w-16 h-16 sm:w-18 sm:h-18 rounded-xl overflow-hidden bg-zinc-950 shrink-0 border border-white/10 shadow-md">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={thumb}
+                          alt={art.title}
+                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500 opacity-80 group-hover:opacity-100"
+                        />
+                        <div className="absolute top-1 left-1 px-1.5 py-0.5 rounded-md bg-black/75 backdrop-blur-xs font-mono text-[9px] font-black text-cyan-400">
+                          {rankNum}
+                        </div>
                       </div>
-                      <h4 className="text-xs sm:text-sm font-bold text-white group-hover:text-cyan-300 transition-colors leading-snug line-clamp-2 mt-1">
-                        {art.title}
-                      </h4>
-                    </div>
 
-                    <div className="flex items-center justify-between pt-1.5 mt-1 border-t border-white/5 text-[10px] text-zinc-500">
-                      <span>{formatDate(art.createdAt)}</span>
-                      <span className="text-cyan-400 group-hover:translate-x-0.5 transition-transform flex items-center gap-0.5 font-bold">
-                        Đọc <ChevronRight size={11} />
-                      </span>
-                    </div>
-                  </div>
+                      {/* Text Info */}
+                      <div className="min-w-0 flex-1 flex flex-col justify-between">
+                        <div>
+                          <div className="flex items-center gap-2 text-[10px] mb-1">
+                            <span className={`px-2 py-0.5 rounded-md font-bold uppercase tracking-wider border text-[9px] ${badge.style}`}>
+                              {badge.text}
+                            </span>
+                            <span className="text-zinc-500 text-[10px] flex items-center gap-1 font-mono">
+                              <Clock size={10} />
+                              {readTime}
+                            </span>
+                          </div>
+                          <h4 className="text-xs sm:text-[13px] font-bold text-zinc-100 group-hover:text-cyan-300 transition-colors leading-snug line-clamp-2">
+                            {art.title}
+                          </h4>
+                        </div>
+
+                        <div className="flex items-center justify-between pt-1 text-[10px] text-zinc-500">
+                          <span>{formatDate(art.createdAt)}</span>
+                          <span className="text-cyan-400 group-hover:translate-x-0.5 transition-transform flex items-center gap-0.5 font-bold text-[11px]">
+                            Chi tiết <ChevronRight size={12} />
+                          </span>
+                        </div>
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+
+              {/* Panel Footer */}
+              <div className="pt-3 border-t border-zinc-800/80">
+                <Link
+                  href="/blogs"
+                  className="w-full py-2.5 rounded-xl bg-zinc-800/50 hover:bg-zinc-800 border border-zinc-700/50 hover:border-cyan-500/30 text-xs font-bold text-zinc-300 hover:text-white flex items-center justify-center gap-1.5 transition-all group"
+                >
+                  <span>Khám phá toàn bộ cẩm nang chiến thuật</span>
+                  <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform text-cyan-400" />
                 </Link>
-              );
-            })}
+              </div>
+            </div>
           </div>
 
         </div>
