@@ -388,6 +388,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { href: '/admin/audit-logs', label: t('auditLogs') },
     { href: '/admin/disputes', label: 'Quản lý Tranh chấp' },
     { href: '/admin/cron', label: 'System Cron' },
+    { href: '/admin/traffic', label: 'Lưu Lượng & SEO Traffic' },
   ];
 
   // Tìm item khớp với URL hiện tại (ưu tiên khớp chính xác hoặc khớp phần đầu)

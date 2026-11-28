@@ -1858,4 +1858,109 @@ export class AdminService {
 
     return result;
   }
+
+  // 13. Tích hợp TrafficPeak API
+  private getTrafficApiKey(): string {
+    return process.env.PEAK_TRAFFIC_API_KEY || 'tp_live_GKMs5ZzrGUrk_EFf64UdhC278vuL2vJHJtAlkPXMEsF0d';
+  }
+
+  async getTrafficSummary(): Promise<any> {
+    const apiKey = this.getTrafficApiKey();
+    try {
+      const headers = { Authorization: `Bearer ${apiKey}` };
+      const [resMe, resBalance, resProjects] = await Promise.all([
+        fetch('https://api.trafficpeak.io/v1/public/me', { headers }).then((r) => r.json()),
+        fetch('https://api.trafficpeak.io/v1/public/balance', { headers }).then((r) => r.json()),
+        fetch('https://api.trafficpeak.io/v1/public/projects', { headers }).then((r) => r.json()),
+      ]);
+
+      return {
+        success: true,
+        account: resMe,
+        balance: resBalance,
+        projects: resProjects?.data || [],
+        totalProjects: resProjects?.pagination?.totalItems || 0,
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        message: error.message || 'Không thể kết nối TrafficPeak API',
+      };
+    }
+  }
+
+  async createTrafficProject(body: any): Promise<any> {
+    const apiKey = this.getTrafficApiKey();
+    const idempotencyKey = 'lr_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
+
+    const payload: any = {
+      title: body.title || 'LeoRank Traffic Campaign',
+      type: body.type || 'direct',
+      domain: body.domain || 'leorank.site',
+      visitorsPerDay: Number(body.visitorsPerDay || 500),
+    };
+
+    if (body.countryCodes && Array.isArray(body.countryCodes)) {
+      payload.countryCodes = body.countryCodes;
+    }
+
+    const res = await fetch('https://api.trafficpeak.io/v1/public/projects', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+        'Idempotency-Key': idempotencyKey,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await res.json();
+
+    // Nếu là chiến dịch SERP và có danh sách keywords
+    if (res.ok && body.type === 'serp' && Array.isArray(body.keywords) && body.keywords.length > 0) {
+      try {
+        await fetch('https://api.trafficpeak.io/v1/public/serp/keywords', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${apiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            domain: body.domain || 'leorank.site',
+            keywords: body.keywords,
+            countryCodes: body.countryCodes || ['VN'],
+          }),
+        });
+      } catch (err) {
+        console.error('Lỗi khi thêm keywords cho TrafficPeak project:', err);
+      }
+    }
+
+    return {
+      success: res.ok,
+      data,
+    };
+  }
+
+  async addTrafficKeywords(body: any): Promise<any> {
+    const apiKey = this.getTrafficApiKey();
+    const res = await fetch('https://api.trafficpeak.io/v1/public/serp/keywords', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        domain: body.domain || 'leorank.site',
+        keywords: body.keywords || [],
+        countryCodes: body.countryCodes || ['VN'],
+      }),
+    });
+
+    const data = await res.json();
+    return {
+      success: res.ok,
+      data,
+    };
+  }
 }

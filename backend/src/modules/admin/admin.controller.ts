@@ -470,6 +470,28 @@ export class AdminController {
   async removeStaff(@Param('userId') userId: string): Promise<any> {
     return this.adminService.removeStaff(userId);
   }
+
+  // 17. Quản lý TrafficPeak Integration
+  @Get('traffic/summary')
+  @Roles(UserRole.ADMIN, UserRole.STAFF)
+  @ApiOperation({ summary: 'Get TrafficPeak account summary & projects' })
+  async getTrafficSummary(): Promise<any> {
+    return this.adminService.getTrafficSummary();
+  }
+
+  @Post('traffic/projects')
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: 'Create a new TrafficPeak campaign project' })
+  async createTrafficProject(@Body() body: any): Promise<any> {
+    return this.adminService.createTrafficProject(body);
+  }
+
+  @Post('traffic/keywords')
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: 'Add SERP keywords to TrafficPeak project' })
+  async addTrafficKeywords(@Body() body: any): Promise<any> {
+    return this.adminService.addTrafficKeywords(body);
+  }
 }
 
 

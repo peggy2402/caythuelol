@@ -30,6 +30,7 @@ import {
   Gamepad2,
   Crown,
   Gift,
+  Globe,
   X
 } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n';
@@ -282,6 +283,7 @@ export default function Sidebar({ className = '', onLinkClick, onClose }: Sideba
             <NavItem href="/admin/deposits" icon={DollarSign} label="Quản lý Tiền cọc" />
             <NavItem href="/admin/disputes" icon={AlertTriangle} label="Quản lý Tranh chấp" />
             <NavItem href="/admin/cron" icon={ListTodo} label="Quản Lý Cron" />
+            <NavItem href="/admin/traffic" icon={Globe} label="Lưu lượng & SEO Traffic" />
             <NavItem href="/admin/games" icon={Gamepad2} label="Cấu hình Tựa Game" />
             <NavItem href="/admin/vip" icon={Crown} label="Hội Viên VIP" />
             <NavItem href="/admin/settings" icon={Settings} label={t('systemSettings')} />
