@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Be_Vietnam_Pro } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
 import LanguageProvider from "@/components/LanguageProvider";
 import CookieConsent from "@/components/CookieConsent";
@@ -91,6 +92,23 @@ export default function RootLayout({
   return (
     <html lang="vi" className="overflow-x-clip" suppressHydrationWarning>
       <head>
+        {/* Google Tag Manager (GTM) */}
+        <Script
+          id="google-tag-manager"
+          strategy="afterInteractive"
+          src="https://www.googletagmanager.com/gtm.js?id=GTM-NLQN7HBR"
+        />
+        <Script
+          id="gtm-datalayer-init"
+          strategy="afterInteractive"
+          dangerouslySetInnerHTML={{
+            __html: `
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments);}
+              gtag('js', new Date());
+            `,
+          }}
+        />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
@@ -213,6 +231,15 @@ export default function RootLayout({
         className={`${beVietnamPro.variable} font-sans antialiased bg-zinc-950 text-white w-full max-w-full overflow-x-clip`}
         suppressHydrationWarning
       >
+        {/* Google Tag Manager (noscript fallback) */}
+        <noscript>
+          <iframe
+            src="https://www.googletagmanager.com/ns.html?id=GTM-NLQN7HBR"
+            height="0"
+            width="0"
+            style={{ display: 'none', visibility: 'hidden' }}
+          />
+        </noscript>
         <ApiInterceptor />
         <LanguageProvider>
           <ChatProvider>
