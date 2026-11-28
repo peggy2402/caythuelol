@@ -1,7 +1,7 @@
 // src/app/boosters/apply/page.tsx
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -11,7 +11,7 @@ import {
   AlertTriangle, Trophy, ChevronsUpDown, Check, CloudUpload, 
   X, Eraser, Download, DoorOpen, Landmark,
   ShieldCheck, Zap, Sparkles, Lock, ArrowRight, Wallet, UserCheck, Flame,
-  FileSignature, Copy, CheckCheck, ExternalLink, Shield, BadgeCheck, Eye
+  FileSignature, Copy, CheckCheck, ExternalLink, Shield, BadgeCheck, Eye, RefreshCw
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import html2canvas from 'html2canvas';
@@ -22,12 +22,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
-import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import Navbar from '@/components/Navbar';
 import { cn } from '@/lib/utils';
 import BankSelectModal from './bank-select-modal';
+
+const DRAFT_STORAGE_KEY = 'leorank_booster_apply_draft';
 
 // Danh sách tựa game thế mạnh chính được hỗ trợ
 const GAME_OPTIONS = [
@@ -122,7 +123,7 @@ const formSchema = z.object({
     .refine((val) => {
       const trimmed = (val || '').trim();
       return /^(https?:\/\/)?(www\.)?(facebook\.com|fb\.com)\/.+$/i.test(trimmed);
-    }, "Link Facebook không hợp lệ (ví dụ: facebook.com/vtchn hoặc fb.com/vtchn)"),
+    }, "Link Facebook không hợp lệ (ví dụ: facebook.com/username hoặc fb.com/username)"),
   discordTag: z.string({ message: "Vui lòng nhập Discord Tag" }).min(3, "Discord Tag không hợp lệ"),
   primaryGame: z.string({ message: "Vui lòng chọn game thế mạnh chính" }).min(1, "Vui lòng chọn game thế mạnh chính"),
   customGameName: z.string().optional(),
@@ -168,7 +169,6 @@ interface AdminSettings {
 export default function BoosterApplyPage() {
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [isUploadingRank, setIsUploadingRank] = useState(false);
   const [isUploadingBill, setIsUploadingBill] = useState(false);
   const [rankImageFile, setRankImageFile] = useState<File | null>(null);
@@ -183,11 +183,14 @@ export default function BoosterApplyPage() {
   const [banks, setBanks] = useState<Bank[]>([]);
   const [isBankOpen, setIsBankOpen] = useState(false);
   const [contractDate, setContractDate] = useState<Date | null>(null);
-  const [hasDownloadedContract, setHasDownloadedContract] = useState(false);
   const [isAlreadyBooster, setIsAlreadyBooster] = useState(false);
   const [showResignModal, setShowResignModal] = useState(false);
   
-  // Signature Ref
+  // PDF Preview State (Client-Side Blob Modal)
+  const [previewPdfUrl, setPreviewPdfUrl] = useState<string | null>(null);
+  const [isPreviewingPdf, setIsPreviewingPdf] = useState(false);
+
+  // Signature Ref & State
   const sigCanvas = useRef<any>({});
   const [signatureDataUrl, setSignatureDataUrl] = useState<string | null>(null);
 
@@ -202,8 +205,9 @@ export default function BoosterApplyPage() {
   const [existingApp, setExistingApp] = useState<any | null>(null);
   const [loadingExistingApp, setLoadingExistingApp] = useState(true);
   const [currentUsername, setCurrentUsername] = useState('');
+  const [hasRestoredDraft, setHasRestoredDraft] = useState(false);
 
-  const { register, handleSubmit, watch, trigger, setValue, formState: { errors } } = useForm<FormData>({
+  const { register, handleSubmit, watch, trigger, setValue, reset, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(formSchema),
     mode: 'onChange',
     defaultValues: {
@@ -289,7 +293,7 @@ export default function BoosterApplyPage() {
           },
           depositConfig: depositConfig ? {
             depositRequired: Boolean(depositConfig.depositRequired),
-            depositAmount: Number(depositConfig.depositAmount) || 49995,
+            depositAmount: Number(depositConfig.depositAmount) || 50000,
           } : prev.depositConfig
         }));
       } catch (error) {
@@ -312,11 +316,93 @@ export default function BoosterApplyPage() {
     checkUserRole();
   }, []);
 
-  // Constants
+  // Khôi phục bản nháp từ localStorage (nếu có)
+  useEffect(() => {
+    if (loadingExistingApp || (existingApp && existingApp.status === 'pending')) return;
+    try {
+      const savedDraft = localStorage.getItem(DRAFT_STORAGE_KEY);
+      if (savedDraft) {
+        const parsed = JSON.parse(savedDraft);
+        if (parsed && typeof parsed === 'object') {
+          if (parsed.fullName) setValue('fullName', parsed.fullName);
+          if (parsed.phoneNumber) setValue('phoneNumber', parsed.phoneNumber);
+          if (parsed.facebookUrl) setValue('facebookUrl', parsed.facebookUrl);
+          if (parsed.discordTag) setValue('discordTag', parsed.discordTag);
+          if (parsed.primaryGame) setValue('primaryGame', parsed.primaryGame);
+          if (parsed.customGameName) setValue('customGameName', parsed.customGameName);
+          if (parsed.currentRank) setValue('currentRank', parsed.currentRank);
+          if (parsed.highestRank) setValue('highestRank', parsed.highestRank);
+          if (parsed.opggLink) setValue('opggLink', parsed.opggLink);
+          if (parsed.bankName) setValue('bankName', parsed.bankName);
+          if (parsed.bankAccountNumber) setValue('bankAccountNumber', parsed.bankAccountNumber);
+          if (parsed.bankAccountName) setValue('bankAccountName', parsed.bankAccountName);
+          if (parsed.agreementSigned_name) setValue('agreementSigned_name', parsed.agreementSigned_name);
+          if (parsed.agreements) setAgreements(parsed.agreements);
+          if (parsed.signatureDataUrl) setSignatureDataUrl(parsed.signatureDataUrl);
+          setHasRestoredDraft(true);
+        }
+      }
+    } catch (e) {
+      console.warn("Failed to restore draft from localStorage", e);
+    }
+  }, [loadingExistingApp, existingApp, setValue]);
+
+  // Tự động lưu bản nháp vào localStorage
+  const formValues = watch();
+  useEffect(() => {
+    if (loadingExistingApp || (existingApp && existingApp.status === 'pending')) return;
+    const timer = setTimeout(() => {
+      try {
+        const draftData = {
+          fullName: formValues.fullName,
+          phoneNumber: formValues.phoneNumber,
+          facebookUrl: formValues.facebookUrl,
+          discordTag: formValues.discordTag,
+          primaryGame: formValues.primaryGame,
+          customGameName: formValues.customGameName,
+          currentRank: formValues.currentRank,
+          highestRank: formValues.highestRank,
+          opggLink: formValues.opggLink,
+          bankName: formValues.bankName,
+          bankAccountNumber: formValues.bankAccountNumber,
+          bankAccountName: formValues.bankAccountName,
+          agreementSigned_name: formValues.agreementSigned_name,
+          agreements,
+          signatureDataUrl,
+          updatedAt: Date.now(),
+        };
+        // Chỉ lưu khi đã có ít nhất họ tên hoặc SĐT
+        if (draftData.fullName || draftData.phoneNumber) {
+          localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draftData));
+        }
+      } catch (e) {
+        console.warn("Failed to auto-save draft", e);
+      }
+    }, 800);
+    return () => clearTimeout(timer);
+  }, [formValues, agreements, signatureDataUrl, loadingExistingApp, existingApp]);
+
+  const handleClearDraft = () => {
+    localStorage.removeItem(DRAFT_STORAGE_KEY);
+    reset();
+    setAgreements({});
+    setSignatureDataUrl(null);
+    if (sigCanvas.current && !sigCanvas.current.isEmpty()) {
+      sigCanvas.current.clear();
+    }
+    setRankImageFile(null);
+    setRankImagePreview(null);
+    setBillImageFile(null);
+    setBillImagePreview(null);
+    setHasRestoredDraft(false);
+    toast.info("Đã xóa bản nháp thành công.");
+  };
+
+  // 3-STEP WORKFLOW CHUẨN MỰC
   const STEPS = [
-    { id: 1, title: 'Hồ sơ cá nhân', subtitle: 'Thông tin liên hệ & định danh' },
-    { id: 2, title: 'Trình độ & Thanh toán', subtitle: 'Xác thực Rank & Ngân hàng' },
-    { id: 3, title: 'Ký hợp đồng điện tử', subtitle: 'Cam kết & Ký tên online' },
+    { id: 1, title: 'Hồ sơ & Chuyên môn', subtitle: 'Thông tin cá nhân, Game & Ngân hàng' },
+    { id: 2, title: 'Cam kết & Hợp đồng', subtitle: '6 cam kết nghề nghiệp & Chữ ký số' },
+    { id: 3, title: 'Kích hoạt & Nộp đơn', subtitle: 'Xác thực thanh toán & Nộp hồ sơ' },
   ];
 
   const COMMITMENTS = [
@@ -328,55 +414,67 @@ export default function BoosterApplyPage() {
     { id: 'deposit', title: 'Quy chế Escrow & Không phá đơn', desc: 'Tuyệt đối không lôi kéo khách giao dịch ngoài sàn né phí Escrow; nhận đơn có trách nhiệm, không tự ý bỏ đơn giữa chừng.' },
   ];
 
+  const allAgreementsChecked = COMMITMENTS.every(c => agreements[c.id]);
+  const isNameMatch = signature && fullName && signature.trim().toLowerCase() === fullName.trim().toLowerCase();
+  const isSignatureValid = isNameMatch && (Boolean(signatureDataUrl) || !sigCanvas.current?.isEmpty());
+
+  const clearSignature = () => {
+    sigCanvas.current?.clear();
+    setSignatureDataUrl(null);
+  };
+
+  const saveSignature = () => {
+    if (sigCanvas.current && !sigCanvas.current.isEmpty()) {
+      const data = sigCanvas.current.getCanvas().toDataURL('image/png');
+      setSignatureDataUrl(data);
+      const sigImg = document.getElementById('contract-b-signature-img') as HTMLImageElement;
+      if (sigImg) sigImg.src = data;
+    }
+  };
+
   // Stepper handlers
   const nextStep = async () => {
-    if (step === 2) {
-      try {
-        const res = await fetch(`/api/settings/public?t=${Date.now()}`, { cache: 'no-store' });
-        const data = await res.json();
-        const settings = data?.settings || (Array.isArray(data) ? data.reduce((acc: any, curr: any) => ({ ...acc, [curr.key]: curr.value }), {}) : data) || {};
-        const serverDepositConfig = settings.booster_registration_config || settings.boosterRegistrationConfig;
-        if (serverDepositConfig && Boolean(serverDepositConfig.depositRequired) !== adminSettings.depositConfig.depositRequired) {
-          setAdminSettings(prev => ({
-            ...prev,
-            depositConfig: {
-              depositRequired: Boolean(serverDepositConfig.depositRequired),
-              depositAmount: Number(serverDepositConfig.depositAmount) || 49995,
-            }
-          }));
-          toast.warning("Cấu hình hệ thống đã cập nhật", {
-            description: serverDepositConfig.depositRequired 
-              ? "Hệ thống vừa bật yêu cầu thanh toán phí kích hoạt quyền Booster. Vui lòng chuyển khoản để tiếp tục."
-              : "Hệ thống vừa áp dụng miễn phí đăng ký Booster. Bạn không cần thanh toán nữa."
-          });
-          return;
-        }
-      } catch (e) { 
-        console.error("Sync check failed", e); 
-      }
-
-      if (adminSettings.depositConfig.depositRequired && !billImageUrl && !billImageFile) {
-        toast.error("Thiếu ảnh Bill chuyển khoản", {
-          description: "Vui lòng tải lên ảnh Bill chuyển khoản phí kích hoạt quyền Booster để tiếp tục."
-        });
-        return;
-      }
-    }
-
     let fieldsToValidate: (keyof FormData)[] = [];
-    if (step === 1) fieldsToValidate = ['fullName', 'phoneNumber', 'facebookUrl', 'discordTag'];
-    if (step === 2) {
-      fieldsToValidate = ['primaryGame', 'currentRank', 'highestRank', 'opggLink', 'rankImageUrl', 'bankName', 'bankAccountName', 'bankAccountNumber'];
+    if (step === 1) {
+      fieldsToValidate = [
+        'fullName', 'phoneNumber', 'facebookUrl', 'discordTag',
+        'primaryGame', 'currentRank', 'highestRank', 'opggLink', 'rankImageUrl',
+        'bankName', 'bankAccountName', 'bankAccountNumber'
+      ];
       if (watch('primaryGame') === 'OTHER') {
         fieldsToValidate.push('customGameName');
       }
     }
-
-    const isValid = await trigger(fieldsToValidate);
-    if (isValid) {
-      setStep(prev => prev + 1);
-      window.scrollTo({ top: 200, behavior: 'smooth' });
+    if (step === 2) {
+      if (!allAgreementsChecked) {
+        toast.error("Chưa hoàn tất cam kết", {
+          description: "Vui lòng gạt bật toàn bộ 6 cam kết nghề nghiệp để tiếp tục."
+        });
+        return;
+      }
+      if (!isNameMatch) {
+        toast.error("Họ tên đối chiếu chưa khớp", {
+          description: `Vui lòng nhập chính xác họ tên đối chiếu khớp với: ${fullName}`
+        });
+        return;
+      }
+      if (!signatureDataUrl && (!sigCanvas.current || sigCanvas.current.isEmpty())) {
+        toast.error("Thiếu chữ ký", {
+          description: "Vui lòng ký tên vào khung chữ ký điện tử bên dưới."
+        });
+        return;
+      }
+      // Lưu lại chữ ký nếu vừa ký xong
+      saveSignature();
     }
+
+    if (fieldsToValidate.length > 0) {
+      const isValid = await trigger(fieldsToValidate);
+      if (!isValid) return;
+    }
+
+    setStep(prev => prev + 1);
+    window.scrollTo({ top: 200, behavior: 'smooth' });
   };
 
   const prevStep = () => {
@@ -397,26 +495,11 @@ export default function BoosterApplyPage() {
     setAgreements(newState);
   };
 
-  const allAgreementsChecked = COMMITMENTS.every(c => agreements[c.id]);
-  const isNameMatch = signature && fullName && signature.trim().toLowerCase() === fullName.trim().toLowerCase();
-  const isSignatureValid = isNameMatch && !sigCanvas.current?.isEmpty();
-
-  const clearSignature = () => {
-    sigCanvas.current?.clear();
-    setSignatureDataUrl(null);
-  };
-
-  const saveSignature = () => {
-    if (sigCanvas.current && !sigCanvas.current.isEmpty()) {
-      setSignatureDataUrl(sigCanvas.current.getCanvas().toDataURL('image/png'));
-    }
-  };
-
   // QR Code Generation
   const transferContent = `BOOSTERAPPLY ${currentUsername || phoneNumber || 'USER'}`.toUpperCase();
   const qrCodeUrl = `https://img.vietqr.io/image/${adminSettings.adminBank.bankName}-${adminSettings.adminBank.accountNumber}-compact2.png?amount=${adminSettings.depositConfig.depositAmount}&addInfo=${encodeURIComponent(transferContent)}&accountName=${encodeURIComponent(adminSettings.adminBank.accountHolder)}`;
 
-  // Upload Handlers (Deferred Upload - Tải lên cục bộ 0ms, chỉ upload Cloudinary khi nộp đơn)
+  // Upload Handlers (Deferred Upload - Tải lên cục bộ 0ms, chỉ upload Cloudinary khi nộp đơn chính thức)
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -459,7 +542,7 @@ export default function BoosterApplyPage() {
     return data.url;
   };
 
-  // PDF Contract Generation
+  // PDF Contract Generation (Đảm bảo gắn chữ ký Bên B chuẩn xác)
   const generateContractBlob = async (): Promise<Blob | null> => {
     const contractElement = document.getElementById('contract-template');
     if (!contractElement) return null;
@@ -471,12 +554,22 @@ export default function BoosterApplyPage() {
         currentSig = sigCanvas.current.getCanvas().toDataURL('image/png');
         setSignatureDataUrl(currentSig);
       }
+      
       const sigImg = document.getElementById('contract-b-signature-img') as HTMLImageElement;
       if (sigImg && currentSig) {
         sigImg.src = currentSig;
+        if (!sigImg.complete) {
+          await new Promise((resolve) => {
+            sigImg.onload = resolve;
+            sigImg.onerror = resolve;
+          });
+        }
+        if (typeof sigImg.decode === 'function') {
+          try { await sigImg.decode(); } catch {}
+        }
       }
 
-      await new Promise((r) => setTimeout(r, 60));
+      await new Promise((r) => setTimeout(r, 80));
 
       const canvas = await html2canvas(contractElement, { 
         scale: 2,
@@ -491,10 +584,15 @@ export default function BoosterApplyPage() {
           }
           if (currentSig) {
             const clonedImg = clonedDoc.getElementById('contract-b-signature-img') as HTMLImageElement;
-            if (clonedImg) clonedImg.src = currentSig;
+            if (clonedImg) {
+              clonedImg.src = currentSig;
+              clonedImg.style.display = 'block';
+              clonedImg.style.visibility = 'visible';
+            }
           }
         }
       });
+
       const imgData = canvas.toDataURL('image/jpeg', 0.92);
       const pdf = new jsPDF('p', 'mm', 'a4');
       const pdfWidth = pdf.internal.pageSize.getWidth();
@@ -520,6 +618,50 @@ export default function BoosterApplyPage() {
       console.error("Lỗi tạo hợp đồng:", error);
       toast.error("Lỗi tạo hợp đồng", { description: error instanceof Error ? error.message : "Vui lòng thử lại" });
       return null;
+    }
+  };
+
+  // Preview bản khai trực tiếp tại Client bằng Blob URL (0 Cloudinary cost, không upload nháp)
+  const handlePreviewContract = async () => {
+    if (!allAgreementsChecked) {
+      toast.error("Vui lòng gạt bật toàn bộ cam kết nghề nghiệp để xem trước hợp đồng.");
+      return;
+    }
+    if (!isNameMatch) {
+      toast.error("Họ tên đối chiếu chưa khớp với họ tên khai báo ở Bước 1.");
+      return;
+    }
+    if (!signatureDataUrl && (!sigCanvas.current || sigCanvas.current.isEmpty())) {
+      toast.error("Vui lòng ký tên vào khung chữ ký điện tử.");
+      return;
+    }
+
+    saveSignature();
+    setIsPreviewingPdf(true);
+    toast.info("Đang khởi tạo bản xem trước hợp đồng PDF...");
+
+    try {
+      const blob = await generateContractBlob();
+      if (blob) {
+        const localBlobUrl = window.URL.createObjectURL(blob);
+        setPreviewPdfUrl(localBlobUrl);
+      }
+    } finally {
+      setIsPreviewingPdf(false);
+    }
+  };
+
+  const handleDownloadDraftPdf = async () => {
+    const blob = await generateContractBlob();
+    if (blob) {
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `Ban_Khai_Hop_Dong_${fullName || 'Booster'}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      toast.success("Đã tải xuống bản khai hợp đồng dự thảo (.pdf)!");
     }
   };
 
@@ -550,30 +692,12 @@ export default function BoosterApplyPage() {
     }
   };
 
-  const handleDownload = async () => {
-    if (sigCanvas.current && !sigCanvas.current.isEmpty()) {
-      setSignatureDataUrl(sigCanvas.current.getCanvas().toDataURL('image/png'));
-    }
-    await new Promise(resolve => setTimeout(resolve, 100));
-
-    const blob = await generateContractBlob();
-    if (blob) {
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', `Hop_Dong_Booster_${fullName || 'Application'}.pdf`);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      toast.success("Đã tải xuống bản khai hợp đồng!");
-      setHasDownloadedContract(true);
-    }
-  };
-
   const handleDownloadExistingPdf = async (url: string, suggestedName?: string) => {
     try {
       toast.info("Đang xử lý tải xuống hợp đồng PDF...");
-      const res = await fetch(url);
+      // Proxy qua /media/ để tránh lỗi CORS
+      const proxyUrl = url.replace('https://res.cloudinary.com/dgepbbgpb/', '/media/');
+      const res = await fetch(proxyUrl);
       if (!res.ok) throw new Error("Không thể tải file từ máy chủ");
       const blob = await res.blob();
       const pdfBlob = new Blob([blob], { type: 'application/pdf' });
@@ -597,27 +721,36 @@ export default function BoosterApplyPage() {
   };
 
   const onSubmit = async (data: FormData) => {
+    if (adminSettings.depositConfig.depositRequired && !billImageUrl && !billImageFile) {
+      toast.error("Thiếu ảnh Bill chuyển khoản", {
+        description: "Vui lòng tải lên ảnh Bill chuyển khoản phí kích hoạt quyền Booster."
+      });
+      return;
+    }
+
     setIsSubmitting(true);
     try {
-      if (sigCanvas.current && !sigCanvas.current.isEmpty()) {
-        setSignatureDataUrl(sigCanvas.current.getCanvas().toDataURL('image/png'));
-      }
-      
+      saveSignature();
       await new Promise(resolve => setTimeout(resolve, 100));
 
-      toast.info("Đang xử lý chứng từ & hợp đồng điện tử...");
+      toast.info("Đang xử lý tải lên hồ sơ & chứng từ bảo mật...");
 
-      // Upload ảnh Rank và Bill lên Cloudinary theo đúng thư mục nghiệp vụ
+      // 1. Upload ảnh Rank lên Cloudinary theo đúng thư mục nghiệp vụ
       let finalRankUrl = data.rankImageUrl;
       if (rankImageFile) {
+        toast.info("Đang tải ảnh minh chứng Rank...");
         finalRankUrl = await uploadSingleFile(rankImageFile, 'booster-ranks');
       }
 
+      // 2. Upload ảnh Bill lên Cloudinary (nếu có phí)
       let finalBillUrl = data.billImageUrl;
       if (billImageFile) {
+        toast.info("Đang tải ảnh Bill chuyển khoản...");
         finalBillUrl = await uploadSingleFile(billImageFile, 'booster-bills');
       }
 
+      // 3. Tạo và Upload Hợp Đồng PDF chính thức lên Cloudinary
+      toast.info("Đang khởi tạo & lưu trữ hợp đồng điện tử pháp lý...");
       const result = await generateAndUploadContract();
       if (!result) throw new Error("Không thể tạo hợp đồng. Vui lòng thử lại.");
 
@@ -651,8 +784,11 @@ export default function BoosterApplyPage() {
         throw new Error(err.message || err.error || "Đăng ký thất bại");
       }
 
+      // Xóa bản nháp trong localStorage sau khi nộp thành công
+      localStorage.removeItem(DRAFT_STORAGE_KEY);
+
       toast.success("Nộp hồ sơ thành công!", {
-        description: "Hồ sơ của bạn đang được xét duyệt. Bạn có thể xem lại bản khai và hợp đồng bất cứ lúc nào.",
+        description: "Hồ sơ của bạn đang được Ban Quản Trị đối soát và xét duyệt.",
       });
       
       const submittedApp = {
@@ -678,12 +814,11 @@ export default function BoosterApplyPage() {
       setExistingApp(submittedApp);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (error: any) {
-      toast.error("Lỗi", {
+      toast.error("Lỗi gửi hồ sơ", {
         description: error.message,
       });
     } finally {
       setIsSubmitting(false);
-      setShowConfirmModal(false);
     }
   };
 
@@ -977,9 +1112,9 @@ export default function BoosterApplyPage() {
               <button
                 type="button"
                 onClick={() => setExistingApp(null)}
-                className="text-xs text-zinc-500 hover:text-zinc-300 underline transition-colors"
+                className="text-xs text-zinc-500 hover:text-zinc-300 underline transition-colors cursor-pointer"
               >
-                Muốn chỉnh sửa hoặc nộp lại đơn khác? Bấm vào đây
+                Muốn cập nhật hoặc nộp lại đơn khác? Bấm vào đây
               </button>
 
               <div className="flex items-center gap-3 w-full sm:w-auto">
@@ -1018,7 +1153,7 @@ export default function BoosterApplyPage() {
       <div className="relative z-10 container mx-auto px-4 max-w-4xl">
         
         {/* ========================================================================= */}
-        {/* HERO HEADER SECTION (Redesigned Esports Luxury Banner)                   */}
+        {/* HERO HEADER SECTION                                                       */}
         {/* ========================================================================= */}
         <div className="text-center mb-10 sm:mb-12">
           <motion.div 
@@ -1038,9 +1173,24 @@ export default function BoosterApplyPage() {
               </span>
             </h1>
 
-            <p className="text-zinc-400 max-w-2xl mx-auto text-xs sm:text-sm leading-relaxed mb-8">
+            <p className="text-zinc-400 max-w-2xl mx-auto text-xs sm:text-sm leading-relaxed mb-6">
               Kiếm thu nhập <b className="text-cyan-300 font-bold">20.000.000đ – 50.000.000đ+/tháng</b> từ đam mê và kỹ năng của bạn. Hợp đồng pháp lý minh bạch, chia sẻ doanh thu tới 85% và rút tiền tức thì 24/7.
             </p>
+
+            {/* Notification if draft was restored */}
+            {hasRestoredDraft && (
+              <div className="inline-flex items-center gap-3 px-4 py-2 rounded-2xl bg-cyan-950/60 border border-cyan-500/40 text-xs text-cyan-200 mb-6 backdrop-blur-md">
+                <RefreshCw className="w-3.5 h-3.5 text-cyan-400 animate-spin" />
+                <span>Hệ thống đã tự động khôi phục dữ liệu bản nháp bạn đã nhập trước đó.</span>
+                <button
+                  type="button"
+                  onClick={handleClearDraft}
+                  className="text-red-400 hover:text-red-300 underline font-bold ml-2 cursor-pointer"
+                >
+                  Xóa làm lại
+                </button>
+              </div>
+            )}
 
             {/* 4 Booster Perks Grid */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 max-w-3xl mx-auto">
@@ -1080,7 +1230,7 @@ export default function BoosterApplyPage() {
         </div>
 
         {/* ========================================================================= */}
-        {/* STEPPER PROGRESS BAR (Redesigned Segmented Cyber Stepper)                */}
+        {/* STEPPER PROGRESS BAR (3 Bước rõ ràng)                                     */}
         {/* ========================================================================= */}
         <div className="mb-8 sm:mb-10">
           <div className="grid grid-cols-3 gap-2 sm:gap-4 p-1.5 bg-zinc-950/80 border border-zinc-800/80 rounded-2xl backdrop-blur-md">
@@ -1144,109 +1294,98 @@ export default function BoosterApplyPage() {
             <form onSubmit={(e) => e.preventDefault()}>
               <AnimatePresence mode="wait">
                 
-                {/* ---------------- STEP 1: PERSONAL INFO ---------------- */}
+                {/* ---------------- STEP 1: HỒ SƠ CÁ NHÂN & CHUYÊN MÔN THI ĐẤU ---------------- */}
                 {step === 1 && (
                   <motion.div
                     key="step1"
                     initial={{ opacity: 0, x: 20 }}
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: -20 }}
-                    className="space-y-6"
-                  >
-                    <div className="border-b border-zinc-800/80 pb-4">
-                      <div className="inline-flex items-center gap-2 text-xs font-bold text-cyan-400 uppercase tracking-wider mb-1">
-                        <UserCheck className="w-4 h-4" />
-                        Bước 1 / 3
-                      </div>
-                      <h3 className="text-xl font-black text-white">
-                        Thông Tin Định Danh Booster
-                      </h3>
-                      <p className="text-xs text-zinc-400 mt-0.5">
-                        Dữ liệu được mã hóa bảo mật 256-bit và chỉ dùng để đối soát giải ngân thu nhập của bạn.
-                      </p>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                      <div className="space-y-2">
-                        <Label className="text-xs font-bold uppercase tracking-wider text-zinc-300 flex items-center justify-between">
-                          <span>Họ và tên thật <span className="text-red-500 font-bold">*</span></span>
-                          <span className="text-[10px] text-zinc-500 font-normal">Trùng tên thẻ ngân hàng</span>
-                        </Label>
-                        <Input 
-                          {...register('fullName')} 
-                          placeholder="Ví dụ: Nguyễn Văn A" 
-                          className="bg-zinc-950 border-zinc-800 text-white rounded-xl h-11 text-sm focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400/30 transition-all" 
-                        />
-                        {errors.fullName && <p className="text-red-400 text-xs mt-1">{errors.fullName.message}</p>}
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label className="text-xs font-bold uppercase tracking-wider text-zinc-300 flex items-center justify-between">
-                          <span>Số điện thoại Zalo / SMS <span className="text-red-500 font-bold">*</span></span>
-                          <span className="text-[10px] text-zinc-500 font-normal">Nhận thông báo đơn gấp</span>
-                        </Label>
-                        <Input 
-                          {...register('phoneNumber')} 
-                          placeholder="Ví dụ: 0912345678" 
-                          className="bg-zinc-950 border-zinc-800 text-white rounded-xl h-11 text-sm focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400/30 transition-all" 
-                        />
-                        {errors.phoneNumber && <p className="text-red-400 text-xs mt-1">{errors.phoneNumber.message}</p>}
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label className="text-xs font-bold uppercase tracking-wider text-zinc-300 flex items-center justify-between">
-                          <span>Link Facebook cá nhân <span className="text-red-500 font-bold">*</span></span>
-                          <span className="text-[10px] text-zinc-500 font-normal">Xác thực danh tính</span>
-                        </Label>
-                        <Input 
-                          {...register('facebookUrl')} 
-                          placeholder="Ví dụ: facebook.com/vtchn hoặc fb.com/vtchn" 
-                          className="bg-zinc-950 border-zinc-800 text-white rounded-xl h-11 text-sm focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400/30 transition-all" 
-                        />
-                        {errors.facebookUrl && <p className="text-red-400 text-xs mt-1">{errors.facebookUrl.message}</p>}
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label className="text-xs font-bold uppercase tracking-wider text-zinc-300 flex items-center justify-between">
-                          <span>Discord Tag <span className="text-red-500 font-bold">*</span></span>
-                          <span className="text-[10px] text-zinc-500 font-normal">Nhận phòng chat & đơn hàng</span>
-                        </Label>
-                        <Input 
-                          {...register('discordTag')} 
-                          placeholder="Ví dụ: leorank#1234 hoặc username" 
-                          className="bg-zinc-950 border-zinc-800 text-white rounded-xl h-11 text-sm focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400/30 transition-all" 
-                        />
-                        {errors.discordTag && <p className="text-red-400 text-xs mt-1">{errors.discordTag.message}</p>}
-                      </div>
-                    </div>
-                  </motion.div>
-                )}
-
-                {/* ---------------- STEP 2: GAME VERIFICATION & BANK ---------------- */}
-                {step === 2 && (
-                  <motion.div
-                    key="step2"
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -20 }}
                     className="space-y-8"
                   >
-                    {/* Game Details */}
-                    <div className="space-y-5">
-                      <div className="border-b border-zinc-800/80 pb-4">
-                        <div className="inline-flex items-center gap-2 text-xs font-bold text-amber-400 uppercase tracking-wider mb-1">
-                          <Trophy className="w-4 h-4" />
-                          Bước 2 / 3
+                    {/* 1.1 Thông tin định danh */}
+                    <div className="space-y-4">
+                      <div className="border-b border-zinc-800/80 pb-3">
+                        <div className="inline-flex items-center gap-2 text-xs font-bold text-cyan-400 uppercase tracking-wider mb-1">
+                          <UserCheck className="w-4 h-4" />
+                          Bước 1 / 3
                         </div>
                         <h3 className="text-xl font-black text-white">
-                          Xác Thực Trình Độ Thi Đấu & Ngân Hàng
+                          Thông Tin Định Danh &amp; Liên Hệ
+                        </h3>
+                        <p className="text-xs text-zinc-400 mt-0.5">
+                          Dữ liệu được mã hóa bảo mật 256-bit và chỉ dùng để đối soát giải ngân thu nhập của bạn.
+                        </p>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label className="text-xs font-bold uppercase tracking-wider text-zinc-300 flex items-center justify-between">
+                            <span>Họ và tên thật <span className="text-red-500 font-bold">*</span></span>
+                            <span className="text-[10px] text-zinc-500 font-normal">Trùng thẻ ngân hàng</span>
+                          </Label>
+                          <Input 
+                            {...register('fullName')} 
+                            placeholder="Ví dụ: NGUYEN VAN A" 
+                            className="bg-zinc-950 border-zinc-800 text-white rounded-xl h-11 text-sm focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400/30 transition-all uppercase" 
+                          />
+                          {errors.fullName && <p className="text-red-400 text-xs mt-1">{errors.fullName.message}</p>}
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label className="text-xs font-bold uppercase tracking-wider text-zinc-300 flex items-center justify-between">
+                            <span>Số điện thoại Zalo / SMS <span className="text-red-500 font-bold">*</span></span>
+                            <span className="text-[10px] text-zinc-500 font-normal">Nhận đơn hàng gấp</span>
+                          </Label>
+                          <Input 
+                            {...register('phoneNumber')} 
+                            placeholder="Ví dụ: 0912345678" 
+                            className="bg-zinc-950 border-zinc-800 text-white rounded-xl h-11 text-sm focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400/30 transition-all font-mono" 
+                          />
+                          {errors.phoneNumber && <p className="text-red-400 text-xs mt-1">{errors.phoneNumber.message}</p>}
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label className="text-xs font-bold uppercase tracking-wider text-zinc-300 flex items-center justify-between">
+                            <span>Link Facebook cá nhân <span className="text-red-500 font-bold">*</span></span>
+                            <span className="text-[10px] text-zinc-500 font-normal">Xác thực uy tín</span>
+                          </Label>
+                          <Input 
+                            {...register('facebookUrl')} 
+                            placeholder="Ví dụ: facebook.com/username hoặc fb.com/..." 
+                            className="bg-zinc-950 border-zinc-800 text-white rounded-xl h-11 text-sm focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400/30 transition-all" 
+                          />
+                          {errors.facebookUrl && <p className="text-red-400 text-xs mt-1">{errors.facebookUrl.message}</p>}
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label className="text-xs font-bold uppercase tracking-wider text-zinc-300 flex items-center justify-between">
+                            <span>Discord Tag <span className="text-red-500 font-bold">*</span></span>
+                            <span className="text-[10px] text-zinc-500 font-normal">Nhận phòng chat đơn hàng</span>
+                          </Label>
+                          <Input 
+                            {...register('discordTag')} 
+                            placeholder="Ví dụ: username hoặc username#1234" 
+                            className="bg-zinc-950 border-zinc-800 text-white rounded-xl h-11 text-sm focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400/30 transition-all font-mono" 
+                          />
+                          {errors.discordTag && <p className="text-red-400 text-xs mt-1">{errors.discordTag.message}</p>}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* 1.2 Chuyên môn thi đấu */}
+                    <div className="space-y-4 pt-2">
+                      <div className="border-b border-zinc-800/80 pb-3">
+                        <h3 className="text-base font-black text-white flex items-center gap-2">
+                          <Trophy className="w-4 h-4 text-amber-400" />
+                          Kỹ Năng &amp; Tựa Game Thi Đấu
                         </h3>
                         <p className="text-xs text-zinc-400 mt-0.5">
                           Yêu cầu tối thiểu đạt mức rank Cao Thủ / Immortal / Radiant trở lên để đảm bảo tỷ lệ thắng &gt; 80%.
                         </p>
                       </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {/* Tựa Game Thế Mạnh Chính */}
                         <div className="space-y-2 md:col-span-2">
                           <Label className="text-xs font-bold uppercase tracking-wider text-zinc-300 flex items-center justify-between">
@@ -1254,7 +1393,7 @@ export default function BoosterApplyPage() {
                               <Gamepad2 className="w-3.5 h-3.5 text-cyan-400" />
                               Tựa Game Thế Mạnh Chính <span className="text-red-500 font-bold">*</span>
                             </span>
-                            <span className="text-[10px] text-zinc-500 hidden sm:inline">Có thể bổ sung thêm game khác sau khi được duyệt</span>
+                            <span className="text-[10px] text-zinc-500 hidden sm:inline">Có thể bổ sung thêm game sau khi được duyệt</span>
                           </Label>
                           <div className="relative">
                             <select
@@ -1322,7 +1461,7 @@ export default function BoosterApplyPage() {
                           <Input 
                             {...register('opggLink')} 
                             placeholder={currentGameConfig.trackerPlaceholder}
-                            className="bg-zinc-950 border-zinc-800 text-white rounded-xl h-11 text-sm focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400/30 transition-all" 
+                            className="bg-zinc-950 border-zinc-800 text-white rounded-xl h-11 text-sm focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400/30 transition-all font-mono" 
                           />
                           {errors.opggLink && <p className="text-red-400 text-xs mt-1">{errors.opggLink.message}</p>}
                         </div> 
@@ -1331,7 +1470,7 @@ export default function BoosterApplyPage() {
                         <div className="space-y-2 md:col-span-2">
                           <Label className="text-xs font-bold uppercase tracking-wider text-zinc-300 flex items-center justify-between">
                             <span>Ảnh Bằng Chứng Màn Hình Trong Game <span className="text-red-500 font-bold">*</span></span>
-                            <span className="text-[10px] text-zinc-500">Chụp rõ Ingame Name & Bậc Rank</span>
+                            <span className="text-[10px] text-zinc-500">Chụp rõ Ingame Name &amp; Bậc Rank</span>
                           </Label>
                           
                           <div className="relative group">
@@ -1348,12 +1487,7 @@ export default function BoosterApplyPage() {
                                 ? 'border-red-500/50 bg-red-500/5' 
                                 : 'border-zinc-800 bg-zinc-950/70 hover:bg-zinc-950 hover:border-cyan-500/50'
                             )}>
-                              {isUploadingRank ? (
-                                <div className="flex flex-col items-center gap-2 py-6">
-                                  <Loader2 className="w-8 h-8 text-cyan-400 animate-spin" />
-                                  <span className="text-xs text-zinc-400">Đang xử lý ảnh minh chứng...</span>
-                                </div>
-                              ) : (rankImagePreview || rankImageUrl) ? (
+                              {(rankImagePreview || rankImageUrl) ? (
                                 <div className="relative w-full h-56 rounded-xl overflow-hidden border border-zinc-800 group-hover:opacity-80 transition-opacity">
                                   {/* eslint-disable-next-line @next/next/no-img-element */}
                                   <img src={rankImagePreview || rankImageUrl} alt="Rank Proof" className="w-full h-full object-cover" />
@@ -1382,128 +1516,16 @@ export default function BoosterApplyPage() {
                       </div>
                     </div>
 
-                    <div className="h-px bg-zinc-800/80" />
-
-                    {/* Registration Fee Section (Conditional based on Admin config) */}
-                    {adminSettings.depositConfig.depositRequired ? (
-                      <div className="bg-amber-950/20 border border-amber-500/30 rounded-2xl p-5 sm:p-6 animate-in fade-in">
-                        <div className="flex items-start gap-3">
-                          <ShieldAlert className="text-amber-400 shrink-0 mt-0.5 w-5 h-5" />
-                          <div className="w-full">
-                            <h4 className="font-black text-amber-300 text-sm">Phí Kích Hoạt Quyền Booster (Booster Registration Fee)</h4>
-                            <p className="text-xs text-zinc-300 mt-1 mb-4 leading-relaxed">
-                              Để hoàn tất thủ tục xét duyệt và nâng cấp tài khoản từ Khách hàng lên Booster, hệ thống yêu cầu thanh toán khoản phí kích hoạt là <span className="text-white font-bold">{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(adminSettings.depositConfig.depositAmount)}</span>. Sau khi chuyển khoản, vui lòng tải ảnh bill bên dưới để Admin duyệt hồ sơ.
-                            </p>
-                            
-                            <div className="flex flex-col md:flex-row gap-5 items-center bg-black/40 p-4 rounded-2xl border border-white/5">
-                              {/* QR Code */}
-                              <div className="bg-white p-2.5 rounded-2xl shrink-0 shadow-lg">
-                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                <img src={qrCodeUrl} alt="QR Chuyển khoản" className="w-32 h-32 md:w-36 md:h-36 object-contain" />
-                              </div>
-
-                              {/* Bank Info */}
-                              <div className="flex-1 space-y-2 w-full text-xs">
-                                <div className="bg-zinc-950 p-3.5 rounded-xl border border-zinc-800/80 space-y-2">
-                                  <div className="flex justify-between items-center border-b border-zinc-900 pb-2">
-                                    <span className="text-zinc-500">Ngân hàng:</span>
-                                    <span className="font-bold text-white">{adminSettings.adminBank.bankName}</span>
-                                  </div>
-                                  <div className="flex justify-between items-center border-b border-zinc-900 pb-2">
-                                    <span className="text-zinc-500">Số tài khoản:</span>
-                                    <div className="flex items-center gap-2">
-                                      <span className="font-mono font-bold text-white tracking-wider">{adminSettings.adminBank.accountNumber}</span>
-                                      <button
-                                        type="button"
-                                        onClick={() => handleCopy(adminSettings.adminBank.accountNumber, 'accNum')}
-                                        className="text-cyan-400 hover:text-cyan-300"
-                                      >
-                                        {copiedField === 'accNum' ? <CheckCheck size={14} /> : <Copy size={14} />}
-                                      </button>
-                                    </div>
-                                  </div>
-                                  <div className="flex justify-between items-center border-b border-zinc-900 pb-2">
-                                    <span className="text-zinc-500">Chủ tài khoản:</span>
-                                    <span className="font-bold text-white uppercase">{adminSettings.adminBank.accountHolder}</span>
-                                  </div>
-                                  <div className="flex justify-between items-center pt-0.5">
-                                    <span className="text-zinc-500">Nội dung CK:</span>
-                                    <div className="flex items-center gap-2">
-                                      <span className="font-mono font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded select-all">{transferContent}</span>
-                                      <button
-                                        type="button"
-                                        onClick={() => handleCopy(transferContent, 'content')}
-                                        className="text-amber-400 hover:text-amber-300"
-                                      >
-                                        {copiedField === 'content' ? <CheckCheck size={14} /> : <Copy size={14} />}
-                                      </button>
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-
-                            {/* Upload Bill */}
-                            <div className="mt-4 pt-4 border-t border-amber-500/20">
-                              <Label className="text-xs font-bold text-zinc-300 mb-2 block">
-                                Tải lên ảnh Bill chuyển khoản phí đăng ký thành công <span className="text-red-500 font-bold">*</span>
-                              </Label>
-                              <div className="flex items-center gap-3">
-                                <div className="relative group flex-1">
-                                  <input 
-                                    type="file" 
-                                    accept="image/*" 
-                                    onChange={handleBillUpload}
-                                    disabled={isUploadingBill}
-                                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20 disabled:cursor-not-allowed"
-                                  />
-                                  <div className={cn(
-                                    "border border-dashed rounded-xl p-3 flex items-center justify-center gap-2 transition-all",
-                                    (billImagePreview || billImageUrl) ? 'border-emerald-500/50 bg-emerald-500/10' : 'border-zinc-800 bg-zinc-950 hover:bg-zinc-900'
-                                  )}>
-                                    {isUploadingBill ? (
-                                      <Loader2 className="w-4 h-4 text-cyan-400 animate-spin" />
-                                    ) : (billImagePreview || billImageUrl) ? (
-                                      <div className="flex items-center gap-1.5 text-emerald-400 text-xs font-bold">
-                                        <CheckCircle2 className="w-4 h-4" />
-                                        <span>Đã chọn ảnh Bill chuyển khoản</span>
-                                      </div>
-                                    ) : (
-                                      <span className="text-xs text-zinc-400">Nhấn để tải lên ảnh Bill chuyển khoản...</span>
-                                    )}
-                                  </div>
-                                </div>
-                                {(billImagePreview || billImageUrl) && (
-                                  <a href={billImagePreview || billImageUrl || '#'} target="_blank" rel="noreferrer" className="shrink-0 w-11 h-11 rounded-xl border border-zinc-800 overflow-hidden block">
-                                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                                    <img src={billImagePreview || billImageUrl} alt="Bill" className="w-full h-full object-cover" />
-                                  </a>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="bg-emerald-950/20 border border-emerald-500/30 rounded-2xl p-4 sm:p-5 flex items-start gap-3">
-                        <CheckCircle2 className="text-emerald-400 shrink-0 mt-0.5 w-5 h-5" />
-                        <div>
-                          <h4 className="font-black text-emerald-300 text-sm">Đặc Quyền: Miễn Phí Đăng Ký Booster</h4>
-                          <p className="text-xs text-zinc-400 mt-1">
-                            Hệ thống hiện đang áp dụng chính sách <b className="text-emerald-300">miễn phí kích hoạt quyền Booster</b> cho các ứng viên đăng ký trong đợt này. Bạn không cần thanh toán bất kỳ khoản phí nào để gia nhập đội ngũ Booster!
-                          </p>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Booster Bank Details */}
-                    <div className="space-y-4">
-                      <div>
-                        <h3 className="text-base font-black text-white mb-1 flex items-center gap-2">
-                          <Landmark className="w-4 h-4 text-cyan-400" />
-                          Tài Khoản Ngân Hàng Thụ Hưởng Thu Nhập Của Bạn
+                    {/* 1.3 Ngân hàng nhận thù lao */}
+                    <div className="space-y-4 pt-2">
+                      <div className="border-b border-zinc-800/80 pb-3">
+                        <h3 className="text-base font-black text-white flex items-center gap-2">
+                          <Landmark className="w-4 h-4 text-emerald-400" />
+                          Tài Khoản Ngân Hàng Thụ Hưởng Thu Nhập
                         </h3>
-                        <p className="text-xs text-zinc-400">Tiền cày thuê sẽ được chuyển tự động về tài khoản này sau khi hoàn thành đơn.</p>
+                        <p className="text-xs text-zinc-400 mt-0.5">
+                          Tiền hoàn thành đơn cày thuê sẽ được giải ngân trực tiếp vào tài khoản này.
+                        </p>
                       </div>
 
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -1575,10 +1597,10 @@ export default function BoosterApplyPage() {
                   </motion.div>
                 )}
 
-                {/* ---------------- STEP 3: COMMITMENTS & DIGITAL CONTRACT ---------------- */}
-                {step === 3 && (
+                {/* ---------------- STEP 2: CAM KẾT & KÝ HỢP ĐỒNG ĐIỆN TỬ ---------------- */}
+                {step === 2 && (
                   <motion.div
-                    key="step3"
+                    key="step2"
                     initial={{ opacity: 0, x: 20 }}
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: -20 }}
@@ -1588,20 +1610,20 @@ export default function BoosterApplyPage() {
                       <div>
                         <div className="inline-flex items-center gap-2 text-xs font-bold text-emerald-400 uppercase tracking-wider mb-1">
                           <Lock className="w-4 h-4" />
-                          Bước 3 / 3
+                          Bước 2 / 3
                         </div>
                         <h3 className="text-xl font-black text-white">
-                          Cam Kết Nghề Nghiệp & Ký Hợp Đồng Điện Tử
+                          Cam Kết Nghề Nghiệp &amp; Ký Hợp Đồng Điện Tử
                         </h3>
                         <p className="text-xs text-zinc-400 mt-0.5">
-                          Vui lòng gạt bật toàn bộ các cam kết bên dưới và ký tên online để hoàn thiện hồ sơ.
+                          Vui lòng gạt bật toàn bộ 6 cam kết và ký tên online để kích hoạt hồ sơ pháp lý đối tác.
                         </p>
                       </div>
 
                       <button
                         type="button"
                         onClick={toggleAllAgreements}
-                        className="px-3 py-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-cyan-300 text-xs font-bold transition-colors shrink-0 self-start sm:self-auto border border-zinc-700"
+                        className="px-3.5 py-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-cyan-300 text-xs font-bold transition-colors shrink-0 self-start sm:self-auto border border-zinc-700 cursor-pointer"
                       >
                         {allAgreementsChecked ? 'Bỏ chọn tất cả' : 'Bật tất cả cam kết'}
                       </button>
@@ -1630,7 +1652,7 @@ export default function BoosterApplyPage() {
                               <p className="text-[11px] text-zinc-400 mt-1.5 leading-relaxed">{item.desc}</p>
                             </div>
                             
-                            {/* Custom Toggle Switch (An toàn 100%, không bị Radix Bubble Input click loop) */}
+                            {/* Custom Toggle Switch */}
                             <div
                               role="switch"
                               aria-checked={isChecked}
@@ -1657,22 +1679,22 @@ export default function BoosterApplyPage() {
                         <div>
                           <Label className="text-xs font-black uppercase tracking-wider text-white flex items-center gap-1.5">
                             <FileSignature className="w-4 h-4 text-cyan-400" />
-                            <span>Chữ Ký Điện Tử Xác Nhận Hợp Đồng <span className="text-red-500 font-bold">*</span></span>
+                            <span>Chữ Ký Điện Tử Bên B (Booster) <span className="text-red-500 font-bold">*</span></span>
                           </Label>
                           <p className="text-xs text-zinc-400 mt-0.5">
-                            Dùng chuột hoặc ngón tay để ký tên trực tiếp vào bảng ký hợp đồng bên dưới.
+                            Dùng chuột hoặc ngón tay để ký tên trực tiếp vào bảng bên dưới. Chữ ký sẽ được đóng dấu vào Hợp đồng.
                           </p>
                         </div>
                         <button 
                           type="button" 
                           onClick={clearSignature}
-                          className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs font-bold rounded-xl flex items-center gap-1.5 transition-colors self-start sm:self-auto border border-zinc-700"
+                          className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs font-bold rounded-xl flex items-center gap-1.5 transition-colors self-start sm:self-auto border border-zinc-700 cursor-pointer"
                         >
                           <Eraser size={13} /> Xóa Chữ Ký
                         </button>
                       </div>
 
-                      {/* Canvas Container with subtle desk appearance */}
+                      {/* Canvas Container */}
                       <div className="border border-zinc-700/80 rounded-2xl bg-slate-50 overflow-hidden relative shadow-inner p-1">
                         <SignatureCanvas 
                           ref={sigCanvas}
@@ -1692,7 +1714,7 @@ export default function BoosterApplyPage() {
                             <button
                               type="button"
                               onClick={() => setValue('agreementSigned_name', fullName, { shouldValidate: true })}
-                              className="text-[11px] text-cyan-400 hover:underline"
+                              className="text-[11px] text-cyan-400 hover:underline cursor-pointer"
                             >
                               Dùng tên: {fullName}
                             </button>
@@ -1700,9 +1722,9 @@ export default function BoosterApplyPage() {
                         </Label>
                         <Input 
                           {...register('agreementSigned_name')}
-                          placeholder={`Ví dụ: ${fullName || 'Nguyễn Văn A'} (Phải khớp chính xác với họ tên Bước 1)`} 
+                          placeholder={`Ví dụ: ${fullName || 'NGUYEN VAN A'} (Phải khớp chính xác với họ tên Bước 1)`} 
                           className={cn(
-                            "bg-zinc-900 border-zinc-800 text-white rounded-xl h-11 text-sm transition-all",
+                            "bg-zinc-900 border-zinc-800 text-white rounded-xl h-11 text-sm transition-all uppercase",
                             signature && !isNameMatch ? 'border-red-500 focus:border-red-500' : 
                             isNameMatch ? 'border-emerald-500 focus:border-emerald-500 text-emerald-300' : 'focus:border-cyan-400'
                           )}
@@ -1711,7 +1733,195 @@ export default function BoosterApplyPage() {
                           <p className="text-red-400 text-xs mt-1">Họ tên đối chiếu không khớp với họ tên đã điền ở Bước 1 ({fullName}).</p>
                         )}
                       </div>
+
+                      {/* Nút Xem Trước Hợp Đồng PDF (Client-side Blob) */}
+                      <div className="pt-3 border-t border-zinc-900 flex flex-col sm:flex-row items-center justify-between gap-3">
+                        <div className="text-xs text-zinc-400">
+                          Bản khai hợp đồng PDF được tạo trực tiếp trên trình duyệt của bạn (chưa tải lên máy chủ).
+                        </div>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={handlePreviewContract}
+                          disabled={isPreviewingPdf}
+                          className="w-full sm:w-auto border-cyan-500/40 bg-cyan-950/30 hover:bg-cyan-900/40 text-cyan-300 text-xs font-bold rounded-xl h-10 px-4 flex items-center gap-2 transition-all shadow-[0_0_15px_rgba(6,182,212,0.15)]"
+                        >
+                          {isPreviewingPdf ? <Loader2 className="w-4 h-4 animate-spin" /> : <Eye className="w-4 h-4" />}
+                          Xem Trước Bản Khai Hợp Đồng PDF
+                        </Button>
+                      </div>
                     </div>
+                  </motion.div>
+                )}
+
+                {/* ---------------- STEP 3: KÍCH HOẠT QUYỀN BOOSTER & HOÀN TẤT NỘP HỒ SƠ ---------------- */}
+                {step === 3 && (
+                  <motion.div
+                    key="step3"
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -20 }}
+                    className="space-y-6"
+                  >
+                    <div className="border-b border-zinc-800/80 pb-4">
+                      <div className="inline-flex items-center gap-2 text-xs font-bold text-amber-400 uppercase tracking-wider mb-1">
+                        <ShieldCheck className="w-4 h-4" />
+                        Bước 3 / 3
+                      </div>
+                      <h3 className="text-xl font-black text-white">
+                        Kích Hoạt Quyền Booster &amp; Nộp Hồ Sơ
+                      </h3>
+                      <p className="text-xs text-zinc-400 mt-0.5">
+                        Kiểm tra lại toàn bộ thông tin đã điền, hoàn tất kích hoạt (nếu có) và xác nhận nộp hồ sơ.
+                      </p>
+                    </div>
+
+                    {/* Summary Info Card */}
+                    <div className="bg-zinc-950 p-5 rounded-2xl border border-zinc-800/80 space-y-3">
+                      <div className="text-xs font-black uppercase tracking-wider text-cyan-400 flex items-center gap-2 border-b border-zinc-900 pb-2">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                        Tóm Tắt Hồ Sơ Ứng Tuyển
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                        <div className="flex justify-between py-1 border-b border-zinc-900">
+                          <span className="text-zinc-500">Họ và tên:</span>
+                          <span className="font-bold text-white">{fullName}</span>
+                        </div>
+                        <div className="flex justify-between py-1 border-b border-zinc-900">
+                          <span className="text-zinc-500">Số điện thoại:</span>
+                          <span className="font-mono text-white">{phoneNumber}</span>
+                        </div>
+                        <div className="flex justify-between py-1 border-b border-zinc-900">
+                          <span className="text-zinc-500">Tựa game chính:</span>
+                          <span className="font-bold text-cyan-300">{displayGameName}</span>
+                        </div>
+                        <div className="flex justify-between py-1 border-b border-zinc-900">
+                          <span className="text-zinc-500">Rank hiện tại / Peak:</span>
+                          <span className="font-bold text-amber-400">{watch('currentRank')} / {watch('highestRank')}</span>
+                        </div>
+                        <div className="flex justify-between py-1 border-b border-zinc-900">
+                          <span className="text-zinc-500">Ngân hàng thụ hưởng:</span>
+                          <span className="font-mono text-emerald-400">{selectedBankName} - {watch('bankAccountNumber')}</span>
+                        </div>
+                        <div className="flex justify-between py-1 border-b border-zinc-900">
+                          <span className="text-zinc-500">Cam kết &amp; Ký tên:</span>
+                          <span className="font-bold text-emerald-400 flex items-center gap-1">
+                            <BadgeCheck className="w-3.5 h-3.5" /> 6 Cam kết &amp; Đã ký Bên B
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Registration Fee Section (VietQR + Bill Upload nếu Admin bật) */}
+                    {adminSettings.depositConfig.depositRequired ? (
+                      <div className="bg-amber-950/20 border border-amber-500/30 rounded-2xl p-5 sm:p-6 space-y-4">
+                        <div className="flex items-start gap-3">
+                          <ShieldAlert className="text-amber-400 shrink-0 mt-0.5 w-5 h-5" />
+                          <div className="w-full">
+                            <h4 className="font-black text-amber-300 text-sm">Phí Kích Hoạt Quyền Booster (Booster Registration Fee)</h4>
+                            <p className="text-xs text-zinc-300 mt-1 mb-4 leading-relaxed">
+                              Để hoàn tất thủ tục xét duyệt và nâng cấp tài khoản từ Khách hàng lên Booster, hệ thống yêu cầu thanh toán khoản phí kích hoạt là <span className="text-white font-bold">{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(adminSettings.depositConfig.depositAmount)}</span>. Sau khi chuyển khoản, vui lòng tải ảnh bill bên dưới để Admin duyệt hồ sơ.
+                            </p>
+                            
+                            <div className="flex flex-col md:flex-row gap-5 items-center bg-black/40 p-4 rounded-2xl border border-white/5">
+                              {/* QR Code */}
+                              <div className="bg-white p-2.5 rounded-2xl shrink-0 shadow-lg">
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img src={qrCodeUrl} alt="QR Chuyển khoản" className="w-32 h-32 md:w-36 md:h-36 object-contain" />
+                              </div>
+
+                              {/* Bank Info */}
+                              <div className="flex-1 space-y-2 w-full text-xs">
+                                <div className="bg-zinc-950 p-3.5 rounded-xl border border-zinc-800/80 space-y-2">
+                                  <div className="flex justify-between items-center border-b border-zinc-900 pb-2">
+                                    <span className="text-zinc-500">Ngân hàng:</span>
+                                    <span className="font-bold text-white">{adminSettings.adminBank.bankName}</span>
+                                  </div>
+                                  <div className="flex justify-between items-center border-b border-zinc-900 pb-2">
+                                    <span className="text-zinc-500">Số tài khoản:</span>
+                                    <div className="flex items-center gap-2">
+                                      <span className="font-mono font-bold text-white tracking-wider">{adminSettings.adminBank.accountNumber}</span>
+                                      <button
+                                        type="button"
+                                        onClick={() => handleCopy(adminSettings.adminBank.accountNumber, 'accNum')}
+                                        className="text-cyan-400 hover:text-cyan-300 cursor-pointer"
+                                      >
+                                        {copiedField === 'accNum' ? <CheckCheck size={14} /> : <Copy size={14} />}
+                                      </button>
+                                    </div>
+                                  </div>
+                                  <div className="flex justify-between items-center border-b border-zinc-900 pb-2">
+                                    <span className="text-zinc-500">Chủ tài khoản:</span>
+                                    <span className="font-bold text-white uppercase">{adminSettings.adminBank.accountHolder}</span>
+                                  </div>
+                                  <div className="flex justify-between items-center pt-0.5">
+                                    <span className="text-zinc-500">Nội dung CK:</span>
+                                    <div className="flex items-center gap-2">
+                                      <span className="font-mono font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded select-all">{transferContent}</span>
+                                      <button
+                                        type="button"
+                                        onClick={() => handleCopy(transferContent, 'content')}
+                                        className="text-amber-400 hover:text-amber-300 cursor-pointer"
+                                      >
+                                        {copiedField === 'content' ? <CheckCheck size={14} /> : <Copy size={14} />}
+                                      </button>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Upload Bill */}
+                            <div className="mt-4 pt-4 border-t border-amber-500/20">
+                              <Label className="text-xs font-bold text-zinc-300 mb-2 block">
+                                Tải lên ảnh Bill chuyển khoản phí đăng ký thành công <span className="text-red-500 font-bold">*</span>
+                              </Label>
+                              <div className="flex items-center gap-3">
+                                <div className="relative group flex-1">
+                                  <input 
+                                    type="file" 
+                                    accept="image/*" 
+                                    onChange={handleBillUpload}
+                                    disabled={isUploadingBill}
+                                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-20 disabled:cursor-not-allowed"
+                                  />
+                                  <div className={cn(
+                                    "border border-dashed rounded-xl p-3 flex items-center justify-center gap-2 transition-all",
+                                    (billImagePreview || billImageUrl) ? 'border-emerald-500/50 bg-emerald-500/10' : 'border-zinc-800 bg-zinc-950 hover:bg-zinc-900'
+                                  )}>
+                                    {(billImagePreview || billImageUrl) ? (
+                                      <div className="flex items-center gap-1.5 text-emerald-400 text-xs font-bold">
+                                        <CheckCircle2 className="w-4 h-4" />
+                                        <span>Đã chọn ảnh Bill chuyển khoản</span>
+                                      </div>
+                                    ) : (
+                                      <span className="text-xs text-zinc-400">Nhấn để tải lên ảnh Bill chuyển khoản...</span>
+                                    )}
+                                  </div>
+                                </div>
+                                {(billImagePreview || billImageUrl) && (
+                                  <a href={billImagePreview || billImageUrl || '#'} target="_blank" rel="noreferrer" className="shrink-0 w-11 h-11 rounded-xl border border-zinc-800 overflow-hidden block">
+                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                    <img src={billImagePreview || billImageUrl} alt="Bill" className="w-full h-full object-cover" />
+                                  </a>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="bg-emerald-950/20 border border-emerald-500/30 rounded-2xl p-4 sm:p-5 flex items-start gap-3">
+                        <CheckCircle2 className="text-emerald-400 shrink-0 mt-0.5 w-5 h-5" />
+                        <div>
+                          <h4 className="font-black text-emerald-300 text-sm">Đặc Quyền: Miễn Phí Đăng Ký Booster</h4>
+                          <p className="text-xs text-zinc-400 mt-1">
+                            Hệ thống hiện đang áp dụng chính sách <b className="text-emerald-300">miễn phí kích hoạt quyền Booster</b> cho các ứng viên đăng ký trong đợt này. Bạn không cần thanh toán bất kỳ khoản phí nào để gia nhập đội ngũ Booster!
+                          </p>
+                        </div>
+                      </div>
+                    )}
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -1723,7 +1933,7 @@ export default function BoosterApplyPage() {
                     type="button" 
                     variant="outline" 
                     onClick={prevStep} 
-                    className="border-zinc-800 bg-zinc-950 hover:bg-zinc-800 text-zinc-300 font-bold text-xs h-11 px-5 rounded-xl transition-all"
+                    className="border-zinc-800 bg-zinc-950 hover:bg-zinc-800 text-zinc-300 font-bold text-xs h-11 px-5 rounded-xl transition-all cursor-pointer"
                   >
                     <ChevronLeft className="mr-1.5 h-4 w-4" /> Quay Lại
                   </Button>
@@ -1733,7 +1943,7 @@ export default function BoosterApplyPage() {
                   <Button 
                     type="button" 
                     onClick={nextStep} 
-                    className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-black text-xs h-11 px-6 rounded-xl shadow-[0_0_20px_rgba(6,182,212,0.3)] transition-all hover:scale-[1.02]"
+                    className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-black text-xs h-11 px-6 rounded-xl shadow-[0_0_20px_rgba(6,182,212,0.3)] transition-all hover:scale-[1.02] cursor-pointer"
                   >
                     <span>Tiếp Theo Bước {step + 1}</span>
                     <ChevronRight className="ml-1.5 h-4 w-4" />
@@ -1741,36 +1951,21 @@ export default function BoosterApplyPage() {
                 ) : (
                   <Button 
                     type="button" 
-                    onClick={() => {
-                      if (!allAgreementsChecked) {
-                        toast.error("Vui lòng gạt bật toàn bộ cam kết nghề nghiệp.");
-                        return;
-                      }
-                      if (!isNameMatch) {
-                        toast.error("Họ tên đối chiếu chữ ký chưa khớp.");
-                        return;
-                      }
-                      if (!signatureDataUrl && sigCanvas.current?.isEmpty()) {
-                        toast.error("Vui lòng ký tên vào khung chữ ký.");
-                        return;
-                      }
-                      if (sigCanvas.current && !sigCanvas.current.isEmpty()) {
-                        const sig = sigCanvas.current.getCanvas().toDataURL('image/png');
-                        setSignatureDataUrl(sig);
-                        const sigImg = document.getElementById('contract-b-signature-img') as HTMLImageElement;
-                        if (sigImg) sigImg.src = sig;
-                      }
-                      setShowConfirmModal(true);
-                    }} 
-                    disabled={!allAgreementsChecked || !isSignatureValid}
-                    className={cn(
-                      "font-black text-xs h-11 px-7 rounded-xl transition-all",
-                      (!allAgreementsChecked || !isSignatureValid)
-                        ? 'bg-zinc-800 text-zinc-500 cursor-not-allowed' 
-                        : 'bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white shadow-[0_0_25px_rgba(16,185,129,0.4)] hover:scale-[1.02]'
-                    )}
+                    onClick={() => handleSubmit(onSubmit)()}
+                    disabled={isSubmitting}
+                    className="bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 hover:from-emerald-400 hover:to-cyan-400 text-white font-black text-xs h-12 px-8 rounded-xl shadow-[0_0_30px_rgba(16,185,129,0.4)] transition-all hover:scale-[1.02] cursor-pointer"
                   >
-                    <BadgeCheck className="mr-2 h-4 w-4" /> Xem Lại &amp; Nộp Hồ Sơ
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Đang Xử Lý Nộp Hồ Sơ...
+                      </>
+                    ) : (
+                      <>
+                        <BadgeCheck className="mr-2 h-4 w-4" />
+                        Xác Nhận Nộp Hồ Sơ Ứng Tuyển
+                      </>
+                    )}
                   </Button>
                 )}
               </div>
@@ -1780,9 +1975,9 @@ export default function BoosterApplyPage() {
       </div>
 
       {/* ========================================================================= */}
-      {/* HIDDEN CONTRACT TEMPLATE FOR PDF GENERATION (DO NOT USE TAILWIND COLORS)   */}
+      {/* HIDDEN CONTRACT TEMPLATE FOR PDF GENERATION (Render an toàn cho canvas)     */}
       {/* ========================================================================= */}
-      <div className="fixed top-0 left-0 z-[-50] pointer-events-none opacity-0">
+      <div style={{ position: 'fixed', left: '-9999px', top: '0', zIndex: -100, width: '210mm', opacity: 1, pointerEvents: 'none' }}>
         <div id="contract-template" style={{ width: '210mm', minHeight: '297mm', padding: '12mm 16mm', fontFamily: 'Times New Roman, serif', lineHeight: '1.38', position: 'relative', backgroundColor: '#ffffff', color: '#000000', boxSizing: 'border-box' }}>
           <div style={{ textAlign: 'center', marginBottom: '16px' }}>
             <h1 style={{ fontSize: '18px', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '4px', margin: 0 }}>CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</h1>
@@ -1812,7 +2007,7 @@ export default function BoosterApplyPage() {
           </div>
 
           <div style={{ marginBottom: '10px', fontSize: '12.5px' }}>
-            <h3 style={{ fontSize: '13px', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '3px', margin: 0 }}>ĐIỀU 1: NỘI DUNG HỢP TÁC & BẢO CHỨNG ESCROW</h3>
+            <h3 style={{ fontSize: '13px', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '3px', margin: 0 }}>ĐIỀU 1: NỘI DUNG HỢP TÁC &amp; BẢO CHỨNG ESCROW</h3>
             <p style={{ textAlign: 'justify', margin: 0 }}>Bên B đồng ý trở thành đối tác cung cấp dịch vụ cày thuê (Boosting) trên nền tảng của Bên A. Bên B cam kết tuân thủ mọi quy chuẩn về bảo mật tài khoản khách hàng, bảo chứng tài chính Escrow, chất lượng thi đấu và tác phong văn minh.</p>
           </div>
 
@@ -1848,7 +2043,12 @@ export default function BoosterApplyPage() {
               <p style={{ fontStyle: 'italic', fontSize: '11.5px', margin: 0 }}>(Ký tên xác nhận)</p>
               <div style={{ marginTop: '8px', height: '55px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img id="contract-b-signature-img" src={signatureDataUrl || ''} alt="Chữ ký Bên B" style={{ maxHeight: '55px', maxWidth: '180px', objectFit: 'contain' }} />
+                <img 
+                  id="contract-b-signature-img" 
+                  src={signatureDataUrl || ''} 
+                  alt="Chữ ký Bên B" 
+                  style={{ maxHeight: '55px', maxWidth: '180px', objectFit: 'contain' }} 
+                />
               </div>
               <div style={{ marginTop: '6px', fontWeight: 'bold', fontSize: '13px', textTransform: 'uppercase' }}>{fullName || 'CHƯA ĐIỀN HỌ TÊN'}</div>
               <div style={{ fontSize: '10.5px', color: '#666', fontStyle: 'italic' }}>
@@ -1860,79 +2060,69 @@ export default function BoosterApplyPage() {
       </div>
 
       {/* ========================================================================= */}
-      {/* CONFIRMATION & PDF DOWNLOAD MODAL (Redesigned Summary Dialog)             */}
+      {/* MODAL XEM TRƯỚC HỢP ĐỒNG PDF (DẠNG CLIENT BLOB - 0 CLOUDINARY UPLOAD)     */}
       {/* ========================================================================= */}
-      <Dialog open={showConfirmModal} onOpenChange={setShowConfirmModal}>
-        <DialogContent className="bg-zinc-900 border-zinc-800 text-white sm:max-w-[520px] rounded-3xl p-6 sm:p-7">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-black text-white flex items-center gap-2">
-              <ShieldCheck className="w-5 h-5 text-cyan-400" />
-              Xem Lại &amp; Nộp Hồ Sơ Booster
-            </DialogTitle>
-            <DialogDescription className="text-zinc-400 text-xs pt-1.5 leading-relaxed">
-              Vui lòng kiểm tra lại thông tin hồ sơ của bạn trước khi nộp chính thức lên ban quản trị LeoRank.
-            </DialogDescription>
+      <Dialog open={!!previewPdfUrl} onOpenChange={(open) => {
+        if (!open && previewPdfUrl) {
+          window.URL.revokeObjectURL(previewPdfUrl);
+          setPreviewPdfUrl(null);
+        }
+      }}>
+        <DialogContent className="bg-zinc-900 border-zinc-800 text-white sm:max-w-4xl max-h-[92vh] flex flex-col rounded-3xl p-4 sm:p-6 overflow-hidden">
+          <DialogHeader className="border-b border-zinc-800 pb-3 flex flex-row items-center justify-between">
+            <div>
+              <DialogTitle className="text-base sm:text-lg font-black text-white flex items-center gap-2">
+                <FileSignature className="w-5 h-5 text-amber-400" />
+                Bản Khai Hợp Đồng Hợp Tác Booster (Dự Thảo)
+              </DialogTitle>
+              <DialogDescription className="text-zinc-400 text-xs mt-0.5">
+                Bản xem trước trực tiếp trên máy của bạn với đầy đủ chữ ký Bên B. File chưa lưu lên Cloudinary.
+              </DialogDescription>
+            </div>
           </DialogHeader>
 
-          {/* Quick Summary Pill Box */}
-          <div className="bg-zinc-950 p-4 rounded-2xl border border-zinc-800/80 space-y-2.5 text-xs my-2">
-            <div className="flex justify-between items-center border-b border-zinc-900 pb-2">
-              <span className="text-zinc-500">Họ và tên:</span>
-              <span className="font-bold text-white">{fullName}</span>
-            </div>
-            <div className="flex justify-between items-center border-b border-zinc-900 pb-2">
-              <span className="text-zinc-500">Tựa game chính:</span>
-              <span className="font-bold text-cyan-400">{displayGameName}</span>
-            </div>
-            <div className="flex justify-between items-center border-b border-zinc-900 pb-2">
-              <span className="text-zinc-500">Số điện thoại:</span>
-              <span className="font-mono text-white">{phoneNumber}</span>
-            </div>
-            <div className="flex justify-between items-center border-b border-zinc-900 pb-2">
-              <span className="text-zinc-500">Rank hiện tại:</span>
-              <span className="font-bold text-amber-400">{watch('currentRank')}</span>
-            </div>
-            <div className="flex justify-between items-center border-b border-zinc-900 pb-2">
-              <span className="text-zinc-500">Ngân hàng thụ hưởng:</span>
-              <span className="font-mono text-white">{selectedBankName} - {watch('bankAccountNumber')}</span>
-            </div>
-            <div className="flex justify-between items-center pt-0.5">
-              <span className="text-zinc-500">Chữ ký điện tử:</span>
-              <span className="text-emerald-400 font-bold flex items-center gap-1">
-                <CheckCircle2 size={13} /> Đã hoàn tất
-              </span>
-            </div>
+          {/* PDF Viewer Frame */}
+          <div className="flex-1 min-h-[55vh] sm:min-h-[65vh] bg-zinc-950 rounded-2xl overflow-hidden border border-zinc-800 my-2">
+            {previewPdfUrl && (
+              <object
+                data={previewPdfUrl}
+                type="application/pdf"
+                className="w-full h-full min-h-[55vh] sm:min-h-[65vh]"
+              >
+                <iframe
+                  src={previewPdfUrl}
+                  className="w-full h-full min-h-[55vh] sm:min-h-[65vh] border-0"
+                  title="PDF Preview"
+                />
+              </object>
+            )}
           </div>
 
-          <DialogFooter className="mt-4 flex flex-col-reverse sm:flex-row sm:justify-end gap-2.5">
-            <Button
-              variant="ghost"
-              onClick={() => setShowConfirmModal(false)}
-              className="text-zinc-400 hover:text-white hover:bg-zinc-800 text-xs rounded-xl"
-            >
-              Xem lại
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleDownload}
-              className="border-zinc-700 bg-zinc-800 text-zinc-200 hover:bg-zinc-700 text-xs font-bold rounded-xl"
-            >
-              <Download className="mr-1.5 h-4 w-4" />
-              Tải Bản Khai PDF
-            </Button>
-            <Button
-              onClick={() => handleSubmit(onSubmit)()}
-              disabled={isSubmitting}
-              className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-black text-xs rounded-xl shadow-[0_0_20px_rgba(6,182,212,0.3)] transition-all hover:scale-[1.02]"
-            >
-              {isSubmitting ? (
-                <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
-              ) : (
-                <CheckCircle2 className="mr-1.5 h-4 w-4" />
-              )}
-              Xác Nhận Nộp Đơn
-            </Button>
+          <DialogFooter className="mt-2 flex flex-col sm:flex-row sm:justify-between items-center gap-2">
+            <span className="text-[11px] text-zinc-500">
+              Chỉ khi hoàn tất Bước 3 và bấm "Xác Nhận Nộp Đơn", hợp đồng mới được lưu chính thức.
+            </span>
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleDownloadDraftPdf}
+                className="flex-1 sm:flex-none border-zinc-700 bg-zinc-800 text-zinc-200 hover:bg-zinc-700 text-xs font-bold rounded-xl"
+              >
+                <Download className="mr-1.5 h-4 w-4" /> Tải Bản Khai PDF (.pdf)
+              </Button>
+              <Button
+                type="button"
+                onClick={() => {
+                  if (previewPdfUrl) window.URL.revokeObjectURL(previewPdfUrl);
+                  setPreviewPdfUrl(null);
+                  setStep(3);
+                }}
+                className="flex-1 sm:flex-none bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-black text-xs rounded-xl"
+              >
+                Tiếp Tục Sang Bước 3 <ChevronRight className="ml-1.5 h-4 w-4" />
+              </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>

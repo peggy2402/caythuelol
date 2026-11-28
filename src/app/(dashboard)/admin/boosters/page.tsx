@@ -184,7 +184,9 @@ function ApplicationsTab() {
   const handleDownloadContract = async (url: string, suggestedName?: string) => {
     try {
       toast.info("Đang xử lý tải xuống file PDF...");
-      const res = await fetch(url);
+      // Proxy qua /media/ trên cùng domain www.leorank.site để tránh chặn CORS từ Cloudinary
+      const proxyUrl = url.replace('https://res.cloudinary.com/dgepbbgpb/', '/media/');
+      const res = await fetch(proxyUrl);
       if (!res.ok) throw new Error("Không thể tải file từ máy chủ");
       const blob = await res.blob();
       const pdfBlob = new Blob([blob], { type: 'application/pdf' });
@@ -782,11 +784,17 @@ function ApplicationsTab() {
               </div>
             </div>
             <div className="flex-1 bg-zinc-950 relative overflow-hidden flex flex-col">
-              <iframe
-                src={`https://docs.google.com/viewer?url=${encodeURIComponent(viewContract)}&embedded=true`}
-                className="w-full h-full border-0 flex-1"
-                title="Bản Khai Hợp Đồng PDF"
-              />
+              <object
+                data={viewContract.replace('https://res.cloudinary.com/dgepbbgpb/', '/media/')}
+                type="application/pdf"
+                className="w-full h-full flex-1"
+              >
+                <iframe
+                  src={`https://docs.google.com/viewer?url=${encodeURIComponent(viewContract)}&embedded=true`}
+                  className="w-full h-full border-0 flex-1"
+                  title="Bản Khai Hợp Đồng PDF"
+                />
+              </object>
             </div>
           </div>
         </div>

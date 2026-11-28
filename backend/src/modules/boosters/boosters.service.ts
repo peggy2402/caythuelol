@@ -1640,16 +1640,13 @@ export class BoostersService {
   }
 
   async apply(userId: string, body: any) {
-    const existing = await this.boosterAppModel.findOne({
-      userId,
-      status: { $in: ['pending', 'approved'] },
-    });
+    let existing = await this.boosterAppModel.findOne({ userId });
     if (existing) {
       if (existing.status === 'approved') {
         throw new BadRequestException('Tài khoản của bạn đã được phê duyệt làm Booster chính thức rồi');
       }
 
-      // Nếu đang pending: Cho phép ứng viên cập nhật lại thông tin hồ sơ (thay đổi rank, nick, bill, hợp đồng...)
+      // Cập nhật lại thông tin hồ sơ (kể cả khi trước đó bị rejected hoặc đang pending)
       // Đồng thời bảo lưu trạng thái nộp phí depositStatus nếu đã thanh toán
       existing.fullName = body.fullName || existing.fullName;
       existing.phoneNumber = body.phoneNumber || existing.phoneNumber;
@@ -1668,11 +1665,15 @@ export class BoostersService {
       existing.bankAccountNumber = body.bankAccountNumber || existing.bankAccountNumber;
       existing.agreementSigned_name = body.agreementSigned_name || existing.agreementSigned_name;
       existing.agreementSigned_at = new Date();
+      existing.status = 'pending'; // Đưa lại về trạng thái chờ duyệt
+      existing.reviewedAt = undefined;
+      existing.reviewedBy = undefined;
+      existing.note = (existing.note ? existing.note + '\n' : '') + `[${new Date().toLocaleDateString('vi-VN')}] Ứng viên nộp/cập nhật lại hồ sơ.`;
       await existing.save();
 
       return {
         success: true,
-        message: 'Hồ sơ ứng tuyển của bạn đã được cập nhật thành công! Vui lòng chờ Admin duyệt.',
+        message: 'Hồ sơ ứng tuyển của bạn đã được nộp thành công! Vui lòng chờ Admin duyệt.',
       };
     }
 
