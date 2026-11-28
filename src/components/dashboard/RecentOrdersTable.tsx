@@ -96,7 +96,7 @@ export const statusStyles: { [key: string]: { bg: string; text: string; dot: str
   PENDING_PAYMENT: { bg: 'bg-amber-500/15 border-amber-500/30', text: 'text-amber-400', dot: 'bg-amber-400', label: 'Chờ thanh toán' },
   PAID: { bg: 'bg-indigo-500/15 border-indigo-500/30', text: 'text-indigo-400', dot: 'bg-indigo-400', label: 'Đang chờ Booster' },
   REJECTED: { bg: 'bg-red-500/15 border-red-500/30', text: 'text-red-400', dot: 'bg-red-400', label: 'Bị từ chối' },
-  REFUNDED: { bg: 'bg-zinc-500/15 border-zinc-500/30', text: 'text-zinc-400', dot: 'bg-zinc-400', label: 'Đã hoàn tiền' },
+  REFUNDED: { bg: 'bg-cyan-500/15 border-cyan-500/30', text: 'text-cyan-400', dot: 'bg-cyan-400', label: 'Đã hoàn tiền' },
   DISPUTED: { bg: 'bg-rose-500/15 border-rose-500/30', text: 'text-rose-400', dot: 'bg-rose-400', label: 'Khiếu nại' },
   CANCELLED: { bg: 'bg-zinc-700/15 border-zinc-700/30', text: 'text-zinc-500', dot: 'bg-zinc-500', label: 'Đã hủy' }
 };

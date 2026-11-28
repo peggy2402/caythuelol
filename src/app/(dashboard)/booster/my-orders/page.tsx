@@ -24,6 +24,7 @@ import {
   Trophy,
   Loader2,
   AlertTriangle,
+  ShieldCheck,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { getBoosterEarnings } from '@/lib/orderPricing';
@@ -39,6 +40,7 @@ export default function BoosterOrdersPage() {
   const [search, setSearch] = useState('');
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const [startingId, setStartingId] = useState<string | null>(null);
+  const [reasonModalOrder, setReasonModalOrder] = useState<any | null>(null);
 
   // Pull to Refresh State
   const [pullY, setPullY] = useState(0);
@@ -661,7 +663,11 @@ export default function BoosterOrdersPage() {
                           onClick={(e) => {
                             e.preventDefault();
                             e.stopPropagation();
-                            router.push(`/orders/${order._id}`);
+                            if (isCancelled || theme.actionText === 'Xem lý do') {
+                              setReasonModalOrder(order);
+                            } else {
+                              router.push(`/orders/${order._id}`);
+                            }
                           }}
                           className={`px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap transition-all cursor-pointer shadow-md active:scale-95 ${theme.actionBtn}`}
                         >
@@ -674,6 +680,76 @@ export default function BoosterOrdersPage() {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* MODAL POPUP XEM LÝ DO HỦY ĐƠN HÀNG */}
+      {reasonModalOrder && (
+        <div
+          className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200"
+          onClick={() => setReasonModalOrder(null)}
+        >
+          <div
+            className="relative max-w-md w-full bg-zinc-950 border border-zinc-800 rounded-2xl p-6 shadow-2xl space-y-4 animate-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start gap-3">
+              <div className="p-3 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-400 shrink-0">
+                <XCircle className="w-6 h-6" />
+              </div>
+              <div className="min-w-0">
+                <h4 className="font-extrabold text-white text-base truncate">
+                  Lý Do Hủy Đơn #{reasonModalOrder.orderCode || reasonModalOrder._id?.slice(-6).toUpperCase()}
+                </h4>
+                <p className="text-xs text-zinc-400 mt-0.5">
+                  Thông tin ghi nhận từ quyết định xử lý / khiếu nại của hệ thống
+                </p>
+              </div>
+            </div>
+
+            <div className="p-4 rounded-xl bg-zinc-900/90 border border-zinc-800 space-y-2">
+              <span className="text-[11px] uppercase tracking-wider font-bold text-zinc-400 block">
+                Nội dung lý do:
+              </span>
+              <p className="text-xs text-white leading-relaxed whitespace-pre-wrap font-medium">
+                {reasonModalOrder.cancellationReason ||
+                  reasonModalOrder.dispute?.reason ||
+                  reasonModalOrder.dispute?.adminNote ||
+                  reasonModalOrder.details?.cancellation_reason ||
+                  reasonModalOrder.details?.reason ||
+                  reasonModalOrder.note ||
+                  'Không có lý do...'}
+              </p>
+            </div>
+
+            {reasonModalOrder.status === 'REFUNDED' && (
+              <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-300 text-xs">
+                <ShieldCheck className="w-4 h-4 shrink-0 text-cyan-400" />
+                <span>Đơn hàng đã được Admin đối soát và hoàn tiền cọc cho khách.</span>
+              </div>
+            )}
+
+            <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-zinc-800">
+              <button
+                type="button"
+                onClick={() => setReasonModalOrder(null)}
+                className="px-4 py-2 text-xs font-semibold text-zinc-400 hover:text-white transition-colors cursor-pointer"
+              >
+                Đóng
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const id = reasonModalOrder._id;
+                  setReasonModalOrder(null);
+                  router.push(`/orders/${id}`);
+                }}
+                className="px-4 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-bold transition-all border border-zinc-700 cursor-pointer"
+              >
+                Chi tiết hóa đơn
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

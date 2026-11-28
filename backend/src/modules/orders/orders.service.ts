@@ -1101,15 +1101,29 @@ export class OrdersService {
       }
     }
 
-    // TỰ ĐỘNG TẠM GIỮ (HOLD) TIỀN CÔNG BOOSTER KHI CÓ KHIẾU NẠI ĐỐI VỚI ĐƠN ĐÃ COMPLETED
+    // TỰ ĐỘNG TẠM GIỮ (HOLD) TIỀN CÔNG / TIỀN BỒI THƯỜNG CỦA BOOSTER NẾU ĐƠN ĐÃ ĐƯỢC GIẢI NGÂN (HOẶC ĐÃ COMPLETED)
     let fundsHeld = false;
-    if (isCompletedBeforeDispute && order.boosterId) {
-      const boosterEarnings = order.pricing?.booster_earnings || 0;
-      if (boosterEarnings > 0 && order.payment?.booster_received_pending) {
+    let amountToHold = 0;
+    if (order.boosterId) {
+      // 1. Kiểm tra số tiền thực tế đã từng giải ngân cho Booster qua các giao dịch PAYMENT_RELEASE của đơn này
+      const boosterReleaseTxs = await this.transactionModel.find({
+        orderId: order._id,
+        type: TransactionType.PAYMENT_RELEASE,
+        userId: order.boosterId,
+      });
+      const actualPaidToBooster = boosterReleaseTxs.reduce((sum, tx) => sum + (tx.amount || 0), 0);
+
+      if (actualPaidToBooster > 0) {
+        amountToHold = actualPaidToBooster;
+      } else if (isCompletedBeforeDispute && order.pricing?.booster_earnings > 0 && order.payment?.booster_received_pending) {
+        amountToHold = order.pricing.booster_earnings;
+      }
+
+      if (amountToHold > 0) {
         const booster = await this.userModel.findById(order.boosterId);
         if (booster) {
-          booster.wallet_balance -= boosterEarnings;
-          booster.pending_balance = (booster.pending_balance || 0) + boosterEarnings;
+          booster.wallet_balance -= amountToHold;
+          booster.pending_balance = (booster.pending_balance || 0) + amountToHold;
           if (booster.wallet_balance < 0) {
             booster.debt_info = booster.debt_info || { is_in_debt: false, reminder_count: 0 };
             booster.debt_info.is_in_debt = true;
@@ -1122,25 +1136,25 @@ export class OrdersService {
             userId: booster._id,
             orderId: order._id,
             type: TransactionType.PAYMENT_HOLD,
-            amount: -boosterEarnings,
+            amount: -amountToHold,
             balanceAfter: booster.wallet_balance,
             status: TransactionStatus.SUCCESS,
-            description: `Tạm giữ tiền công cày thuê đơn #${order.orderCode || order._id.toString().slice(-6)} do phát sinh khiếu nại từ khách hàng`,
+            description: `Tạm giữ tiền giải ngân/bồi thường đơn #${order.orderCode || order._id.toString().slice(-6)} do phát sinh khiếu nại từ khách hàng`,
             metadata: {
-              boosterEarnings,
+              amountHeld: amountToHold,
               orderCode: order.orderCode,
             },
           });
 
           fundsHeld = true;
 
-          // Thông báo cho Booster biết tiền công đang được tạm giữ an toàn trong lúc Admin đối soát
+          // Thông báo cho Booster biết tiền đang được tạm giữ an toàn trong lúc Admin đối soát
           const orderCodeDisplay = order.orderCode || order._id.toString().slice(-6).toUpperCase();
           this.notificationsService
             .notifyUser({
               userId: order.boosterId,
               title: `⚠️ Tạm giữ tiền công - Đơn #${orderCodeDisplay}`,
-              message: `Khách hàng vừa gửi khiếu nại: "${reason}". Tiền công (${boosterEarnings.toLocaleString('vi-VN')} đ) được tạm giữ vào số dư chờ (Pending) trong thời gian Admin phân xử.`,
+              message: `Khách hàng vừa gửi khiếu nại: "${reason}". Số tiền (${amountToHold.toLocaleString('vi-VN')} đ) được tạm giữ vào số dư chờ (Pending) trong thời gian Admin phân xử.`,
               type: 'ORDER_UPDATE',
               variant: 'warning',
               link: `/orders/${order._id}`,
@@ -1155,7 +1169,8 @@ export class OrdersService {
       reason,
       status: 'PENDING',
       fundsDeducted: fundsHeld,
-    };
+      ...(fundsHeld ? { deductedAmount: amountToHold } : {}),
+    } as any;
     if (!order.timeline) order.timeline = [];
     order.timeline.push({
       status: OrderStatus.DISPUTED,
@@ -1193,26 +1208,26 @@ export class OrdersService {
       throw new BadRequestException('Đơn hàng không ở trạng thái khiếu nại');
     }
 
-    // Nếu trước đó tiền công Booster bị hold vào pending_balance do khiếu nại lúc COMPLETED:
+    // Nếu trước đó tiền công Booster bị hold vào pending_balance do khiếu nại:
     if (order.dispute?.fundsDeducted && order.boosterId) {
-      const boosterEarnings = order.pricing?.booster_earnings || 0;
-      if (boosterEarnings > 0) {
+      const amountToRelease = (order.dispute as any)?.deductedAmount || order.pricing?.booster_earnings || 0;
+      if (amountToRelease > 0) {
         const booster = await this.userModel.findById(order.boosterId);
         if (booster) {
-          booster.pending_balance = Math.max(0, (booster.pending_balance || 0) - boosterEarnings);
-          booster.wallet_balance += boosterEarnings;
+          booster.pending_balance = Math.max(0, (booster.pending_balance || 0) - amountToRelease);
+          booster.wallet_balance += amountToRelease;
           await booster.save();
 
           await this.transactionModel.create({
             userId: booster._id,
             orderId: order._id,
             type: TransactionType.PAYMENT_RELEASE,
-            amount: boosterEarnings,
+            amount: amountToRelease,
             balanceAfter: booster.wallet_balance,
             status: TransactionStatus.SUCCESS,
-            description: `Hoàn trả tiền công tạm giữ đơn #${order.orderCode || order._id.toString().slice(-6)} do khách hàng rút khiếu nại`,
+            description: `Hoàn trả tiền tạm giữ đơn #${order.orderCode || order._id.toString().slice(-6)} do khách hàng rút khiếu nại`,
             metadata: {
-              boosterEarnings,
+              amountReleased: amountToRelease,
               orderCode: order.orderCode,
             },
           });

@@ -832,11 +832,15 @@ export class AdminService {
       const order = await this.orderModel.findById(orderId).session(session);
       if (!order) throw new NotFoundException('Không tìm thấy đơn hàng');
 
-      const wasBoosterPaid = await this.transactionModel.findOne({
+      // Tìm tất cả các khoản PAYMENT_RELEASE đã từng giải ngân cho booster từ đơn này
+      const boosterReleaseTxs = await this.transactionModel.find({
         orderId: order._id,
         type: TransactionType.PAYMENT_RELEASE,
         userId: order.boosterId,
       }).session(session);
+
+      const totalPaidToBooster = boosterReleaseTxs.reduce((sum, tx) => sum + (tx.amount || 0), 0);
+      const wasBoosterPaid = totalPaidToBooster > 0;
 
       if (decision === 'REFUND_CUSTOMER') {
         const customer = await this.userModel.findById(order.customerId).session(session);
@@ -875,16 +879,17 @@ export class AdminService {
           session,
         );
 
-        // Penalty debt system if booster was paid
-        if (wasBoosterPaid && order.boosterId && order.pricing.booster_earnings > 0) {
+        // Penalty debt system if booster was paid (Chỉ thu hồi đúng số tiền thực tế đã giải ngân cho Booster)
+        if (wasBoosterPaid && order.boosterId && totalPaidToBooster > 0) {
           const booster = await this.userModel.findById(order.boosterId).session(session);
           if (booster) {
+            const amountToRevoke = totalPaidToBooster;
             if (order.dispute?.fundsDeducted) {
               // Tiền đã bị hold vào pending_balance lúc tạo khiếu nại, giờ chỉ cần hủy bỏ khỏi pending_balance
-              booster.pending_balance = Math.max(0, (booster.pending_balance || 0) - order.pricing.booster_earnings);
+              booster.pending_balance = Math.max(0, (booster.pending_balance || 0) - amountToRevoke);
             } else {
               // Chưa bị hold trước đó: trừ wallet_balance
-              booster.wallet_balance -= order.pricing.booster_earnings;
+              booster.wallet_balance -= amountToRevoke;
               if (booster.wallet_balance < 0) {
                 booster.debt_info = booster.debt_info || { is_in_debt: false, reminder_count: 0 };
                 booster.debt_info.is_in_debt = true;
@@ -894,16 +899,19 @@ export class AdminService {
             }
             await booster.save({ session });
 
+            const isDepositCompensation = amountToRevoke < (order.pricing?.booster_earnings || 0);
             await this.transactionModel.create(
               [
                 {
                   userId: booster._id,
                   orderId: order._id,
                   type: TransactionType.DISPUTE_PENALTY,
-                  amount: -order.pricing.booster_earnings,
+                  amount: -amountToRevoke,
                   balanceAfter: booster.wallet_balance,
                   status: TransactionStatus.SUCCESS,
-                  description: `Thu hồi tiền công do khiếu nại thành công đơn #${order.orderCode || order._id.toString().slice(-6)}`,
+                  description: isDepositCompensation
+                    ? `Thu hồi tiền bồi thường cọc do khiếu nại thành công đơn #${order.orderCode || order._id.toString().slice(-6)}`
+                    : `Thu hồi tiền công do khiếu nại thành công đơn #${order.orderCode || order._id.toString().slice(-6)}`,
                 },
               ],
               { session },
@@ -911,12 +919,13 @@ export class AdminService {
           }
         }
       } else if (decision === 'PAY_BOOSTER') {
-        if (order.dispute?.fundsDeducted && order.boosterId && order.pricing.booster_earnings > 0) {
-          // Tiền công đang bị hold ở pending_balance: giải phóng trở lại wallet_balance cho Booster
+        if (order.dispute?.fundsDeducted && order.boosterId) {
+          // Tiền công hoặc tiền bồi thường cọc đang bị hold ở pending_balance: giải phóng trở lại wallet_balance cho Booster
+          const amountToRelease = (order.dispute as any)?.deductedAmount || totalPaidToBooster || order.pricing?.booster_earnings || 0;
           const booster = await this.userModel.findById(order.boosterId).session(session);
-          if (booster) {
-            booster.pending_balance = Math.max(0, (booster.pending_balance || 0) - order.pricing.booster_earnings);
-            booster.wallet_balance += order.pricing.booster_earnings;
+          if (booster && amountToRelease > 0) {
+            booster.pending_balance = Math.max(0, (booster.pending_balance || 0) - amountToRelease);
+            booster.wallet_balance += amountToRelease;
             await booster.save({ session });
 
             await this.transactionModel.create(
@@ -925,7 +934,7 @@ export class AdminService {
                   userId: booster._id,
                   orderId: order._id,
                   type: TransactionType.PAYMENT_RELEASE,
-                  amount: order.pricing.booster_earnings,
+                  amount: amountToRelease,
                   balanceAfter: booster.wallet_balance,
                   status: TransactionStatus.SUCCESS,
                   description: `Giải tỏa tiền tạm giữ đơn hàng #${order.orderCode || order._id.toString().slice(-6)} sau khi khiếu nại được giải quyết`,

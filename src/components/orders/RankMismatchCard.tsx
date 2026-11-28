@@ -69,6 +69,7 @@ export default function RankMismatchCard({
   const [loadingAction, setLoadingAction] = useState<'CONFIRM' | 'CANCEL' | 'WITHDRAW' | null>(null);
   const [showProofModal, setShowProofModal] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [showCancelModal, setShowCancelModal] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [openDropdown, setOpenDropdown] = useState<'platform' | 'server' | null>(null);
   const [serverSearch, setServerSearch] = useState('');
@@ -324,9 +325,11 @@ export default function RankMismatchCard({
     }
   };
 
-  const handleCancelMismatch = async () => {
-    if (!confirm('Bạn có chắc chắn muốn hủy đơn hàng này và nhận lại toàn bộ tiền cọc vào ví?')) return;
+  const handleOpenCancelModal = () => {
+    setShowCancelModal(true);
+  };
 
+  const executeCancelMismatch = async () => {
     setLoadingAction('CANCEL');
     try {
       const token = localStorage.getItem('token');
@@ -345,6 +348,7 @@ export default function RankMismatchCard({
       const data = await res.json();
       if (res.ok && data.success) {
         toast.success('Đã hủy đơn hàng và hoàn tiền về ví thành công');
+        setShowCancelModal(false);
         onRefresh();
       } else {
         toast.error(data.message || 'Hủy đơn thất bại');
@@ -640,24 +644,10 @@ export default function RankMismatchCard({
               <>
                 <div className="flex items-center gap-2 text-rose-400 text-xs font-semibold">
                   <ShieldAlert className="w-4 h-4 animate-pulse shrink-0" />
-                  <span>Tranh chấp đang được BQT xem xét đối soát</span>
+                  <span>Tranh chấp đang được BQT đối soát. Vui lòng chờ kết luận chính thức.</span>
                 </div>
 
-                <div className="flex flex-col sm:flex-row items-center gap-2.5 w-full sm:w-auto">
-                  <button
-                    type="button"
-                    onClick={handleCancelMismatch}
-                    disabled={loadingAction !== null}
-                    className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl border border-rose-500/40 bg-rose-950/40 hover:bg-rose-900/50 text-rose-200 hover:text-white text-xs font-semibold transition-all disabled:opacity-50 cursor-pointer shadow-lg shadow-rose-950/20"
-                  >
-                    {loadingAction === 'CANCEL' ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <XCircle className="w-4 h-4 text-rose-400" />
-                    )}
-                    <span>Hủy đơn &amp; Nhận lại cọc</span>
-                  </button>
-
+                <div className="flex items-center gap-2.5 w-full sm:w-auto">
                   <button
                     type="button"
                     onClick={handleWithdrawDispute}
@@ -687,7 +677,7 @@ export default function RankMismatchCard({
                 <div className="flex flex-col sm:flex-row items-center gap-2.5 w-full sm:w-auto">
                   <button
                     type="button"
-                    onClick={handleCancelMismatch}
+                    onClick={handleOpenCancelModal}
                     disabled={loadingAction !== null}
                     className={`w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl border text-xs font-semibold transition-all disabled:opacity-50 cursor-pointer ${
                       isTargetExceeded
@@ -1170,6 +1160,64 @@ export default function RankMismatchCard({
                   </button>
                 </div>
               </form>
+            </div>
+          </div>,
+          document.body
+        )}
+
+      {/* MODAL XÁC NHẬN HỦY ĐƠN & HOÀN CỌC (TRAU CHUỐT THAY THẾ WINDOW.CONFIRM) */}
+      {mounted &&
+        showCancelModal &&
+        createPortal(
+          <div className="fixed inset-0 z-[9996] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in">
+            <div className="relative max-w-md w-full bg-zinc-950 border border-zinc-800 rounded-2xl p-6 shadow-2xl space-y-4">
+              <div className="flex items-start gap-3">
+                <div className="p-3 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-400 shrink-0">
+                  <AlertTriangle className="w-6 h-6" />
+                </div>
+                <div>
+                  <h4 className="font-extrabold text-white text-base">Xác Nhận Hủy Đơn Hàng?</h4>
+                  <p className="text-xs text-zinc-400 mt-0.5">
+                    Bạn có chắc chắn muốn hủy đơn hàng này và nhận lại toàn bộ tiền cọc vào ví?
+                  </p>
+                </div>
+              </div>
+
+              <div className="p-3.5 rounded-xl bg-zinc-900/80 border border-zinc-800 space-y-2 text-xs">
+                <div className="flex justify-between items-center text-zinc-400">
+                  <span>Tiền cọc được hoàn trả 100%:</span>
+                  <span className="font-mono text-emerald-400 font-bold text-sm">
+                    +{originalDepositPaid.toLocaleString('vi-VN')} đ
+                  </span>
+                </div>
+                <div className="flex justify-between items-center text-zinc-400">
+                  <span>Hình thức hoàn tiền:</span>
+                  <span className="text-zinc-200 font-semibold">Cộng trực tiếp vào ví LeoRank</span>
+                </div>
+                <p className="text-[11px] text-zinc-500 pt-1 border-t border-zinc-800/80 leading-relaxed">
+                  • Đơn hàng sẽ kết thúc và Booster sẽ không tiếp tục cày tài khoản này nữa.
+                </p>
+              </div>
+
+              <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-zinc-800">
+                <button
+                  type="button"
+                  disabled={loadingAction === 'CANCEL'}
+                  onClick={() => setShowCancelModal(false)}
+                  className="px-4 py-2 text-xs font-semibold text-zinc-400 hover:text-white transition-colors cursor-pointer"
+                >
+                  Đóng &amp; Giữ đơn
+                </button>
+                <button
+                  type="button"
+                  disabled={loadingAction === 'CANCEL'}
+                  onClick={executeCancelMismatch}
+                  className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs transition-all shadow-lg shadow-rose-600/30 active:scale-95 cursor-pointer disabled:opacity-50"
+                >
+                  {loadingAction === 'CANCEL' && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                  <span>Xác nhận Hủy &amp; Nhận lại cọc</span>
+                </button>
+              </div>
             </div>
           </div>,
           document.body

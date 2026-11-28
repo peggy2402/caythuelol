@@ -93,7 +93,7 @@ function getStatusBadge(status: string, hasBooster?: boolean) {
     case 'REFUNDED':
       return {
         label: 'Đã hoàn tiền',
-        className: 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20',
+        className: 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/30',
         icon: CheckCircle2,
       };
     case 'DISPUTED':
