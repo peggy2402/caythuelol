@@ -488,30 +488,57 @@ export function PointAndStarBoostSection({
               <div className="flex items-center justify-between sm:justify-start gap-1 bg-zinc-900 border border-zinc-800 rounded-xl p-1 w-full sm:w-auto shrink-0">
                 <button
                   type="button"
-                  onClick={() => setAovOddStarsToAdd((s) => Math.max(1, s - 1))}
+                  onClick={() => setAovOddStarsToAdd((s) => Math.max(1, (s || 1) - 1))}
                   className="w-8 h-8 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-white font-bold flex items-center justify-center cursor-pointer transition-colors"
+                  title="Giảm 1 sao"
                 >
                   -
                 </button>
-                <span className="px-3 text-base font-black font-mono text-cyan-400 min-w-[3.5rem] text-center flex-1 sm:flex-initial">
-                  +{aovOddStarsToAdd}
-                </span>
+                <div className="relative flex items-center justify-center px-1">
+                  <span className="text-cyan-400 font-mono font-black text-sm select-none pl-1.5">+</span>
+                  <input
+                    type="number"
+                    min={1}
+                    max={100}
+                    value={aovOddStarsToAdd || ''}
+                    onChange={(e) => {
+                      const raw = e.target.value;
+                      if (raw === '') {
+                        setAovOddStarsToAdd(0);
+                        return;
+                      }
+                      const val = parseInt(raw, 10);
+                      if (!isNaN(val)) {
+                        setAovOddStarsToAdd(Math.min(100, Math.max(1, val)));
+                      }
+                    }}
+                    onBlur={() => {
+                      if (!aovOddStarsToAdd || aovOddStarsToAdd < 1) {
+                        setAovOddStarsToAdd(1);
+                      }
+                    }}
+                    className="w-14 sm:w-16 py-1 px-1 bg-transparent text-center text-base font-black font-mono text-cyan-400 focus:outline-none focus:bg-zinc-800/80 rounded-lg transition-colors [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    placeholder="1"
+                    title="Nhập số sao (1 - 100)"
+                  />
+                </div>
                 <button
                   type="button"
-                  onClick={() => setAovOddStarsToAdd((s) => Math.min(10, s + 1))}
+                  onClick={() => setAovOddStarsToAdd((s) => Math.min(100, (s || 0) + 1))}
                   className="w-8 h-8 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-white font-bold flex items-center justify-center cursor-pointer transition-colors"
+                  title="Tăng 1 sao (tối đa 100)"
                 >
                   +
                 </button>
               </div>
 
-              <div className="grid grid-cols-5 sm:flex sm:flex-wrap gap-1.5 w-full sm:w-auto">
-                {[1, 2, 3, 4, 5].map((num) => (
+              <div className="grid grid-cols-6 sm:flex sm:flex-wrap gap-1.5 w-full sm:w-auto">
+                {[1, 2, 3, 5, 10, 20].map((num) => (
                   <button
                     key={num}
                     type="button"
                     onClick={() => setAovOddStarsToAdd(num)}
-                    className={`py-2 px-1 sm:px-3 rounded-xl border text-xs font-bold transition-all cursor-pointer text-center whitespace-nowrap ${
+                    className={`py-2 px-1 sm:px-2.5 rounded-xl border text-xs font-bold transition-all cursor-pointer text-center whitespace-nowrap ${
                       aovOddStarsToAdd === num
                         ? 'bg-cyan-500/25 border-cyan-400 text-cyan-300 shadow-sm'
                         : 'bg-zinc-900/80 border-zinc-800 text-zinc-400 hover:border-zinc-700 hover:text-white'
