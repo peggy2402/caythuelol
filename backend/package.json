@@ -10,7 +10,8 @@
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
     "start:prod": "node -e \"const f=require('fs');const p=f.existsSync('dist/main.js')?'dist/main':'dist/src/main';require('./'+p);\"",
-    "reset:db": "ts-node scripts/reset-db.ts"
+    "reset:db": "ts-node scripts/reset-db.ts",
+    "sync:staging": "ts-node scripts/sync-to-staging.ts"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",
