@@ -278,6 +278,7 @@ export default function ReportRankMismatchModal({
     try {
       const formData = new FormData();
       formData.append('file', file);
+      formData.append('folder', 'order-proofs');
       const token = localStorage.getItem('token');
       const res = await fetch(`${API_BASE_URL}/api/upload`, {
         method: 'POST',

@@ -117,13 +117,12 @@ export class PublicController {
   @ApiQuery({
     name: 'folder',
     required: false,
-    description: 'Thư mục lưu trên Cloudinary: "chat" (caythuelol/chat - chỉ ảnh) hoặc "uploads" (caythuelol/uploads - ảnh/PDF hồ sơ, mặc định)',
-    enum: ['chat', 'uploads'],
+    description: 'Thư mục lưu trên Cloudinary (vd: booster-ranks, booster-bills, booster-contracts, order-proofs, chat, feedbacks...)',
   })
   @ApiOperation({
     summary: 'Upload image or contract PDF to Cloudinary',
     description:
-      'Hỗ trợ truyền folder qua FormData field "folder" hoặc query "?folder=chat|uploads". Mặc định lưu vào caythuelol/uploads; dùng "chat" để lưu vào caythuelol/chat (chỉ chấp nhận ảnh).',
+      'Hỗ trợ truyền folder qua FormData field "folder" hoặc query "?folder=...". Hệ thống tự động phân loại thư mục theo từng module nghiệp vụ trên Cloudinary.',
   })
   async uploadFile(
     @UploadedFile() file: any,

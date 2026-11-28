@@ -449,7 +449,7 @@ export default function BoosterApplyPage() {
     toast.success("Đã chọn ảnh Bill chuyển khoản");
   };
 
-  const uploadSingleFile = async (file: File, folder: 'uploads' | 'chat' = 'uploads'): Promise<string> => {
+  const uploadSingleFile = async (file: File, folder: string = 'general'): Promise<string> => {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('folder', folder);
@@ -532,7 +532,7 @@ export default function BoosterApplyPage() {
       const cleanFileName = `contract_${Date.now()}.pdf`;
       formData.append('file', pdfBlob, cleanFileName);
       formData.append('resource_type', 'raw');
-      formData.append('folder', 'uploads');
+      formData.append('folder', 'booster-contracts');
       
       const uploadRes = await fetch('/api/upload', {
         method: 'POST',
@@ -607,15 +607,15 @@ export default function BoosterApplyPage() {
 
       toast.info("Đang xử lý chứng từ & hợp đồng điện tử...");
 
-      // Upload ảnh Rank và Bill lên Cloudinary chỉ khi người dùng nộp đơn chính thức
+      // Upload ảnh Rank và Bill lên Cloudinary theo đúng thư mục nghiệp vụ
       let finalRankUrl = data.rankImageUrl;
       if (rankImageFile) {
-        finalRankUrl = await uploadSingleFile(rankImageFile);
+        finalRankUrl = await uploadSingleFile(rankImageFile, 'booster-ranks');
       }
 
       let finalBillUrl = data.billImageUrl;
       if (billImageFile) {
-        finalBillUrl = await uploadSingleFile(billImageFile);
+        finalBillUrl = await uploadSingleFile(billImageFile, 'booster-bills');
       }
 
       const result = await generateAndUploadContract();

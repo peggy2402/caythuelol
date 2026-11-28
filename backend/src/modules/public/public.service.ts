@@ -137,12 +137,63 @@ export class PublicService {
     };
   }
 
-  private resolveUploadFolder(folder?: string): 'caythuelol/chat' | 'caythuelol/uploads' {
-    const normalized = (folder || '').trim().toLowerCase().replace(/^\/+|\/+$/g, '');
-    if (normalized === 'chat' || normalized === 'caythuelol/chat') {
-      return 'caythuelol/chat';
+  private resolveUploadFolder(folder?: string): string {
+    const raw = (folder || '').trim().toLowerCase().replace(/^\/+|\/+$/g, '');
+
+    // Map các alias sang đường dẫn Cloudinary theo từng module chuyên biệt
+    const FOLDER_MAP: Record<string, string> = {
+      // 1. Hồ sơ ứng viên Booster
+      'booster-rank': 'caythuelol/boosters/ranks',
+      'booster-ranks': 'caythuelol/boosters/ranks',
+      'boosters/ranks': 'caythuelol/boosters/ranks',
+      'booster-bill': 'caythuelol/boosters/bills',
+      'booster-bills': 'caythuelol/boosters/bills',
+      'boosters/bills': 'caythuelol/boosters/bills',
+      'booster-contract': 'caythuelol/boosters/contracts',
+      'booster-contracts': 'caythuelol/boosters/contracts',
+      'boosters/contracts': 'caythuelol/boosters/contracts',
+      'contracts': 'caythuelol/boosters/contracts',
+
+      // 2. Đơn hàng & Khiếu nại
+      'order-proof': 'caythuelol/orders/rank-proofs',
+      'order-proofs': 'caythuelol/orders/rank-proofs',
+      'rank-proofs': 'caythuelol/orders/rank-proofs',
+      'orders/rank-proofs': 'caythuelol/orders/rank-proofs',
+      'order-completion': 'caythuelol/orders/completions',
+      'orders/completions': 'caythuelol/orders/completions',
+
+      // 3. Tin nhắn phòng chat đơn hàng
+      'chat': 'caythuelol/chat',
+      'caythuelol/chat': 'caythuelol/chat',
+
+      // 4. Khách hàng gửi góp ý / báo lỗi
+      'feedback': 'caythuelol/feedbacks',
+      'feedbacks': 'caythuelol/feedbacks',
+
+      // 5. Nội dung & Hệ thống
+      'avatar': 'caythuelol/avatars',
+      'avatars': 'caythuelol/avatars',
+      'blog': 'caythuelol/blogs',
+      'blogs': 'caythuelol/blogs',
+      'event': 'caythuelol/events',
+      'events': 'caythuelol/events',
+      'game': 'caythuelol/games',
+      'games': 'caythuelol/games',
+    };
+
+    if (FOLDER_MAP[raw]) {
+      return FOLDER_MAP[raw];
     }
-    return 'caythuelol/uploads';
+
+    if (raw.startsWith('caythuelol/')) {
+      return raw;
+    }
+
+    if (raw && /^[a-z0-9_-]+(\/[a-z0-9_-]+)*$/.test(raw)) {
+      return `caythuelol/${raw}`;
+    }
+
+    return 'caythuelol/general';
   }
 
   async uploadFileBuffer(
