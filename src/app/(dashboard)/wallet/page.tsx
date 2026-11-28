@@ -9,6 +9,7 @@ import confetti from 'canvas-confetti';
 import { playDepositSuccessSound } from '@/lib/sound';
 import { Wallet, ArrowUpRight, ArrowDownLeft, History, CreditCard, Loader2, QrCode, Copy, Check, X, RefreshCw, XCircle, CheckCircle2, ShieldCheck, AlertCircle, ChevronLeft, ChevronRight, Clock, Lock, Search, Filter } from 'lucide-react';
 import DepositModal from '@/components/dashboard/DepositModal';
+import ConfirmModal from '@/components/ui/confirm-modal';
 
 interface Transaction {
   _id: string;
@@ -61,6 +62,8 @@ export default function WalletPage() {
   
   // State cho QR Code
   const [pendingTx, setPendingTx] = useState<{ qrUrl: string, info: PaymentInfo } | null>(null);
+  const [cancelTxId, setCancelTxId] = useState<string | null>(null);
+  const [isCancellingTx, setIsCancellingTx] = useState(false);
 
   // Pagination & Filtering
   const [currentPage, setCurrentPage] = useState(1);
@@ -455,24 +458,27 @@ export default function WalletPage() {
     setIsDepositModalOpen(true);
   };
 
-  const handleCancelTransaction = async (transactionId: string) => {
-    if (!confirm('Bạn muốn hủy yêu cầu nạp tiền này?')) return;
-    
+  const handleConfirmCancelTransaction = async () => {
+    if (!cancelTxId) return;
+    setIsCancellingTx(true);
     try {
       const res = await fetch('/api/wallet/cancel', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ transactionId }),
+        body: JSON.stringify({ transactionId: cancelTxId }),
       });
       const data = await res.json();
       if (res.ok) {
         toast.success('Đã hủy yêu cầu nạp tiền');
+        setCancelTxId(null);
         fetchWalletData(currentPage, limit, filterType, filterStatus, searchQuery);
       } else {
         toast.error(data.message || 'Không thể hủy giao dịch này');
       }
-    } catch(e) {
-      toast.error('Lỗi kết nối');
+    } catch {
+      toast.error('Lỗi kết nối khi hủy giao dịch');
+    } finally {
+      setIsCancellingTx(false);
     }
   };
 
@@ -880,7 +886,7 @@ export default function WalletPage() {
                         </button>
                         <button
                           type="button"
-                          onClick={() => handleCancelTransaction(tx._id)}
+                          onClick={() => setCancelTxId(tx._id)}
                           className="p-1.5 hover:bg-rose-500/10 text-zinc-500 hover:text-rose-400 rounded-lg transition-colors border border-transparent hover:border-rose-500/20 cursor-pointer"
                           title="Hủy yêu cầu nạp này"
                         >
@@ -1063,6 +1069,19 @@ export default function WalletPage() {
           </div>
         </div>
       )}
+
+      {/* Modal xác nhận hủy giao dịch nạp tiền */}
+      <ConfirmModal
+        isOpen={Boolean(cancelTxId)}
+        onClose={() => setCancelTxId(null)}
+        onConfirm={handleConfirmCancelTransaction}
+        isLoading={isCancellingTx}
+        title="Hủy Yêu Cầu Nạp Tiền?"
+        variant="danger"
+        confirmText="Xác nhận Hủy yêu cầu"
+        cancelText="Đóng"
+        description="Bạn có chắc chắn muốn hủy giao dịch nạp tiền đang chờ này không? Sau khi hủy, mã chuyển khoản cũ sẽ bị vô hiệu hóa."
+      />
 
     </div>
   );

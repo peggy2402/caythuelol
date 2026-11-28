@@ -20,7 +20,9 @@ import {
   ChevronsUpDown,
   Check,
   Globe,
+  RotateCcw,
 } from 'lucide-react';
+import ConfirmModal from '@/components/ui/confirm-modal';
 import { toast } from 'sonner';
 import { API_BASE_URL } from '@/lib/api';
 import { GAME_SERVERS, getServerByCode } from '@/lib/servers';
@@ -70,6 +72,7 @@ export default function RankMismatchCard({
   const [showProofModal, setShowProofModal] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
+  const [showWithdrawDisputeModal, setShowWithdrawDisputeModal] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [openDropdown, setOpenDropdown] = useState<'platform' | 'server' | null>(null);
   const [serverSearch, setServerSearch] = useState('');
@@ -249,9 +252,11 @@ export default function RankMismatchCard({
     }
   };
 
-  const handleWithdrawDispute = async () => {
-    if (!confirm('Bạn có chắc chắn muốn rút khiếu nại để quay lại xử lý đơn hàng (bù cọc hoặc gửi lại tài khoản)?')) return;
+  const handleOpenWithdrawDisputeModal = () => {
+    setShowWithdrawDisputeModal(true);
+  };
 
+  const executeWithdrawDispute = async () => {
     setLoadingAction('WITHDRAW');
     try {
       const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
@@ -267,6 +272,7 @@ export default function RankMismatchCard({
       const data = await res.json();
       if (res.ok && data.success) {
         toast.success(data.message || 'Đã rút khiếu nại thành công! Bạn có thể tiếp tục xử lý đơn.');
+        setShowWithdrawDisputeModal(false);
         onRefresh();
       } else {
         toast.error(data.message || 'Rút khiếu nại thất bại');
@@ -432,7 +438,7 @@ export default function RankMismatchCard({
             <div className="pt-1 flex items-center justify-end">
               <button
                 type="button"
-                onClick={handleWithdrawDispute}
+                onClick={handleOpenWithdrawDisputeModal}
                 disabled={loadingAction !== null}
                 className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black font-extrabold text-xs transition-all shadow-md active:scale-95 disabled:opacity-50 cursor-pointer flex items-center gap-1.5"
               >
@@ -650,7 +656,7 @@ export default function RankMismatchCard({
                 <div className="flex items-center gap-2.5 w-full sm:w-auto">
                   <button
                     type="button"
-                    onClick={handleWithdrawDispute}
+                    onClick={handleOpenWithdrawDisputeModal}
                     disabled={loadingAction !== null}
                     className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black font-extrabold text-xs transition-all shadow-lg shadow-amber-500/20 active:scale-95 disabled:opacity-50 cursor-pointer"
                   >
@@ -1222,6 +1228,41 @@ export default function RankMismatchCard({
           </div>,
           document.body
         )}
+
+      {/* MODAL XÁC NHẬN RÚT KHIẾU NẠI (THAY THẾ WINDOW.CONFIRM) */}
+      <ConfirmModal
+        isOpen={showWithdrawDisputeModal}
+        onClose={() => setShowWithdrawDisputeModal(false)}
+        onConfirm={executeWithdrawDispute}
+        isLoading={loadingAction === 'WITHDRAW'}
+        title="Xác Nhận Rút Khiếu Nại?"
+        variant="warning"
+        icon={<RotateCcw className="w-6 h-6" />}
+        confirmText="Xác nhận Rút khiếu nại"
+        cancelText="Giữ nguyên khiếu nại"
+        description="Bạn có chắc chắn muốn rút khiếu nại để quay lại xử lý đơn hàng (bù cọc hoặc gửi lại tài khoản)?"
+      >
+        <div className="p-3.5 rounded-xl bg-zinc-900/80 border border-zinc-800 space-y-2.5 text-xs">
+          <div className="flex justify-between items-center text-zinc-400">
+            <span>Trạng thái sau khi rút:</span>
+            <span className="text-amber-400 font-semibold">Quay lại xử lý cọc / tài khoản</span>
+          </div>
+          <div className="flex justify-between items-center text-zinc-400">
+            <span>Bảo chứng Escrow:</span>
+            <span className="text-emerald-400 font-semibold">100% An toàn, không mất tiền</span>
+          </div>
+          <div className="text-[11px] text-zinc-400 pt-2 border-t border-zinc-800/80 leading-relaxed space-y-1">
+            <p className="flex items-start gap-1.5">
+              <span className="text-amber-400 font-bold">•</span>
+              <span>Đơn hàng sẽ rời khỏi quy trình BQT can thiệp tranh chấp để bạn tự thỏa thuận bù cọc hoặc gửi lại đúng nick.</span>
+            </p>
+            <p className="flex items-start gap-1.5">
+              <span className="text-emerald-400 font-bold">•</span>
+              <span>Bạn vẫn có quyền khiếu nại lại bất cứ lúc nào nếu phát hiện Booster có hành vi gian lận.</span>
+            </p>
+          </div>
+        </div>
+      </ConfirmModal>
     </>
   );
 }

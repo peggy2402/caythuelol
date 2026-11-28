@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { Loader2, Plus, Pencil, Trash2, FileText, Image as ImageIcon, X, Tag } from 'lucide-react';
 import Image from 'next/image';
 import QuillEditor from '@/components/QuillEditor';
+import ConfirmModal from '@/components/ui/confirm-modal';
 
 interface Blog {
   _id: string;
@@ -25,6 +26,8 @@ export default function AdminBlogsPage() {
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingBlog, setEditingBlog] = useState<Blog | null>(null);
+  const [deleteBlogId, setDeleteBlogId] = useState<string | null>(null);
+  const [isDeletingBlog, setIsDeletingBlog] = useState(false);
   
   // Form State
   const [formData, setFormData] = useState({
@@ -76,13 +79,19 @@ export default function AdminBlogsPage() {
     } catch (e) { toast.error('Lỗi kết nối'); }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Xóa bài viết này?')) return;
+  const executeDeleteBlog = async () => {
+    if (!deleteBlogId) return;
+    setIsDeletingBlog(true);
     try {
-      await fetch(`/api/admin/blogs/${id}`, { method: 'DELETE' });
+      await fetch(`/api/admin/blogs/${deleteBlogId}`, { method: 'DELETE' });
       toast.success('Đã xóa bài viết');
+      setDeleteBlogId(null);
       fetchBlogs();
-    } catch (e) { toast.error('Lỗi xóa bài viết'); }
+    } catch {
+      toast.error('Lỗi xóa bài viết');
+    } finally {
+      setIsDeletingBlog(false);
+    }
   };
 
   const openModal = (blog?: Blog) => {
@@ -142,7 +151,7 @@ export default function AdminBlogsPage() {
                   <span className="text-xs text-zinc-500">{new Date(blog.createdAt).toLocaleDateString('vi-VN')}</span>
                   <div className="flex gap-2">
                     <button onClick={() => openModal(blog)} className="p-2 hover:bg-zinc-800 rounded-lg text-blue-400 transition-colors"><Pencil size={16} /></button>
-                    <button onClick={() => handleDelete(blog._id)} className="p-2 hover:bg-zinc-800 rounded-lg text-red-400 transition-colors"><Trash2 size={16} /></button>
+                    <button onClick={() => setDeleteBlogId(blog._id)} className="p-2 hover:bg-zinc-800 rounded-lg text-red-400 transition-colors"><Trash2 size={16} /></button>
                   </div>
                 </div>
               </div>
@@ -201,6 +210,18 @@ export default function AdminBlogsPage() {
           </div>
         </div>
       )}
+      {/* Confirm Delete Blog Modal */}
+      <ConfirmModal
+        isOpen={Boolean(deleteBlogId)}
+        onClose={() => setDeleteBlogId(null)}
+        onConfirm={executeDeleteBlog}
+        isLoading={isDeletingBlog}
+        title="Xóa Bài Viết?"
+        variant="danger"
+        confirmText="Xác nhận Xóa"
+        cancelText="Đóng"
+        description="Bạn có chắc chắn muốn xóa bài viết này không? Bài viết sẽ bị gỡ bỏ hoàn toàn khỏi hệ thống blog."
+      />
     </div>
   );
 }
