@@ -180,25 +180,38 @@ export function PointAndStarBoostSection({
 
   return (
     <div className="space-y-5">
-      <div className="flex items-center justify-between">
-        <label className="text-xs font-bold text-zinc-300 flex items-center gap-2">
-          <TrendingUp size={15} className="text-cyan-400" />
-          <span>
-            {isAov
-              ? 'Chọn Phân Khúc & Đơn Giá Cày Theo Sao Liên Quân'
-              : `Chọn Phân Khúc & Mức Giá Theo Điểm ${pointUnit}`}
+      {/* Header Phân Khúc & Mức Giá: Thiết kế thoáng đãng, chống co ép trên mobile */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-1">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="w-7 h-7 rounded-lg bg-cyan-500/10 border border-cyan-500/25 text-cyan-400 flex items-center justify-center shrink-0">
+            <TrendingUp size={15} />
+          </div>
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <label className="text-xs sm:text-sm font-extrabold text-white tracking-tight">
+              {isAov
+                ? 'Phân Khúc & Bảng Giá Cày Theo Sao'
+                : `Phân Khúc & Mức Giá Theo Điểm ${pointUnit}`}
+            </label>
+            <span className="text-rose-500 font-black">*</span>
+          </div>
+        </div>
+
+        <div className="flex items-center pl-9 sm:pl-0 shrink-0">
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-cyan-950/40 border border-cyan-500/30 text-cyan-300 text-[11px] font-semibold tracking-tight shadow-sm whitespace-nowrap">
+            {isAov ? (
+              <>
+                <span className="text-zinc-400">Đơn vị tính:</span>
+                <strong className="text-cyan-200 font-bold">Sao</strong>
+                <StarIcon size={12} className="text-amber-400 -translate-y-[0.5px]" />
+              </>
+            ) : (
+              <>
+                <span className="text-zinc-400">Đơn vị tính:</span>
+                <strong className="text-cyan-200 font-bold">Điểm {pointUnit}</strong>
+              </>
+            )}
           </span>
-          <span className="text-red-500">*</span>
-        </label>
-        <span className="text-[11px] text-cyan-400 font-semibold flex items-center gap-1">
-          {isAov ? (
-            <>
-              Đơn vị tính: Sao (<StarIcon size={12} className="-translate-y-[1px]" />)
-            </>
-          ) : (
-            `Đơn vị tính: Điểm ${pointUnit}`
-          )}
-        </span>
+        </div>
       </div>
 
       {/* Grid các Phân Khúc Rank */}
@@ -206,15 +219,15 @@ export function PointAndStarBoostSection({
         <div className="space-y-4">
           {/* NHÓM 1: CÀY SAO LẺ (DƯỚI CAO THỦ) */}
           <div className="space-y-2">
-            <div className="flex items-center justify-between pb-1 border-b border-zinc-800/70">
-              <div className="flex items-center gap-2">
-                <Sparkles size={14} className="text-cyan-400" />
-                <span className="text-xs font-extrabold text-cyan-300 uppercase tracking-wide">
-                  1. Cày Sao Lẻ (Bậc Dưới Cao Thủ)
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 pb-2 border-b border-zinc-800/70">
+              <div className="flex items-center gap-2 min-w-0">
+                <Sparkles size={14} className="text-cyan-400 shrink-0" />
+                <span className="text-xs sm:text-sm font-extrabold text-cyan-300 uppercase tracking-wide">
+                  1. Cày Sao Lẻ (Dưới Cao Thủ)
                 </span>
               </div>
-              <span className="text-[10px] text-cyan-300/80 font-bold px-2 py-0.5 rounded-full bg-cyan-500/10 border border-cyan-500/20">
-                Mua 1 – 5 sao lẻ/đoàn
+              <span className="text-[10.5px] text-cyan-300 font-semibold px-2.5 py-0.5 rounded-full bg-cyan-500/10 border border-cyan-500/25 w-fit shrink-0 whitespace-nowrap self-start sm:self-auto">
+                Mua 1 – 5 sao lẻ / đoàn
               </span>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 items-stretch">
@@ -224,14 +237,14 @@ export function PointAndStarBoostSection({
 
           {/* NHÓM 2: CÀY SAO TÍCH LŨY (CAO THỦ TRỞ LÊN) */}
           <div className="space-y-2 pt-1">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 pb-1 border-b border-zinc-800/70">
-              <div className="flex items-center gap-2">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 pb-2 border-b border-zinc-800/70">
+              <div className="flex items-center gap-2 min-w-0">
                 <Crown size={15} className="text-amber-400 shrink-0" />
-                <span className="text-xs font-extrabold text-amber-300 uppercase tracking-wide">
+                <span className="text-xs sm:text-sm font-extrabold text-amber-300 uppercase tracking-wide">
                   2. Cày Sao Tích Lũy (Cao Thủ Trở Lên)
                 </span>
               </div>
-              <span className="text-[10px] text-amber-300/90 font-bold px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20 self-start sm:self-auto flex items-center gap-0.5">
+              <span className="text-[10.5px] text-amber-300 font-semibold px-2.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/25 self-start sm:self-auto flex items-center gap-1 w-fit shrink-0 whitespace-nowrap">
                 {renderWithStarIcon('Tích lũy 0★ ➔ 100★+ (Tự tính lũy tiến)', 11)}
               </span>
             </div>
