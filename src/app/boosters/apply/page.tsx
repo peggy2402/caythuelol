@@ -115,25 +115,25 @@ const GAME_OPTIONS = [
 
 // Form Validation Schema
 const formSchema = z.object({
-  fullName: z.string().min(2, "Họ tên quá ngắn (tối thiểu 2 ký tự)"),
-  phoneNumber: z.string().regex(/^[0-9]{10,11}$/, "Số điện thoại không hợp lệ (10-11 số)"),
-  facebookUrl: z.string()
+  fullName: z.string({ message: "Vui lòng nhập họ và tên" }).min(2, "Họ tên quá ngắn (tối thiểu 2 ký tự)"),
+  phoneNumber: z.string({ message: "Vui lòng nhập số điện thoại" }).regex(/^[0-9]{10,11}$/, "Số điện thoại không hợp lệ (10-11 số)"),
+  facebookUrl: z.string({ message: "Vui lòng nhập link Facebook" })
     .min(3, "Vui lòng nhập link Facebook")
     .refine((val) => {
-      const trimmed = val.trim();
+      const trimmed = (val || '').trim();
       return /^(https?:\/\/)?(www\.)?(facebook\.com|fb\.com)\/.+$/i.test(trimmed);
     }, "Link Facebook không hợp lệ (ví dụ: facebook.com/vtchn hoặc fb.com/vtchn)"),
-  discordTag: z.string().min(3, "Discord Tag không hợp lệ"),
-  primaryGame: z.string().min(1, "Vui lòng chọn game thế mạnh chính"),
+  discordTag: z.string({ message: "Vui lòng nhập Discord Tag" }).min(3, "Discord Tag không hợp lệ"),
+  primaryGame: z.string({ message: "Vui lòng chọn game thế mạnh chính" }).min(1, "Vui lòng chọn game thế mạnh chính"),
   customGameName: z.string().optional(),
-  currentRank: z.string().min(1, "Vui lòng nhập Rank hiện tại"),
-  highestRank: z.string().min(1, "Vui lòng nhập Rank cao nhất từng đạt"),
-  opggLink: z.string().min(2, "Vui lòng nhập link hoặc tên Ingame/ID thi đấu"),
-  rankImageUrl: z.string().min(1, "Vui lòng tải lên ảnh bằng chứng rank"),
-  bankName: z.string().min(1, "Vui lòng chọn ngân hàng thụ hưởng"),
-  bankAccountName: z.string().min(1, "Vui lòng nhập tên chủ tài khoản"),
-  bankAccountNumber: z.string().min(1, "Vui lòng nhập số tài khoản ngân hàng"),
-  agreementSigned_name: z.string(),
+  currentRank: z.string({ message: "Vui lòng nhập Rank hiện tại" }).min(1, "Vui lòng nhập Rank hiện tại"),
+  highestRank: z.string({ message: "Vui lòng nhập Rank cao nhất từng đạt" }).min(1, "Vui lòng nhập Rank cao nhất từng đạt"),
+  opggLink: z.string({ message: "Vui lòng nhập link hoặc tên Ingame/ID thi đấu" }).min(2, "Vui lòng nhập link hoặc tên Ingame/ID thi đấu"),
+  rankImageUrl: z.string({ message: "Vui lòng tải lên ảnh bằng chứng rank" }).min(1, "Vui lòng tải lên ảnh bằng chứng rank"),
+  bankName: z.string({ message: "Vui lòng chọn ngân hàng thụ hưởng" }).min(1, "Vui lòng chọn ngân hàng thụ hưởng"),
+  bankAccountName: z.string({ message: "Vui lòng nhập tên chủ tài khoản" }).min(1, "Vui lòng nhập tên chủ tài khoản"),
+  bankAccountNumber: z.string({ message: "Vui lòng nhập số tài khoản ngân hàng" }).min(1, "Vui lòng nhập số tài khoản ngân hàng"),
+  agreementSigned_name: z.string({ message: "Vui lòng ký tên xác nhận" }),
   signatureImage: z.string().optional(),
   contractUrl: z.string().optional(),
   billImageUrl: z.string().optional(),
@@ -648,7 +648,7 @@ export default function BoosterApplyPage() {
 
       if (!res.ok) {
         const err = await res.json();
-        throw new Error(err.error || "Đăng ký thất bại");
+        throw new Error(err.message || err.error || "Đăng ký thất bại");
       }
 
       toast.success("Nộp hồ sơ thành công!", {

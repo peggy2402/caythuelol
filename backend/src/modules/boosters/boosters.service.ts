@@ -1645,7 +1645,35 @@ export class BoostersService {
       status: { $in: ['pending', 'approved'] },
     });
     if (existing) {
-      throw new BadRequestException('Bạn đã gửi đơn ứng tuyển rồi');
+      if (existing.status === 'approved') {
+        throw new BadRequestException('Tài khoản của bạn đã được phê duyệt làm Booster chính thức rồi');
+      }
+
+      // Nếu đang pending: Cho phép ứng viên cập nhật lại thông tin hồ sơ (thay đổi rank, nick, bill, hợp đồng...)
+      // Đồng thời bảo lưu trạng thái nộp phí depositStatus nếu đã thanh toán
+      existing.fullName = body.fullName || existing.fullName;
+      existing.phoneNumber = body.phoneNumber || existing.phoneNumber;
+      existing.facebookUrl = body.facebookUrl || existing.facebookUrl;
+      existing.discordTag = body.discordTag || existing.discordTag;
+      existing.primaryGame = body.primaryGame || existing.primaryGame;
+      existing.customGameName = body.customGameName || existing.customGameName;
+      existing.currentRank = body.currentRank || existing.currentRank;
+      existing.highestRank = body.highestRank || existing.highestRank;
+      existing.opggLink = body.opggLink || existing.opggLink;
+      if (body.rankImageUrl) existing.rankImageUrl = body.rankImageUrl;
+      if (body.billImageUrl) existing.billImageUrl = body.billImageUrl;
+      if (body.contractUrl) existing.contractUrl = body.contractUrl;
+      existing.bankName = body.bankName || existing.bankName;
+      existing.bankAccountName = body.bankAccountName || existing.bankAccountName;
+      existing.bankAccountNumber = body.bankAccountNumber || existing.bankAccountNumber;
+      existing.agreementSigned_name = body.agreementSigned_name || existing.agreementSigned_name;
+      existing.agreementSigned_at = new Date();
+      await existing.save();
+
+      return {
+        success: true,
+        message: 'Hồ sơ ứng tuyển của bạn đã được cập nhật thành công! Vui lòng chờ Admin duyệt.',
+      };
     }
 
     const application = new this.boosterAppModel({
