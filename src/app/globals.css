@@ -273,3 +273,35 @@
     left: unset;
   }
 }
+
+/* Infinite Vertical Reviews Marquee */
+@keyframes marquee-scroll-up {
+  0% {
+    transform: translateY(0);
+  }
+  100% {
+    transform: translateY(-50%);
+  }
+}
+
+@keyframes marquee-scroll-down {
+  0% {
+    transform: translateY(-50%);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+
+.animate-marquee-up {
+  animation: marquee-scroll-up 32s linear infinite;
+}
+
+.animate-marquee-down {
+  animation: marquee-scroll-down 32s linear infinite;
+}
+
+.marquee-container:hover .animate-marquee-up,
+.marquee-container:hover .animate-marquee-down {
+  animation-play-state: paused;
+}

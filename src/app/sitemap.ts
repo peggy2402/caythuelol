@@ -34,23 +34,38 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: 'weekly',
       priority: 0.8,
     },
+    {
+      url: `${baseUrl}/vip`,
+      lastModified: new Date(),
+      changeFrequency: 'monthly',
+      priority: 0.85,
+    },
+    {
+      url: `${baseUrl}/loyalty`,
+      lastModified: new Date(),
+      changeFrequency: 'monthly',
+      priority: 0.75,
+    },
   ];
 
-  // Các trang dịch vụ game chi tiết quan trọng nhất cho SEO
+  // Các trang dịch vụ game chi tiết quan trọng nhất cho SEO (Cày thuê Liên Quân, LMHT, Valorant...)
   const gameServices = [
+    { game: 'aov', service: 'rank-boost' },
+    { game: 'aov', service: 'star-boost' },
+    { game: 'aov', service: 'net-wins' },
+    { game: 'aov', service: 'placements' },
     { game: 'lol', service: 'rank-boost' },
     { game: 'lol', service: 'net-wins' },
     { game: 'lol', service: 'placements' },
     { game: 'lol', service: 'champion-mastery' },
     { game: 'lol', service: 'arena' },
+    { game: 'valorant', service: 'rank-boost' },
+    { game: 'valorant', service: 'net-wins' },
+    { game: 'valorant', service: 'placements' },
     { game: 'tft', service: 'rank-boost' },
     { game: 'tft', service: 'net-wins' },
     { game: 'wildrift', service: 'rank-boost' },
     { game: 'wildrift', service: 'net-wins' },
-    { game: 'aov', service: 'rank-boost' },
-    { game: 'aov', service: 'net-wins' },
-    { game: 'valorant', service: 'rank-boost' },
-    { game: 'valorant', service: 'net-wins' },
     { game: 'fconline', service: 'rank-boost' },
   ];
 

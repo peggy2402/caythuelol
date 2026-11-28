@@ -18,42 +18,46 @@ const beVietnamPro = Be_Vietnam_Pro({
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://www.leorank.site"),
   title: {
-    default: "LEORANK - Hệ thống cày thuê game & boost rank chuyên nghiệp số 1 Việt Nam",
+    default: "LEORANK - Cày Thuê Game & Cày Thuê Liên Quân Giá Rẻ, LMHT, Valorant Uy Tín #1",
     template: "%s | LEORANK",
   },
-  description: "Hệ thống cày thuê game chuyên nghiệp, uy tín số 1 Việt Nam. Cung cấp dịch vụ cày thuê, kéo rank tất cả các tựa game hot: LMHT, Liên Quân Mobile, Valorant, Tốc Chiến, Đấu Trường Chân Lý (TFT), CS2... Nhanh chóng, bảo mật tuyệt đối với đội ngũ booster hàng đầu.",
+  description: "Hệ thống cày thuê game uy tín số 1 Việt Nam. Chuyên cày thuê liên quân giá rẻ, cày thuê liên minh LMHT, Valorant, Tốc Chiến, ĐTCL. Cam kết an toàn 100%, bảo mật IP VPN, giữ tiền bảo chứng qua Escrow.",
   keywords: [
-    "cày thuê game",
-    "dịch vụ cày thuê game",
-    "hệ thống cày thuê",
-    "boost rank",
     "leorank",
     "leo rank",
-    "cày thuê lol",
-    "cày thuê liên minh",
+    "cày rank",
+    "cày thuê",
     "cày thuê liên quân",
-    "cày thuê valorant",
-    "cày thuê tốc chiến",
-    "cày thuê tft",
-    "cày thuê cs2",
-    "game boosting",
+    "cày thuê liên quân giá rẻ",
+    "cày thuê liên minh",
+    "cày thuê lol",
     "cày thuê uy tín",
+    "kéo rank",
+    "kéo rank liên quân",
+    "cày thuê tốc chiến",
+    "cày thuê valorant",
+    "cày thuê tft",
+    "dịch vụ cày thuê giá rẻ",
+    "bảng giá cày thuê",
+    "cày sao liên quân",
     "thuê booster",
-    "kéo rank game",
+    "game boosting",
   ],
   authors: [{ name: "LEORANK Team" }],
   creator: "LEORANK",
+  alternates: {
+    canonical: "https://www.leorank.site",
+  },
   openGraph: {
-    title: "LEORANK - Hệ thống cày thuê game & boost rank chuyên nghiệp số 1 Việt Nam",
-    description: "Hệ thống cày thuê game chuyên nghiệp, uy tín số 1 Việt Nam. Cung cấp dịch vụ cày thuê, kéo rank tất cả các tựa game hot: LMHT, Liên Quân Mobile, Valorant, Tốc Chiến, Đấu Trường Chân Lý (TFT), CS2... Nhanh chóng, bảo mật tuyệt đối với đội ngũ booster hàng đầu.",
-    url: "/",
+    title: "LEORANK - Cày Thuê Game & Cày Thuê Liên Quân Giá Rẻ, LMHT, Valorant Uy Tín #1",
+    description: "Hệ thống cày thuê game uy tín số 1 Việt Nam. Chuyên cày thuê liên quân giá rẻ, cày thuê liên minh LMHT, Valorant, Tốc Chiến. An toàn 100% với cơ chế Escrow bảo vệ người dùng.",
     siteName: "LEORANK",
     images: [
       {
-        url: "/og-image.png", // Bạn cần thêm file ảnh này vào thư mục public
+        url: "https://www.leorank.site/og-image.png",
         width: 1200,
         height: 630,
-        alt: "LEORANK Banner",
+        alt: "LEORANK - Hệ thống cày thuê game & boost rank chuyên nghiệp số 1 Việt Nam",
       },
     ],
     locale: "vi_VN",
@@ -61,9 +65,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "LEORANK - Hệ thống cày thuê game & boost rank chuyên nghiệp số 1 Việt Nam",
-    description: "Hệ thống cày thuê game chuyên nghiệp, uy tín số 1 Việt Nam. Cung cấp dịch vụ cày thuê, kéo rank tất cả các tựa game hot: LMHT, Liên Quân Mobile, Valorant, Tốc Chiến, Đấu Trường Chân Lý (TFT), CS2... Nhanh chóng, bảo mật tuyệt đối với đội ngũ booster hàng đầu.",
-    images: ["/og-image.png"],
+    title: "LEORANK - Cày Thuê Game & Cày Thuê Liên Quân Giá Rẻ, LMHT, Valorant Uy Tín #1",
+    description: "Hệ thống cày thuê game uy tín số 1 Việt Nam. Chuyên cày thuê liên quân giá rẻ, cày thuê liên minh LMHT, Valorant. 100% Escrow Hold bảo vệ quyền lợi.",
+    images: ["https://www.leorank.site/og-image.png"],
     creator: "@leorank",
   },
   robots: {
@@ -134,7 +138,51 @@ export default function RootLayout({
                     "priceCurrency": "VND",
                     "lowPrice": "10000",
                     "highPrice": "5000000"
+                  },
+                  "aggregateRating": {
+                    "@type": "AggregateRating",
+                    "ratingValue": "4.9",
+                    "reviewCount": "25000",
+                    "bestRating": "5",
+                    "worstRating": "1"
                   }
+                },
+                {
+                  "@type": "FAQPage",
+                  "mainEntity": [
+                    {
+                      "@type": "Question",
+                      "name": "Tài khoản của tôi có bị khóa khi cày thuê không?",
+                      "acceptedAnswer": {
+                        "@type": "Answer",
+                        "text": "LeoRank áp dụng 100% công nghệ ảo hóa VPN định tuyến theo vị trí máy chủ của bạn và bật chế độ Offline trong game. Booster không chat, không troll game, đảm bảo an toàn tài khoản tối đa."
+                      }
+                    },
+                    {
+                      "@type": "Question",
+                      "name": "Cơ chế ký quỹ Escrow bảo vệ tôi như thế nào?",
+                      "acceptedAnswer": {
+                        "@type": "Answer",
+                        "text": "Khoản tiền của bạn sẽ được giữ an toàn tại tài khoản Escrow của hệ thống. Booster chỉ được thanh toán sau khi bạn đăng nhập xác nhận đúng mức rank cam kết và hài lòng."
+                      }
+                    },
+                    {
+                      "@type": "Question",
+                      "name": "Tôi có thể chơi Duo với Booster mà không cần đưa tài khoản không?",
+                      "acceptedAnswer": {
+                        "@type": "Answer",
+                        "text": "Hoàn toàn được! Bạn chỉ cần chọn tùy chọn 'Chơi cùng Booster (Duo)' khi đặt đơn. Booster sẽ kết bạn trong game và cùng bạn leo rank mà bạn không cần phải chia sẻ mật khẩu."
+                      }
+                    },
+                    {
+                      "@type": "Question",
+                      "name": "Nếu Booster không đạt mức rank mong muốn thì sao?",
+                      "acceptedAnswer": {
+                        "@type": "Answer",
+                        "text": "Hệ thống tự động tính toán đối soát: hoàn lại 100% tiền cọc cho các mốc chưa hoàn thành, đồng thời hỗ trợ đổi booster khác hoặc hoàn tiền về ví ngay lập tức kèm bồi thường."
+                      }
+                    }
+                  ]
                 }
               ]
             })

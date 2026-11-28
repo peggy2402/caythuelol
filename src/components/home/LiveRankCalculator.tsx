@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { 
-  Flame, ShieldCheck, ArrowRight, Lock, Trophy, Shield, Activity 
+  Flame, ShieldCheck, ArrowRight, Lock, Trophy, Shield, Activity, CheckCircle2, Sparkles 
 } from 'lucide-react';
 
 // Rank Definitions
@@ -337,62 +337,82 @@ export default function LiveRankCalculator() {
           </div>
 
           {/* RIGHT COLUMN: CORE VALUE PROPOSITION (5 Cols) */}
-          <div className="lg:col-span-5 flex flex-col justify-between h-full pt-4">
+          <div className="lg:col-span-5 flex flex-col space-y-6 pt-2 lg:pl-4">
             <div>
-              <div className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-cyan-400 mb-3">
-                <ShieldCheck className="w-4 h-4" />
+              <div className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-cyan-400 mb-3 px-3 py-1 rounded-full bg-cyan-950/50 border border-cyan-800/40">
+                <ShieldCheck className="w-4 h-4 text-cyan-400" />
                 LeoRank Escrow System
               </div>
               <h3 className="text-3xl sm:text-4xl font-black text-white tracking-tight mb-4 leading-tight">
                 Cày Rank An Toàn, Minh Bạch & Bảo Vệ Khách Hàng Tuyệt Đối
               </h3>
-              <p className="text-zinc-400 text-base leading-relaxed mb-8">
+              <p className="text-zinc-400 text-sm sm:text-base leading-relaxed">
                 Không còn nỗi lo mất tài khoản hay bị giữ tiền vô cớ. Mọi đơn cày trên LeoRank đều được vận hành theo cơ chế ký quỹ thông minh (Escrow Hold) chuẩn tài chính.
               </p>
             </div>
 
+            {/* Quick Guarantees Bar - Lấp đầy khoảng trống với chỉ số ấn tượng */}
+            <div className="grid grid-cols-3 gap-2.5 p-3 rounded-2xl bg-zinc-900/80 border border-cyan-500/20 backdrop-blur-sm">
+              <div className="text-center p-2 rounded-xl bg-zinc-950/60 border border-white/5">
+                <span className="text-base sm:text-lg font-mono font-black text-cyan-400 block">100%</span>
+                <span className="text-[10px] text-zinc-400 font-medium">Bảo chứng Escrow</span>
+              </div>
+              <div className="text-center p-2 rounded-xl bg-zinc-950/60 border border-white/5">
+                <span className="text-base sm:text-lg font-mono font-black text-emerald-400 block">0%</span>
+                <span className="text-[10px] text-zinc-400 font-medium">Rủi ro khóa nick</span>
+              </div>
+              <div className="text-center p-2 rounded-xl bg-zinc-950/60 border border-white/5">
+                <span className="text-base sm:text-lg font-mono font-black text-amber-400 block">99.8%</span>
+                <span className="text-[10px] text-zinc-400 font-medium">Đúng hẹn cam kết</span>
+              </div>
+            </div>
+
             {/* 4 Pillars */}
-            <div className="space-y-4">
+            <div className="space-y-3">
               {[
                 {
                   icon: Lock,
                   title: '100% Escrow Hold Payment',
                   desc: 'Tiền cọc được hệ thống đóng băng an toàn. Booster chỉ nhận tiền sau khi bạn kiểm tra và bấm xác nhận hoàn thành.',
                   color: 'text-cyan-400',
-                  bg: 'bg-cyan-500/10'
+                  bg: 'bg-cyan-500/10',
+                  border: 'border-cyan-500/20'
                 },
                 {
                   icon: Trophy,
                   title: 'Booster Thách Đấu KYC Định Danh',
                   desc: '100% booster trải qua quy trình kiểm tra trình độ gắt gao (tối thiểu Cao Thủ 500LP+), có hợp đồng cam kết trách nhiệm.',
                   color: 'text-amber-400',
-                  bg: 'bg-amber-500/10'
+                  bg: 'bg-amber-500/10',
+                  border: 'border-amber-500/20'
                 },
                 {
                   icon: Shield,
                   title: 'Ảo Hóa VPN & Chế Độ Offline',
                   desc: 'Hệ thống định tuyến VPN theo vị trí địa lý của bạn. Bật chế độ Offline không hiển thị online với bạn bè.',
                   color: 'text-emerald-400',
-                  bg: 'bg-emerald-500/10'
+                  bg: 'bg-emerald-500/10',
+                  border: 'border-emerald-500/20'
                 },
                 {
                   icon: Activity,
                   title: 'Theo Dõi Trận Đấu & Chat 1-1',
                   desc: 'Cập nhật tiến độ thắng thua thời gian thực trên giao diện cá nhân. Nhắn tin trực tiếp với booster để thống nhất giờ chơi.',
                   color: 'text-purple-400',
-                  bg: 'bg-purple-500/10'
+                  bg: 'bg-purple-500/10',
+                  border: 'border-purple-500/20'
                 }
               ].map((pillar, idx) => (
                 <div
                   key={idx}
-                  className="p-4 rounded-2xl bg-zinc-900/60 border border-zinc-800/80 flex items-start gap-4 hover:border-zinc-700 transition-colors"
+                  className={`p-3.5 rounded-2xl bg-zinc-900/60 border ${pillar.border} flex items-start gap-3.5 hover:border-zinc-600 transition-all duration-200 hover:bg-zinc-900/90`}
                 >
-                  <div className={`p-2.5 rounded-xl ${pillar.bg} ${pillar.color} shrink-0 mt-0.5`}>
-                    <pillar.icon className="w-5 h-5" />
+                  <div className={`p-2 rounded-xl ${pillar.bg} ${pillar.color} shrink-0 mt-0.5`}>
+                    <pillar.icon className="w-4 h-4" />
                   </div>
                   <div>
-                    <h4 className="text-sm font-bold text-white mb-1">{pillar.title}</h4>
-                    <p className="text-xs text-zinc-400 leading-relaxed">{pillar.desc}</p>
+                    <h4 className="text-xs sm:text-sm font-bold text-white mb-0.5">{pillar.title}</h4>
+                    <p className="text-[11px] sm:text-xs text-zinc-400 leading-relaxed">{pillar.desc}</p>
                   </div>
                 </div>
               ))}
