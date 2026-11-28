@@ -178,9 +178,17 @@ export class PublicService {
     const effectiveResourceType: 'auto' | 'raw' | 'image' =
       targetFolder === 'caythuelol/chat' ? 'image' : resourceType;
 
+    // Chuẩn hóa tên file và tạo public_id có đuôi mở rộng rõ ràng (đặc biệt là .pdf cho hợp đồng)
+    const rawBaseName = (fileName || 'file')
+      .replace(/\.[^/.]+$/, '')
+      .replace(/[^a-zA-Z0-9_-]/g, '_');
+    const ext = isPdfMime ? '.pdf' : '';
+    const publicId = `${rawBaseName}_${Date.now()}${ext}`;
+
     const uploadOptions: any = {
       folder: targetFolder,
       resource_type: effectiveResourceType,
+      public_id: publicId,
     };
 
     if (effectiveResourceType === 'raw') {

@@ -570,6 +570,32 @@ export default function BoosterApplyPage() {
     }
   };
 
+  const handleDownloadExistingPdf = async (url: string, suggestedName?: string) => {
+    try {
+      toast.info("Đang xử lý tải xuống hợp đồng PDF...");
+      const res = await fetch(url);
+      if (!res.ok) throw new Error("Không thể tải file từ máy chủ");
+      const blob = await res.blob();
+      const pdfBlob = new Blob([blob], { type: 'application/pdf' });
+      const blobUrl = window.URL.createObjectURL(pdfBlob);
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      let safeName = (suggestedName || 'Hop_Dong_Booster.pdf').trim().replace(/[/\\?%*:|"<>]/g, '_');
+      if (!safeName.toLowerCase().endsWith('.pdf')) {
+        safeName += '.pdf';
+      }
+      link.download = safeName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(blobUrl);
+      toast.success(`Đã tải xuống: ${safeName}`);
+    } catch (err: any) {
+      console.warn("Direct blob download failed, falling back to window.open", err);
+      window.open(url, '_blank');
+    }
+  };
+
   const onSubmit = async (data: FormData) => {
     setIsSubmitting(true);
     try {
@@ -820,14 +846,13 @@ export default function BoosterApplyPage() {
               </div>
 
               {existingApp.contractUrl && (
-                <a
-                  href={existingApp.contractUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-black text-xs transition-all shadow-lg shadow-amber-500/20"
+                <button
+                  type="button"
+                  onClick={() => handleDownloadExistingPdf(existingApp.contractUrl!, `Hop_Dong_Booster_${existingApp.fullName || existingApp.agreementSigned_name || 'LEORANK'}.pdf`)}
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-black text-xs transition-all shadow-lg shadow-amber-500/20 cursor-pointer"
                 >
-                  <Download className="w-4 h-4" /> Tải Hợp Đồng PDF Đã Ký
-                </a>
+                  <Download className="w-4 h-4" /> Tải Hợp Đồng PDF Đã Ký (.pdf)
+                </button>
               )}
             </div>
 
@@ -935,14 +960,13 @@ export default function BoosterApplyPage() {
                     </a>
                   )}
                   {existingApp.contractUrl && (
-                    <a
-                      href={existingApp.contractUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="px-3 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 flex items-center gap-1.5 transition-colors"
+                    <button
+                      type="button"
+                      onClick={() => handleDownloadExistingPdf(existingApp.contractUrl!, `Hop_Dong_Booster_${existingApp.fullName || existingApp.agreementSigned_name || 'LEORANK'}.pdf`)}
+                      className="px-3 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 flex items-center gap-1.5 transition-colors cursor-pointer"
                     >
-                      <Download className="w-3.5 h-3.5 text-amber-400" /> Bản Khai Hợp Đồng PDF
-                    </a>
+                      <Download className="w-3.5 h-3.5 text-amber-400" /> Bản Khai Hợp Đồng PDF (.pdf)
+                    </button>
                   )}
                 </div>
               </div>

@@ -181,6 +181,32 @@ function ApplicationsTab() {
   const [viewContract, setViewContract] = useState<string | null>(null); // State cho Modal xem hợp đồng
   const [confirmModal, setConfirmModal] = useState<{ id: string; status: 'approved' | 'rejected'; name: string } | null>(null);
 
+  const handleDownloadContract = async (url: string, suggestedName?: string) => {
+    try {
+      toast.info("Đang xử lý tải xuống file PDF...");
+      const res = await fetch(url);
+      if (!res.ok) throw new Error("Không thể tải file từ máy chủ");
+      const blob = await res.blob();
+      const pdfBlob = new Blob([blob], { type: 'application/pdf' });
+      const blobUrl = window.URL.createObjectURL(pdfBlob);
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      let safeName = (suggestedName || 'Hop_Dong_Booster.pdf').trim().replace(/[/\\?%*:|"<>]/g, '_');
+      if (!safeName.toLowerCase().endsWith('.pdf')) {
+        safeName += '.pdf';
+      }
+      link.download = safeName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(blobUrl);
+      toast.success(`Đã tải xuống: ${safeName}`);
+    } catch (err: any) {
+      console.warn("Direct blob download failed, falling back to window.open", err);
+      window.open(url, '_blank');
+    }
+  };
+
   const getTrackerLabel = (gameCode?: string) => {
     switch (gameCode?.toUpperCase()) {
       case 'LOL': return 'OP.GG / Riot ID';
@@ -454,7 +480,10 @@ function ApplicationsTab() {
                 </a>
               )}
               {app.contractUrl && (
-                <button onClick={() => setViewContract(app.contractUrl!)} className="text-amber-400 hover:underline flex items-center gap-1 font-medium">
+                <button 
+                  onClick={() => { setSelectedApp(app); setViewContract(app.contractUrl!); }} 
+                  className="text-amber-400 hover:underline flex items-center gap-1 font-medium"
+                >
                   <FileText size={12} /> Hợp đồng PDF
                 </button>
               )}
@@ -664,10 +693,24 @@ function ApplicationsTab() {
                   )}
 
                   {selectedApp.contractUrl && (
-                    <button onClick={() => setViewContract(selectedApp.contractUrl!)} className="block p-4 bg-zinc-950 rounded-xl border border-zinc-800 hover:border-amber-500 transition-colors flex flex-col items-center justify-center gap-2 text-center w-full h-full">
-                      <FileText className="w-8 h-8 text-amber-400" />
-                      <span className="text-xs font-bold text-zinc-200">Hợp Đồng PDF Đã Ký</span>
-                    </button>
+                    <div className="grid grid-cols-2 gap-2 w-full col-span-2">
+                      <button 
+                        type="button" 
+                        onClick={() => setViewContract(selectedApp.contractUrl!)} 
+                        className="p-3 bg-zinc-950 rounded-xl border border-zinc-800 hover:border-amber-500 transition-colors flex flex-col items-center justify-center gap-1.5 text-center w-full"
+                      >
+                        <FileText className="w-6 h-6 text-amber-400" />
+                        <span className="text-xs font-bold text-zinc-200">Xem Hợp Đồng PDF</span>
+                      </button>
+                      <button 
+                        type="button" 
+                        onClick={() => handleDownloadContract(selectedApp.contractUrl!, `Hop_Dong_Booster_${selectedApp.fullName || selectedApp.agreementSigned_name || 'LEORANK'}.pdf`)} 
+                        className="p-3 bg-zinc-950 rounded-xl border border-zinc-800 hover:border-cyan-500 transition-colors flex flex-col items-center justify-center gap-1.5 text-center w-full"
+                      >
+                        <Download className="w-6 h-6 text-cyan-400" />
+                        <span className="text-xs font-bold text-zinc-200">Tải File PDF (.pdf)</span>
+                      </button>
+                    </div>
                   )}
                 </div>
               </div>
@@ -726,15 +769,13 @@ function ApplicationsTab() {
                 >
                   <ExternalLink size={14} /> Mở Tab Mới
                 </button>
-                <a
-                  href={viewContract}
-                  download
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="px-3 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold flex items-center gap-1.5 transition-colors"
+                <button
+                  type="button"
+                  onClick={() => handleDownloadContract(viewContract, `Hop_Dong_Booster_${selectedApp?.fullName || selectedApp?.agreementSigned_name || 'LEORANK'}.pdf`)}
+                  className="px-3 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
                 >
                   <Download size={14} /> Tải PDF
-                </a>
+                </button>
                 <button onClick={() => setViewContract(null)} className="p-1.5 hover:bg-zinc-800 rounded-full text-zinc-400 hover:text-white transition-colors">
                   <X size={20} />
                 </button>
